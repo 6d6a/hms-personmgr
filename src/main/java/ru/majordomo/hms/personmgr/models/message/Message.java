@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import java.io.IOException;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,13 +23,27 @@ public class Message {
 
     private Map<String, String> operation;
 
+    private Map<String, String> data;
+
     public Message() {
+    }
+
+    public Message(String operationIdentity, List<String> accountIdentity) {
+        this.operationIdentity = operationIdentity;
+        this.accountIdentity = accountIdentity;
     }
 
     public Message(String operationIdentity, List<String> accountIdentity, Map<String, String> operation) {
         this.operationIdentity = operationIdentity;
         this.accountIdentity = accountIdentity;
         this.operation = operation;
+    }
+
+    public Message(String operationIdentity, List<String> accountIdentity, Map<String, String> operation, Map<String, String> data) {
+        this.operationIdentity = operationIdentity;
+        this.accountIdentity = accountIdentity;
+        this.operation = operation;
+        this.data = data;
     }
 
     public String getOperationIdentity() {
@@ -55,6 +70,21 @@ public class Message {
         this.operation = operation;
     }
 
+    public void setOperation(String action, String accountType, String free) {
+        this.operation = new HashMap<>();
+        this.operation.put("action", action);
+        this.operation.put("accountType", accountType);
+        this.operation.put("free", free);
+    }
+
+    public Map<String, String> getData() {
+        return data;
+    }
+
+    public void setData(Map<String, String> data) {
+        this.data = data;
+    }
+
     @Override
     public String toString() {
         return "{" +
@@ -70,10 +100,6 @@ public class Message {
         String message = "";
         try {
             message = objectMapper.writeValueAsString(obj);
-        } catch (JsonGenerationException e) {
-            e.printStackTrace();
-        } catch (JsonMappingException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
