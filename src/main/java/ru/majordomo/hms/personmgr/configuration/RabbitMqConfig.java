@@ -20,8 +20,8 @@ public class RabbitMqConfig implements RabbitListenerConfigurer {
     @Bean
     public ConnectionFactory connectionFactory() {
         CachingConnectionFactory connectionFactory = new CachingConnectionFactory("localhost");
-        connectionFactory.setUsername("personmgr");
-        connectionFactory.setPassword("personmgr");
+        connectionFactory.setUsername("guest");
+        connectionFactory.setPassword("guest");
         return connectionFactory;
     }
 
