@@ -1,4 +1,6 @@
 lib/
 .idea/
 target/
-personmgr.iml
+.gradle/
+gradle/
+gradlew*
