@@ -65,6 +65,12 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>ru.majordomo.hms.common</groupId>
+			<artifactId>hms-common</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
 	</dependencies>
 	
 	<build>
@@ -75,6 +81,14 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<repositories>
+		<repository>
+			<id>ru.majordomo.hms.common</id>
+			<name>hms-common</name>
+			<url>http://172.16.103.82:30080/</url>
+		</repository>
+	</repositories>
 	
 
 </project>

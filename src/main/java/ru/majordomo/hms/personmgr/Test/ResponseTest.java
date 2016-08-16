@@ -1,6 +1,6 @@
 package ru.majordomo.hms.personmgr.Test;
 
-import ru.majordomo.hms.personmgr.controller.Response;
+import ru.majordomo.hms.personmgr.models.Response;
 
 public class ResponseTest {
 
