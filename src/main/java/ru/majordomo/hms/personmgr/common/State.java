@@ -1,7 +1,7 @@
 package ru.majordomo.hms.personmgr.common;
 
 /**
- * Created by dolnigin on 17.08.16.
+ * State
  */
 public enum State {
     NEW, PROCESSING, FINISHED, ERROR

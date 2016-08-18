@@ -1,10 +1,25 @@
 package ru.majordomo.hms.personmgr.model;
 
 /**
- * Created by dolnigin on 17.08.16.
+ * BusinessAction
  */
 public class BusinessAction {
-    String address;
-    String template;
-    String message;
+    private String destination;
+    private String message;
+
+    public String getDestination() {
+        return destination;
+    }
+
+    public void setDestination(String destination) {
+        this.destination = destination;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
 }
