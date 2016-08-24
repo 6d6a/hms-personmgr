@@ -1,15 +1,25 @@
 package ru.majordomo.hms.personmgr.model;
 
+import org.springframework.data.annotation.PersistenceConstructor;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.redis.core.RedisHash;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.FlowType;
+import ru.majordomo.hms.personmgr.common.State;
 
 /**
  * BusinessFlow
  */
+@Document
 public class BusinessFlow extends Step {
     private FlowType flowType;
-    private List<Step> steps;
+
+    @Transient
+    private List<BusinessAction> businessActions = new ArrayList<>();
 
     public FlowType getFlowType() {
         return flowType;
@@ -19,19 +29,40 @@ public class BusinessFlow extends Step {
         this.flowType = flowType;
     }
 
-    public List<Step> getSteps() {
-        return steps;
+    public List<BusinessAction> getBusinessActions() {
+        return businessActions;
     }
 
-    public void setSteps(List<Step> steps) {
-        this.steps = steps;
+    public void setBusinessActions(List<BusinessAction> steps) {
+        this.businessActions = steps;
     }
 
-    public void addStep(Step step) {
-        this.steps.add(step);
+    public void addBusinessAction(BusinessAction step) {
+        this.businessActions.add(step);
     }
 
-    public void deleteStep(Step step) {
-        this.steps.remove(step);
+    public void deleteBusinessAction(BusinessAction step) {
+        this.businessActions.remove(step);
+    }
+
+    public BusinessFlow() {
+    }
+
+    @PersistenceConstructor
+    public BusinessFlow(String id, String name, State state, int priority, FlowType flowType) {
+        super();
+        this.setId(id);
+        this.setName(name);
+        this.setState(state);
+        this.setPriority(priority);
+        this.flowType = flowType;
+    }
+
+    @Override
+    public String toString() {
+        return "BusinessFlow{" +
+                "flowType=" + flowType +
+                ", businessActions=" + businessActions +
+                "} " + super.toString();
     }
 }
