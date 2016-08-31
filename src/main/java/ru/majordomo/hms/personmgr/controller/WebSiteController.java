@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.FlowType;
 import ru.majordomo.hms.personmgr.common.RestResponse;
 import ru.majordomo.hms.personmgr.model.BusinessFlow;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowBuilder;
 
 /**
@@ -28,6 +29,9 @@ public class WebSiteController {
 
     @Autowired
     private BusinessFlowBuilder businessFlowBuilder;
+
+    @Autowired
+    private ProcessingBusinessFlowRepository processingBusinessFlowRepository;
 
     @RequestMapping(value = "create", method = RequestMethod.POST)
     public RestResponse createAccount(

@@ -5,6 +5,6 @@ import org.springframework.data.redis.core.RedisHash;
 /**
  * ProcessingBusinessFlow
  */
-@RedisHash("businessFlow")
+@RedisHash("processingBusinessFlow")
 public class ProcessingBusinessFlow extends BusinessFlow {
 }
