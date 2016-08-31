@@ -33,16 +33,16 @@ public class BusinessFlow extends Step {
         return businessActions;
     }
 
-    public void setBusinessActions(List<BusinessAction> steps) {
-        this.businessActions = steps;
+    public void setBusinessActions(List<BusinessAction> actions) {
+        this.businessActions = actions;
     }
 
-    public void addBusinessAction(BusinessAction step) {
-        this.businessActions.add(step);
+    public void addBusinessAction(BusinessAction action) {
+        this.businessActions.add(action);
     }
 
-    public void deleteBusinessAction(BusinessAction step) {
-        this.businessActions.remove(step);
+    public void deleteBusinessAction(BusinessAction action) {
+        this.businessActions.remove(action);
     }
 
     public BusinessFlow() {

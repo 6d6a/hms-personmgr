@@ -18,8 +18,12 @@ public class BaseModel {
         return id;
     }
 
-    protected void setId(String id) {
+    public void setId(String id) {
         this.id = id;
+    }
+
+    public void unSetId() {
+        this.id = null;
     }
 
     /*
