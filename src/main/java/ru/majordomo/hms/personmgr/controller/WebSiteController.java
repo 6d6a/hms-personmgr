@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.FlowType;
 import ru.majordomo.hms.personmgr.common.RestResponse;
 import ru.majordomo.hms.personmgr.model.BusinessFlow;
+import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowBuilder;
 
@@ -39,7 +40,9 @@ public class WebSiteController {
             HttpServletResponse response
     ) {
         Map<String, String> params = new HashMap<>();
-        BusinessFlow businessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_CREATE, params);
+        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_CREATE, params);
+
+        processingBusinessFlowRepository.save(processingBusinessFlow);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
         return new RestResponse("11111", "queued");

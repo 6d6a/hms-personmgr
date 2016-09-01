@@ -23,14 +23,11 @@ public class BusinessFlowBuilder {
     public ProcessingBusinessFlow build(FlowType flowType, Map<String, String> params) {
         BusinessFlow businessFlow = businessFlowRepository.findByFlowType(flowType);
 
-        ProcessingBusinessFlow processingBusinessFlow = (ProcessingBusinessFlow) businessFlow;
+        ProcessingBusinessFlow processingBusinessFlow = new ProcessingBusinessFlow(businessFlow);
 
-        processingBusinessFlow.unSetId();
+        processingBusinessFlow.setParams(params);
         processingBusinessFlow.setState(State.NEW);
 
-        for (BusinessAction businessAction: processingBusinessFlow.getBusinessActions()) {
-            businessAction.setState(State.NEW);
-        }
         return processingBusinessFlow;
     }
 
