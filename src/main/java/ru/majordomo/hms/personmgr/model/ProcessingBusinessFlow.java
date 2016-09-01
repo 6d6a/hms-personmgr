@@ -1,8 +1,11 @@
 package ru.majordomo.hms.personmgr.model;
 
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.PersistenceConstructor;
-import org.springframework.data.redis.core.RedisHash;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,8 +18,14 @@ import ru.majordomo.hms.personmgr.common.State;
 /**
  * ProcessingBusinessFlow
  */
-@RedisHash("processingBusinessFlow")
+@Document
 public class ProcessingBusinessFlow extends BusinessFlow {
+    @CreatedDate
+    private LocalDateTime createdDate;
+
+    @LastModifiedDate
+    private LocalDateTime updatedDate;
+
     private Map<String, String> params = new HashMap<>();
 
     private List<ProcessingBusinessAction> processingBusinessActions = new ArrayList<>();
@@ -55,5 +64,15 @@ public class ProcessingBusinessFlow extends BusinessFlow {
         super(id, name, state, priority, flowType);
         this.params = params;
         this.processingBusinessActions = processingBusinessActions;
+    }
+
+    @Override
+    public String toString() {
+        return "ProcessingBusinessFlow{" +
+                "createdDate=" + createdDate +
+                ", updatedDate=" + updatedDate +
+                ", params=" + params +
+                ", processingBusinessActions=" + processingBusinessActions +
+                "} " + super.toString();
     }
 }

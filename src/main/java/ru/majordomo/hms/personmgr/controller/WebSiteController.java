@@ -45,6 +45,6 @@ public class WebSiteController {
         processingBusinessFlowRepository.save(processingBusinessFlow);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
-        return new RestResponse("11111", "queued");
+        return new RestResponse(processingBusinessFlow.getId(), processingBusinessFlow.toString());
     }
 }
