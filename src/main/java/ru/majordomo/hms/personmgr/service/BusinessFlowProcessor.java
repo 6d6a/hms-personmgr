@@ -17,7 +17,7 @@ public class BusinessFlowProcessor {
     public ProcessingBusinessFlow process(ProcessingBusinessFlow processingBusinessFlow) {
         logger.info("processing BusinessFlow " + processingBusinessFlow.getId());
 
-        processingBusinessFlow.setState(State.PROCESSING);
+        processingBusinessFlow.getNeedToProcessBusinessAction().setState(State.PROCESSING);
 
         return processingBusinessFlow;
     }

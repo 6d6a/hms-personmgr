@@ -7,7 +7,6 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.FlowType;
 import ru.majordomo.hms.personmgr.common.State;
-import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.BusinessFlow;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 import ru.majordomo.hms.personmgr.repository.BusinessFlowRepository;
@@ -26,7 +25,7 @@ public class BusinessFlowBuilder {
         ProcessingBusinessFlow processingBusinessFlow = new ProcessingBusinessFlow(businessFlow);
 
         processingBusinessFlow.setParams(params);
-        processingBusinessFlow.setState(State.NEW);
+        processingBusinessFlow.setState(State.NEED_TO_PROCESS);
 
         return processingBusinessFlow;
     }

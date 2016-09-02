@@ -21,4 +21,19 @@ public class ProcessingBusinessAction extends BusinessAction {
     public ProcessingBusinessAction(String id, String name, State state, int priority, String businessFlowId, String destination, String message) {
         super(id, name, state, priority, businessFlowId, destination, message);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        return super.equals(obj);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "ProcessingBusinessAction{} " + super.toString();
+    }
 }

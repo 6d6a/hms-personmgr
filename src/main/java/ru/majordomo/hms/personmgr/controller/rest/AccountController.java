@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.controller;
+package ru.majordomo.hms.personmgr.controller.rest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,23 +16,18 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.FlowType;
 import ru.majordomo.hms.personmgr.common.RestResponse;
 import ru.majordomo.hms.personmgr.model.BusinessFlow;
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowBuilder;
 
 /**
- * WebSiteController
+ * AccountController
  */
 @RestController
-@RequestMapping("/website")
-public class WebSiteController {
-    private final static Logger logger = LoggerFactory.getLogger(WebSiteController.class);
+@RequestMapping("/account")
+public class AccountController {
+    private final static Logger logger = LoggerFactory.getLogger(AccountController.class);
 
     @Autowired
     private BusinessFlowBuilder businessFlowBuilder;
-
-    @Autowired
-    private ProcessingBusinessFlowRepository processingBusinessFlowRepository;
 
     @RequestMapping(value = "create", method = RequestMethod.POST)
     public RestResponse createAccount(
@@ -40,11 +35,9 @@ public class WebSiteController {
             HttpServletResponse response
     ) {
         Map<String, String> params = new HashMap<>();
-        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_CREATE, params);
-
-        processingBusinessFlowRepository.save(processingBusinessFlow);
+        BusinessFlow businessFlow = businessFlowBuilder.build(FlowType.ACCOUNT_CREATE, params);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
-        return new RestResponse(processingBusinessFlow.getId(), processingBusinessFlow.toString());
+        return new RestResponse("11111", "queued");
     }
 }

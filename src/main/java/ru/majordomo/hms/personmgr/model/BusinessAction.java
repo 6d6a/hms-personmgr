@@ -3,6 +3,8 @@ package ru.majordomo.hms.personmgr.model;
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Objects;
+
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
@@ -62,5 +64,21 @@ public class BusinessAction extends Step {
                 ", destination='" + destination + '\'' +
                 ", message='" + message + '\'' +
                 "} " + super.toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        BusinessAction that = (BusinessAction) o;
+        return Objects.equals(businessFlowId, that.businessFlowId) &&
+                Objects.equals(destination, that.destination) &&
+                Objects.equals(message, that.message);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), businessFlowId, destination, message);
     }
 }

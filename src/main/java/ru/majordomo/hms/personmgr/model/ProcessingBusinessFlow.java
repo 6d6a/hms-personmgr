@@ -7,9 +7,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.FlowType;
@@ -37,7 +39,7 @@ public class ProcessingBusinessFlow extends BusinessFlow {
     public void setParams(Map<String, String> params) {
         this.params = params;
         this.processingBusinessActions.addAll(this.getBusinessActions().stream().map(businessAction -> {
-            businessAction.setState(State.NEW);
+            businessAction.setState(State.NEED_TO_PROCESS);
             ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(businessAction);
             return processingBusinessAction;
         }).collect(Collectors.toList()));
@@ -45,6 +47,15 @@ public class ProcessingBusinessFlow extends BusinessFlow {
 
     public List<ProcessingBusinessAction> getProcessingBusinessActions() {
         return processingBusinessActions;
+    }
+
+    public ProcessingBusinessAction getNeedToProcessBusinessAction() {
+        Collections.sort(processingBusinessActions);
+        Optional<ProcessingBusinessAction> action;
+
+        action = processingBusinessActions.stream().filter(processingBusinessAction -> processingBusinessAction.getState() == State.NEED_TO_PROCESS).findFirst();
+
+        return action.isPresent() ? action.get() : null;
     }
 
     public void setProcessingBusinessActions(List<ProcessingBusinessAction> processingBusinessActions) {

@@ -6,12 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-
 import ru.majordomo.hms.personmgr.Application;
-import ru.majordomo.hms.personmgr.common.FlowType;
 import ru.majordomo.hms.personmgr.common.State;
-import ru.majordomo.hms.personmgr.model.BusinessFlow;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
 
@@ -29,7 +25,7 @@ public class BusinessFlowDirector {
 
     @Scheduled(fixedDelay=500)
     public void process() {
-        ProcessingBusinessFlow processingBusinessFlow = processingBusinessFlowRepository.findFirstByStateOrderByPriorityAscCreatedDateAsc(State.NEW);
+        ProcessingBusinessFlow processingBusinessFlow = processingBusinessFlowRepository.findFirstByStateOrderByPriorityAscCreatedDateAsc(State.NEED_TO_PROCESS);
         if (processingBusinessFlow != null) {
             logger.info("Processing " + processingBusinessFlow.toString());
 

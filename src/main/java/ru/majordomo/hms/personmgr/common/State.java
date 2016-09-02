@@ -4,5 +4,5 @@ package ru.majordomo.hms.personmgr.common;
  * State
  */
 public enum State {
-    NEW, PROCESSING, FINISHED, ERROR
+    NEED_TO_PROCESS, PROCESSING, PROCESSED, FINISHED, ERROR
 }
