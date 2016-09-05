@@ -1,13 +1,18 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.FlowType;
+import ru.majordomo.hms.personmgr.common.message.amqp.AmqpMessageDestination;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.BusinessFlow;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
@@ -26,12 +31,13 @@ public class BusinessFlowDBSeedService {
     @Autowired
     private BusinessActionRepository businessActionRepository;
 
+    private ObjectMapper mapper = new ObjectMapper();
+
     public boolean seedDB() {
         boolean result = false;
 
         businessFlowRepository.deleteAll();
         businessActionRepository.deleteAll();
-
 
         BusinessFlow webSiteCreate = new BusinessFlow();
         webSiteCreate.setFlowType(FlowType.WEB_SITE_CREATE);
@@ -40,13 +46,30 @@ public class BusinessFlowDBSeedService {
         businessFlowRepository.save(webSiteCreate);
 
         BusinessAction webSiteCreateAction = new BusinessAction();
-        webSiteCreateAction.setDestination("rc");
-        webSiteCreateAction.setMessage("Create this f***ing WebSite");
+
+        AmqpMessageDestination destination = new AmqpMessageDestination();
+        destination.setExchange("website.create");
+        destination.setRoutingKey("rc");
+
+        webSiteCreateAction.setDestination(destination);
+
+//        Map<Object, Object> params = new HashMap<>();
+//
+//        Map<Object, Object> message = new HashMap<>();
+//        message.put("params", params);
+//
+//        try {
+//            webSiteCreateAction.setMessage(mapper.writeValueAsString(message));
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+        webSiteCreateAction.setMessage("");
+
         webSiteCreateAction.setBusinessFlowId(webSiteCreate.getId());
 
         businessActionRepository.save(webSiteCreateAction);
 
-                // fetch all customers
+        // fetch all customers
         logger.info("BusinessFlow found with findAll():");
         logger.info("-------------------------------");
 

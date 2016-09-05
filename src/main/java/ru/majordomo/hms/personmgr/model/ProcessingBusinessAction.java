@@ -1,8 +1,10 @@
 package ru.majordomo.hms.personmgr.model;
 
+import org.bson.types.ObjectId;
 import org.springframework.data.annotation.PersistenceConstructor;
 
 import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.common.message.GenericMessageDestination;
 
 /**
  * ProcessingBusinessAction
@@ -10,6 +12,7 @@ import ru.majordomo.hms.personmgr.common.State;
 public class ProcessingBusinessAction extends BusinessAction {
     public ProcessingBusinessAction(BusinessAction businessAction) {
         super();
+        this.setId(ObjectId.get().toHexString());
         this.setDestination(businessAction.getDestination());
         this.setName(businessAction.getName());
         this.setMessage(businessAction.getMessage());
@@ -18,7 +21,7 @@ public class ProcessingBusinessAction extends BusinessAction {
     }
 
     @PersistenceConstructor
-    public ProcessingBusinessAction(String id, String name, State state, int priority, String businessFlowId, String destination, String message) {
+    public ProcessingBusinessAction(String id, String name, State state, int priority, String businessFlowId, GenericMessageDestination destination, String message) {
         super(id, name, state, priority, businessFlowId, destination, message);
     }
 

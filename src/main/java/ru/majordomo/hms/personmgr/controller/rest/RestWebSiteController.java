@@ -9,12 +9,12 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
-import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.FlowType;
 import ru.majordomo.hms.personmgr.common.RestResponse;
+import ru.majordomo.hms.personmgr.common.message.rest.RestMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowBuilder;
@@ -24,8 +24,8 @@ import ru.majordomo.hms.personmgr.service.BusinessFlowBuilder;
  */
 @RestController
 @RequestMapping("/website")
-public class WebSiteController {
-    private final static Logger logger = LoggerFactory.getLogger(WebSiteController.class);
+public class RestWebSiteController {
+    private final static Logger logger = LoggerFactory.getLogger(RestWebSiteController.class);
 
     @Autowired
     private BusinessFlowBuilder businessFlowBuilder;
@@ -38,12 +38,24 @@ public class WebSiteController {
             @RequestBody String requestBody,
             HttpServletResponse response
     ) {
-        Map<String, String> params = new HashMap<>();
-        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_CREATE, params);
+        //handling request - getting body params
+        RestMessage restMessage = RestHelper.getFromJson(requestBody);
+
+        String operationIdentity = restMessage.getOperationIdentity();
+
+        HashMap<Object, Object> data = restMessage.getData();
+
+        if (!RestHelper.isValidOperationIdentity(operationIdentity)) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return new RestResponse("0", "Bad operationIdentity");
+        }
+
+        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_CREATE, data);
 
         processingBusinessFlowRepository.save(processingBusinessFlow);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
+
         return new RestResponse(processingBusinessFlow.getId(), processingBusinessFlow.toString());
     }
 }

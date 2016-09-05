@@ -18,26 +18,26 @@ import ru.majordomo.hms.personmgr.common.RestResponse;
 import ru.majordomo.hms.personmgr.model.BusinessFlow;
 import ru.majordomo.hms.personmgr.service.BusinessFlowBuilder;
 
-/**
- * AccountController
- */
-@RestController
-@RequestMapping("/account")
-public class AccountController {
-    private final static Logger logger = LoggerFactory.getLogger(AccountController.class);
-
-    @Autowired
-    private BusinessFlowBuilder businessFlowBuilder;
-
-    @RequestMapping(value = "create", method = RequestMethod.POST)
-    public RestResponse createAccount(
-            @RequestBody String requestBody,
-            HttpServletResponse response
-    ) {
-        Map<String, String> params = new HashMap<>();
-        BusinessFlow businessFlow = businessFlowBuilder.build(FlowType.ACCOUNT_CREATE, params);
-
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-        return new RestResponse("11111", "queued");
-    }
-}
+///**
+// * AccountController
+// */
+//@RestController
+//@RequestMapping("/account")
+//public class AccountController {
+//    private final static Logger logger = LoggerFactory.getLogger(AccountController.class);
+//
+//    @Autowired
+//    private BusinessFlowBuilder businessFlowBuilder;
+//
+//    @RequestMapping(value = "create", method = RequestMethod.POST)
+//    public RestResponse createAccount(
+//            @RequestBody String requestBody,
+//            HttpServletResponse response
+//    ) {
+//        Map<String, String> params = new HashMap<>();
+//        BusinessFlow businessFlow = businessFlowBuilder.build(FlowType.ACCOUNT_CREATE, params);
+//
+//        response.setStatus(HttpServletResponse.SC_ACCEPTED);
+//        return new RestResponse("11111", "queued");
+//    }
+//}

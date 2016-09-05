@@ -2,9 +2,11 @@ package ru.majordomo.hms.personmgr.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 
 /**
@@ -14,11 +16,17 @@ import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 public class BusinessFlowProcessor {
     private final static Logger logger = LoggerFactory.getLogger(BusinessFlowProcessor.class);
 
-    public ProcessingBusinessFlow process(ProcessingBusinessFlow processingBusinessFlow) {
-        logger.info("processing BusinessFlow " + processingBusinessFlow.getId());
+    @Autowired
+    private BusinessFlowActionProcessor actionProcessor;
 
-        processingBusinessFlow.getNeedToProcessBusinessAction().setState(State.PROCESSING);
+    public ProcessingBusinessFlow process(ProcessingBusinessFlow flow) {
+        logger.info("processing BusinessFlow " + flow.getId());
 
-        return processingBusinessFlow;
+        ProcessingBusinessAction action = flow.getNeedToProcessBusinessAction();
+        action.setState(State.PROCESSING);
+
+        action = actionProcessor.process(action);
+
+        return flow;
     }
 }
