@@ -43,6 +43,7 @@ public class ProcessingBusinessFlow extends BusinessFlow {
             businessAction.setState(State.NEED_TO_PROCESS);
             ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(businessAction);
             processingBusinessAction.setParams(params);
+//            processingBusinessAction.setBusinessFlowId();
             return processingBusinessAction;
         }).collect(Collectors.toList()));
     }

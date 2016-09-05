@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.core.MessageProperties;
@@ -15,6 +17,8 @@ public class AmqpSender {
     @Autowired
     private RabbitTemplate myRabbitTemplate;
 
+    private final static Logger logger = LoggerFactory.getLogger(AmqpSender.class);
+
     private Message createMessage(GenericMessage genericMessage, MessageProperties messageProperties) {
 
         return MessageBuilder
@@ -24,6 +28,8 @@ public class AmqpSender {
     }
 
     public void send(String exchange, String routingKey, GenericMessage message) {
+        logger.info("send message by AmqpSender - exchange: " + exchange +" routingKey: " + routingKey + " message" + message.toString());
+
         myRabbitTemplate.setExchange(exchange);
         MessageProperties messageProperties = new MessageProperties();
         messageProperties.setHeader("provider", "pm");
