@@ -35,39 +35,54 @@ public class BusinessFlowDBSeedService {
 
     public boolean seedDB() {
         boolean result = false;
+        BusinessFlow flow;
+        BusinessAction action;
+        AmqpMessageDestination destination;
 
         businessFlowRepository.deleteAll();
         businessActionRepository.deleteAll();
 
-        BusinessFlow webSiteCreate = new BusinessFlow();
-        webSiteCreate.setFlowType(FlowType.WEB_SITE_CREATE);
-        webSiteCreate.setName("WebSite create");
+        //WebSite create
+        flow = new BusinessFlow();
+        flow.setFlowType(FlowType.WEB_SITE_CREATE);
+        flow.setName("WebSite create");
 
-        businessFlowRepository.save(webSiteCreate);
+        businessFlowRepository.save(flow);
 
-        BusinessAction webSiteCreateAction = new BusinessAction();
+        action = new BusinessAction();
 
-        AmqpMessageDestination destination = new AmqpMessageDestination();
+        destination = new AmqpMessageDestination();
         destination.setExchange("website.create");
         destination.setRoutingKey("rc-user");
 
-        webSiteCreateAction.setDestination(destination);
+        action.setDestination(destination);
 
-//        Map<Object, Object> params = new HashMap<>();
-//
-//        Map<Object, Object> message = new HashMap<>();
-//        message.put("params", params);
-//
-//        try {
-//            webSiteCreateAction.setMessage(mapper.writeValueAsString(message));
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-        webSiteCreateAction.setMessage("");
+        action.setMessage("");
 
-        webSiteCreateAction.setBusinessFlowId(webSiteCreate.getId());
+        action.setBusinessFlowId(flow.getId());
 
-        businessActionRepository.save(webSiteCreateAction);
+        businessActionRepository.save(action);
+
+        //Database create
+        flow = new BusinessFlow();
+        flow.setFlowType(FlowType.DATABASE_CREATE);
+        flow.setName("Database create");
+
+        businessFlowRepository.save(flow);
+
+        action = new BusinessAction();
+
+        destination = new AmqpMessageDestination();
+        destination.setExchange("database.create");
+        destination.setRoutingKey("rc-user");
+
+        action.setDestination(destination);
+
+        action.setMessage("");
+
+        action.setBusinessFlowId(flow.getId());
+
+        businessActionRepository.save(action);
 
         // fetch all customers
         logger.info("BusinessFlow found with findAll():");

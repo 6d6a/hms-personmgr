@@ -16,7 +16,6 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.MailManagerTask;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
-import ru.majordomo.hms.personmgr.common.message.amqp.CreateModifyMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
 import ru.majordomo.hms.personmgr.service.AmqpSender;
@@ -24,7 +23,7 @@ import ru.majordomo.hms.personmgr.service.MailManager;
 
 @EnableRabbit
 @Service
-public class AmqpWebSiteController {
+public class AmqpDatabaseController {
 
     @Autowired
     private AmqpSender amqpSender;
@@ -37,7 +36,7 @@ public class AmqpWebSiteController {
 
     private final Map<Object, Object> EMPTY_PARAMS = new HashMap<>();
 
-    private final String EXCHANGE_PREFIX = "website.";
+    private final String EXCHANGE_PREFIX = "database.";
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm", durable = "true", autoDelete = "true"), exchange = @Exchange(value = EXCHANGE_PREFIX + "create"), key = "pm"))
     public void create(@Payload ServiceMessage message, @Headers Map<String, String> headers) {
@@ -64,18 +63,10 @@ public class AmqpWebSiteController {
             mailTask.setApiName("MajordomoVHWebSiteCreated");
             mailTask.setEmail("web-script@majordomo.ru");
             mailTask.addParameter("client_id", "12345");
-            mailTask.addParameter("website_name", "test-site.ru");
+            mailTask.addParameter("website_name", "b1234556");
             mailTask.setPriority(10);
 
             mailManager.createTask(mailTask);
         }
     }
-//
-//    @RabbitListener(bindings = @QueueBinding(value = @Queue(durable = "true", autoDelete = "true"), exchange = @Exchange(value = "account.modify"), key = "pm"))
-//    public void modifyAccountAction(@Payload CreateModifyMessage message, @Headers Map<String, String> headers) {
-//        System.out.println("Recieved message:");
-//        System.out.println(message.toString());
-//        String provider = headers.get("provider");
-//        System.out.println(provider);
-//    }
 }

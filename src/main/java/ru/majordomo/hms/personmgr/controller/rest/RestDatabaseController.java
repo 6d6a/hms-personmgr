@@ -24,10 +24,10 @@ import ru.majordomo.hms.personmgr.service.BusinessFlowBuilder;
  * WebSiteController
  */
 @RestController
-@RequestMapping("/website")
+@RequestMapping("/database")
 @CrossOrigin("*")
-public class RestWebSiteController {
-    private final static Logger logger = LoggerFactory.getLogger(RestWebSiteController.class);
+public class RestDatabaseController {
+    private final static Logger logger = LoggerFactory.getLogger(RestDatabaseController.class);
 
     @Autowired
     private BusinessFlowBuilder businessFlowBuilder;
@@ -54,7 +54,7 @@ public class RestWebSiteController {
             return new RestResponse("0", "Bad operationIdentity");
         }
 
-        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_CREATE, data);
+        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.DATABASE_CREATE, data);
 
         processingBusinessFlowRepository.save(processingBusinessFlow);
 
