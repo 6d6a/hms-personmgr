@@ -15,6 +15,7 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.MailManagerTask;
 import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.amqp.CreateModifyMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
@@ -39,7 +40,7 @@ public class AmqpWebSiteController {
     private final String EXCHANGE_PREFIX = "website.";
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm", durable = "true", autoDelete = "true"), exchange = @Exchange(value = EXCHANGE_PREFIX + "create"), key = "pm"))
-    public void createAction(@Payload CreateModifyMessage message, @Headers Map<String, String> headers) {
+    public void createAction(@Payload ServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         System.out.println("Received from " + provider + ": " + message.toString());
 

@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.common.message.GenericMessage;
+import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
 
 @Service
 public class AmqpSender {
@@ -19,7 +20,7 @@ public class AmqpSender {
 
     private final static Logger logger = LoggerFactory.getLogger(AmqpSender.class);
 
-    private Message createMessage(GenericMessage genericMessage, MessageProperties messageProperties) {
+    private Message createMessage(ServiceMessage genericMessage, MessageProperties messageProperties) {
 
         return MessageBuilder
                 .withBody(genericMessage.toJson().getBytes())
@@ -27,13 +28,15 @@ public class AmqpSender {
                 .build();
     }
 
-    public void send(String exchange, String routingKey, GenericMessage message) {
-        logger.info("send message by AmqpSender - exchange: " + exchange +" routingKey: " + routingKey + " message" + message.toString());
+    public void send(String exchange, String routingKey, ServiceMessage message) {
+        logger.info("send message by AmqpSender - exchange: " + exchange +" routingKey: " + routingKey + " message " + message.toString());
 
         myRabbitTemplate.setExchange(exchange);
         MessageProperties messageProperties = new MessageProperties();
         messageProperties.setHeader("provider", "pm");
+        messageProperties.setContentType("application/json");
         Message amqpMessage = createMessage(message, messageProperties);
+        logger.info(amqpMessage.toString());
         myRabbitTemplate.convertAndSend(routingKey, amqpMessage);
     }
 }
