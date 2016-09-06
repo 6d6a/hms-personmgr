@@ -6,26 +6,26 @@ import ru.majordomo.hms.personmgr.common.message.GenericMessage;
 
 public class RestMessage extends GenericMessage {
 
-    private HashMap<Object, Object> data;
+    private HashMap<Object, Object> params;
 
     public RestMessage() {
 
     }
 
-    public RestMessage(String operationIdentity, HashMap<Object, Object> data) {
+    public RestMessage(String operationIdentity, HashMap<Object, Object> params) {
         this.operationIdentity = operationIdentity;
-        this.data = data;
+        this.params = params;
     }
 
-    public HashMap<Object, Object> getData() {
-        return data;
+    public HashMap<Object, Object> getParams() {
+        return params;
     }
 
-    public void setData(HashMap<Object, Object> data) {
-        this.data = data;
+    public void setParams(HashMap<Object, Object> params) {
+        this.params = params;
     }
 
     public String toString() {
-        return "request: operationIdentity: " + operationIdentity + ", data: " + data.toString();
+        return "request: operationIdentity: " + operationIdentity + ", params: " + params.toString();
     }
 }

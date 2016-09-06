@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.controller.rest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -24,6 +25,7 @@ import ru.majordomo.hms.personmgr.service.BusinessFlowBuilder;
  */
 @RestController
 @RequestMapping("/website")
+@CrossOrigin("*")
 public class RestWebSiteController {
     private final static Logger logger = LoggerFactory.getLogger(RestWebSiteController.class);
 
@@ -38,15 +40,17 @@ public class RestWebSiteController {
             @RequestBody String requestBody,
             HttpServletResponse response
     ) {
+        logger.info(requestBody);
         //handling request - getting body params
         RestMessage restMessage = RestHelper.getFromJson(requestBody);
 
         String operationIdentity = restMessage.getOperationIdentity();
 
-        HashMap<Object, Object> data = restMessage.getData();
+        HashMap<Object, Object> data = restMessage.getParams();
 
         if (!RestHelper.isValidOperationIdentity(operationIdentity)) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            logger.info("OperationIdentity is not valid");
             return new RestResponse("0", "Bad operationIdentity");
         }
 

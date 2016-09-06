@@ -3,6 +3,8 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.hibernate.validator.constraints.NotEmpty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,6 +16,8 @@ import javax.validation.constraints.NotNull;
 import ru.majordomo.hms.personmgr.common.message.rest.RestMessage;
 
 public abstract class RestHelper {
+
+    private final static Logger logger = LoggerFactory.getLogger(RestHelper.class);
 
     private static final Map<String, ArrayList<String>> requiredParams;
     static {
@@ -57,7 +61,7 @@ public abstract class RestHelper {
         try {
             restMessage = mapper.readValue(jsonString, RestMessage.class);
         } catch (IOException e) {
-            e.getMessage();
+            logger.info(e.getMessage());
         }
         if (restMessage.getOperationIdentity() == null) {
             restMessage.setOperationIdentity("0");
@@ -67,7 +71,7 @@ public abstract class RestHelper {
 
     public static Boolean hasRequiredParams(@NotEmpty RestMessage restMessage, @NotNull String key) {
         for (String param : requiredParams.get(key)) {
-            if (!restMessage.getData().containsKey(param)) {
+            if (!restMessage.getParams().containsKey(param)) {
                 return false;
             }
         }

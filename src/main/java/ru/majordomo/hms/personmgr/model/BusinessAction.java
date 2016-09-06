@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.model;
 
 import org.springframework.data.annotation.PersistenceConstructor;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.HashMap;
@@ -16,6 +17,7 @@ import ru.majordomo.hms.personmgr.validators.ObjectId;
  */
 @Document
 public class BusinessAction extends Step {
+    @Indexed
     @ObjectId(BusinessFlow.class)
     private String businessFlowId;
     private GenericMessageDestination destination;

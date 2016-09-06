@@ -47,7 +47,8 @@ public class BusinessFlowBuilder {
 //                e.printStackTrace();
 //            }
 
-//            processingBusinessAction.
+            processingBusinessAction.setParams(params);
+
             return processingBusinessAction;
         }).collect(Collectors.toList()));
 

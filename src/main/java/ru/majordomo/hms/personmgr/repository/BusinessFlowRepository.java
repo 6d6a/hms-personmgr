@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.repository;
 
 
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -15,5 +16,5 @@ public interface BusinessFlowRepository extends MongoRepository<BusinessFlow, St
 
     BusinessFlow findByName(String name);
 
-    BusinessFlow findByFlowType(FlowType flowType);
+    BusinessFlow findByFlowType(@Param("flowType") FlowType flowType);
 }

@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.model;
 
+import org.springframework.data.mongodb.core.index.Indexed;
+
 import java.util.Objects;
 
 import ru.majordomo.hms.personmgr.common.State;
@@ -8,8 +10,11 @@ import ru.majordomo.hms.personmgr.common.State;
  * Step
  */
 public abstract class Step extends BaseModel implements Comparable<Step> {
+    @Indexed
     private String name;
+    @Indexed
     private State state;
+    @Indexed
     private int priority;
 
     public String getName() {
