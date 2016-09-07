@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.message.GenericMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.amqp.AmqpMessageDestination;
-import ru.majordomo.hms.personmgr.common.message.amqp.CreateModifyMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 
 /**

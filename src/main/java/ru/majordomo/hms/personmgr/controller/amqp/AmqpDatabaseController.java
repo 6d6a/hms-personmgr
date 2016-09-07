@@ -75,5 +75,8 @@ public class AmqpDatabaseController {
 
             logger.info("mail sent");
         }
+        if (businessFlow != null) {
+            businessFlowRepository.save(businessFlow);
+        }
     }
 }

@@ -44,15 +44,8 @@ public class RestWebSiteController {
         //handling request - getting body params
         RestMessage restMessage = RestHelper.getFromJson(requestBody);
 
-        String operationIdentity = restMessage.getOperationIdentity();
-
         HashMap<Object, Object> data = restMessage.getParams();
 
-        if (!RestHelper.isValidOperationIdentity(operationIdentity)) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            logger.info("OperationIdentity is not valid");
-            return new RestResponse("0", "Bad operationIdentity");
-        }
 
         ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_CREATE, data);
 

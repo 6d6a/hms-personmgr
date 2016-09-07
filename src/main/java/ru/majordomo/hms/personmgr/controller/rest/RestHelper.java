@@ -63,9 +63,9 @@ public abstract class RestHelper {
         } catch (IOException e) {
             logger.info(e.getMessage());
         }
-        if (restMessage.getOperationIdentity() == null) {
-            restMessage.setOperationIdentity("0");
-        }
+//        if (restMessage.getOperationIdentity() == null) {
+//            restMessage.setOperationIdentity("0");
+//        }
         return restMessage;
     }
 

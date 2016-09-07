@@ -19,7 +19,6 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.MailManagerTask;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
-import ru.majordomo.hms.personmgr.common.message.amqp.CreateModifyMessage;
 import ru.majordomo.hms.personmgr.controller.rest.RestDatabaseController;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
@@ -52,6 +51,7 @@ public class AmqpWebSiteController {
         if (message.containsParam("success") && message.getParam("success").equals(true) && businessFlow != null) {
             logger.info("ProcessingBusinessFlow -> success " + provider + ", operationIdentity: " + message.getOperationIdentity());
             businessFlow.setState(State.PROCESSED);
+            businessFlow.setProcessBusinessActionStateById(message.getActionIdentity(), State.PROCESSED);
 //            operation.successOperation(provider);
 //            operation.setParams(provider, message.getParams());
 //            if (provider.equals("rc")) {
@@ -63,6 +63,7 @@ public class AmqpWebSiteController {
             logger.info("ProcessingBusinessFlow -> error " + provider + ", operationIdentity: " + message.getOperationIdentity());
             if (businessFlow != null) {
                 businessFlow.setState(State.ERROR);
+                businessFlow.setProcessBusinessActionStateById(message.getActionIdentity(), State.ERROR);
             }
         }
         if (businessFlow != null && businessFlow.getState() == State.PROCESSED) {
@@ -76,6 +77,10 @@ public class AmqpWebSiteController {
             mailManager.createTask(mailTask);
 
             logger.info("mail sent");
+        }
+
+        if (businessFlow != null) {
+            businessFlowRepository.save(businessFlow);
         }
     }
 //

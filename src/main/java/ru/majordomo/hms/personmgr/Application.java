@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventL
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import ru.majordomo.hms.personmgr.event.BusinessFlowEventListener;
+import ru.majordomo.hms.personmgr.event.ProcessingBusinessFlowEventListener;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDBSeedService;
 
 @SpringBootApplication
@@ -62,6 +63,11 @@ public class Application implements CommandLineRunner {
     @Bean
     public BusinessFlowEventListener businessFlowEventListener() {
         return new BusinessFlowEventListener();
+    }
+
+    @Bean
+    public ProcessingBusinessFlowEventListener processingBusinessFlowEventListener() {
+        return new ProcessingBusinessFlowEventListener();
     }
 
     @Bean

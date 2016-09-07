@@ -61,6 +61,26 @@ public class ProcessingBusinessFlow extends BusinessFlow {
         return action.isPresent() ? action.get() : null;
     }
 
+    public ProcessingBusinessAction getProcessBusinessActionById(String id) {
+        Optional<ProcessingBusinessAction> action;
+
+        action = processingBusinessActions.stream().filter(processingBusinessAction -> processingBusinessAction.getId().equals(id)).findFirst();
+
+        return action.isPresent() ? action.get() : null;
+    }
+
+    public void setProcessBusinessActionStateById(String id, State state) {
+        Optional<ProcessingBusinessAction> action;
+        ProcessingBusinessAction businessAction;
+
+        action = processingBusinessActions.stream().filter(processingBusinessAction -> processingBusinessAction.getId().equals(id)).findFirst();
+
+        if (action.isPresent()) {
+            businessAction = action.get();
+            businessAction.setState(state);
+        }
+    }
+
     public void setProcessingBusinessActions(List<ProcessingBusinessAction> processingBusinessActions) {
         this.processingBusinessActions = processingBusinessActions;
     }

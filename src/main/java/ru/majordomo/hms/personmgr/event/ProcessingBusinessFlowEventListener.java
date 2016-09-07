@@ -11,6 +11,7 @@ import java.util.List;
 
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.BusinessFlow;
+import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
@@ -29,5 +30,16 @@ public class ProcessingBusinessFlowEventListener extends AbstractMongoEventListe
 //
 //        List<BusinessAction> businessActions = mongoOperations.find(new Query(where("businessFlowId").is(businessFlow.getId())), BusinessAction.class);
 //        businessFlow.setBusinessActions(businessActions);
+    }
+
+    @Override
+    public void onAfterConvert(AfterConvertEvent<ProcessingBusinessFlow> event) {
+        super.onAfterConvert(event);
+        ProcessingBusinessFlow flow = event.getSource();
+
+        for (ProcessingBusinessAction action :
+                flow.getProcessingBusinessActions()) {
+            action.setBusinessFlowId(flow.getId());
+        }
     }
 }
