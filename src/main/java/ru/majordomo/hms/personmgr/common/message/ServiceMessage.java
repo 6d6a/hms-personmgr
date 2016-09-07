@@ -39,6 +39,10 @@ public class ServiceMessage {
         return params.get(param);
     }
 
+    public boolean containsParam(String param) {
+        return params.containsKey(param);
+    }
+
     public void addParam(Object name, Object value) {
         params.put(name,value);
     }
@@ -61,7 +65,6 @@ public class ServiceMessage {
         }
         return message;
     }
-
 
     @Override
     public String toString() {

@@ -53,7 +53,7 @@ public class BusinessFlowDBSeedService {
 
         destination = new AmqpMessageDestination();
         destination.setExchange("website.create");
-        destination.setRoutingKey("rc-user");
+        destination.setRoutingKey("service.rc.user");
 
         action.setDestination(destination);
 
@@ -74,7 +74,7 @@ public class BusinessFlowDBSeedService {
 
         destination = new AmqpMessageDestination();
         destination.setExchange("database.create");
-        destination.setRoutingKey("rc-user");
+        destination.setRoutingKey("service.rc.user");
 
         action.setDestination(destination);
 

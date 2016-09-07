@@ -1,5 +1,8 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
@@ -34,18 +37,18 @@ public class AmqpDatabaseController {
     @Autowired
     private ProcessingBusinessFlowRepository businessFlowRepository;
 
+    private final static Logger logger = LoggerFactory.getLogger(AmqpDatabaseController.class);
+
     private final Map<Object, Object> EMPTY_PARAMS = new HashMap<>();
 
-    private final String EXCHANGE_PREFIX = "database.";
-
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm", durable = "true", autoDelete = "true"), exchange = @Exchange(value = EXCHANGE_PREFIX + "create"), key = "pm"))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.database", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "database.create", type = ExchangeTypes.TOPIC), key = "service.pm"))
     public void create(@Payload ServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
-        System.out.println("Received from " + provider + ": " + message.toString());
+        logger.info("Received from " + provider + ": " + message.toString());
 
         ProcessingBusinessFlow businessFlow = businessFlowRepository.findOne(message.getOperationIdentity());
-        if (!message.getObjRef().isEmpty()) {
-            System.out.println("ProcessingBusinessFlow -> success " + provider + ", operationIdentity: " + message.getOperationIdentity());
+        if (message.containsParam("success") && message.getParam("success").equals(true) && businessFlow != null) {
+            logger.info("ProcessingBusinessFlow -> success " + provider + ", operationIdentity: " + message.getOperationIdentity());
             businessFlow.setState(State.PROCESSED);
 //            operation.successOperation(provider);
 //            operation.setParams(provider, message.getParams());
@@ -55,10 +58,12 @@ public class AmqpDatabaseController {
 //                System.out.println("Sent to FIN: " + message.toString());
 //            }
         } else {
-            System.out.println("ProcessingBusinessFlow -> error " + provider + ", operationIdentity: " + message.getOperationIdentity());
-            businessFlow.setState(State.ERROR);
+            logger.info("ProcessingBusinessFlow -> error " + provider + ", operationIdentity: " + message.getOperationIdentity());
+            if (businessFlow != null) {
+                businessFlow.setState(State.ERROR);
+            }
         }
-        if (businessFlow.getState() == State.PROCESSED) {
+        if (businessFlow != null && businessFlow.getState() == State.PROCESSED) {
             MailManagerTask mailTask = new MailManagerTask();
             mailTask.setApiName("MajordomoVHWebSiteCreated");
             mailTask.setEmail("web-script@majordomo.ru");
@@ -67,6 +72,8 @@ public class AmqpDatabaseController {
             mailTask.setPriority(10);
 
             mailManager.createTask(mailTask);
+
+            logger.info("mail sent");
         }
     }
 }
