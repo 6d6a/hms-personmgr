@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.FlowType;
 import ru.majordomo.hms.personmgr.common.RestResponse;
+import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 import ru.majordomo.hms.personmgr.common.message.rest.RestMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
@@ -46,7 +47,7 @@ public class RestDatabaseController {
 
         String operationIdentity = restMessage.getOperationIdentity();
 
-        HashMap<Object, Object> data = restMessage.getParams();
+//        ServiceMessageParams data = restMessage.getParams();
 
         if (!RestHelper.isValidOperationIdentity(operationIdentity)) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -54,12 +55,14 @@ public class RestDatabaseController {
             return new RestResponse("0", "Bad operationIdentity");
         }
 
-        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.DATABASE_CREATE, data);
-
-        processingBusinessFlowRepository.save(processingBusinessFlow);
+//        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.DATABASE_CREATE, data);
+//
+//        processingBusinessFlowRepository.save(processingBusinessFlow);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return new RestResponse(processingBusinessFlow.getId(), processingBusinessFlow.toString());
+//        return new RestResponse(processingBusinessFlow.getId(), processingBusinessFlow.toString());
+        return new RestResponse("1", "2");
+
     }
 }

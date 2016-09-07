@@ -15,6 +15,9 @@ import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.FlowType;
 import ru.majordomo.hms.personmgr.common.RestResponse;
+import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
+import ru.majordomo.hms.personmgr.common.message.ResponseMessageParams;
+import ru.majordomo.hms.personmgr.common.message.WebSiteCreateMessage;
 import ru.majordomo.hms.personmgr.common.message.rest.RestMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
@@ -36,23 +39,30 @@ public class RestWebSiteController {
     private ProcessingBusinessFlowRepository processingBusinessFlowRepository;
 
     @RequestMapping(value = "create", method = RequestMethod.POST)
-    public RestResponse create(
-            @RequestBody String requestBody,
-            HttpServletResponse response
+    public ResponseMessage create(
+            @RequestBody WebSiteCreateMessage message, HttpServletResponse response
     ) {
-        logger.info(requestBody);
+        logger.info(message.toString());
         //handling request - getting body params
-        RestMessage restMessage = RestHelper.getFromJson(requestBody);
+//        RestMessage restMessage = RestHelper.getFromJson(requestBody);
 
-        HashMap<Object, Object> data = restMessage.getParams();
+//        HashMap<Object, Object> data = restMessage.getParams();
 
 
-        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_CREATE, data);
+        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_CREATE, message.getParams());
 
         processingBusinessFlowRepository.save(processingBusinessFlow);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return new RestResponse(processingBusinessFlow.getId(), processingBusinessFlow.toString());
+        ResponseMessage responseMessage = new ResponseMessage();
+        ResponseMessageParams messageParams = new ResponseMessageParams();
+        messageParams.setSuccess(true);
+        responseMessage.setParams(messageParams);
+        responseMessage.setOperationIdentity(processingBusinessFlow.getId());
+//        responseMessage.setActionIdentity("11");
+
+        return responseMessage;
+//        return new RestResponse(processingBusinessFlow.getId(), processingBusinessFlow.toString());
     }
 }

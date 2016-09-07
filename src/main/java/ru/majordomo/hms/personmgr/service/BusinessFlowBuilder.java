@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.FlowType;
 import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 import ru.majordomo.hms.personmgr.model.BusinessFlow;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
@@ -24,9 +25,7 @@ public class BusinessFlowBuilder {
     @Autowired
     private BusinessFlowRepository businessFlowRepository;
 
-//    private ObjectMapper mapper = new ObjectMapper();
-
-    public ProcessingBusinessFlow build(FlowType flowType, Map<Object, Object> params) {
+    public ProcessingBusinessFlow build(FlowType flowType, ServiceMessageParams params) {
         BusinessFlow businessFlow = businessFlowRepository.findByFlowType(flowType);
 
         ProcessingBusinessFlow processingBusinessFlow = new ProcessingBusinessFlow(businessFlow);
@@ -37,15 +36,6 @@ public class BusinessFlowBuilder {
         processingBusinessFlow.setProcessingBusinessActions(processingBusinessFlow.getBusinessActions().stream().map(businessAction -> {
             businessAction.setState(State.NEED_TO_PROCESS);
             ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(businessAction);
-
-//            Map<Object, Object> message = new HashMap<>();
-//            try {
-//                message = mapper.readValue(processingBusinessAction.getMessage(), HashMap.class);
-//
-//                message.put("params", params);
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
 
             processingBusinessAction.setParams(params);
 

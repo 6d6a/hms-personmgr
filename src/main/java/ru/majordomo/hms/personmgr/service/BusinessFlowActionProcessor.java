@@ -26,7 +26,7 @@ public class BusinessFlowActionProcessor {
         ServiceMessage message = new ServiceMessage();
         message.setOperationIdentity(action.getBusinessFlowId());
         message.setActionIdentity(action.getId());
-        message.setParams(action.getParams());
+//        message.setParams(action.getParams());
 
         GenericMessageDestination destination = action.getDestination();
         switch (destination.getType()) {

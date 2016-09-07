@@ -10,6 +10,7 @@ import java.util.Objects;
 
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.GenericMessageDestination;
+import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 /**
@@ -22,7 +23,7 @@ public class BusinessAction extends Step {
     private String businessFlowId;
     private GenericMessageDestination destination;
     private String message;
-    private Map<Object, Object> params = new HashMap<>();
+
 
     public String getBusinessFlowId() {
         return businessFlowId;
@@ -48,14 +49,6 @@ public class BusinessAction extends Step {
         this.message = message;
     }
 
-    public Map<Object, Object> getParams() {
-        return params;
-    }
-
-    public void setParams(Map<Object, Object> params) {
-        this.params = params;
-    }
-
     public BusinessAction() {
     }
 
@@ -77,7 +70,6 @@ public class BusinessAction extends Step {
                 "businessFlowId='" + businessFlowId + '\'' +
                 ", destination=" + destination +
                 ", message='" + message + '\'' +
-                ", params=" + params +
                 "} " + super.toString();
     }
 

@@ -5,11 +5,22 @@ import org.springframework.data.annotation.PersistenceConstructor;
 
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.GenericMessageDestination;
+import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 
 /**
  * ProcessingBusinessAction
  */
 public class ProcessingBusinessAction extends BusinessAction {
+    private ServiceMessageParams params;
+
+    public ServiceMessageParams getParams() {
+        return params;
+    }
+
+    public void setParams(ServiceMessageParams params) {
+        this.params = params;
+    }
+
     public ProcessingBusinessAction(BusinessAction businessAction) {
         super();
         this.setId(ObjectId.get().toHexString());
