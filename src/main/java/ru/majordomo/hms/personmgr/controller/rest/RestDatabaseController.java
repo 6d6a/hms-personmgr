@@ -9,14 +9,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
-
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.FlowType;
-import ru.majordomo.hms.personmgr.common.RestResponse;
-import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
-import ru.majordomo.hms.personmgr.common.message.rest.RestMessage;
+import ru.majordomo.hms.personmgr.common.message.DatabaseCreateMessage;
+import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
+import ru.majordomo.hms.personmgr.common.message.ResponseMessageParams;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowBuilder;
@@ -37,32 +35,24 @@ public class RestDatabaseController {
     private ProcessingBusinessFlowRepository processingBusinessFlowRepository;
 
     @RequestMapping(value = "create", method = RequestMethod.POST)
-    public RestResponse create(
-            @RequestBody String requestBody,
+    public ResponseMessage create(
+            @RequestBody DatabaseCreateMessage message,
             HttpServletResponse response
     ) {
-        logger.info(requestBody);
-        //handling request - getting body params
-        RestMessage restMessage = RestHelper.getFromJson(requestBody);
+        logger.info(message.toString());
 
-        String operationIdentity = restMessage.getOperationIdentity();
+        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.DATABASE_CREATE, message);
 
-//        ServiceMessageParams data = restMessage.getParams();
-
-        if (!RestHelper.isValidOperationIdentity(operationIdentity)) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            logger.info("OperationIdentity is not valid");
-            return new RestResponse("0", "Bad operationIdentity");
-        }
-
-//        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.DATABASE_CREATE, data);
-//
-//        processingBusinessFlowRepository.save(processingBusinessFlow);
+        processingBusinessFlowRepository.save(processingBusinessFlow);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-//        return new RestResponse(processingBusinessFlow.getId(), processingBusinessFlow.toString());
-        return new RestResponse("1", "2");
+        ResponseMessage responseMessage = new ResponseMessage();
+        ResponseMessageParams messageParams = new ResponseMessageParams();
+        messageParams.setSuccess(true);
+        responseMessage.setParams(messageParams);
+        responseMessage.setOperationIdentity(processingBusinessFlow.getId());
 
+        return responseMessage;
     }
 }

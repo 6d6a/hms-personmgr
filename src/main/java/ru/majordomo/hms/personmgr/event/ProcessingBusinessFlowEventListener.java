@@ -5,16 +5,9 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventListener;
 import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
 import org.springframework.data.mongodb.core.mapping.event.AfterSaveEvent;
-import org.springframework.data.mongodb.core.query.Query;
 
-import java.util.List;
-
-import ru.majordomo.hms.personmgr.model.BusinessAction;
-import ru.majordomo.hms.personmgr.model.BusinessFlow;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
-
-import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 /**
  * ProcessingBusinessFlowEventListener

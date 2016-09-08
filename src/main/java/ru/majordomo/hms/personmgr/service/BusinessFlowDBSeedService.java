@@ -6,12 +6,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.FlowType;
+import ru.majordomo.hms.personmgr.common.message.WebSiteCreateMessage;
 import ru.majordomo.hms.personmgr.common.message.amqp.AmqpMessageDestination;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.BusinessFlow;
@@ -57,39 +55,45 @@ public class BusinessFlowDBSeedService {
 
         action.setDestination(destination);
 
-        action.setMessage("");
+        WebSiteCreateMessage message = new WebSiteCreateMessage();
+
+        action.setMessage(message);
 
         action.setBusinessFlowId(flow.getId());
 
         businessActionRepository.save(action);
 
         //Database create
-        flow = new BusinessFlow();
-        flow.setFlowType(FlowType.DATABASE_CREATE);
-        flow.setName("Database create");
-
-        businessFlowRepository.save(flow);
-
-        action = new BusinessAction();
-
-        destination = new AmqpMessageDestination();
-        destination.setExchange("database.create");
-        destination.setRoutingKey("service.rc.user");
-
-        action.setDestination(destination);
-
-        action.setMessage("");
-
-        action.setBusinessFlowId(flow.getId());
-
-        businessActionRepository.save(action);
+//        flow = new BusinessFlow();
+//        flow.setFlowType(FlowType.DATABASE_CREATE);
+//        flow.setName("Database create");
+//
+//        businessFlowRepository.save(flow);
+//
+//        action = new BusinessAction();
+//
+//        destination = new AmqpMessageDestination();
+//        destination.setExchange("database.create");
+//        destination.setRoutingKey("service.rc.user");
+//
+//        action.setDestination(destination);
+//
+//        WebSiteCreateMessage message = new WebSiteCreateMessage();
+//
+//        action.setMessage(message);
+//
+//        action.setMessage("");
+//
+//        action.setBusinessFlowId(flow.getId());
+//
+//        businessActionRepository.save(action);
 
         // fetch all customers
         logger.info("BusinessFlow found with findAll():");
         logger.info("-------------------------------");
 
         List<BusinessFlow> businessFlows = businessFlowRepository.findAll();
-        if(businessFlows.size() > 0) {
+        if (businessFlows.size() > 0) {
             result = true;
         }
         for (BusinessFlow businessFlow : businessFlows) {

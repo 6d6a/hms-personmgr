@@ -9,27 +9,25 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import ru.majordomo.hms.personmgr.common.message.GenericMessage;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
 
 @Service
 public class AmqpSender {
 
+    private final static Logger logger = LoggerFactory.getLogger(AmqpSender.class);
     @Autowired
     private RabbitTemplate myRabbitTemplate;
 
-    private final static Logger logger = LoggerFactory.getLogger(AmqpSender.class);
-
-    private Message createMessage(ServiceMessage genericMessage, MessageProperties messageProperties) {
+    private Message createMessage(ServiceMessage message, MessageProperties messageProperties) {
 
         return MessageBuilder
-                .withBody(genericMessage.toJson().getBytes())
+                .withBody(message.toJson().getBytes())
                 .andProperties(messageProperties)
                 .build();
     }
 
     public void send(String exchange, String routingKey, ServiceMessage message) {
-        logger.info("send message by AmqpSender - exchange: " + exchange +" routingKey: " + routingKey + " message " + message.toString());
+        logger.info("send message by AmqpSender - exchange: " + exchange + " routingKey: " + routingKey + " message " + message.toString());
 
         myRabbitTemplate.setExchange(exchange);
         MessageProperties messageProperties = new MessageProperties();

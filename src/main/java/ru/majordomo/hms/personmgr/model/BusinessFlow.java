@@ -4,7 +4,6 @@ import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.redis.core.RedisHash;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +21,19 @@ public class BusinessFlow extends Step {
 
     @Transient
     private List<BusinessAction> businessActions = new ArrayList<>();
+
+    public BusinessFlow() {
+    }
+
+    @PersistenceConstructor
+    public BusinessFlow(String id, String name, State state, int priority, FlowType flowType) {
+        super();
+        this.setId(id);
+        this.setName(name);
+        this.setState(state);
+        this.setPriority(priority);
+        this.flowType = flowType;
+    }
 
     public FlowType getFlowType() {
         return flowType;
@@ -45,19 +57,6 @@ public class BusinessFlow extends Step {
 
     public void deleteBusinessAction(BusinessAction action) {
         this.businessActions.remove(action);
-    }
-
-    public BusinessFlow() {
-    }
-
-    @PersistenceConstructor
-    public BusinessFlow(String id, String name, State state, int priority, FlowType flowType) {
-        super();
-        this.setId(id);
-        this.setName(name);
-        this.setState(state);
-        this.setPriority(priority);
-        this.flowType = flowType;
     }
 
     @Override
