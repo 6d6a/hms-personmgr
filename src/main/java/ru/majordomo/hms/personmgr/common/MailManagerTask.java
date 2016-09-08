@@ -33,12 +33,12 @@ public class MailManagerTask {
         return parameters;
     }
 
-    public void addParameter(String K, String V) {
-        parameters.putIfAbsent(K, V);
-    }
-
     public void setParameters(HashMap<String, String> parameters) {
         this.parameters = parameters;
+    }
+
+    public void addParameter(String K, String V) {
+        parameters.putIfAbsent(K, V);
     }
 
     public Integer getPriority() {

@@ -16,11 +16,6 @@ import ru.majordomo.hms.personmgr.common.MailManagerTask;
 @PropertySource("classpath:mail_manager.properties")
 public class MailManager {
 
-    private RestTemplate restTemplate;
-    private HttpHeaders headers;
-
-    private String credentials;
-    private String URL_ROOT;
     private static final HashMap<String, String> URL_MAP;
 
     static {
@@ -28,6 +23,11 @@ public class MailManager {
         URL_MAP.put("login", "/login_check");
         URL_MAP.put("addmail", "/newmailtask");
     }
+
+    private RestTemplate restTemplate;
+    private HttpHeaders headers;
+    private String credentials;
+    private String URL_ROOT;
 
     public MailManager(@Value("${mail_manager.url}") String url, @Value("${mail_manager.username}") String username, @Value("${mail_manager.password}") String password) {
         restTemplate = new RestTemplate();

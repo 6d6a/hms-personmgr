@@ -20,8 +20,8 @@ public class SchedulingConfig implements SchedulingConfigurer {
 
     }
 
-    @Bean(destroyMethod="shutdown")
-      public Executor taskExecutor() {
-          return Executors.newScheduledThreadPool(2);
+    @Bean(destroyMethod = "shutdown")
+    public Executor taskExecutor() {
+        return Executors.newScheduledThreadPool(2);
     }
 }

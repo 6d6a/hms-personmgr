@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.common.message;
 
-import ru.majordomo.hms.personmgr.common.MessageDestinationType;
-
 /**
  * GenericMessageDestination
  */

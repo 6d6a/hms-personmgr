@@ -4,14 +4,20 @@ buildscript {
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:1.1.7.RELEASE")
+        classpath("se.transmode.gradle:gradle-docker:1.2")
     }
 }
 
 apply plugin: 'java'
 apply plugin: 'spring-boot'
+apply plugin: 'docker'
 
-group = 'ru.majordomo.hms'
-version = '0.0.1-SNAPSHOT'
+group = 'hms'
+
+jar {
+    baseName = 'personmgr'
+    version = '0.0.1-SNAPSHOT'
+}
 
 description = """personmgr"""
 
@@ -37,5 +43,23 @@ dependencies {
     compile group: 'ru.majordomo.hms.common', name: 'hms-common', version:'0.0.1-SNAPSHOT'
     testCompile(group: 'org.springframework.boot', name: 'spring-boot-starter-test', version:'1.4.0.RELEASE') {
 exclude(module: 'commons-logging')
+    }
+}
+
+task buildDocker(type: Docker, dependsOn: build) {
+    def dockerDir = "docker"
+    push = false
+    applicationName = jar.baseName
+    dockerfile = file("${buildDir}/Dockerfile")
+    doFirst {
+        copy {
+            from "${dockerDir}/Dockerfile"
+            into buildDir
+            expand(jarBuildName:jar.getArchiveName(),projectName:project.name)
+        }
+        copy {
+            from jar
+            into stageDir
+        }
     }
 }

@@ -16,14 +16,13 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
  */
 @Service
 public class BusinessFlowDirector {
+    private static final Logger logger = LoggerFactory.getLogger(Application.class);
+    @Autowired
+    BusinessFlowProcessor businessFlowProcessor;
     @Autowired
     private ProcessingBusinessFlowRepository processingBusinessFlowRepository;
 
-    @Autowired BusinessFlowProcessor businessFlowProcessor;
-
-    private static final Logger logger = LoggerFactory.getLogger(Application.class);
-
-    @Scheduled(fixedDelay=500)
+    @Scheduled(fixedDelay = 500)
     public void process() {
         ProcessingBusinessFlow processingBusinessFlow = processingBusinessFlowRepository.findFirstByStateOrderByPriorityAscCreatedDateAsc(State.NEED_TO_PROCESS);
         if (processingBusinessFlow != null) {

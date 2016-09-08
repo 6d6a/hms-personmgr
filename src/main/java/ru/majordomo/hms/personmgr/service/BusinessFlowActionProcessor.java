@@ -5,10 +5,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import ru.majordomo.hms.personmgr.common.message.GenericMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
+import ru.majordomo.hms.personmgr.common.message.GenericMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.amqp.AmqpMessageDestination;
-import ru.majordomo.hms.personmgr.common.message.amqp.CreateModifyMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 
 /**
@@ -24,10 +23,9 @@ public class BusinessFlowActionProcessor {
     public ProcessingBusinessAction process(ProcessingBusinessAction action) {
         logger.info("processing BusinessAction " + action.getId());
 
-        ServiceMessage message = new ServiceMessage();
+        ServiceMessage message = action.getMessage();
         message.setOperationIdentity(action.getBusinessFlowId());
         message.setActionIdentity(action.getId());
-        message.setParams(action.getParams());
 
         GenericMessageDestination destination = action.getDestination();
         switch (destination.getType()) {

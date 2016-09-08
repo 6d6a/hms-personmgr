@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.common;
+package ru.majordomo.hms.personmgr.common.message;
 
 /**
  * MessageDestinationType

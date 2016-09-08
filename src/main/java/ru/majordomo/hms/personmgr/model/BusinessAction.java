@@ -4,11 +4,10 @@ import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.GenericMessageDestination;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
@@ -21,8 +20,23 @@ public class BusinessAction extends Step {
     @ObjectId(BusinessFlow.class)
     private String businessFlowId;
     private GenericMessageDestination destination;
-    private String message;
-    private Map<Object, Object> params = new HashMap<>();
+    private ServiceMessage message;
+
+
+    public BusinessAction() {
+    }
+
+    @PersistenceConstructor
+    public BusinessAction(String id, String name, State state, int priority, String businessFlowId, GenericMessageDestination destination, ServiceMessage message) {
+        super();
+        this.setId(id);
+        this.setName(name);
+        this.setState(state);
+        this.setPriority(priority);
+        this.businessFlowId = businessFlowId;
+        this.destination = destination;
+        this.message = message;
+    }
 
     public String getBusinessFlowId() {
         return businessFlowId;
@@ -40,34 +54,11 @@ public class BusinessAction extends Step {
         this.destination = destination;
     }
 
-    public String getMessage() {
+    public ServiceMessage getMessage() {
         return message;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public Map<Object, Object> getParams() {
-        return params;
-    }
-
-    public void setParams(Map<Object, Object> params) {
-        this.params = params;
-    }
-
-    public BusinessAction() {
-    }
-
-    @PersistenceConstructor
-    public BusinessAction(String id, String name, State state, int priority, String businessFlowId, GenericMessageDestination destination, String message) {
-        super();
-        this.setId(id);
-        this.setName(name);
-        this.setState(state);
-        this.setPriority(priority);
-        this.businessFlowId = businessFlowId;
-        this.destination = destination;
+    public void setMessage(ServiceMessage message) {
         this.message = message;
     }
 
@@ -77,7 +68,6 @@ public class BusinessAction extends Step {
                 "businessFlowId='" + businessFlowId + '\'' +
                 ", destination=" + destination +
                 ", message='" + message + '\'' +
-                ", params=" + params +
                 "} " + super.toString();
     }
 

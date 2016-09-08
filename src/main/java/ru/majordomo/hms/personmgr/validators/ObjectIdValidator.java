@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.validators;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.stereotype.Component;
 
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
@@ -11,10 +12,11 @@ import ru.majordomo.hms.personmgr.model.BaseModel;
 /**
  * ObjectIdValidator
  */
+@Component
 class ObjectIdValidator implements ConstraintValidator<ObjectId, String> {
-    private Class<? extends BaseModel> objectModel;
-    private String  collection;
     private final MongoOperations operations;
+    private Class<? extends BaseModel> objectModel;
+    private String collection;
 
     @Autowired
     public ObjectIdValidator(MongoOperations operations) {

@@ -6,5 +6,6 @@ package ru.majordomo.hms.personmgr.common;
 public enum FlowType {
     ACCOUNT_CREATE,
     ACCOUNT_DELETE,
-    WEB_SITE_CREATE
+    WEB_SITE_CREATE,
+    DATABASE_CREATE
 }

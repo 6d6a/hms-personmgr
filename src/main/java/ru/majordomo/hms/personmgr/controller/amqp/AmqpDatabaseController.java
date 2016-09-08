@@ -26,9 +26,9 @@ import ru.majordomo.hms.personmgr.service.MailManager;
 
 @EnableRabbit
 @Service
-public class AmqpWebSiteController {
+public class AmqpDatabaseController {
 
-    private final static Logger logger = LoggerFactory.getLogger(AmqpWebSiteController.class);
+    private final static Logger logger = LoggerFactory.getLogger(AmqpDatabaseController.class);
     private final Map<Object, Object> EMPTY_PARAMS = new HashMap<>();
     @Autowired
     private AmqpSender amqpSender;
@@ -37,7 +37,7 @@ public class AmqpWebSiteController {
     @Autowired
     private ProcessingBusinessFlowRepository businessFlowRepository;
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.website.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "website.create", type = ExchangeTypes.TOPIC), key = "service.pm"))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.database", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "database.create", type = ExchangeTypes.TOPIC), key = "service.pm"))
     public void create(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received from " + provider + ": " + message.toString());
@@ -46,7 +46,6 @@ public class AmqpWebSiteController {
         if (message.getParams().isSuccess() && businessFlow != null) {
             logger.info("ProcessingBusinessFlow -> success " + provider + ", operationIdentity: " + message.getOperationIdentity());
             businessFlow.setState(State.PROCESSED);
-            businessFlow.setProcessBusinessActionStateById(message.getActionIdentity(), State.PROCESSED);
 //            operation.successOperation(provider);
 //            operation.setParams(provider, message.getParams());
 //            if (provider.equals("rc")) {
@@ -58,7 +57,6 @@ public class AmqpWebSiteController {
             logger.info("ProcessingBusinessFlow -> error " + provider + ", operationIdentity: " + message.getOperationIdentity());
             if (businessFlow != null) {
                 businessFlow.setState(State.ERROR);
-                businessFlow.setProcessBusinessActionStateById(message.getActionIdentity(), State.ERROR);
             }
         }
         if (businessFlow != null && businessFlow.getState() == State.PROCESSED) {
@@ -66,37 +64,13 @@ public class AmqpWebSiteController {
             mailTask.setApiName("MajordomoVHWebSiteCreated");
             mailTask.setEmail("web-script@majordomo.ru");
             mailTask.addParameter("client_id", "12345");
-            mailTask.addParameter("website_name", "test-site.ru");
+            mailTask.addParameter("website_name", "b1234556");
             mailTask.setPriority(10);
 
             mailManager.createTask(mailTask);
 
             logger.info("mail sent");
         }
-
-        if (businessFlow != null) {
-            businessFlowRepository.save(businessFlow);
-        }
-    }
-
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.website.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "website.modify", type = ExchangeTypes.TOPIC), key = "service.pm"))
-    public void modify(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
-        String provider = headers.get("provider");
-        logger.info("Received from " + provider + ": " + message.toString());
-
-        ProcessingBusinessFlow businessFlow = businessFlowRepository.findOne(message.getOperationIdentity());
-        if (message.getParams().isSuccess() && businessFlow != null) {
-            logger.info("ProcessingBusinessFlow -> success " + provider + ", operationIdentity: " + message.getOperationIdentity());
-            businessFlow.setState(State.PROCESSED);
-            businessFlow.setProcessBusinessActionStateById(message.getActionIdentity(), State.PROCESSED);
-        } else {
-            logger.info("ProcessingBusinessFlow -> error " + provider + ", operationIdentity: " + message.getOperationIdentity());
-            if (businessFlow != null) {
-                businessFlow.setState(State.ERROR);
-                businessFlow.setProcessBusinessActionStateById(message.getActionIdentity(), State.ERROR);
-            }
-        }
-
         if (businessFlow != null) {
             businessFlowRepository.save(businessFlow);
         }

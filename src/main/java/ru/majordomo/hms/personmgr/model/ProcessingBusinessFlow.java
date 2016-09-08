@@ -5,18 +5,16 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.FlowType;
 import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 
 /**
  * ProcessingBusinessFlow
@@ -29,15 +27,30 @@ public class ProcessingBusinessFlow extends BusinessFlow {
     @LastModifiedDate
     private LocalDateTime updatedDate;
 
-    private Map<Object, Object> params = new HashMap<>();
+    private ServiceMessageParams params;
 
     private List<ProcessingBusinessAction> processingBusinessActions = new ArrayList<>();
 
-    public Map<Object, Object> getParams() {
+    public ProcessingBusinessFlow(BusinessFlow businessFlow) {
+        super();
+        this.setFlowType(businessFlow.getFlowType());
+        this.setPriority(businessFlow.getPriority());
+        this.setName(businessFlow.getName());
+        this.setBusinessActions(businessFlow.getBusinessActions());
+    }
+
+    @PersistenceConstructor
+    public ProcessingBusinessFlow(String id, String name, State state, int priority, FlowType flowType, ServiceMessageParams params, List<ProcessingBusinessAction> processingBusinessActions) {
+        super(id, name, state, priority, flowType);
+        this.params = params;
+        this.processingBusinessActions = processingBusinessActions;
+    }
+
+    public ServiceMessageParams getParams() {
         return params;
     }
 
-    public void setParams(Map<Object, Object> params) {
+    public void setParams(ServiceMessageParams params) {
         this.params = params;
         this.processingBusinessActions.addAll(this.getBusinessActions().stream().map(businessAction -> {
             businessAction.setState(State.NEED_TO_PROCESS);
@@ -52,6 +65,10 @@ public class ProcessingBusinessFlow extends BusinessFlow {
         return processingBusinessActions;
     }
 
+    public void setProcessingBusinessActions(List<ProcessingBusinessAction> processingBusinessActions) {
+        this.processingBusinessActions = processingBusinessActions;
+    }
+
     public ProcessingBusinessAction getNeedToProcessBusinessAction() {
         Collections.sort(processingBusinessActions);
         Optional<ProcessingBusinessAction> action;
@@ -61,23 +78,24 @@ public class ProcessingBusinessFlow extends BusinessFlow {
         return action.isPresent() ? action.get() : null;
     }
 
-    public void setProcessingBusinessActions(List<ProcessingBusinessAction> processingBusinessActions) {
-        this.processingBusinessActions = processingBusinessActions;
+    public ProcessingBusinessAction getProcessBusinessActionById(String id) {
+        Optional<ProcessingBusinessAction> action;
+
+        action = processingBusinessActions.stream().filter(processingBusinessAction -> processingBusinessAction.getId().equals(id)).findFirst();
+
+        return action.isPresent() ? action.get() : null;
     }
 
-    public ProcessingBusinessFlow(BusinessFlow businessFlow) {
-        super();
-        this.setFlowType(businessFlow.getFlowType());
-        this.setPriority(businessFlow.getPriority());
-        this.setName(businessFlow.getName());
-        this.setBusinessActions(businessFlow.getBusinessActions());
-    }
+    public void setProcessBusinessActionStateById(String id, State state) {
+        Optional<ProcessingBusinessAction> action;
+        ProcessingBusinessAction businessAction;
 
-    @PersistenceConstructor
-    public ProcessingBusinessFlow(String id, String name, State state, int priority, FlowType flowType, Map<Object, Object> params, List<ProcessingBusinessAction> processingBusinessActions) {
-        super(id, name, state, priority, flowType);
-        this.params = params;
-        this.processingBusinessActions = processingBusinessActions;
+        action = processingBusinessActions.stream().filter(processingBusinessAction -> processingBusinessAction.getId().equals(id)).findFirst();
+
+        if (action.isPresent()) {
+            businessAction = action.get();
+            businessAction.setState(state);
+        }
     }
 
     @Override

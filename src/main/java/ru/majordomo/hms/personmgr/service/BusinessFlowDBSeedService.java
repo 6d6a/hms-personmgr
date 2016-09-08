@@ -6,12 +6,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.FlowType;
+import ru.majordomo.hms.personmgr.common.message.WebSiteCreateMessage;
 import ru.majordomo.hms.personmgr.common.message.amqp.AmqpMessageDestination;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.BusinessFlow;
@@ -35,46 +33,67 @@ public class BusinessFlowDBSeedService {
 
     public boolean seedDB() {
         boolean result = false;
+        BusinessFlow flow;
+        BusinessAction action;
+        AmqpMessageDestination destination;
 
         businessFlowRepository.deleteAll();
         businessActionRepository.deleteAll();
 
-        BusinessFlow webSiteCreate = new BusinessFlow();
-        webSiteCreate.setFlowType(FlowType.WEB_SITE_CREATE);
-        webSiteCreate.setName("WebSite create");
+        //WebSite create
+        flow = new BusinessFlow();
+        flow.setFlowType(FlowType.WEB_SITE_CREATE);
+        flow.setName("WebSite create");
 
-        businessFlowRepository.save(webSiteCreate);
+        businessFlowRepository.save(flow);
 
-        BusinessAction webSiteCreateAction = new BusinessAction();
+        action = new BusinessAction();
 
-        AmqpMessageDestination destination = new AmqpMessageDestination();
+        destination = new AmqpMessageDestination();
         destination.setExchange("website.create");
-        destination.setRoutingKey("rc-user");
+        destination.setRoutingKey("service.rc.user");
 
-        webSiteCreateAction.setDestination(destination);
+        action.setDestination(destination);
 
-//        Map<Object, Object> params = new HashMap<>();
+        WebSiteCreateMessage message = new WebSiteCreateMessage();
+
+        action.setMessage(message);
+
+        action.setBusinessFlowId(flow.getId());
+
+        businessActionRepository.save(action);
+
+        //Database create
+//        flow = new BusinessFlow();
+//        flow.setFlowType(FlowType.DATABASE_CREATE);
+//        flow.setName("Database create");
 //
-//        Map<Object, Object> message = new HashMap<>();
-//        message.put("params", params);
+//        businessFlowRepository.save(flow);
 //
-//        try {
-//            webSiteCreateAction.setMessage(mapper.writeValueAsString(message));
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-        webSiteCreateAction.setMessage("");
-
-        webSiteCreateAction.setBusinessFlowId(webSiteCreate.getId());
-
-        businessActionRepository.save(webSiteCreateAction);
+//        action = new BusinessAction();
+//
+//        destination = new AmqpMessageDestination();
+//        destination.setExchange("database.create");
+//        destination.setRoutingKey("service.rc.user");
+//
+//        action.setDestination(destination);
+//
+//        WebSiteCreateMessage message = new WebSiteCreateMessage();
+//
+//        action.setMessage(message);
+//
+//        action.setMessage("");
+//
+//        action.setBusinessFlowId(flow.getId());
+//
+//        businessActionRepository.save(action);
 
         // fetch all customers
         logger.info("BusinessFlow found with findAll():");
         logger.info("-------------------------------");
 
         List<BusinessFlow> businessFlows = businessFlowRepository.findAll();
-        if(businessFlows.size() > 0) {
+        if (businessFlows.size() > 0) {
             result = true;
         }
         for (BusinessFlow businessFlow : businessFlows) {
