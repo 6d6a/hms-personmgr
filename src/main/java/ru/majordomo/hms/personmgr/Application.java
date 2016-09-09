@@ -7,6 +7,9 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.PropertySources;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventListener;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
@@ -15,6 +18,10 @@ import ru.majordomo.hms.personmgr.event.ProcessingBusinessFlowEventListener;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDBSeedService;
 
 @SpringBootApplication
+@PropertySources({
+        @PropertySource(name = "application", value = "classpath:application.properties"),
+        @PropertySource(name = "mail_manager", value = "classpath:mail_manager.properties")
+})
 public class Application implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
@@ -78,5 +85,10 @@ public class Application implements CommandLineRunner {
     @Bean
     public LocalValidatorFactoryBean validator() {
         return new LocalValidatorFactoryBean();
+    }
+
+    @Bean
+    public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
+        return new PropertySourcesPlaceholderConfigurer();
     }
 }

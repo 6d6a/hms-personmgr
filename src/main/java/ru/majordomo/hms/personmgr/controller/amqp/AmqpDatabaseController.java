@@ -13,10 +13,8 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.MailManagerTask;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
@@ -29,11 +27,10 @@ import ru.majordomo.hms.personmgr.service.MailManager;
 public class AmqpDatabaseController {
 
     private final static Logger logger = LoggerFactory.getLogger(AmqpDatabaseController.class);
-    private final Map<Object, Object> EMPTY_PARAMS = new HashMap<>();
     @Autowired
     private AmqpSender amqpSender;
-    @Autowired
-    private MailManager mailManager;
+//    @Autowired
+//    private MailManager mailManager;
     @Autowired
     private ProcessingBusinessFlowRepository businessFlowRepository;
 
@@ -46,31 +43,24 @@ public class AmqpDatabaseController {
         if (message.getParams().isSuccess() && businessFlow != null) {
             logger.info("ProcessingBusinessFlow -> success " + provider + ", operationIdentity: " + message.getOperationIdentity());
             businessFlow.setState(State.PROCESSED);
-//            operation.successOperation(provider);
-//            operation.setParams(provider, message.getParams());
-//            if (provider.equals("rc")) {
-//                message.setParams(EMPTY_PARAMS);
-//                amqpSender.send("website.create", "fin", message);
-//                System.out.println("Sent to FIN: " + message.toString());
-//            }
         } else {
             logger.info("ProcessingBusinessFlow -> error " + provider + ", operationIdentity: " + message.getOperationIdentity());
             if (businessFlow != null) {
                 businessFlow.setState(State.ERROR);
             }
         }
-        if (businessFlow != null && businessFlow.getState() == State.PROCESSED) {
-            MailManagerTask mailTask = new MailManagerTask();
-            mailTask.setApiName("MajordomoVHWebSiteCreated");
-            mailTask.setEmail("web-script@majordomo.ru");
-            mailTask.addParameter("client_id", "12345");
-            mailTask.addParameter("website_name", "b1234556");
-            mailTask.setPriority(10);
-
-            mailManager.createTask(mailTask);
-
-            logger.info("mail sent");
-        }
+//        if (businessFlow != null && businessFlow.getState() == State.PROCESSED) {
+//            MailManagerTask mailTask = new MailManagerTask();
+//            mailTask.setApiName("MajordomoVHWebSiteCreated");
+//            mailTask.setEmail("web-script@majordomo.ru");
+//            mailTask.addParameter("client_id", "12345");
+//            mailTask.addParameter("website_name", "b1234556");
+//            mailTask.setPriority(10);
+//
+//            mailManager.send(mailTask);
+//
+//            logger.info("mail sent");
+//        }
         if (businessFlow != null) {
             businessFlowRepository.save(businessFlow);
         }

@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.common.message.amqp;
+package ru.majordomo.hms.personmgr.common.message;
 
 import ru.majordomo.hms.personmgr.common.message.MessageDestinationType;
 import ru.majordomo.hms.personmgr.common.message.GenericMessageDestination;

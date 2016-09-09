@@ -16,6 +16,7 @@ import ru.majordomo.hms.personmgr.common.FlowType;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessageParams;
 import ru.majordomo.hms.personmgr.common.message.WebSiteCreateMessage;
+import ru.majordomo.hms.personmgr.common.message.WebSiteCreateMessageParams;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowBuilder;
@@ -57,14 +58,17 @@ public class RestWebSiteController {
     }
 
     @RequestMapping(value = "/{websiteId}", method = RequestMethod.PATCH)
-    public ResponseMessage modify(
+    public ResponseMessage update(
             @PathVariable String websiteId,
             @RequestBody WebSiteCreateMessage message, HttpServletResponse response
     ) {
-        logger.info("Modifying website with id " + websiteId + " " + message.toString());
+        logger.info("Updating website with id " + websiteId + " " + message.toString());
 
-//        message.getParams().
-        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_CREATE, message);
+        WebSiteCreateMessageParams params = message.getParams();
+        params.setId(websiteId);
+
+        message.setParams(params);
+        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_UPDATE, message);
 
         processingBusinessFlowRepository.save(processingBusinessFlow);
 

@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.FlowType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
+import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 import ru.majordomo.hms.personmgr.model.BusinessFlow;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
@@ -34,7 +35,10 @@ public class BusinessFlowBuilder {
             ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(businessAction);
 
             processingBusinessAction.setParams(message.getParams());
-            processingBusinessAction.setMessage(message);
+
+            ServiceMessage serviceMessage = businessAction.getMessage();
+//            serviceMessage.setParams((serviceMessage.getParams().getClass().getDeclaringClass())message.getParams());
+            processingBusinessAction.setMessage(serviceMessage);
 
             return processingBusinessAction;
         }).collect(Collectors.toList()));
