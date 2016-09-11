@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -36,8 +37,12 @@ public class BusinessFlowBuilder {
 
             processingBusinessAction.setParams(message.getParams());
 
+//            ObjectMapper mapper = new ObjectMapper();
+
             ServiceMessage serviceMessage = businessAction.getMessage();
+//            serviceMessage.setParams();
 //            serviceMessage.setParams((serviceMessage.getParams().getClass().getDeclaringClass())message.getParams());
+//            processingBusinessAction.setMessage(mapper.mapper.writeValueAsString(serviceMessage));
             processingBusinessAction.setMessage(serviceMessage);
 
             return processingBusinessAction;

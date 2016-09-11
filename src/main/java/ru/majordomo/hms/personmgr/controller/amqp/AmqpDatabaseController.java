@@ -49,18 +49,6 @@ public class AmqpDatabaseController {
                 businessFlow.setState(State.ERROR);
             }
         }
-//        if (businessFlow != null && businessFlow.getState() == State.PROCESSED) {
-//            MailManagerTask mailTask = new MailManagerTask();
-//            mailTask.setApiName("MajordomoVHWebSiteCreated");
-//            mailTask.setEmail("web-script@majordomo.ru");
-//            mailTask.addParameter("client_id", "12345");
-//            mailTask.addParameter("website_name", "b1234556");
-//            mailTask.setPriority(10);
-//
-//            mailManager.send(mailTask);
-//
-//            logger.info("mail sent");
-//        }
         if (businessFlow != null) {
             businessFlowRepository.save(businessFlow);
         }

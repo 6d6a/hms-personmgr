@@ -8,7 +8,8 @@ import java.util.Objects;
 
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
-import ru.majordomo.hms.personmgr.common.message.GenericMessageDestination;
+import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
+import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 /**
@@ -21,7 +22,6 @@ public class BusinessAction extends Step {
     private String businessFlowId;
     private GenericMessageDestination destination;
     private ServiceMessage message;
-
 
     public BusinessAction() {
     }

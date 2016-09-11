@@ -5,7 +5,7 @@ import org.springframework.data.annotation.PersistenceConstructor;
 
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
-import ru.majordomo.hms.personmgr.common.message.GenericMessageDestination;
+import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 
 /**

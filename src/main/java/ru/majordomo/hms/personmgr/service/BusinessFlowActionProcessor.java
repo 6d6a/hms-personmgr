@@ -5,11 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import ru.majordomo.hms.personmgr.common.MailManagerTask;
 import ru.majordomo.hms.personmgr.common.message.MailManagerMessage;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
-import ru.majordomo.hms.personmgr.common.message.GenericMessageDestination;
-import ru.majordomo.hms.personmgr.common.message.AmqpMessageDestination;
+import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
+import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestination;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 
 /**
@@ -41,15 +40,6 @@ public class BusinessFlowActionProcessor {
 
                 break;
             case MAIL_MANAGER:
-//                MailManagerMessageDestination mailManagerMessageDestination = (MailManagerMessageDestination) action.getDestination();
-//                amqpSender.send(MailManagerMessageDestination.getExchange(), MailManagerMessageDestination.getRoutingKey(), message);
-//                MailManagerTask mailTask = new MailManagerTask();
-//                mailTask.setApiName("MajordomoVHWebSiteCreated");
-//                mailTask.setEmail("web-script@majordomo.ru");
-//                mailTask.addParameter("client_id", "12345");
-//                mailTask.addParameter("website_name", "test-site.ru");
-//                mailTask.setPriority(10);
-
                 mailManager.send((MailManagerMessage)action.getMessage());
 
                 logger.info("mail sent");

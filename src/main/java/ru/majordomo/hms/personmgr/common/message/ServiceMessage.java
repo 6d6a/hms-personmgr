@@ -4,7 +4,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
 
-public abstract class ServiceMessage<T extends ServiceMessageParams> {
+public class ServiceMessage<T extends ServiceMessageParams> {
     private String operationIdentity;
     private String actionIdentity;
     private String objRef;

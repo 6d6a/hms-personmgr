@@ -5,18 +5,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.FlowType;
 import ru.majordomo.hms.personmgr.common.message.MailManagerMessage;
-import ru.majordomo.hms.personmgr.common.message.MailManagerMessageDestination;
+import ru.majordomo.hms.personmgr.common.message.destination.MailManagerMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.MailManagerMessageParams;
 import ru.majordomo.hms.personmgr.common.message.WebSiteCreateMessage;
-import ru.majordomo.hms.personmgr.common.message.AmqpMessageDestination;
+import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestination;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.BusinessFlow;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
