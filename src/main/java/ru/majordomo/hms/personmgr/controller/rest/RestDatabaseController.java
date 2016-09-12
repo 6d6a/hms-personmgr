@@ -15,6 +15,7 @@ import ru.majordomo.hms.personmgr.common.ActionType;
 import ru.majordomo.hms.personmgr.common.message.DatabaseCreateMessage;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessageParams;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
@@ -36,14 +37,14 @@ public class RestDatabaseController {
 
     @RequestMapping(value = "create", method = RequestMethod.POST)
     public ResponseMessage create(
-            @RequestBody DatabaseCreateMessage message,
+            @RequestBody SimpleServiceMessage message,
             HttpServletResponse response
     ) {
         logger.info(message.toString());
 
-        ProcessingBusinessAction processingBusinessAction = businessActionBuilder.build(ActionType.DATABASE_CREATE, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.DATABASE_CREATE, message);
 
-        processingBusinessActionRepository.save(processingBusinessAction);
+        processingBusinessActionRepository.save(businessAction);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -51,7 +52,7 @@ public class RestDatabaseController {
         ResponseMessageParams messageParams = new ResponseMessageParams();
         messageParams.setSuccess(true);
         responseMessage.setParams(messageParams);
-        responseMessage.setOperationIdentity(processingBusinessAction.getId());
+        responseMessage.setOperationIdentity(businessAction.getId());
 
         return responseMessage;
     }

@@ -24,7 +24,6 @@ import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 /**
  * ProcessingBusinessFlow
  */
-@Document
 public class ProcessingBusinessFlow extends BusinessFlow {
     @CreatedDate
     private LocalDateTime createdDate;

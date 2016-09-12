@@ -15,6 +15,7 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.ActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 
@@ -34,16 +35,17 @@ public class ProcessingBusinessAction extends BusinessAction {
 
     public ProcessingBusinessAction(BusinessAction businessAction) {
         super();
-        this.setId(ObjectId.get().toHexString());
+        this.setOperationId(ObjectId.get().toHexString());
         this.setDestination(businessAction.getDestination());
         this.setName(businessAction.getName());
         this.setMessage(businessAction.getMessage());
         this.setPriority(businessAction.getPriority());
         this.setState(businessAction.getState());
+        this.setActionType(businessAction.getActionType());
     }
 
     @PersistenceConstructor
-    public ProcessingBusinessAction(String id, String name, State state, int priority, String operationId, ActionType actionType, GenericMessageDestination destination, ServiceMessage message) {
+    public ProcessingBusinessAction(String id, String name, State state, int priority, String operationId, ActionType actionType, GenericMessageDestination destination, SimpleServiceMessage message) {
         super(id, name, state, priority, operationId, actionType, destination, message);
     }
 

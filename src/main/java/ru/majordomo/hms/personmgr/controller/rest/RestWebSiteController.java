@@ -13,11 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.ActionType;
-import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
-import ru.majordomo.hms.personmgr.common.message.ResponseMessageParams;
-import ru.majordomo.hms.personmgr.common.message.WebSiteCreateMessage;
-import ru.majordomo.hms.personmgr.common.message.WebSiteCreateMessageParams;
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
+import ru.majordomo.hms.personmgr.common.message.*;
+import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 
@@ -38,13 +35,13 @@ public class RestWebSiteController {
 
     @RequestMapping(value = "", method = RequestMethod.POST)
     public ResponseMessage create(
-            @RequestBody WebSiteCreateMessage message, HttpServletResponse response
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response
     ) {
         logger.info(message.toString());
 
-        ProcessingBusinessFlow processingBusinessFlow = businessActionBuilder.build(ActionType.WEB_SITE_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.WEB_SITE_CREATE_RC, message);
 
-        processingBusinessActionRepository.save(processingBusinessFlow);
+        processingBusinessActionRepository.save(businessAction);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -52,7 +49,8 @@ public class RestWebSiteController {
         ResponseMessageParams messageParams = new ResponseMessageParams();
         messageParams.setSuccess(true);
         responseMessage.setParams(messageParams);
-        responseMessage.setOperationIdentity(processingBusinessFlow.getId());
+        responseMessage.setActionIdentity(businessAction.getId());
+        responseMessage.setOperationIdentity(businessAction.getOperationId());
 
         return responseMessage;
     }
@@ -60,17 +58,17 @@ public class RestWebSiteController {
     @RequestMapping(value = "/{websiteId}", method = RequestMethod.PATCH)
     public ResponseMessage update(
             @PathVariable String websiteId,
-            @RequestBody WebSiteCreateMessage message, HttpServletResponse response
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response
     ) {
         logger.info("Updating website with id " + websiteId + " " + message.toString());
 
-        WebSiteCreateMessageParams params = message.getParams();
+        WebSiteCreateMessageParams params = (WebSiteCreateMessageParams) message.getParams();
         params.setId(websiteId);
 
         message.setParams(params);
-        ProcessingBusinessFlow processingBusinessFlow = businessActionBuilder.build(ActionType.WEB_SITE_UPDATE, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.WEB_SITE_UPDATE_RC, message);
 
-        processingBusinessActionRepository.save(processingBusinessFlow);
+        processingBusinessActionRepository.save(businessAction);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -78,7 +76,8 @@ public class RestWebSiteController {
         ResponseMessageParams messageParams = new ResponseMessageParams();
         messageParams.setSuccess(true);
         responseMessage.setParams(messageParams);
-        responseMessage.setOperationIdentity(processingBusinessFlow.getId());
+        responseMessage.setActionIdentity(businessAction.getId());
+        responseMessage.setOperationIdentity(businessAction.getOperationId());
 
         return responseMessage;
     }

@@ -10,12 +10,12 @@ import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.ActionType;
 import ru.majordomo.hms.personmgr.common.message.MailManagerMessage;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.MailManagerMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.MailManagerMessageParams;
 import ru.majordomo.hms.personmgr.common.message.WebSiteCreateMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestination;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
-import ru.majordomo.hms.personmgr.model.BusinessFlow;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
 
 /**
@@ -36,9 +36,9 @@ public class BusinessActionDBSeedService {
 
         businessActionRepository.deleteAll();
 
-        this.seedWebSiteCreateFlow();
+        this.seedWebSiteCreateActions();
 
-        logger.info("BusinessFlow found with findAll():");
+        logger.info("BusinessAction found with findAll():");
         logger.info("-------------------------------");
 
         List<BusinessAction> businessActions = businessActionRepository.findAll();
@@ -52,7 +52,7 @@ public class BusinessActionDBSeedService {
         return result;
     }
 
-    private void seedWebSiteCreateFlow() {
+    private void seedWebSiteCreateActions() {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
         MailManagerMessageDestination mailManagerMessageDestination;
@@ -68,9 +68,9 @@ public class BusinessActionDBSeedService {
 
         action.setDestination(amqpMessageDestination);
 
-        WebSiteCreateMessage message = new WebSiteCreateMessage();
-
-        action.setMessage(message);
+//        SimpleServiceMessage message = new WebSiteCreateMessage();
+//
+//        action.setMessage(message);
 
         action.setPriority(1);
 
@@ -84,38 +84,30 @@ public class BusinessActionDBSeedService {
 
         action.setDestination(mailManagerMessageDestination);
 
-        MailManagerMessage mailManagerMessage = new MailManagerMessage();
-        MailManagerMessageParams mailManagerMessageParams = new MailManagerMessageParams();
-        mailManagerMessageParams.setApiName("MajordomoVHWebSiteCreated");
-        mailManagerMessageParams.setPriority(10);
-
-        mailManagerMessage.setParams(mailManagerMessageParams);
-
-        action.setMessage(mailManagerMessage);
+//        SimpleServiceMessage mailManagerMessage = new MailManagerMessage();
+//        MailManagerMessageParams mailManagerMessageParams = new MailManagerMessageParams();
+//        mailManagerMessageParams.setApiName("MajordomoVHWebSiteCreated");
+//        mailManagerMessageParams.setPriority(10);
+//
+//        mailManagerMessage.setParams(mailManagerMessageParams);
+//
+//        action.setMessage(mailManagerMessage);
 
         action.setPriority(2);
 
         businessActionRepository.save(action);
     }
 
-//    private void seedWebSiteUpdateFlow() {
-//        BusinessFlow flow;
+//    private void seedWebSiteUpdateActions() {
 //        BusinessAction action;
 //        AmqpMessageDestination amqpMessageDestination;
 //        MailManagerMessageDestination mailManagerMessageDestination;
 //
-//        businessFlowRepository.deleteAll();
-//        businessActionRepository.deleteAll();
-//
 //        //WebSite create
-//        flow = new BusinessFlow();
-//        flow.setActionType(ActionType.WEB_SITE_CREATE_RC);
-//        flow.setName("WebSite create");
-//
-//        businessFlowRepository.save(flow);
-//
 //        action = new BusinessAction();
-//
+//        action.setActionType(ActionType.WEB_SITE_CREATE_RC);
+//        action.setName("WebSite create");
+
 //        amqpMessageDestination = new AmqpMessageDestination();
 //        amqpMessageDestination.setExchange("website.create");
 //        amqpMessageDestination.setRoutingKey("service.rc.user");
@@ -126,7 +118,6 @@ public class BusinessActionDBSeedService {
 //
 //        action.setMessage(message);
 //
-//        action.setOperationId(flow.getId());
 //        action.setPriority(1);
 //
 //        businessActionRepository.save(action);
@@ -151,26 +142,20 @@ public class BusinessActionDBSeedService {
 //        mailManagerMessage.setParams(mailManagerMessageParams);
 //        action.setMessage(mailManagerMessage);
 //
-//        action.setOperationId(flow.getId());
 //        action.setPriority(2);
 //
 //        businessActionRepository.save(action);
 //    }
 
-    private void seedDatabaseCreateFlow() {
-        BusinessFlow flow;
-        BusinessAction action;
-        AmqpMessageDestination amqpMessageDestination;
-        MailManagerMessageDestination mailManagerMessageDestination;
+    private void seedDatabaseCreateActions() {
+//        BusinessAction action;
+//        AmqpMessageDestination amqpMessageDestination;
+//        MailManagerMessageDestination mailManagerMessageDestination;
 
         //Database create
-//        flow = new BusinessFlow();
-//        flow.setActionType(ActionType.DATABASE_CREATE);
-//        flow.setName("Database create");
-//
-//        businessFlowRepository.save(flow);
-//
 //        action = new BusinessAction();
+//        action.setActionType(ActionType.DATABASE_CREATE);
+//        action.setName("Database create");
 //
 //        destination = new AmqpMessageDestination();
 //        destination.setExchange("database.create");
@@ -183,8 +168,6 @@ public class BusinessActionDBSeedService {
 //        action.setMessage(message);
 //
 //        action.setMessage("");
-//
-//        action.setOperationId(flow.getId());
 //
 //        businessActionRepository.save(action);
     }

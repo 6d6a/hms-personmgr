@@ -9,7 +9,8 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.Application;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
+import ru.majordomo.hms.personmgr.common.message.ResponseMessageParams;
+import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 
 /**
@@ -19,46 +20,47 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 public class BusinessFlowDirector {
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
     @Autowired
-    BusinessFlowProcessor businessFlowProcessor;
+    BusinessActionProcessor businessActionProcessor;
     @Autowired
     private ProcessingBusinessActionRepository processingBusinessActionRepository;
 
     @Scheduled(fixedDelay = 500)
     public void process() {
-        ProcessingBusinessFlow processingBusinessFlow = processingBusinessActionRepository.findFirstByStateOrderByPriorityAscCreatedDateAsc(State.NEED_TO_PROCESS);
-        if (processingBusinessFlow != null) {
-            logger.info("Processing " + processingBusinessFlow.toString());
+        ProcessingBusinessAction businessAction = processingBusinessActionRepository.findFirstByStateOrderByPriorityAscCreatedDateAsc(State.NEED_TO_PROCESS);
+        if (businessAction != null) {
+            logger.info("Processing " + businessAction.toString());
 
-            processingBusinessFlow.setState(State.PROCESSING);
+            businessAction.setState(State.PROCESSING);
 
-            processingBusinessActionRepository.save(processingBusinessFlow);
+            processingBusinessActionRepository.save(businessAction);
 
-            processingBusinessFlow = businessFlowProcessor.process(processingBusinessFlow);
+            businessAction = businessActionProcessor.process(businessAction);
 
-            processingBusinessActionRepository.save(processingBusinessFlow);
+            processingBusinessActionRepository.save(businessAction);
         }
     }
 
     public void processMessage(ResponseMessage message) {
         logger.info("Processing message : " + message.toString());
 
-        ProcessingBusinessFlow businessFlow = processingBusinessActionRepository.findOne(message.getOperationIdentity());
+        ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getOperationIdentity());
 
-        if (businessFlow != null) {
+        if (businessAction != null) {
             if (message.getParams().isSuccess()) {
-                logger.info("ProcessingBusinessFlow -> success, operationIdentity: " + message.getOperationIdentity());
-                businessFlow.setState(businessFlow.getNeedToProcessBusinessAction() == null ? State.PROCESSED : State.NEED_TO_PROCESS);
-                businessFlow.setProcessBusinessActionStateById(message.getActionIdentity(), State.PROCESSED);
+                logger.info("ProcessingBusinessAction -> success, operationIdentity: " + message.getOperationIdentity());
+                businessAction.setState(State.PROCESSED);
+//                businessAction.setState(businessAction.getNeedToProcessBusinessAction() == null ? State.PROCESSED : State.NEED_TO_PROCESS);
+//                businessAction.setProcessBusinessActionStateById(message.getActionIdentity(), State.PROCESSED);
 
             } else {
-                logger.info("ProcessingBusinessFlow -> error, operationIdentity: " + message.getOperationIdentity());
-                businessFlow.setState(State.ERROR);
-                businessFlow.setProcessBusinessActionStateById(message.getActionIdentity(), State.ERROR);
+                logger.info("ProcessingBusinessAction -> error, operationIdentity: " + message.getOperationIdentity());
+                businessAction.setState(State.ERROR);
+//                businessFlow.setProcessBusinessActionStateById(message.getActionIdentity(), State.ERROR);
             }
 
-            processingBusinessActionRepository.save(businessFlow);
+            processingBusinessActionRepository.save(businessAction);
         } else {
-            logger.info("ProcessingBusinessFlow with id: " + message.getOperationIdentity() + " not found");
+            logger.info("ProcessingBusinessAction with id: " + message.getOperationIdentity() + " not found");
         }
     }
 }

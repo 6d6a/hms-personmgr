@@ -16,5 +16,5 @@ public interface BusinessActionRepository extends MongoRepository<BusinessAction
 
     BusinessAction findByName(String name);
 
-    BusinessAction findByFlowType(@Param("actionType") ActionType actionType);
+    BusinessAction findByActionType(@Param("actionType") ActionType actionType);
 }

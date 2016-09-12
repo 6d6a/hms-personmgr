@@ -14,7 +14,6 @@ import ru.majordomo.hms.personmgr.common.State;
 /**
  * BusinessFlow
  */
-@Document
 public class BusinessFlow extends Step {
     @Indexed
     private ActionType actionType;

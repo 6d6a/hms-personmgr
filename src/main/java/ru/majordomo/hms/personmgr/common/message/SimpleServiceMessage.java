@@ -1,28 +1,20 @@
 package ru.majordomo.hms.personmgr.common.message;
 
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.lang.reflect.ParameterizedType;
+import java.util.HashMap;
+import java.util.Map;
 
-public class ServiceMessage<T extends ServiceMessageParams> {
+public class SimpleServiceMessage {
+    private static final Logger logger = LoggerFactory.getLogger(SimpleServiceMessage.class);
     private String operationIdentity;
     private String actionIdentity;
     private String objRef;
-    private T params;
-
-    public ServiceMessage() {
-    }
-
-    public Class<T> returnedClass() {
-        ParameterizedType parameterizedType = (ParameterizedType) getClass()
-                .getGenericSuperclass();
-
-        @SuppressWarnings("unchecked")
-        Class<T> ret = (Class<T>) parameterizedType.getActualTypeArguments()[0];
-
-        return ret;
-    }
+    private Map<String, Object> params = new HashMap<>();
 
     public String getOperationIdentity() {
         return operationIdentity;
@@ -48,23 +40,31 @@ public class ServiceMessage<T extends ServiceMessageParams> {
         this.objRef = objRef;
     }
 
-    public T getParams() {
+    public Object getParam(String param) {
+        return params.get(param);
+    }
+
+    public Map<String, Object> getParams() {
         return params;
     }
 
-    public void setParams(T params) {
+    public void setParams(Map<String, Object> params) {
         this.params = params;
+    }
+
+    public void addParam(String name, Object value) {
+        params.put(name,value);
     }
 
     public String toJson() {
         ObjectMapper objectMapper = new ObjectMapper();
-        String message = "";
+        String jsonData = "";
         try {
-            message = objectMapper.writeValueAsString(this);
-        } catch (IOException e) {
-            e.printStackTrace();
+            jsonData = objectMapper.writeValueAsString(this);
+        } catch (IOException ex) {
+            logger.error("Невозможно конвертировать в JSON" + ex.toString());
         }
-        return message;
+        return jsonData;
     }
 
     @Override

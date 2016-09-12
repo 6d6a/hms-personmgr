@@ -16,7 +16,7 @@ public interface ProcessingBusinessActionRepository extends MongoRepository<Proc
 
     ProcessingBusinessAction findByName(String name);
 
-    ProcessingBusinessAction findByFlowType(ActionType actionType);
+    ProcessingBusinessAction findByActionType(ActionType actionType);
 
     ProcessingBusinessAction findFirstByStateOrderByPriorityAscCreatedDateAsc(State state);
 }

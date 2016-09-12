@@ -9,6 +9,8 @@ import java.util.Objects;
 import ru.majordomo.hms.personmgr.common.ActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
+import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
 
 /**
@@ -23,13 +25,13 @@ public class BusinessAction extends Step {
     private ActionType actionType;
 
     private GenericMessageDestination destination;
-    private ServiceMessage message;
+    private SimpleServiceMessage message;
 
     public BusinessAction() {
     }
 
     @PersistenceConstructor
-    public BusinessAction(String id, String name, State state, int priority, String operationId, ActionType actionType, GenericMessageDestination destination, ServiceMessage message) {
+    public BusinessAction(String id, String name, State state, int priority, String operationId, ActionType actionType, GenericMessageDestination destination, SimpleServiceMessage message) {
         super();
         this.setId(id);
         this.setName(name);
@@ -65,11 +67,11 @@ public class BusinessAction extends Step {
         this.destination = destination;
     }
 
-    public ServiceMessage getMessage() {
+    public SimpleServiceMessage getMessage() {
         return message;
     }
 
-    public void setMessage(ServiceMessage message) {
+    public void setMessage(SimpleServiceMessage message) {
         this.message = message;
     }
 

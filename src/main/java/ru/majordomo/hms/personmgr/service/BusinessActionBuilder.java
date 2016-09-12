@@ -6,24 +6,26 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.ActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
+import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
 
 /**
- * BusinessFlowBuilder
+ * BusinessActionBuilder
  */
 @Service
 public class BusinessActionBuilder {
     @Autowired
     private BusinessActionRepository businessActionRepository;
 
-    public ProcessingBusinessAction build(ActionType actionType, ServiceMessage message) {
-        BusinessAction businessAction = businessActionRepository.findByFlowType(actionType);
+    public ProcessingBusinessAction build(ActionType actionType, SimpleServiceMessage message) {
+        BusinessAction businessAction = businessActionRepository.findByActionType(actionType);
 
         ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(businessAction);
 
-        processingBusinessAction.setParams(message.getParams());
+        processingBusinessAction.setMapParams(message.getParams());
         processingBusinessAction.setState(State.NEED_TO_PROCESS);
 
 //        processingBusinessFlow.setProcessingBusinessActions(processingBusinessFlow.getBusinessActions().stream().map(businessAction -> {

@@ -12,11 +12,11 @@ import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestinat
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 
 /**
- * BusinessFlowActionProcessor
+ * BusinessActionProcessor
  */
 @Service
-public class BusinessFlowActionProcessor {
-    private final static Logger logger = LoggerFactory.getLogger(BusinessFlowActionProcessor.class);
+public class BusinessActionProcessor {
+    private final static Logger logger = LoggerFactory.getLogger(BusinessActionProcessor.class);
 
     @Autowired
     private AmqpSender amqpSender;
@@ -27,16 +27,16 @@ public class BusinessFlowActionProcessor {
     public ProcessingBusinessAction process(ProcessingBusinessAction action) {
         logger.info("processing BusinessAction " + action.getId());
 
-        ServiceMessage message = action.getMessage();
-        message.setOperationIdentity(action.getOperationId());
-        message.setActionIdentity(action.getId());
+//        ServiceMessage message = action.getMessage();
+        action.getMessage().setOperationIdentity(action.getOperationId());
+        action.getMessage().setActionIdentity(action.getId());
 //        message.setParams(action.getParams());
 
         GenericMessageDestination destination = action.getDestination();
         switch (destination.getType()) {
             case AMQP:
                 AmqpMessageDestination amqpMessageDestination = (AmqpMessageDestination) action.getDestination();
-                amqpSender.send(amqpMessageDestination.getExchange(), amqpMessageDestination.getRoutingKey(), message);
+                amqpSender.send(amqpMessageDestination.getExchange(), amqpMessageDestination.getRoutingKey(), action.getMessage());
 
                 break;
             case MAIL_MANAGER:

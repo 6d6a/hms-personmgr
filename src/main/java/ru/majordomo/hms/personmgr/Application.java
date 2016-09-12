@@ -13,8 +13,7 @@ import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventListener;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
-import ru.majordomo.hms.personmgr.event.BusinessFlowEventListener;
-import ru.majordomo.hms.personmgr.event.ProcessingBusinessFlowEventListener;
+import ru.majordomo.hms.personmgr.event.ProcessingBusinessActionEventListener;
 import ru.majordomo.hms.personmgr.service.BusinessActionDBSeedService;
 
 @SpringBootApplication
@@ -68,13 +67,8 @@ public class Application implements CommandLineRunner {
     }
 
     @Bean
-    public BusinessFlowEventListener businessFlowEventListener() {
-        return new BusinessFlowEventListener();
-    }
-
-    @Bean
-    public ProcessingBusinessFlowEventListener processingBusinessFlowEventListener() {
-        return new ProcessingBusinessFlowEventListener();
+    public ProcessingBusinessActionEventListener processingBusinessActionEventListener() {
+        return new ProcessingBusinessActionEventListener();
     }
 
     @Bean

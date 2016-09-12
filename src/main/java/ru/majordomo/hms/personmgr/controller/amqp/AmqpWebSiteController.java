@@ -27,7 +27,6 @@ import ru.majordomo.hms.personmgr.service.MailManager;
 public class AmqpWebSiteController {
 
     private final static Logger logger = LoggerFactory.getLogger(AmqpWebSiteController.class);
-    private final Map<Object, Object> EMPTY_PARAMS = new HashMap<>();
     @Autowired
     private AmqpSender amqpSender;
     @Autowired
