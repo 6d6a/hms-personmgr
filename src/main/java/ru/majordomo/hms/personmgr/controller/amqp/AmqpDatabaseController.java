@@ -18,9 +18,8 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.AmqpSender;
-import ru.majordomo.hms.personmgr.service.MailManager;
 
 @EnableRabbit
 @Service
@@ -32,7 +31,7 @@ public class AmqpDatabaseController {
 //    @Autowired
 //    private MailManager mailManager;
     @Autowired
-    private ProcessingBusinessFlowRepository businessFlowRepository;
+    private ProcessingBusinessActionRepository businessFlowRepository;
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.database", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "database.create", type = ExchangeTypes.TOPIC), key = "service.pm"))
     public void create(@Payload ResponseMessage message, @Headers Map<String, String> headers) {

@@ -12,14 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletResponse;
 
-import ru.majordomo.hms.personmgr.common.FlowType;
+import ru.majordomo.hms.personmgr.common.ActionType;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessageParams;
 import ru.majordomo.hms.personmgr.common.message.WebSiteCreateMessage;
 import ru.majordomo.hms.personmgr.common.message.WebSiteCreateMessageParams;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
-import ru.majordomo.hms.personmgr.service.BusinessFlowBuilder;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
+import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 
 /**
  * WebSiteController
@@ -31,10 +31,10 @@ public class RestWebSiteController {
     private final static Logger logger = LoggerFactory.getLogger(RestWebSiteController.class);
 
     @Autowired
-    private BusinessFlowBuilder businessFlowBuilder;
+    private BusinessActionBuilder businessActionBuilder;
 
     @Autowired
-    private ProcessingBusinessFlowRepository processingBusinessFlowRepository;
+    private ProcessingBusinessActionRepository processingBusinessActionRepository;
 
     @RequestMapping(value = "", method = RequestMethod.POST)
     public ResponseMessage create(
@@ -42,9 +42,9 @@ public class RestWebSiteController {
     ) {
         logger.info(message.toString());
 
-        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_CREATE, message);
+        ProcessingBusinessFlow processingBusinessFlow = businessActionBuilder.build(ActionType.WEB_SITE_CREATE_RC, message);
 
-        processingBusinessFlowRepository.save(processingBusinessFlow);
+        processingBusinessActionRepository.save(processingBusinessFlow);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -68,9 +68,9 @@ public class RestWebSiteController {
         params.setId(websiteId);
 
         message.setParams(params);
-        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_UPDATE, message);
+        ProcessingBusinessFlow processingBusinessFlow = businessActionBuilder.build(ActionType.WEB_SITE_UPDATE, message);
 
-        processingBusinessFlowRepository.save(processingBusinessFlow);
+        processingBusinessActionRepository.save(processingBusinessFlow);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

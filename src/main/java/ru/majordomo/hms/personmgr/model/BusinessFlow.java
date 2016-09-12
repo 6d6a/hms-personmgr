@@ -8,7 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.util.ArrayList;
 import java.util.List;
 
-import ru.majordomo.hms.personmgr.common.FlowType;
+import ru.majordomo.hms.personmgr.common.ActionType;
 import ru.majordomo.hms.personmgr.common.State;
 
 /**
@@ -17,7 +17,7 @@ import ru.majordomo.hms.personmgr.common.State;
 @Document
 public class BusinessFlow extends Step {
     @Indexed
-    private FlowType flowType;
+    private ActionType actionType;
 
     @Transient
     private List<BusinessAction> businessActions = new ArrayList<>();
@@ -26,21 +26,21 @@ public class BusinessFlow extends Step {
     }
 
     @PersistenceConstructor
-    public BusinessFlow(String id, String name, State state, int priority, FlowType flowType) {
+    public BusinessFlow(String id, String name, State state, int priority, ActionType actionType) {
         super();
         this.setId(id);
         this.setName(name);
         this.setState(state);
         this.setPriority(priority);
-        this.flowType = flowType;
+        this.actionType = actionType;
     }
 
-    public FlowType getFlowType() {
-        return flowType;
+    public ActionType getActionType() {
+        return actionType;
     }
 
-    public void setFlowType(FlowType flowType) {
-        this.flowType = flowType;
+    public void setActionType(ActionType actionType) {
+        this.actionType = actionType;
     }
 
     public List<BusinessAction> getBusinessActions() {
@@ -62,7 +62,7 @@ public class BusinessFlow extends Step {
     @Override
     public String toString() {
         return "BusinessFlow{" +
-                "flowType=" + flowType +
+                "actionType=" + actionType +
                 ", businessActions=" + businessActions +
                 "} " + super.toString();
     }

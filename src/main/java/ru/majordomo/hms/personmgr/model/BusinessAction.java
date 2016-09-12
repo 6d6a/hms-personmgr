@@ -6,11 +6,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Objects;
 
+import ru.majordomo.hms.personmgr.common.ActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
-import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
-import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 /**
  * BusinessAction
@@ -18,8 +17,11 @@ import ru.majordomo.hms.personmgr.validators.ObjectId;
 @Document
 public class BusinessAction extends Step {
     @Indexed
-    @ObjectId(BusinessFlow.class)
-    private String businessFlowId;
+    private String operationId;
+
+    @Indexed
+    private ActionType actionType;
+
     private GenericMessageDestination destination;
     private ServiceMessage message;
 
@@ -27,23 +29,32 @@ public class BusinessAction extends Step {
     }
 
     @PersistenceConstructor
-    public BusinessAction(String id, String name, State state, int priority, String businessFlowId, GenericMessageDestination destination, ServiceMessage message) {
+    public BusinessAction(String id, String name, State state, int priority, String operationId, ActionType actionType, GenericMessageDestination destination, ServiceMessage message) {
         super();
         this.setId(id);
         this.setName(name);
         this.setState(state);
         this.setPriority(priority);
-        this.businessFlowId = businessFlowId;
+        this.operationId = operationId;
+        this.actionType = actionType;
         this.destination = destination;
         this.message = message;
     }
 
-    public String getBusinessFlowId() {
-        return businessFlowId;
+    public String getOperationId() {
+        return operationId;
     }
 
-    public void setBusinessFlowId(String businessFlowId) {
-        this.businessFlowId = businessFlowId;
+    public void setOperationId(String operationId) {
+        this.operationId = operationId;
+    }
+
+    public ActionType getActionType() {
+        return actionType;
+    }
+
+    public void setActionType(ActionType actionType) {
+        this.actionType = actionType;
     }
 
     public GenericMessageDestination getDestination() {
@@ -65,7 +76,7 @@ public class BusinessAction extends Step {
     @Override
     public String toString() {
         return "BusinessAction{" +
-                "businessFlowId='" + businessFlowId + '\'' +
+                "operationId='" + operationId + '\'' +
                 ", destination=" + destination +
                 ", message='" + message + '\'' +
                 "} " + super.toString();
@@ -77,13 +88,13 @@ public class BusinessAction extends Step {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         BusinessAction that = (BusinessAction) o;
-        return Objects.equals(businessFlowId, that.businessFlowId) &&
+        return Objects.equals(operationId, that.operationId) &&
                 Objects.equals(destination, that.destination) &&
                 Objects.equals(message, that.message);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), businessFlowId, destination, message);
+        return Objects.hash(super.hashCode(), operationId, destination, message);
     }
 }

@@ -15,7 +15,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import ru.majordomo.hms.personmgr.event.BusinessFlowEventListener;
 import ru.majordomo.hms.personmgr.event.ProcessingBusinessFlowEventListener;
-import ru.majordomo.hms.personmgr.service.BusinessFlowDBSeedService;
+import ru.majordomo.hms.personmgr.service.BusinessActionDBSeedService;
 
 @SpringBootApplication
 @PropertySources({
@@ -27,7 +27,7 @@ public class Application implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
     @Autowired
-    private BusinessFlowDBSeedService businessFlowDBSeedService;
+    private BusinessActionDBSeedService businessActionDBSeedService;
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
@@ -41,7 +41,7 @@ public class Application implements CommandLineRunner {
             sb.append(" ").append(option);
 
             if (option.equals(dbSeedOption)) {
-                boolean seeded = businessFlowDBSeedService.seedDB();
+                boolean seeded = businessActionDBSeedService.seedDB();
                 sb.append(" ").append(seeded ? "businessFlow db_seeded" : "businessFlow db_not_seeded");
             } //else if (option.equals(dbImportOption)) {
             //boolean imported;

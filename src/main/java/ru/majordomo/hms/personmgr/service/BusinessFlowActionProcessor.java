@@ -28,7 +28,7 @@ public class BusinessFlowActionProcessor {
         logger.info("processing BusinessAction " + action.getId());
 
         ServiceMessage message = action.getMessage();
-        message.setOperationIdentity(action.getBusinessFlowId());
+        message.setOperationIdentity(action.getOperationId());
         message.setActionIdentity(action.getId());
 //        message.setParams(action.getParams());
 

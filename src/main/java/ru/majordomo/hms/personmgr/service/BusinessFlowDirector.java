@@ -10,7 +10,7 @@ import ru.majordomo.hms.personmgr.Application;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 
 /**
  * BusinessFlowDirector
@@ -21,28 +21,28 @@ public class BusinessFlowDirector {
     @Autowired
     BusinessFlowProcessor businessFlowProcessor;
     @Autowired
-    private ProcessingBusinessFlowRepository processingBusinessFlowRepository;
+    private ProcessingBusinessActionRepository processingBusinessActionRepository;
 
     @Scheduled(fixedDelay = 500)
     public void process() {
-        ProcessingBusinessFlow processingBusinessFlow = processingBusinessFlowRepository.findFirstByStateOrderByPriorityAscCreatedDateAsc(State.NEED_TO_PROCESS);
+        ProcessingBusinessFlow processingBusinessFlow = processingBusinessActionRepository.findFirstByStateOrderByPriorityAscCreatedDateAsc(State.NEED_TO_PROCESS);
         if (processingBusinessFlow != null) {
             logger.info("Processing " + processingBusinessFlow.toString());
 
             processingBusinessFlow.setState(State.PROCESSING);
 
-            processingBusinessFlowRepository.save(processingBusinessFlow);
+            processingBusinessActionRepository.save(processingBusinessFlow);
 
             processingBusinessFlow = businessFlowProcessor.process(processingBusinessFlow);
 
-            processingBusinessFlowRepository.save(processingBusinessFlow);
+            processingBusinessActionRepository.save(processingBusinessFlow);
         }
     }
 
     public void processMessage(ResponseMessage message) {
         logger.info("Processing message : " + message.toString());
 
-        ProcessingBusinessFlow businessFlow = processingBusinessFlowRepository.findOne(message.getOperationIdentity());
+        ProcessingBusinessFlow businessFlow = processingBusinessActionRepository.findOne(message.getOperationIdentity());
 
         if (businessFlow != null) {
             if (message.getParams().isSuccess()) {
@@ -56,7 +56,7 @@ public class BusinessFlowDirector {
                 businessFlow.setProcessBusinessActionStateById(message.getActionIdentity(), State.ERROR);
             }
 
-            processingBusinessFlowRepository.save(businessFlow);
+            processingBusinessActionRepository.save(businessFlow);
         } else {
             logger.info("ProcessingBusinessFlow with id: " + message.getOperationIdentity() + " not found");
         }

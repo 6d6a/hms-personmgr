@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.service;
 
-import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-import ru.majordomo.hms.personmgr.common.FlowType;
+import ru.majordomo.hms.personmgr.common.ActionType;
 import ru.majordomo.hms.personmgr.common.message.MailManagerMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.MailManagerMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.MailManagerMessageParams;
@@ -18,17 +17,13 @@ import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestinat
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.BusinessFlow;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
-import ru.majordomo.hms.personmgr.repository.BusinessFlowRepository;
 
 /**
  * Сервис для загрузки первичных данных в БД
  */
 @Service
-public class BusinessFlowDBSeedService {
-    private final static Logger logger = LoggerFactory.getLogger(BusinessFlowDBSeedService.class);
-
-    @Autowired
-    private BusinessFlowRepository businessFlowRepository;
+public class BusinessActionDBSeedService {
+    private final static Logger logger = LoggerFactory.getLogger(BusinessActionDBSeedService.class);
 
     @Autowired
     private BusinessActionRepository businessActionRepository;
@@ -36,12 +31,9 @@ public class BusinessFlowDBSeedService {
     @Value( "${mail_manager.dev_email}" )
     private String mailManagerDevEmail;
 
-    private ObjectMapper mapper = new ObjectMapper();
-
     public boolean seedDB() {
         boolean result = false;
 
-        businessFlowRepository.deleteAll();
         businessActionRepository.deleteAll();
 
         this.seedWebSiteCreateFlow();
@@ -49,31 +41,26 @@ public class BusinessFlowDBSeedService {
         logger.info("BusinessFlow found with findAll():");
         logger.info("-------------------------------");
 
-        List<BusinessFlow> businessFlows = businessFlowRepository.findAll();
-        if (businessFlows.size() > 0) {
+        List<BusinessAction> businessActions = businessActionRepository.findAll();
+        if (businessActions.size() > 0) {
             result = true;
         }
-        for (BusinessFlow businessFlow : businessFlows) {
-            logger.info("businessFlow: " + businessFlow.toString());
+        for (BusinessAction businessAction : businessActions) {
+            logger.info("businessAction: " + businessAction.toString());
         }
 
         return result;
     }
 
     private void seedWebSiteCreateFlow() {
-        BusinessFlow flow;
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
         MailManagerMessageDestination mailManagerMessageDestination;
 
         //WebSite create
-        flow = new BusinessFlow();
-        flow.setFlowType(FlowType.WEB_SITE_CREATE);
-        flow.setName("WebSite create");
-
-        businessFlowRepository.save(flow);
-
         action = new BusinessAction();
+        action.setActionType(ActionType.WEB_SITE_CREATE_RC);
+        action.setName("WebSite create RC");
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("website.create");
@@ -85,12 +72,13 @@ public class BusinessFlowDBSeedService {
 
         action.setMessage(message);
 
-        action.setBusinessFlowId(flow.getId());
         action.setPriority(1);
 
         businessActionRepository.save(action);
 
         action = new BusinessAction();
+        action.setActionType(ActionType.WEB_SITE_CREATE_MM);
+        action.setName("WebSite create MM");
 
         mailManagerMessageDestination = new MailManagerMessageDestination();
 
@@ -99,18 +87,12 @@ public class BusinessFlowDBSeedService {
         MailManagerMessage mailManagerMessage = new MailManagerMessage();
         MailManagerMessageParams mailManagerMessageParams = new MailManagerMessageParams();
         mailManagerMessageParams.setApiName("MajordomoVHWebSiteCreated");
-//        mailManagerMessageParams.setEmail(mailManagerDevEmail);
         mailManagerMessageParams.setPriority(10);
 
-//        HashMap<String, String> parameters = new HashMap<>();
-//        parameters.put("client_id", "12345");
-//        parameters.put("website_name", "test-site.ru");
-//        mailManagerMessageParams.setParameters(parameters);
-
         mailManagerMessage.setParams(mailManagerMessageParams);
+
         action.setMessage(mailManagerMessage);
 
-        action.setBusinessFlowId(flow.getId());
         action.setPriority(2);
 
         businessActionRepository.save(action);
@@ -127,7 +109,7 @@ public class BusinessFlowDBSeedService {
 //
 //        //WebSite create
 //        flow = new BusinessFlow();
-//        flow.setFlowType(FlowType.WEB_SITE_CREATE);
+//        flow.setActionType(ActionType.WEB_SITE_CREATE_RC);
 //        flow.setName("WebSite create");
 //
 //        businessFlowRepository.save(flow);
@@ -144,7 +126,7 @@ public class BusinessFlowDBSeedService {
 //
 //        action.setMessage(message);
 //
-//        action.setBusinessFlowId(flow.getId());
+//        action.setOperationId(flow.getId());
 //        action.setPriority(1);
 //
 //        businessActionRepository.save(action);
@@ -169,7 +151,7 @@ public class BusinessFlowDBSeedService {
 //        mailManagerMessage.setParams(mailManagerMessageParams);
 //        action.setMessage(mailManagerMessage);
 //
-//        action.setBusinessFlowId(flow.getId());
+//        action.setOperationId(flow.getId());
 //        action.setPriority(2);
 //
 //        businessActionRepository.save(action);
@@ -183,7 +165,7 @@ public class BusinessFlowDBSeedService {
 
         //Database create
 //        flow = new BusinessFlow();
-//        flow.setFlowType(FlowType.DATABASE_CREATE);
+//        flow.setActionType(ActionType.DATABASE_CREATE);
 //        flow.setName("Database create");
 //
 //        businessFlowRepository.save(flow);
@@ -202,7 +184,7 @@ public class BusinessFlowDBSeedService {
 //
 //        action.setMessage("");
 //
-//        action.setBusinessFlowId(flow.getId());
+//        action.setOperationId(flow.getId());
 //
 //        businessActionRepository.save(action);
     }

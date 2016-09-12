@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.AmqpSender;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 import ru.majordomo.hms.personmgr.service.MailManager;
@@ -33,7 +33,7 @@ public class AmqpWebSiteController {
     @Autowired
     private MailManager mailManager;
     @Autowired
-    private ProcessingBusinessFlowRepository businessFlowRepository;
+    private ProcessingBusinessActionRepository businessFlowRepository;
     @Autowired
     private BusinessFlowDirector businessFlowDirector;
 
