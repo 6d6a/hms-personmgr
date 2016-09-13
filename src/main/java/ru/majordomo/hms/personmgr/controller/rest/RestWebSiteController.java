@@ -62,10 +62,8 @@ public class RestWebSiteController {
     ) {
         logger.info("Updating website with id " + websiteId + " " + message.toString());
 
-        WebSiteCreateMessageParams params = (WebSiteCreateMessageParams) message.getParams();
-        params.setId(websiteId);
+        message.getParams().put("id", websiteId);
 
-        message.setParams(params);
         ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.WEB_SITE_UPDATE_RC, message);
 
         processingBusinessActionRepository.save(businessAction);

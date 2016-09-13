@@ -86,7 +86,7 @@ public class BusinessActionDBSeedService {
 
 //        SimpleServiceMessage mailManagerMessage = new MailManagerMessage();
 //        MailManagerMessageParams mailManagerMessageParams = new MailManagerMessageParams();
-//        mailManagerMessageParams.setApiName("MajordomoVHWebSiteCreated");
+//        mailManagerMessageParams.setApi_name("MajordomoVHWebSiteCreated");
 //        mailManagerMessageParams.setPriority(10);
 //
 //        mailManagerMessage.setParams(mailManagerMessageParams);
@@ -130,14 +130,14 @@ public class BusinessActionDBSeedService {
 //
 //        MailManagerMessage mailManagerMessage = new MailManagerMessage();
 //        MailManagerMessageParams mailManagerMessageParams = new MailManagerMessageParams();
-//        mailManagerMessageParams.setApiName("MajordomoVHWebSiteCreated");
+//        mailManagerMessageParams.setApi_name("MajordomoVHWebSiteCreated");
 ////        mailManagerMessageParams.setEmail(mailManagerDevEmail);
 //        mailManagerMessageParams.setPriority(10);
 //
 ////        HashMap<String, String> parameters = new HashMap<>();
 ////        parameters.put("client_id", "12345");
 ////        parameters.put("website_name", "test-site.ru");
-////        mailManagerMessageParams.setParameters(parameters);
+////        mailManagerMessageParams.setParametrs(parameters);
 //
 //        mailManagerMessage.setParams(mailManagerMessageParams);
 //        action.setMessage(mailManagerMessage);

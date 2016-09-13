@@ -40,27 +40,30 @@ public class BusinessFlowDirector {
         }
     }
 
-    public void processMessage(ResponseMessage message) {
+    public State processMessage(ResponseMessage message) {
         logger.info("Processing message : " + message.toString());
 
-        ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getOperationIdentity());
+        ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
         if (businessAction != null) {
             if (message.getParams().isSuccess()) {
-                logger.info("ProcessingBusinessAction -> success, operationIdentity: " + message.getOperationIdentity());
+                logger.info("ProcessingBusinessAction -> success, operationIdentity: " + message.getOperationIdentity() + "actionIdentity: " + message.getActionIdentity());
                 businessAction.setState(State.PROCESSED);
 //                businessAction.setState(businessAction.getNeedToProcessBusinessAction() == null ? State.PROCESSED : State.NEED_TO_PROCESS);
 //                businessAction.setProcessBusinessActionStateById(message.getActionIdentity(), State.PROCESSED);
 
             } else {
-                logger.info("ProcessingBusinessAction -> error, operationIdentity: " + message.getOperationIdentity());
+                logger.info("ProcessingBusinessAction -> error, operationIdentity: " + message.getOperationIdentity() + "actionIdentity: " + message.getActionIdentity());
                 businessAction.setState(State.ERROR);
 //                businessFlow.setProcessBusinessActionStateById(message.getActionIdentity(), State.ERROR);
             }
 
             processingBusinessActionRepository.save(businessAction);
+
+            return businessAction.getState();
         } else {
-            logger.info("ProcessingBusinessAction with id: " + message.getOperationIdentity() + " not found");
+            logger.info("ProcessingBusinessAction with id: " + message.getActionIdentity() + " not found");
+            return State.ERROR;
         }
     }
 }

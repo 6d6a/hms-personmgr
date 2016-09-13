@@ -7,18 +7,18 @@ import java.util.Map;
  * MailManagerMessageParams
  */
 public class MailManagerMessageParams extends ServiceMessageParams {
-    private String apiName;
+    private String api_name;
     private String email;
-    private Map<String, String> parameters = new HashMap<>();
+    private Map<String, String> parametrs = new HashMap<>();
     private int priority = 1;
     private Map<String, String> attachment;
 
-    public String getApiName() {
-        return apiName;
+    public String getApi_name() {
+        return api_name;
     }
 
-    public void setApiName(String apiName) {
-        this.apiName = apiName;
+    public void setApi_name(String api_name) {
+        this.api_name = api_name;
     }
 
     public String getEmail() {
@@ -29,12 +29,12 @@ public class MailManagerMessageParams extends ServiceMessageParams {
         this.email = email;
     }
 
-    public Map<String, String> getParameters() {
-        return parameters;
+    public Map<String, String> getParametrs() {
+        return parametrs;
     }
 
-    public void setParameters(Map<String, String> parameters) {
-        this.parameters = parameters;
+    public void setParametrs(Map<String, String> parametrs) {
+        this.parametrs = parametrs;
     }
 
     public int getPriority() {
@@ -56,9 +56,9 @@ public class MailManagerMessageParams extends ServiceMessageParams {
     @Override
     public String toString() {
         return "MailManagerMessageParams{" +
-                "apiName='" + apiName + '\'' +
+                "api_name='" + api_name + '\'' +
                 ", email='" + email + '\'' +
-                ", parameters=" + parameters +
+                ", parametrs=" + parametrs +
                 ", priority=" + priority +
                 ", attachment=" + attachment +
                 "} " + super.toString();

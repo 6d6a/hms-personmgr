@@ -4,7 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 
+import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.MailManagerMessage;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
@@ -40,9 +42,13 @@ public class BusinessActionProcessor {
 
                 break;
             case MAIL_MANAGER:
-                mailManager.send((MailManagerMessage)action.getMessage());
-
-                logger.info("mail sent");
+                try {
+                    mailManager.send(action.getMessage());
+                    logger.info("mail sent");
+                } catch (RestClientException exception) {
+                    action.setState(State.ERROR);
+                    logger.error(exception.toString() + " " + exception.getMessage());
+                }
 
                 break;
         }

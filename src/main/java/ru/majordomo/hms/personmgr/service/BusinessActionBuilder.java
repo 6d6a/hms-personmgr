@@ -25,6 +25,7 @@ public class BusinessActionBuilder {
 
         ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(businessAction);
 
+        processingBusinessAction.setMessage(message);
         processingBusinessAction.setMapParams(message.getParams());
         processingBusinessAction.setState(State.NEED_TO_PROCESS);
 
