@@ -2,4 +2,6 @@ lib/
 .idea/
 target/
 .gradle/
+gradle/
+gradlew*
 build/
