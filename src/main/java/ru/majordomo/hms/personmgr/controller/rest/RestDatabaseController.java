@@ -11,13 +11,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletResponse;
 
-import ru.majordomo.hms.personmgr.common.FlowType;
+import ru.majordomo.hms.personmgr.common.ActionType;
 import ru.majordomo.hms.personmgr.common.message.DatabaseCreateMessage;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessageParams;
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
-import ru.majordomo.hms.personmgr.service.BusinessFlowBuilder;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
+import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 
 /**
  * WebSiteController
@@ -29,21 +30,21 @@ public class RestDatabaseController {
     private final static Logger logger = LoggerFactory.getLogger(RestDatabaseController.class);
 
     @Autowired
-    private BusinessFlowBuilder businessFlowBuilder;
+    private BusinessActionBuilder businessActionBuilder;
 
     @Autowired
-    private ProcessingBusinessFlowRepository processingBusinessFlowRepository;
+    private ProcessingBusinessActionRepository processingBusinessActionRepository;
 
     @RequestMapping(value = "create", method = RequestMethod.POST)
     public ResponseMessage create(
-            @RequestBody DatabaseCreateMessage message,
+            @RequestBody SimpleServiceMessage message,
             HttpServletResponse response
     ) {
         logger.info(message.toString());
 
-        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.DATABASE_CREATE, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.DATABASE_CREATE, message);
 
-        processingBusinessFlowRepository.save(processingBusinessFlow);
+        processingBusinessActionRepository.save(businessAction);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -51,7 +52,7 @@ public class RestDatabaseController {
         ResponseMessageParams messageParams = new ResponseMessageParams();
         messageParams.setSuccess(true);
         responseMessage.setParams(messageParams);
-        responseMessage.setOperationIdentity(processingBusinessFlow.getId());
+        responseMessage.setOperationIdentity(businessAction.getId());
 
         return responseMessage;
     }

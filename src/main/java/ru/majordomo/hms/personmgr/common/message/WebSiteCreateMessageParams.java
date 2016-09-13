@@ -9,6 +9,7 @@ import ru.majordomo.hms.personmgr.common.CharSet;
  * WebSiteCreateMessageParams
  */
 public class WebSiteCreateMessageParams extends ServiceMessageParams {
+    private String id;
     private List<String> domainIds = new ArrayList<>();
     private String name;
     private String applicationServerId;
@@ -28,6 +29,14 @@ public class WebSiteCreateMessageParams extends ServiceMessageParams {
     private boolean errorLogEnabled;
     private boolean allowUrlFopen;
     private int mbstringFuncOverload;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public List<String> getDomainIds() {
         return domainIds;
@@ -184,7 +193,8 @@ public class WebSiteCreateMessageParams extends ServiceMessageParams {
     @Override
     public String toString() {
         return "WebSiteCreateMessageParams{" +
-                "domainIds=" + domainIds +
+                "id='" + id + '\'' +
+                ", domainIds=" + domainIds +
                 ", name='" + name + '\'' +
                 ", applicationServerId='" + applicationServerId + '\'' +
                 ", documentRoot='" + documentRoot + '\'' +

@@ -12,13 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletResponse;
 
-import ru.majordomo.hms.personmgr.common.FlowType;
-import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
-import ru.majordomo.hms.personmgr.common.message.ResponseMessageParams;
-import ru.majordomo.hms.personmgr.common.message.WebSiteCreateMessage;
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessFlow;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessFlowRepository;
-import ru.majordomo.hms.personmgr.service.BusinessFlowBuilder;
+import ru.majordomo.hms.personmgr.common.ActionType;
+import ru.majordomo.hms.personmgr.common.message.*;
+import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
+import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 
 /**
  * WebSiteController
@@ -30,20 +28,20 @@ public class RestWebSiteController {
     private final static Logger logger = LoggerFactory.getLogger(RestWebSiteController.class);
 
     @Autowired
-    private BusinessFlowBuilder businessFlowBuilder;
+    private BusinessActionBuilder businessActionBuilder;
 
     @Autowired
-    private ProcessingBusinessFlowRepository processingBusinessFlowRepository;
+    private ProcessingBusinessActionRepository processingBusinessActionRepository;
 
     @RequestMapping(value = "", method = RequestMethod.POST)
     public ResponseMessage create(
-            @RequestBody WebSiteCreateMessage message, HttpServletResponse response
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response
     ) {
         logger.info(message.toString());
 
-        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_CREATE, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.WEB_SITE_CREATE_RC, message);
 
-        processingBusinessFlowRepository.save(processingBusinessFlow);
+        processingBusinessActionRepository.save(businessAction);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -51,22 +49,24 @@ public class RestWebSiteController {
         ResponseMessageParams messageParams = new ResponseMessageParams();
         messageParams.setSuccess(true);
         responseMessage.setParams(messageParams);
-        responseMessage.setOperationIdentity(processingBusinessFlow.getId());
+        responseMessage.setActionIdentity(businessAction.getId());
+        responseMessage.setOperationIdentity(businessAction.getOperationId());
 
         return responseMessage;
     }
 
     @RequestMapping(value = "/{websiteId}", method = RequestMethod.PATCH)
-    public ResponseMessage modify(
+    public ResponseMessage update(
             @PathVariable String websiteId,
-            @RequestBody WebSiteCreateMessage message, HttpServletResponse response
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response
     ) {
-        logger.info("Modifying website with id " + websiteId + " " + message.toString());
+        logger.info("Updating website with id " + websiteId + " " + message.toString());
 
-//        message.getParams().
-        ProcessingBusinessFlow processingBusinessFlow = businessFlowBuilder.build(FlowType.WEB_SITE_CREATE, message);
+        message.getParams().put("id", websiteId);
 
-        processingBusinessFlowRepository.save(processingBusinessFlow);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.WEB_SITE_UPDATE_RC, message);
+
+        processingBusinessActionRepository.save(businessAction);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -74,7 +74,8 @@ public class RestWebSiteController {
         ResponseMessageParams messageParams = new ResponseMessageParams();
         messageParams.setSuccess(true);
         responseMessage.setParams(messageParams);
-        responseMessage.setOperationIdentity(processingBusinessFlow.getId());
+        responseMessage.setActionIdentity(businessAction.getId());
+        responseMessage.setOperationIdentity(businessAction.getOperationId());
 
         return responseMessage;
     }

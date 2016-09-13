@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 @Service
 public class AmqpSender {
@@ -18,7 +19,7 @@ public class AmqpSender {
     @Autowired
     private RabbitTemplate myRabbitTemplate;
 
-    private Message createMessage(ServiceMessage message, MessageProperties messageProperties) {
+    private Message createMessage(SimpleServiceMessage message, MessageProperties messageProperties) {
 
         return MessageBuilder
                 .withBody(message.toJson().getBytes())
@@ -26,7 +27,7 @@ public class AmqpSender {
                 .build();
     }
 
-    public void send(String exchange, String routingKey, ServiceMessage message) {
+    public void send(String exchange, String routingKey, SimpleServiceMessage message) {
         logger.info("send message by AmqpSender - exchange: " + exchange + " routingKey: " + routingKey + " message " + message.toString());
 
         myRabbitTemplate.setExchange(exchange);

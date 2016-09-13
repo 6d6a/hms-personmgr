@@ -1,20 +1,23 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 
-import ru.majordomo.hms.personmgr.common.MailManagerTask;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 @Service
-@PropertySource("classpath:mail_manager.properties")
 public class MailManager {
+
+    private final static Logger logger = LoggerFactory.getLogger(MailManager.class);
 
     private static final HashMap<String, String> URL_MAP;
 
@@ -42,11 +45,13 @@ public class MailManager {
         HttpEntity<String> entity = new HttpEntity<>(credentials, headers);
         HashMap someResponse = restTemplate.postForObject(URL_ROOT + URL_MAP.get("login"), entity, HashMap.class);
         headers.set("Authorization", "Bearer " + someResponse.get("token"));
+        logger.info("Token for mailManager: " + someResponse.get("token"));
         return someResponse.get("token").toString();
     }
 
-    public HashMap createTask(MailManagerTask mailTask) {
-        HttpEntity entity = new HttpEntity<>(mailTask, headers);
+    public HashMap send(SimpleServiceMessage message) throws RestClientException {
+        HttpEntity entity = new HttpEntity<>(message.getParams(), headers);
+        logger.info("HttpEntity in mailManager: " + entity.toString());
         return restTemplate.postForObject(URL_ROOT + URL_MAP.get("addmail"), entity, HashMap.class);
     }
 }

@@ -1,5 +1,8 @@
 package ru.majordomo.hms.personmgr.model;
 
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.type.MapType;
+import org.codehaus.jackson.map.type.TypeFactory;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.PersistenceConstructor;
@@ -8,18 +11,19 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import ru.majordomo.hms.personmgr.common.FlowType;
+import ru.majordomo.hms.personmgr.common.ActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 
 /**
  * ProcessingBusinessFlow
  */
-@Document
 public class ProcessingBusinessFlow extends BusinessFlow {
     @CreatedDate
     private LocalDateTime createdDate;
@@ -29,19 +33,21 @@ public class ProcessingBusinessFlow extends BusinessFlow {
 
     private ServiceMessageParams params;
 
+    private Map<String,Object> mapParams;
+
     private List<ProcessingBusinessAction> processingBusinessActions = new ArrayList<>();
 
     public ProcessingBusinessFlow(BusinessFlow businessFlow) {
         super();
-        this.setFlowType(businessFlow.getFlowType());
+        this.setActionType(businessFlow.getActionType());
         this.setPriority(businessFlow.getPriority());
         this.setName(businessFlow.getName());
         this.setBusinessActions(businessFlow.getBusinessActions());
     }
 
     @PersistenceConstructor
-    public ProcessingBusinessFlow(String id, String name, State state, int priority, FlowType flowType, ServiceMessageParams params, List<ProcessingBusinessAction> processingBusinessActions) {
-        super(id, name, state, priority, flowType);
+    public ProcessingBusinessFlow(String id, String name, State state, int priority, ActionType actionType, ServiceMessageParams params, List<ProcessingBusinessAction> processingBusinessActions) {
+        super(id, name, state, priority, actionType);
         this.params = params;
         this.processingBusinessActions = processingBusinessActions;
     }
@@ -52,13 +58,45 @@ public class ProcessingBusinessFlow extends BusinessFlow {
 
     public void setParams(ServiceMessageParams params) {
         this.params = params;
+
+        ObjectMapper mapper = new ObjectMapper();
+        TypeFactory typeFactory = mapper.getTypeFactory();
+        MapType mapType = typeFactory.constructMapType(HashMap.class, String.class, Object.class);
+        this.mapParams = mapper.convertValue(params, mapType);
+
+//        MyBean anotherBean = m.convertValue(props, MyBean.class);
+
         this.processingBusinessActions.addAll(this.getBusinessActions().stream().map(businessAction -> {
             businessAction.setState(State.NEED_TO_PROCESS);
             ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(businessAction);
             processingBusinessAction.setParams(params);
-//            processingBusinessAction.setBusinessFlowId();
+//            processingBusinessAction.setOperationId();
             return processingBusinessAction;
         }).collect(Collectors.toList()));
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(LocalDateTime updatedDate) {
+        this.updatedDate = updatedDate;
+    }
+
+    public Map<String, Object> getMapParams() {
+        return mapParams;
+    }
+
+    public void setMapParams(Map<String, Object> mapParams) {
+        this.mapParams = mapParams;
     }
 
     public List<ProcessingBusinessAction> getProcessingBusinessActions() {
