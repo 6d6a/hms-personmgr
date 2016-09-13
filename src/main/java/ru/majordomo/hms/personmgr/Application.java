@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.annotation.PropertySources;
@@ -21,6 +22,7 @@ import ru.majordomo.hms.personmgr.service.BusinessActionDBSeedService;
         @PropertySource(name = "application", value = "classpath:application.properties"),
         @PropertySource(name = "mail_manager", value = "classpath:mail_manager.properties")
 })
+@EnableDiscoveryClient
 public class Application implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(Application.class);

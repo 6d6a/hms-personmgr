@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.ActionType;
-import ru.majordomo.hms.personmgr.common.message.DatabaseCreateMessage;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessageParams;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -42,7 +41,7 @@ public class RestDatabaseController {
     ) {
         logger.info(message.toString());
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.DATABASE_CREATE, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.DATABASE_CREATE_RC, message);
 
         processingBusinessActionRepository.save(businessAction);
 

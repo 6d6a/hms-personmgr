@@ -9,11 +9,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.ActionType;
-import ru.majordomo.hms.personmgr.common.message.MailManagerMessage;
-import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.MailManagerMessageDestination;
-import ru.majordomo.hms.personmgr.common.message.MailManagerMessageParams;
-import ru.majordomo.hms.personmgr.common.message.WebSiteCreateMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestination;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
@@ -154,7 +150,7 @@ public class BusinessActionDBSeedService {
 
         //Database create
 //        action = new BusinessAction();
-//        action.setActionType(ActionType.DATABASE_CREATE);
+//        action.setActionType(ActionType.DATABASE_CREATE_RC);
 //        action.setName("Database create");
 //
 //        destination = new AmqpMessageDestination();
