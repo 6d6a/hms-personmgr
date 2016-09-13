@@ -1,6 +1,7 @@
 buildscript {
     repositories {
         mavenCentral()
+	jcenter()
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:1.1.7.RELEASE")
@@ -18,6 +19,7 @@ jar {
     baseName = 'personmgr'
     version = '0.0.1-SNAPSHOT'
 }
+
 
 description = """personmgr"""
 
@@ -46,9 +48,11 @@ exclude(module: 'commons-logging')
     }
 }
 
+
 task buildDocker(type: Docker, dependsOn: build) {
     def dockerDir = "docker"
     push = false
+    project.group = "docker-registry.intr/"+project.group
     applicationName = jar.baseName
     dockerfile = file("${buildDir}/Dockerfile")
     doFirst {
@@ -63,3 +67,4 @@ task buildDocker(type: Docker, dependsOn: build) {
         }
     }
 }
+

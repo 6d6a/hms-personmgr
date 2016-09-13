@@ -1,22 +1,13 @@
-before_script:
-  - echo `pwd`
-  - echo "$CI_BUILD_NAME, $CI_BUILD_REF_NAME $CI_BUILD_STAGE $CI_PROJECT_DIR"
-  - export GRADLE_USER_HOME=`pwd`/.gradle
-
-stages:
-  - build
-  - push
+cache:
+  key: "$CI_BUILD_NAME/$CI_BUILD_REF_NAME"
+  paths:
+    - .gradle/
 
 build:
   stage: build
   script:
-    - cd $CI_PROJECT_DIR
-    - ./gradlew buildDocker
-
-push:
-   stage: push
-   script:
-     - ./push
-
-after_script:
-  - echo "End CI"
+    - cd "$CI_PROJECT_DIR"
+    - gradle buildDocker -x test
+    - docker tag docker-registry.intr/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME} docker-registry.intr/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}:${CI_BUILD_REF_NAME}
+    - docker rmi docker-registry.intr/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}:latest
+    - docker push docker-registry.intr/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}:${CI_BUILD_REF_NAME}
