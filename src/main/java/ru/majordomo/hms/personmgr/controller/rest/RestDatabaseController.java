@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -20,12 +21,10 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 
 /**
- * WebSiteController
+ * RestDatabaseController
  */
-@RestController
 @RequestMapping("/database")
-@CrossOrigin("*")
-public class RestDatabaseController {
+public class RestDatabaseController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(RestDatabaseController.class);
 
     @Autowired
@@ -34,7 +33,7 @@ public class RestDatabaseController {
     @Autowired
     private ProcessingBusinessActionRepository processingBusinessActionRepository;
 
-    @RequestMapping(value = "create", method = RequestMethod.POST)
+    @RequestMapping(value = "", method = RequestMethod.POST)
     public ResponseMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response
@@ -47,12 +46,24 @@ public class RestDatabaseController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        ResponseMessage responseMessage = new ResponseMessage();
-        ResponseMessageParams messageParams = new ResponseMessageParams();
-        messageParams.setSuccess(true);
-        responseMessage.setParams(messageParams);
-        responseMessage.setOperationIdentity(businessAction.getId());
+        return this.createResponse(businessAction);
+    }
 
-        return responseMessage;
+    @RequestMapping(value = "/{databaseId}", method = RequestMethod.PATCH)
+    public ResponseMessage update(
+            @PathVariable String databaseId,
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response
+    ) {
+        logger.info("Updating database with id " + databaseId + " " + message.toString());
+
+        message.getParams().put("id", databaseId);
+
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.DATABASE_UPDATE_RC, message);
+
+        processingBusinessActionRepository.save(businessAction);
+
+        response.setStatus(HttpServletResponse.SC_ACCEPTED);
+
+        return this.createResponse(businessAction);
     }
 }

@@ -33,6 +33,11 @@ public class BusinessActionDBSeedService {
         businessActionRepository.deleteAll();
 
         this.seedWebSiteCreateActions();
+        this.seedWebSiteUpdateActions();
+        this.seedDatabaseCreateActions();
+        this.seedDatabaseUpdateActions();
+        this.seedMailboxCreateActions();
+        this.seedMailboxUpdateActions();
 
         logger.info("BusinessAction found with findAll():");
         logger.info("-------------------------------");
@@ -64,10 +69,6 @@ public class BusinessActionDBSeedService {
 
         action.setDestination(amqpMessageDestination);
 
-//        SimpleServiceMessage message = new WebSiteCreateMessage();
-//
-//        action.setMessage(message);
-
         action.setPriority(1);
 
         businessActionRepository.save(action);
@@ -80,91 +81,102 @@ public class BusinessActionDBSeedService {
 
         action.setDestination(mailManagerMessageDestination);
 
-//        SimpleServiceMessage mailManagerMessage = new MailManagerMessage();
-//        MailManagerMessageParams mailManagerMessageParams = new MailManagerMessageParams();
-//        mailManagerMessageParams.setApi_name("MajordomoVHWebSiteCreated");
-//        mailManagerMessageParams.setPriority(10);
-//
-//        mailManagerMessage.setParams(mailManagerMessageParams);
-//
-//        action.setMessage(mailManagerMessage);
-
         action.setPriority(2);
 
         businessActionRepository.save(action);
     }
 
-//    private void seedWebSiteUpdateActions() {
-//        BusinessAction action;
-//        AmqpMessageDestination amqpMessageDestination;
-//        MailManagerMessageDestination mailManagerMessageDestination;
-//
-//        //WebSite create
-//        action = new BusinessAction();
-//        action.setActionType(ActionType.WEB_SITE_CREATE_RC);
-//        action.setName("WebSite create");
+    private void seedWebSiteUpdateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
 
-//        amqpMessageDestination = new AmqpMessageDestination();
-//        amqpMessageDestination.setExchange("website.create");
-//        amqpMessageDestination.setRoutingKey("service.rc.user");
-//
-//        action.setDestination(amqpMessageDestination);
-//
-//        WebSiteCreateMessage message = new WebSiteCreateMessage();
-//
-//        action.setMessage(message);
-//
-//        action.setPriority(1);
-//
-//        businessActionRepository.save(action);
-//
-//        action = new BusinessAction();
-//
-//        mailManagerMessageDestination = new MailManagerMessageDestination();
-//
-//        action.setDestination(mailManagerMessageDestination);
-//
-//        MailManagerMessage mailManagerMessage = new MailManagerMessage();
-//        MailManagerMessageParams mailManagerMessageParams = new MailManagerMessageParams();
-//        mailManagerMessageParams.setApi_name("MajordomoVHWebSiteCreated");
-////        mailManagerMessageParams.setEmail(mailManagerDevEmail);
-//        mailManagerMessageParams.setPriority(10);
-//
-////        HashMap<String, String> parameters = new HashMap<>();
-////        parameters.put("client_id", "12345");
-////        parameters.put("website_name", "test-site.ru");
-////        mailManagerMessageParams.setParametrs(parameters);
-//
-//        mailManagerMessage.setParams(mailManagerMessageParams);
-//        action.setMessage(mailManagerMessage);
-//
-//        action.setPriority(2);
-//
-//        businessActionRepository.save(action);
-//    }
+        //WebSite update
+        action = new BusinessAction();
+        action.setActionType(ActionType.WEB_SITE_UPDATE_RC);
+        action.setName("WebSite update");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("website.update");
+        amqpMessageDestination.setRoutingKey("service.rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
 
     private void seedDatabaseCreateActions() {
-//        BusinessAction action;
-//        AmqpMessageDestination amqpMessageDestination;
-//        MailManagerMessageDestination mailManagerMessageDestination;
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
 
         //Database create
-//        action = new BusinessAction();
-//        action.setActionType(ActionType.DATABASE_CREATE_RC);
-//        action.setName("Database create");
-//
-//        destination = new AmqpMessageDestination();
-//        destination.setExchange("database.create");
-//        destination.setRoutingKey("service.rc.user");
-//
-//        action.setDestination(destination);
-//
-//        WebSiteCreateMessage message = new WebSiteCreateMessage();
-//
-//        action.setMessage(message);
-//
-//        action.setMessage("");
-//
-//        businessActionRepository.save(action);
+        action = new BusinessAction();
+        action.setActionType(ActionType.DATABASE_CREATE_RC);
+        action.setName("Database create");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("database.create");
+        amqpMessageDestination.setRoutingKey("service.rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedDatabaseUpdateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //Database update
+        action = new BusinessAction();
+        action.setActionType(ActionType.DATABASE_UPDATE_RC);
+        action.setName("Database update");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("database.update");
+        amqpMessageDestination.setRoutingKey("service.rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedMailboxCreateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+
+        //Database create
+        action = new BusinessAction();
+        action.setActionType(ActionType.MAILBOX_CREATE_RC);
+        action.setName("Mailbox create");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("mailbox.create");
+        amqpMessageDestination.setRoutingKey("service.rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedMailboxUpdateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //Database update
+        action = new BusinessAction();
+        action.setActionType(ActionType.MAILBOX_UPDATE_RC);
+        action.setName("Mailbox update");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("mailbox.update");
+        amqpMessageDestination.setRoutingKey("service.rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
     }
 }
