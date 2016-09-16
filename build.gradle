@@ -70,10 +70,7 @@ exclude(module: 'commons-logging')
 task buildDocker(type: Docker, dependsOn: build) {
     def dockerDir = "docker"
     def git = org.ajoberstar.grgit.Grgit.open(file('.'))
-    tagVersion = git.branch.getCurrent().getName()
-    if(tagVersion=="HEAD") {
-	tagVersion="master"
-    }
+    tagVersion = git.branch.getCurrent().getName().replaceAll("refs/heads/","")
     push = true
     project.group = "docker-registry.intr/"+project.group
     applicationName = jar.baseName
