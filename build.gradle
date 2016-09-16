@@ -71,7 +71,7 @@ task buildDocker(type: Docker, dependsOn: build) {
     def dockerDir = "docker"
     def git = org.ajoberstar.grgit.Grgit.open(file('.'))
     tagVersion = git.branch.getCurrent().getName().replaceAll("refs/heads/","")
-    if(tagVersion == "HEAD") {
+    if(tagVersion == "HEAD") { // в gitlab-runner после пулла branch.getCurrent() указывает всегда на HEAD в любой ветке
       tagVersion = project.projectBranch
     }
     push = true
