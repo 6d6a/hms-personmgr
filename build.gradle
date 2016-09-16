@@ -71,6 +71,9 @@ task buildDocker(type: Docker, dependsOn: build) {
     def dockerDir = "docker"
     def git = org.ajoberstar.grgit.Grgit.open(file('.'))
     tagVersion = git.branch.getCurrent().getName().replaceAll("refs/heads/","")
+    if(tagVersion == "HEAD") {
+      tagVersion = project.projectBranch
+    }
     push = true
     project.group = "docker-registry.intr/"+project.group
     applicationName = jar.baseName
