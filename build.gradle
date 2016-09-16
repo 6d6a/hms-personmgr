@@ -1,3 +1,4 @@
+
 buildscript {
     repositories {
         mavenCentral()
@@ -6,11 +7,14 @@ buildscript {
 		url('http://maven.intr')
 	}
     }
+    configurations.all {
+      resolutionStrategy.cacheDynamicVersionsFor 30, 'minutes'
+    }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:1.1.7.RELEASE")
         classpath("se.transmode.gradle:gradle-docker:1.2")
         classpath "com.avast.gradle:docker-compose-gradle-plugin:0.3.9"
-	classpath("ru.majordomo:copycompose:1.0")
+	classpath("ru.majordomo:copycompose:1.+")
     }
 }
 plugins {
