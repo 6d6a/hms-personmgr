@@ -1,0 +1,10 @@
+cache:
+  key: "$CI_BUILD_NAME/$CI_BUILD_REF_NAME"
+  paths:
+    - .gradle/
+
+build:
+  stage: build
+  script:
+    - cd "$CI_PROJECT_DIR"
+    - gradle buildDocker -x test -PprojectBranch="${CI_BUILD_REF_NAME}"

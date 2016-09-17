@@ -5,3 +5,5 @@ target/
 gradle/
 gradlew*
 build/
+docker-compose/
+docker-compose.yml

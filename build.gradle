@@ -1,16 +1,32 @@
+
 buildscript {
     repositories {
         mavenCentral()
+	jcenter()
+	maven {
+		url('http://maven.intr')
+	}
+    }
+    configurations.all {
+      resolutionStrategy.cacheDynamicVersionsFor 30, 'minutes'
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:1.1.7.RELEASE")
         classpath("se.transmode.gradle:gradle-docker:1.2")
+        classpath "com.avast.gradle:docker-compose-gradle-plugin:0.3.9"
+	classpath("ru.majordomo:copycompose:1.+")
     }
+}
+plugins {
+	id 'org.ajoberstar.grgit' version '1.5.1'
 }
 
 apply plugin: 'java'
 apply plugin: 'spring-boot'
 apply plugin: 'docker'
+apply plugin: 'docker-compose'
+apply plugin: 'org.ajoberstar.grgit'
+apply plugin: 'ru.majordomo.copycompose'
 
 group = 'hms'
 
@@ -18,6 +34,7 @@ jar {
     baseName = 'personmgr'
     version = '0.0.1-SNAPSHOT'
 }
+
 
 description = """personmgr"""
 
@@ -49,9 +66,16 @@ exclude(module: 'commons-logging')
     }
 }
 
+
 task buildDocker(type: Docker, dependsOn: build) {
     def dockerDir = "docker"
-    push = false
+    def git = org.ajoberstar.grgit.Grgit.open(file('.'))
+    tagVersion = git.branch.getCurrent().getName().replaceAll("refs/heads/","")
+    if(tagVersion == "HEAD") { // в gitlab-runner после пулла branch.getCurrent() указывает всегда на HEAD в любой ветке
+      tagVersion = project.projectBranch
+    }
+    push = true
+    project.group = "docker-registry.intr/"+project.group
     applicationName = jar.baseName
     dockerfile = file("${buildDir}/Dockerfile")
     doFirst {
@@ -65,4 +89,28 @@ task buildDocker(type: Docker, dependsOn: build) {
             into stageDir
         }
     }
+}
+
+task cloneCompose(type: Exec) {
+	doFirst {
+		delete 'docker-compose'
+	}
+	commandLine 'git','clone','git@gitlab.intr:hms/docker-compose.git'
+}
+
+task composePull(type: Exec) {
+	commandLine 'docker-compose', 'pull'
+}
+
+task delCompose(type: Delete) {
+	delete 'docker-compose'
+}
+
+cookCompose.dependsOn("cloneCompose")
+composePull.dependsOn("cookCompose")
+composeUp.dependsOn("composePull")
+composeUp.finalizedBy delCompose
+
+composeDown {
+	doLast { delete 'docker-compose.yml' }
 }
