@@ -1,24 +1,23 @@
-
 buildscript {
     repositories {
         mavenCentral()
-	jcenter()
-	maven {
-		url('http://maven.intr')
-	}
+        jcenter()
+        maven {
+            url('http://maven.intr')
+        }
     }
     configurations.all {
-      resolutionStrategy.cacheDynamicVersionsFor 30, 'minutes'
+        resolutionStrategy.cacheDynamicVersionsFor 30, 'minutes'
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:1.1.7.RELEASE")
         classpath("se.transmode.gradle:gradle-docker:1.2")
         classpath "com.avast.gradle:docker-compose-gradle-plugin:0.3.9"
-	classpath("ru.majordomo:copycompose:1.+")
+        classpath("ru.majordomo:copycompose:1.+")
     }
 }
 plugins {
-	id 'org.ajoberstar.grgit' version '1.5.1'
+    id 'org.ajoberstar.grgit' version '1.5.1'
 }
 
 apply plugin: 'java'
@@ -42,27 +41,31 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 repositories {
-        
-     maven { url "http://maven.intr" }
-     maven { url "http://repo.maven.apache.org/maven2" }
+
+    maven { url "http://maven.intr" }
+    maven { url "http://repo.maven.apache.org/maven2" }
     maven { url "http://repo.spring.io/libs-release" }
 }
 dependencies {
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-data-mongodb', version:'1.4.0.RELEASE'
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-amqp', version:'1.4.0.RELEASE'
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-data-redis', version:'1.4.0.RELEASE'
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-data-rest', version:'1.4.0.RELEASE'
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version:'1.4.0.RELEASE'
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web-services', version:'1.4.0.RELEASE'
-    compile group: 'org.springframework.cloud', name: 'spring-cloud-starter-eureka', version:'1.1.6.RELEASE'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-data-mongodb', version: '1.4.0.RELEASE'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-amqp', version: '1.4.0.RELEASE'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-data-redis', version: '1.4.0.RELEASE'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-data-rest', version: '1.4.0.RELEASE'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-jdbc', version: '1.3.6.RELEASE'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: '1.4.0.RELEASE'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web-services', version: '1.4.0.RELEASE'
+    compile group: 'org.springframework.cloud', name: 'spring-cloud-starter-eureka', version: '1.1.6.RELEASE'
 //    compile group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version:'2.0.11.RELEASE'
 //    compile group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.5.RELEASE'
-    compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version:'1.9.13'
-    compile group: 'org.codehaus.jackson', name: 'jackson-core-asl', version:'1.9.13'
+    compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version: '1.9.13'
+    compile group: 'org.codehaus.jackson', name: 'jackson-core-asl', version: '1.9.13'
+    compile(group: 'com.mysql', name: 'management', version: '1.1.6') {
+        exclude(module: 'jmxtools')
+    }
 //    compile group: 'org.springframework.data', name: 'spring-data-redis', version:'1.7.2.RELEASE'
-    compile group: 'ru.majordomo.hms.common', name: 'hms-common', version:'0.0.1-SNAPSHOT'
-    testCompile(group: 'org.springframework.boot', name: 'spring-boot-starter-test', version:'1.4.0.RELEASE') {
-exclude(module: 'commons-logging')
+    compile group: 'ru.majordomo.hms.common', name: 'hms-common', version: '0.0.1-SNAPSHOT'
+    testCompile(group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: '1.4.0.RELEASE') {
+        exclude(module: 'commons-logging')
     }
 }
 
@@ -70,19 +73,20 @@ exclude(module: 'commons-logging')
 task buildDocker(type: Docker, dependsOn: build) {
     def dockerDir = "docker"
     def git = org.ajoberstar.grgit.Grgit.open(file('.'))
-    tagVersion = git.branch.getCurrent().getName().replaceAll("refs/heads/","")
-    if(tagVersion == "HEAD") { // в gitlab-runner после пулла branch.getCurrent() указывает всегда на HEAD в любой ветке
-      tagVersion = project.projectBranch
+    tagVersion = git.branch.getCurrent().getName().replaceAll("refs/heads/", "")
+    if (tagVersion == "HEAD") {
+        // в gitlab-runner после пулла branch.getCurrent() указывает всегда на HEAD в любой ветке
+        tagVersion = project.projectBranch
     }
     push = true
-    project.group = "docker-registry.intr/"+project.group
+    project.group = "docker-registry.intr/" + project.group
     applicationName = jar.baseName
     dockerfile = file("${buildDir}/Dockerfile")
     doFirst {
         copy {
             from "${dockerDir}/Dockerfile"
             into buildDir
-            expand(jarBuildName:jar.getArchiveName(),projectName:project.name)
+            expand(jarBuildName: jar.getArchiveName(), projectName: project.name)
         }
         copy {
             from jar
@@ -92,18 +96,18 @@ task buildDocker(type: Docker, dependsOn: build) {
 }
 
 task cloneCompose(type: Exec) {
-	doFirst {
-		delete 'docker-compose'
-	}
-	commandLine 'git','clone','git@gitlab.intr:hms/docker-compose.git'
+    doFirst {
+        delete 'docker-compose'
+    }
+    commandLine 'git', 'clone', 'git@gitlab.intr:hms/docker-compose.git'
 }
 
 task composePull(type: Exec) {
-	commandLine 'docker-compose', 'pull'
+    commandLine 'docker-compose', 'pull'
 }
 
 task delCompose(type: Delete) {
-	delete 'docker-compose'
+    delete 'docker-compose'
 }
 
 cookCompose.dependsOn("cloneCompose")
@@ -112,5 +116,5 @@ composeUp.dependsOn("composePull")
 composeUp.finalizedBy delCompose
 
 composeDown {
-	doLast { delete 'docker-compose.yml' }
+    doLast { delete 'docker-compose.yml' }
 }
