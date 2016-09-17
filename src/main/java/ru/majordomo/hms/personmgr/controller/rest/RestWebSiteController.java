@@ -63,4 +63,22 @@ public class RestWebSiteController extends CommonRestController {
 
         return this.createResponse(businessAction);
     }
+
+    @RequestMapping(value = "/{websiteId}", method = RequestMethod.DELETE)
+    public ResponseMessage delete(
+            @PathVariable String websiteId,
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response
+    ) {
+        logger.info("Deleting website with id " + websiteId + " " + message.toString());
+
+        message.getParams().put("id", websiteId);
+
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.WEB_SITE_DELETE_RC, message);
+
+        processingBusinessActionRepository.save(businessAction);
+
+        response.setStatus(HttpServletResponse.SC_ACCEPTED);
+
+        return this.createResponse(businessAction);
+    }
 }
