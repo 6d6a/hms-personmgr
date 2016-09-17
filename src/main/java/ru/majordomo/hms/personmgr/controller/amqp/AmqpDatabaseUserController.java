@@ -23,9 +23,9 @@ import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
 @EnableRabbit
 @Service
-public class AmqpDatabaseController {
+public class AmqpDatabaseUserController {
 
-    private final static Logger logger = LoggerFactory.getLogger(AmqpDatabaseController.class);
+    private final static Logger logger = LoggerFactory.getLogger(AmqpDatabaseUserController.class);
     @Autowired
     private AmqpSender amqpSender;
 //    @Autowired
@@ -36,7 +36,7 @@ public class AmqpDatabaseController {
     @Autowired
     private BusinessFlowDirector businessFlowDirector;
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.database.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "database.create", type = ExchangeTypes.TOPIC), key = "service.pm"))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.database_user.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "database_user.create", type = ExchangeTypes.TOPIC), key = "service.pm"))
     public void create(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received from " + provider + ": " + message.toString());
@@ -44,7 +44,7 @@ public class AmqpDatabaseController {
         businessFlowDirector.processMessage(message);
     }
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.database.update", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "database.update", type = ExchangeTypes.TOPIC), key = "service.pm"))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.database_user.update", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "database_user.update", type = ExchangeTypes.TOPIC), key = "service.pm"))
     public void update(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received update message from " + provider + ": " + message.toString());
@@ -52,7 +52,7 @@ public class AmqpDatabaseController {
         State state = businessFlowDirector.processMessage(message);
     }
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.database.delete", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "database.delete", type = ExchangeTypes.TOPIC), key = "service.pm"))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.database_user.delete", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "database_user.delete", type = ExchangeTypes.TOPIC), key = "service.pm"))
     public void delete(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received delete message from " + provider + ": " + message.toString());

@@ -34,10 +34,19 @@ public class BusinessActionDBSeedService {
 
         this.seedWebSiteCreateActions();
         this.seedWebSiteUpdateActions();
+        this.seedWebSiteDeleteActions();
+
         this.seedDatabaseCreateActions();
         this.seedDatabaseUpdateActions();
+        this.seedDatabaseDeleteActions();
+
         this.seedMailboxCreateActions();
         this.seedMailboxUpdateActions();
+        this.seedMailboxDeleteActions();
+
+        this.seedDatabaseUserCreateActions();
+        this.seedDatabaseUserUpdateActions();
+        this.seedDatabaseUserDeleteActions();
 
         logger.info("BusinessAction found with findAll():");
         logger.info("-------------------------------");
@@ -106,6 +115,26 @@ public class BusinessActionDBSeedService {
         businessActionRepository.save(action);
     }
 
+    private void seedWebSiteDeleteActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //WebSite update
+        action = new BusinessAction();
+        action.setActionType(ActionType.WEB_SITE_DELETE_RC);
+        action.setName("WebSite delete");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("website.delete");
+        amqpMessageDestination.setRoutingKey("service.rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
+
     private void seedDatabaseCreateActions() {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
@@ -143,6 +172,26 @@ public class BusinessActionDBSeedService {
         businessActionRepository.save(action);
     }
 
+    private void seedDatabaseDeleteActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //WebSite update
+        action = new BusinessAction();
+        action.setActionType(ActionType.DATABASE_DELETE_RC);
+        action.setName("Database delete");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("database.delete");
+        amqpMessageDestination.setRoutingKey("service.rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
+
     private void seedMailboxCreateActions() {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
@@ -176,6 +225,83 @@ public class BusinessActionDBSeedService {
         amqpMessageDestination.setRoutingKey("service.rc.user");
 
         action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedMailboxDeleteActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //WebSite update
+        action = new BusinessAction();
+        action.setActionType(ActionType.MAILBOX_DELETE_RC);
+        action.setName("Mailbox delete");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("mailbox.delete");
+        amqpMessageDestination.setRoutingKey("service.rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedDatabaseUserCreateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+
+        //Database create
+        action = new BusinessAction();
+        action.setActionType(ActionType.DATABASE_USER_CREATE_RC);
+        action.setName("Database User create");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("database_user.create");
+        amqpMessageDestination.setRoutingKey("service.rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedDatabaseUserUpdateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //Database update
+        action = new BusinessAction();
+        action.setActionType(ActionType.DATABASE_USER_UPDATE_RC);
+        action.setName("Database User update");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("database_user.update");
+        amqpMessageDestination.setRoutingKey("service.rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedDatabaseUserDeleteActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //WebSite update
+        action = new BusinessAction();
+        action.setActionType(ActionType.DATABASE_USER_DELETE_RC);
+        action.setName("Database User delete");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("database_user.delete");
+        amqpMessageDestination.setRoutingKey("service.rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
 
         businessActionRepository.save(action);
     }

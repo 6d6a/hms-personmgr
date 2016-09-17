@@ -99,4 +99,12 @@ public class AmqpWebSiteController {
 
         State state = businessFlowDirector.processMessage(message);
     }
+
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.website.delete", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "website.delete", type = ExchangeTypes.TOPIC), key = "service.pm"))
+    public void delete(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
+        String provider = headers.get("provider");
+        logger.info("Received delete message from " + provider + ": " + message.toString());
+
+        State state = businessFlowDirector.processMessage(message);
+    }
 }
