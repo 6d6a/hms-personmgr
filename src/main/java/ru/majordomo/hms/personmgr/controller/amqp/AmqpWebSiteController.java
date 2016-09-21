@@ -22,8 +22,8 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.ActionType;
 import ru.majordomo.hms.personmgr.common.State;
-import ru.majordomo.hms.personmgr.common.message.MailManagerMessage;
-import ru.majordomo.hms.personmgr.common.message.MailManagerMessageParams;
+import ru.majordomo.hms.personmgr.common.message.MailManagerEmailMessage;
+import ru.majordomo.hms.personmgr.common.message.MailManagerEmailMessageParams;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
@@ -65,9 +65,9 @@ public class AmqpWebSiteController {
         State state = businessFlowDirector.processMessage(message);
 
         if (state == State.PROCESSED) {
-            MailManagerMessage mailManagerMessage = new MailManagerMessage();
-            mailManagerMessage.setOperationIdentity(message.getOperationIdentity());
-            MailManagerMessageParams messageParams = new MailManagerMessageParams();
+            MailManagerEmailMessage mailManagerEmailMessage = new MailManagerEmailMessage();
+            mailManagerEmailMessage.setOperationIdentity(message.getOperationIdentity());
+            MailManagerEmailMessageParams messageParams = new MailManagerEmailMessageParams();
             messageParams.setEmail(mailManagerDevEmail);
             messageParams.setApi_name("MajordomoVHWebSiteCreated");
             messageParams.setPriority(10);
@@ -77,14 +77,14 @@ public class AmqpWebSiteController {
             parameters.put("website_name", "test-site.ru");
 
             messageParams.setParametrs(parameters);
-            mailManagerMessage.setParams(messageParams);
+            mailManagerEmailMessage.setParams(messageParams);
 
             ObjectMapper mapper = new ObjectMapper();
             TypeFactory typeFactory = mapper.getTypeFactory();
 //            MapType mapType = typeFactory.constructMapType(HashMap.class, String.class, Object.class);
             JavaType mapType = typeFactory.constructType(SimpleServiceMessage.class);
 
-            SimpleServiceMessage serviceMessage = mapper.convertValue(mailManagerMessage, mapType);
+            SimpleServiceMessage serviceMessage = mapper.convertValue(mailManagerEmailMessage, mapType);
 
             ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.WEB_SITE_CREATE_MM, serviceMessage);
 

@@ -1,9 +1,15 @@
 package ru.majordomo.hms.personmgr.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.index.TextIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 
@@ -19,6 +25,7 @@ public class AccountHistory {
     private String accountId;
 
     @Indexed
+//    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime dateTime;
 
 //    @TextIndexed
@@ -53,6 +60,8 @@ public class AccountHistory {
         this.accountId = accountId;
     }
 
+//    @JsonFormat(pattern="yyyy-MM-dd H:i:s")
+//    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     public LocalDateTime getDateTime() {
         return dateTime;
     }

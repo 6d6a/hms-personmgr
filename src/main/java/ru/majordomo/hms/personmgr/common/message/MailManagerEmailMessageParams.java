@@ -4,9 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * MailManagerMessageParams
+ * MailManagerEmailMessageParams
  */
-public class MailManagerMessageParams extends ServiceMessageParams {
+public class MailManagerEmailMessageParams extends ServiceMessageParams {
     private String api_name;
     private String email;
     private Map<String, String> parametrs = new HashMap<>();
@@ -55,7 +55,7 @@ public class MailManagerMessageParams extends ServiceMessageParams {
 
     @Override
     public String toString() {
-        return "MailManagerMessageParams{" +
+        return "MailManagerEmailMessageParams{" +
                 "api_name='" + api_name + '\'' +
                 ", email='" + email + '\'' +
                 ", parametrs=" + parametrs +
