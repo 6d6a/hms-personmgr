@@ -7,7 +7,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
-import ru.majordomo.hms.personmgr.model.notification.AccountNotifications;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 
 public interface NotificationRepository extends MongoRepository<Notification, String> {

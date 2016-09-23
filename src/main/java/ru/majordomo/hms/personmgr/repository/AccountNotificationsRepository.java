@@ -6,11 +6,10 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-import ru.majordomo.hms.personmgr.model.AccountHistory;
-import ru.majordomo.hms.personmgr.model.notification.AccountNotifications;
+import ru.majordomo.hms.personmgr.model.notification.AccountNotification;
 
-public interface AccountNotificationsRepository extends MongoRepository<AccountNotifications, String> {
-    AccountNotifications findOne(String id);
-    List<AccountNotifications> findAll();
-    AccountNotifications findByAccountId(@Param("accountId") String accountId);
+public interface AccountNotificationsRepository extends MongoRepository<AccountNotification, String> {
+    AccountNotification findOne(String id);
+    List<AccountNotification> findAll();
+    AccountNotification findByAccountId(@Param("accountId") String accountId);
 }

@@ -21,9 +21,12 @@ import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import ru.majordomo.hms.personmgr.event.ProcessingBusinessActionEventListener;
+import ru.majordomo.hms.personmgr.repository.AccountNotificationsRepository;
 import ru.majordomo.hms.personmgr.service.AccountHistoryDBImportService;
+import ru.majordomo.hms.personmgr.service.AccountNotificationDBImportService;
 import ru.majordomo.hms.personmgr.service.BusinessActionDBSeedService;
 import ru.majordomo.hms.personmgr.service.NotificationDBImportService;
+import ru.majordomo.hms.personmgr.service.PersonalAccountDBImportService;
 
 @SpringBootApplication
 @PropertySources({
@@ -44,6 +47,12 @@ public class Application implements CommandLineRunner {
     @Autowired
     private NotificationDBImportService notificationDBImportService;
 
+    @Autowired
+    private AccountNotificationDBImportService accountNotificationDBImportService;
+
+    @Autowired
+    private PersonalAccountDBImportService personalAccountDBImportService;
+
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
@@ -60,12 +69,18 @@ public class Application implements CommandLineRunner {
                 sb.append(" ").append(seeded ? "businessFlow db_seeded" : "businessFlow db_not_seeded");
             } else if (option.equals(dbImportOption)) {
             boolean imported;
+//                imported = personalAccountDBImportService.importToMongo();
+//                sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
 
 //                imported = accountHistoryDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "accountHistory db_imported" : "accountHistory db_not_imported");
-                imported = notificationDBImportService.importToMongo();
-                sb.append(" ").append(imported ? "notification db_imported" : "notification db_not_imported");
-//
+
+//                imported = notificationDBImportService.importToMongo();
+//                sb.append(" ").append(imported ? "notification db_imported" : "notification db_not_imported");
+
+                imported = accountNotificationDBImportService.importToMongo("ac_100800");
+                sb.append(" ").append(imported ? "accountNotification db_imported" : "accountNotification db_not_imported");
+
 //                imported = plan2ServiceDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "plan2Service db_imported" : "plan2Service db_not_imported");
 

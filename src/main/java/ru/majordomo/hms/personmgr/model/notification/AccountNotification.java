@@ -11,10 +11,10 @@ import java.util.Set;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 
 /**
- * AccountNotifications
+ * AccountNotification
  */
 @Document
-public class AccountNotifications {
+public class AccountNotification {
     @Id
     private String id;
 
@@ -63,23 +63,23 @@ public class AccountNotifications {
         this.notifications.remove(notification);
     }
 
-    public AccountNotifications() {
+    public AccountNotification() {
     }
 
-    public AccountNotifications(String id, String accountId, Set<MailManagerMessageType> notifications) {
+    public AccountNotification(String id, String accountId, Set<MailManagerMessageType> notifications) {
         this.id = id;
         this.accountId = accountId;
         this.notifications = notifications;
     }
 
-    public AccountNotifications(String accountId, Set<MailManagerMessageType> notifications) {
+    public AccountNotification(String accountId, Set<MailManagerMessageType> notifications) {
         this.accountId = accountId;
         this.notifications = notifications;
     }
 
     @Override
     public String toString() {
-        return "AccountNotifications{" +
+        return "AccountNotification{" +
                 "id='" + id + '\'' +
                 ", accountId='" + accountId + '\'' +
                 ", notifications=" + notifications +
