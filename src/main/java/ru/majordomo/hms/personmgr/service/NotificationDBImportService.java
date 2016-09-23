@@ -3,9 +3,6 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -16,14 +13,9 @@ import java.util.stream.StreamSupport;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
-import ru.majordomo.hms.personmgr.common.ImportConstants;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.notification.AccountNotification;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
-import ru.majordomo.hms.personmgr.repository.AccountNotificationsRepository;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 /**
  * Сервис для загрузки первичных данных в БД
@@ -34,7 +26,6 @@ public class NotificationDBImportService {
 
     private NotificationRepository notificationRepository;
     private List<Notification> notifications = new ArrayList<>();
-    private List<AccountNotification> accountNotificationList = new ArrayList<>();
 
     @Autowired
     public NotificationDBImportService(NotificationRepository notificationRepository) {

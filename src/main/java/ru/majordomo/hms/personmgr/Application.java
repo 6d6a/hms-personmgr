@@ -1,10 +1,5 @@
 package ru.majordomo.hms.personmgr;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,11 +12,9 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.annotation.PropertySources;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventListener;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import ru.majordomo.hms.personmgr.event.ProcessingBusinessActionEventListener;
-import ru.majordomo.hms.personmgr.repository.AccountNotificationsRepository;
 import ru.majordomo.hms.personmgr.service.AccountHistoryDBImportService;
 import ru.majordomo.hms.personmgr.service.AccountNotificationDBImportService;
 import ru.majordomo.hms.personmgr.service.BusinessActionDBSeedService;
@@ -69,8 +62,8 @@ public class Application implements CommandLineRunner {
                 sb.append(" ").append(seeded ? "businessFlow db_seeded" : "businessFlow db_not_seeded");
             } else if (option.equals(dbImportOption)) {
             boolean imported;
-//                imported = personalAccountDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
+                imported = personalAccountDBImportService.importToMongo();
+                sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
 
 //                imported = accountHistoryDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "accountHistory db_imported" : "accountHistory db_not_imported");
@@ -80,16 +73,6 @@ public class Application implements CommandLineRunner {
 
                 imported = accountNotificationDBImportService.importToMongo("ac_100800");
                 sb.append(" ").append(imported ? "accountNotification db_imported" : "accountNotification db_not_imported");
-
-//                imported = plan2ServiceDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "plan2Service db_imported" : "plan2Service db_not_imported");
-
-//                imported = paymentAccountDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "paymentAccount db_imported" : "paymentAccount db_not_imported");
-
-//                imported = paymentDBImportService.importToMongo("100800");
-//                imported = paymentDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "payment db_imported" : "payment db_not_imported");
 
 //                boolean imported = planDbImportService.importToMongo();
 //                sb.append(" ").append(imported ? "plan db_imported" : "plan db_not_imported");

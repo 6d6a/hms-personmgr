@@ -4,9 +4,15 @@ import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 
 //TODO Привязать к нему другие модели
 /**
@@ -29,6 +35,10 @@ public class PersonalAccount extends BaseModel {
     @NotNull
     @Indexed
     private AccountType accountType;
+
+    private Set<MailManagerMessageType> notifications = new HashSet<>();
+
+    private Map<String, String> settings = new HashMap<>();
 
     public PersonalAccount() {
     }
@@ -83,12 +93,55 @@ public class PersonalAccount extends BaseModel {
         this.clientId = clientId;
     }
 
+    public Set<MailManagerMessageType> getNotifications() {
+        return notifications;
+    }
+
+    public void setNotifications(Set<MailManagerMessageType> notifications) {
+        this.notifications = notifications;
+    }
+
+    public boolean hasNotification(MailManagerMessageType notification) {
+        return this.notifications.contains(notification);
+    }
+
+    public void addNotification(MailManagerMessageType notification) {
+        this.notifications.add(notification);
+    }
+
+    public void addNotifications(Set<MailManagerMessageType> notifications) {
+        this.notifications.addAll(notifications);
+    }
+
+    public void removeNotification(MailManagerMessageType notification) {
+        this.notifications.remove(notification);
+    }
+
+    public Map<String, String> getSettings() {
+        return settings;
+    }
+
+    public void setSettings(Map<String, String> settings) {
+        this.settings = settings;
+    }
+
+    public void setSetting(String name, String setting) {
+        this.settings.put(name, setting);
+    }
+
+    public void getSetting(String name) {
+        this.settings.get(name);
+    }
+
     @Override
     public String toString() {
-        return "PaymentAccount{" +
+        return "PersonalAccount{" +
                 "accountId='" + accountId + '\'' +
+                ", clientId='" + clientId + '\'' +
                 ", name='" + name + '\'' +
                 ", accountType=" + accountType +
+                ", notifications=" + notifications +
+                ", settings=" + settings +
                 "} " + super.toString();
     }
 }
