@@ -28,7 +28,7 @@ public class AmqpSender {
     }
 
     public void send(String exchange, String routingKey, SimpleServiceMessage message) {
-        logger.info("send message by AmqpSender - exchange: " + exchange + " routingKey: " + routingKey + " message " + message.toString());
+        logger.info("sendEmail message by AmqpSender - exchange: " + exchange + " routingKey: " + routingKey + " message " + message.toString());
 
         myRabbitTemplate.setExchange(exchange);
         MessageProperties messageProperties = new MessageProperties();

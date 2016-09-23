@@ -7,8 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 
 import ru.majordomo.hms.personmgr.common.State;
-import ru.majordomo.hms.personmgr.common.message.MailManagerMessage;
-import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestination;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
@@ -43,7 +41,7 @@ public class BusinessActionProcessor {
                 break;
             case MAIL_MANAGER:
                 try {
-                    mailManager.send(action.getMessage());
+                    mailManager.sendEmail(action.getMessage());
                     logger.info("mail sent");
                 } catch (RestClientException exception) {
                     action.setState(State.ERROR);

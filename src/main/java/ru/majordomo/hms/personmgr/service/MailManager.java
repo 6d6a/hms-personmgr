@@ -24,7 +24,8 @@ public class MailManager {
     static {
         URL_MAP = new HashMap<>();
         URL_MAP.put("login", "/login_check");
-        URL_MAP.put("addmail", "/newmailtask");
+        URL_MAP.put("sendEmail", "/newmailtask");
+        URL_MAP.put("sendSms", "/smsqueue");
     }
 
     private RestTemplate restTemplate;
@@ -49,9 +50,15 @@ public class MailManager {
         return someResponse.get("token").toString();
     }
 
-    public HashMap send(SimpleServiceMessage message) throws RestClientException {
+    public HashMap sendEmail(SimpleServiceMessage message) throws RestClientException {
         HttpEntity entity = new HttpEntity<>(message.getParams(), headers);
-        logger.info("HttpEntity in mailManager: " + entity.toString());
-        return restTemplate.postForObject(URL_ROOT + URL_MAP.get("addmail"), entity, HashMap.class);
+        logger.info("HttpEntity in mailManager sendEmail: " + entity.toString());
+        return restTemplate.postForObject(URL_ROOT + URL_MAP.get("sendEmail"), entity, HashMap.class);
+    }
+
+    public HashMap sendSms(SimpleServiceMessage message) throws RestClientException {
+        HttpEntity entity = new HttpEntity<>(message.getParams(), headers);
+        logger.info("HttpEntity in mailManager sendSms: " + entity.toString());
+        return restTemplate.postForObject(URL_ROOT + URL_MAP.get("sendSms"), entity, HashMap.class);
     }
 }
