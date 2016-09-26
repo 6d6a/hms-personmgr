@@ -15,11 +15,11 @@ import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventL
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import ru.majordomo.hms.personmgr.event.ProcessingBusinessActionEventListener;
-import ru.majordomo.hms.personmgr.service.AccountHistoryDBImportService;
-import ru.majordomo.hms.personmgr.service.AccountNotificationDBImportService;
-import ru.majordomo.hms.personmgr.service.BusinessActionDBSeedService;
-import ru.majordomo.hms.personmgr.service.NotificationDBImportService;
-import ru.majordomo.hms.personmgr.service.PersonalAccountDBImportService;
+import ru.majordomo.hms.personmgr.service.importing.AccountHistoryDBImportService;
+import ru.majordomo.hms.personmgr.service.importing.AccountNotificationDBImportService;
+import ru.majordomo.hms.personmgr.service.importing.BusinessActionDBSeedService;
+import ru.majordomo.hms.personmgr.service.importing.NotificationDBImportService;
+import ru.majordomo.hms.personmgr.service.importing.PersonalAccountDBImportService;
 
 @SpringBootApplication
 @PropertySources({

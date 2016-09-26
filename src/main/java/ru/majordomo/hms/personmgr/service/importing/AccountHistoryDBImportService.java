@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service;
+package ru.majordomo.hms.personmgr.service.importing;
 
 import org.apache.http.util.EncodingUtils;
 import org.slf4j.Logger;

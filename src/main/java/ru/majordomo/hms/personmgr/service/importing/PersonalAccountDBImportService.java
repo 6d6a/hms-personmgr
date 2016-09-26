@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service;
+package ru.majordomo.hms.personmgr.service.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
