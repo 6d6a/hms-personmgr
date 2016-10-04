@@ -6,10 +6,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Objects;
 
-import ru.majordomo.hms.personmgr.common.ActionType;
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
-import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
-import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
 
@@ -22,7 +20,7 @@ public class BusinessAction extends Step {
     private String operationId;
 
     @Indexed
-    private ActionType actionType;
+    private BusinessActionType businessActionType;
 
     private GenericMessageDestination destination;
     private SimpleServiceMessage message;
@@ -31,14 +29,14 @@ public class BusinessAction extends Step {
     }
 
     @PersistenceConstructor
-    public BusinessAction(String id, String name, State state, int priority, String operationId, ActionType actionType, GenericMessageDestination destination, SimpleServiceMessage message) {
+    public BusinessAction(String id, String name, State state, int priority, String operationId, BusinessActionType businessActionType, GenericMessageDestination destination, SimpleServiceMessage message) {
         super();
         this.setId(id);
         this.setName(name);
         this.setState(state);
         this.setPriority(priority);
         this.operationId = operationId;
-        this.actionType = actionType;
+        this.businessActionType = businessActionType;
         this.destination = destination;
         this.message = message;
     }
@@ -51,12 +49,12 @@ public class BusinessAction extends Step {
         this.operationId = operationId;
     }
 
-    public ActionType getActionType() {
-        return actionType;
+    public BusinessActionType getBusinessActionType() {
+        return businessActionType;
     }
 
-    public void setActionType(ActionType actionType) {
-        this.actionType = actionType;
+    public void setBusinessActionType(BusinessActionType businessActionType) {
+        this.businessActionType = businessActionType;
     }
 
     public GenericMessageDestination getDestination() {

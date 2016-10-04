@@ -5,7 +5,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.List;
 
-import ru.majordomo.hms.personmgr.common.ActionType;
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 
@@ -16,7 +16,7 @@ public interface ProcessingBusinessActionRepository extends MongoRepository<Proc
 
     ProcessingBusinessAction findByName(String name);
 
-    ProcessingBusinessAction findByActionType(ActionType actionType);
+    ProcessingBusinessAction findByBusinessActionType(BusinessActionType businessActionType);
 
     ProcessingBusinessAction findFirstByStateOrderByPriorityAscCreatedDateAsc(State state);
 }

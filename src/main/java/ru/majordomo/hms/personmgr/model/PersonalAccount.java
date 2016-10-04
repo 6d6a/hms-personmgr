@@ -14,7 +14,6 @@ import javax.validation.constraints.NotNull;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 
-//TODO Привязать к нему другие модели
 /**
  * PaymentAccount
  */

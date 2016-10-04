@@ -97,12 +97,14 @@ public class PlanDBImportService {
     }
 
     public boolean importToMongo() {
+        planRepository.deleteAll();
         pull();
         pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String planId, String finServiceId) {
+        planRepository.deleteAll();
         pull(planId, finServiceId);
         pushToMongo();
         return true;

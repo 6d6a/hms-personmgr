@@ -3,10 +3,8 @@ package ru.majordomo.hms.personmgr.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import ru.majordomo.hms.personmgr.common.ActionType;
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
-import ru.majordomo.hms.personmgr.common.message.ServiceMessage;
-import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
@@ -20,8 +18,8 @@ public class BusinessActionBuilder {
     @Autowired
     private BusinessActionRepository businessActionRepository;
 
-    public ProcessingBusinessAction build(ActionType actionType, SimpleServiceMessage message) {
-        BusinessAction businessAction = businessActionRepository.findByActionType(actionType);
+    public ProcessingBusinessAction build(BusinessActionType businessActionType, SimpleServiceMessage message) {
+        BusinessAction businessAction = businessActionRepository.findByBusinessActionType(businessActionType);
 
         ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(businessAction);
 

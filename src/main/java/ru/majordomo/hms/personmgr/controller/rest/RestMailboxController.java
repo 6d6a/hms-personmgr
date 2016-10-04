@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpServletResponse;
 
-import ru.majordomo.hms.personmgr.common.ActionType;
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
@@ -36,7 +36,7 @@ public class RestMailboxController extends CommonRestController {
     ) {
         logger.info("Creating mailbox: " + message.toString());
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.MAILBOX_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.MAILBOX_CREATE_RC, message);
 
         processingBusinessActionRepository.save(businessAction);
 
@@ -54,7 +54,7 @@ public class RestMailboxController extends CommonRestController {
 
         message.getParams().put("id", mailboxId);
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.MAILBOX_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
         processingBusinessActionRepository.save(businessAction);
 
@@ -72,7 +72,7 @@ public class RestMailboxController extends CommonRestController {
 
         message.getParams().put("id", mailboxId);
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.MAILBOX_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.MAILBOX_DELETE_RC, message);
 
         processingBusinessActionRepository.save(businessAction);
 

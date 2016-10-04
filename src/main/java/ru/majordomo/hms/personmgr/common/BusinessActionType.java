@@ -1,9 +1,9 @@
 package ru.majordomo.hms.personmgr.common;
 
 /**
- * ActionType
+ * BusinessActionType
  */
-public enum ActionType {
+public enum BusinessActionType {
     WEB_SITE_CREATE_RC,
     WEB_SITE_CREATE_MM,
     WEB_SITE_UPDATE_RC,

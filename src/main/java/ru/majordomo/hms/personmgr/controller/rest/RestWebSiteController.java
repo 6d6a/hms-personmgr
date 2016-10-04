@@ -3,16 +3,14 @@ package ru.majordomo.hms.personmgr.controller.rest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletResponse;
 
-import ru.majordomo.hms.personmgr.common.ActionType;
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.*;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
@@ -37,7 +35,7 @@ public class RestWebSiteController extends CommonRestController {
     ) {
         logger.info("Creating website: " + message.toString());
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.WEB_SITE_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.WEB_SITE_CREATE_RC, message);
 
         processingBusinessActionRepository.save(businessAction);
 
@@ -55,7 +53,7 @@ public class RestWebSiteController extends CommonRestController {
 
         message.getParams().put("id", websiteId);
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.WEB_SITE_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.WEB_SITE_UPDATE_RC, message);
 
         processingBusinessActionRepository.save(businessAction);
 
@@ -73,7 +71,7 @@ public class RestWebSiteController extends CommonRestController {
 
         message.getParams().put("id", websiteId);
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.WEB_SITE_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.WEB_SITE_DELETE_RC, message);
 
         processingBusinessActionRepository.save(businessAction);
 
