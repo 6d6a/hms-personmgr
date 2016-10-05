@@ -9,13 +9,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
@@ -37,14 +34,16 @@ public class AccountPromocodeDBImportService {
     private AccountPromocodeRepository accountPromocodeRepository;
     private PersonalAccountRepository personalAccountRepository;
     private NamedParameterJdbcTemplate partnersNamedParameterJdbcTemplate;
+    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     private List<AccountPromocode> accountPromocodes = new ArrayList<>();
 
     @Autowired
-    public AccountPromocodeDBImportService(@Qualifier("partnersNamedParameterJdbcTemplate") NamedParameterJdbcTemplate partnersNamedParameterJdbcTemplate, PromocodeRepository promocodeRepository, AccountPromocodeRepository accountPromocodeRepository, PersonalAccountRepository personalAccountRepository) {
+    public AccountPromocodeDBImportService(@Qualifier("partnersNamedParameterJdbcTemplate") NamedParameterJdbcTemplate partnersNamedParameterJdbcTemplate, PromocodeRepository promocodeRepository, AccountPromocodeRepository accountPromocodeRepository, PersonalAccountRepository personalAccountRepository, @Qualifier("namedParameterJdbcTemplate") NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
         this.partnersNamedParameterJdbcTemplate = partnersNamedParameterJdbcTemplate;
         this.promocodeRepository = promocodeRepository;
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.personalAccountRepository = personalAccountRepository;
+        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
     }
 
     //TODO Ускорить - сейчас тупит загрузка
@@ -57,34 +56,39 @@ public class AccountPromocodeDBImportService {
     }
 
     private void pull(String accountId) {
+        logger.info("Start finding for " + accountId);
         PersonalAccount personalAccount = personalAccountRepository.findByAccountId(accountId);
 
         if (personalAccount != null) {
             this.pull(accountId, personalAccount.getId());
         }
+        logger.info("Finish finding for " + accountId);
     }
-    private void pull(String accountId, String PersonalAccountId) {
+    private void pull(String accountId, String personalAccountId) {
         logger.info("Start pull for " + accountId);
 
         String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.valid_till FROM promorecord p WHERE accountid = :accountid";
 
-        SqlParameterSource namedParametersE = new MapSqlParameterSource("accountid", accountId);
+        SqlParameterSource namedParameters = new MapSqlParameterSource("accountid", accountId);
 
-        accountPromocodes.addAll(partnersNamedParameterJdbcTemplate.query(query,
-                namedParametersE,
+        partnersNamedParameterJdbcTemplate.query(query,
+                namedParameters,
                 (rs, rowNum) -> {
                     logger.info("Found code " + rs.getString("postfix") + rs.getString("id") + " for " + accountId);
                     AccountPromocode accountPromocode = new AccountPromocode();
 
-                    if (PersonalAccountId == null) {
+                    String personalAccountIdLocal = personalAccountId;
+
+                    if (personalAccountIdLocal == null) {
                         PersonalAccount personalAccount = personalAccountRepository.findByAccountId(rs.getString("accountid"));
 
                         if (personalAccount != null) {
-                            accountPromocode.setPersonalAccountId(personalAccount.getId());
+                            logger.info("Found personalAccount for " + accountId);
+                            personalAccountIdLocal = personalAccount.getId();
                         }
-                    } else {
-                        accountPromocode.setPersonalAccountId(PersonalAccountId);
                     }
+
+                    accountPromocode.setPersonalAccountId(personalAccountIdLocal);
 
                     accountPromocode.setOwnedByAccount(true);
 
@@ -96,12 +100,49 @@ public class AccountPromocodeDBImportService {
                     Promocode promocode = promocodeRepository.findByCode(rs.getString("postfix") + rs.getString("id"));
 
                     if (promocode != null) {
+                        logger.info("Found promocode by code " + rs.getString("postfix") + rs.getString("id"));
                         accountPromocode.setPromocodeId(promocode.getId());
                     }
 
-                    return accountPromocode;
+                    accountPromocodes.add(accountPromocode);
+
+                    String queryPromocodes = "SELECT p.acc_id, p.promo_code FROM promocodes p WHERE promo_code = :promo_code";
+                    SqlParameterSource namedParametersP = new MapSqlParameterSource("promo_code", rs.getString("postfix") + rs.getString("id"));
+
+                    String finalPersonalAccountIdLocal = personalAccountIdLocal;
+                    namedParameterJdbcTemplate.query(queryPromocodes,
+                            namedParametersP,
+                            (rsP, rowNumP) -> {
+                                logger.info("Found promocodes code " + rs.getString("postfix") + rs.getString("id") + " for " + accountId);
+                                AccountPromocode accountPromocodeP = new AccountPromocode();
+
+                                PersonalAccount personalAccountP = personalAccountRepository.findByAccountId(rs.getString("accountid"));
+
+                                if (personalAccountP != null) {
+                                    logger.info("Found personalAccount for " + accountId);
+
+                                    accountPromocodeP.setPersonalAccountId(personalAccountP.getId());
+                                } else {
+                                    accountPromocodeP.setPersonalAccountId(finalPersonalAccountIdLocal);
+                                }
+
+                                accountPromocodeP.setOwnedByAccount(false);
+
+                                accountPromocodeP.setActionsWithStatus(actionsWithStatus);
+
+                                if (promocode != null) {
+                                    logger.info("Found promocode by code " + rs.getString("postfix") + rs.getString("id"));
+                                    accountPromocodeP.setPromocodeId(promocode.getId());
+                                }
+
+                                accountPromocodes.add(accountPromocodeP);
+
+                                return null;
+                            }
+                    );
+                    return null;
                 }
-        ));
+        );
     }
 
     public boolean importToMongo() {
