@@ -2,12 +2,15 @@ package ru.majordomo.hms.personmgr.model.promocode;
 
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.model.BaseModel;
@@ -18,16 +21,23 @@ import ru.majordomo.hms.personmgr.validators.ObjectIdList;
  */
 @Document
 public class Promocode extends BaseModel {
+    @NotNull
+    @Indexed
     private PromocodeType type;
 
+    @NotNull
+    @Indexed(unique = true)
     private String code;
 
+    @NotNull
     private LocalDate validTill;
 
+    @NotNull
+    @Indexed
     private boolean active;
 
     @ObjectIdList(PromocodeAction.class)
-    private List<String > actionIds = new ArrayList<>();
+    private List<String> actionIds = new ArrayList<>();
 
     @Transient
     private List<PromocodeAction> actions = new ArrayList<>();

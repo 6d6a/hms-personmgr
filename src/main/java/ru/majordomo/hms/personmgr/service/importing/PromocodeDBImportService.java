@@ -21,6 +21,8 @@ import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 
+import static ru.majordomo.hms.personmgr.common.ImportConstants.getPartnerPromocodeActionId;
+
 /**
  * Сервис для загрузки первичных данных в БД
  */
@@ -61,7 +63,7 @@ public class PromocodeDBImportService {
         promocode.setActive(rs.getBoolean("active"));
         promocode.setValidTill(rs.getDate("valid_till").toLocalDate());
 
-        promocode.setActionIds(Arrays.asList("57f3c4b8038d8a6054409853"));
+        promocode.setActionIds(Arrays.asList(getPartnerPromocodeActionId()));
 
         return promocode;
     }

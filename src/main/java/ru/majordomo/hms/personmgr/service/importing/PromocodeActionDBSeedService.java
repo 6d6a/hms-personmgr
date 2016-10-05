@@ -9,12 +9,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.PromocodeActionType;
-import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestination;
-import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
+
+import static ru.majordomo.hms.personmgr.common.ImportConstants.getPartnerPromocodeActionId;
+
 
 /**
  * Сервис для загрузки первичных данных в БД
@@ -58,7 +58,7 @@ public class PromocodeActionDBSeedService {
 
         promocodeAction.setProperties(properties);
 
-        promocodeAction.setId("57f3c4b8038d8a6054409853");
+        promocodeAction.setId(getPartnerPromocodeActionId());
 
         promocodeActionRepository.save(promocodeAction);
     }

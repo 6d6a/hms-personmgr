@@ -16,6 +16,8 @@ import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_REMAI
  */
 public class ImportConstants {
 
+    private static final String PartnerPromocodeActionId = "57f3c4b8038d8a6054409853";
+
     private static final Map<Integer, MailManagerMessageType> notifications = new HashMap<>();
 
     static {
@@ -30,5 +32,9 @@ public class ImportConstants {
 
     public static Map<Integer, MailManagerMessageType> getNotifications() {
         return notifications;
+    }
+
+    public static String getPartnerPromocodeActionId() {
+        return PartnerPromocodeActionId;
     }
 }

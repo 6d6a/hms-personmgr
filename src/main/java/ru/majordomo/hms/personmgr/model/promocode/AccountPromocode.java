@@ -1,24 +1,40 @@
 package ru.majordomo.hms.personmgr.model.promocode;
 
+import org.springframework.data.annotation.PersistenceConstructor;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.validation.constraints.NotNull;
+
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 /**
  * AccountPromocode
  */
 @Document
 public class AccountPromocode extends ModelBelongsToPersonalAccount {
+    @NotNull
+    @ObjectId(Promocode.class)
     private String promocodeId;
 
+    @NotNull
+    @Indexed
     private boolean ownedByAccount;
 
     private Map<String, Boolean> actionsWithStatus = new HashMap<>();
 
-    public AccountPromocode(String promocodeId, boolean ownedByAccount) {
+    public AccountPromocode() {
+    }
+
+    @PersistenceConstructor
+    public AccountPromocode(String id, String personalAccountId, String promocodeId, boolean ownedByAccount) {
+        super();
+        this.setId(id);
+        this.setPersonalAccountId(personalAccountId);
         this.promocodeId = promocodeId;
         this.ownedByAccount = ownedByAccount;
     }
