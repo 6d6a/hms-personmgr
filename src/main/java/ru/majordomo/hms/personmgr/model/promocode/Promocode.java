@@ -8,7 +8,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import javax.validation.constraints.NotNull;
 
@@ -30,7 +29,9 @@ public class Promocode extends BaseModel {
     private String code;
 
     @NotNull
-    private LocalDate validTill;
+    private LocalDate createdDate;
+
+    private LocalDate usedDate;
 
     @NotNull
     @Indexed
@@ -47,12 +48,13 @@ public class Promocode extends BaseModel {
     }
 
     @PersistenceConstructor
-    public Promocode(String id, PromocodeType type, String code, LocalDate validTill, boolean active, List<String> actionIds) {
+    public Promocode(String id, PromocodeType type, String code, LocalDate createdDate, LocalDate usedDate, boolean active, List<String> actionIds) {
         super();
         this.setId(id);
         this.type = type;
         this.code = code;
-        this.validTill = validTill;
+        this.createdDate = createdDate;
+        this.usedDate = usedDate;
         this.active = active;
         this.actionIds = actionIds;
     }
@@ -73,12 +75,12 @@ public class Promocode extends BaseModel {
         this.code = code;
     }
 
-    public LocalDate getValidTill() {
-        return validTill;
+    public LocalDate getCreatedDate() {
+        return createdDate;
     }
 
-    public void setValidTill(LocalDate validTill) {
-        this.validTill = validTill;
+    public void setCreatedDate(LocalDate createdDate) {
+        this.createdDate = createdDate;
     }
 
     public boolean isActive() {
@@ -110,10 +112,19 @@ public class Promocode extends BaseModel {
         return "Promocode{" +
                 "type=" + type +
                 ", code='" + code + '\'' +
-                ", validTill=" + validTill +
+                ", createdDate=" + createdDate +
+                ", usedDate=" + usedDate +
                 ", active=" + active +
                 ", actionIds=" + actionIds +
                 ", actions=" + actions +
                 "} " + super.toString();
+    }
+
+    public LocalDate getUsedDate() {
+        return usedDate;
+    }
+
+    public void setUsedDate(LocalDate usedDate) {
+        this.usedDate = usedDate;
     }
 }

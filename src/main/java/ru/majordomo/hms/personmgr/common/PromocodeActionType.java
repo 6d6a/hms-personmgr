@@ -6,5 +6,5 @@ package ru.majordomo.hms.personmgr.common;
 public enum PromocodeActionType {
     BALANCE_FILL,
     SERVICE_ABONEMENT,
-    SERVICE_FULL_DISCOUNT
+    SERVICE_FREE_DOMAIN
 }

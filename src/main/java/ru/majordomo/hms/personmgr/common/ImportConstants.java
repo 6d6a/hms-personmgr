@@ -17,6 +17,14 @@ import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_REMAI
 public class ImportConstants {
 
     private static final String PartnerPromocodeActionId = "57f3c4b8038d8a6054409853";
+    private static final String BonusFreeDomainPromocodeActionId = "57f3c4b8038d8a6054409854";
+    private static final String BonusUnlimited3MPromocodeActionId = "57f3c4b8038d8a6054409855";
+    private static final String BonusUnlimited1MPromocodeActionId = "57f3c4b8038d8a6054409856";
+    private static final String BonusParking3MPromocodeActionId = "57f3c4b8038d8a6054409857";
+
+    //TODO указать конкретный id
+    private static final String UnlimitedPlanServiceId = "1";
+    private static final String ParkingPlanServiceId = "2";
 
     private static final Map<Integer, MailManagerMessageType> notifications = new HashMap<>();
 
@@ -36,5 +44,29 @@ public class ImportConstants {
 
     public static String getPartnerPromocodeActionId() {
         return PartnerPromocodeActionId;
+    }
+
+    public static String getBonusFreeDomainPromocodeActionId() {
+        return BonusFreeDomainPromocodeActionId;
+    }
+
+    public static String getBonusUnlimited3MPromocodeActionId() {
+        return BonusUnlimited3MPromocodeActionId;
+    }
+
+    public static String getBonusUnlimited1MPromocodeActionId() {
+        return BonusUnlimited1MPromocodeActionId;
+    }
+
+    public static String getBonusParking3MPromocodeActionId() {
+        return BonusParking3MPromocodeActionId;
+    }
+
+    public static String getUnlimitedPlanServiceId() {
+        return UnlimitedPlanServiceId;
+    }
+
+    public static String getParkingPlanServiceId() {
+        return ParkingPlanServiceId;
     }
 }

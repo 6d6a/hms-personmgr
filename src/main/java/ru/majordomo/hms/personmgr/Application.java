@@ -23,6 +23,7 @@ import ru.majordomo.hms.personmgr.event.ProcessingBusinessActionEventListener;
 import ru.majordomo.hms.personmgr.service.importing.AccountHistoryDBImportService;
 import ru.majordomo.hms.personmgr.service.importing.AccountNotificationDBImportService;
 import ru.majordomo.hms.personmgr.service.importing.AccountPromocodeDBImportService;
+import ru.majordomo.hms.personmgr.service.importing.BonusPromocodeDBImportService;
 import ru.majordomo.hms.personmgr.service.importing.BusinessActionDBSeedService;
 import ru.majordomo.hms.personmgr.service.importing.NotificationDBImportService;
 import ru.majordomo.hms.personmgr.service.importing.PersonalAccountDBImportService;
@@ -67,6 +68,9 @@ public class Application implements CommandLineRunner {
     @Autowired
     private AccountPromocodeDBImportService accountPromocodeDBImportService;
 
+    @Autowired
+    private BonusPromocodeDBImportService bonusPromocodeDBImportService;
+
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
@@ -103,8 +107,11 @@ public class Application implements CommandLineRunner {
 //                sb.append(" ").append(imported ? "plan db_imported" : "plan db_not_imported");
 //                imported = promocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "promocode db_imported" : "promocode db_not_imported");
-                imported = accountPromocodeDBImportService.importToMongo("137010");
-                sb.append(" ").append(imported ? "accountPromocode db_imported" : "accountPromocode db_not_imported");
+//                imported = accountPromocodeDBImportService.importToMongo("137010");
+//                sb.append(" ").append(imported ? "accountPromocode db_imported" : "accountPromocode db_not_imported");
+
+                imported = bonusPromocodeDBImportService.importToMongo();
+                sb.append(" ").append(imported ? "bonusPromocode db_imported" : "bonusPromocode db_not_imported");
             }
         }
         sb = sb.length() == 0 ? sb.append("No Options Specified") : sb;

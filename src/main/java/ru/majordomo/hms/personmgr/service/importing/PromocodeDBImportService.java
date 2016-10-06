@@ -17,8 +17,6 @@ import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
-import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
-import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 
 import static ru.majordomo.hms.personmgr.common.ImportConstants.getPartnerPromocodeActionId;
@@ -46,7 +44,7 @@ public class PromocodeDBImportService {
     }
 
     private void pull(String accountName) {
-        String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.valid_till FROM promorecord p WHERE accountid = :accountid";
+        String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.created FROM promorecord p WHERE accountid = :accountid";
 
         SqlParameterSource namedParametersE = new MapSqlParameterSource("accountid", accountName);
 
@@ -61,7 +59,7 @@ public class PromocodeDBImportService {
         promocode.setType(PromocodeType.PARTNER);
         promocode.setCode(rs.getString("postfix") + rs.getString("id"));
         promocode.setActive(rs.getBoolean("active"));
-        promocode.setValidTill(rs.getDate("valid_till").toLocalDate());
+        promocode.setCreatedDate(rs.getDate("created").toLocalDate());
 
         promocode.setActionIds(Arrays.asList(getPartnerPromocodeActionId()));
 
