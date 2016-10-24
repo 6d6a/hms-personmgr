@@ -26,20 +26,41 @@ public class ImportConstants {
     private static final String UnlimitedPlanServiceId = "1";
     private static final String ParkingPlanServiceId = "2";
 
-    private static final Map<Integer, MailManagerMessageType> notifications = new HashMap<>();
+    private static final Map<Integer, MailManagerMessageType> MANAGER_MESSAGE_TYPE_MAP = new HashMap<>();
+    public static final Map<String, DomainCategory> DOMAIN_CATEGORY_MAP = new HashMap<>();
+    public static final Map<Integer, DomainRegistrator> DOMAIN_REGISTRATOR_MAP = new HashMap<>();
 
     static {
-        notifications.put(24, SMS_NO_MONEY_TO_AUTORENEW_DOMAIN);
-        notifications.put(26, SMS_NEW_PAYMENT);
-        notifications.put(28, SMS_DOMAIN_DELEGATION_ENDING);
-        notifications.put(29, SMS_REMAINING_DAYS);
-        notifications.put(42, EMAIL_CHANGE_ACCOUNT_PASSWORD);
-        notifications.put(44, EMAIL_LOGIN_TO_CONTROL_PANEL);
-        notifications.put(77, EMAIL_CHANGE_FTP_PASSWORD);
+        MANAGER_MESSAGE_TYPE_MAP.put(24, SMS_NO_MONEY_TO_AUTORENEW_DOMAIN);
+        MANAGER_MESSAGE_TYPE_MAP.put(26, SMS_NEW_PAYMENT);
+        MANAGER_MESSAGE_TYPE_MAP.put(28, SMS_DOMAIN_DELEGATION_ENDING);
+        MANAGER_MESSAGE_TYPE_MAP.put(29, SMS_REMAINING_DAYS);
+        MANAGER_MESSAGE_TYPE_MAP.put(42, EMAIL_CHANGE_ACCOUNT_PASSWORD);
+        MANAGER_MESSAGE_TYPE_MAP.put(44, EMAIL_LOGIN_TO_CONTROL_PANEL);
+        MANAGER_MESSAGE_TYPE_MAP.put(77, EMAIL_CHANGE_FTP_PASSWORD);
+
+        //'russian','cyrillic','international','business','thematic','geo'
+        DOMAIN_CATEGORY_MAP.put("russian", DomainCategory.RUSSIAN);
+        DOMAIN_CATEGORY_MAP.put("cyrillic", DomainCategory.CYRILLIC);
+        DOMAIN_CATEGORY_MAP.put("international", DomainCategory.INTERNATIONAL);
+        DOMAIN_CATEGORY_MAP.put("business", DomainCategory.BUSINESS);
+        DOMAIN_CATEGORY_MAP.put("thematic", DomainCategory.THEMATIC);
+        DOMAIN_CATEGORY_MAP.put("geo", DomainCategory.GEO);
+
+        DOMAIN_REGISTRATOR_MAP.put(1, DomainRegistrator.REGISTRANT);
+        DOMAIN_REGISTRATOR_MAP.put(2, DomainRegistrator.R01);
+        DOMAIN_REGISTRATOR_MAP.put(3, DomainRegistrator.RUCENTER);
+        DOMAIN_REGISTRATOR_MAP.put(4, DomainRegistrator.ENOM);
+        DOMAIN_REGISTRATOR_MAP.put(5, DomainRegistrator.GODADDY);
+        DOMAIN_REGISTRATOR_MAP.put(6, DomainRegistrator.GANDI);
+        DOMAIN_REGISTRATOR_MAP.put(7, DomainRegistrator.UKRNAMES);
+        DOMAIN_REGISTRATOR_MAP.put(8, DomainRegistrator.REGRU);
+        DOMAIN_REGISTRATOR_MAP.put(9, DomainRegistrator.WEBNAMES);
     }
 
-    public static Map<Integer, MailManagerMessageType> getNotifications() {
-        return notifications;
+
+    public static Map<Integer, MailManagerMessageType> getManagerMessageTypeMap() {
+        return MANAGER_MESSAGE_TYPE_MAP;
     }
 
     public static String getPartnerPromocodeActionId() {

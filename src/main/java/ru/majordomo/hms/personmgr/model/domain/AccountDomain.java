@@ -16,7 +16,7 @@ public class AccountDomain extends ModelBelongsToPersonalAccount {
     private boolean autorenew;
 
     @Transient
-    private DomainZone domainZone;
+    private DomainTld domainTld;
 
     public AccountDomain() {
     }
@@ -47,12 +47,12 @@ public class AccountDomain extends ModelBelongsToPersonalAccount {
         this.domainZoneId = domainZoneId;
     }
 
-    public DomainZone getDomainZone() {
-        return domainZone;
+    public DomainTld getDomainTld() {
+        return domainTld;
     }
 
-    public void setDomainZone(DomainZone domainZone) {
-        this.domainZone = domainZone;
+    public void setDomainTld(DomainTld domainTld) {
+        this.domainTld = domainTld;
     }
 
     @Override
@@ -61,7 +61,7 @@ public class AccountDomain extends ModelBelongsToPersonalAccount {
                 "resourceId='" + resourceId + '\'' +
                 ", domainZoneId='" + domainZoneId + '\'' +
                 ", autorenew=" + autorenew +
-                ", domainZone=" + domainZone +
+                ", domainTld=" + domainTld +
                 "} " + super.toString();
     }
 

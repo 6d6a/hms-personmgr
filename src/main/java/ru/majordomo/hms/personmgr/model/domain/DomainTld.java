@@ -8,33 +8,45 @@ import ru.majordomo.hms.personmgr.common.DomainCategory;
 import ru.majordomo.hms.personmgr.common.DomainRegistrator;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 
+import javax.validation.constraints.NotNull;
+
 /**
- * DomainZone
+ * DomainTld
  */
 @Document
-public class DomainZone extends BaseModel {
+public class DomainTld extends BaseModel {
     @Indexed
+    @NotNull
     private String tld;
     @Indexed
+    @NotNull
     private DomainRegistrator domainRegistrator;
+    @NotNull
     private byte registerYears;
+    @NotNull
     private byte renewYears;
+    @NotNull
     private short renewStartDays;
+    @NotNull
     private short renewEndDays;
     @Indexed
+    @NotNull
     private boolean active;
     @Indexed
+    @NotNull
     private boolean variablePrice;
     @Indexed
+    @NotNull
     private DomainCategory domainCategory;
     @Indexed
+    @NotNull
     private short priority;
 
-    public DomainZone() {
+    public DomainTld() {
     }
 
     @PersistenceConstructor
-    public DomainZone(String id, String tld, DomainRegistrator domainRegistrator, byte registerYears, byte renewYears, short renewStartDays, short renewEndDays, boolean active, boolean variablePrice, DomainCategory domainCategory, short priority) {
+    public DomainTld(String id, String tld, DomainRegistrator domainRegistrator, byte registerYears, byte renewYears, short renewStartDays, short renewEndDays, boolean active, boolean variablePrice, DomainCategory domainCategory, short priority) {
         super();
         this.setId(id);
         this.tld = tld;
@@ -131,7 +143,7 @@ public class DomainZone extends BaseModel {
 
     @Override
     public String toString() {
-        return "DomainZone{" +
+        return "DomainTld{" +
                 "tld='" + tld + '\'' +
                 ", domainRegistrator='" + domainRegistrator + '\'' +
                 ", registerYears=" + registerYears +

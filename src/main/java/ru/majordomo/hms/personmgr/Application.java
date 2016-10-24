@@ -20,16 +20,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import javax.sql.DataSource;
 
 import ru.majordomo.hms.personmgr.event.ProcessingBusinessActionEventListener;
-import ru.majordomo.hms.personmgr.service.importing.AccountHistoryDBImportService;
-import ru.majordomo.hms.personmgr.service.importing.AccountNotificationDBImportService;
-import ru.majordomo.hms.personmgr.service.importing.AccountPromocodeDBImportService;
-import ru.majordomo.hms.personmgr.service.importing.BonusPromocodeDBImportService;
-import ru.majordomo.hms.personmgr.service.importing.BusinessActionDBSeedService;
-import ru.majordomo.hms.personmgr.service.importing.NotificationDBImportService;
-import ru.majordomo.hms.personmgr.service.importing.PersonalAccountDBImportService;
-import ru.majordomo.hms.personmgr.service.importing.PlanDBImportService;
-import ru.majordomo.hms.personmgr.service.importing.PromocodeActionDBSeedService;
-import ru.majordomo.hms.personmgr.service.importing.PromocodeDBImportService;
+import ru.majordomo.hms.personmgr.service.importing.*;
 
 @SpringBootApplication
 @PropertySources({
@@ -71,6 +62,9 @@ public class Application implements CommandLineRunner {
     @Autowired
     private BonusPromocodeDBImportService bonusPromocodeDBImportService;
 
+    @Autowired
+    private DomainTldDBImportService domainTldDBImportService;
+
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
@@ -110,8 +104,11 @@ public class Application implements CommandLineRunner {
 //                imported = accountPromocodeDBImportService.importToMongo("137010");
 //                sb.append(" ").append(imported ? "accountPromocode db_imported" : "accountPromocode db_not_imported");
 
-                imported = bonusPromocodeDBImportService.importToMongo();
-                sb.append(" ").append(imported ? "bonusPromocode db_imported" : "bonusPromocode db_not_imported");
+//                imported = bonusPromocodeDBImportService.importToMongo();
+//                sb.append(" ").append(imported ? "bonusPromocode db_imported" : "bonusPromocode db_not_imported");
+
+                imported = domainTldDBImportService.importToMongo();
+                sb.append(" ").append(imported ? "domainTldD db_imported" : "domainTldD db_not_imported");
             }
         }
         sb = sb.length() == 0 ? sb.append("No Options Specified") : sb;

@@ -62,7 +62,7 @@ public class AccountNotificationDBImportService {
             SqlParameterSource namedParametersE = new MapSqlParameterSource("ahs_account_id", personalAccount.getAccountId());
 
             jdbcTemplate.query(query, namedParametersE, (rs, rowNum) -> {
-                personalAccount.addNotification(ImportConstants.getNotifications().get(rs.getInt("ahs_sms_id")));
+                personalAccount.addNotification(ImportConstants.getManagerMessageTypeMap().get(rs.getInt("ahs_sms_id")));
 
                 return personalAccount;
             });
