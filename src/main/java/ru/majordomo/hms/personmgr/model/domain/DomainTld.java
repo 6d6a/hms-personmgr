@@ -20,7 +20,7 @@ public class DomainTld extends BaseModel {
     private String tld;
     @Indexed
     @NotNull
-    private DomainRegistrator domainRegistrator;
+    private DomainRegistrator registrator;
     @NotNull
     private byte registerYears;
     @NotNull
@@ -52,13 +52,13 @@ public class DomainTld extends BaseModel {
     }
 
     @PersistenceConstructor
-    public DomainTld(String id, String tld, DomainRegistrator domainRegistrator, byte registerYears, byte renewYears, short renewStartDays, short renewEndDays, boolean active, boolean variablePrice, DomainCategory domainCategory, short priority, String registrationServiceId, String renewServiceId) {
+    public DomainTld(String id, String tld, DomainRegistrator registrator, byte registerYears, byte renewYears, short renewStartDays, short renewEndDays, boolean active, boolean variablePrice, DomainCategory domainCategory, short priority, String registrationServiceId, String renewServiceId) {
         super();
         this.registrationServiceId = registrationServiceId;
         this.renewServiceId = renewServiceId;
         this.setId(id);
         this.tld = tld;
-        this.domainRegistrator = domainRegistrator;
+        this.registrator = registrator;
         this.registerYears = registerYears;
         this.renewYears = renewYears;
         this.renewStartDays = renewStartDays;
@@ -77,12 +77,12 @@ public class DomainTld extends BaseModel {
         this.tld = tld;
     }
 
-    public DomainRegistrator getDomainRegistrator() {
-        return domainRegistrator;
+    public DomainRegistrator getRegistrator() {
+        return registrator;
     }
 
-    public void setDomainRegistrator(DomainRegistrator domainRegistrator) {
-        this.domainRegistrator = domainRegistrator;
+    public void setRegistrator(DomainRegistrator registrator) {
+        this.registrator = registrator;
     }
 
     public byte getRegisterYears() {
@@ -169,7 +169,7 @@ public class DomainTld extends BaseModel {
     public String toString() {
         return "DomainTld{" +
                 "tld='" + tld + '\'' +
-                ", domainRegistrator=" + domainRegistrator +
+                ", registrator=" + registrator +
                 ", registerYears=" + registerYears +
                 ", renewYears=" + renewYears +
                 ", renewStartDays=" + renewStartDays +

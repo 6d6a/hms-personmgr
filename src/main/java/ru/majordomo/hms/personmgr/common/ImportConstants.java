@@ -29,6 +29,7 @@ public class ImportConstants {
     private static final Map<Integer, MailManagerMessageType> MANAGER_MESSAGE_TYPE_MAP = new HashMap<>();
     public static final Map<String, DomainCategory> DOMAIN_CATEGORY_MAP = new HashMap<>();
     public static final Map<Integer, DomainRegistrator> DOMAIN_REGISTRATOR_MAP = new HashMap<>();
+    public static final Map<String, DomainRegistrator> DOMAIN_REGISTRATOR_STRING_MAP = new HashMap<>();
     public static final Map<Integer, String> DOMAIN_REGISTRATOR_NAME_MAP = new HashMap<>();
 
     static {
@@ -56,6 +57,15 @@ public class ImportConstants {
         DOMAIN_REGISTRATOR_MAP.put(7, DomainRegistrator.UKRNAMES);
         DOMAIN_REGISTRATOR_MAP.put(8, DomainRegistrator.REGRU);
         DOMAIN_REGISTRATOR_MAP.put(9, DomainRegistrator.WEBNAMES);
+
+        DOMAIN_REGISTRATOR_STRING_MAP.put("Registrant", DomainRegistrator.REGISTRANT);
+        DOMAIN_REGISTRATOR_STRING_MAP.put("GPT", DomainRegistrator.R01);
+        DOMAIN_REGISTRATOR_STRING_MAP.put("RUCENTER", DomainRegistrator.RUCENTER);
+        DOMAIN_REGISTRATOR_STRING_MAP.put("Enom", DomainRegistrator.ENOM);
+        DOMAIN_REGISTRATOR_STRING_MAP.put("GoDaddy", DomainRegistrator.GODADDY);
+        DOMAIN_REGISTRATOR_STRING_MAP.put("Ukrnames", DomainRegistrator.UKRNAMES);
+        DOMAIN_REGISTRATOR_STRING_MAP.put("RegRu", DomainRegistrator.REGRU);
+        DOMAIN_REGISTRATOR_STRING_MAP.put("Webnames", DomainRegistrator.WEBNAMES);
 
         DOMAIN_REGISTRATOR_NAME_MAP.put(1, "Регистрант");
         DOMAIN_REGISTRATOR_NAME_MAP.put(2, "R01");

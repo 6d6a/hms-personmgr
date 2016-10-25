@@ -2,8 +2,12 @@ package ru.majordomo.hms.personmgr.model.domain;
 
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import javax.validation.constraints.NotNull;
+
+import ru.majordomo.hms.personmgr.common.DomainRegistrator;
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 
 /**
@@ -12,7 +16,16 @@ import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 @Document
 public class AccountDomain extends ModelBelongsToPersonalAccount {
     private String resourceId;
-    private String domainZoneId;
+
+    @Indexed
+    private DomainRegistrator registrator;
+
+    @NotNull
+    @Indexed(unique = true)
+    private String name;
+
+    @NotNull
+    @Indexed
     private boolean autorenew;
 
     @Transient
@@ -22,13 +35,14 @@ public class AccountDomain extends ModelBelongsToPersonalAccount {
     }
 
     @PersistenceConstructor
-    public AccountDomain(String id, String personalAccountId, String resourceId, String domainZoneId, boolean autorenew) {
+    public AccountDomain(String id, String name, String personalAccountId, String resourceId, DomainRegistrator registrator, boolean autorenew) {
         super();
         this.autorenew = autorenew;
+        this.name = name;
         this.setId(id);
         this.setPersonalAccountId(personalAccountId);
         this.resourceId = resourceId;
-        this.domainZoneId = domainZoneId;
+        this.registrator = registrator;
     }
 
     public String getResourceId() {
@@ -39,12 +53,12 @@ public class AccountDomain extends ModelBelongsToPersonalAccount {
         this.resourceId = resourceId;
     }
 
-    public String getDomainZoneId() {
-        return domainZoneId;
+    public DomainRegistrator getRegistrator() {
+        return registrator;
     }
 
-    public void setDomainZoneId(String domainZoneId) {
-        this.domainZoneId = domainZoneId;
+    public void setRegistrator(DomainRegistrator registrator) {
+        this.registrator = registrator;
     }
 
     public DomainTld getDomainTld() {
@@ -55,14 +69,12 @@ public class AccountDomain extends ModelBelongsToPersonalAccount {
         this.domainTld = domainTld;
     }
 
-    @Override
-    public String toString() {
-        return "AccountDomain{" +
-                "resourceId='" + resourceId + '\'' +
-                ", domainZoneId='" + domainZoneId + '\'' +
-                ", autorenew=" + autorenew +
-                ", domainTld=" + domainTld +
-                "} " + super.toString();
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public boolean isAutorenew() {
@@ -73,4 +85,14 @@ public class AccountDomain extends ModelBelongsToPersonalAccount {
         this.autorenew = autorenew;
     }
 
+    @Override
+    public String toString() {
+        return "AccountDomain{" +
+                "resourceId='" + resourceId + '\'' +
+                ", registrator=" + registrator +
+                ", name='" + name + '\'' +
+                ", autorenew=" + autorenew +
+                ", domainTld=" + domainTld +
+                "} " + super.toString();
+    }
 }

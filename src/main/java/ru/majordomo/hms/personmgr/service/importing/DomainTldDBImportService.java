@@ -59,7 +59,7 @@ public class DomainTldDBImportService {
 
             domainTld.setActive(rs.getBoolean("available"));
             domainTld.setDomainCategory(DOMAIN_CATEGORY_MAP.get(rs.getString("category")));
-            domainTld.setDomainRegistrator(DOMAIN_REGISTRATOR_MAP.get(rs.getInt("parking_registrator_id")));
+            domainTld.setRegistrator(DOMAIN_REGISTRATOR_MAP.get(rs.getInt("parking_registrator_id")));
             domainTld.setPriority(rs.getShort("priority"));
             domainTld.setRegisterYears(rs.getByte("registration_time"));
             domainTld.setRenewYears(rs.getByte("renew_time"));

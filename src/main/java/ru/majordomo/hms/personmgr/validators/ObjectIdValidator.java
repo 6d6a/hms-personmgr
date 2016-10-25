@@ -17,6 +17,7 @@ class ObjectIdValidator implements ConstraintValidator<ObjectId, String> {
     private final MongoOperations operations;
     private Class<? extends BaseModel> objectModel;
     private String collection;
+    private boolean notNull;
 
     @Autowired
     public ObjectIdValidator(MongoOperations operations) {
@@ -27,19 +28,24 @@ class ObjectIdValidator implements ConstraintValidator<ObjectId, String> {
     public void initialize(ObjectId objectId) {
         this.objectModel = objectId.value();
         this.collection = objectId.collection();
+        this.notNull = objectId.notNull();
     }
 
     @Override
     public boolean isValid(String s, ConstraintValidatorContext constraintValidatorContext) {
         try {
-            BaseModel foundObject;
-            if (!collection.equals("")) {
-                foundObject = operations.findById(s, this.objectModel, collection);
+            if (!notNull && s == null) {
+                return true;
             } else {
-                foundObject = operations.findById(s, this.objectModel);
-            }
+                BaseModel foundObject;
+                if (!collection.equals("")) {
+                    foundObject = operations.findById(s, this.objectModel, collection);
+                } else {
+                    foundObject = operations.findById(s, this.objectModel);
+                }
 
-            return foundObject != null;
+                return foundObject != null;
+            }
         } catch (RuntimeException e) {
             return false;
         }
