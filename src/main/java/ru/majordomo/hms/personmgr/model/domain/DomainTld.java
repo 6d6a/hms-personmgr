@@ -42,12 +42,20 @@ public class DomainTld extends BaseModel {
     @NotNull
     private short priority;
 
+    @NotNull
+    private String registrationServiceId;
+
+    @NotNull
+    private String renewServiceId;
+
     public DomainTld() {
     }
 
     @PersistenceConstructor
-    public DomainTld(String id, String tld, DomainRegistrator domainRegistrator, byte registerYears, byte renewYears, short renewStartDays, short renewEndDays, boolean active, boolean variablePrice, DomainCategory domainCategory, short priority) {
+    public DomainTld(String id, String tld, DomainRegistrator domainRegistrator, byte registerYears, byte renewYears, short renewStartDays, short renewEndDays, boolean active, boolean variablePrice, DomainCategory domainCategory, short priority, String registrationServiceId, String renewServiceId) {
         super();
+        this.registrationServiceId = registrationServiceId;
+        this.renewServiceId = renewServiceId;
         this.setId(id);
         this.tld = tld;
         this.domainRegistrator = domainRegistrator;
@@ -141,11 +149,27 @@ public class DomainTld extends BaseModel {
         this.priority = priority;
     }
 
+    public String getRegistrationServiceId() {
+        return registrationServiceId;
+    }
+
+    public void setRegistrationServiceId(String registrationServiceId) {
+        this.registrationServiceId = registrationServiceId;
+    }
+
+    public String getRenewServiceId() {
+        return renewServiceId;
+    }
+
+    public void setRenewServiceId(String renewServiceId) {
+        this.renewServiceId = renewServiceId;
+    }
+
     @Override
     public String toString() {
         return "DomainTld{" +
                 "tld='" + tld + '\'' +
-                ", domainRegistrator='" + domainRegistrator + '\'' +
+                ", domainRegistrator=" + domainRegistrator +
                 ", registerYears=" + registerYears +
                 ", renewYears=" + renewYears +
                 ", renewStartDays=" + renewStartDays +
@@ -154,7 +178,8 @@ public class DomainTld extends BaseModel {
                 ", variablePrice=" + variablePrice +
                 ", domainCategory=" + domainCategory +
                 ", priority=" + priority +
-                ", domainRegistrator=" + domainRegistrator +
+                ", registrationServiceId='" + registrationServiceId + '\'' +
+                ", renewServiceId='" + renewServiceId + '\'' +
                 "} " + super.toString();
     }
 }

@@ -29,6 +29,7 @@ public class ImportConstants {
     private static final Map<Integer, MailManagerMessageType> MANAGER_MESSAGE_TYPE_MAP = new HashMap<>();
     public static final Map<String, DomainCategory> DOMAIN_CATEGORY_MAP = new HashMap<>();
     public static final Map<Integer, DomainRegistrator> DOMAIN_REGISTRATOR_MAP = new HashMap<>();
+    public static final Map<Integer, String> DOMAIN_REGISTRATOR_NAME_MAP = new HashMap<>();
 
     static {
         MANAGER_MESSAGE_TYPE_MAP.put(24, SMS_NO_MONEY_TO_AUTORENEW_DOMAIN);
@@ -39,7 +40,6 @@ public class ImportConstants {
         MANAGER_MESSAGE_TYPE_MAP.put(44, EMAIL_LOGIN_TO_CONTROL_PANEL);
         MANAGER_MESSAGE_TYPE_MAP.put(77, EMAIL_CHANGE_FTP_PASSWORD);
 
-        //'russian','cyrillic','international','business','thematic','geo'
         DOMAIN_CATEGORY_MAP.put("russian", DomainCategory.RUSSIAN);
         DOMAIN_CATEGORY_MAP.put("cyrillic", DomainCategory.CYRILLIC);
         DOMAIN_CATEGORY_MAP.put("international", DomainCategory.INTERNATIONAL);
@@ -56,6 +56,16 @@ public class ImportConstants {
         DOMAIN_REGISTRATOR_MAP.put(7, DomainRegistrator.UKRNAMES);
         DOMAIN_REGISTRATOR_MAP.put(8, DomainRegistrator.REGRU);
         DOMAIN_REGISTRATOR_MAP.put(9, DomainRegistrator.WEBNAMES);
+
+        DOMAIN_REGISTRATOR_NAME_MAP.put(1, "Регистрант");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(2, "R01");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(3, "RU-CENTER");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(4, "Enom");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(5, "GoDaddy");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(6, "Gandi");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(7, "Ukrnames");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(8, "РЕГ.РУ");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(9, "Webnames");
     }
 
 

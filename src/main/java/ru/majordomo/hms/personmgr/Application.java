@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceBuilder;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.netflix.feign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
@@ -28,6 +29,7 @@ import ru.majordomo.hms.personmgr.service.importing.*;
         @PropertySource(name = "mail_manager", value = "classpath:mail_manager.properties")
 })
 @EnableDiscoveryClient
+@EnableFeignClients
 public class Application implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
@@ -142,5 +144,10 @@ public class Application implements CommandLineRunner {
 //                .featuresToDisable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS) //ISODate
 //                .modules(new JSR310Module())
 //                .build();
+//    }
+
+//    @Bean
+//    feign.Logger.Level feignLoggerLevel() {
+//        return feign.Logger.Level.FULL;
 //    }
 }
