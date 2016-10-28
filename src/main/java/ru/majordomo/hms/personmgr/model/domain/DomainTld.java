@@ -1,11 +1,13 @@
 package ru.majordomo.hms.personmgr.model.domain;
 
 import org.springframework.data.annotation.PersistenceConstructor;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import ru.majordomo.hms.personmgr.common.DomainCategory;
 import ru.majordomo.hms.personmgr.common.DomainRegistrator;
+import ru.majordomo.hms.personmgr.common.FinService;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 
 import javax.validation.constraints.NotNull;
@@ -47,6 +49,12 @@ public class DomainTld extends BaseModel {
 
     @NotNull
     private String renewServiceId;
+
+    @Transient
+    private FinService registrationService;
+
+    @Transient
+    private FinService renewService;
 
     public DomainTld() {
     }
@@ -165,6 +173,22 @@ public class DomainTld extends BaseModel {
         this.renewServiceId = renewServiceId;
     }
 
+    public FinService getRegistrationService() {
+        return registrationService;
+    }
+
+    public void setRegistrationService(FinService registrationService) {
+        this.registrationService = registrationService;
+    }
+
+    public FinService getRenewService() {
+        return renewService;
+    }
+
+    public void setRenewService(FinService renewService) {
+        this.renewService = renewService;
+    }
+
     @Override
     public String toString() {
         return "DomainTld{" +
@@ -180,6 +204,8 @@ public class DomainTld extends BaseModel {
                 ", priority=" + priority +
                 ", registrationServiceId='" + registrationServiceId + '\'' +
                 ", renewServiceId='" + renewServiceId + '\'' +
+                ", registrationService=" + registrationService +
+                ", renewService=" + renewService +
                 "} " + super.toString();
     }
 }

@@ -21,6 +21,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import javax.sql.DataSource;
 
 import ru.majordomo.hms.personmgr.event.AccountDomainEventListener;
+import ru.majordomo.hms.personmgr.event.DomainTldEventListener;
 import ru.majordomo.hms.personmgr.event.ProcessingBusinessActionEventListener;
 import ru.majordomo.hms.personmgr.service.importing.*;
 
@@ -113,11 +114,11 @@ public class Application implements CommandLineRunner {
 //                imported = bonusPromocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "bonusPromocode db_imported" : "bonusPromocode db_not_imported");
 
-//                imported = domainTldDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "domainTldD db_imported" : "domainTldD db_not_imported");
+                imported = domainTldDBImportService.importToMongo();
+                sb.append(" ").append(imported ? "domainTldD db_imported" : "domainTldD db_not_imported");
 
-                imported = accountDomainDBImportService.importToMongo();
-                sb.append(" ").append(imported ? "accountDomain db_imported" : "accountDomain db_not_imported");
+//                imported = accountDomainDBImportService.importToMongo();
+//                sb.append(" ").append(imported ? "accountDomain db_imported" : "accountDomain db_not_imported");
             }
         }
         sb = sb.length() == 0 ? sb.append("No Options Specified") : sb;
@@ -132,6 +133,11 @@ public class Application implements CommandLineRunner {
     @Bean
     public AccountDomainEventListener accountDomainEventListener() {
         return new AccountDomainEventListener();
+    }
+
+    @Bean
+    public DomainTldEventListener domainTldEventListener() {
+        return new DomainTldEventListener();
     }
 
     @Bean

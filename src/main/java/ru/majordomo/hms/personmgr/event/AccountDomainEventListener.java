@@ -24,8 +24,9 @@ public class AccountDomainEventListener extends AbstractMongoEventListener<Accou
         super.onAfterConvert(event);
         AccountDomain accountDomain = event.getSource();
 
-        //TODO парсер зоны из имени домена
-        String tld = "";
+        String[] splitedName;
+        splitedName = accountDomain.getName().split("[.]", 2);
+        String tld = splitedName.length == 2 ? splitedName[1] : "";
 
         DomainTld domainTld = mongoOperations.findOne(new Query(where("registrator").is(accountDomain.getRegistrator()).and("tld").is(tld)), DomainTld.class);
         accountDomain.setDomainTld(domainTld);
