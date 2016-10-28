@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service;
+package ru.majordomo.hms.personmgr.service.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-import ru.majordomo.hms.personmgr.common.ActionType;
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.destination.MailManagerMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestination;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
@@ -69,7 +69,7 @@ public class BusinessActionDBSeedService {
 
         //WebSite create
         action = new BusinessAction();
-        action.setActionType(ActionType.WEB_SITE_CREATE_RC);
+        action.setBusinessActionType(BusinessActionType.WEB_SITE_CREATE_RC);
         action.setName("WebSite create RC");
 
         amqpMessageDestination = new AmqpMessageDestination();
@@ -83,7 +83,7 @@ public class BusinessActionDBSeedService {
         businessActionRepository.save(action);
 
         action = new BusinessAction();
-        action.setActionType(ActionType.WEB_SITE_CREATE_MM);
+        action.setBusinessActionType(BusinessActionType.WEB_SITE_CREATE_MM);
         action.setName("WebSite create MM");
 
         mailManagerMessageDestination = new MailManagerMessageDestination();
@@ -101,7 +101,7 @@ public class BusinessActionDBSeedService {
 
         //WebSite update
         action = new BusinessAction();
-        action.setActionType(ActionType.WEB_SITE_UPDATE_RC);
+        action.setBusinessActionType(BusinessActionType.WEB_SITE_UPDATE_RC);
         action.setName("WebSite update");
 
         amqpMessageDestination = new AmqpMessageDestination();
@@ -121,7 +121,7 @@ public class BusinessActionDBSeedService {
 
         //WebSite update
         action = new BusinessAction();
-        action.setActionType(ActionType.WEB_SITE_DELETE_RC);
+        action.setBusinessActionType(BusinessActionType.WEB_SITE_DELETE_RC);
         action.setName("WebSite delete");
 
         amqpMessageDestination = new AmqpMessageDestination();
@@ -142,7 +142,7 @@ public class BusinessActionDBSeedService {
 
         //Database create
         action = new BusinessAction();
-        action.setActionType(ActionType.DATABASE_CREATE_RC);
+        action.setBusinessActionType(BusinessActionType.DATABASE_CREATE_RC);
         action.setName("Database create");
 
         amqpMessageDestination = new AmqpMessageDestination();
@@ -160,7 +160,7 @@ public class BusinessActionDBSeedService {
 
         //Database update
         action = new BusinessAction();
-        action.setActionType(ActionType.DATABASE_UPDATE_RC);
+        action.setBusinessActionType(BusinessActionType.DATABASE_UPDATE_RC);
         action.setName("Database update");
 
         amqpMessageDestination = new AmqpMessageDestination();
@@ -178,7 +178,7 @@ public class BusinessActionDBSeedService {
 
         //WebSite update
         action = new BusinessAction();
-        action.setActionType(ActionType.DATABASE_DELETE_RC);
+        action.setBusinessActionType(BusinessActionType.DATABASE_DELETE_RC);
         action.setName("Database delete");
 
         amqpMessageDestination = new AmqpMessageDestination();
@@ -199,7 +199,7 @@ public class BusinessActionDBSeedService {
 
         //Database create
         action = new BusinessAction();
-        action.setActionType(ActionType.MAILBOX_CREATE_RC);
+        action.setBusinessActionType(BusinessActionType.MAILBOX_CREATE_RC);
         action.setName("Mailbox create");
 
         amqpMessageDestination = new AmqpMessageDestination();
@@ -217,7 +217,7 @@ public class BusinessActionDBSeedService {
 
         //Database update
         action = new BusinessAction();
-        action.setActionType(ActionType.MAILBOX_UPDATE_RC);
+        action.setBusinessActionType(BusinessActionType.MAILBOX_UPDATE_RC);
         action.setName("Mailbox update");
 
         amqpMessageDestination = new AmqpMessageDestination();
@@ -235,7 +235,7 @@ public class BusinessActionDBSeedService {
 
         //WebSite update
         action = new BusinessAction();
-        action.setActionType(ActionType.MAILBOX_DELETE_RC);
+        action.setBusinessActionType(BusinessActionType.MAILBOX_DELETE_RC);
         action.setName("Mailbox delete");
 
         amqpMessageDestination = new AmqpMessageDestination();
@@ -256,7 +256,7 @@ public class BusinessActionDBSeedService {
 
         //Database create
         action = new BusinessAction();
-        action.setActionType(ActionType.DATABASE_USER_CREATE_RC);
+        action.setBusinessActionType(BusinessActionType.DATABASE_USER_CREATE_RC);
         action.setName("Database User create");
 
         amqpMessageDestination = new AmqpMessageDestination();
@@ -274,7 +274,7 @@ public class BusinessActionDBSeedService {
 
         //Database update
         action = new BusinessAction();
-        action.setActionType(ActionType.DATABASE_USER_UPDATE_RC);
+        action.setBusinessActionType(BusinessActionType.DATABASE_USER_UPDATE_RC);
         action.setName("Database User update");
 
         amqpMessageDestination = new AmqpMessageDestination();
@@ -292,7 +292,7 @@ public class BusinessActionDBSeedService {
 
         //WebSite update
         action = new BusinessAction();
-        action.setActionType(ActionType.DATABASE_USER_DELETE_RC);
+        action.setBusinessActionType(BusinessActionType.DATABASE_USER_DELETE_RC);
         action.setName("Database User delete");
 
         amqpMessageDestination = new AmqpMessageDestination();

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpServletResponse;
 
-import ru.majordomo.hms.personmgr.common.ActionType;
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
@@ -37,7 +37,7 @@ public class RestDatabaseUserController extends CommonRestController {
     ) {
         logger.info(message.toString());
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.DATABASE_USER_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_USER_CREATE_RC, message);
 
         processingBusinessActionRepository.save(businessAction);
 
@@ -55,7 +55,7 @@ public class RestDatabaseUserController extends CommonRestController {
 
         message.getParams().put("id", databaseUserId);
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.DATABASE_USER_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
         processingBusinessActionRepository.save(businessAction);
 
@@ -73,7 +73,7 @@ public class RestDatabaseUserController extends CommonRestController {
 
         message.getParams().put("id", databaseUserId);
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.DATABASE_USER_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_USER_DELETE_RC, message);
 
         processingBusinessActionRepository.save(businessAction);
 

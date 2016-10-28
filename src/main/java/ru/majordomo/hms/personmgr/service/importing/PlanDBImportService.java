@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service;
+package ru.majordomo.hms.personmgr.service.importing;
 
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
@@ -97,12 +97,14 @@ public class PlanDBImportService {
     }
 
     public boolean importToMongo() {
+        planRepository.deleteAll();
         pull();
         pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String planId, String finServiceId) {
+        planRepository.deleteAll();
         pull(planId, finServiceId);
         pushToMongo();
         return true;

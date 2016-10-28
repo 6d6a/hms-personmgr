@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service;
+package ru.majordomo.hms.personmgr.service.importing;
 
 import org.apache.http.util.EncodingUtils;
 import org.slf4j.Logger;
@@ -18,7 +18,9 @@ import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
 import ru.majordomo.hms.personmgr.model.AccountHistory;
+import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountHistoryRepository;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 /**
  * Сервис для загрузки первичных данных в БД
@@ -28,13 +30,15 @@ public class AccountHistoryDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountHistoryDBImportService.class);
 
     private AccountHistoryRepository accountHistoryRepository;
+    private PersonalAccountRepository personalAccountRepository;
     private NamedParameterJdbcTemplate jdbcTemplate;
     private List<AccountHistory> accountHistoryList = new ArrayList<>();
 
     @Autowired
-    public AccountHistoryDBImportService(NamedParameterJdbcTemplate jdbcTemplate, AccountHistoryRepository accountHistoryRepository) {
+    public AccountHistoryDBImportService(NamedParameterJdbcTemplate jdbcTemplate, AccountHistoryRepository accountHistoryRepository, PersonalAccountRepository personalAccountRepository) {
         this.jdbcTemplate = jdbcTemplate;
         this.accountHistoryRepository = accountHistoryRepository;
+        this.personalAccountRepository = personalAccountRepository;
     }
 
     public void pull() {
@@ -42,25 +46,35 @@ public class AccountHistoryDBImportService {
 
         String query = "SELECT id, account, date, action, login FROM client_history WHERE id > 4961960";
 
-        accountHistoryList.addAll(jdbcTemplate.query(query, (rs, rowNum) -> {
+        jdbcTemplate.query(query, (rs, rowNum) -> {
             AccountHistory accountHistory = new AccountHistory();
 
-            accountHistory.setAccountId(rs.getString("account"));
-            accountHistory.setDateTime(new Timestamp(rs.getLong("date") * 1000).toLocalDateTime());
+            PersonalAccount account = personalAccountRepository.findByAccountId(rs.getString("account"));
 
-            try {
-                accountHistory.setMessage(EncodingUtils.getString(rs.getString("action").getBytes("windows-1251"), "koi8-r"));
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
-            try {
-                accountHistory.setOperator(EncodingUtils.getString(rs.getString("login").getBytes("windows-1251"), "koi8-r"));
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
+            logger.info("rs.getString(\"account\") " + rs.getString("account"));
+
+            if (account != null) {
+                accountHistory.setPersonalAccountId(account.getId());
+
+                accountHistory.setDateTime(new Timestamp(rs.getLong("date") * 1000).toLocalDateTime());
+
+                try {
+                    accountHistory.setMessage(EncodingUtils.getString(rs.getString("action").getBytes("windows-1251"), "koi8-r"));
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    accountHistory.setOperator(EncodingUtils.getString(rs.getString("login").getBytes("windows-1251"), "koi8-r"));
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+
+                accountHistoryList.add(accountHistory);
+
             }
 
             return accountHistory;
-        }));
+        });
     }
 
     public boolean importToMongo() {

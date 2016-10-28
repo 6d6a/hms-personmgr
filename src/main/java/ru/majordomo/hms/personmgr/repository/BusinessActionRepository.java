@@ -6,7 +6,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-import ru.majordomo.hms.personmgr.common.ActionType;
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 
 public interface BusinessActionRepository extends MongoRepository<BusinessAction, String> {
@@ -16,5 +16,5 @@ public interface BusinessActionRepository extends MongoRepository<BusinessAction
 
     BusinessAction findByName(String name);
 
-    BusinessAction findByActionType(@Param("actionType") ActionType actionType);
+    BusinessAction findByBusinessActionType(@Param("businessActionType") BusinessActionType businessActionType);
 }

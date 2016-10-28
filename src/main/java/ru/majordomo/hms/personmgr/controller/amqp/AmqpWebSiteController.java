@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.ActionType;
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.MailManagerEmailMessage;
 import ru.majordomo.hms.personmgr.common.message.MailManagerEmailMessageParams;
@@ -86,7 +86,7 @@ public class AmqpWebSiteController {
 
             SimpleServiceMessage serviceMessage = mapper.convertValue(mailManagerEmailMessage, mapType);
 
-            ProcessingBusinessAction businessAction = businessActionBuilder.build(ActionType.WEB_SITE_CREATE_MM, serviceMessage);
+            ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.WEB_SITE_CREATE_MM, serviceMessage);
 
             processingBusinessActionRepository.save(businessAction);
         }

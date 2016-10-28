@@ -11,5 +11,5 @@ import ru.majordomo.hms.personmgr.model.AccountHistory;
 public interface AccountHistoryRepository extends MongoRepository<AccountHistory, String> {
     AccountHistory findOne(String id);
     List<AccountHistory> findAll();
-    List<AccountHistory> findByAccountId(@Param("accountId") String accountId);
+    List<AccountHistory> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
 }

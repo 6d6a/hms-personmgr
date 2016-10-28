@@ -17,13 +17,7 @@ import java.time.LocalDateTime;
  * AccountHistory
  */
 @Document
-public class AccountHistory {
-    @Id
-    private String id;
-
-    @Indexed
-    private String accountId;
-
+public class AccountHistory extends ModelBelongsToPersonalAccount {
     @Indexed
 //    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime dateTime;
@@ -36,28 +30,12 @@ public class AccountHistory {
     public AccountHistory() {
     }
 
-    public AccountHistory(String id, String accountId, LocalDateTime dateTime, String message, String operator) {
-        this.id = id;
-        this.accountId = accountId;
+    public AccountHistory(String id, LocalDateTime dateTime, String message, String operator) {
+        super();
+        this.setId(id);
         this.dateTime = dateTime;
         this.message = message;
         this.operator = operator;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(String accountId) {
-        this.accountId = accountId;
     }
 
 //    @JsonFormat(pattern="yyyy-MM-dd H:i:s")
@@ -84,5 +62,14 @@ public class AccountHistory {
 
     public void setOperator(String operator) {
         this.operator = operator;
+    }
+
+    @Override
+    public String toString() {
+        return "AccountHistory{" +
+                ", dateTime=" + dateTime +
+                ", message='" + message + '\'' +
+                ", operator='" + operator + '\'' +
+                "} " + super.toString();
     }
 }

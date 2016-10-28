@@ -15,13 +15,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ImportMessage;
-import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
-import ru.majordomo.hms.personmgr.service.AmqpSender;
-import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
-import ru.majordomo.hms.personmgr.service.PlanDBImportService;
+import ru.majordomo.hms.personmgr.service.importing.PlanDBImportService;
 
 @EnableRabbit
 @Service
