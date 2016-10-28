@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.cloud.netflix.feign.FeignClient;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -13,4 +14,7 @@ import ru.majordomo.hms.personmgr.common.FinService;
 public interface FinFeignClient {
     @RequestMapping(method = RequestMethod.POST, value = "/services", consumes = "application/json")
     FinService create(FinService finService);
+
+    @RequestMapping(method = RequestMethod.GET, value = "/services/{id}", consumes = "application/json")
+    FinService get(@PathVariable("id") String id);
 }
