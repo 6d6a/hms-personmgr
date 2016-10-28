@@ -85,11 +85,11 @@ public class Application implements CommandLineRunner {
 
             if (option.equals(dbSeedOption)) {
                 boolean seeded;
-//                seeded = businessActionDBSeedService.seedDB();
-//                sb.append(" ").append(seeded ? "businessFlow db_seeded" : "businessFlow db_not_seeded");
+                seeded = businessActionDBSeedService.seedDB();
+                sb.append(" ").append(seeded ? "businessFlow db_seeded" : "businessFlow db_not_seeded");
 
-                seeded = promocodeActionDBSeedService.seedDB();
-                sb.append(" ").append(seeded ? "promocodeAction db_seeded" : "promocodeAction db_not_seeded");
+//                seeded = promocodeActionDBSeedService.seedDB();
+//                sb.append(" ").append(seeded ? "promocodeAction db_seeded" : "promocodeAction db_not_seeded");
             } else if (option.equals(dbImportOption)) {
             boolean imported;
 //                imported = personalAccountDBImportService.importToMongo();
@@ -114,8 +114,8 @@ public class Application implements CommandLineRunner {
 //                imported = bonusPromocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "bonusPromocode db_imported" : "bonusPromocode db_not_imported");
 
-                imported = domainTldDBImportService.importToMongo();
-                sb.append(" ").append(imported ? "domainTldD db_imported" : "domainTldD db_not_imported");
+//                imported = domainTldDBImportService.importToMongo();
+//                sb.append(" ").append(imported ? "domainTldD db_imported" : "domainTldD db_not_imported");
 
 //                imported = accountDomainDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "accountDomain db_imported" : "accountDomain db_not_imported");
