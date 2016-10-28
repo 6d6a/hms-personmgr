@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -20,6 +21,7 @@ import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 /**
  * RestDatabaseController
  */
+@RestController
 @RequestMapping("/database")
 public class RestDatabaseController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(RestDatabaseController.class);
