@@ -6,19 +6,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceBuilder;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.netflix.feign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.annotation.PropertySources;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventListener;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
-import javax.sql.DataSource;
 
 import ru.majordomo.hms.personmgr.event.AccountDomainEventListener;
 import ru.majordomo.hms.personmgr.event.DomainTldEventListener;
@@ -27,11 +22,10 @@ import ru.majordomo.hms.personmgr.service.importing.*;
 
 @SpringBootApplication
 @PropertySources({
-        @PropertySource(name = "application", value = "classpath:application.properties"),
+        @PropertySource(name = "application", value = "classpath:application.yml"),
         @PropertySource(name = "mail_manager", value = "classpath:mail_manager.properties")
 })
 @EnableDiscoveryClient
-@EnableFeignClients
 public class Application implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
@@ -114,8 +108,8 @@ public class Application implements CommandLineRunner {
 //                imported = bonusPromocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "bonusPromocode db_imported" : "bonusPromocode db_not_imported");
 
-//                imported = domainTldDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "domainTldD db_imported" : "domainTldD db_not_imported");
+                imported = domainTldDBImportService.importToMongo();
+                sb.append(" ").append(imported ? "domainTldD db_imported" : "domainTldD db_not_imported");
 
 //                imported = accountDomainDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "accountDomain db_imported" : "accountDomain db_not_imported");

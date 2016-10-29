@@ -1,4 +1,7 @@
 buildscript {
+    ext {
+        springBootVersion = '1.4.1.RELEASE'
+    }
     repositories {
         mavenCentral()
         jcenter()
@@ -10,7 +13,7 @@ buildscript {
         resolutionStrategy.cacheDynamicVersionsFor 30, 'minutes'
     }
     dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.1.7.RELEASE")
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
         classpath("se.transmode.gradle:gradle-docker:1.2")
         classpath "com.avast.gradle:docker-compose-gradle-plugin:0.3.9"
         classpath("ru.majordomo:copycompose:1.+")
@@ -47,32 +50,43 @@ repositories {
     maven { url "http://repo.spring.io/libs-release" }
 }
 dependencies {
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-data-mongodb', version: '1.4.0.RELEASE'
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-amqp', version: '1.4.0.RELEASE'
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-data-redis', version: '1.4.0.RELEASE'
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-data-rest', version: '1.4.0.RELEASE'
-//    compile group: 'org.springframework.boot', name: 'spring-boot-starter-data-elasticsearch', version: '1.4.0.RELEASE'
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-jdbc', version: '1.4.0.RELEASE'
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: '1.4.0.RELEASE'
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web-services', version: '1.4.0.RELEASE'
-    compile group: 'org.springframework.cloud', name: 'spring-cloud-starter-eureka', version: '1.1.6.RELEASE'
-    compile group: 'org.springframework.cloud', name: 'spring-cloud-starter-feign', version: '1.2.1.RELEASE'
+    compile('org.springframework.boot:spring-boot-starter-data-mongodb')
+    compile('org.springframework.boot:spring-boot-starter-amqp')
+    compile('org.springframework.boot:spring-boot-starter-data-redis')
+    compile('org.springframework.boot:spring-boot-starter-data-rest')
+    compile('org.springframework.boot:spring-boot-starter-jdbc')
+    compile('org.springframework.boot:spring-boot-starter-web')
+    compile('org.springframework.boot:spring-boot-starter-web-services')
+
+    compile('org.springframework.cloud:spring-cloud-starter-eureka')
+    compile('org.springframework.cloud:spring-cloud-starter-feign')
+    compile("org.springframework.cloud:spring-cloud-starter-bus-amqp")
+    compile("org.springframework.cloud:spring-cloud-netflix-hystrix-stream")
+    compile('org.springframework.cloud:spring-cloud-starter-oauth2')
+
 //    compile group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version:'2.0.11.RELEASE'
 //    compile group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.5.RELEASE'
     compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version: '1.9.13'
     compile group: 'org.codehaus.jackson', name: 'jackson-core-asl', version: '1.9.13'
+
     compile("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.4.0")
+
     compile(group: 'com.mysql', name: 'management', version: '1.1.6') {
         exclude(module: 'jmxtools')
     }
-//    compile group: 'org.springframework.data', name: 'spring-data-redis', version:'1.7.2.RELEASE'
+
     compile group: 'ru.majordomo.hms.common', name: 'hms-common', version: '0.0.1-SNAPSHOT'
-//    compile group: 'com.googlecode.juniversalchardet', name: 'juniversalchardet', version: '1.0.3'
-    testCompile(group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: '1.4.0.RELEASE') {
+
+    testCompile('org.springframework.boot:spring-boot-starter-test') {
         exclude(module: 'commons-logging')
     }
 }
 
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Camden.SR1"
+    }
+}
 
 task buildDocker(type: Docker, dependsOn: build) {
     def dockerDir = "docker"
