@@ -13,7 +13,7 @@ public interface PlanRepository extends MongoRepository<Plan, String> {
     Plan findOne(String id);
     List<Plan> findAll();
     List<Plan> findByActive(@Param("active") boolean active);
-    Plan findByName(String name);
-    List<Plan> findByAccountType(AccountType accountType);
-    Plan findByFinServiceId(String finServiceId);
+    Plan findByName(@Param("name") String name);
+    List<Plan> findByAccountType(@Param("accountType") AccountType accountType);
+    Plan findByFinServiceId(@Param("finServiceId") String finServiceId);
 }
