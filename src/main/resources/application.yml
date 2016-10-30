@@ -1,0 +1,47 @@
+logging:
+    level:
+        org:
+            springframework:
+                security: DEBUG
+                data:
+                    mongodb:
+                        core:
+                            MongoTemplate: DEBUG
+                            MongoOperations: DEBUG
+        ru:
+            majordomo:
+                hms:
+                    personmgr:
+                        service:
+                            FinFeignClient: DEBUG
+security:
+    oauth2:
+        resource:
+            jwt:
+#                key-uri: http://localhost:8080/si/si/oauth/token_key
+                key-value: |
+                    -----BEGIN PUBLIC KEY-----
+                    ***REMOVED***
+                    -----END PUBLIC KEY-----
+            preferTokenInfo: true
+#            token-info-uri: http://localhost:8080/si/si/oauth/check_token
+        client:
+            clientId: service
+            clientSecret: service_secret
+            accessTokenUri: http://localhost:8080/oauth/token
+            grant-type: client_credentials
+            scope: service
+    sessions: STATELESS
+server:
+    port: 8070
+spring:
+    application:
+        name: pm
+    data:
+        mongodb:
+            database: personmgr
+            host: localhost
+    rabbitmq:
+        host: localhost
+        password: guest
+        username: guest
