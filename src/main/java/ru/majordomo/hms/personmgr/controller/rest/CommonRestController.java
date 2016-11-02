@@ -6,7 +6,6 @@ import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessageParams;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 
-@CrossOrigin("*")
 public class CommonRestController {
     protected ResponseMessage createResponse(ProcessingBusinessAction businessAction) {
         ResponseMessage responseMessage = new ResponseMessage();
