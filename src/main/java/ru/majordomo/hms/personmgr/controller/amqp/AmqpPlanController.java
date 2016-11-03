@@ -27,7 +27,7 @@ public class AmqpPlanController {
     @Autowired
     private PlanDBImportService planDBImportService;
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.plan.import", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "plan.import", type = ExchangeTypes.TOPIC), key = "service.pm"))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.plan.import", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "plan.import", type = ExchangeTypes.TOPIC), key = "pm"))
     public void importPlan(@Payload ImportMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received from " + provider + ": " + message.toString());

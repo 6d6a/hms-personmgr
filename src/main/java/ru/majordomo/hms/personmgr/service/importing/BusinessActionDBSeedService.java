@@ -48,6 +48,10 @@ public class BusinessActionDBSeedService {
         this.seedDatabaseUserUpdateActions();
         this.seedDatabaseUserDeleteActions();
 
+        this.seedPersonCreateActions();
+        this.seedPersonUpdateActions();
+        this.seedPersonDeleteActions();
+
         logger.info("BusinessAction found with findAll():");
         logger.info("-------------------------------");
 
@@ -74,7 +78,7 @@ public class BusinessActionDBSeedService {
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("website.create");
-        amqpMessageDestination.setRoutingKey("service.rc.user");
+        amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
 
@@ -106,7 +110,7 @@ public class BusinessActionDBSeedService {
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("website.update");
-        amqpMessageDestination.setRoutingKey("service.rc.user");
+        amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
 
@@ -126,7 +130,7 @@ public class BusinessActionDBSeedService {
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("website.delete");
-        amqpMessageDestination.setRoutingKey("service.rc.user");
+        amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
 
@@ -147,7 +151,7 @@ public class BusinessActionDBSeedService {
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("database.create");
-        amqpMessageDestination.setRoutingKey("service.rc.user");
+        amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
 
@@ -165,7 +169,7 @@ public class BusinessActionDBSeedService {
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("database.update");
-        amqpMessageDestination.setRoutingKey("service.rc.user");
+        amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
 
@@ -183,7 +187,7 @@ public class BusinessActionDBSeedService {
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("database.delete");
-        amqpMessageDestination.setRoutingKey("service.rc.user");
+        amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
 
@@ -204,7 +208,7 @@ public class BusinessActionDBSeedService {
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("mailbox.create");
-        amqpMessageDestination.setRoutingKey("service.rc.user");
+        amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
 
@@ -222,7 +226,7 @@ public class BusinessActionDBSeedService {
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("mailbox.update");
-        amqpMessageDestination.setRoutingKey("service.rc.user");
+        amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
 
@@ -240,7 +244,7 @@ public class BusinessActionDBSeedService {
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("mailbox.delete");
-        amqpMessageDestination.setRoutingKey("service.rc.user");
+        amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
 
@@ -261,7 +265,7 @@ public class BusinessActionDBSeedService {
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("database_user.create");
-        amqpMessageDestination.setRoutingKey("service.rc.user");
+        amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
 
@@ -279,7 +283,7 @@ public class BusinessActionDBSeedService {
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("database_user.update");
-        amqpMessageDestination.setRoutingKey("service.rc.user");
+        amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
 
@@ -297,7 +301,64 @@ public class BusinessActionDBSeedService {
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("database_user.delete");
-        amqpMessageDestination.setRoutingKey("service.rc.user");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedPersonCreateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+
+        //Person create
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.PERSON_CREATE_RC);
+        action.setName("Person create");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("person.create");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedPersonUpdateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //Person update
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.PERSON_UPDATE_RC);
+        action.setName("Person update");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("person.update");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedPersonDeleteActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //Person update
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.PERSON_DELETE_RC);
+        action.setName("Person delete");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("person.delete");
+        amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
 

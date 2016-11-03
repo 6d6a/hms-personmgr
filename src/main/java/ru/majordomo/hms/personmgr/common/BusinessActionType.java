@@ -17,4 +17,7 @@ public enum BusinessActionType {
     MAILBOX_CREATE_RC,
     MAILBOX_UPDATE_RC,
     MAILBOX_DELETE_RC,
+    PERSON_CREATE_RC,
+    PERSON_UPDATE_RC,
+    PERSON_DELETE_RC,
 }

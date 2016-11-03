@@ -57,7 +57,7 @@ public class AmqpWebSiteController {
     @Value( "${mail_manager.dev_email}" )
     private String mailManagerDevEmail;
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.website.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "website.create", type = ExchangeTypes.TOPIC), key = "service.pm"))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.website.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "website.create", type = ExchangeTypes.TOPIC), key = "pm"))
     public void create(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received create message from " + provider + ": " + message.toString());
@@ -92,7 +92,7 @@ public class AmqpWebSiteController {
         }
     }
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.website.update", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "website.update", type = ExchangeTypes.TOPIC), key = "service.pm"))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.website.update", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "website.update", type = ExchangeTypes.TOPIC), key = "pm"))
     public void update(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received update message from " + provider + ": " + message.toString());
@@ -100,7 +100,7 @@ public class AmqpWebSiteController {
         State state = businessFlowDirector.processMessage(message);
     }
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "service.pm.website.delete", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "website.delete", type = ExchangeTypes.TOPIC), key = "service.pm"))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.website.delete", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "website.delete", type = ExchangeTypes.TOPIC), key = "pm"))
     public void delete(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received delete message from " + provider + ": " + message.toString());
