@@ -52,6 +52,26 @@ public class BusinessActionDBSeedService {
         this.seedPersonUpdateActions();
         this.seedPersonDeleteActions();
 
+        this.seedDomainCreateActions();
+        this.seedDomainUpdateActions();
+        this.seedDomainDeleteActions();
+
+        this.seedAccountCreateActions();
+        this.seedAccountUpdateActions();
+        this.seedAccountDeleteActions();
+
+        this.seedSslCertificateCreateActions();
+        this.seedSslCertificateUpdateActions();
+        this.seedSslCertificateDeleteActions();
+
+        this.seedFtpUserCreateActions();
+        this.seedFtpUserUpdateActions();
+        this.seedFtpUserDeleteActions();
+
+        this.seedUnixAccountCreateActions();
+        this.seedUnixAccountUpdateActions();
+        this.seedUnixAccountDeleteActions();
+
         logger.info("BusinessAction found with findAll():");
         logger.info("-------------------------------");
 
@@ -123,7 +143,7 @@ public class BusinessActionDBSeedService {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
 
-        //WebSite update
+        //WebSite delete
         action = new BusinessAction();
         action.setBusinessActionType(BusinessActionType.WEB_SITE_DELETE_RC);
         action.setName("WebSite delete");
@@ -142,7 +162,6 @@ public class BusinessActionDBSeedService {
     private void seedDatabaseCreateActions() {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
-
 
         //Database create
         action = new BusinessAction();
@@ -180,7 +199,7 @@ public class BusinessActionDBSeedService {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
 
-        //WebSite update
+        //Database delete
         action = new BusinessAction();
         action.setBusinessActionType(BusinessActionType.DATABASE_DELETE_RC);
         action.setName("Database delete");
@@ -200,8 +219,7 @@ public class BusinessActionDBSeedService {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
 
-
-        //Database create
+        //Mailbox create
         action = new BusinessAction();
         action.setBusinessActionType(BusinessActionType.MAILBOX_CREATE_RC);
         action.setName("Mailbox create");
@@ -219,7 +237,7 @@ public class BusinessActionDBSeedService {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
 
-        //Database update
+        //Mailbox update
         action = new BusinessAction();
         action.setBusinessActionType(BusinessActionType.MAILBOX_UPDATE_RC);
         action.setName("Mailbox update");
@@ -237,7 +255,7 @@ public class BusinessActionDBSeedService {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
 
-        //WebSite update
+        //Mailbox delete
         action = new BusinessAction();
         action.setBusinessActionType(BusinessActionType.MAILBOX_DELETE_RC);
         action.setName("Mailbox delete");
@@ -257,14 +275,13 @@ public class BusinessActionDBSeedService {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
 
-
-        //Database create
+        //Database User create
         action = new BusinessAction();
         action.setBusinessActionType(BusinessActionType.DATABASE_USER_CREATE_RC);
         action.setName("Database User create");
 
         amqpMessageDestination = new AmqpMessageDestination();
-        amqpMessageDestination.setExchange("database_user.create");
+        amqpMessageDestination.setExchange("database-user.create");
         amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
@@ -276,13 +293,13 @@ public class BusinessActionDBSeedService {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
 
-        //Database update
+        //Database User update
         action = new BusinessAction();
         action.setBusinessActionType(BusinessActionType.DATABASE_USER_UPDATE_RC);
         action.setName("Database User update");
 
         amqpMessageDestination = new AmqpMessageDestination();
-        amqpMessageDestination.setExchange("database_user.update");
+        amqpMessageDestination.setExchange("database-user.update");
         amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
@@ -294,13 +311,13 @@ public class BusinessActionDBSeedService {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
 
-        //WebSite update
+        //Database User delete
         action = new BusinessAction();
         action.setBusinessActionType(BusinessActionType.DATABASE_USER_DELETE_RC);
         action.setName("Database User delete");
 
         amqpMessageDestination = new AmqpMessageDestination();
-        amqpMessageDestination.setExchange("database_user.delete");
+        amqpMessageDestination.setExchange("database-user.delete");
         amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
@@ -351,13 +368,293 @@ public class BusinessActionDBSeedService {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
 
-        //Person update
+        //Person delete
         action = new BusinessAction();
         action.setBusinessActionType(BusinessActionType.PERSON_DELETE_RC);
         action.setName("Person delete");
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("person.delete");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedDomainCreateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //Domain create
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.DOMAIN_CREATE_RC);
+        action.setName("Domain create");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("domain.create");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedDomainUpdateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //Domain update
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.DOMAIN_UPDATE_RC);
+        action.setName("Domain update");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("domain.update");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedDomainDeleteActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //Domain delete
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.DOMAIN_DELETE_RC);
+        action.setName("Domain delete");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("domain.delete");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedAccountCreateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //Account create
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.ACCOUNT_CREATE_RC);
+        action.setName("Account create");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("account.create");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedAccountUpdateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //Account update
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.ACCOUNT_UPDATE_RC);
+        action.setName("Account update");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("account.update");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedAccountDeleteActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //Account delete
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.ACCOUNT_DELETE_RC);
+        action.setName("Account delete");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("account.delete");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedSslCertificateCreateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //SslCertificate create
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.SSL_CERTIFICATE_CREATE_RC);
+        action.setName("SslCertificate create");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("ssl-certificate.create");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedSslCertificateUpdateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //SslCertificate update
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.SSL_CERTIFICATE_UPDATE_RC);
+        action.setName("SslCertificate update");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("ssl-certificate.update");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedSslCertificateDeleteActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //SslCertificate delete
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.SSL_CERTIFICATE_DELETE_RC);
+        action.setName("SslCertificate delete");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("ssl-certificate.delete");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedFtpUserCreateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //FtpUser create
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.FTP_USER_CREATE_RC);
+        action.setName("FtpUser create");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("ftp-user.create");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedFtpUserUpdateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //FtpUser update
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.FTP_USER_UPDATE_RC);
+        action.setName("FtpUser update");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("ftp-user.update");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedFtpUserDeleteActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //FtpUser delete
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.FTP_USER_DELETE_RC);
+        action.setName("FtpUser delete");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("ftp-user.delete");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedUnixAccountCreateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //UnixAccount create
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.UNIX_ACCOUNT_CREATE_RC);
+        action.setName("UnixAccount create");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("unix-account.create");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedUnixAccountUpdateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //UnixAccount update
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC);
+        action.setName("UnixAccount update");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("unix-account.update");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedUnixAccountDeleteActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //UnixAccount delete
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.UNIX_ACCOUNT_DELETE_RC);
+        action.setName("UnixAccount delete");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("unix-account.delete");
         amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
