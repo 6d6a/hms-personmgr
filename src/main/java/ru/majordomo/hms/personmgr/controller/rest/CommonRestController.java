@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
-import org.springframework.web.bind.annotation.CrossOrigin;
-
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessageParams;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
