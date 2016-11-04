@@ -39,8 +39,7 @@ spring:
         name: pm
     data:
         mongodb:
-            database: personmgr
-            host: localhost
+            uri: mongodb://personmgr:***REMOVED***@172.16.103.155:27017,172.16.103.156:27017,172.16.103.157:27017/personmgr
     rabbitmq:
         host: localhost
         password: guest
