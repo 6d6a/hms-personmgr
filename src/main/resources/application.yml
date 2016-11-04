@@ -39,7 +39,7 @@ spring:
         name: pm
     data:
         mongodb:
-            uri: mongodb://personmgr:***REMOVED***@172.16.103.155:27017,172.16.103.156:27017,172.16.103.157:27017/personmgr
+            uri: mongodb://personmgr:***REMOVED***@172.16.103.155:27017,172.16.103.156:27017,172.16.103.157:27017/personmgr?replicaSet=hms-rs0
     rabbitmq:
         host: localhost
         password: guest
