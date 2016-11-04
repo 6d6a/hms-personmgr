@@ -2,17 +2,14 @@ package ru.majordomo.hms.personmgr.common.message;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 public class SimpleServiceMessage {
-    private static final Logger logger = LoggerFactory.getLogger(SimpleServiceMessage.class);
     private String operationIdentity;
     private String actionIdentity;
+    private String accountId;
     private String objRef;
     private Map<String, Object> params = new HashMap<>();
 
@@ -56,13 +53,21 @@ public class SimpleServiceMessage {
         params.put(name,value);
     }
 
+    public String getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(String accountId) {
+        this.accountId = accountId;
+    }
+
     public String toJson() {
         ObjectMapper objectMapper = new ObjectMapper();
         String jsonData = "";
         try {
             jsonData = objectMapper.writeValueAsString(this);
         } catch (IOException ex) {
-            logger.error("Невозможно конвертировать в JSON" + ex.toString());
+            ex.printStackTrace();
         }
         return jsonData;
     }
