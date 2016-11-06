@@ -30,31 +30,10 @@ public class BusinessActionBuilder {
             processingBusinessAction.setMessage(message);
             processingBusinessAction.setMapParams(message.getParams());
             processingBusinessAction.setState(State.NEED_TO_PROCESS);
+            processingBusinessAction.setPersonalAccountId(message.getAccountId());
         } else {
             throw new BusinessActionNotFoundException();
         }
-
-//        processingBusinessFlow.setProcessingBusinessActions(processingBusinessFlow.getBusinessActions().stream().map(businessAction -> {
-//            businessAction.setState(State.NEED_TO_PROCESS);
-//            ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(businessAction);
-//
-//            processingBusinessAction.setParams(message.getParams());
-//
-////            ObjectMapper mapper = new ObjectMapper();
-//
-//            ServiceMessage serviceMessage = businessAction.getMessage();
-////            serviceMessage.setParams();
-////            serviceMessage.setParams((serviceMessage.getParams().getClass().getDeclaringClass())message.getParams());
-////            processingBusinessAction.setMessage(mapper.mapper.writeValueAsString(serviceMessage));
-//            processingBusinessAction.setMessage(serviceMessage);
-//
-//            return processingBusinessAction;
-//        }).collect(Collectors.toList()));
-//
-//        for (ProcessingBusinessAction action :
-//                processingBusinessFlow.getProcessingBusinessActions()) {
-//            action.setState(State.NEED_TO_PROCESS);
-//        }
 
         return processingBusinessAction;
     }

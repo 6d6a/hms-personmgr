@@ -7,6 +7,7 @@ import org.codehaus.jackson.map.type.TypeFactory;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.PersistenceConstructor;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -22,6 +23,9 @@ import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
  * ProcessingBusinessAction
  */
 public class ProcessingBusinessAction extends BusinessAction {
+    @Indexed
+    private String personalAccountId;
+
     @CreatedDate
     private LocalDateTime createdDate;
 
@@ -44,8 +48,21 @@ public class ProcessingBusinessAction extends BusinessAction {
     }
 
     @PersistenceConstructor
-    public ProcessingBusinessAction(String id, String name, State state, int priority, String operationId, BusinessActionType businessActionType, GenericMessageDestination destination, SimpleServiceMessage message) {
+    public ProcessingBusinessAction(String id, String name, State state, int priority, String operationId, BusinessActionType businessActionType, GenericMessageDestination destination, SimpleServiceMessage message, String personalAccountId, LocalDateTime createdDate, LocalDateTime updatedDate, ServiceMessageParams params, Map<String, Object> mapParams) {
         super(id, name, state, priority, operationId, businessActionType, destination, message);
+        this.personalAccountId = personalAccountId;
+        this.createdDate = createdDate;
+        this.updatedDate = updatedDate;
+        this.params = params;
+        this.mapParams = mapParams;
+    }
+
+    public String getPersonalAccountId() {
+        return personalAccountId;
+    }
+
+    public void setPersonalAccountId(String personalAccountId) {
+        this.personalAccountId = personalAccountId;
     }
 
     public ServiceMessageParams getParams() {
