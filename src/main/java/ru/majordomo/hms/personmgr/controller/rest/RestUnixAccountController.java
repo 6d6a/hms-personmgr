@@ -22,7 +22,7 @@ import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
  * RestUnixAccountController
  */
 @RestController
-@RequestMapping("/unix-account")
+@RequestMapping({"/{accountId}/unix-account", "/unix-account"})
 public class RestUnixAccountController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(RestUnixAccountController.class);
 
@@ -35,8 +35,10 @@ public class RestUnixAccountController extends CommonRestController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     public ResponseMessage create(
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response
-    ) {
+            HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info(message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
@@ -51,8 +53,10 @@ public class RestUnixAccountController extends CommonRestController {
     @RequestMapping(value = "/{unixaccountId}", method = RequestMethod.PATCH)
     public ResponseMessage update(
             @PathVariable String unixaccountId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Updating unix account with id " + unixaccountId + " " + message.toString());
 
         message.getParams().put("id", unixaccountId);
@@ -69,8 +73,10 @@ public class RestUnixAccountController extends CommonRestController {
     @RequestMapping(value = "/{unixaccountId}", method = RequestMethod.DELETE)
     public ResponseMessage delete(
             @PathVariable String unixaccountId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Deleting unix account with id " + unixaccountId + " " + message.toString());
 
         message.getParams().put("id", unixaccountId);

@@ -74,9 +74,10 @@ public class SimpleServiceMessage {
 
     @Override
     public String toString() {
-        return "ServiceMessage{" +
+        return "SimpleServiceMessage{" +
                 "operationIdentity='" + operationIdentity + '\'' +
                 ", actionIdentity='" + actionIdentity + '\'' +
+                ", accountId='" + accountId + '\'' +
                 ", objRef='" + objRef + '\'' +
                 ", params=" + params +
                 '}';

@@ -22,7 +22,7 @@ import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
  * MailboxController
  */
 @RestController
-@RequestMapping("/mailbox")
+@RequestMapping({"/{accountId}/mailbox", "/mailbox"})
 public class RestMailboxController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(RestMailboxController.class);
 
@@ -34,8 +34,10 @@ public class RestMailboxController extends CommonRestController {
 
     @RequestMapping(value = "", method = RequestMethod.POST)
     public ResponseMessage create(
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Creating mailbox: " + message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.MAILBOX_CREATE_RC, message);
@@ -50,8 +52,10 @@ public class RestMailboxController extends CommonRestController {
     @RequestMapping(value = "/{mailboxId}", method = RequestMethod.PATCH)
     public ResponseMessage update(
             @PathVariable String mailboxId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Updating mailbox with id " + mailboxId + " " + message.toString());
 
         message.getParams().put("id", mailboxId);
@@ -68,8 +72,10 @@ public class RestMailboxController extends CommonRestController {
     @RequestMapping(value = "/{mailboxId}", method = RequestMethod.DELETE)
     public ResponseMessage delete(
             @PathVariable String mailboxId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Deleting mailbox with id " + mailboxId + " " + message.toString());
 
         message.getParams().put("id", mailboxId);

@@ -21,7 +21,7 @@ import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
  * WebSiteController
  */
 @RestController
-@RequestMapping("/website")
+@RequestMapping({"/{accountId}/website", "/website"})
 public class RestWebSiteController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(RestWebSiteController.class);
 
@@ -33,8 +33,10 @@ public class RestWebSiteController extends CommonRestController {
 
     @RequestMapping(value = "", method = RequestMethod.POST)
     public ResponseMessage create(
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Creating website: " + message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.WEB_SITE_CREATE_RC, message);
@@ -49,8 +51,10 @@ public class RestWebSiteController extends CommonRestController {
     @RequestMapping(value = "/{websiteId}", method = RequestMethod.PATCH)
     public ResponseMessage update(
             @PathVariable String websiteId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Updating website with id " + websiteId + " " + message.toString());
 
         message.getParams().put("id", websiteId);
@@ -67,8 +71,10 @@ public class RestWebSiteController extends CommonRestController {
     @RequestMapping(value = "/{websiteId}", method = RequestMethod.DELETE)
     public ResponseMessage delete(
             @PathVariable String websiteId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Deleting website with id " + websiteId + " " + message.toString());
 
         message.getParams().put("id", websiteId);
