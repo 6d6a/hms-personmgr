@@ -6,8 +6,8 @@ logging:
                 data:
                     mongodb:
                         core:
-                            MongoTemplate: DEBUG
-                            MongoOperations: DEBUG
+                            MongoTemplate: ERROR
+                            MongoOperations: ERROR
         ru:
             majordomo:
                 hms:
