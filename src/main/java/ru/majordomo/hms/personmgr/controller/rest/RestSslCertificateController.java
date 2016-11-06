@@ -22,7 +22,7 @@ import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
  * RestSslCertificateController
  */
 @RestController
-@RequestMapping("/ssl-certificate")
+@RequestMapping({"/{accountId}/ssl-certificate", "/ssl-certificate"})
 public class RestSslCertificateController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(RestSslCertificateController.class);
 
@@ -35,8 +35,10 @@ public class RestSslCertificateController extends CommonRestController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     public ResponseMessage create(
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response
-    ) {
+            HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info(message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.SSL_CERTIFICATE_CREATE_RC, message);
@@ -51,8 +53,10 @@ public class RestSslCertificateController extends CommonRestController {
     @RequestMapping(value = "/{sslcertificateId}", method = RequestMethod.PATCH)
     public ResponseMessage update(
             @PathVariable String sslcertificateId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Updating sslcertificate with id " + sslcertificateId + " " + message.toString());
 
         message.getParams().put("id", sslcertificateId);
@@ -69,8 +73,10 @@ public class RestSslCertificateController extends CommonRestController {
     @RequestMapping(value = "/{sslcertificateId}", method = RequestMethod.DELETE)
     public ResponseMessage delete(
             @PathVariable String sslcertificateId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Deleting sslcertificate with id " + sslcertificateId + " " + message.toString());
 
         message.getParams().put("id", sslcertificateId);

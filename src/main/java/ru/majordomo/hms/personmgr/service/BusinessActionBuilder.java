@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.exception.BusinessActionNotFoundException;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
@@ -21,11 +22,17 @@ public class BusinessActionBuilder {
     public ProcessingBusinessAction build(BusinessActionType businessActionType, SimpleServiceMessage message) {
         BusinessAction businessAction = businessActionRepository.findByBusinessActionType(businessActionType);
 
-        ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(businessAction);
+        ProcessingBusinessAction processingBusinessAction;
 
-        processingBusinessAction.setMessage(message);
-        processingBusinessAction.setMapParams(message.getParams());
-        processingBusinessAction.setState(State.NEED_TO_PROCESS);
+        if (businessAction != null) {
+            processingBusinessAction = new ProcessingBusinessAction(businessAction);
+
+            processingBusinessAction.setMessage(message);
+            processingBusinessAction.setMapParams(message.getParams());
+            processingBusinessAction.setState(State.NEED_TO_PROCESS);
+        } else {
+            throw new BusinessActionNotFoundException();
+        }
 
 //        processingBusinessFlow.setProcessingBusinessActions(processingBusinessFlow.getBusinessActions().stream().map(businessAction -> {
 //            businessAction.setState(State.NEED_TO_PROCESS);

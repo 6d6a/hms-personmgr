@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,7 +23,7 @@ import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
  * RestPersonController
  */
 @RestController
-@RequestMapping("/person")
+@RequestMapping({"/{accountId}/person", "/person"})
 public class RestPersonController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(RestPersonController.class);
 
@@ -35,8 +36,11 @@ public class RestPersonController extends CommonRestController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     public ResponseMessage create(
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response
-    ) {
+            HttpServletResponse response,
+            @RequestHeader(value = "x-hms-accountId", required = false) String headerAccountId,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info(message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.PERSON_CREATE_RC, message);
@@ -51,8 +55,11 @@ public class RestPersonController extends CommonRestController {
     @RequestMapping(value = "/{personId}", method = RequestMethod.PATCH)
     public ResponseMessage update(
             @PathVariable String personId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @RequestHeader(value = "x-hms-accountId", required = false) String headerAccountId,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Updating person with id " + personId + " " + message.toString());
 
         message.getParams().put("id", personId);
@@ -69,8 +76,11 @@ public class RestPersonController extends CommonRestController {
     @RequestMapping(value = "/{personId}", method = RequestMethod.DELETE)
     public ResponseMessage delete(
             @PathVariable String personId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @RequestHeader(value = "x-hms-accountId", required = false) String headerAccountId,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Deleting person with id " + personId + " " + message.toString());
 
         message.getParams().put("id", personId);

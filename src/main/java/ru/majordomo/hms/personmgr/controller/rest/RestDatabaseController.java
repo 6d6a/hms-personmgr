@@ -22,7 +22,7 @@ import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
  * RestDatabaseController
  */
 @RestController
-@RequestMapping("/database")
+@RequestMapping({"/{accountId}/database", "/database"})
 public class RestDatabaseController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(RestDatabaseController.class);
 
@@ -35,8 +35,10 @@ public class RestDatabaseController extends CommonRestController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     public ResponseMessage create(
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response
-    ) {
+            HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info(message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_CREATE_RC, message);
@@ -51,8 +53,10 @@ public class RestDatabaseController extends CommonRestController {
     @RequestMapping(value = "/{databaseId}", method = RequestMethod.PATCH)
     public ResponseMessage update(
             @PathVariable String databaseId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Updating database with id " + databaseId + " " + message.toString());
 
         message.getParams().put("id", databaseId);
@@ -69,8 +73,10 @@ public class RestDatabaseController extends CommonRestController {
     @RequestMapping(value = "/{databaseId}", method = RequestMethod.DELETE)
     public ResponseMessage delete(
             @PathVariable String databaseId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Deleting database with id " + databaseId + " " + message.toString());
 
         message.getParams().put("id", databaseId);

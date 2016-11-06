@@ -22,7 +22,7 @@ import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
  * RestFtpUserController
  */
 @RestController
-@RequestMapping("/ftpuser")
+@RequestMapping({"/{accountId}/ftpuser", "/ftpuser"})
 public class RestFtpUserController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(RestFtpUserController.class);
 
@@ -35,8 +35,10 @@ public class RestFtpUserController extends CommonRestController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     public ResponseMessage create(
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response
-    ) {
+            HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info(message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.FTP_USER_CREATE_RC, message);
@@ -51,8 +53,10 @@ public class RestFtpUserController extends CommonRestController {
     @RequestMapping(value = "/{ftpuserId}", method = RequestMethod.PATCH)
     public ResponseMessage update(
             @PathVariable String ftpuserId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Updating ftpuser with id " + ftpuserId + " " + message.toString());
 
         message.getParams().put("id", ftpuserId);
@@ -69,8 +73,10 @@ public class RestFtpUserController extends CommonRestController {
     @RequestMapping(value = "/{ftpuserId}", method = RequestMethod.DELETE)
     public ResponseMessage delete(
             @PathVariable String ftpuserId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Deleting ftpuser with id " + ftpuserId + " " + message.toString());
 
         message.getParams().put("id", ftpuserId);

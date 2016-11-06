@@ -455,6 +455,22 @@ public class BusinessActionDBSeedService {
 
         action.setDestination(amqpMessageDestination);
 
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.ACCOUNT_CREATE_FIN);
+        action.setName("Account create FIN");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("account.create");
+        amqpMessageDestination.setRoutingKey("fin");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(2);
+
         businessActionRepository.save(action);
     }
 

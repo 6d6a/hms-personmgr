@@ -22,7 +22,7 @@ import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
  * RestDomainController
  */
 @RestController
-@RequestMapping("/domain")
+@RequestMapping({"/{accountId}/domain", "/domain"})
 public class RestDomainController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(RestDomainController.class);
 
@@ -35,8 +35,10 @@ public class RestDomainController extends CommonRestController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     public ResponseMessage create(
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response
-    ) {
+            HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info(message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_CREATE_RC, message);
@@ -51,8 +53,10 @@ public class RestDomainController extends CommonRestController {
     @RequestMapping(value = "/{domainId}", method = RequestMethod.PATCH)
     public ResponseMessage update(
             @PathVariable String domainId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Updating domain with id " + domainId + " " + message.toString());
 
         message.getParams().put("id", domainId);
@@ -69,8 +73,10 @@ public class RestDomainController extends CommonRestController {
     @RequestMapping(value = "/{domainId}", method = RequestMethod.DELETE)
     public ResponseMessage delete(
             @PathVariable String domainId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
+            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            @PathVariable(value = "accountId", required = false) String accountId) {
+        message.setAccountId(accountId);
+
         logger.info("Deleting domain with id " + domainId + " " + message.toString());
 
         message.getParams().put("id", domainId);
