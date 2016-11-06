@@ -8,3 +8,7 @@ build:
   script:
     - cd "$CI_PROJECT_DIR"
     - gradle buildDocker -PprojectBranch="${CI_BUILD_REF_NAME}"
+  after_script:
+    - mkdir -p "/home/gitlab-runner/test-reports/${CI_PROJECT_NAME}/${CI_BUILD_REF}"
+    - cp -r "${CI_PROJECT_DIR}/build/reports/tests" "/home/gitlab-runner/test-reports/${CI_PROJECT_NAME}/${CI_BUILD_REF}"
+    - echo "Link to report http://test-reports.intr/${CI_PROJECT_NAME}/${CI_BUILD_REF}/tests/index.html"
