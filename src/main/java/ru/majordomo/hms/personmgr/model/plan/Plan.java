@@ -1,14 +1,14 @@
 package ru.majordomo.hms.personmgr.model.plan;
 
 import org.springframework.data.annotation.PersistenceConstructor;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import java.math.BigDecimal;
 
 import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
+import ru.majordomo.hms.personmgr.common.FinService;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 
 /**
@@ -35,17 +35,17 @@ public class Plan extends BaseModel {
     private boolean active;
 
     @NotNull
-    private BigDecimal cost;
-
-    @NotNull
     private PlanProperties planProperties;
+
+    @Transient
+    private FinService service;
 
     public Plan() {
         super();
     }
 
     @PersistenceConstructor
-    public Plan(String id, String name, String internalName, String finServiceId, String oldId, AccountType accountType, boolean active, BigDecimal cost, PlanProperties planProperties) {
+    public Plan(String id, String name, String internalName, String finServiceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties) {
         this.finServiceId = finServiceId;
         this.oldId = oldId;
         this.setId(id);
@@ -53,19 +53,17 @@ public class Plan extends BaseModel {
         this.internalName = internalName;
         this.accountType = accountType;
         this.active = active;
-        this.cost = cost;
         this.planProperties = planProperties;
     }
 
     @PersistenceConstructor
-    public Plan(String name, String internalName, String finServiceId, String oldId, AccountType accountType, boolean active, BigDecimal cost, PlanProperties planProperties) {
+    public Plan(String name, String internalName, String finServiceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties) {
         this.finServiceId = finServiceId;
         this.oldId = oldId;
         this.name = name;
         this.internalName = internalName;
         this.accountType = accountType;
         this.active = active;
-        this.cost = cost;
         this.planProperties = planProperties;
     }
 
@@ -101,14 +99,6 @@ public class Plan extends BaseModel {
         this.finServiceId = finServiceId;
     }
 
-    public BigDecimal getCost() {
-        return cost;
-    }
-
-    public void setCost(BigDecimal cost) {
-        this.cost = cost;
-    }
-
     public PlanProperties getPlanProperties() {
         return planProperties;
     }
@@ -133,6 +123,14 @@ public class Plan extends BaseModel {
         this.oldId = oldId;
     }
 
+    public FinService getService() {
+        return service;
+    }
+
+    public void setService(FinService service) {
+        this.service = service;
+    }
+
     @Override
     public String toString() {
         return "Plan{" +
@@ -142,7 +140,6 @@ public class Plan extends BaseModel {
                 ", oldId='" + oldId + '\'' +
                 ", accountType=" + accountType +
                 ", active=" + active +
-                ", cost=" + cost +
                 ", planProperties=" + planProperties +
                 "} " + super.toString();
     }

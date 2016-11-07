@@ -19,6 +19,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import ru.majordomo.hms.personmgr.event.AccountDomainEventListener;
 import ru.majordomo.hms.personmgr.event.DomainTldEventListener;
+import ru.majordomo.hms.personmgr.event.PlanEventListener;
 import ru.majordomo.hms.personmgr.event.ProcessingBusinessActionEventListener;
 import ru.majordomo.hms.personmgr.service.importing.*;
 
@@ -102,8 +103,8 @@ public class Application implements CommandLineRunner {
 //                imported = accountNotificationDBImportService.importToMongo("ac_100800");
 //                sb.append(" ").append(imported ? "accountNotification db_imported" : "accountNotification db_not_imported");
 
-//                imported = planDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "plan db_imported" : "plan db_not_imported");
+                imported = planDBImportService.importToMongo();
+                sb.append(" ").append(imported ? "plan db_imported" : "plan db_not_imported");
 //                imported = promocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "promocode db_imported" : "promocode db_not_imported");
 //                imported = accountPromocodeDBImportService.importToMongo("137010");
@@ -112,8 +113,8 @@ public class Application implements CommandLineRunner {
 //                imported = bonusPromocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "bonusPromocode db_imported" : "bonusPromocode db_not_imported");
 
-                imported = domainTldDBImportService.importToMongo();
-                sb.append(" ").append(imported ? "domainTldD db_imported" : "domainTldD db_not_imported");
+//                imported = domainTldDBImportService.importToMongo();
+//                sb.append(" ").append(imported ? "domainTldD db_imported" : "domainTldD db_not_imported");
 
 //                imported = accountDomainDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "accountDomain db_imported" : "accountDomain db_not_imported");
@@ -136,6 +137,11 @@ public class Application implements CommandLineRunner {
     @Bean
     public DomainTldEventListener domainTldEventListener() {
         return new DomainTldEventListener();
+    }
+
+    @Bean
+    public PlanEventListener planEventListener() {
+        return new PlanEventListener();
     }
 
     @Bean
