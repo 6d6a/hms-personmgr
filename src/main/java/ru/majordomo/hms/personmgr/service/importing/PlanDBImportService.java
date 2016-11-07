@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.service.importing;
 
-import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
+import ru.majordomo.hms.personmgr.common.FinService;
+import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.common.message.ImportMessage;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanPropertyDB;
@@ -18,6 +19,9 @@ import ru.majordomo.hms.personmgr.common.DBType;
 import ru.majordomo.hms.personmgr.model.plan.PlanPropertyLimit;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.service.FinFeignClient;
+
+import static ru.majordomo.hms.personmgr.common.StringConstants.PLAN_SERVICE_PREFIX;
 
 /**
  * PlanDBImportService
@@ -28,12 +32,14 @@ public class PlanDBImportService {
 
     private JdbcTemplate jdbcTemplate;
     private PlanRepository planRepository;
+    private FinFeignClient finFeignClient;
     private List<Plan> planList = new ArrayList<>();
 
     @Autowired
-    public PlanDBImportService(JdbcTemplate jdbcTemplate, PlanRepository planRepository) {
+    public PlanDBImportService(JdbcTemplate jdbcTemplate, PlanRepository planRepository, FinFeignClient finFeignClient) {
         this.jdbcTemplate = jdbcTemplate;
         this.planRepository = planRepository;
+        this.finFeignClient = finFeignClient;
     }
 
     public void pull() {
@@ -60,9 +66,20 @@ public class PlanDBImportService {
 
             planProperties.setDb(dbList);
 
-            String finServiceId = ObjectId.get().toHexString();
+            FinService finService = new FinService();
+            finService.setPaymentType(ServicePaymentType.MONTH);
+            finService.setAccountType(AccountType.VIRTUAL_HOSTING);
+            finService.setActive(rs.getBoolean("active"));
+            finService.setCost(rs.getBigDecimal("cost"));
+            finService.setLimit(1);
+            finService.setOldId(PLAN_SERVICE_PREFIX +  rs.getString("Plan_ID"));
+            finService.setName(rs.getString("username"));
 
-            return new Plan(rs.getString("username"), rs.getString("name"), finServiceId, rs.getString("Plan_ID"), AccountType.VIRTUAL_HOSTING, rs.getBoolean("active"), rs.getBigDecimal("cost"),  planProperties);
+            finService = finFeignClient.create(finService);
+
+            logger.info(finService.toString());
+
+            return new Plan(rs.getString("username"), rs.getString("name"), finService.getId(), rs.getString("Plan_ID"), AccountType.VIRTUAL_HOSTING, rs.getBoolean("active"), planProperties);
         });
     }
 
@@ -92,7 +109,7 @@ public class PlanDBImportService {
 
             planProperties.setDb(dbList);
 
-            return new Plan(rs.getString("username"), rs.getString("name"), finServiceId, rs.getString("Plan_ID"), AccountType.VIRTUAL_HOSTING, rs.getBoolean("active"), rs.getBigDecimal("cost"),  planProperties);
+            return new Plan(rs.getString("username"), rs.getString("name"), finServiceId, rs.getString("Plan_ID"), AccountType.VIRTUAL_HOSTING, rs.getBoolean("active"), planProperties);
         });
     }
 
