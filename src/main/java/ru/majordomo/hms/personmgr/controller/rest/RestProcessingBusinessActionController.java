@@ -23,26 +23,26 @@ public class RestProcessingBusinessActionController {
 
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<Page<ProcessingBusinessAction>> listAll(Pageable pageable, @PathVariable("accountId") String accountId) {
-        Page<ProcessingBusinessAction> accounts = repository.findByPersonalAccountId(accountId, pageable);
-        if(accounts.getTotalElements() == 0){
+        Page<ProcessingBusinessAction> actions = repository.findByPersonalAccountId(accountId, pageable);
+        if(actions.getTotalElements() == 0){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        return new ResponseEntity<>(accounts, HttpStatus.OK);
+        return new ResponseEntity<>(actions, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ProcessingBusinessAction> get(@PathVariable("id") String id, @PathVariable("accountId") String accountId) {
-        ProcessingBusinessAction account = repository.findByIdAndPersonalAccountId(id, accountId);
-        if (account == null) {
+        ProcessingBusinessAction action = repository.findByIdAndPersonalAccountId(id, accountId);
+        if (action == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        return new ResponseEntity<>(account, HttpStatus.OK);
+        return new ResponseEntity<>(action, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
     public ResponseEntity<ProcessingBusinessAction> delete(@PathVariable("id") String id, @PathVariable("accountId") String accountId) {
-        ProcessingBusinessAction user = repository.findByIdAndPersonalAccountId(id, accountId);
-        if (user == null) {
+        ProcessingBusinessAction action = repository.findByIdAndPersonalAccountId(id, accountId);
+        if (action == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 

@@ -79,7 +79,7 @@ public class DomainTldDBImportService {
             finService.setCost(rs.getBigDecimal("registration_cost"));
             finService.setLimit(-1);
             finService.setOldId("registration_cost_" +  domainTld.getTld() + "_" + DOMAIN_REGISTRATOR_MAP.get(rs.getInt("parking_registrator_id")));
-            finService.setName("Регистрация домена в зоне " + domainTld.getTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
+            finService.setName("Регистрация домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
 
             finService = finFeignClient.create(finService);
             logger.info(finService.toString());
@@ -93,7 +93,7 @@ public class DomainTldDBImportService {
             finService.setCost(rs.getBigDecimal("renew_cost"));
             finService.setLimit(-1);
             finService.setOldId("renew_cost_" +  domainTld.getTld() + "_" + DOMAIN_REGISTRATOR_MAP.get(rs.getInt("parking_registrator_id")));
-            finService.setName("Продление домена в зоне " + domainTld.getTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
+            finService.setName("Продление домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
 
             finService = finFeignClient.create(finService);
             logger.info(finService.toString());

@@ -12,6 +12,8 @@ import ru.majordomo.hms.personmgr.model.BaseModel;
 
 import javax.validation.constraints.NotNull;
 
+import java.net.IDN;
+
 /**
  * DomainTld
  */
@@ -55,6 +57,9 @@ public class DomainTld extends BaseModel {
 
     @Transient
     private FinService renewService;
+
+    @Transient
+    private String encodedTld;
 
     public DomainTld() {
     }
@@ -187,6 +192,14 @@ public class DomainTld extends BaseModel {
 
     public void setRenewService(FinService renewService) {
         this.renewService = renewService;
+    }
+
+    public String getEncodedTld() {
+        return IDN.toUnicode(tld);
+    }
+
+    public void setEncodedTld(String encodedTld) {
+        this.encodedTld = encodedTld;
     }
 
     @Override
