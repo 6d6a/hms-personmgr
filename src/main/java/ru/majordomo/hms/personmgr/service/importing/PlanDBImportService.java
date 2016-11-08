@@ -75,7 +75,7 @@ public class PlanDBImportService {
             finService.setOldId(PLAN_SERVICE_PREFIX +  rs.getString("Plan_ID"));
             finService.setName(rs.getString("username"));
 
-            finService = finFeignClient.create(finService);
+            finService = finFeignClient.createService(finService);
 
             logger.info(finService.toString());
 

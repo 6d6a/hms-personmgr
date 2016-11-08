@@ -17,6 +17,7 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.AmqpSender;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
@@ -31,7 +32,7 @@ public class AmqpDatabaseUserController {
     private BusinessFlowDirector businessFlowDirector;
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.database-user.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "database-user.create", type = ExchangeTypes.TOPIC), key = "pm"))
-    public void create(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
+    public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received from " + provider + ": " + message.toString());
 
@@ -39,7 +40,7 @@ public class AmqpDatabaseUserController {
     }
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.database-user.update", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "database-user.update", type = ExchangeTypes.TOPIC), key = "pm"))
-    public void update(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
+    public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received update message from " + provider + ": " + message.toString());
 
@@ -47,7 +48,7 @@ public class AmqpDatabaseUserController {
     }
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.database-user.delete", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "database-user.delete", type = ExchangeTypes.TOPIC), key = "pm"))
-    public void delete(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
+    public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received delete message from " + provider + ": " + message.toString());
 

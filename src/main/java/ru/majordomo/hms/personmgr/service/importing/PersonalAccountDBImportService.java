@@ -13,7 +13,11 @@ import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
+
+import static ru.majordomo.hms.personmgr.common.StringConstants.PLAN_SERVICE_PREFIX;
 
 /**
  * DBImportService
@@ -24,6 +28,7 @@ public class PersonalAccountDBImportService {
 
     private JdbcTemplate jdbcTemplate;
     private PersonalAccountRepository personalAccountRepository;
+    private PlanRepository planRepository;
     private List<PersonalAccount> personalAccounts = new ArrayList<>();
 
     @Autowired
@@ -33,12 +38,12 @@ public class PersonalAccountDBImportService {
     }
 
     private void pull() {
-        String query = "SELECT a.id, a.name, a.client_id, a.credit, m.notify_days FROM account a LEFT JOIN Money m ON a.id = m.acc_id";
+        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days FROM account a LEFT JOIN Money m ON a.id = m.acc_id";
         personalAccounts = jdbcTemplate.query(query, this::rowMap);
     }
 
     private void pull(String accountName) {
-        String query = "SELECT a.id, a.name, a.client_id, a.credit, m.notify_days FROM account a LEFT JOIN Money m ON a.id = m.acc_id WHERE name = ?";
+        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days FROM account a LEFT JOIN Money m ON a.id = m.acc_id WHERE name = ?";
         personalAccounts = jdbcTemplate.query(query,
                 new Object[] { accountName },
                 this::rowMap
@@ -46,7 +51,9 @@ public class PersonalAccountDBImportService {
     }
 
     private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
-        PersonalAccount personalAccount = new PersonalAccount(rs.getString("id"), rs.getString("client_id"), rs.getString("name"), AccountType.VIRTUAL_HOSTING);
+        Plan plan = planRepository.findByOldId(PLAN_SERVICE_PREFIX +  rs.getString("plan_id"));
+        String planId = plan != null ? plan.getId() : null;
+        PersonalAccount personalAccount = new PersonalAccount(rs.getString("id"), rs.getString("client_id"), planId, rs.getString("name"), AccountType.VIRTUAL_HOSTING);
         personalAccount.setSetting("notify_days", rs.getString("notify_days"));
         personalAccount.setSetting("credit", rs.getString("credit").equals("y") ? "1" : "0");
         return personalAccount;

@@ -13,6 +13,8 @@ import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 /**
  * PaymentAccount
@@ -26,6 +28,11 @@ public class PersonalAccount extends BaseModel {
     @NotNull
     @Indexed
     private String clientId;
+
+    @NotNull
+    @Indexed
+    @ObjectId(Plan.class)
+    private String planId;
 
     @NotNull
     @Indexed(unique = true)
@@ -43,19 +50,21 @@ public class PersonalAccount extends BaseModel {
     }
 
     @PersistenceConstructor
-    public PersonalAccount(String id, String accountId, String clientId, String name, AccountType accountType) {
+    public PersonalAccount(String id, String accountId, String clientId, String planId, String name, AccountType accountType) {
         super();
         this.setId(id);
         this.accountId = accountId;
         this.clientId = clientId;
+        this.planId = planId;
         this.name = name;
         this.accountType = accountType;
     }
 
-    public PersonalAccount(String accountId, String clientId, String name, AccountType accountType) {
+    public PersonalAccount(String accountId, String clientId, String planId, String name, AccountType accountType) {
         super();
         this.accountId = accountId;
         this.clientId = clientId;
+        this.planId = planId;
         this.name = name;
         this.accountType = accountType;
     }
@@ -132,11 +141,20 @@ public class PersonalAccount extends BaseModel {
         this.settings.get(name);
     }
 
+    public String getPlanId() {
+        return planId;
+    }
+
+    public void setPlanId(String planId) {
+        this.planId = planId;
+    }
+
     @Override
     public String toString() {
         return "PersonalAccount{" +
                 "accountId='" + accountId + '\'' +
                 ", clientId='" + clientId + '\'' +
+                ", planId='" + planId + '\'' +
                 ", name='" + name + '\'' +
                 ", accountType=" + accountType +
                 ", notifications=" + notifications +

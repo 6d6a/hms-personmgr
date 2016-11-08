@@ -43,6 +43,7 @@ public class BusinessActionProcessor {
                 try {
                     mailManager.sendEmail(action.getMessage());
                     logger.info("mail sent");
+                    action.setState(State.PROCESSED);
                 } catch (RestClientException exception) {
                     action.setState(State.ERROR);
                     logger.error(exception.toString() + " " + exception.getMessage());

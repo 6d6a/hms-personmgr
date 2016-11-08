@@ -32,7 +32,7 @@ public class RestWebSiteController extends CommonRestController {
     private ProcessingBusinessActionRepository processingBusinessActionRepository;
 
     @RequestMapping(value = "", method = RequestMethod.POST)
-    public ResponseMessage create(
+    public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message, HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
@@ -45,11 +45,11 @@ public class RestWebSiteController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 
     @RequestMapping(value = "/{websiteId}", method = RequestMethod.PATCH)
-    public ResponseMessage update(
+    public SimpleServiceMessage update(
             @PathVariable String websiteId,
             @RequestBody SimpleServiceMessage message, HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
@@ -65,11 +65,11 @@ public class RestWebSiteController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 
     @RequestMapping(value = "/{websiteId}", method = RequestMethod.DELETE)
-    public ResponseMessage delete(
+    public SimpleServiceMessage delete(
             @PathVariable String websiteId,
             @RequestBody SimpleServiceMessage message, HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
@@ -85,6 +85,6 @@ public class RestWebSiteController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 }

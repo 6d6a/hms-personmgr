@@ -8,10 +8,11 @@ import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.Application;
 import ru.majordomo.hms.personmgr.common.State;
-import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
-import ru.majordomo.hms.personmgr.common.message.ResponseMessageParams;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 
 /**
  * BusinessFlowDirector
@@ -20,9 +21,12 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 public class BusinessFlowDirector {
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
     @Autowired
-    BusinessActionProcessor businessActionProcessor;
+    private BusinessActionProcessor businessActionProcessor;
     @Autowired
     private ProcessingBusinessActionRepository processingBusinessActionRepository;
+
+    @Autowired
+    private ProcessingBusinessOperationRepository processingBusinessOperationRepository;
 
     @Scheduled(fixedDelay = 500)
     public void process() {
@@ -40,21 +44,27 @@ public class BusinessFlowDirector {
         }
     }
 
-    public State processMessage(ResponseMessage message) {
+    public State processMessage(SimpleServiceMessage message) {
         logger.info("Processing message : " + message.toString());
 
         ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
         if (businessAction != null) {
-            if (message.getParams().isSuccess()) {
-                logger.info("ProcessingBusinessAction -> success, operationIdentity: " + message.getOperationIdentity() + "actionIdentity: " + message.getActionIdentity());
+            if ((boolean) message.getParam("success")) {
+                logger.info("ProcessingBusinessAction -> success, operationIdentity: " + message.getOperationIdentity() + " actionIdentity: " + message.getActionIdentity());
                 businessAction.setState(State.PROCESSED);
 //                businessAction.setState(businessAction.getNeedToProcessBusinessAction() == null ? State.PROCESSED : State.NEED_TO_PROCESS);
 //                businessAction.setProcessBusinessActionStateById(message.getActionIdentity(), State.PROCESSED);
 
             } else {
-                logger.info("ProcessingBusinessAction -> error, operationIdentity: " + message.getOperationIdentity() + "actionIdentity: " + message.getActionIdentity());
+                logger.info("ProcessingBusinessAction -> error, operationIdentity: " + message.getOperationIdentity() + " actionIdentity: " + message.getActionIdentity());
                 businessAction.setState(State.ERROR);
+
+                ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(businessAction.getOperationId());
+                if (businessOperation != null) {
+                    businessOperation.setState(State.ERROR);
+                    processingBusinessOperationRepository.save(businessOperation);
+                }
 //                businessFlow.setProcessBusinessActionStateById(message.getActionIdentity(), State.ERROR);
             }
 

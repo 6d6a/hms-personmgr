@@ -2,8 +2,8 @@ logging:
     level:
         org:
             springframework:
-                web: ERROR
-                security: ERROR
+                web: DEBUG
+                security: DEBUG
                 data:
                     mongodb:
                         core:
@@ -14,7 +14,7 @@ logging:
                 hms:
                     personmgr:
                         service:
-                            FinFeignClient: ERROR
+                            FinFeignClient: DEBUG
 security:
     oauth2:
         resource:
@@ -40,7 +40,7 @@ spring:
         name: pm
     data:
         mongodb:
-            uri: mongodb://personmgr:***REMOVED***@172.16.103.155:27017,172.16.103.156:27017,172.16.103.157:27017/personmgr?replicaSet=hms-rs0
+            uri: mongodb://personmgr:***REMOVED***@172.16.104.110:27017,172.16.104.111:27017,172.16.104.112:27017/personmgr?replicaSet=hms-rs0
     rabbitmq:
         host: localhost
         password: guest

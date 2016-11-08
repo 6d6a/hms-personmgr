@@ -16,4 +16,5 @@ public interface PlanRepository extends MongoRepository<Plan, String> {
     Plan findByName(@Param("name") String name);
     List<Plan> findByAccountType(@Param("accountType") AccountType accountType);
     Plan findByFinServiceId(@Param("finServiceId") String finServiceId);
+    Plan findByOldId(@Param("oldId") String oldId);
 }
