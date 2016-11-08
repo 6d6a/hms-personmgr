@@ -33,7 +33,7 @@ public class RestSslCertificateController extends CommonRestController {
     private ProcessingBusinessActionRepository processingBusinessActionRepository;
 
     @RequestMapping(value = "", method = RequestMethod.POST)
-    public ResponseMessage create(
+    public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
@@ -47,11 +47,11 @@ public class RestSslCertificateController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 
     @RequestMapping(value = "/{sslcertificateId}", method = RequestMethod.PATCH)
-    public ResponseMessage update(
+    public SimpleServiceMessage update(
             @PathVariable String sslcertificateId,
             @RequestBody SimpleServiceMessage message, HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
@@ -67,11 +67,11 @@ public class RestSslCertificateController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 
     @RequestMapping(value = "/{sslcertificateId}", method = RequestMethod.DELETE)
-    public ResponseMessage delete(
+    public SimpleServiceMessage delete(
             @PathVariable String sslcertificateId,
             @RequestBody SimpleServiceMessage message, HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
@@ -87,6 +87,6 @@ public class RestSslCertificateController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 }

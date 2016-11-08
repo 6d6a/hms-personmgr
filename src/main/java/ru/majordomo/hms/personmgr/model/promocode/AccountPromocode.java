@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.model.promocode;
 
 import org.springframework.data.annotation.PersistenceConstructor;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -26,6 +27,9 @@ public class AccountPromocode extends ModelBelongsToPersonalAccount {
     private boolean ownedByAccount;
 
     private Map<String, Boolean> actionsWithStatus = new HashMap<>();
+
+    @Transient
+    private Promocode promocode;
 
     public AccountPromocode() {
     }
@@ -65,6 +69,14 @@ public class AccountPromocode extends ModelBelongsToPersonalAccount {
 
     public void setActionsWithStatus(Map<String, Boolean> actionsWithStatus) {
         this.actionsWithStatus = actionsWithStatus;
+    }
+
+    public Promocode getPromocode() {
+        return promocode;
+    }
+
+    public void setPromocode(Promocode promocode) {
+        this.promocode = promocode;
     }
 
     @Override

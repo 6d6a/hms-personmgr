@@ -38,7 +38,7 @@ public class ProcessingBusinessAction extends BusinessAction {
 
     public ProcessingBusinessAction(BusinessAction businessAction) {
         super();
-        this.setOperationId(ObjectId.get().toHexString());
+//        this.setOperationId(ObjectId.get().toHexString());
         this.setDestination(businessAction.getDestination());
         this.setName(businessAction.getName());
         this.setMessage(businessAction.getMessage());

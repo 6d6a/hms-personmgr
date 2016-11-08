@@ -9,28 +9,26 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.WebAccessAccount;
+import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
 import ru.majordomo.hms.personmgr.service.SequenceCounterService;
-import ru.majordomo.hms.personmgr.service.SiFeignClient;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
+import static ru.majordomo.hms.personmgr.common.StringConstants.PLAN_SERVICE_PREFIX;
 import static ru.majordomo.hms.personmgr.common.StringConstants.VH_ACCOUNT_PREFIX;
 
 /**
@@ -54,13 +52,13 @@ public class RestAccountController extends CommonRestController {
     private PersonalAccountRepository personalAccountRepository;
 
     @Autowired
-    private SiFeignClient siFeignClient;
+    private ProcessingBusinessOperationRepository processingBusinessOperationRepository;
 
     @Autowired
-    private FinFeignClient finFeignClient;
+    private PlanRepository planRepository;
 
     @RequestMapping(value = "", method = RequestMethod.POST)
-    public ResponseMessage create(
+    public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response
     ) {
@@ -70,39 +68,48 @@ public class RestAccountController extends CommonRestController {
         String accountId = String.valueOf(sequenceCounterService.getNextSequence("PersonalAccount"));
         String password = randomAlphabetic(8);
 
+        Plan plan = planRepository.findByOldId((String) message.getParam("plan"));
+
+        if (plan == null) {
+            return this.createErrorResponse("No plan found with OldId: " + message.getParam("plan"));
+        }
+
+        message.addParam("planServiceId", plan.getFinServiceId());
+
         PersonalAccount personalAccount = new PersonalAccount();
         personalAccount.setAccountType(AccountType.VIRTUAL_HOSTING);
+        personalAccount.setPlanId(plan.getId());
         personalAccount.setAccountId(accountId);
+        personalAccount.setClientId(accountId);
         personalAccount.setName(VH_ACCOUNT_PREFIX + accountId);
 
         personalAccountRepository.save(personalAccount);
 
-        WebAccessAccount webAccessAccount = new WebAccessAccount();
-        webAccessAccount.setAccountId(personalAccount.getId());
-        webAccessAccount.setPassword(password);
-        webAccessAccount.setEnabled(true);
-        webAccessAccount.setAccountNonExpired(true);
-        webAccessAccount.setAccountNonLocked(true);
-        webAccessAccount.setCredentialsNonExpired(true);
-        webAccessAccount.setUsername(personalAccount.getName());
-        Set<String> roles = new HashSet<>();
-        roles.addAll(Collections.singletonList("ROLE_USER"));
 
-        webAccessAccount.setRoles(roles);
+        ProcessingBusinessOperation processingBusinessOperation = new ProcessingBusinessOperation();
+        processingBusinessOperation.setPersonalAccountId(personalAccount.getId());
+        processingBusinessOperation.setState(State.PROCESSING);
+        processingBusinessOperation.setAccountName(personalAccount.getName());
+        processingBusinessOperation.setMapParams(message.getParams());
+        processingBusinessOperation.addMapParam("password", password);
 
-        siFeignClient.create(webAccessAccount);
+        processingBusinessOperationRepository.save(processingBusinessOperation);
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_RC, message);
+        message.setAccountId(personalAccount.getId());
+        message.setOperationIdentity(processingBusinessOperation.getId());
+        message.addParam("username", personalAccount.getName());
+
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_SI, message);
 
         processingBusinessActionRepository.save(businessAction);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 
     @RequestMapping(value = "/{accountId}", method = RequestMethod.PATCH)
-    public ResponseMessage update(
+    public SimpleServiceMessage update(
             @PathVariable String accountId,
             @RequestBody SimpleServiceMessage message, HttpServletResponse response
     ) {
@@ -116,11 +123,11 @@ public class RestAccountController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 
     @RequestMapping(value = "/{accountId}", method = RequestMethod.DELETE)
-    public ResponseMessage delete(
+    public SimpleServiceMessage delete(
             @PathVariable String accountId,
             @RequestBody SimpleServiceMessage message, HttpServletResponse response
     ) {
@@ -134,6 +141,6 @@ public class RestAccountController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 }

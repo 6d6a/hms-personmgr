@@ -33,7 +33,7 @@ public class RestUnixAccountController extends CommonRestController {
     private ProcessingBusinessActionRepository processingBusinessActionRepository;
 
     @RequestMapping(value = "", method = RequestMethod.POST)
-    public ResponseMessage create(
+    public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
@@ -47,11 +47,11 @@ public class RestUnixAccountController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 
     @RequestMapping(value = "/{unixaccountId}", method = RequestMethod.PATCH)
-    public ResponseMessage update(
+    public SimpleServiceMessage update(
             @PathVariable String unixaccountId,
             @RequestBody SimpleServiceMessage message, HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
@@ -67,11 +67,11 @@ public class RestUnixAccountController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 
     @RequestMapping(value = "/{unixaccountId}", method = RequestMethod.DELETE)
-    public ResponseMessage delete(
+    public SimpleServiceMessage delete(
             @PathVariable String unixaccountId,
             @RequestBody SimpleServiceMessage message, HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
@@ -87,6 +87,6 @@ public class RestUnixAccountController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 }

@@ -443,15 +443,16 @@ public class BusinessActionDBSeedService {
     private void seedAccountCreateActions() {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
+        MailManagerMessageDestination mailManagerMessageDestination;
 
         //Account create
         action = new BusinessAction();
-        action.setBusinessActionType(BusinessActionType.ACCOUNT_CREATE_RC);
-        action.setName("Account create");
+        action.setBusinessActionType(BusinessActionType.ACCOUNT_CREATE_SI);
+        action.setName("Account create SI");
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("account.create");
-        amqpMessageDestination.setRoutingKey("rc.user");
+        amqpMessageDestination.setRoutingKey("si");
 
         action.setDestination(amqpMessageDestination);
 
@@ -470,6 +471,32 @@ public class BusinessActionDBSeedService {
         action.setDestination(amqpMessageDestination);
 
         action.setPriority(2);
+
+        businessActionRepository.save(action);
+
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.ACCOUNT_CREATE_RC);
+        action.setName("Account create");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("account.create");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(3);
+
+        businessActionRepository.save(action);
+
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.ACCOUNT_CREATE_MM);
+        action.setName("Account create MM");
+
+        mailManagerMessageDestination = new MailManagerMessageDestination();
+
+        action.setDestination(mailManagerMessageDestination);
+
+        action.setPriority(4);
 
         businessActionRepository.save(action);
     }

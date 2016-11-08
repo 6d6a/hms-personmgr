@@ -10,6 +10,8 @@ import ru.majordomo.hms.personmgr.exception.BusinessActionNotFoundException;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 
 /**
  * BusinessActionBuilder
@@ -18,6 +20,10 @@ import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
 public class BusinessActionBuilder {
     @Autowired
     private BusinessActionRepository businessActionRepository;
+
+    @Autowired
+    private ProcessingBusinessActionRepository processingBusinessActionRepository;
+
 
     public ProcessingBusinessAction build(BusinessActionType businessActionType, SimpleServiceMessage message) {
         BusinessAction businessAction = businessActionRepository.findByBusinessActionType(businessActionType);
@@ -28,12 +34,14 @@ public class BusinessActionBuilder {
             processingBusinessAction = new ProcessingBusinessAction(businessAction);
 
             processingBusinessAction.setMessage(message);
+            processingBusinessAction.setOperationId(message.getOperationIdentity());
             processingBusinessAction.setMapParams(message.getParams());
             processingBusinessAction.setState(State.NEED_TO_PROCESS);
             processingBusinessAction.setPersonalAccountId(message.getAccountId());
         } else {
             throw new BusinessActionNotFoundException();
         }
+        processingBusinessActionRepository.save(processingBusinessAction);
 
         return processingBusinessAction;
     }

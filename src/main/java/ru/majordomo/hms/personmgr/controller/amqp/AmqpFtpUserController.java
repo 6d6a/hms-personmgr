@@ -17,6 +17,7 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
 @EnableRabbit
@@ -29,7 +30,7 @@ public class AmqpFtpUserController {
     private BusinessFlowDirector businessFlowDirector;
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.ftpuser.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "ftpuser.create", type = ExchangeTypes.TOPIC), key = "pm"))
-    public void create(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
+    public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received from " + provider + ": " + message.toString());
 
@@ -37,7 +38,7 @@ public class AmqpFtpUserController {
     }
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.ftpuser.update", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "ftpuser.update", type = ExchangeTypes.TOPIC), key = "pm"))
-    public void update(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
+    public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received update message from " + provider + ": " + message.toString());
 
@@ -45,7 +46,7 @@ public class AmqpFtpUserController {
     }
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.ftpuser.delete", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "ftpuser.delete", type = ExchangeTypes.TOPIC), key = "pm"))
-    public void delete(@Payload ResponseMessage message, @Headers Map<String, String> headers) {
+    public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received delete message from " + provider + ": " + message.toString());
 

@@ -34,7 +34,7 @@ public class RestPersonController extends CommonRestController {
     private ProcessingBusinessActionRepository processingBusinessActionRepository;
 
     @RequestMapping(value = "", method = RequestMethod.POST)
-    public ResponseMessage create(
+    public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @RequestHeader(value = "x-hms-accountId", required = false) String headerAccountId,
@@ -49,11 +49,11 @@ public class RestPersonController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 
     @RequestMapping(value = "/{personId}", method = RequestMethod.PATCH)
-    public ResponseMessage update(
+    public SimpleServiceMessage update(
             @PathVariable String personId,
             @RequestBody SimpleServiceMessage message, HttpServletResponse response,
             @RequestHeader(value = "x-hms-accountId", required = false) String headerAccountId,
@@ -70,11 +70,11 @@ public class RestPersonController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 
     @RequestMapping(value = "/{personId}", method = RequestMethod.DELETE)
-    public ResponseMessage delete(
+    public SimpleServiceMessage delete(
             @PathVariable String personId,
             @RequestBody SimpleServiceMessage message, HttpServletResponse response,
             @RequestHeader(value = "x-hms-accountId", required = false) String headerAccountId,
@@ -91,6 +91,6 @@ public class RestPersonController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        return this.createResponse(businessAction);
+        return this.createSuccessResponse(businessAction);
     }
 }

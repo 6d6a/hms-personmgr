@@ -21,6 +21,7 @@ import ru.majordomo.hms.personmgr.event.AccountDomainEventListener;
 import ru.majordomo.hms.personmgr.event.DomainTldEventListener;
 import ru.majordomo.hms.personmgr.event.PlanEventListener;
 import ru.majordomo.hms.personmgr.event.ProcessingBusinessActionEventListener;
+import ru.majordomo.hms.personmgr.event.PromocodeEventListener;
 import ru.majordomo.hms.personmgr.service.importing.*;
 
 @SpringBootApplication
@@ -142,6 +143,11 @@ public class Application implements CommandLineRunner {
     @Bean
     public PlanEventListener planEventListener() {
         return new PlanEventListener();
+    }
+
+    @Bean
+    public PromocodeEventListener promocodeEventListener() {
+        return new PromocodeEventListener();
     }
 
     @Bean

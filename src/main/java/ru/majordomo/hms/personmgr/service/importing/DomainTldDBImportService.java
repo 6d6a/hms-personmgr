@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.service.importing;
 
-import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,7 +80,7 @@ public class DomainTldDBImportService {
             finService.setOldId("registration_cost_" +  domainTld.getTld() + "_" + DOMAIN_REGISTRATOR_MAP.get(rs.getInt("parking_registrator_id")));
             finService.setName("Регистрация домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
 
-            finService = finFeignClient.create(finService);
+            finService = finFeignClient.createService(finService);
             logger.info(finService.toString());
 
             domainTld.setRegistrationServiceId(finService.getId());
@@ -95,7 +94,7 @@ public class DomainTldDBImportService {
             finService.setOldId("renew_cost_" +  domainTld.getTld() + "_" + DOMAIN_REGISTRATOR_MAP.get(rs.getInt("parking_registrator_id")));
             finService.setName("Продление домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
 
-            finService = finFeignClient.create(finService);
+            finService = finFeignClient.createService(finService);
             logger.info(finService.toString());
 
             domainTld.setRenewServiceId(finService.getId());
