@@ -2,12 +2,15 @@ package ru.majordomo.hms.personmgr.validators;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
 import ru.majordomo.hms.personmgr.model.BaseModel;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 /**
  * ObjectIdValidator
@@ -37,14 +40,14 @@ class ObjectIdValidator implements ConstraintValidator<ObjectId, String> {
             if (!notNull && s == null) {
                 return true;
             } else {
-                BaseModel foundObject;
+                boolean foundObject;
                 if (!collection.equals("")) {
-                    foundObject = operations.findById(s, this.objectModel, collection);
+                    foundObject = operations.exists(new Query(where("_id").is(s)), this.objectModel, collection);
                 } else {
-                    foundObject = operations.findById(s, this.objectModel);
+                    foundObject = operations.exists(new Query(where("_id").is(s)), this.objectModel);
                 }
 
-                return foundObject != null;
+                return foundObject;
             }
         } catch (RuntimeException e) {
             return false;

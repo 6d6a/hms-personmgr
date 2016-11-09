@@ -81,14 +81,11 @@ public class AmqpWebSiteController {
 
             ObjectMapper mapper = new ObjectMapper();
             TypeFactory typeFactory = mapper.getTypeFactory();
-//            MapType mapType = typeFactory.constructMapType(HashMap.class, String.class, Object.class);
             JavaType mapType = typeFactory.constructType(SimpleServiceMessage.class);
 
             SimpleServiceMessage serviceMessage = mapper.convertValue(mailManagerEmailMessage, mapType);
 
-            ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.WEB_SITE_CREATE_MM, serviceMessage);
-
-            processingBusinessActionRepository.save(businessAction);
+            businessActionBuilder.build(BusinessActionType.WEB_SITE_CREATE_MM, serviceMessage);
         }
     }
 

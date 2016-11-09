@@ -23,7 +23,7 @@ public class AccountPromocodeEventListener extends AbstractMongoEventListener<Ac
         super.onAfterConvert(event);
         AccountPromocode accountPromocode = event.getSource();
 
-        Promocode promocode = mongoOperations.findOne(new Query(where("id").is(accountPromocode.getPromocodeId())), Promocode.class);
+        Promocode promocode = mongoOperations.findOne(new Query(where("_id").is(accountPromocode.getPromocodeId())), Promocode.class);
 
         accountPromocode.setPromocode(promocode);
     }

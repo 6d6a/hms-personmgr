@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.validators;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -10,6 +11,8 @@ import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
 import ru.majordomo.hms.personmgr.model.BaseModel;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 /**
  * ObjectIdListValidator
@@ -35,14 +38,14 @@ class ObjectIdListValidator implements ConstraintValidator<ObjectIdList, List<St
     public boolean isValid(List<String> items, ConstraintValidatorContext constraintValidatorContext) {
         for (String next : items) {
             try {
-                BaseModel foundObject;
+                boolean foundObject;
                 if (!collection.equals("")) {
-                    foundObject = operations.findById(next, this.objectModel, collection);
+                    foundObject = operations.exists(new Query(where("_id").is(next)), this.objectModel, collection);
                 } else {
-                    foundObject = operations.findById(next, this.objectModel);
+                    foundObject = operations.exists(new Query(where("_id").is(next)), this.objectModel);
                 }
 
-                if (foundObject == null) {
+                if (!foundObject) {
                     return false;
                 }
             } catch (RuntimeException e) {

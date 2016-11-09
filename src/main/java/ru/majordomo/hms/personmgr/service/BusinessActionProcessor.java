@@ -27,16 +27,16 @@ public class BusinessActionProcessor {
     public ProcessingBusinessAction process(ProcessingBusinessAction action) {
         logger.info("processing BusinessAction " + action.getId());
 
-//        ServiceMessage message = action.getMessage();
         action.getMessage().setOperationIdentity(action.getOperationId());
         action.getMessage().setActionIdentity(action.getId());
-//        message.setParams(action.getParams());
 
         GenericMessageDestination destination = action.getDestination();
+        logger.info("BusinessAction destination type: " + destination.getType());
         switch (destination.getType()) {
             case AMQP:
                 AmqpMessageDestination amqpMessageDestination = (AmqpMessageDestination) action.getDestination();
                 amqpSender.send(amqpMessageDestination.getExchange(), amqpMessageDestination.getRoutingKey(), action.getMessage());
+                action.setState(State.PROCESSED);
 
                 break;
             case MAIL_MANAGER:

@@ -37,7 +37,7 @@ public class Promocode extends BaseModel {
     @Indexed
     private boolean active;
 
-    @ObjectIdList(PromocodeAction.class)
+//    @ObjectIdList(PromocodeAction.class)
     private List<String> actionIds = new ArrayList<>();
 
     @Transient

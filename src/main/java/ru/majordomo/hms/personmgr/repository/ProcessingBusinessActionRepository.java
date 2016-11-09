@@ -17,11 +17,11 @@ public interface ProcessingBusinessActionRepository extends MongoRepository<Proc
 
     List<ProcessingBusinessAction> findAll();
 
-    ProcessingBusinessAction findByName(String name);
+    ProcessingBusinessAction findByName(@Param("name") String name);
 
-    ProcessingBusinessAction findByBusinessActionType(BusinessActionType businessActionType);
+    ProcessingBusinessAction findByBusinessActionType(@Param("businessActionType") BusinessActionType businessActionType);
 
-    ProcessingBusinessAction findFirstByStateOrderByPriorityAscCreatedDateAsc(State state);
+    ProcessingBusinessAction findFirstByStateOrderByPriorityAscCreatedDateAsc(@Param("state") State state);
 
     Page<ProcessingBusinessAction> findByPersonalAccountId(@Param("accountId") String accountId, Pageable pageable);
 

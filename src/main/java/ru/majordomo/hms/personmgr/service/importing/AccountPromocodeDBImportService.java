@@ -153,7 +153,7 @@ public class AccountPromocodeDBImportService {
     }
 
     public boolean importToMongo(String accountName) {
-        accountPromocodeRepository.deleteAll();
+//        accountPromocodeRepository.deleteAll();
         pull(accountName);
         pushToMongo();
         return true;

@@ -28,17 +28,17 @@ public class BusinessFlowDirector {
     @Autowired
     private ProcessingBusinessOperationRepository processingBusinessOperationRepository;
 
-    @Scheduled(fixedDelay = 500)
+    @Scheduled(fixedDelay = 300)
     public void process() {
         ProcessingBusinessAction businessAction = processingBusinessActionRepository.findFirstByStateOrderByPriorityAscCreatedDateAsc(State.NEED_TO_PROCESS);
         if (businessAction != null) {
-            logger.info("Processing " + businessAction.toString());
+            logger.info("Processing businessAction " + businessAction.toString());
 
             businessAction.setState(State.PROCESSING);
 
             processingBusinessActionRepository.save(businessAction);
 
-            businessAction = businessActionProcessor.process(businessAction);
+            businessActionProcessor.process(businessAction);
 
             processingBusinessActionRepository.save(businessAction);
         }
