@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
@@ -39,7 +40,7 @@ public class PromocodeDBImportService {
     }
 
     private void pull() {
-        String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.valid_till FROM promorecord p";
+        String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.created FROM promorecord p";
         promocodesList = partnersNamedParameterJdbcTemplate.query(query, this::rowMap);
     }
 
@@ -55,13 +56,14 @@ public class PromocodeDBImportService {
     }
 
     private Promocode rowMap(ResultSet rs, int rowNum) throws SQLException {
+        logger.info("Found Partner promocode " + rs.getString("postfix") + rs.getString("id"));
         Promocode promocode = new Promocode();
         promocode.setType(PromocodeType.PARTNER);
         promocode.setCode(rs.getString("postfix") + rs.getString("id"));
         promocode.setActive(rs.getBoolean("active"));
         promocode.setCreatedDate(rs.getDate("created").toLocalDate());
 
-        promocode.setActionIds(Arrays.asList(getPartnerPromocodeActionId()));
+        promocode.setActionIds(Collections.singletonList(getPartnerPromocodeActionId()));
 
         return promocode;
     }
@@ -81,6 +83,7 @@ public class PromocodeDBImportService {
     }
 
     private void pushToMongo() {
+        logger.info("pushToMongo promocodesList");
         promocodeRepository.save(promocodesList);
     }
 }

@@ -53,19 +53,17 @@ public class BusinessFlowDirector {
             if ((boolean) message.getParam("success")) {
                 logger.info("ProcessingBusinessAction -> success, operationIdentity: " + message.getOperationIdentity() + " actionIdentity: " + message.getActionIdentity());
                 businessAction.setState(State.PROCESSED);
-//                businessAction.setState(businessAction.getNeedToProcessBusinessAction() == null ? State.PROCESSED : State.NEED_TO_PROCESS);
-//                businessAction.setProcessBusinessActionStateById(message.getActionIdentity(), State.PROCESSED);
-
             } else {
                 logger.info("ProcessingBusinessAction -> error, operationIdentity: " + message.getOperationIdentity() + " actionIdentity: " + message.getActionIdentity());
                 businessAction.setState(State.ERROR);
 
-                ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(businessAction.getOperationId());
-                if (businessOperation != null) {
-                    businessOperation.setState(State.ERROR);
-                    processingBusinessOperationRepository.save(businessOperation);
+                if (businessAction.getOperationId() != null) {
+                    ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(businessAction.getOperationId());
+                    if (businessOperation != null) {
+                        businessOperation.setState(State.ERROR);
+                        processingBusinessOperationRepository.save(businessOperation);
+                    }
                 }
-//                businessFlow.setProcessBusinessActionStateById(message.getActionIdentity(), State.ERROR);
             }
 
             processingBusinessActionRepository.save(businessAction);

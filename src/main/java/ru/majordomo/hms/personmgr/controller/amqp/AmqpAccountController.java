@@ -85,6 +85,7 @@ public class AmqpAccountController {
                             PersonalAccount personalAccount = personalAccountRepository.findOne(message.getAccountId());
                             //надо обработать промокод
                             if (personalAccount != null && message.getParam("promocode") != null) {
+                                logger.info("We got promocode " + message.getParam("promocode") + ". Try to process it");
                                 promocodeProcessor.processPromocode(personalAccount, (String) message.getParam("promocode"));
                             }
 
