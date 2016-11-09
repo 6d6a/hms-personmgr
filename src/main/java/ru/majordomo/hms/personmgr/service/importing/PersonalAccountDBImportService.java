@@ -17,8 +17,6 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
-import static ru.majordomo.hms.personmgr.common.StringConstants.PLAN_SERVICE_PREFIX;
-
 /**
  * DBImportService
  */
@@ -32,9 +30,10 @@ public class PersonalAccountDBImportService {
     private List<PersonalAccount> personalAccounts = new ArrayList<>();
 
     @Autowired
-    public PersonalAccountDBImportService(JdbcTemplate jdbcTemplate, PersonalAccountRepository personalAccountRepository) {
+    public PersonalAccountDBImportService(JdbcTemplate jdbcTemplate, PersonalAccountRepository personalAccountRepository, PlanRepository planRepository) {
         this.jdbcTemplate = jdbcTemplate;
         this.personalAccountRepository = personalAccountRepository;
+        this.planRepository = planRepository;
     }
 
     private void pull() {
@@ -51,7 +50,9 @@ public class PersonalAccountDBImportService {
     }
 
     private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
-        Plan plan = planRepository.findByOldId(PLAN_SERVICE_PREFIX +  rs.getString("plan_id"));
+        logger.info("Found PersonalAccount " + rs.getString("name"));
+
+        Plan plan = planRepository.findByOldId(rs.getString("plan_id"));
         String planId = plan != null ? plan.getId() : null;
         PersonalAccount personalAccount = new PersonalAccount(rs.getString("id"), rs.getString("client_id"), planId, rs.getString("name"), AccountType.VIRTUAL_HOSTING);
         personalAccount.setSetting("notify_days", rs.getString("notify_days"));
@@ -74,6 +75,8 @@ public class PersonalAccountDBImportService {
     }
 
     private void pushToMongo() {
+        logger.info("pushToMongo personalAccounts");
+
         personalAccountRepository.save(personalAccounts);
     }
 }
