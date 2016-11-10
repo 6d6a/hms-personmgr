@@ -22,7 +22,7 @@ import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
  * RestFtpUserController
  */
 @RestController
-@RequestMapping({"/{accountId}/ftpuser", "/ftpuser"})
+@RequestMapping({"/{accountId}/ftp-user", "/ftp-user"})
 public class RestFtpUserController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(RestFtpUserController.class);
 
