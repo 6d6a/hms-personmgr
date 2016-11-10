@@ -1,15 +1,20 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
@@ -17,6 +22,7 @@ import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 
+import static ru.majordomo.hms.personmgr.common.ImportConstants.getPartnerPromocodeActionId;
 import static ru.majordomo.hms.personmgr.common.StringConstants.BONUS_PAYMENT_TYPE_ID;
 
 @Service
@@ -85,6 +91,48 @@ public class PromocodeProcessor {
 
                 break;
         }
+    }
+
+    public void generatePartnerPromocode(PersonalAccount account) {
+        Promocode promocode = new Promocode();
+        String code = null;
+
+        while (code == null) {
+            code = generateNewCode(PromocodeType.PARTNER);
+        }
+
+        promocode.setCode(code);
+        promocode.setActive(true);
+        promocode.setCreatedDate(LocalDate.now());
+        promocode.setType(PromocodeType.PARTNER);
+        promocode.setActionIds(Collections.singletonList(getPartnerPromocodeActionId()));
+
+        promocodeRepository.save(promocode);
+
+        AccountPromocode accountPromocode = new AccountPromocode();
+        accountPromocode.setPromocodeId(promocode.getId());
+        accountPromocode.setOwnedByAccount(true);
+        accountPromocode.setPersonalAccountId(account.getId());
+
+        accountPromocodeRepository.save(accountPromocode);
+    }
+
+    private String generateNewCode(PromocodeType type) {
+        String code = null;
+        switch (type) {
+            case PARTNER:
+                code = RandomStringUtils.randomAlphabetic(3).toUpperCase() + RandomStringUtils.randomNumeric(6);
+
+                break;
+            case BONUS:
+                break;
+        }
+
+        if (code != null) {
+            return promocodeRepository.findByCode(code) == null ? code : null;
+        }
+
+        return null;
     }
 
     private void processPartnerPromocodeActions(PersonalAccount account, AccountPromocode accountPromocode) {
