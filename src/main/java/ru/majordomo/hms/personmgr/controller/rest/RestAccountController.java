@@ -25,6 +25,7 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
+import ru.majordomo.hms.personmgr.service.PromocodeProcessor;
 import ru.majordomo.hms.personmgr.service.SequenceCounterService;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
@@ -57,6 +58,9 @@ public class RestAccountController extends CommonRestController {
     @Autowired
     private PlanRepository planRepository;
 
+    @Autowired
+    private PromocodeProcessor promocodeProcessor;
+
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -86,6 +90,9 @@ public class RestAccountController extends CommonRestController {
 
         personalAccountRepository.save(personalAccount);
         logger.info("personalAccount saved: " + personalAccount.toString());
+
+        promocodeProcessor.generatePartnerPromocode(personalAccount);
+        logger.info("PartnerPromocode generated");
 
         ProcessingBusinessOperation processingBusinessOperation = new ProcessingBusinessOperation();
         processingBusinessOperation.setPersonalAccountId(personalAccount.getId());

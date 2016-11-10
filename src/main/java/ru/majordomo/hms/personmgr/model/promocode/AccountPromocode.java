@@ -10,6 +10,7 @@ import java.util.Map;
 
 import javax.validation.constraints.NotNull;
 
+import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
@@ -30,6 +31,16 @@ public class AccountPromocode extends ModelBelongsToPersonalAccount {
 
     @Transient
     private Promocode promocode;
+
+    @Transient
+    private boolean active;
+
+    @Transient
+    private PromocodeType type;
+
+    @Transient
+    private String code;
+
 
     public AccountPromocode() {
     }
@@ -79,12 +90,32 @@ public class AccountPromocode extends ModelBelongsToPersonalAccount {
         this.promocode = promocode;
     }
 
+    public boolean isActive() {
+        return this.getPromocode() != null && this.getPromocode().isActive();
+    }
+
+    public PromocodeType getType() {
+        if (this.getPromocode() != null) {
+            return this.getPromocode().getType();
+        }
+
+        return null;
+    }
+
+    public String getCode() {
+        return this.getPromocode() != null ? this.getPromocode().getCode() : "";
+    }
+
     @Override
     public String toString() {
         return "AccountPromocode{" +
                 "promocodeId='" + promocodeId + '\'' +
                 ", ownedByAccount=" + ownedByAccount +
                 ", actionsWithStatus=" + actionsWithStatus +
+                ", promocode=" + promocode +
+                ", active=" + active +
+                ", type=" + type +
+                ", code='" + code + '\'' +
                 "} " + super.toString();
     }
 }
