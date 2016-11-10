@@ -7,15 +7,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
+import ru.majordomo.hms.personmgr.common.DBType;
 import ru.majordomo.hms.personmgr.common.FinService;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.common.message.ImportMessage;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.model.plan.PlanPropertyDB;
-import ru.majordomo.hms.personmgr.common.DBType;
 import ru.majordomo.hms.personmgr.model.plan.PlanPropertyLimit;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
@@ -59,10 +60,8 @@ public class PlanDBImportService {
             planProperties.setSshLimit(new PlanPropertyLimit(-1));
             planProperties.setPhpEnabled(rs.getBoolean("apache"));
 
-            PlanPropertyDB db = new PlanPropertyDB(rs.getInt("db"), DBType.MYSQL);
-
-            List<PlanPropertyDB> dbList = new ArrayList<>();
-            dbList.add(db);
+            Map<DBType, PlanPropertyLimit> dbList = new HashMap<>();
+            dbList.put(DBType.MYSQL, new PlanPropertyLimit(rs.getInt("db")));
 
             planProperties.setDb(dbList);
 
@@ -72,7 +71,7 @@ public class PlanDBImportService {
             finService.setActive(rs.getBoolean("active"));
             finService.setCost(rs.getBigDecimal("cost"));
             finService.setLimit(1);
-            finService.setOldId(PLAN_SERVICE_PREFIX +  rs.getString("Plan_ID"));
+            finService.setOldId(PLAN_SERVICE_PREFIX + rs.getString("Plan_ID"));
             finService.setName(rs.getString("username"));
 
             finService = finFeignClient.createService(finService);
@@ -86,31 +85,29 @@ public class PlanDBImportService {
     public void pull(String planId, String finServiceId) {
         String query = "SELECT Plan_ID, name, cost, QuotaKB, db, apache, active, username, sites, web_cpu_limit, db_cpu_limit FROM plan WHERE Plan_ID = ?";
         planList = jdbcTemplate.query(query,
-                new Object[] { planId },
+                new Object[]{planId},
                 (rs, rowNum) -> {
-            VirtualHostingPlanProperties planProperties = new VirtualHostingPlanProperties();
-            if (rs.getInt("Plan_ID") == 9802) {
-                planProperties.setFtpLimit(new PlanPropertyLimit(5, -1));
-            } else {
-                planProperties.setFtpLimit(new PlanPropertyLimit(-1, -1));
-            }
+                    VirtualHostingPlanProperties planProperties = new VirtualHostingPlanProperties();
+                    if (rs.getInt("Plan_ID") == 9802) {
+                        planProperties.setFtpLimit(new PlanPropertyLimit(5, -1));
+                    } else {
+                        planProperties.setFtpLimit(new PlanPropertyLimit(-1, -1));
+                    }
 
-            planProperties.setWebCpuLimit(new PlanPropertyLimit(rs.getInt("web_cpu_limit")));
-            planProperties.setDbCpuLimit(new PlanPropertyLimit(rs.getInt("db_cpu_limit")));
-            planProperties.setQuotaKBLimit(new PlanPropertyLimit(rs.getInt("QuotaKB")));
-            planProperties.setSitesLimit(new PlanPropertyLimit(rs.getInt("sites")));
-            planProperties.setSshLimit(new PlanPropertyLimit(-1));
-            planProperties.setPhpEnabled(rs.getBoolean("apache"));
+                    planProperties.setWebCpuLimit(new PlanPropertyLimit(rs.getInt("web_cpu_limit")));
+                    planProperties.setDbCpuLimit(new PlanPropertyLimit(rs.getInt("db_cpu_limit")));
+                    planProperties.setQuotaKBLimit(new PlanPropertyLimit(rs.getInt("QuotaKB")));
+                    planProperties.setSitesLimit(new PlanPropertyLimit(rs.getInt("sites")));
+                    planProperties.setSshLimit(new PlanPropertyLimit(-1));
+                    planProperties.setPhpEnabled(rs.getBoolean("apache"));
 
-            PlanPropertyDB db = new PlanPropertyDB(rs.getInt("db"), DBType.MYSQL);
+                    Map<DBType, PlanPropertyLimit> dbList = new HashMap<>();
+                    dbList.put(DBType.MYSQL, new PlanPropertyLimit(rs.getInt("db")));
 
-            List<PlanPropertyDB> dbList = new ArrayList<>();
-            dbList.add(db);
+                    planProperties.setDb(dbList);
 
-            planProperties.setDb(dbList);
-
-            return new Plan(rs.getString("username"), rs.getString("name"), finServiceId, rs.getString("Plan_ID"), AccountType.VIRTUAL_HOSTING, rs.getBoolean("active"), planProperties);
-        });
+                    return new Plan(rs.getString("username"), rs.getString("name"), finServiceId, rs.getString("Plan_ID"), AccountType.VIRTUAL_HOSTING, rs.getBoolean("active"), planProperties);
+                });
     }
 
     public boolean importToMongo() {

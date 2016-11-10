@@ -3,7 +3,11 @@ package ru.majordomo.hms.personmgr.model.plan;
 import org.springframework.data.annotation.PersistenceConstructor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import ru.majordomo.hms.personmgr.common.DBType;
 
 /**
  * VirtualHostingPlanProperties
@@ -24,13 +28,13 @@ public class VirtualHostingPlanProperties extends PlanProperties {
 
     private boolean phpEnabled;
 
-    private List<PlanPropertyDB> db = new ArrayList<>();
+    private Map<DBType, PlanPropertyLimit> db = new HashMap<>();
 
     public VirtualHostingPlanProperties() {
     }
 
     @PersistenceConstructor
-    public VirtualHostingPlanProperties(PlanPropertyLimit sitesLimit, PlanPropertyLimit webCpuLimit, PlanPropertyLimit dbCpuLimit, PlanPropertyLimit quotaKBLimit, PlanPropertyLimit ftpLimit, PlanPropertyLimit sshLimit, boolean phpEnabled, List<PlanPropertyDB> db) {
+    public VirtualHostingPlanProperties(PlanPropertyLimit sitesLimit, PlanPropertyLimit webCpuLimit, PlanPropertyLimit dbCpuLimit, PlanPropertyLimit quotaKBLimit, PlanPropertyLimit ftpLimit, PlanPropertyLimit sshLimit, boolean phpEnabled, Map<DBType, PlanPropertyLimit> db) {
         this.sitesLimit = sitesLimit;
         this.webCpuLimit = webCpuLimit;
         this.dbCpuLimit = dbCpuLimit;
@@ -97,11 +101,11 @@ public class VirtualHostingPlanProperties extends PlanProperties {
         this.phpEnabled = phpEnabled;
     }
 
-    public List<PlanPropertyDB> getDb() {
+    public Map<DBType, PlanPropertyLimit> getDb() {
         return db;
     }
 
-    public void setDb(List<PlanPropertyDB> db) {
+    public void setDb(Map<DBType, PlanPropertyLimit> db) {
         this.db = db;
     }
 

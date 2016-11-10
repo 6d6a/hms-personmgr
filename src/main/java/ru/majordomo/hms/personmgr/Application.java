@@ -93,8 +93,8 @@ public class Application implements CommandLineRunner {
                 sb.append(" ").append(seeded ? "promocodeAction db_seeded" : "promocodeAction db_not_seeded");
             } else if (option.equals(dbImportOption)) {
             boolean imported;
-//                imported = personalAccountDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
+                imported = personalAccountDBImportService.importToMongo("ac_100800");
+                sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
 
 //                imported = accountHistoryDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "accountHistory db_imported" : "accountHistory db_not_imported");
@@ -111,8 +111,8 @@ public class Application implements CommandLineRunner {
 //                imported = promocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "promocode db_imported" : "promocode db_not_imported");
 
-                imported = accountPromocodeDBImportService.importToMongo("100800");
-                sb.append(" ").append(imported ? "accountPromocode db_imported" : "accountPromocode db_not_imported");
+//                imported = accountPromocodeDBImportService.importToMongo("100800");
+//                sb.append(" ").append(imported ? "accountPromocode db_imported" : "accountPromocode db_not_imported");
 
 //                imported = bonusPromocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "bonusPromocode db_imported" : "bonusPromocode db_not_imported");

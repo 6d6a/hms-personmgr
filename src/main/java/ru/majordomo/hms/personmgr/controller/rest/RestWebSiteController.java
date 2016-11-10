@@ -14,8 +14,11 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.*;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClientFallback;
 
 /**
  * WebSiteController
@@ -25,11 +28,18 @@ import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 public class RestWebSiteController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(RestWebSiteController.class);
 
-    @Autowired
-    private BusinessActionBuilder businessActionBuilder;
+    private final BusinessActionBuilder businessActionBuilder;
+
+    private final RcUserFeignClient rcUserFeignClient;
+
+    private final RcUserFeignClientFallback rcUserFeignClientFallback;
 
     @Autowired
-    private ProcessingBusinessActionRepository processingBusinessActionRepository;
+    public RestWebSiteController(BusinessActionBuilder businessActionBuilder, RcUserFeignClient rcUserFeignClient, RcUserFeignClientFallback rcUserFeignClientFallback) {
+        this.businessActionBuilder = businessActionBuilder;
+        this.rcUserFeignClient = rcUserFeignClient;
+        this.rcUserFeignClientFallback = rcUserFeignClientFallback;
+    }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
@@ -38,6 +48,16 @@ public class RestWebSiteController extends CommonRestController {
         message.setAccountId(accountId);
 
         logger.info("Creating website: " + message.toString());
+
+        if (accountId != null) {
+            int currentWebsiteCount = rcUserFeignClient.getWebsiteCount(accountId);
+            int planWebsiteCount = rcUserFeignClientFallback.getWebsiteCount(accountId);
+            if (currentWebsiteCount >= planWebsiteCount) {
+                response.setStatus(HttpServletResponse.SC_CONFLICT);
+
+                return this.createErrorResponse("Plan limit for websites exceeded");
+            }
+        }
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.WEB_SITE_CREATE_RC, message);
 
