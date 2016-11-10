@@ -22,7 +22,7 @@ public class PromocodeEventListener extends AbstractMongoEventListener<Promocode
         super.onAfterConvert(event);
         Promocode promocode = event.getSource();
 
-        List<PromocodeAction> actions = mongoOperations.find(new Query(where("id").in(promocode.getActionIds())), PromocodeAction.class);
+        List<PromocodeAction> actions = mongoOperations.find(new Query(where("_id").in(promocode.getActionIds())), PromocodeAction.class);
 
         promocode.setActions(actions);
     }

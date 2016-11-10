@@ -63,16 +63,12 @@ public class AmqpAccountController {
             switch (provider) {
                 case "si":
                     if (state == State.PROCESSED) {
-                        ProcessingBusinessAction processingBusinessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_FIN, message);
-
-//                        processingBusinessActionRepository.save(processingBusinessAction);
+                        businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_FIN, message);
                     }
                     break;
                 case "fin":
                     if (state == State.PROCESSED) {
-                        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_RC, message);
-
-//                        processingBusinessActionRepository.save(businessAction);
+                        businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_RC, message);
                     } else {
                         //TODO delete si account and PM
                     }
@@ -107,9 +103,7 @@ public class AmqpAccountController {
 
                             message.addParam("parametrs", parameters);
 
-                            ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.WEB_SITE_CREATE_MM, message);
-
-//                            processingBusinessActionRepository.save(businessAction);
+                            businessActionBuilder.build(BusinessActionType.WEB_SITE_CREATE_MM, message);
                         }
                     }
                     break;

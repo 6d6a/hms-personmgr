@@ -56,7 +56,7 @@ public class PromocodeDBImportService {
     }
 
     private Promocode rowMap(ResultSet rs, int rowNum) throws SQLException {
-        logger.info("Found Partner promocode " + rs.getString("postfix") + rs.getString("id"));
+//        logger.info("Found Partner promocode " + rs.getString("postfix") + rs.getString("id"));
         Promocode promocode = new Promocode();
         promocode.setType(PromocodeType.PARTNER);
         promocode.setCode(rs.getString("postfix") + rs.getString("id"));

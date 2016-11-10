@@ -43,8 +43,6 @@ public class RestUnixAccountController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
 
-        processingBusinessActionRepository.save(businessAction);
-
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         return this.createSuccessResponse(businessAction);
@@ -63,8 +61,6 @@ public class RestUnixAccountController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
-        processingBusinessActionRepository.save(businessAction);
-
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         return this.createSuccessResponse(businessAction);
@@ -82,8 +78,6 @@ public class RestUnixAccountController extends CommonRestController {
         message.getParams().put("id", unixaccountId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_DELETE_RC, message);
-
-        processingBusinessActionRepository.save(businessAction);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

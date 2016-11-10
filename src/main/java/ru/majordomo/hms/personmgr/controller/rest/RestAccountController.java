@@ -62,7 +62,7 @@ public class RestAccountController extends CommonRestController {
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response
     ) {
-        logger.info(message.toString());
+        logger.info("Got SimpleServiceMessage: " + message.toString());
         //Create pm, si and fin account
 
         String accountId = String.valueOf(sequenceCounterService.getNextSequence("PersonalAccount"));
@@ -71,6 +71,7 @@ public class RestAccountController extends CommonRestController {
         Plan plan = planRepository.findByOldId((String) message.getParam("plan"));
 
         if (plan == null) {
+            logger.info("No plan found with OldId: " + message.getParam("plan"));
             return this.createErrorResponse("No plan found with OldId: " + message.getParam("plan"));
         }
 
@@ -84,7 +85,7 @@ public class RestAccountController extends CommonRestController {
         personalAccount.setName(VH_ACCOUNT_PREFIX + accountId);
 
         personalAccountRepository.save(personalAccount);
-
+        logger.info("personalAccount saved: " + personalAccount.toString());
 
         ProcessingBusinessOperation processingBusinessOperation = new ProcessingBusinessOperation();
         processingBusinessOperation.setPersonalAccountId(personalAccount.getId());
@@ -95,13 +96,16 @@ public class RestAccountController extends CommonRestController {
 
         processingBusinessOperationRepository.save(processingBusinessOperation);
 
+        logger.info("processingBusinessOperation saved: " + processingBusinessOperation.toString());
+
+
         message.setAccountId(personalAccount.getId());
         message.setOperationIdentity(processingBusinessOperation.getId());
         message.addParam("username", personalAccount.getName());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_SI, message);
 
-        processingBusinessActionRepository.save(businessAction);
+        logger.info("ProcessingBusinessAction saved: " + businessAction.toString());
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -119,8 +123,6 @@ public class RestAccountController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_UPDATE_RC, message);
 
-        processingBusinessActionRepository.save(businessAction);
-
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         return this.createSuccessResponse(businessAction);
@@ -136,8 +138,6 @@ public class RestAccountController extends CommonRestController {
         message.getParams().put("id", accountId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_DELETE_RC, message);
-
-        processingBusinessActionRepository.save(businessAction);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

@@ -43,8 +43,6 @@ public class RestSslCertificateController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.SSL_CERTIFICATE_CREATE_RC, message);
 
-        processingBusinessActionRepository.save(businessAction);
-
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         return this.createSuccessResponse(businessAction);
@@ -63,8 +61,6 @@ public class RestSslCertificateController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.SSL_CERTIFICATE_UPDATE_RC, message);
 
-        processingBusinessActionRepository.save(businessAction);
-
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         return this.createSuccessResponse(businessAction);
@@ -82,8 +78,6 @@ public class RestSslCertificateController extends CommonRestController {
         message.getParams().put("id", sslcertificateId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
-
-        processingBusinessActionRepository.save(businessAction);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

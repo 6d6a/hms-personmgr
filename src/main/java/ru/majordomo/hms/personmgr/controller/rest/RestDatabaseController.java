@@ -43,8 +43,6 @@ public class RestDatabaseController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_CREATE_RC, message);
 
-        processingBusinessActionRepository.save(businessAction);
-
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         return this.createSuccessResponse(businessAction);
@@ -63,8 +61,6 @@ public class RestDatabaseController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_UPDATE_RC, message);
 
-        processingBusinessActionRepository.save(businessAction);
-
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         return this.createSuccessResponse(businessAction);
@@ -82,8 +78,6 @@ public class RestDatabaseController extends CommonRestController {
         message.getParams().put("id", databaseId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_DELETE_RC, message);
-
-        processingBusinessActionRepository.save(businessAction);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

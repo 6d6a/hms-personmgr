@@ -43,8 +43,6 @@ public class RestDomainController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_CREATE_RC, message);
 
-        processingBusinessActionRepository.save(businessAction);
-
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         return this.createSuccessResponse(businessAction);
@@ -63,8 +61,6 @@ public class RestDomainController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, message);
 
-        processingBusinessActionRepository.save(businessAction);
-
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         return this.createSuccessResponse(businessAction);
@@ -82,8 +78,6 @@ public class RestDomainController extends CommonRestController {
         message.getParams().put("id", domainId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_DELETE_RC, message);
-
-        processingBusinessActionRepository.save(businessAction);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
