@@ -68,13 +68,14 @@ public class RestMailboxController extends CommonRestController {
     @RequestMapping(value = "/{mailboxId}", method = RequestMethod.DELETE)
     public SimpleServiceMessage delete(
             @PathVariable String mailboxId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(accountId);
+        message.addParam("mailboxId", mailboxId);
         message.setAccountId(accountId);
 
         logger.info("Deleting mailbox with id " + mailboxId + " " + message.toString());
-
-        message.getParams().put("id", mailboxId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.MAILBOX_DELETE_RC, message);
 
