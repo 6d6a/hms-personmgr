@@ -69,13 +69,14 @@ public class RestFtpUserController extends CommonRestController {
     @RequestMapping(value = "/{ftpuserId}", method = RequestMethod.DELETE)
     public SimpleServiceMessage delete(
             @PathVariable String ftpuserId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(accountId);
+        message.addParam("ftpuserId", ftpuserId);
         message.setAccountId(accountId);
 
         logger.info("Deleting ftpuser with id " + ftpuserId + " " + message.toString());
-
-        message.getParams().put("id", ftpuserId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.FTP_USER_DELETE_RC, message);
 

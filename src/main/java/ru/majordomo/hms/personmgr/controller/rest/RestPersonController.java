@@ -37,7 +37,6 @@ public class RestPersonController extends CommonRestController {
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
-            @RequestHeader(value = "x-hms-accountId", required = false) String headerAccountId,
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
@@ -54,7 +53,6 @@ public class RestPersonController extends CommonRestController {
     public SimpleServiceMessage update(
             @PathVariable String personId,
             @RequestBody SimpleServiceMessage message, HttpServletResponse response,
-            @RequestHeader(value = "x-hms-accountId", required = false) String headerAccountId,
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
@@ -72,14 +70,14 @@ public class RestPersonController extends CommonRestController {
     @RequestMapping(value = "/{personId}", method = RequestMethod.DELETE)
     public SimpleServiceMessage delete(
             @PathVariable String personId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
-            @RequestHeader(value = "x-hms-accountId", required = false) String headerAccountId,
+            HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(accountId);
+        message.addParam("personId", personId);
         message.setAccountId(accountId);
 
         logger.info("Deleting person with id " + personId + " " + message.toString());
-
-        message.getParams().put("id", personId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.PERSON_DELETE_RC, message);
 

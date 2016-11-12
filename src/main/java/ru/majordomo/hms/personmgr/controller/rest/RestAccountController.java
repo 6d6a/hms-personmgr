@@ -126,7 +126,7 @@ public class RestAccountController extends CommonRestController {
     ) {
         logger.info("Updating account with id " + accountId + " " + message.toString());
 
-        message.getParams().put("id", accountId);
+        message.addParam("accountId", accountId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_UPDATE_RC, message);
 
@@ -138,11 +138,14 @@ public class RestAccountController extends CommonRestController {
     @RequestMapping(value = "/{accountId}", method = RequestMethod.DELETE)
     public SimpleServiceMessage delete(
             @PathVariable String accountId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
+            HttpServletResponse response
     ) {
-        logger.info("Deleting account with id " + accountId + " " + message.toString());
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(accountId);
+        message.addParam("accountId", accountId);
+        message.setAccountId(accountId);
 
-        message.getParams().put("id", accountId);
+        logger.info("Deleting account with id " + accountId + " " + message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_DELETE_RC, message);
 

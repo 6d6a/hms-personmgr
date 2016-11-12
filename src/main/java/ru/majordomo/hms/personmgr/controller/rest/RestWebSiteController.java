@@ -67,13 +67,14 @@ public class RestWebSiteController extends CommonRestController {
     @RequestMapping(value = "/{websiteId}", method = RequestMethod.DELETE)
     public SimpleServiceMessage delete(
             @PathVariable String websiteId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(accountId);
+        message.addParam("websiteId", websiteId);
         message.setAccountId(accountId);
 
         logger.info("Deleting website with id " + websiteId + " " + message.toString());
-
-        message.getParams().put("id", websiteId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.WEB_SITE_DELETE_RC, message);
 

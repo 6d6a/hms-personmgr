@@ -69,13 +69,14 @@ public class RestDatabaseUserController extends CommonRestController {
     @RequestMapping(value = "/{databaseUserId}", method = RequestMethod.DELETE)
     public SimpleServiceMessage delete(
             @PathVariable String databaseUserId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(accountId);
+        message.addParam("databaseUserId", databaseUserId);
         message.setAccountId(accountId);
 
         logger.info("Deleting database user with id " + databaseUserId + " " + message.toString());
-
-        message.getParams().put("id", databaseUserId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_USER_DELETE_RC, message);
 
