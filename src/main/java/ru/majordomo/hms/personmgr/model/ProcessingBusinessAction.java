@@ -34,7 +34,7 @@ public class ProcessingBusinessAction extends BusinessAction {
 
     private ServiceMessageParams params;
 
-    private Map<String,Object> mapParams;
+    private Map<String,Object> mapParams = new HashMap<>();
 
     public ProcessingBusinessAction(BusinessAction businessAction) {
         super();
