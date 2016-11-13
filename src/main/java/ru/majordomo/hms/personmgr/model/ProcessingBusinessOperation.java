@@ -7,6 +7,7 @@ import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.State;
@@ -25,7 +26,7 @@ public class ProcessingBusinessOperation extends Step  {
     private LocalDateTime updatedDate;
 
     @JsonIgnore
-    private Map<String,Object> mapParams;
+    private Map<String,Object> mapParams = new HashMap<>();
 
     public ProcessingBusinessOperation() {
     }
