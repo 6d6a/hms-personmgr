@@ -69,13 +69,14 @@ public class RestDomainController extends CommonRestController {
     @RequestMapping(value = "/{domainId}", method = RequestMethod.DELETE)
     public SimpleServiceMessage delete(
             @PathVariable String domainId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(accountId);
+        message.addParam("domainId", domainId);
         message.setAccountId(accountId);
 
         logger.info("Deleting domain with id " + domainId + " " + message.toString());
-
-        message.getParams().put("id", domainId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_DELETE_RC, message);
 

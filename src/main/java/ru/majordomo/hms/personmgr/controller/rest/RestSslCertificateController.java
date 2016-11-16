@@ -69,13 +69,14 @@ public class RestSslCertificateController extends CommonRestController {
     @RequestMapping(value = "/{sslcertificateId}", method = RequestMethod.DELETE)
     public SimpleServiceMessage delete(
             @PathVariable String sslcertificateId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(accountId);
+        message.addParam("sslcertificateId", sslcertificateId);
         message.setAccountId(accountId);
 
         logger.info("Deleting sslcertificate with id " + sslcertificateId + " " + message.toString());
-
-        message.getParams().put("id", sslcertificateId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
 

@@ -36,7 +36,6 @@ public class BusinessActionProcessor {
             case AMQP:
                 AmqpMessageDestination amqpMessageDestination = (AmqpMessageDestination) action.getDestination();
                 amqpSender.send(amqpMessageDestination.getExchange(), amqpMessageDestination.getRoutingKey(), action.getMessage());
-                action.setState(State.PROCESSED);
 
                 break;
             case MAIL_MANAGER:

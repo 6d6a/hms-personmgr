@@ -69,13 +69,14 @@ public class RestUnixAccountController extends CommonRestController {
     @RequestMapping(value = "/{unixaccountId}", method = RequestMethod.DELETE)
     public SimpleServiceMessage delete(
             @PathVariable String unixaccountId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(accountId);
+        message.addParam("unixaccountId", unixaccountId);
         message.setAccountId(accountId);
 
         logger.info("Deleting unix account with id " + unixaccountId + " " + message.toString());
-
-        message.getParams().put("id", unixaccountId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_DELETE_RC, message);
 

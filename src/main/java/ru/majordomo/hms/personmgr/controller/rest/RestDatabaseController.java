@@ -74,7 +74,7 @@ public class RestDatabaseController extends CommonRestController {
 
         logger.info("Updating database with id " + databaseId + " " + message.toString());
 
-        message.getParams().put("id", databaseId);
+        message.addParam("databaseId", databaseId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_UPDATE_RC, message);
 
@@ -86,13 +86,14 @@ public class RestDatabaseController extends CommonRestController {
     @RequestMapping(value = "/{databaseId}", method = RequestMethod.DELETE)
     public SimpleServiceMessage delete(
             @PathVariable String databaseId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
+            HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(accountId);
+        message.addParam("databaseId", databaseId);
         message.setAccountId(accountId);
 
         logger.info("Deleting database with id " + databaseId + " " + message.toString());
-
-        message.getParams().put("id", databaseId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_DELETE_RC, message);
 
