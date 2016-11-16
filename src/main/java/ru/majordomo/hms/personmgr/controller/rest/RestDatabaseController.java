@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClientFallback;
 
 /**
  * RestDatabaseController
@@ -26,11 +26,18 @@ import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 public class RestDatabaseController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(RestDatabaseController.class);
 
-    @Autowired
-    private BusinessActionBuilder businessActionBuilder;
+    private final BusinessActionBuilder businessActionBuilder;
+
+    private final RcUserFeignClient rcUserFeignClient;
+
+    private final RcUserFeignClientFallback rcUserFeignClientFallback;
 
     @Autowired
-    private ProcessingBusinessActionRepository processingBusinessActionRepository;
+    public RestDatabaseController(BusinessActionBuilder businessActionBuilder, RcUserFeignClient rcUserFeignClient, RcUserFeignClientFallback rcUserFeignClientFallback) {
+        this.businessActionBuilder = businessActionBuilder;
+        this.rcUserFeignClient = rcUserFeignClient;
+        this.rcUserFeignClientFallback = rcUserFeignClientFallback;
+    }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
@@ -40,6 +47,16 @@ public class RestDatabaseController extends CommonRestController {
         message.setAccountId(accountId);
 
         logger.info(message.toString());
+
+        if (accountId != null) {
+            int currentDatabaseCount = rcUserFeignClient.getDatabaseCount(accountId);
+            int planDatabaseCount = rcUserFeignClientFallback.getDatabaseCount(accountId);
+            if (currentDatabaseCount >= planDatabaseCount) {
+                response.setStatus(HttpServletResponse.SC_CONFLICT);
+
+                return this.createErrorResponse("Plan limit for databases exceeded");
+            }
+        }
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_CREATE_RC, message);
 

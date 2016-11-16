@@ -68,7 +68,7 @@ public class PersonalAccountDBImportService {
     }
 
     public boolean importToMongo(String accountName) {
-        personalAccountRepository.deleteAll();
+//        personalAccountRepository.deleteAll();
         pull(accountName);
         pushToMongo();
         return true;
