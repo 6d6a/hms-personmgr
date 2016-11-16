@@ -42,9 +42,6 @@ spring:
         mongodb:
             uri: mongodb://personmgr:***REMOVED***@172.16.104.110:27017,172.16.104.111:27017,172.16.104.112:27017/personmgr?replicaSet=hms-rs0
     rabbitmq:
-        host: 172.16.104.98
+        host: localhost
         password: guest
         username: guest
-feign:
-  hystrix:
-    enabled: false
