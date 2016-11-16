@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.test.controller.rest;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.bson.types.ObjectId;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,7 +72,7 @@ public class RestPlanControllerTest {
             planProperties.setFtpLimit(new PlanPropertyLimit(i + 3));
             planProperties.setSshLimit(new PlanPropertyLimit(i + 1));
             planProperties.setPhpEnabled(true);
-            planProperties.setDb(Arrays.asList(new PlanPropertyDB(MYSQL)));
+            planProperties.setDb(ImmutableMap.of(MYSQL, new PlanPropertyLimit(i + 1)));
 
             plan.setPlanProperties(planProperties);
 
