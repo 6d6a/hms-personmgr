@@ -2,8 +2,8 @@ logging:
     level:
         org:
             springframework:
-                web: DEBUG
-                security: DEBUG
+                web: ERROR
+                security: ERROR
                 data:
                     mongodb:
                         core:
@@ -14,7 +14,7 @@ logging:
                 hms:
                     personmgr:
                         service:
-                            FinFeignClient: DEBUG
+                            FinFeignClient: ERROR
 security:
     oauth2:
         resource:
