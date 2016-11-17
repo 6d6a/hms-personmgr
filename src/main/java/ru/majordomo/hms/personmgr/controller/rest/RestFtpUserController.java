@@ -51,6 +51,9 @@ public class RestFtpUserController extends CommonRestController {
         if (accountId != null) {
             int currentFtpUserCount = rcUserFeignClient.getFtpUserCount(accountId);
             int planFtpUserCount = rcUserFeignClientFallback.getFtpUserCount(accountId);
+
+            logger.info("Checking websites limit. currentFtpUserCount " + currentFtpUserCount + " planFtpUserCount " + planFtpUserCount);
+
             if (currentFtpUserCount >= planFtpUserCount) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 

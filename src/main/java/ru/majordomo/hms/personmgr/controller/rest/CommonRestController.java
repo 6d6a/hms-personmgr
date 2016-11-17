@@ -18,7 +18,7 @@ public class CommonRestController {
 
     protected SimpleServiceMessage createErrorResponse(String errorMessage) {
         SimpleServiceMessage message = createResponse();
-        message = fillStatus(message, true);
+        message = fillStatus(message, false);
         message = fillErrorMessage(message, errorMessage);
 
         return message;
