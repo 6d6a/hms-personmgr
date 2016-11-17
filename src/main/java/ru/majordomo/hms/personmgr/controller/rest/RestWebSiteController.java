@@ -52,6 +52,9 @@ public class RestWebSiteController extends CommonRestController {
         if (accountId != null) {
             int currentWebsiteCount = rcUserFeignClient.getWebsiteCount(accountId);
             int planWebsiteCount = rcUserFeignClientFallback.getWebsiteCount(accountId);
+
+            logger.info("Checking websites limit. currentWebsiteCount " + currentWebsiteCount + " planWebsiteCount " + planWebsiteCount);
+
             if (currentWebsiteCount >= planWebsiteCount) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 

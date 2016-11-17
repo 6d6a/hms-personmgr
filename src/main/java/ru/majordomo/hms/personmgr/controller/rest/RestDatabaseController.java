@@ -51,6 +51,9 @@ public class RestDatabaseController extends CommonRestController {
         if (accountId != null) {
             int currentDatabaseCount = rcUserFeignClient.getDatabaseCount(accountId);
             int planDatabaseCount = rcUserFeignClientFallback.getDatabaseCount(accountId);
+
+            logger.info("Checking websites limit. currentDatabaseCount " + currentDatabaseCount + " planDatabaseCount " + planDatabaseCount);
+
             if (currentDatabaseCount >= planDatabaseCount) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 

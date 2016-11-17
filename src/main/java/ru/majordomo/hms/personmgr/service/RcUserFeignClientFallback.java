@@ -54,7 +54,7 @@ public class RcUserFeignClientFallback implements RcUserFeignClient {
     }
 
     private PlanProperties getPlanProperties(String accountId) {
-        PersonalAccount personalAccount = personalAccountRepository.findOne(accountId);
+        PersonalAccount personalAccount = personalAccountRepository.findByAccountId(accountId);
 
         if (personalAccount != null) {
             Plan plan = planRepository.findOne(personalAccount.getPlanId());
