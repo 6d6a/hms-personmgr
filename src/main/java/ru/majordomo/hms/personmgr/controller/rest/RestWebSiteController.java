@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.personmgr.common.message.*;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
@@ -50,12 +51,12 @@ public class RestWebSiteController extends CommonRestController {
         logger.info("Creating website: " + message.toString());
 
         if (accountId != null) {
-            int currentWebsiteCount = rcUserFeignClient.getWebsiteCount(accountId);
-            int planWebsiteCount = rcUserFeignClientFallback.getWebsiteCount(accountId);
+            Count currentWebsiteCount = rcUserFeignClient.getWebsiteCount(accountId);
+            Count planWebsiteCount = rcUserFeignClientFallback.getWebsiteCount(accountId);
 
             logger.info("Checking websites limit. currentWebsiteCount " + currentWebsiteCount + " planWebsiteCount " + planWebsiteCount);
 
-            if (currentWebsiteCount >= planWebsiteCount) {
+            if (currentWebsiteCount.compareTo(planWebsiteCount) >= 0) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
                 return this.createErrorResponse("Plan limit for websites exceeded");

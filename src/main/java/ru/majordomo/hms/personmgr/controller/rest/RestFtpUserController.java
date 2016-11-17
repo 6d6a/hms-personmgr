@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
@@ -49,12 +50,12 @@ public class RestFtpUserController extends CommonRestController {
         logger.info(message.toString());
 
         if (accountId != null) {
-            int currentFtpUserCount = rcUserFeignClient.getFtpUserCount(accountId);
-            int planFtpUserCount = rcUserFeignClientFallback.getFtpUserCount(accountId);
+            Count currentFtpUserCount = rcUserFeignClient.getFtpUserCount(accountId);
+            Count planFtpUserCount = rcUserFeignClientFallback.getFtpUserCount(accountId);
 
             logger.info("Checking websites limit. currentFtpUserCount " + currentFtpUserCount + " planFtpUserCount " + planFtpUserCount);
 
-            if (currentFtpUserCount >= planFtpUserCount) {
+            if (currentFtpUserCount.compareTo(planFtpUserCount) >= 0) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
                 return this.createErrorResponse("Plan limit for ftp-users exceeded");

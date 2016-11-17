@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.personmgr.common.DBType;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -21,40 +22,40 @@ public class RcUserFeignClientFallback implements RcUserFeignClient {
     private PlanRepository planRepository;
 
     @Override
-    public int getDatabaseCount(String accountId) {
+    public Count getDatabaseCount(String accountId) {
         VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) getPlanProperties(accountId);
 
         if (planProperties != null) {
-            return planProperties.getDb().get(DBType.MYSQL).getFreeLimit();
+            return new Count(planProperties.getDb().get(DBType.MYSQL).getFreeLimit());
         }
 
-        return 0;
+        return new Count();
     }
 
     @Override
-    public int getWebsiteCount(String accountId) {
+    public Count getWebsiteCount(String accountId) {
         VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) getPlanProperties(accountId);
 
         if (planProperties != null) {
-            return planProperties.getSitesLimit().getFreeLimit();
+            return new Count(planProperties.getSitesLimit().getFreeLimit());
         }
 
-        return 0;
+        return new Count();
     }
 
     @Override
-    public int getFtpUserCount(String accountId) {
+    public Count getFtpUserCount(String accountId) {
         VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) getPlanProperties(accountId);
 
         if (planProperties != null) {
-            return planProperties.getFtpLimit().getFreeLimit();
+            return new Count(planProperties.getFtpLimit().getFreeLimit());
         }
 
-        return 0;
+        return new Count();
     }
 
     private PlanProperties getPlanProperties(String accountId) {
-        PersonalAccount personalAccount = personalAccountRepository.findByAccountId(accountId);
+        PersonalAccount personalAccount = personalAccountRepository.findOne(accountId);
 
         if (personalAccount != null) {
             Plan plan = planRepository.findOne(personalAccount.getPlanId());
