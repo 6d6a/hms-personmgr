@@ -5,14 +5,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import ru.majordomo.hms.personmgr.common.Count;
+
 @FeignClient(name = "rc-user", fallback = RcUserFeignClientFallback.class)
 public interface RcUserFeignClient {
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/database/count", consumes = "application/json")
-    int getDatabaseCount(@PathVariable("accountId") String accountId);
+    Count getDatabaseCount(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/website/count", consumes = "application/json")
-    int getWebsiteCount(@PathVariable("accountId") String accountId);
+    Count getWebsiteCount(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/ftp-user/count", consumes = "application/json")
-    int getFtpUserCount(@PathVariable("accountId") String accountId);
+    Count getFtpUserCount(@PathVariable("accountId") String accountId);
 }

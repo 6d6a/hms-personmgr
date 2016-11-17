@@ -54,7 +54,7 @@ public class PersonalAccountDBImportService {
 
         Plan plan = planRepository.findByOldId(rs.getString("plan_id"));
         String planId = plan != null ? plan.getId() : null;
-        PersonalAccount personalAccount = new PersonalAccount(rs.getString("id"), rs.getString("client_id"), planId, rs.getString("name"), AccountType.VIRTUAL_HOSTING);
+        PersonalAccount personalAccount = new PersonalAccount(rs.getString("id"), rs.getString("id"), rs.getString("client_id"), planId, rs.getString("name"), AccountType.VIRTUAL_HOSTING);
         personalAccount.setSetting("notify_days", rs.getString("notify_days"));
         personalAccount.setSetting("credit", rs.getString("credit").equals("y") ? "1" : "0");
         return personalAccount;

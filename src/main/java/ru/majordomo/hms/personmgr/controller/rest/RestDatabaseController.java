@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
@@ -49,12 +50,12 @@ public class RestDatabaseController extends CommonRestController {
         logger.info(message.toString());
 
         if (accountId != null) {
-            int currentDatabaseCount = rcUserFeignClient.getDatabaseCount(accountId);
-            int planDatabaseCount = rcUserFeignClientFallback.getDatabaseCount(accountId);
+            Count currentDatabaseCount = rcUserFeignClient.getDatabaseCount(accountId);
+            Count planDatabaseCount = rcUserFeignClientFallback.getDatabaseCount(accountId);
 
             logger.info("Checking websites limit. currentDatabaseCount " + currentDatabaseCount + " planDatabaseCount " + planDatabaseCount);
 
-            if (currentDatabaseCount >= planDatabaseCount) {
+            if (currentDatabaseCount.compareTo(planDatabaseCount) >= 0) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
                 return this.createErrorResponse("Plan limit for databases exceeded");
