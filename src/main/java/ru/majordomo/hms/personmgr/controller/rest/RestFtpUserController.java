@@ -52,7 +52,7 @@ public class RestFtpUserController extends CommonRestController {
             int currentFtpUserCount = rcUserFeignClient.getFtpUserCount(accountId);
             int planFtpUserCount = rcUserFeignClientFallback.getFtpUserCount(accountId);
             if (currentFtpUserCount >= planFtpUserCount) {
-                response.setStatus(HttpServletResponse.SC_CONFLICT);
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
                 return this.createErrorResponse("Plan limit for ftp-users exceeded");
             }

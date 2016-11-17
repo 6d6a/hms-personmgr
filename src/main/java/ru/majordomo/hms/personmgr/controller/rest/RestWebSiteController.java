@@ -53,7 +53,7 @@ public class RestWebSiteController extends CommonRestController {
             int currentWebsiteCount = rcUserFeignClient.getWebsiteCount(accountId);
             int planWebsiteCount = rcUserFeignClientFallback.getWebsiteCount(accountId);
             if (currentWebsiteCount >= planWebsiteCount) {
-                response.setStatus(HttpServletResponse.SC_CONFLICT);
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
                 return this.createErrorResponse("Plan limit for websites exceeded");
             }
