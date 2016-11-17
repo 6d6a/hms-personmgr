@@ -52,7 +52,7 @@ public class RestDatabaseController extends CommonRestController {
             int currentDatabaseCount = rcUserFeignClient.getDatabaseCount(accountId);
             int planDatabaseCount = rcUserFeignClientFallback.getDatabaseCount(accountId);
             if (currentDatabaseCount >= planDatabaseCount) {
-                response.setStatus(HttpServletResponse.SC_CONFLICT);
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
                 return this.createErrorResponse("Plan limit for databases exceeded");
             }
