@@ -2,9 +2,7 @@ package ru.majordomo.hms.personmgr.model.plan;
 
 import org.springframework.data.annotation.PersistenceConstructor;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.DBType;
@@ -26,7 +24,9 @@ public class VirtualHostingPlanProperties extends PlanProperties {
 
     private PlanPropertyLimit sshLimit = new PlanPropertyLimit();
 
-    private boolean phpEnabled;
+    private boolean phpEnabled = false;
+
+    private boolean businessServices = false;
 
     private Map<DBType, PlanPropertyLimit> db = new HashMap<>();
 
@@ -34,7 +34,7 @@ public class VirtualHostingPlanProperties extends PlanProperties {
     }
 
     @PersistenceConstructor
-    public VirtualHostingPlanProperties(PlanPropertyLimit sitesLimit, PlanPropertyLimit webCpuLimit, PlanPropertyLimit dbCpuLimit, PlanPropertyLimit quotaKBLimit, PlanPropertyLimit ftpLimit, PlanPropertyLimit sshLimit, boolean phpEnabled, Map<DBType, PlanPropertyLimit> db) {
+    public VirtualHostingPlanProperties(PlanPropertyLimit sitesLimit, PlanPropertyLimit webCpuLimit, PlanPropertyLimit dbCpuLimit, PlanPropertyLimit quotaKBLimit, PlanPropertyLimit ftpLimit, PlanPropertyLimit sshLimit, boolean phpEnabled, boolean businessServices, Map<DBType, PlanPropertyLimit> db) {
         this.sitesLimit = sitesLimit;
         this.webCpuLimit = webCpuLimit;
         this.dbCpuLimit = dbCpuLimit;
@@ -42,6 +42,7 @@ public class VirtualHostingPlanProperties extends PlanProperties {
         this.ftpLimit = ftpLimit;
         this.sshLimit = sshLimit;
         this.phpEnabled = phpEnabled;
+        this.businessServices = businessServices;
         this.db = db;
     }
 
@@ -101,6 +102,14 @@ public class VirtualHostingPlanProperties extends PlanProperties {
         this.phpEnabled = phpEnabled;
     }
 
+    public boolean isBusinessServices() {
+        return businessServices;
+    }
+
+    public void setBusinessServices(boolean businessServices) {
+        this.businessServices = businessServices;
+    }
+
     public Map<DBType, PlanPropertyLimit> getDb() {
         return db;
     }
@@ -119,6 +128,7 @@ public class VirtualHostingPlanProperties extends PlanProperties {
                 ", ftpLimit=" + ftpLimit +
                 ", sshLimit=" + sshLimit +
                 ", phpEnabled=" + phpEnabled +
+                ", businessServices=" + businessServices +
                 ", db=" + db +
                 "} " + super.toString();
     }

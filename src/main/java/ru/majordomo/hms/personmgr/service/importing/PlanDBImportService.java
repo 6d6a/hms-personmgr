@@ -60,6 +60,10 @@ public class PlanDBImportService {
             planProperties.setSshLimit(new PlanPropertyLimit(-1));
             planProperties.setPhpEnabled(rs.getBoolean("apache"));
 
+            if (rs.getInt("Plan_ID") == 9806 || rs.getInt("Plan_ID") == 9807) {
+                planProperties.setBusinessServices(true);
+            }
+
             Map<DBType, PlanPropertyLimit> dbList = new HashMap<>();
             dbList.put(DBType.MYSQL, new PlanPropertyLimit(rs.getInt("db")));
 
@@ -100,6 +104,10 @@ public class PlanDBImportService {
                     planProperties.setSitesLimit(new PlanPropertyLimit(rs.getInt("sites")));
                     planProperties.setSshLimit(new PlanPropertyLimit(-1));
                     planProperties.setPhpEnabled(rs.getBoolean("apache"));
+
+                    if (rs.getInt("Plan_ID") == 9806 || rs.getInt("Plan_ID") == 9807) {
+                        planProperties.setBusinessServices(true);
+                    }
 
                     Map<DBType, PlanPropertyLimit> dbList = new HashMap<>();
                     dbList.put(DBType.MYSQL, new PlanPropertyLimit(rs.getInt("db")));
