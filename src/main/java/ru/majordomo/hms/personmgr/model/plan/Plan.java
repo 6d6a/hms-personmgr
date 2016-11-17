@@ -46,9 +46,10 @@ public class Plan extends BaseModel {
 
     @PersistenceConstructor
     public Plan(String id, String name, String internalName, String finServiceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties) {
+        super();
+        this.setId(id);
         this.finServiceId = finServiceId;
         this.oldId = oldId;
-        this.setId(id);
         this.name = name;
         this.internalName = internalName;
         this.accountType = accountType;
@@ -56,8 +57,8 @@ public class Plan extends BaseModel {
         this.planProperties = planProperties;
     }
 
-    @PersistenceConstructor
     public Plan(String name, String internalName, String finServiceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties) {
+        super();
         this.finServiceId = finServiceId;
         this.oldId = oldId;
         this.name = name;
