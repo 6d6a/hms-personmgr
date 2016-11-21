@@ -23,6 +23,6 @@ public interface RcUserFeignClient {
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/website/{webSiteId}", consumes = "application/json")
     WebSite getWebSite(@PathVariable("accountId") String accountId, @PathVariable("webSiteId") String webSiteId);
 
-    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/person?owner=true", consumes = "application/json")
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/person/owner", consumes = "application/json")
     Person getPersonOwner(@PathVariable("accountId") String accountId);
 }
