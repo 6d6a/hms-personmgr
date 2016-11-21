@@ -50,6 +50,7 @@ repositories {
     maven { url "http://repo.spring.io/libs-release" }
 }
 dependencies {
+    compile('ru.majordomo.hms.rc.user:resources:1+')
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
     compile('org.springframework.boot:spring-boot-starter-amqp')
 //    compile('org.springframework.boot:spring-boot-starter-data-redis')

@@ -38,4 +38,5 @@ public enum BusinessActionType {
     UNIX_ACCOUNT_CREATE_RC,
     UNIX_ACCOUNT_UPDATE_RC,
     UNIX_ACCOUNT_DELETE_RC,
+    SEO_ORDER_MM
 }

@@ -19,10 +19,12 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import ru.majordomo.hms.personmgr.event.AccountDomainEventListener;
 import ru.majordomo.hms.personmgr.event.AccountPromocodeEventListener;
+import ru.majordomo.hms.personmgr.event.AccountSeoOrderEventListener;
 import ru.majordomo.hms.personmgr.event.DomainTldEventListener;
 import ru.majordomo.hms.personmgr.event.PlanEventListener;
 import ru.majordomo.hms.personmgr.event.ProcessingBusinessActionEventListener;
 import ru.majordomo.hms.personmgr.event.PromocodeEventListener;
+import ru.majordomo.hms.personmgr.event.SeoEventListener;
 import ru.majordomo.hms.personmgr.service.importing.*;
 
 @SpringBootApplication
@@ -73,6 +75,9 @@ public class Application implements CommandLineRunner {
     @Autowired
     private AccountDomainDBImportService accountDomainDBImportService;
 
+    @Autowired
+    private SeoServiceDBSeedService seoServiceDBSeedService;
+
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
@@ -88,9 +93,12 @@ public class Application implements CommandLineRunner {
                 boolean seeded;
                 seeded = businessActionDBSeedService.seedDB();
                 sb.append(" ").append(seeded ? "businessFlow db_seeded" : "businessFlow db_not_seeded");
+//
+//                seeded = promocodeActionDBSeedService.seedDB();
+//                sb.append(" ").append(seeded ? "promocodeAction db_seeded" : "promocodeAction db_not_seeded");
 
-                seeded = promocodeActionDBSeedService.seedDB();
-                sb.append(" ").append(seeded ? "promocodeAction db_seeded" : "promocodeAction db_not_seeded");
+//                seeded = seoServiceDBSeedService.seedDB();
+//                sb.append(" ").append(seeded ? "seo db_seeded" : "seo db_not_seeded");
             } else if (option.equals(dbImportOption)) {
             boolean imported;
                 imported = personalAccountDBImportService.importToMongo("ac_100800");
@@ -151,6 +159,16 @@ public class Application implements CommandLineRunner {
     @Bean
     public PromocodeEventListener promocodeEventListener() {
         return new PromocodeEventListener();
+    }
+
+    @Bean
+    public SeoEventListener seoEventListener() {
+        return new SeoEventListener();
+    }
+
+    @Bean
+    public AccountSeoOrderEventListener accountSeoOrderEventListener() {
+        return new AccountSeoOrderEventListener();
     }
 
     @Bean
