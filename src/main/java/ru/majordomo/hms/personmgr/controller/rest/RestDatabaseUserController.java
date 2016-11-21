@@ -57,7 +57,7 @@ public class RestDatabaseUserController extends CommonRestController {
 
         logger.info("Updating database user with id " + databaseUserId + " " + message.toString());
 
-        message.getParams().put("id", databaseUserId);
+        message.getParams().put("resourceId", databaseUserId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
@@ -73,7 +73,7 @@ public class RestDatabaseUserController extends CommonRestController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(accountId);
-        message.addParam("databaseUserId", databaseUserId);
+        message.addParam("resourceId", databaseUserId);
         message.setAccountId(accountId);
 
         logger.info("Deleting database user with id " + databaseUserId + " " + message.toString());

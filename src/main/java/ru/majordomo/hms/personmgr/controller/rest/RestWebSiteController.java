@@ -79,7 +79,7 @@ public class RestWebSiteController extends CommonRestController {
 
         logger.info("Updating website with id " + websiteId + " " + message.toString());
 
-        message.getParams().put("id", websiteId);
+        message.getParams().put("resourceId", websiteId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.WEB_SITE_UPDATE_RC, message);
 
@@ -95,7 +95,7 @@ public class RestWebSiteController extends CommonRestController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(accountId);
-        message.addParam("websiteId", websiteId);
+        message.addParam("resourceId", websiteId);
         message.setAccountId(accountId);
 
         logger.info("Deleting website with id " + websiteId + " " + message.toString());
