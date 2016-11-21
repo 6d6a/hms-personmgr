@@ -16,10 +16,18 @@ public class CommonRestController {
         return message;
     }
 
+    protected SimpleServiceMessage createSuccessResponse(String successMessage) {
+        SimpleServiceMessage message = createResponse();
+        message = fillStatus(message, true);
+        message = fillTextMessage(message, "successMessage", successMessage);
+
+        return message;
+    }
+
     protected SimpleServiceMessage createErrorResponse(String errorMessage) {
         SimpleServiceMessage message = createResponse();
         message = fillStatus(message, false);
-        message = fillErrorMessage(message, errorMessage);
+        message = fillTextMessage(message, "errorMessage", errorMessage);
 
         return message;
     }
@@ -37,8 +45,8 @@ public class CommonRestController {
         return message;
     }
 
-    private SimpleServiceMessage fillErrorMessage(SimpleServiceMessage message, String errorMessage) {
-        message.addParam("errorMessage", errorMessage);
+    private SimpleServiceMessage fillTextMessage(SimpleServiceMessage message, String messageName, String messageText) {
+        message.addParam(messageName, messageText);
 
         return message;
     }

@@ -72,6 +72,8 @@ public class BusinessActionDBSeedService {
         this.seedUnixAccountUpdateActions();
         this.seedUnixAccountDeleteActions();
 
+        this.seedSeoOrderActions();
+
         logger.info("BusinessAction found with findAll():");
         logger.info("-------------------------------");
 
@@ -701,6 +703,24 @@ public class BusinessActionDBSeedService {
         amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedSeoOrderActions() {
+        BusinessAction action;
+        MailManagerMessageDestination mailManagerMessageDestination;
+
+        //Seo order
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.SEO_ORDER_MM);
+        action.setName("Seo order MM");
+
+        mailManagerMessageDestination = new MailManagerMessageDestination();
+
+        action.setDestination(mailManagerMessageDestination);
 
         action.setPriority(1);
 
