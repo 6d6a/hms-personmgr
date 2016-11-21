@@ -53,7 +53,7 @@ public class RestDatabaseController extends CommonRestController {
             Count currentDatabaseCount = rcUserFeignClient.getDatabaseCount(accountId);
             Count planDatabaseCount = rcUserFeignClientFallback.getDatabaseCount(accountId);
 
-            logger.info("Checking websites limit. currentDatabaseCount " + currentDatabaseCount + " planDatabaseCount " + planDatabaseCount);
+            logger.info("Checking limit for databases. currentDatabaseCount " + currentDatabaseCount + " planDatabaseCount " + planDatabaseCount);
 
             if (currentDatabaseCount.compareTo(planDatabaseCount) >= 0) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
@@ -78,7 +78,7 @@ public class RestDatabaseController extends CommonRestController {
 
         logger.info("Updating database with id " + databaseId + " " + message.toString());
 
-        message.addParam("databaseId", databaseId);
+        message.addParam("resourceId", databaseId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_UPDATE_RC, message);
 
@@ -94,7 +94,7 @@ public class RestDatabaseController extends CommonRestController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(accountId);
-        message.addParam("databaseId", databaseId);
+        message.addParam("resourceId", databaseId);
         message.setAccountId(accountId);
 
         logger.info("Deleting database with id " + databaseId + " " + message.toString());

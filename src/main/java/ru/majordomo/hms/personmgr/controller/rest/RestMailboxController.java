@@ -56,7 +56,7 @@ public class RestMailboxController extends CommonRestController {
 
         logger.info("Updating mailbox with id " + mailboxId + " " + message.toString());
 
-        message.getParams().put("id", mailboxId);
+        message.getParams().put("resourceId", mailboxId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
@@ -72,7 +72,7 @@ public class RestMailboxController extends CommonRestController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(accountId);
-        message.addParam("mailboxId", mailboxId);
+        message.addParam("resourceId", mailboxId);
         message.setAccountId(accountId);
 
         logger.info("Deleting mailbox with id " + mailboxId + " " + message.toString());

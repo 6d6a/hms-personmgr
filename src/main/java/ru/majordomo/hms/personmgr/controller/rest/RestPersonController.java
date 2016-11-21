@@ -58,7 +58,7 @@ public class RestPersonController extends CommonRestController {
 
         logger.info("Updating person with id " + personId + " " + message.toString());
 
-        message.getParams().put("id", personId);
+        message.getParams().put("resourceId", personId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.PERSON_UPDATE_RC, message);
 
@@ -74,7 +74,7 @@ public class RestPersonController extends CommonRestController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(accountId);
-        message.addParam("personId", personId);
+        message.addParam("resourceId", personId);
         message.setAccountId(accountId);
 
         logger.info("Deleting person with id " + personId + " " + message.toString());

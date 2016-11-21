@@ -57,7 +57,7 @@ public class RestDomainController extends CommonRestController {
 
         logger.info("Updating domain with id " + domainId + " " + message.toString());
 
-        message.getParams().put("id", domainId);
+        message.getParams().put("resourceId", domainId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, message);
 
@@ -73,7 +73,7 @@ public class RestDomainController extends CommonRestController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(accountId);
-        message.addParam("domainId", domainId);
+        message.addParam("resourceId", domainId);
         message.setAccountId(accountId);
 
         logger.info("Deleting domain with id " + domainId + " " + message.toString());

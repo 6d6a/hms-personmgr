@@ -78,7 +78,7 @@ public class RestFtpUserController extends CommonRestController {
 
         logger.info("Updating ftpuser with id " + ftpuserId + " " + message.toString());
 
-        message.getParams().put("id", ftpuserId);
+        message.getParams().put("resourceId", ftpuserId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.FTP_USER_UPDATE_RC, message);
 
@@ -94,7 +94,7 @@ public class RestFtpUserController extends CommonRestController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(accountId);
-        message.addParam("ftpuserId", ftpuserId);
+        message.addParam("resourceId", ftpuserId);
         message.setAccountId(accountId);
 
         logger.info("Deleting ftpuser with id " + ftpuserId + " " + message.toString());

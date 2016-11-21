@@ -57,7 +57,7 @@ public class RestUnixAccountController extends CommonRestController {
 
         logger.info("Updating unix account with id " + unixaccountId + " " + message.toString());
 
-        message.getParams().put("id", unixaccountId);
+        message.getParams().put("resourceId", unixaccountId);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
@@ -73,7 +73,7 @@ public class RestUnixAccountController extends CommonRestController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(accountId);
-        message.addParam("unixaccountId", unixaccountId);
+        message.addParam("resourceId", unixaccountId);
         message.setAccountId(accountId);
 
         logger.info("Deleting unix account with id " + unixaccountId + " " + message.toString());
