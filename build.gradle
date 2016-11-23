@@ -94,11 +94,17 @@ dependencyManagement {
 
 task buildDocker(type: Docker, dependsOn: build) {
     def dockerDir = "docker"
+    def entryPoint = entryPoint_nondebug
     def git = org.ajoberstar.grgit.Grgit.open(file('.'))
     tagVersion = git.branch.getCurrent().getName().replaceAll("refs/heads/", "")
     if (tagVersion == "HEAD") {
         // в gitlab-runner после пулла branch.getCurrent() указывает всегда на HEAD в любой ветке
         tagVersion = project.projectBranch
+    }
+    if(project.hasProperty('debug')) {
+        if(project.debug == "yes") {
+            entryPoint = entryPoint_debug
+        }
     }
     push = true
     project.group = "docker-registry.intr/" + project.group
@@ -108,7 +114,7 @@ task buildDocker(type: Docker, dependsOn: build) {
         copy {
             from "${dockerDir}/Dockerfile"
             into buildDir
-            expand(jarBuildName: jar.getArchiveName(), projectName: project.name)
+            expand(jarBuildName: jar.getArchiveName(), projectName: project.name, entryPoint: entryPoint)
         }
         copy {
             from jar
