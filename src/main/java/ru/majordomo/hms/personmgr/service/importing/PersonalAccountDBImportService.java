@@ -37,14 +37,14 @@ public class PersonalAccountDBImportService {
     }
 
     private void pull() {
-        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days FROM account a LEFT JOIN Money m ON a.id = m.acc_id";
-        personalAccounts = jdbcTemplate.query(query, this::rowMap);
+        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days FROM account a LEFT JOIN Money m ON a.id = m.acc_id ORDER BY a.id ASC";
+        jdbcTemplate.query(query, this::rowMap);
     }
 
-    private void pull(String accountName) {
-        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days FROM account a LEFT JOIN Money m ON a.id = m.acc_id WHERE name = ?";
-        personalAccounts = jdbcTemplate.query(query,
-                new Object[] { accountName },
+    private void pull(String accountId) {
+        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days FROM account a LEFT JOIN Money m ON a.id = m.acc_id WHERE id = ?";
+        jdbcTemplate.query(query,
+                new Object[] { accountId },
                 this::rowMap
         );
     }
@@ -52,11 +52,20 @@ public class PersonalAccountDBImportService {
     private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
         logger.info("Found PersonalAccount " + rs.getString("name"));
 
+        PersonalAccount personalAccount = new PersonalAccount();
+
         Plan plan = planRepository.findByOldId(rs.getString("plan_id"));
-        String planId = plan != null ? plan.getId() : null;
-        PersonalAccount personalAccount = new PersonalAccount(rs.getString("id"), rs.getString("id"), rs.getString("client_id"), planId, rs.getString("name"), AccountType.VIRTUAL_HOSTING);
-        personalAccount.setSetting("notify_days", rs.getString("notify_days"));
-        personalAccount.setSetting("credit", rs.getString("credit").equals("y") ? "1" : "0");
+
+        if (plan != null) {
+            personalAccount = new PersonalAccount(rs.getString("id"), rs.getString("id"), rs.getString("client_id"), plan.getId(), rs.getString("name"), AccountType.VIRTUAL_HOSTING);
+            personalAccount.setSetting("notify_days", rs.getString("notify_days"));
+            personalAccount.setSetting("credit", rs.getString("credit").equals("y") ? "1" : "0");
+
+            personalAccounts.add(personalAccount);
+        } else {
+            logger.info("Plan not found account: " + rs.getString("acc_id") + " planId: " + rs.getString("plan_id"));
+        }
+
         return personalAccount;
     }
 
@@ -67,9 +76,14 @@ public class PersonalAccountDBImportService {
         return true;
     }
 
-    public boolean importToMongo(String accountName) {
-//        personalAccountRepository.deleteAll();
-        pull(accountName);
+    public boolean importToMongo(String accountId) {
+        PersonalAccount account = personalAccountRepository.findByAccountId(accountId);
+
+        if (account != null) {
+            personalAccountRepository.delete(account);
+        }
+
+        pull(accountId);
         pushToMongo();
         return true;
     }

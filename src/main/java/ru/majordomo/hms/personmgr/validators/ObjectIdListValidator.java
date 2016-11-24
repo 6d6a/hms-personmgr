@@ -36,20 +36,24 @@ class ObjectIdListValidator implements ConstraintValidator<ObjectIdList, List<St
 
     @Override
     public boolean isValid(List<String> items, ConstraintValidatorContext constraintValidatorContext) {
-        for (String next : items) {
-            try {
-                boolean foundObject;
-                if (!collection.equals("")) {
-                    foundObject = operations.exists(new Query(where("_id").is(next)), this.objectModel, collection);
-                } else {
-                    foundObject = operations.exists(new Query(where("_id").is(next)), this.objectModel);
-                }
+        if (items == null || items.isEmpty()) {
+            return true;
+        } else {
+            for (String next : items) {
+                try {
+                    boolean foundObject;
+                    if (!collection.equals("")) {
+                        foundObject = operations.exists(new Query(where("_id").is(next)), this.objectModel, collection);
+                    } else {
+                        foundObject = operations.exists(new Query(where("_id").is(next)), this.objectModel);
+                    }
 
-                if (!foundObject) {
+                    if (!foundObject) {
+                        return false;
+                    }
+                } catch (RuntimeException e) {
                     return false;
                 }
-            } catch (RuntimeException e) {
-                return false;
             }
         }
 

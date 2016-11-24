@@ -49,6 +49,13 @@ repositories {
     maven { url "http://repo.maven.apache.org/maven2" }
     maven { url "http://repo.spring.io/libs-release" }
 }
+
+configurations {
+    compile.exclude module: "spring-boot-starter-tomcat"
+    compile.exclude module: "hystrix-core"
+    compile.exclude module: "feign-hystrix"
+}
+
 dependencies {
     compile('ru.majordomo.hms.rc.user:resources:1+')
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
@@ -59,6 +66,7 @@ dependencies {
     compile('org.springframework.boot:spring-boot-starter-web')
     compile('org.springframework.boot:spring-boot-starter-web-services')
     compile("org.springframework.boot:spring-boot-starter-cache")
+    compile("org.springframework.boot:spring-boot-starter-jetty")
 
     compile('org.springframework.cloud:spring-cloud-starter-eureka')
     compile('org.springframework.cloud:spring-cloud-starter-feign')
