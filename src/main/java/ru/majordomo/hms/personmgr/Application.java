@@ -18,6 +18,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 
 import ru.majordomo.hms.personmgr.event.AbonementEventListener;
+import ru.majordomo.hms.personmgr.event.AccountAbonementEventListener;
 import ru.majordomo.hms.personmgr.event.AccountDomainEventListener;
 import ru.majordomo.hms.personmgr.event.AccountPromocodeEventListener;
 import ru.majordomo.hms.personmgr.event.AccountSeoOrderEventListener;
@@ -188,6 +189,11 @@ public class Application implements CommandLineRunner {
     @Bean
     public AbonementEventListener abonementEventListener() {
         return new AbonementEventListener();
+    }
+
+    @Bean
+    public AccountAbonementEventListener accountAbonementEventListener() {
+        return new AccountAbonementEventListener();
     }
 
     @Bean

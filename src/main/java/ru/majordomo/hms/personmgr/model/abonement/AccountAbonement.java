@@ -22,7 +22,6 @@ public class AccountAbonement extends ModelBelongsToPersonalAccount {
     @NotNull
     private LocalDateTime created;
 
-    @NotNull
     private LocalDateTime expired;
 
     @NotNull

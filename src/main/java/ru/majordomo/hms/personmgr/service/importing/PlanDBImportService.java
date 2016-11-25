@@ -153,6 +153,7 @@ public class PlanDBImportService {
 
     public boolean importToMongo() {
         planRepository.deleteAll();
+        abonementRepository.deleteAll();
         pull();
         pushToMongo();
         return true;
@@ -162,6 +163,9 @@ public class PlanDBImportService {
         Plan plan = planRepository.findOne(planId);
 
         if (plan != null) {
+            for (Abonement abonement : plan.getAbonements()) {
+                abonementRepository.delete(abonement);
+            }
             planRepository.delete(plan);
         }
 

@@ -118,39 +118,39 @@ public class RestAccountController extends CommonRestController {
 
         return this.createSuccessResponse(businessAction);
     }
-
-    @RequestMapping(value = "/{accountId}", method = RequestMethod.PATCH)
-    public SimpleServiceMessage update(
-            @PathVariable String accountId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
-        logger.info("Updating account with id " + accountId + " " + message.toString());
-
-        message.addParam("accountId", accountId);
-
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_UPDATE_RC, message);
-
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
-        return this.createSuccessResponse(businessAction);
-    }
-
-    @RequestMapping(value = "/{accountId}", method = RequestMethod.DELETE)
-    public SimpleServiceMessage delete(
-            @PathVariable String accountId,
-            HttpServletResponse response
-    ) {
-        SimpleServiceMessage message = new SimpleServiceMessage();
-        message.setAccountId(accountId);
-        message.addParam("accountId", accountId);
-        message.setAccountId(accountId);
-
-        logger.info("Deleting account with id " + accountId + " " + message.toString());
-
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_DELETE_RC, message);
-
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
-        return this.createSuccessResponse(businessAction);
-    }
+//
+//    @RequestMapping(value = "/{accountId}", method = RequestMethod.PATCH)
+//    public SimpleServiceMessage update(
+//            @PathVariable String accountId,
+//            @RequestBody SimpleServiceMessage message, HttpServletResponse response
+//    ) {
+//        logger.info("Updating account with id " + accountId + " " + message.toString());
+//
+//        message.addParam("accountId", accountId);
+//
+//        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_UPDATE_RC, message);
+//
+//        response.setStatus(HttpServletResponse.SC_ACCEPTED);
+//
+//        return this.createSuccessResponse(businessAction);
+//    }
+//
+//    @RequestMapping(value = "/{accountId}", method = RequestMethod.DELETE)
+//    public SimpleServiceMessage delete(
+//            @PathVariable String accountId,
+//            HttpServletResponse response
+//    ) {
+//        SimpleServiceMessage message = new SimpleServiceMessage();
+//        message.setAccountId(accountId);
+//        message.addParam("accountId", accountId);
+//        message.setAccountId(accountId);
+//
+//        logger.info("Deleting account with id " + accountId + " " + message.toString());
+//
+//        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_DELETE_RC, message);
+//
+//        response.setStatus(HttpServletResponse.SC_ACCEPTED);
+//
+//        return this.createSuccessResponse(businessAction);
+//    }
 }

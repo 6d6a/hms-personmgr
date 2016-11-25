@@ -51,7 +51,7 @@ public class AccountAbonementDBImportService {
     public void pull() {
         accountAbonementRepository.deleteAll();
 
-        String query = "SELECT a.acc_id, a.day_buy, a.date_end, aa.auto FROM abonement a LEFT JOIN abt_auto_buy aa USING(acc_id)";
+        String query = "SELECT a.acc_id, a.day_buy, a.date_end, aa.auto FROM abonement a LEFT JOIN abt_auto_buy aa USING(acc_id) WHERE 1 ORDER BY a.acc_id ASC";
 
         jdbcTemplate.query(query, this::rowMap);
     }
@@ -59,7 +59,7 @@ public class AccountAbonementDBImportService {
     public void pull(String accountId) {
         accountAbonementRepository.deleteAll();
 
-        String query = "SELECT a.acc_id, a.day_buy, a.date_end, aa.auto FROM abonement a LEFT JOIN abt_auto_buy aa USING(acc_id) WHERE acc_id = :acc_id";
+        String query = "SELECT a.acc_id, a.day_buy, a.date_end, aa.auto FROM abonement a LEFT JOIN abt_auto_buy aa USING(acc_id) WHERE a.acc_id = :acc_id ORDER BY a.acc_id ASC";
         SqlParameterSource namedParameters = new MapSqlParameterSource("acc_id", accountId);
 
         jdbcTemplate.query(query, namedParameters, this::rowMap);
@@ -71,19 +71,25 @@ public class AccountAbonementDBImportService {
         PersonalAccount account = personalAccountRepository.findByAccountId(rs.getString("acc_id"));
 
         if (account != null) {
+            logger.info("Found account: " + rs.getString("acc_id"));
+
             Plan plan = planRepository.findOne(account.getPlanId());
 
             if (plan != null) {
                 accountAbonement.setPersonalAccountId(account.getId());
 
-                accountAbonement.setCreated(LocalDateTime.of(rs.getDate("day_buy").toLocalDate(), LocalTime.MAX));
-                //TODO Обработать даты 0000-00-00 (подумать что делать с неактивированными абонементами)
-                accountAbonement.setExpired(LocalDateTime.of(rs.getDate("date_end").toLocalDate(), LocalTime.MAX));
+                try {
+                    accountAbonement.setCreated(LocalDateTime.of(rs.getDate("day_buy").toLocalDate(), LocalTime.MAX));
+                    accountAbonement.setExpired(LocalDateTime.of(rs.getDate("date_end").toLocalDate(), LocalTime.MAX));
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+
                 accountAbonement.setAutorenew(rs.getString("auto") != null);
 
                 accountAbonement.setAbonementId(plan.getAbonementIds().get(0));
 
-                logger.info("Found accountAbonement for account: " + rs.getString("acc_id") + " accountAbonement: "+ accountAbonement);
+                logger.info("Found accountAbonement for account: " + rs.getString("acc_id") + " accountAbonement: " + accountAbonement);
 
                 accountAbonements.add(accountAbonement);
             } else {

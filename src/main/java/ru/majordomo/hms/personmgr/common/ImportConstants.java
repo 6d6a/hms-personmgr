@@ -48,7 +48,7 @@ public class ImportConstants {
         DOMAIN_CATEGORY_MAP.put("thematic", DomainCategory.THEMATIC);
         DOMAIN_CATEGORY_MAP.put("geo", DomainCategory.GEO);
 
-        DOMAIN_REGISTRATOR_MAP.put(1, DomainRegistrator.REGISTRANT);
+        DOMAIN_REGISTRATOR_MAP.put(1, DomainRegistrator.NETHOUSE);
         DOMAIN_REGISTRATOR_MAP.put(2, DomainRegistrator.R01);
         DOMAIN_REGISTRATOR_MAP.put(3, DomainRegistrator.RUCENTER);
         DOMAIN_REGISTRATOR_MAP.put(4, DomainRegistrator.ENOM);
@@ -58,7 +58,7 @@ public class ImportConstants {
         DOMAIN_REGISTRATOR_MAP.put(8, DomainRegistrator.REGRU);
         DOMAIN_REGISTRATOR_MAP.put(9, DomainRegistrator.WEBNAMES);
 
-        DOMAIN_REGISTRATOR_STRING_MAP.put("Registrant", DomainRegistrator.REGISTRANT);
+        DOMAIN_REGISTRATOR_STRING_MAP.put("Registrant", DomainRegistrator.NETHOUSE);
         DOMAIN_REGISTRATOR_STRING_MAP.put("GPT", DomainRegistrator.R01);
         DOMAIN_REGISTRATOR_STRING_MAP.put("RUCENTER", DomainRegistrator.RUCENTER);
         DOMAIN_REGISTRATOR_STRING_MAP.put("Enom", DomainRegistrator.ENOM);
@@ -67,7 +67,7 @@ public class ImportConstants {
         DOMAIN_REGISTRATOR_STRING_MAP.put("RegRu", DomainRegistrator.REGRU);
         DOMAIN_REGISTRATOR_STRING_MAP.put("Webnames", DomainRegistrator.WEBNAMES);
 
-        DOMAIN_REGISTRATOR_NAME_MAP.put(1, "Регистрант");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(1, "Nethouse");
         DOMAIN_REGISTRATOR_NAME_MAP.put(2, "R01");
         DOMAIN_REGISTRATOR_NAME_MAP.put(3, "RU-CENTER");
         DOMAIN_REGISTRATOR_NAME_MAP.put(4, "Enom");
