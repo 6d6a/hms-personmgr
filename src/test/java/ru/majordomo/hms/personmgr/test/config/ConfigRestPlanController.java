@@ -6,7 +6,6 @@ import com.mongodb.Mongo;
 import org.bson.types.ObjectId;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
 import org.springframework.boot.context.embedded.jetty.JettyEmbeddedServletContainerFactory;
-import org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
@@ -21,7 +20,7 @@ import ru.majordomo.hms.personmgr.controller.rest.RestPlanController;
 public class ConfigRestPlanController extends AbstractMongoConfiguration {
     @Bean
     public EmbeddedServletContainerFactory embeddedServletContainerFactory() {
-        return new TomcatEmbeddedServletContainerFactory(0);
+        return new JettyEmbeddedServletContainerFactory(0);
     }
 
     @Bean
