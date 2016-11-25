@@ -7,8 +7,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
-import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -20,15 +18,15 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.AbonementType;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.DBType;
-import ru.majordomo.hms.personmgr.common.FinService;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanPropertyLimit;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
 
 import static ru.majordomo.hms.personmgr.common.StringConstants.PLAN_SERVICE_ABONEMENT_PREFIX;
 import static ru.majordomo.hms.personmgr.common.StringConstants.PLAN_SERVICE_PREFIX;
@@ -43,15 +41,15 @@ public class PlanDBImportService {
     private JdbcTemplate jdbcTemplate;
     private PlanRepository planRepository;
     private AbonementRepository abonementRepository;
-    private FinFeignClient finFeignClient;
+    private PaymentServiceRepository paymentServiceRepository;
     private List<Plan> planList = new ArrayList<>();
 
     @Autowired
-    public PlanDBImportService(JdbcTemplate jdbcTemplate, PlanRepository planRepository, AbonementRepository abonementRepository, FinFeignClient finFeignClient) {
+    public PlanDBImportService(JdbcTemplate jdbcTemplate, PlanRepository planRepository, AbonementRepository abonementRepository, PaymentServiceRepository paymentServiceRepository) {
         this.jdbcTemplate = jdbcTemplate;
         this.planRepository = planRepository;
         this.abonementRepository = abonementRepository;
-        this.finFeignClient = finFeignClient;
+        this.paymentServiceRepository = paymentServiceRepository;
     }
 
     public void pull() {
@@ -94,20 +92,20 @@ public class PlanDBImportService {
 
         planProperties.setDb(dbList);
 
-        FinService finService = new FinService();
-        finService.setPaymentType(ServicePaymentType.MONTH);
-        finService.setAccountType(AccountType.VIRTUAL_HOSTING);
-        finService.setActive(rs.getBoolean("active"));
-        finService.setCost(rs.getBigDecimal("cost"));
-        finService.setLimit(1);
-        finService.setOldId(PLAN_SERVICE_PREFIX + rs.getString("Plan_ID"));
-        finService.setName(rs.getString("username"));
+        PaymentService paymentService = new PaymentService();
+        paymentService.setPaymentType(ServicePaymentType.MONTH);
+        paymentService.setAccountType(AccountType.VIRTUAL_HOSTING);
+        paymentService.setActive(rs.getBoolean("active"));
+        paymentService.setCost(rs.getBigDecimal("cost"));
+        paymentService.setLimit(1);
+        paymentService.setOldId(PLAN_SERVICE_PREFIX + rs.getString("Plan_ID"));
+        paymentService.setName(rs.getString("username"));
 
-        finService = finFeignClient.createService(finService);
+        paymentServiceRepository.save(paymentService);
 
-        logger.info("finService " + finService.toString());
+        logger.info("paymentService " + paymentService.toString());
 
-        String finServiceId = finService.getId();
+        String finServiceId = paymentService.getId();
 
         String abonementName = rs.getString("username") + " (годовой абонемент)";
 
@@ -117,20 +115,20 @@ public class PlanDBImportService {
             abonementCost = rs.getBigDecimal("cost").multiply(BigDecimal.valueOf(12L)).setScale(0, BigDecimal.ROUND_FLOOR);
         }
 
-        finService = new FinService();
-        finService.setPaymentType(ServicePaymentType.ONE_TIME);
-        finService.setAccountType(AccountType.VIRTUAL_HOSTING);
-        finService.setActive(rs.getBoolean("active"));
-        finService.setCost(abonementCost);
-        finService.setLimit(1);
-        finService.setOldId(PLAN_SERVICE_ABONEMENT_PREFIX + rs.getString("Plan_ID"));
-        finService.setName(abonementName);
+        paymentService = new PaymentService();
+        paymentService.setPaymentType(ServicePaymentType.ONE_TIME);
+        paymentService.setAccountType(AccountType.VIRTUAL_HOSTING);
+        paymentService.setActive(rs.getBoolean("active"));
+        paymentService.setCost(abonementCost);
+        paymentService.setLimit(1);
+        paymentService.setOldId(PLAN_SERVICE_ABONEMENT_PREFIX + rs.getString("Plan_ID"));
+        paymentService.setName(abonementName);
 
-        finService = finFeignClient.createService(finService);
+        paymentServiceRepository.save(paymentService);
 
-        logger.info("AbonementFinService " + finService.toString());
+        logger.info("AbonementFinService " + paymentService.toString());
 
-        String AbonementFinServiceId = finService.getId();
+        String AbonementFinServiceId = paymentService.getId();
 
         Abonement abonement = new Abonement();
         abonement.setFinServiceId(AbonementFinServiceId);

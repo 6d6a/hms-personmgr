@@ -7,8 +7,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import ru.majordomo.hms.personmgr.common.DomainCategory;
 import ru.majordomo.hms.personmgr.common.DomainRegistrator;
-import ru.majordomo.hms.personmgr.common.FinService;
 import ru.majordomo.hms.personmgr.model.BaseModel;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 
 import javax.validation.constraints.NotNull;
 
@@ -53,10 +53,10 @@ public class DomainTld extends BaseModel {
     private String renewServiceId;
 
     @Transient
-    private FinService registrationService;
+    private PaymentService registrationService;
 
     @Transient
-    private FinService renewService;
+    private PaymentService renewService;
 
     @Transient
     private String encodedTld;
@@ -178,19 +178,19 @@ public class DomainTld extends BaseModel {
         this.renewServiceId = renewServiceId;
     }
 
-    public FinService getRegistrationService() {
+    public PaymentService getRegistrationService() {
         return registrationService;
     }
 
-    public void setRegistrationService(FinService registrationService) {
+    public void setRegistrationService(PaymentService registrationService) {
         this.registrationService = registrationService;
     }
 
-    public FinService getRenewService() {
+    public PaymentService getRenewService() {
         return renewService;
     }
 
-    public void setRenewService(FinService renewService) {
+    public void setRenewService(PaymentService renewService) {
         this.renewService = renewService;
     }
 

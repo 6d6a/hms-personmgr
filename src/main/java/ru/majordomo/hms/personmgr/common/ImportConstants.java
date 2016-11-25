@@ -1,7 +1,9 @@
 package ru.majordomo.hms.personmgr.common;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_CHANGE_ACCOUNT_PASSWORD;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_CHANGE_FTP_PASSWORD;
@@ -31,6 +33,9 @@ public class ImportConstants {
     public static final Map<Integer, DomainRegistrator> DOMAIN_REGISTRATOR_MAP = new HashMap<>();
     public static final Map<String, DomainRegistrator> DOMAIN_REGISTRATOR_STRING_MAP = new HashMap<>();
     public static final Map<Integer, String> DOMAIN_REGISTRATOR_NAME_MAP = new HashMap<>();
+
+    public static final Set<Integer> notNeededServiceIds = new HashSet<>();
+    public static final Set<Integer> optionallyFreeServiceIds = new HashSet<>();
 
     static {
         MANAGER_MESSAGE_TYPE_MAP.put(24, SMS_NO_MONEY_TO_AUTORENEW_DOMAIN);
@@ -76,6 +81,23 @@ public class ImportConstants {
         DOMAIN_REGISTRATOR_NAME_MAP.put(7, "Ukrnames");
         DOMAIN_REGISTRATOR_NAME_MAP.put(8, "РЕГ.РУ");
         DOMAIN_REGISTRATOR_NAME_MAP.put(9, "Webnames");
+
+        notNeededServiceIds.add(1);
+        notNeededServiceIds.add(2);
+        notNeededServiceIds.add(3);
+        notNeededServiceIds.add(5);
+        notNeededServiceIds.add(7);
+        notNeededServiceIds.add(8);
+        notNeededServiceIds.add(10);
+        notNeededServiceIds.add(11);
+        notNeededServiceIds.add(14);
+        notNeededServiceIds.add(16);
+        notNeededServiceIds.add(17);
+        notNeededServiceIds.add(19);
+        notNeededServiceIds.add(21);
+
+        optionallyFreeServiceIds.add(13);
+        optionallyFreeServiceIds.add(18);
     }
 
 

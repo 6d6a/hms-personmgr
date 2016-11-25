@@ -6,9 +6,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import javax.validation.constraints.NotNull;
 
-import ru.majordomo.hms.personmgr.common.FinService;
 import ru.majordomo.hms.personmgr.common.SeoType;
 import ru.majordomo.hms.personmgr.model.BaseModel;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 
 @Document
 public class Seo extends BaseModel {
@@ -21,7 +21,7 @@ public class Seo extends BaseModel {
     private String finServiceId;
 
     @Transient
-    private FinService service;
+    private PaymentService service;
 
     public Seo() {
     }
@@ -59,11 +59,11 @@ public class Seo extends BaseModel {
         this.finServiceId = finServiceId;
     }
 
-    public FinService getService() {
+    public PaymentService getService() {
         return service;
     }
 
-    public void setService(FinService service) {
+    public void setService(PaymentService service) {
         this.service = service;
     }
 

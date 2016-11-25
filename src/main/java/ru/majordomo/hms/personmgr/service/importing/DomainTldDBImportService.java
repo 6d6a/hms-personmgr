@@ -17,11 +17,11 @@ import javax.validation.ConstraintViolationException;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.DomainCategory;
-import ru.majordomo.hms.personmgr.common.FinService;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 
 import static ru.majordomo.hms.personmgr.common.ImportConstants.DOMAIN_CATEGORY_MAP;
 import static ru.majordomo.hms.personmgr.common.ImportConstants.DOMAIN_REGISTRATOR_MAP;
@@ -36,14 +36,14 @@ public class DomainTldDBImportService {
 
     private DomainTldRepository domainTldRepository;
     private NamedParameterJdbcTemplate jdbcTemplate;
-    private FinFeignClient finFeignClient;
+    private PaymentServiceRepository paymentServiceRepository;
     private List<DomainTld> domainTlds = new ArrayList<>();
 
     @Autowired
-    public DomainTldDBImportService(@Qualifier("billing2NamedParameterJdbcTemplate") NamedParameterJdbcTemplate billing2NamedParameterJdbcTemplate, DomainTldRepository domainTldRepository, FinFeignClient finFeignClient) {
+    public DomainTldDBImportService(@Qualifier("billing2NamedParameterJdbcTemplate") NamedParameterJdbcTemplate billing2NamedParameterJdbcTemplate, DomainTldRepository domainTldRepository, PaymentServiceRepository paymentServiceRepository) {
         this.jdbcTemplate = billing2NamedParameterJdbcTemplate;
         this.domainTldRepository = domainTldRepository;
-        this.finFeignClient = finFeignClient;
+        this.paymentServiceRepository = paymentServiceRepository;
     }
 
     public void pull() {
@@ -71,33 +71,33 @@ public class DomainTldDBImportService {
                 domainTld.setDomainCategory(DomainCategory.NONE);
             }
 
-            FinService finService = new FinService();
-            finService.setPaymentType(ServicePaymentType.ONE_TIME);
-            finService.setAccountType(AccountType.VIRTUAL_HOSTING);
-            finService.setActive(domainTld.isActive());
-            finService.setCost(rs.getBigDecimal("registration_cost"));
-            finService.setLimit(-1);
-            finService.setOldId("registration_cost_" +  domainTld.getTld() + "_" + DOMAIN_REGISTRATOR_MAP.get(rs.getInt("parking_registrator_id")));
-            finService.setName("Регистрация домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
+            PaymentService paymentService = new PaymentService();
+            paymentService.setPaymentType(ServicePaymentType.ONE_TIME);
+            paymentService.setAccountType(AccountType.VIRTUAL_HOSTING);
+            paymentService.setActive(domainTld.isActive());
+            paymentService.setCost(rs.getBigDecimal("registration_cost"));
+            paymentService.setLimit(-1);
+            paymentService.setOldId("registration_cost_" +  domainTld.getTld() + "_" + DOMAIN_REGISTRATOR_MAP.get(rs.getInt("parking_registrator_id")));
+            paymentService.setName("Регистрация домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
 
-            finService = finFeignClient.createService(finService);
-            logger.info(finService.toString());
+            paymentServiceRepository.save(paymentService);
+            logger.info(paymentService.toString());
 
-            domainTld.setRegistrationServiceId(finService.getId());
+            domainTld.setRegistrationServiceId(paymentService.getId());
 
-            finService = new FinService();
-            finService.setPaymentType(ServicePaymentType.ONE_TIME);
-            finService.setAccountType(AccountType.VIRTUAL_HOSTING);
-            finService.setActive(domainTld.isActive());
-            finService.setCost(rs.getBigDecimal("renew_cost"));
-            finService.setLimit(-1);
-            finService.setOldId("renew_cost_" +  domainTld.getTld() + "_" + DOMAIN_REGISTRATOR_MAP.get(rs.getInt("parking_registrator_id")));
-            finService.setName("Продление домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
+            paymentService = new PaymentService();
+            paymentService.setPaymentType(ServicePaymentType.ONE_TIME);
+            paymentService.setAccountType(AccountType.VIRTUAL_HOSTING);
+            paymentService.setActive(domainTld.isActive());
+            paymentService.setCost(rs.getBigDecimal("renew_cost"));
+            paymentService.setLimit(-1);
+            paymentService.setOldId("renew_cost_" +  domainTld.getTld() + "_" + DOMAIN_REGISTRATOR_MAP.get(rs.getInt("parking_registrator_id")));
+            paymentService.setName("Продление домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
 
-            finService = finFeignClient.createService(finService);
-            logger.info(finService.toString());
+            paymentServiceRepository.save(paymentService);
+            logger.info(paymentService.toString());
 
-            domainTld.setRenewServiceId(finService.getId());
+            domainTld.setRenewServiceId(paymentService.getId());
 
             return domainTld;
         }));

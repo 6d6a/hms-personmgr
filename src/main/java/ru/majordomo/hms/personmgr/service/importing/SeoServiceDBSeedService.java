@@ -8,12 +8,12 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
-import ru.majordomo.hms.personmgr.common.FinService;
 import ru.majordomo.hms.personmgr.common.SeoType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.model.seo.Seo;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.SeoRepository;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
 
 import static ru.majordomo.hms.personmgr.common.StringConstants.SEO_AUDIT_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.StringConstants.SEO_AUDIT_SERVICE_PREFIX;
@@ -27,12 +27,12 @@ import static ru.majordomo.hms.personmgr.common.StringConstants.SEO_CONTEXT_SERV
 public class SeoServiceDBSeedService {
     private final static Logger logger = LoggerFactory.getLogger(SeoServiceDBSeedService.class);
 
-    private FinFeignClient finFeignClient;
+    private PaymentServiceRepository paymentServiceRepository;
     private SeoRepository seoRepository;
 
     @Autowired
-    public SeoServiceDBSeedService(FinFeignClient finFeignClient, SeoRepository seoRepository) {
-        this.finFeignClient = finFeignClient;
+    public SeoServiceDBSeedService(PaymentServiceRepository paymentServiceRepository, SeoRepository seoRepository) {
+        this.paymentServiceRepository = paymentServiceRepository;
         this.seoRepository = seoRepository;
     }
 
@@ -51,20 +51,20 @@ public class SeoServiceDBSeedService {
         seo.setType(SeoType.AUDIT);
         seo.setId(SEO_AUDIT_SERVICE_ID);
 
-        FinService finService = new FinService();
-        finService.setPaymentType(ServicePaymentType.ONE_TIME);
-        finService.setAccountType(AccountType.VIRTUAL_HOSTING);
-        finService.setActive(true);
-        finService.setCost(new BigDecimal("3990"));
-        finService.setLimit(1);
-        finService.setOldId(SEO_AUDIT_SERVICE_PREFIX + "1");
-        finService.setName("SEO-аудит сайта");
+        PaymentService paymentService = new PaymentService();
+        paymentService.setPaymentType(ServicePaymentType.ONE_TIME);
+        paymentService.setAccountType(AccountType.VIRTUAL_HOSTING);
+        paymentService.setActive(true);
+        paymentService.setCost(new BigDecimal("3990"));
+        paymentService.setLimit(1);
+        paymentService.setOldId(SEO_AUDIT_SERVICE_PREFIX + "1");
+        paymentService.setName("SEO-аудит сайта");
 
-        finService = finFeignClient.createService(finService);
+        paymentServiceRepository.save(paymentService);
 
-        logger.info(finService.toString());
+        logger.info(paymentService.toString());
 
-        seo.setFinServiceId(finService.getId());
+        seo.setFinServiceId(paymentService.getId());
 
         seoRepository.save(seo);
 
@@ -74,20 +74,20 @@ public class SeoServiceDBSeedService {
         seo.setType(SeoType.CONTEXT);
         seo.setId(SEO_CONTEXT_SERVICE_ID);
 
-        finService = new FinService();
-        finService.setPaymentType(ServicePaymentType.ONE_TIME);
-        finService.setAccountType(AccountType.VIRTUAL_HOSTING);
-        finService.setActive(true);
-        finService.setCost(new BigDecimal("4990"));
-        finService.setLimit(1);
-        finService.setOldId(SEO_CONTEXT_SERVICE_PREFIX + "1");
-        finService.setName("Настройка контекстной рекламы");
+        paymentService = new PaymentService();
+        paymentService.setPaymentType(ServicePaymentType.ONE_TIME);
+        paymentService.setAccountType(AccountType.VIRTUAL_HOSTING);
+        paymentService.setActive(true);
+        paymentService.setCost(new BigDecimal("4990"));
+        paymentService.setLimit(1);
+        paymentService.setOldId(SEO_CONTEXT_SERVICE_PREFIX + "1");
+        paymentService.setName("Настройка контекстной рекламы");
 
-        finService = finFeignClient.createService(finService);
+        paymentServiceRepository.save(paymentService);
 
-        logger.info(finService.toString());
+        logger.info(paymentService.toString());
 
-        seo.setFinServiceId(finService.getId());
+        seo.setFinServiceId(paymentService.getId());
 
         seoRepository.save(seo);
     }

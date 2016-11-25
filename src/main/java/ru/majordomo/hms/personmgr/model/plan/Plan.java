@@ -11,9 +11,9 @@ import java.util.List;
 import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
-import ru.majordomo.hms.personmgr.common.FinService;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.validators.ObjectIdList;
 
 /**
@@ -46,7 +46,7 @@ public class Plan extends BaseModel {
     private List<String> abonementIds = new ArrayList<>();
 
     @Transient
-    private FinService service;
+    private PaymentService service;
 
     @Transient
     private List<Abonement> abonements = new ArrayList<>();
@@ -137,11 +137,11 @@ public class Plan extends BaseModel {
         this.oldId = oldId;
     }
 
-    public FinService getService() {
+    public PaymentService getService() {
         return service;
     }
 
-    public void setService(FinService service) {
+    public void setService(PaymentService service) {
         this.service = service;
     }
 

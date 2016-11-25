@@ -1,11 +1,14 @@
 package ru.majordomo.hms.personmgr.model;
 
 import org.springframework.data.annotation.PersistenceConstructor;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,6 +17,7 @@ import javax.validation.constraints.NotNull;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 /**
@@ -45,6 +49,9 @@ public class PersonalAccount extends BaseModel {
     private Set<MailManagerMessageType> notifications = new HashSet<>();
 
     private Map<String, String> settings = new HashMap<>();
+
+    @Transient
+    private List<AccountService> services = new ArrayList<>();
 
     public PersonalAccount() {
     }
@@ -149,6 +156,22 @@ public class PersonalAccount extends BaseModel {
         this.planId = planId;
     }
 
+    public List<AccountService> getServices() {
+        return services;
+    }
+
+    public void setServices(List<AccountService> services) {
+        this.services = services;
+    }
+
+    public void addService(AccountService service) {
+        this.services.add(service);
+    }
+
+    public void removeService(AccountService service) {
+        this.services.remove(service);
+    }
+
     @Override
     public String toString() {
         return "PersonalAccount{" +
@@ -159,6 +182,7 @@ public class PersonalAccount extends BaseModel {
                 ", accountType=" + accountType +
                 ", notifications=" + notifications +
                 ", settings=" + settings +
+                ", services=" + services +
                 "} " + super.toString();
     }
 }
