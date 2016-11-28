@@ -20,7 +20,7 @@ public class Abonement extends BaseModel {
     @NotNull
     private String period;
     @NotNull
-    private String finServiceId;
+    private String serviceId;
 
     @Transient
     private PaymentService service;
@@ -29,13 +29,13 @@ public class Abonement extends BaseModel {
     }
 
     @PersistenceConstructor
-    public Abonement(String id, AbonementType type, String name, String period, String finServiceId) {
+    public Abonement(String id, AbonementType type, String name, String period, String serviceId) {
         super();
         this.setId(id);
         this.type = type;
         this.name = name;
         this.period = period;
-        this.finServiceId = finServiceId;
+        this.serviceId = serviceId;
     }
 
     public AbonementType getType() {
@@ -62,12 +62,12 @@ public class Abonement extends BaseModel {
         this.period = period;
     }
 
-    public String getFinServiceId() {
-        return finServiceId;
+    public String getServiceId() {
+        return serviceId;
     }
 
-    public void setFinServiceId(String finServiceId) {
-        this.finServiceId = finServiceId;
+    public void setServiceId(String serviceId) {
+        this.serviceId = serviceId;
     }
 
     public PaymentService getService() {
@@ -84,7 +84,7 @@ public class Abonement extends BaseModel {
                 "type=" + type +
                 ", name='" + name + '\'' +
                 ", period='" + period + '\'' +
-                ", finServiceId='" + finServiceId + '\'' +
+                ", serviceId='" + serviceId + '\'' +
                 ", service=" + service +
                 "} " + super.toString();
     }

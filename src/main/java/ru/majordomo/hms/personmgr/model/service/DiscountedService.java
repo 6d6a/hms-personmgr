@@ -26,12 +26,7 @@ public class DiscountedService extends AccountService {
 
     @Override
     public BigDecimal getCost() {
-        return discount.modifyCost(this.getPaymentService().getCost());
-    }
-
-    @Override
-    public void setCost(BigDecimal cost) {
-
+        return discount.getCost(this.getPaymentService().getCost());
     }
 
     @Override

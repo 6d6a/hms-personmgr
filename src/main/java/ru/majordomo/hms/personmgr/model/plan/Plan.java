@@ -28,7 +28,7 @@ public class Plan extends BaseModel {
     private String internalName;
 
     @NotNull
-    private String finServiceId;
+    private String serviceId;
 
     @NotNull
     private String oldId;
@@ -56,10 +56,10 @@ public class Plan extends BaseModel {
     }
 
     @PersistenceConstructor
-    public Plan(String id, String name, String internalName, String finServiceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties, List<String> abonementIds) {
+    public Plan(String id, String name, String internalName, String serviceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties, List<String> abonementIds) {
         super();
         this.setId(id);
-        this.finServiceId = finServiceId;
+        this.serviceId = serviceId;
         this.oldId = oldId;
         this.name = name;
         this.internalName = internalName;
@@ -69,9 +69,9 @@ public class Plan extends BaseModel {
         this.abonementIds = abonementIds;
     }
 
-    public Plan(String name, String internalName, String finServiceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties, List<String> abonementIds) {
+    public Plan(String name, String internalName, String serviceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties, List<String> abonementIds) {
         super();
-        this.finServiceId = finServiceId;
+        this.serviceId = serviceId;
         this.oldId = oldId;
         this.name = name;
         this.internalName = internalName;
@@ -105,12 +105,12 @@ public class Plan extends BaseModel {
         this.accountType = accountType;
     }
 
-    public String getFinServiceId() {
-        return finServiceId;
+    public String getServiceId() {
+        return serviceId;
     }
 
-    public void setFinServiceId(String finServiceId) {
-        this.finServiceId = finServiceId;
+    public void setServiceId(String serviceId) {
+        this.serviceId = serviceId;
     }
 
     public PlanProperties getPlanProperties() {
@@ -166,7 +166,7 @@ public class Plan extends BaseModel {
         return "Plan{" +
                 "name='" + name + '\'' +
                 ", internalName='" + internalName + '\'' +
-                ", finServiceId='" + finServiceId + '\'' +
+                ", serviceId='" + serviceId + '\'' +
                 ", oldId='" + oldId + '\'' +
                 ", accountType=" + accountType +
                 ", active=" + active +

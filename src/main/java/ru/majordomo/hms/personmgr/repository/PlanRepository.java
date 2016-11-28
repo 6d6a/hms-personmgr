@@ -23,7 +23,7 @@ public interface PlanRepository extends MongoRepository<Plan, String> {
     @Cacheable("plans")
     List<Plan> findByAccountType(@Param("accountType") AccountType accountType);
     @Cacheable("plans")
-    Plan findByFinServiceId(@Param("finServiceId") String finServiceId);
+    Plan findByServiceId(@Param("serviceId") String serviceId);
     @Cacheable("plans")
     Plan findByOldId(@Param("oldId") String oldId);
 

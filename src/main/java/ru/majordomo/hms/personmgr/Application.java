@@ -17,12 +17,15 @@ import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventL
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 
+import feign.Feign;
 import ru.majordomo.hms.personmgr.event.AbonementEventListener;
 import ru.majordomo.hms.personmgr.event.AccountAbonementEventListener;
 import ru.majordomo.hms.personmgr.event.AccountDomainEventListener;
 import ru.majordomo.hms.personmgr.event.AccountPromocodeEventListener;
 import ru.majordomo.hms.personmgr.event.AccountSeoOrderEventListener;
+import ru.majordomo.hms.personmgr.event.AccountServiceEventListener;
 import ru.majordomo.hms.personmgr.event.DomainTldEventListener;
+import ru.majordomo.hms.personmgr.event.PersonalAccountEventListener;
 import ru.majordomo.hms.personmgr.event.PlanEventListener;
 import ru.majordomo.hms.personmgr.event.ProcessingBusinessActionEventListener;
 import ru.majordomo.hms.personmgr.event.PromocodeEventListener;
@@ -84,6 +87,12 @@ public class Application implements CommandLineRunner {
     @Autowired
     private AccountAbonementDBImportService accountAbonementDBImportService;
 
+    @Autowired
+    private ServiceDBImportService serviceDBImportService;
+
+    @Autowired
+    private PersonalAccountServicesDBImportService personalAccountServicesDBImportService;
+
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
@@ -106,11 +115,7 @@ public class Application implements CommandLineRunner {
 //                seeded = seoServiceDBSeedService.seedDB();
 //                sb.append(" ").append(seeded ? "seo db_seeded" : "seo db_not_seeded");
             } else if (option.equals(dbImportOption)) {
-            boolean imported;
-
-//            imported = personalAccountDBImportService.importToMongo("100800");
-//            imported = personalAccountDBImportService.importToMongo();
-//            sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
+                boolean imported;
 //                imported = accountHistoryDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "accountHistory db_imported" : "accountHistory db_not_imported");
 
@@ -120,8 +125,19 @@ public class Application implements CommandLineRunner {
 //                imported = accountNotificationDBImportService.importToMongo("ac_100800");
 //                sb.append(" ").append(imported ? "accountNotification db_imported" : "accountNotification db_not_imported");
 
+//                imported = serviceDBImportService.importToMongo();
+//                sb.append(" ").append(imported ? "service db_imported" : "service db_not_imported");
+
 //                imported = planDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "plan db_imported" : "plan db_not_imported");
+
+//                  imported = personalAccountDBImportService.importToMongo("100800");
+//                imported = personalAccountDBImportService.importToMongo();
+//                sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
+
+                imported = personalAccountServicesDBImportService.importToMongo();
+//                imported = personalAccountServicesDBImportService.importToMongo("999");
+                sb.append(" ").append(imported ? "personalAccountServices db_imported" : "personalAccountServices db_not_imported");
 
 //                imported = promocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "promocode db_imported" : "promocode db_not_imported");
@@ -138,8 +154,8 @@ public class Application implements CommandLineRunner {
 //                imported = accountDomainDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "accountDomain db_imported" : "accountDomain db_not_imported");
 
-                  imported = accountAbonementDBImportService.importToMongo();
-                  sb.append(" ").append(imported ? "accountAbonement db_imported" : "accountAbonement db_not_imported");
+//                  imported = accountAbonementDBImportService.importToMongo();
+//                  sb.append(" ").append(imported ? "accountAbonement db_imported" : "accountAbonement db_not_imported");
             }
         }
         sb = sb.length() == 0 ? sb.append("No Options Specified") : sb;
@@ -197,6 +213,15 @@ public class Application implements CommandLineRunner {
     }
 
     @Bean
+    public PersonalAccountEventListener personalAccountEventListener() {
+        return new PersonalAccountEventListener();
+    }
+
+    @Bean
+    public AccountServiceEventListener accountServiceEventListener() {
+        return new AccountServiceEventListener();
+    }
+    @Bean
     public ValidatingMongoEventListener validatingMongoEventListener() {
         return new ValidatingMongoEventListener(validator());
     }
@@ -211,17 +236,8 @@ public class Application implements CommandLineRunner {
         return new PropertySourcesPlaceholderConfigurer();
     }
 
-//    @Bean(name = "OBJECT_MAPPER_BEAN")
-//    public ObjectMapper jsonObjectMapper() {
-//        return Jackson2ObjectMapperBuilder.json()
-//                .serializationInclusion(JsonInclude.Include.NON_NULL) // Don’t include null values
-//                .featuresToDisable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS) //ISODate
-//                .modules(new JSR310Module())
-//                .build();
-//    }
-
 //    @Bean
-//    feign.Logger.Level feignLoggerLevel() {
-//        return feign.Logger.Level.FULL;
+//    public Feign.Builder feignBuilder() {
+//        return Feign.builder();
 //    }
 }

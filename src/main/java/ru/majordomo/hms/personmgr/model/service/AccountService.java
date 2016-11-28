@@ -8,8 +8,6 @@ import java.time.LocalDateTime;
 
 import javax.validation.constraints.NotNull;
 
-import ru.majordomo.hms.personmgr.common.Costable;
-import ru.majordomo.hms.personmgr.common.Nameable;
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
@@ -17,13 +15,13 @@ import ru.majordomo.hms.personmgr.validators.ObjectId;
  * AccountService
  */
 @Document
-public class AccountService extends ModelBelongsToPersonalAccount implements Costable, Nameable {
+public class AccountService extends ModelBelongsToPersonalAccount {
     @NotNull
     @ObjectId(PaymentService.class)
     private String serviceId;
 
     @Transient
-    private PaymentService paymentService;
+    private PaymentService paymentService = new PaymentService();
 
     private LocalDateTime lastBilled;
 
@@ -43,14 +41,8 @@ public class AccountService extends ModelBelongsToPersonalAccount implements Cos
         this.lastBilled = lastBilled;
     }
 
-    @Override
     public String getName() {
         return paymentService.getName();
-    }
-
-    @Override
-    public void setName(String name) {
-
     }
 
     public PaymentService getPaymentService() {
@@ -61,14 +53,8 @@ public class AccountService extends ModelBelongsToPersonalAccount implements Cos
         this.paymentService = paymentService;
     }
 
-    @Override
     public BigDecimal getCost() {
         return paymentService.getCost();
-    }
-
-    @Override
-    public void setCost(BigDecimal cost) {
-
     }
 
     public AccountService() {

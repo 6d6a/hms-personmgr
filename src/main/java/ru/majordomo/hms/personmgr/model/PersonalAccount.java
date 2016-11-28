@@ -12,10 +12,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.model.discount.AccountDiscount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
@@ -50,6 +52,9 @@ public class PersonalAccount extends BaseModel {
 
     private Map<String, String> settings = new HashMap<>();
 
+    @Valid
+    private List<AccountDiscount> discounts = new ArrayList<>();
+
     @Transient
     private List<AccountService> services = new ArrayList<>();
 
@@ -57,7 +62,7 @@ public class PersonalAccount extends BaseModel {
     }
 
     @PersistenceConstructor
-    public PersonalAccount(String id, String accountId, String clientId, String planId, String name, AccountType accountType) {
+    public PersonalAccount(String id, String accountId, String clientId, String planId, String name, AccountType accountType, List<AccountDiscount> discounts) {
         super();
         this.setId(id);
         this.accountId = accountId;
@@ -65,15 +70,17 @@ public class PersonalAccount extends BaseModel {
         this.planId = planId;
         this.name = name;
         this.accountType = accountType;
+        this.discounts = discounts;
     }
 
-    public PersonalAccount(String accountId, String clientId, String planId, String name, AccountType accountType) {
+    public PersonalAccount(String accountId, String clientId, String planId, String name, AccountType accountType, List<AccountDiscount> discounts) {
         super();
         this.accountId = accountId;
         this.clientId = clientId;
         this.planId = planId;
         this.name = name;
         this.accountType = accountType;
+        this.discounts = discounts;
     }
 
     public String getName() {
@@ -154,6 +161,22 @@ public class PersonalAccount extends BaseModel {
 
     public void setPlanId(String planId) {
         this.planId = planId;
+    }
+
+    public List<AccountDiscount> getDiscounts() {
+        return discounts;
+    }
+
+    public void setDiscounts(List<AccountDiscount> discounts) {
+        this.discounts = discounts;
+    }
+
+    public void addDiscount(AccountDiscount discount) {
+        this.discounts.add(discount);
+    }
+
+    public void removeDiscount(AccountDiscount discount) {
+        this.discounts.remove(discount);
     }
 
     public List<AccountService> getServices() {

@@ -14,5 +14,5 @@ public interface SeoRepository extends MongoRepository<Seo, String> {
     List<Seo> findAll();
     Seo findByName(@Param("name") String name);
     Seo findByType(@Param("type") SeoType type);
-    Seo findByFinServiceId(@Param("finServiceId") String finServiceId);
+    Seo findByServiceId(@Param("serviceId") String serviceId);
 }

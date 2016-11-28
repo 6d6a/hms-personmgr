@@ -6,10 +6,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.SeoType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
+import ru.majordomo.hms.personmgr.model.abonement.Abonement;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.seo.Seo;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
@@ -37,6 +40,16 @@ public class SeoServiceDBSeedService {
     }
 
     public boolean seedDB() {
+        List<Seo> seos = seoRepository.findAll();
+
+        if (seos != null) {
+            for (Seo seo : seos) {
+                if (seo.getService() != null) {
+                    paymentServiceRepository.delete(seo.getService());
+                }
+            }
+        }
+
         seoRepository.deleteAll();
 
         this.seedSeoService();
@@ -64,7 +77,7 @@ public class SeoServiceDBSeedService {
 
         logger.info(paymentService.toString());
 
-        seo.setFinServiceId(paymentService.getId());
+        seo.setServiceId(paymentService.getId());
 
         seoRepository.save(seo);
 
@@ -87,7 +100,7 @@ public class SeoServiceDBSeedService {
 
         logger.info(paymentService.toString());
 
-        seo.setFinServiceId(paymentService.getId());
+        seo.setServiceId(paymentService.getId());
 
         seoRepository.save(seo);
     }

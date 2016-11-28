@@ -11,16 +11,12 @@ import java.util.Map;
 import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
-import ru.majordomo.hms.personmgr.common.Costable;
-import ru.majordomo.hms.personmgr.common.Limitable;
-import ru.majordomo.hms.personmgr.common.Nameable;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
-import ru.majordomo.hms.personmgr.common.Switchable;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.validators.ObjectIdMap;
 
 @Document
-public class PaymentService extends BaseModel implements Costable, Nameable, Switchable, Limitable {
+public class PaymentService extends BaseModel {
 
     @NotNull
     @Indexed
@@ -55,52 +51,42 @@ public class PaymentService extends BaseModel implements Costable, Nameable, Swi
         this.paymentType = paymentType;
     }
 
-    @Override
     public BigDecimal getCost() {
         return this.cost;
     }
 
-    @Override
     public int getLimit() {
         return this.limit;
     }
 
-    @Override
     public String getName() {
         return this.name;
     }
 
-    @Override
     public void setCost(BigDecimal cost) {
         this.cost = cost;
     }
 
-    @Override
     public void setLimit(int limit) {
         this.limit = limit;
     }
 
-    @Override
     public void setName(String name) {
         this.name = name;
     }
 
-    @Override
     public boolean isActive() {
         return active;
     }
 
-    @Override
     public void setActive(boolean active) {
         this.active = active;
     }
 
-    @Override
     public void switchOn() {
         this.active = true;
     }
 
-    @Override
     public void switchOff() {
         this.active = false;
     }

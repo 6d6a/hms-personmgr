@@ -18,7 +18,7 @@ public class Seo extends BaseModel {
     private SeoType type;
 
     @NotNull
-    private String finServiceId;
+    private String serviceId;
 
     @Transient
     private PaymentService service;
@@ -27,12 +27,12 @@ public class Seo extends BaseModel {
     }
 
     @PersistenceConstructor
-    public Seo(String id, String name, SeoType type, String finServiceId) {
+    public Seo(String id, String name, SeoType type, String serviceId) {
         super();
         this.setId(id);
         this.name = name;
         this.type = type;
-        this.finServiceId = finServiceId;
+        this.serviceId = serviceId;
     }
 
     public String getName() {
@@ -51,12 +51,12 @@ public class Seo extends BaseModel {
         this.type = type;
     }
 
-    public String getFinServiceId() {
-        return finServiceId;
+    public String getServiceId() {
+        return serviceId;
     }
 
-    public void setFinServiceId(String finServiceId) {
-        this.finServiceId = finServiceId;
+    public void setServiceId(String serviceId) {
+        this.serviceId = serviceId;
     }
 
     public PaymentService getService() {
@@ -72,7 +72,7 @@ public class Seo extends BaseModel {
         return "Seo{" +
                 "name='" + name + '\'' +
                 ", type=" + type +
-                ", finServiceId='" + finServiceId + '\'' +
+                ", serviceId='" + serviceId + '\'' +
                 ", service=" + service +
                 "} " + super.toString();
     }

@@ -9,9 +9,13 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+
+import javax.validation.ConstraintViolationException;
 
 import ru.majordomo.hms.personmgr.common.ImportConstants;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
@@ -40,7 +44,10 @@ public class PersonalAccountServicesDBImportService {
     private List<PersonalAccount> paymentAccounts = new ArrayList<>();
 
     @Autowired
-    public PersonalAccountServicesDBImportService(NamedParameterJdbcTemplate jdbcTemplate, PersonalAccountRepository personalAccountRepository, PaymentServiceRepository paymentServiceRepository, AccountServiceRepository accountServiceRepository) {
+    public PersonalAccountServicesDBImportService(NamedParameterJdbcTemplate jdbcTemplate,
+                                                  PersonalAccountRepository personalAccountRepository,
+                                                  PaymentServiceRepository paymentServiceRepository,
+                                                  AccountServiceRepository accountServiceRepository) {
         this.jdbcTemplate = jdbcTemplate;
         this.personalAccountRepository = personalAccountRepository;
         this.paymentServiceRepository = paymentServiceRepository;
@@ -48,101 +55,87 @@ public class PersonalAccountServicesDBImportService {
     }
 
     private void pull() {
-        String query = "SELECT id, name, plan_id FROM account";
-        paymentAccounts = jdbcTemplate.query(query, (rs, rowNum) -> {
-            PersonalAccount account = personalAccountRepository.findByName(rs.getString("name"));
-            List<AccountService> accountServices = new ArrayList<>();
-
-            PaymentService service = paymentServiceRepository.findByOldId(PLAN_SERVICE_PREFIX + rs.getString("plan_id"));
-
-            if (service != null) {
-                AccountService accountService = new AccountService(service);
-                accountService.setPersonalAccountId(account.getId());
-
-                accountServices.add(accountService);
-            }
-
-            String queryExtend = "SELECT acc_id, Domain_name, usluga, cost, value, promo FROM extend WHERE acc_id = :acc_id AND usluga NOT IN (:usluga_ids)";
-
-            SqlParameterSource namedParameters = new MapSqlParameterSource("acc_id", rs.getString("id")).addValue("usluga_ids", ImportConstants.notNeededServiceIds);
-
-            accountServices.addAll(jdbcTemplate.query(queryExtend,
-                    namedParameters,
-                    (rsE, rowNumE) -> {
-                        PaymentService serviceE = paymentServiceRepository.findByOldId(PLAN_SERVICE_PREFIX + rsE.getString("usluga") + (rsE.getBigDecimal("cost").compareTo(BigDecimal.ZERO) == 0 ? FREE_SERVICE_POSTFIX: ""));
-
-                        AccountService accountServiceE = new AccountService(serviceE);
-
-                        accountServiceE.setPersonalAccountId(account.getId());
-                        return accountServiceE;
-                    }
-            ));
-
-            account.setServices(accountServices);
-
-            accountServiceRepository.save(accountServices);
-
-            return account;
-        });
+        String query = "SELECT id, name, plan_id FROM account ORDER BY id ASC";
+        paymentAccounts = jdbcTemplate.query(query, this::rowMap);
     }
 
-    private void pull(String accountName) {
-        String query = "SELECT id, name, plan_id FROM account WHERE name = :accountName";
-        SqlParameterSource namedParameters = new MapSqlParameterSource("accountName", accountName);
+    private void pull(String accountId) {
+        String query = "SELECT id, name, plan_id FROM account WHERE id = :accountId";
+        SqlParameterSource namedParameters1 = new MapSqlParameterSource("accountId", accountId);
 
         paymentAccounts = jdbcTemplate.query(query,
-                namedParameters,
-                (rs, rowNum) -> {
-                    List<AccountService> accountServices = new ArrayList<>();
-
-                    PersonalAccount account = personalAccountRepository.findByName(accountName);
-                    PaymentService service = paymentServiceRepository.findByOldId(PLAN_SERVICE_PREFIX
-                            + rs.getString("plan_id"));
-
-                    if (service != null) {
-                        AccountService accountService = new AccountService(service);
-                        accountService.setPersonalAccountId(account.getId());
-
-                        accountServices.add(accountService);
-                    }
-
-                    String queryExtend = "SELECT acc_id, Domain_name, usluga, cost, value, promo FROM extend WHERE acc_id = :acc_id AND usluga NOT IN (:usluga_ids)";
-                    SqlParameterSource namedParametersE = new MapSqlParameterSource("acc_id", accountName.replaceAll("ac_", "")).addValue("usluga_ids", ImportConstants.notNeededServiceIds);
-
-                    accountServices.addAll(jdbcTemplate.query(queryExtend,
-                            namedParametersE,
-                            (rsE, rowNumE) -> {
-                                PaymentService serviceE = paymentServiceRepository.findByOldId(SERVICE_PREFIX + rsE.getString("usluga") + (rsE.getBigDecimal("cost").compareTo(BigDecimal.ZERO) == 0 ? FREE_SERVICE_POSTFIX: ""));
-
-                                AccountService accountServiceE = new AccountService(serviceE);
-
-                                accountServiceE.setPersonalAccountId(account.getId());
-                                return accountServiceE;
-                            }
-                    ));
-
-                    account.setServices(accountServices);
-
-                    accountServiceRepository.save(accountServices);
-
-                    return account;
-                }
+                namedParameters1,
+                this::rowMap
         );
     }
 
+    private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
+        logger.info("Found PersonalAccount " + rs.getString("name"));
+
+//        PersonalAccount account = personalAccountRepository.findByAccountId(rs.getString("id"));
+        List<AccountService> accountServices = new ArrayList<>();
+
+        PaymentService service = paymentServiceRepository.findByOldId(PLAN_SERVICE_PREFIX
+                + rs.getString("plan_id"));
+
+        if (service != null) {
+            AccountService accountService = new AccountService(service);
+//            accountService.setPersonalAccountId(account.getId());
+            accountService.setPersonalAccountId(rs.getString("id"));
+
+            accountServices.add(accountService);
+        }
+
+        String queryExtend = "SELECT acc_id, Domain_name, usluga, cost, value, promo FROM extend WHERE acc_id = :acc_id AND usluga NOT IN (:usluga_ids)";
+        SqlParameterSource namedParameters = new MapSqlParameterSource("acc_id", rs.getString("id"))
+                .addValue("usluga_ids", ImportConstants.notNeededServiceIds);
+
+        accountServices.addAll(jdbcTemplate.query(queryExtend,
+                namedParameters,
+                (rsE, rowNumE) -> {
+                    PaymentService serviceE = paymentServiceRepository.findByOldId(SERVICE_PREFIX + rsE.getString("usluga")
+                            + (rsE.getBigDecimal("cost").compareTo(BigDecimal.ZERO) == 0 ? FREE_SERVICE_POSTFIX: ""));
+
+                    AccountService accountServiceE = new AccountService(serviceE);
+
+//                    accountServiceE.setPersonalAccountId(account.getId());
+                    accountServiceE.setPersonalAccountId(rs.getString("id"));
+                    return accountServiceE;
+                }
+        ));
+
+//        account.setServices(accountServices);
+
+        try {
+            accountServiceRepository.save(accountServices);
+        } catch (ConstraintViolationException e) {
+            e.printStackTrace();
+        }
+
+//        return account;
+        return null;
+    }
+
     public boolean importToMongo() {
+        accountServiceRepository.deleteAll();
         pull();
         pushToMongo();
         return true;
     }
 
-    public boolean importToMongo(String accountName) {
-        pull(accountName);
+    public boolean importToMongo(String accountId) {
+        List<AccountService> services = accountServiceRepository.findByPersonalAccountId(accountId);
+
+        if (services != null && !services.isEmpty()) {
+            accountServiceRepository.delete(services);
+        }
+
+        pull(accountId);
         pushToMongo();
         return true;
     }
 
     private void pushToMongo() {
-        personalAccountRepository.save(paymentAccounts);
+//        personalAccountRepository.save(paymentAccounts);
     }
 }

@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 @Document(collection = "discount")
 public class DiscountExactCost extends Discount {
     @Override
-    public BigDecimal modifyCost(BigDecimal cost) {
+    public BigDecimal getCost(BigDecimal cost) {
         return cost;
     }
 }

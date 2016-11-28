@@ -7,9 +7,6 @@ import java.util.List;
 
 import javax.validation.constraints.NotNull;
 
-import ru.majordomo.hms.personmgr.common.CostModifying;
-import ru.majordomo.hms.personmgr.common.Nameable;
-import ru.majordomo.hms.personmgr.common.Switchable;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.validators.ObjectIdList;
@@ -18,7 +15,7 @@ import ru.majordomo.hms.personmgr.validators.ObjectIdList;
  * Discount
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
-public abstract class Discount extends BaseModel implements Switchable, Nameable, CostModifying {
+public abstract class Discount extends BaseModel {
     @NotNull
     private String name;
 
@@ -76,24 +73,24 @@ public abstract class Discount extends BaseModel implements Switchable, Nameable
         this.active = active;
     }
 
-    @Override
     public String getName() {
         return name;
     }
 
-    @Override
     public void switchOn() {
         active = true;
     }
 
-    @Override
     public void setName(String name) {
         this.name = name;
     }
 
-    @Override
     public void switchOff() {
         active = false;
+    }
+
+    public BigDecimal getCost(BigDecimal cost) {
+        return cost;
     }
 
     @Override

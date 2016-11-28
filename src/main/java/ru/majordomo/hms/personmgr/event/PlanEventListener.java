@@ -11,7 +11,7 @@ import java.util.List;
 
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
@@ -23,26 +23,18 @@ public class PlanEventListener extends AbstractMongoEventListener<Plan> {
     @Autowired
     private MongoOperations mongoOperations;
 
-    @Autowired
-    private FinFeignClient finFeignClient;
-
     @Override
     public void onAfterConvert(AfterConvertEvent<Plan> event) {
         super.onAfterConvert(event);
         Plan plan = event.getSource();
-        try {
-            plan.setService(finFeignClient.get(plan.getFinServiceId()));
+        plan.setService(mongoOperations.findOne(new Query(where("_id").is(plan.getServiceId())), PaymentService.class));
 
-            List<Abonement> abonements = new ArrayList<>();
+        List<Abonement> abonements = new ArrayList<>();
 
-            for (String abonementId : plan.getAbonementIds()) {
-                abonements.add(mongoOperations.findOne(new Query(where("_id").in(abonementId)), Abonement.class));
-            }
-
-            plan.setAbonements(abonements);
-
-        } catch (RuntimeException e) {
-            e.printStackTrace();
+        for (String abonementId : plan.getAbonementIds()) {
+            abonements.add(mongoOperations.findOne(new Query(where("_id").in(abonementId)), Abonement.class));
         }
+
+        plan.setAbonements(abonements);
     }
 }

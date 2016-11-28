@@ -11,7 +11,7 @@ import java.math.RoundingMode;
 @Document(collection = "discount")
 public class DiscountPercent extends Discount {
     @Override
-    public BigDecimal modifyCost(BigDecimal cost) {
+    public BigDecimal getCost(BigDecimal cost) {
         return cost.subtract(cost.multiply(this.getAmount().divide(BigDecimal.valueOf(100), RoundingMode.FLOOR)));
     }
 }

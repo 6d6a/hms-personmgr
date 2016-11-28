@@ -131,7 +131,7 @@ public class PlanDBImportService {
         String AbonementFinServiceId = paymentService.getId();
 
         Abonement abonement = new Abonement();
-        abonement.setFinServiceId(AbonementFinServiceId);
+        abonement.setServiceId(AbonementFinServiceId);
         abonement.setName(abonementName);
         abonement.setPeriod("P1Y");
         abonement.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
