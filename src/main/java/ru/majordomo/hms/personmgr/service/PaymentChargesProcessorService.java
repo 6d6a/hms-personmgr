@@ -3,8 +3,6 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -95,13 +93,12 @@ public class PaymentChargesProcessorService {
             //TODO отправлять заявку на списание в FIN
             Map<String, Object> paymentOperation = new HashMap<>();
             paymentOperation.put("serviceId", accountService.getServiceId());
-            paymentOperation.put("paymentOperationType", "CHARGE");
             paymentOperation.put("amount", cost);
 
             Map<String, Object> response = null;
 
             try {
-                response = finFeignClient.addPaymentOperation(paymentAccount.getId(), paymentOperation);
+                response = finFeignClient.charge(paymentAccount.getId(), paymentOperation);
             } catch (Exception e) {
                 e.printStackTrace();
                 return;

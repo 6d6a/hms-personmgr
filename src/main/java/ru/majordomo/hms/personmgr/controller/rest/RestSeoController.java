@@ -126,10 +126,9 @@ public class RestSeoController extends CommonRestController {
         //TODO Списать деньгов с аккаунта
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", seo.getServiceId());
-        paymentOperation.put("paymentOperationType", "CHARGE");
         paymentOperation.put("amount", seo.getService().getCost());
 
-        Map<String, Object> response = finFeignClient.addPaymentOperation(account.getId(), paymentOperation);
+        Map<String, Object> response = finFeignClient.charge(account.getId(), paymentOperation);
 
         if (response.get("success") != null && !((boolean) response.get("success"))) {
             return new ResponseEntity<>(this.createErrorResponse("Could not charge money"), HttpStatus.BAD_REQUEST);
