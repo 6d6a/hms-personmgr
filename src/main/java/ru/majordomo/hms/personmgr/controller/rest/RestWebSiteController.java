@@ -15,11 +15,8 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.personmgr.common.message.*;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClientFallback;
+import ru.majordomo.hms.personmgr.service.PlanCheckerService;
 
 /**
  * WebSiteController
@@ -31,15 +28,14 @@ public class RestWebSiteController extends CommonRestController {
 
     private final BusinessActionBuilder businessActionBuilder;
 
-    private final RcUserFeignClient rcUserFeignClient;
-
-    private final RcUserFeignClientFallback rcUserFeignClientFallback;
+    private final PlanCheckerService planCheckerService;
 
     @Autowired
-    public RestWebSiteController(BusinessActionBuilder businessActionBuilder, RcUserFeignClient rcUserFeignClient, RcUserFeignClientFallback rcUserFeignClientFallback) {
+    public RestWebSiteController(
+            BusinessActionBuilder businessActionBuilder,
+            PlanCheckerService planCheckerService) {
         this.businessActionBuilder = businessActionBuilder;
-        this.rcUserFeignClient = rcUserFeignClient;
-        this.rcUserFeignClientFallback = rcUserFeignClientFallback;
+        this.planCheckerService = planCheckerService;
     }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
@@ -51,12 +47,7 @@ public class RestWebSiteController extends CommonRestController {
         logger.info("Creating website: " + message.toString());
 
         if (accountId != null) {
-            Count currentWebsiteCount = rcUserFeignClient.getWebsiteCount(accountId);
-            Count planWebsiteCount = rcUserFeignClientFallback.getWebsiteCount(accountId);
-
-            logger.info("Checking websites limit. currentWebsiteCount " + currentWebsiteCount + " planWebsiteCount " + planWebsiteCount);
-
-            if (currentWebsiteCount.compareTo(planWebsiteCount) >= 0) {
+            if (!planCheckerService.canAddWebSite(accountId)) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
                 return this.createErrorResponse("Plan limit for websites exceeded");

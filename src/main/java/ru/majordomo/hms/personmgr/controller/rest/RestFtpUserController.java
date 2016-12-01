@@ -12,12 +12,10 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClientFallback;
+import ru.majordomo.hms.personmgr.service.PlanCheckerService;
 
 /**
  * RestFtpUserController
@@ -29,15 +27,14 @@ public class RestFtpUserController extends CommonRestController {
 
     private final BusinessActionBuilder businessActionBuilder;
 
-    private final RcUserFeignClient rcUserFeignClient;
-
-    private final RcUserFeignClientFallback rcUserFeignClientFallback;
+    private final PlanCheckerService planCheckerService;
 
     @Autowired
-    public RestFtpUserController(BusinessActionBuilder businessActionBuilder, RcUserFeignClient rcUserFeignClient, RcUserFeignClientFallback rcUserFeignClientFallback) {
+    public RestFtpUserController(
+            BusinessActionBuilder businessActionBuilder,
+            PlanCheckerService planCheckerService) {
         this.businessActionBuilder = businessActionBuilder;
-        this.rcUserFeignClient = rcUserFeignClient;
-        this.rcUserFeignClientFallback = rcUserFeignClientFallback;
+        this.planCheckerService = planCheckerService;
     }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
@@ -50,12 +47,7 @@ public class RestFtpUserController extends CommonRestController {
         logger.info(message.toString());
 
         if (accountId != null) {
-            Count currentFtpUserCount = rcUserFeignClient.getFtpUserCount(accountId);
-            Count planFtpUserCount = rcUserFeignClientFallback.getFtpUserCount(accountId);
-
-            logger.info("Checking websites limit. currentFtpUserCount " + currentFtpUserCount + " planFtpUserCount " + planFtpUserCount);
-
-            if (currentFtpUserCount.compareTo(planFtpUserCount) >= 0) {
+            if (!planCheckerService.canAddFtpUser(accountId)) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
                 return this.createErrorResponse("Plan limit for ftp-users exceeded");

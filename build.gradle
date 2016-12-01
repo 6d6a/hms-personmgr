@@ -3,10 +3,8 @@ buildscript {
         springBootVersion = '1.4.1.RELEASE'
     }
     repositories {
-        mavenCentral()
-        jcenter()
         maven {
-            url('http://maven.intr')
+            url('http://nexus.intr/repository/mj/')
         }
     }
     configurations.all {
@@ -44,10 +42,13 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 repositories {
-
+    maven {
+        url('http://nexus.intr/repository/mj/')
+    }
+    maven {
+        url('http://nexus.intr/repository/maven-public/')
+    }
     maven { url "http://maven.intr" }
-    maven { url "http://repo.maven.apache.org/maven2" }
-    maven { url "http://repo.spring.io/libs-release" }
 }
 
 configurations {
@@ -110,8 +111,8 @@ task buildDocker(type: Docker, dependsOn: build) {
         // в gitlab-runner после пулла branch.getCurrent() указывает всегда на HEAD в любой ветке
         tagVersion = project.projectBranch
     }
-    if(project.hasProperty('debug')) {
-        if(project.debug == "yes") {
+    if (project.hasProperty('debug')) {
+        if (project.debug == "yes") {
             entryPoint = entryPoint_debug
         }
     }

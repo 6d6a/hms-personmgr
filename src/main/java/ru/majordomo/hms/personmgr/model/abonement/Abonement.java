@@ -10,6 +10,7 @@ import javax.validation.constraints.NotNull;
 import ru.majordomo.hms.personmgr.common.AbonementType;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 @Document
 public class Abonement extends BaseModel {
@@ -20,6 +21,7 @@ public class Abonement extends BaseModel {
     @NotNull
     private String period;
     @NotNull
+    @ObjectId(PaymentService.class)
     private String serviceId;
 
     @Transient
