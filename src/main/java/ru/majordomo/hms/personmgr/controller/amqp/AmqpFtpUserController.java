@@ -29,7 +29,7 @@ public class AmqpFtpUserController {
     @Autowired
     private BusinessFlowDirector businessFlowDirector;
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.ftp-user.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "ftpuser.create", type = ExchangeTypes.TOPIC), key = "pm"))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.ftp-user.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "ftp-user.create", type = ExchangeTypes.TOPIC), key = "pm"))
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received from " + provider + ": " + message.toString());
@@ -37,7 +37,7 @@ public class AmqpFtpUserController {
         businessFlowDirector.processMessage(message);
     }
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.ftp-user.update", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "ftpuser.update", type = ExchangeTypes.TOPIC), key = "pm"))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.ftp-user.update", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "ftp-user.update", type = ExchangeTypes.TOPIC), key = "pm"))
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received update message from " + provider + ": " + message.toString());
@@ -45,7 +45,7 @@ public class AmqpFtpUserController {
         State state = businessFlowDirector.processMessage(message);
     }
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.ftp-user.delete", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "ftpuser.delete", type = ExchangeTypes.TOPIC), key = "pm"))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.ftp-user.delete", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "ftp-user.delete", type = ExchangeTypes.TOPIC), key = "pm"))
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received delete message from " + provider + ": " + message.toString());
