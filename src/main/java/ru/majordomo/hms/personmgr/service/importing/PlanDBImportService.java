@@ -6,22 +6,29 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.AbonementType;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.DBType;
-import ru.majordomo.hms.personmgr.common.FinService;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
-import ru.majordomo.hms.personmgr.common.message.ImportMessage;
+import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanPropertyLimit;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.repository.AbonementRepository;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
 
+import static ru.majordomo.hms.personmgr.common.StringConstants.PLAN_SERVICE_ABONEMENT_PREFIX;
 import static ru.majordomo.hms.personmgr.common.StringConstants.PLAN_SERVICE_PREFIX;
 
 /**
@@ -33,112 +40,134 @@ public class PlanDBImportService {
 
     private JdbcTemplate jdbcTemplate;
     private PlanRepository planRepository;
-    private FinFeignClient finFeignClient;
+    private AbonementRepository abonementRepository;
+    private PaymentServiceRepository paymentServiceRepository;
     private List<Plan> planList = new ArrayList<>();
 
     @Autowired
-    public PlanDBImportService(JdbcTemplate jdbcTemplate, PlanRepository planRepository, FinFeignClient finFeignClient) {
+    public PlanDBImportService(JdbcTemplate jdbcTemplate, PlanRepository planRepository, AbonementRepository abonementRepository, PaymentServiceRepository paymentServiceRepository) {
         this.jdbcTemplate = jdbcTemplate;
         this.planRepository = planRepository;
-        this.finFeignClient = finFeignClient;
+        this.abonementRepository = abonementRepository;
+        this.paymentServiceRepository = paymentServiceRepository;
     }
 
     public void pull() {
-        String query = "SELECT Plan_ID, name, cost, QuotaKB, db, apache, active, username, sites, web_cpu_limit, db_cpu_limit FROM plan";
-        planList = jdbcTemplate.query(query, (rs, rowNum) -> {
-            VirtualHostingPlanProperties planProperties = new VirtualHostingPlanProperties();
-            if (rs.getInt("Plan_ID") == 9802) {
-                planProperties.setFtpLimit(new PlanPropertyLimit(5, -1));
-            } else {
-                planProperties.setFtpLimit(new PlanPropertyLimit(-1, -1));
-            }
-
-            planProperties.setWebCpuLimit(new PlanPropertyLimit(rs.getInt("web_cpu_limit")));
-            planProperties.setDbCpuLimit(new PlanPropertyLimit(rs.getInt("db_cpu_limit")));
-            planProperties.setQuotaKBLimit(new PlanPropertyLimit(rs.getInt("QuotaKB")));
-            planProperties.setSitesLimit(new PlanPropertyLimit(rs.getInt("sites")));
-            planProperties.setSshLimit(new PlanPropertyLimit(-1));
-            planProperties.setPhpEnabled(rs.getBoolean("apache"));
-
-            if (rs.getInt("Plan_ID") == 9806 || rs.getInt("Plan_ID") == 9807) {
-                planProperties.setBusinessServices(true);
-            }
-
-            Map<DBType, PlanPropertyLimit> dbList = new HashMap<>();
-            dbList.put(DBType.MYSQL, new PlanPropertyLimit(rs.getInt("db")));
-
-            planProperties.setDb(dbList);
-
-            FinService finService = new FinService();
-            finService.setPaymentType(ServicePaymentType.MONTH);
-            finService.setAccountType(AccountType.VIRTUAL_HOSTING);
-            finService.setActive(rs.getBoolean("active"));
-            finService.setCost(rs.getBigDecimal("cost"));
-            finService.setLimit(1);
-            finService.setOldId(PLAN_SERVICE_PREFIX + rs.getString("Plan_ID"));
-            finService.setName(rs.getString("username"));
-
-            finService = finFeignClient.createService(finService);
-
-            logger.info(finService.toString());
-
-            return new Plan(rs.getString("username"), rs.getString("name"), finService.getId(), rs.getString("Plan_ID"), AccountType.VIRTUAL_HOSTING, rs.getBoolean("active"), planProperties);
-        });
+        String query = "SELECT p.Plan_ID, p.name, p.cost, p.cost_disc, p.QuotaKB, p.db, p.apache, p.active, p.username, p.sites, p.web_cpu_limit, p.db_cpu_limit FROM plan p LEFT JOIN account a ON p.Plan_ID=a.plan_id WHERE a.id IS NOT NULL GROUP BY p.Plan_ID";
+        planList = jdbcTemplate.query(query, this::rowMap);
     }
 
-    public void pull(String planId, String finServiceId) {
-        String query = "SELECT Plan_ID, name, cost, QuotaKB, db, apache, active, username, sites, web_cpu_limit, db_cpu_limit FROM plan WHERE Plan_ID = ?";
+    public void pull(String planId) {
+        String query = "SELECT p.Plan_ID, p.name, p.cost, p.cost_disc, p.QuotaKB, p.db, p.apache, p.active, p.username, p.sites, p.web_cpu_limit, p.db_cpu_limit FROM plan p LEFT JOIN account a ON p.Plan_ID=a.plan_id WHERE p.Plan_ID = ? AND a.id IS NOT NULL GROUP BY p.Plan_ID";
         planList = jdbcTemplate.query(query,
                 new Object[]{planId},
-                (rs, rowNum) -> {
-                    VirtualHostingPlanProperties planProperties = new VirtualHostingPlanProperties();
-                    if (rs.getInt("Plan_ID") == 9802) {
-                        planProperties.setFtpLimit(new PlanPropertyLimit(5, -1));
-                    } else {
-                        planProperties.setFtpLimit(new PlanPropertyLimit(-1, -1));
-                    }
+                this::rowMap);
+    }
 
-                    planProperties.setWebCpuLimit(new PlanPropertyLimit(rs.getInt("web_cpu_limit")));
-                    planProperties.setDbCpuLimit(new PlanPropertyLimit(rs.getInt("db_cpu_limit")));
-                    planProperties.setQuotaKBLimit(new PlanPropertyLimit(rs.getInt("QuotaKB")));
-                    planProperties.setSitesLimit(new PlanPropertyLimit(rs.getInt("sites")));
-                    planProperties.setSshLimit(new PlanPropertyLimit(-1));
-                    planProperties.setPhpEnabled(rs.getBoolean("apache"));
+    private Plan rowMap(ResultSet rs, int rowNum) throws SQLException {
+        VirtualHostingPlanProperties planProperties = new VirtualHostingPlanProperties();
+        if (rs.getInt("Plan_ID") == 9802
+                || rs.getInt("Plan_ID") == 9804
+                || rs.getInt("Plan_ID") == 9805
+                || rs.getInt("Plan_ID") == 9806
+                || rs.getInt("Plan_ID") == 9807) {
+            planProperties.setFtpLimit(new PlanPropertyLimit(5, -1));
+        } else {
+            planProperties.setFtpLimit(new PlanPropertyLimit(-1, -1));
+        }
 
-                    if (rs.getInt("Plan_ID") == 9806 || rs.getInt("Plan_ID") == 9807) {
-                        planProperties.setBusinessServices(true);
-                    }
+        planProperties.setWebCpuLimit(new PlanPropertyLimit(rs.getInt("web_cpu_limit")));
+        planProperties.setDbCpuLimit(new PlanPropertyLimit(rs.getInt("db_cpu_limit")));
+        planProperties.setQuotaKBLimit(new PlanPropertyLimit(rs.getInt("QuotaKB")));
+        planProperties.setSitesLimit(new PlanPropertyLimit(rs.getInt("sites")));
+        planProperties.setSshLimit(new PlanPropertyLimit(-1));
+        planProperties.setPhpEnabled(rs.getBoolean("apache"));
 
-                    Map<DBType, PlanPropertyLimit> dbList = new HashMap<>();
-                    dbList.put(DBType.MYSQL, new PlanPropertyLimit(rs.getInt("db")));
+        if (rs.getInt("Plan_ID") == 9806 || rs.getInt("Plan_ID") == 9807) {
+            planProperties.setBusinessServices(true);
+        }
 
-                    planProperties.setDb(dbList);
+        Map<DBType, PlanPropertyLimit> dbList = new HashMap<>();
+        dbList.put(DBType.MYSQL, new PlanPropertyLimit(rs.getInt("db")));
 
-                    return new Plan(rs.getString("username"), rs.getString("name"), finServiceId, rs.getString("Plan_ID"), AccountType.VIRTUAL_HOSTING, rs.getBoolean("active"), planProperties);
-                });
+        planProperties.setDb(dbList);
+
+        PaymentService paymentService = new PaymentService();
+        paymentService.setPaymentType(ServicePaymentType.MONTH);
+        paymentService.setAccountType(AccountType.VIRTUAL_HOSTING);
+        paymentService.setActive(rs.getBoolean("active"));
+        paymentService.setCost(rs.getBigDecimal("cost"));
+        paymentService.setLimit(1);
+        paymentService.setOldId(PLAN_SERVICE_PREFIX + rs.getString("Plan_ID"));
+        paymentService.setName(rs.getString("username"));
+
+        paymentServiceRepository.save(paymentService);
+
+        logger.info("paymentService " + paymentService.toString());
+
+        String finServiceId = paymentService.getId();
+
+        String abonementName = rs.getString("username") + " (годовой абонемент)";
+
+        BigDecimal abonementCost = rs.getBigDecimal("cost_disc").multiply(BigDecimal.valueOf(12L)).setScale(0, BigDecimal.ROUND_FLOOR);
+
+        if (abonementCost.compareTo(BigDecimal.ZERO) == 0) {
+            abonementCost = rs.getBigDecimal("cost").multiply(BigDecimal.valueOf(12L)).setScale(0, BigDecimal.ROUND_FLOOR);
+        }
+
+        paymentService = new PaymentService();
+        paymentService.setPaymentType(ServicePaymentType.ONE_TIME);
+        paymentService.setAccountType(AccountType.VIRTUAL_HOSTING);
+        paymentService.setActive(rs.getBoolean("active"));
+        paymentService.setCost(abonementCost);
+        paymentService.setLimit(1);
+        paymentService.setOldId(PLAN_SERVICE_ABONEMENT_PREFIX + rs.getString("Plan_ID"));
+        paymentService.setName(abonementName);
+
+        paymentServiceRepository.save(paymentService);
+
+        logger.info("AbonementFinService " + paymentService.toString());
+
+        String AbonementFinServiceId = paymentService.getId();
+
+        Abonement abonement = new Abonement();
+        abonement.setServiceId(AbonementFinServiceId);
+        abonement.setName(abonementName);
+        abonement.setPeriod("P1Y");
+        abonement.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+
+        abonementRepository.save(abonement);
+
+        return new Plan(rs.getString("username"),
+                rs.getString("name"),
+                finServiceId,
+                rs.getString("Plan_ID"),
+                AccountType.VIRTUAL_HOSTING,
+                rs.getBoolean("active"),
+                planProperties,
+                Collections.singletonList(abonement.getId())
+        );
     }
 
     public boolean importToMongo() {
         planRepository.deleteAll();
+        abonementRepository.deleteAll();
         pull();
         pushToMongo();
         return true;
     }
 
-    public boolean importToMongo(String planId, String finServiceId) {
-        planRepository.deleteAll();
-        pull(planId, finServiceId);
-        pushToMongo();
-        return true;
-    }
+    public boolean importToMongo(String planId) {
+        Plan plan = planRepository.findOne(planId);
 
-    public boolean processImportMessage(ImportMessage message) {
-        String planId, finServiceId;
+        if (plan != null) {
+            for (Abonement abonement : plan.getAbonements()) {
+                abonementRepository.delete(abonement);
+            }
+            planRepository.delete(plan);
+        }
 
-        planId = message.getParams().getImportValues().get("planId").replaceAll("^plan_", "");
-        finServiceId = message.getParams().getImportValues().get("finServiceId");
-
-        pull(planId, finServiceId);
+        pull(planId);
         pushToMongo();
         return true;
     }

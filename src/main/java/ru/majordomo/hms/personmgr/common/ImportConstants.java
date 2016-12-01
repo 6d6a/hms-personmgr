@@ -1,7 +1,9 @@
 package ru.majordomo.hms.personmgr.common;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_CHANGE_ACCOUNT_PASSWORD;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_CHANGE_FTP_PASSWORD;
@@ -32,6 +34,9 @@ public class ImportConstants {
     public static final Map<String, DomainRegistrator> DOMAIN_REGISTRATOR_STRING_MAP = new HashMap<>();
     public static final Map<Integer, String> DOMAIN_REGISTRATOR_NAME_MAP = new HashMap<>();
 
+    public static final Set<Integer> notNeededServiceIds = new HashSet<>();
+    public static final Set<Integer> optionallyFreeServiceIds = new HashSet<>();
+
     static {
         MANAGER_MESSAGE_TYPE_MAP.put(24, SMS_NO_MONEY_TO_AUTORENEW_DOMAIN);
         MANAGER_MESSAGE_TYPE_MAP.put(26, SMS_NEW_PAYMENT);
@@ -48,7 +53,7 @@ public class ImportConstants {
         DOMAIN_CATEGORY_MAP.put("thematic", DomainCategory.THEMATIC);
         DOMAIN_CATEGORY_MAP.put("geo", DomainCategory.GEO);
 
-        DOMAIN_REGISTRATOR_MAP.put(1, DomainRegistrator.REGISTRANT);
+        DOMAIN_REGISTRATOR_MAP.put(1, DomainRegistrator.NETHOUSE);
         DOMAIN_REGISTRATOR_MAP.put(2, DomainRegistrator.R01);
         DOMAIN_REGISTRATOR_MAP.put(3, DomainRegistrator.RUCENTER);
         DOMAIN_REGISTRATOR_MAP.put(4, DomainRegistrator.ENOM);
@@ -58,7 +63,7 @@ public class ImportConstants {
         DOMAIN_REGISTRATOR_MAP.put(8, DomainRegistrator.REGRU);
         DOMAIN_REGISTRATOR_MAP.put(9, DomainRegistrator.WEBNAMES);
 
-        DOMAIN_REGISTRATOR_STRING_MAP.put("Registrant", DomainRegistrator.REGISTRANT);
+        DOMAIN_REGISTRATOR_STRING_MAP.put("Registrant", DomainRegistrator.NETHOUSE);
         DOMAIN_REGISTRATOR_STRING_MAP.put("GPT", DomainRegistrator.R01);
         DOMAIN_REGISTRATOR_STRING_MAP.put("RUCENTER", DomainRegistrator.RUCENTER);
         DOMAIN_REGISTRATOR_STRING_MAP.put("Enom", DomainRegistrator.ENOM);
@@ -67,7 +72,7 @@ public class ImportConstants {
         DOMAIN_REGISTRATOR_STRING_MAP.put("RegRu", DomainRegistrator.REGRU);
         DOMAIN_REGISTRATOR_STRING_MAP.put("Webnames", DomainRegistrator.WEBNAMES);
 
-        DOMAIN_REGISTRATOR_NAME_MAP.put(1, "Регистрант");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(1, "Nethouse");
         DOMAIN_REGISTRATOR_NAME_MAP.put(2, "R01");
         DOMAIN_REGISTRATOR_NAME_MAP.put(3, "RU-CENTER");
         DOMAIN_REGISTRATOR_NAME_MAP.put(4, "Enom");
@@ -76,6 +81,23 @@ public class ImportConstants {
         DOMAIN_REGISTRATOR_NAME_MAP.put(7, "Ukrnames");
         DOMAIN_REGISTRATOR_NAME_MAP.put(8, "РЕГ.РУ");
         DOMAIN_REGISTRATOR_NAME_MAP.put(9, "Webnames");
+
+        notNeededServiceIds.add(1);
+        notNeededServiceIds.add(2);
+        notNeededServiceIds.add(3);
+        notNeededServiceIds.add(5);
+        notNeededServiceIds.add(7);
+        notNeededServiceIds.add(8);
+        notNeededServiceIds.add(10);
+        notNeededServiceIds.add(11);
+        notNeededServiceIds.add(14);
+        notNeededServiceIds.add(16);
+        notNeededServiceIds.add(17);
+        notNeededServiceIds.add(19);
+        notNeededServiceIds.add(21);
+
+        optionallyFreeServiceIds.add(13);
+        optionallyFreeServiceIds.add(18);
     }
 
 

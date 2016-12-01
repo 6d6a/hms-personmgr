@@ -28,6 +28,4 @@ public @interface ObjectId {
     Class<? extends BaseModel> value();
 
     String collection() default "";
-
-    boolean notNull() default true;
 }

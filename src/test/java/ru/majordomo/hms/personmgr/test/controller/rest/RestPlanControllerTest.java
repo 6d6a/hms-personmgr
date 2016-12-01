@@ -16,13 +16,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
-import ru.majordomo.hms.personmgr.common.DBType;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.model.plan.PlanPropertyDB;
 import ru.majordomo.hms.personmgr.model.plan.PlanPropertyLimit;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
@@ -59,7 +56,7 @@ public class RestPlanControllerTest {
         for (int i = 0; i < 9; i++) {
             plan.setName("План " + i);
             plan.setInternalName("Внутреннее имя плана " + i);
-            plan.setFinServiceId(ObjectId.get().toString());
+            plan.setServiceId(ObjectId.get().toString());
             plan.setOldId(ObjectId.get().toString());
             plan.setAccountType(AccountType.VIRTUAL_HOSTING);
             plan.setActive(true);

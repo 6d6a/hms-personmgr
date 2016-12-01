@@ -25,6 +25,7 @@ import ru.majordomo.hms.personmgr.repository.AccountSeoOrderRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.SeoRepository;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
+import ru.majordomo.hms.personmgr.service.FinFeignClient;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.rc.user.resources.Person;
 import ru.majordomo.hms.rc.user.resources.WebSite;
@@ -48,8 +49,11 @@ public class RestSeoController extends CommonRestController {
     @Autowired
     private RcUserFeignClient rcUserFeignClient;
 
+    @Autowired
+    private FinFeignClient finFeignClient;
+
     @RequestMapping(value = "", method = RequestMethod.GET)
-    public ResponseEntity<List<Seo>> getAccount(@PathVariable(value = "accountId") String accountId) {
+    public ResponseEntity<List<Seo>> getSeoOrders(@PathVariable(value = "accountId") String accountId) {
         PersonalAccount account = accountRepository.findOne(accountId);
         if(account == null){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -60,7 +64,7 @@ public class RestSeoController extends CommonRestController {
     }
 
     @RequestMapping(value = "/order", method = RequestMethod.GET)
-    public ResponseEntity<List<AccountSeoOrder>> getAccountPlan(@PathVariable(value = "accountId") String accountId) {
+    public ResponseEntity<List<AccountSeoOrder>> getSeoOrder(@PathVariable(value = "accountId") String accountId) {
         PersonalAccount account = accountRepository.findOne(accountId);
         if(account == null){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -75,7 +79,7 @@ public class RestSeoController extends CommonRestController {
     }
 
     @RequestMapping(value = "/order", method = RequestMethod.POST)
-    public ResponseEntity<SimpleServiceMessage> changeAccountPlan(@PathVariable(value = "accountId") String accountId, @RequestBody Map<String, String> requestBody) {
+    public ResponseEntity<SimpleServiceMessage> makeSeoOrder(@PathVariable(value = "accountId") String accountId, @RequestBody Map<String, String> requestBody) {
         PersonalAccount account = accountRepository.findOne(accountId);
         if(account == null){
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -120,6 +124,15 @@ public class RestSeoController extends CommonRestController {
         }
 
         //TODO Списать деньгов с аккаунта
+        Map<String, Object> paymentOperation = new HashMap<>();
+        paymentOperation.put("serviceId", seo.getServiceId());
+        paymentOperation.put("amount", seo.getService().getCost());
+
+        Map<String, Object> response = finFeignClient.charge(account.getId(), paymentOperation);
+
+        if (response.get("success") != null && !((boolean) response.get("success"))) {
+            return new ResponseEntity<>(this.createErrorResponse("Could not charge money"), HttpStatus.BAD_REQUEST);
+        }
 
         order = new AccountSeoOrder();
         order.setPersonalAccountId(account.getId());

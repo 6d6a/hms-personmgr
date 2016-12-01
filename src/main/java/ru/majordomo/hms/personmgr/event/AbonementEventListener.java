@@ -6,23 +6,19 @@ import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventLis
 import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
 import org.springframework.data.mongodb.core.query.Query;
 
-import ru.majordomo.hms.personmgr.model.seo.Seo;
+import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
-public class SeoEventListener extends AbstractMongoEventListener<Seo> {
+public class AbonementEventListener extends AbstractMongoEventListener<Abonement> {
     @Autowired
     private MongoOperations mongoOperations;
 
     @Override
-    public void onAfterConvert(AfterConvertEvent<Seo> event) {
+    public void onAfterConvert(AfterConvertEvent<Abonement> event) {
         super.onAfterConvert(event);
-        Seo seo = event.getSource();
-        try {
-            seo.setService(mongoOperations.findOne(new Query(where("_id").is(seo.getServiceId())), PaymentService.class));
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-        }
+        Abonement abonement = event.getSource();
+        abonement.setService(mongoOperations.findOne(new Query(where("_id").is(abonement.getServiceId())), PaymentService.class));
     }
 }

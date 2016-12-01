@@ -5,11 +5,16 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
-import ru.majordomo.hms.personmgr.common.FinService;
 import ru.majordomo.hms.personmgr.model.BaseModel;
+import ru.majordomo.hms.personmgr.model.abonement.Abonement;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.validators.ObjectIdList;
 
 /**
  * Plan
@@ -23,7 +28,7 @@ public class Plan extends BaseModel {
     private String internalName;
 
     @NotNull
-    private String finServiceId;
+    private String serviceId;
 
     @NotNull
     private String oldId;
@@ -37,35 +42,43 @@ public class Plan extends BaseModel {
     @NotNull
     private PlanProperties planProperties;
 
+    @ObjectIdList(value = Abonement.class)
+    private List<String> abonementIds = new ArrayList<>();
+
     @Transient
-    private FinService service;
+    private PaymentService service;
+
+    @Transient
+    private List<Abonement> abonements = new ArrayList<>();
 
     public Plan() {
         super();
     }
 
     @PersistenceConstructor
-    public Plan(String id, String name, String internalName, String finServiceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties) {
+    public Plan(String id, String name, String internalName, String serviceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties, List<String> abonementIds) {
         super();
         this.setId(id);
-        this.finServiceId = finServiceId;
+        this.serviceId = serviceId;
         this.oldId = oldId;
         this.name = name;
         this.internalName = internalName;
         this.accountType = accountType;
         this.active = active;
         this.planProperties = planProperties;
+        this.abonementIds = abonementIds;
     }
 
-    public Plan(String name, String internalName, String finServiceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties) {
+    public Plan(String name, String internalName, String serviceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties, List<String> abonementIds) {
         super();
-        this.finServiceId = finServiceId;
+        this.serviceId = serviceId;
         this.oldId = oldId;
         this.name = name;
         this.internalName = internalName;
         this.accountType = accountType;
         this.active = active;
         this.planProperties = planProperties;
+        this.abonementIds = abonementIds;
     }
 
     public String getName() {
@@ -92,12 +105,12 @@ public class Plan extends BaseModel {
         this.accountType = accountType;
     }
 
-    public String getFinServiceId() {
-        return finServiceId;
+    public String getServiceId() {
+        return serviceId;
     }
 
-    public void setFinServiceId(String finServiceId) {
-        this.finServiceId = finServiceId;
+    public void setServiceId(String serviceId) {
+        this.serviceId = serviceId;
     }
 
     public PlanProperties getPlanProperties() {
@@ -124,12 +137,28 @@ public class Plan extends BaseModel {
         this.oldId = oldId;
     }
 
-    public FinService getService() {
+    public PaymentService getService() {
         return service;
     }
 
-    public void setService(FinService service) {
+    public void setService(PaymentService service) {
         this.service = service;
+    }
+
+    public List<String> getAbonementIds() {
+        return abonementIds;
+    }
+
+    public void setAbonementIds(List<String> abonementIds) {
+        this.abonementIds = abonementIds;
+    }
+
+    public List<Abonement> getAbonements() {
+        return abonements;
+    }
+
+    public void setAbonements(List<Abonement> abonements) {
+        this.abonements = abonements;
     }
 
     @Override
@@ -137,11 +166,14 @@ public class Plan extends BaseModel {
         return "Plan{" +
                 "name='" + name + '\'' +
                 ", internalName='" + internalName + '\'' +
-                ", finServiceId='" + finServiceId + '\'' +
+                ", serviceId='" + serviceId + '\'' +
                 ", oldId='" + oldId + '\'' +
                 ", accountType=" + accountType +
                 ", active=" + active +
                 ", planProperties=" + planProperties +
+                ", abonementIds=" + abonementIds +
+                ", service=" + service +
+                ", abonements=" + abonements +
                 "} " + super.toString();
     }
 }

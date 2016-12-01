@@ -44,7 +44,7 @@ public class AccountDomainDBImportService {
     public void pull() {
         accountDomainRepository.deleteAll();
 
-        String query = "SELECT domain.Domain_name, domain.acc_id, domain_auto_renew.status, domain_reg.source FROM domain LEFT JOIN domain_auto_renew ON domain.Domain_name = domain_auto_renew.domain LEFT JOIN domain_reg ON domain.Domain_name = domain_reg.domain";
+        String query = "SELECT domain.Domain_name, domain.acc_id, domain_auto_renew.status, domain_reg.source FROM domain LEFT JOIN domain_auto_renew ON domain.Domain_name = domain_auto_renew.domain LEFT JOIN domain_reg ON domain.Domain_name = domain_reg.domain WHERE 1 ORDER BY domain.acc_id ASC";
 
         jdbcTemplate.query(query, (rs, rowNum) -> {
             AccountDomain accountDomain = new AccountDomain();

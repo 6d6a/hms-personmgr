@@ -37,6 +37,10 @@ class ObjectIdMapValidator implements ConstraintValidator<ObjectIdMap, Map<Strin
 
     @Override
     public boolean isValid(Map<String, Integer> items, ConstraintValidatorContext constraintValidatorContext) {
+        if (items == null || items.isEmpty()) {
+            return true;
+        }
+
         Set<Map.Entry<String, Integer>> entries = items.entrySet();
 
         for (Map.Entry<String, Integer> next : entries) {

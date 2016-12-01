@@ -3,10 +3,8 @@ buildscript {
         springBootVersion = '1.4.1.RELEASE'
     }
     repositories {
-        mavenCentral()
-        jcenter()
         maven {
-            url('http://maven.intr')
+            url('http://nexus.intr/repository/mj/')
         }
     }
     configurations.all {
@@ -44,13 +42,24 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 repositories {
-
+    maven {
+        url('http://nexus.intr/repository/mj/')
+    }
+    maven {
+        url('http://nexus.intr/repository/maven-public/')
+    }
     maven { url "http://maven.intr" }
-    maven { url "http://repo.maven.apache.org/maven2" }
-    maven { url "http://repo.spring.io/libs-release" }
 }
+
+configurations {
+    compile.exclude module: "spring-boot-starter-tomcat"
+    compile.exclude module: "hystrix-core"
+    compile.exclude module: "feign-hystrix"
+}
+
 dependencies {
-    compile('ru.majordomo.hms.rc.user:resources:1+')
+    compile('ru.majordomo.hms.rc.user:resources:1.2')
+
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
     compile('org.springframework.boot:spring-boot-starter-amqp')
 //    compile('org.springframework.boot:spring-boot-starter-data-redis')
@@ -59,6 +68,7 @@ dependencies {
     compile('org.springframework.boot:spring-boot-starter-web')
     compile('org.springframework.boot:spring-boot-starter-web-services')
     compile("org.springframework.boot:spring-boot-starter-cache")
+    compile("org.springframework.boot:spring-boot-starter-jetty")
 
     compile('org.springframework.cloud:spring-cloud-starter-eureka')
     compile('org.springframework.cloud:spring-cloud-starter-feign')
@@ -101,8 +111,8 @@ task buildDocker(type: Docker, dependsOn: build) {
         // в gitlab-runner после пулла branch.getCurrent() указывает всегда на HEAD в любой ветке
         tagVersion = project.projectBranch
     }
-    if(project.hasProperty('debug')) {
-        if(project.debug == "yes") {
+    if (project.hasProperty('debug')) {
+        if (project.debug == "yes") {
             entryPoint = entryPoint_debug
         }
     }

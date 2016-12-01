@@ -22,7 +22,7 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 
 @RestController
-@RequestMapping("/{accountId}")
+@RequestMapping("/account/{accountId}")
 public class RestPersonalAccountController {
 
     private final PersonalAccountRepository accountRepository;

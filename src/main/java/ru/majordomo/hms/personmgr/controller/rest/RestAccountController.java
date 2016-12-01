@@ -3,7 +3,6 @@ package ru.majordomo.hms.personmgr.controller.rest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -14,12 +13,13 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
-import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
@@ -29,7 +29,6 @@ import ru.majordomo.hms.personmgr.service.PromocodeProcessor;
 import ru.majordomo.hms.personmgr.service.SequenceCounterService;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
-import static ru.majordomo.hms.personmgr.common.StringConstants.PLAN_SERVICE_PREFIX;
 import static ru.majordomo.hms.personmgr.common.StringConstants.VH_ACCOUNT_PREFIX;
 
 /**
@@ -61,6 +60,10 @@ public class RestAccountController extends CommonRestController {
     @Autowired
     private PromocodeProcessor promocodeProcessor;
 
+    @Autowired
+    private AccountServiceRepository accountServiceRepository;
+
+
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -79,8 +82,7 @@ public class RestAccountController extends CommonRestController {
             return this.createErrorResponse("No plan found with OldId: " + message.getParam("plan"));
         }
 
-        message.addParam("planServiceId", plan.getFinServiceId());
-
+        //Создаем PersonalAccount
         PersonalAccount personalAccount = new PersonalAccount();
         personalAccount.setAccountType(AccountType.VIRTUAL_HOSTING);
         personalAccount.setPlanId(plan.getId());
@@ -91,6 +93,15 @@ public class RestAccountController extends CommonRestController {
         personalAccountRepository.save(personalAccount);
         logger.info("personalAccount saved: " + personalAccount.toString());
 
+        //Создаем AccountService с выбранным тарифом
+        AccountService service = new AccountService();
+        service.setPersonalAccountId(personalAccount.getId());
+        service.setServiceId(plan.getServiceId());
+
+        accountServiceRepository.save(service);
+        logger.info("AccountService saved: " + service.toString());
+
+        //генерируем партнерский промокод
         promocodeProcessor.generatePartnerPromocode(personalAccount);
         logger.info("PartnerPromocode generated");
 
@@ -118,39 +129,39 @@ public class RestAccountController extends CommonRestController {
 
         return this.createSuccessResponse(businessAction);
     }
-
-    @RequestMapping(value = "/{accountId}", method = RequestMethod.PATCH)
-    public SimpleServiceMessage update(
-            @PathVariable String accountId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-    ) {
-        logger.info("Updating account with id " + accountId + " " + message.toString());
-
-        message.addParam("accountId", accountId);
-
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_UPDATE_RC, message);
-
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
-        return this.createSuccessResponse(businessAction);
-    }
-
-    @RequestMapping(value = "/{accountId}", method = RequestMethod.DELETE)
-    public SimpleServiceMessage delete(
-            @PathVariable String accountId,
-            HttpServletResponse response
-    ) {
-        SimpleServiceMessage message = new SimpleServiceMessage();
-        message.setAccountId(accountId);
-        message.addParam("accountId", accountId);
-        message.setAccountId(accountId);
-
-        logger.info("Deleting account with id " + accountId + " " + message.toString());
-
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_DELETE_RC, message);
-
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
-        return this.createSuccessResponse(businessAction);
-    }
+//
+//    @RequestMapping(value = "/{accountId}", method = RequestMethod.PATCH)
+//    public SimpleServiceMessage update(
+//            @PathVariable String accountId,
+//            @RequestBody SimpleServiceMessage message, HttpServletResponse response
+//    ) {
+//        logger.info("Updating account with id " + accountId + " " + message.toString());
+//
+//        message.addParam("accountId", accountId);
+//
+//        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_UPDATE_RC, message);
+//
+//        response.setStatus(HttpServletResponse.SC_ACCEPTED);
+//
+//        return this.createSuccessResponse(businessAction);
+//    }
+//
+//    @RequestMapping(value = "/{accountId}", method = RequestMethod.DELETE)
+//    public SimpleServiceMessage delete(
+//            @PathVariable String accountId,
+//            HttpServletResponse response
+//    ) {
+//        SimpleServiceMessage message = new SimpleServiceMessage();
+//        message.setAccountId(accountId);
+//        message.addParam("accountId", accountId);
+//        message.setAccountId(accountId);
+//
+//        logger.info("Deleting account with id " + accountId + " " + message.toString());
+//
+//        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_DELETE_RC, message);
+//
+//        response.setStatus(HttpServletResponse.SC_ACCEPTED);
+//
+//        return this.createSuccessResponse(businessAction);
+//    }
 }
