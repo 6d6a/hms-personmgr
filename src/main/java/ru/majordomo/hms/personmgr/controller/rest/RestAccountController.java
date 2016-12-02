@@ -29,7 +29,7 @@ import ru.majordomo.hms.personmgr.service.PromocodeProcessor;
 import ru.majordomo.hms.personmgr.service.SequenceCounterService;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
-import static ru.majordomo.hms.personmgr.common.StringConstants.VH_ACCOUNT_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.VH_ACCOUNT_PREFIX;
 
 /**
  * RestAccountController

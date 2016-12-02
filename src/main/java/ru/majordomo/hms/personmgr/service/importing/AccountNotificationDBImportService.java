@@ -16,7 +16,7 @@ import java.util.stream.StreamSupport;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
-import ru.majordomo.hms.personmgr.common.ImportConstants;
+import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
@@ -62,7 +62,7 @@ public class AccountNotificationDBImportService {
             SqlParameterSource namedParametersE = new MapSqlParameterSource("ahs_account_id", personalAccount.getAccountId());
 
             jdbcTemplate.query(query, namedParametersE, (rs, rowNum) -> {
-                personalAccount.addNotification(ImportConstants.getManagerMessageTypeMap().get(rs.getInt("ahs_sms_id")));
+                personalAccount.addNotification(Constants.MANAGER_MESSAGE_TYPE_MAP.get(rs.getInt("ahs_sms_id")));
 
                 return personalAccount;
             });

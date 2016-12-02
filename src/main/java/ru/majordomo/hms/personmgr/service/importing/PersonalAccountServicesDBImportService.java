@@ -17,7 +17,7 @@ import java.util.List;
 
 import javax.validation.ConstraintViolationException;
 
-import ru.majordomo.hms.personmgr.common.ImportConstants;
+import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
@@ -25,9 +25,9 @@ import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
-import static ru.majordomo.hms.personmgr.common.StringConstants.FREE_SERVICE_POSTFIX;
-import static ru.majordomo.hms.personmgr.common.StringConstants.PLAN_SERVICE_PREFIX;
-import static ru.majordomo.hms.personmgr.common.StringConstants.SERVICE_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.FREE_SERVICE_POSTFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_SERVICE_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_PREFIX;
 
 
 /**
@@ -88,7 +88,7 @@ public class PersonalAccountServicesDBImportService {
 
         String queryExtend = "SELECT acc_id, Domain_name, usluga, cost, value, promo FROM extend WHERE acc_id = :acc_id AND usluga NOT IN (:usluga_ids)";
         SqlParameterSource namedParameters = new MapSqlParameterSource("acc_id", rs.getString("id"))
-                .addValue("usluga_ids", ImportConstants.notNeededServiceIds);
+                .addValue("usluga_ids", Constants.NOT_NEEDED_SERVICE_IDS);
 
         accountServices.addAll(jdbcTemplate.query(queryExtend,
                 namedParameters,
@@ -99,7 +99,7 @@ public class PersonalAccountServicesDBImportService {
                     AccountService accountServiceE = new AccountService(serviceE);
 
 //                    accountServiceE.setPersonalAccountId(account.getId());
-                    accountServiceE.setPersonalAccountId(rs.getString("id"));
+                    accountServiceE.setPersonalAccountId(rsE.getString("acc_id"));
                     return accountServiceE;
                 }
         ));

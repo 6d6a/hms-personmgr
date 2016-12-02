@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -20,7 +19,7 @@ import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getPartnerPromocodeActionId;
+import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PROMOCODE_ACTION_ID;
 
 /**
  * Сервис для загрузки первичных данных в БД
@@ -63,7 +62,7 @@ public class PromocodeDBImportService {
         promocode.setActive(rs.getBoolean("active"));
         promocode.setCreatedDate(rs.getDate("created").toLocalDate());
 
-        promocode.setActionIds(Collections.singletonList(getPartnerPromocodeActionId()));
+        promocode.setActionIds(Collections.singletonList(PARTNER_PROMOCODE_ACTION_ID));
 
         return promocode;
     }

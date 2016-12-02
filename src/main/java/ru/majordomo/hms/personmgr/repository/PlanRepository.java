@@ -48,6 +48,6 @@ public interface PlanRepository extends MongoRepository<Plan, String> {
     void delete(String s);
 
     @Override
-    @CacheEvict("plans")
+    @CacheEvict(value = "plans", allEntries = true)
     void deleteAll();
 }

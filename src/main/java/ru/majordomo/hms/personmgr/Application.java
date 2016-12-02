@@ -106,8 +106,8 @@ public class Application implements CommandLineRunner {
 
             if (option.equals(dbSeedOption)) {
                 boolean seeded;
-                seeded = businessActionDBSeedService.seedDB();
-                sb.append(" ").append(seeded ? "businessFlow db_seeded" : "businessFlow db_not_seeded");
+//                seeded = businessActionDBSeedService.seedDB();
+//                sb.append(" ").append(seeded ? "businessFlow db_seeded" : "businessFlow db_not_seeded");
 //
 //                seeded = promocodeActionDBSeedService.seedDB();
 //                sb.append(" ").append(seeded ? "promocodeAction db_seeded" : "promocodeAction db_not_seeded");
@@ -128,16 +128,16 @@ public class Application implements CommandLineRunner {
 //                imported = serviceDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "service db_imported" : "service db_not_imported");
 
-//                imported = planDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "plan db_imported" : "plan db_not_imported");
+                imported = planDBImportService.importToMongo();
+                sb.append(" ").append(imported ? "plan db_imported" : "plan db_not_imported");
 
-//                  imported = personalAccountDBImportService.importToMongo("100800");
+                  imported = personalAccountDBImportService.importToMongo("100800");
 //                imported = personalAccountDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
+                sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
 
-                imported = personalAccountServicesDBImportService.importToMongo();
-//                imported = personalAccountServicesDBImportService.importToMongo("999");
-                sb.append(" ").append(imported ? "personalAccountServices db_imported" : "personalAccountServices db_not_imported");
+//                imported = personalAccountServicesDBImportService.importToMongo();
+//                imported = personalAccountServicesDBImportService.importToMongo("100800");
+//                sb.append(" ").append(imported ? "personalAccountServices db_imported" : "personalAccountServices db_not_imported");
 
 //                imported = promocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "promocode db_imported" : "promocode db_not_imported");
