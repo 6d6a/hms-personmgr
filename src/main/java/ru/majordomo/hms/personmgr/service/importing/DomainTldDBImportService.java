@@ -23,9 +23,9 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 
-import static ru.majordomo.hms.personmgr.common.ImportConstants.DOMAIN_CATEGORY_MAP;
-import static ru.majordomo.hms.personmgr.common.ImportConstants.DOMAIN_REGISTRATOR_MAP;
-import static ru.majordomo.hms.personmgr.common.ImportConstants.DOMAIN_REGISTRATOR_NAME_MAP;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_CATEGORY_MAP;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_REGISTRATOR_MAP;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_REGISTRATOR_NAME_MAP;
 
 /**
  * Сервис для загрузки первичных данных в БД

@@ -12,18 +12,16 @@ import org.springframework.stereotype.Service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getBonusFreeDomainPromocodeActionId;
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getBonusParking3MPromocodeActionId;
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getBonusUnlimited1MPromocodeActionId;
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getBonusUnlimited3MPromocodeActionId;
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getPartnerPromocodeActionId;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PARKING_3_M_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_UNLIMITED_1_M_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_UNLIMITED_3_M_PROMOCODE_ACTION_ID;
 
 /**
  * Сервис для загрузки первичных данных в БД
@@ -74,20 +72,20 @@ public class BonusPromocodeDBImportService {
             case "unlimited":
                 switch (rs.getInt("free_months")) {
                     case 1:
-                        actionIds.add(getBonusUnlimited1MPromocodeActionId());
+                        actionIds.add(BONUS_UNLIMITED_1_M_PROMOCODE_ACTION_ID);
                         break;
                     case 3:
-                        actionIds.add(getBonusUnlimited3MPromocodeActionId());
+                        actionIds.add(BONUS_UNLIMITED_3_M_PROMOCODE_ACTION_ID);
                         break;
                 }
                 break;
             case "parking-domains":
-                actionIds.add(getBonusParking3MPromocodeActionId());
+                actionIds.add(BONUS_PARKING_3_M_PROMOCODE_ACTION_ID);
                 break;
         }
 
         if (rs.getInt("free_domain") == 1) {
-            actionIds.add(getBonusFreeDomainPromocodeActionId());
+            actionIds.add(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
         }
 
         promocode.setActionIds(actionIds);

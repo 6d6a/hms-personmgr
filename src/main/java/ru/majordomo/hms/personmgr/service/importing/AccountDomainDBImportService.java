@@ -19,8 +19,7 @@ import ru.majordomo.hms.personmgr.model.domain.AccountDomain;
 import ru.majordomo.hms.personmgr.repository.AccountDomainRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
-import static ru.majordomo.hms.personmgr.common.ImportConstants.DOMAIN_REGISTRATOR_MAP;
-import static ru.majordomo.hms.personmgr.common.ImportConstants.DOMAIN_REGISTRATOR_STRING_MAP;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_REGISTRATOR_STRING_MAP;
 
 /**
  * Сервис для загрузки первичных данных в БД

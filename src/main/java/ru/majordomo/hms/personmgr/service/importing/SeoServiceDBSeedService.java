@@ -11,17 +11,15 @@ import java.util.List;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.SeoType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
-import ru.majordomo.hms.personmgr.model.abonement.Abonement;
-import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.seo.Seo;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.SeoRepository;
 
-import static ru.majordomo.hms.personmgr.common.StringConstants.SEO_AUDIT_SERVICE_ID;
-import static ru.majordomo.hms.personmgr.common.StringConstants.SEO_AUDIT_SERVICE_PREFIX;
-import static ru.majordomo.hms.personmgr.common.StringConstants.SEO_CONTEXT_SERVICE_ID;
-import static ru.majordomo.hms.personmgr.common.StringConstants.SEO_CONTEXT_SERVICE_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.SEO_AUDIT_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.SEO_AUDIT_SERVICE_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.SEO_CONTEXT_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.SEO_CONTEXT_SERVICE_PREFIX;
 
 /**
  * PlanDBImportService

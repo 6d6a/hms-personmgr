@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.common.AbonementType;
 import ru.majordomo.hms.personmgr.common.AccountType;
@@ -28,8 +29,14 @@ import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
-import static ru.majordomo.hms.personmgr.common.StringConstants.PLAN_SERVICE_ABONEMENT_PREFIX;
-import static ru.majordomo.hms.personmgr.common.StringConstants.PLAN_SERVICE_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_BUSINESS_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_BUSINESS_PLUS_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_PROPERTY_LIMIT_UNLIMITED;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_SERVICE_ABONEMENT_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_SERVICE_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_START_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_UNLIMITED_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_UNLIMITED_PLUS_ID;
 
 /**
  * PlanDBImportService
@@ -42,10 +49,16 @@ public class PlanDBImportService {
     private PlanRepository planRepository;
     private AbonementRepository abonementRepository;
     private PaymentServiceRepository paymentServiceRepository;
-    private List<Plan> planList = new ArrayList<>();
+    private List<Plan> plans = new ArrayList<>();
+    private List<Abonement> abonements = new ArrayList<>();
 
     @Autowired
-    public PlanDBImportService(JdbcTemplate jdbcTemplate, PlanRepository planRepository, AbonementRepository abonementRepository, PaymentServiceRepository paymentServiceRepository) {
+    public PlanDBImportService(
+            JdbcTemplate jdbcTemplate,
+            PlanRepository planRepository,
+            AbonementRepository abonementRepository,
+            PaymentServiceRepository paymentServiceRepository
+    ) {
         this.jdbcTemplate = jdbcTemplate;
         this.planRepository = planRepository;
         this.abonementRepository = abonementRepository;
@@ -53,42 +66,55 @@ public class PlanDBImportService {
     }
 
     public void pull() {
-        String query = "SELECT p.Plan_ID, p.name, p.cost, p.cost_disc, p.QuotaKB, p.db, p.apache, p.active, p.username, p.sites, p.web_cpu_limit, p.db_cpu_limit FROM plan p LEFT JOIN account a ON p.Plan_ID=a.plan_id WHERE a.id IS NOT NULL GROUP BY p.Plan_ID";
-        planList = jdbcTemplate.query(query, this::rowMap);
+        String query = "SELECT p.Plan_ID, p.name, p.cost, p.cost_disc, p.QuotaKB, p.db, p.apache, " +
+                "p.active, p.username, p.sites, p.web_cpu_limit, p.db_cpu_limit FROM plan p " +
+                "LEFT JOIN account a ON p.Plan_ID=a.plan_id WHERE a.id IS NOT NULL GROUP BY p.Plan_ID";
+        plans = jdbcTemplate.query(query, this::rowMap);
     }
 
     public void pull(String planId) {
-        String query = "SELECT p.Plan_ID, p.name, p.cost, p.cost_disc, p.QuotaKB, p.db, p.apache, p.active, p.username, p.sites, p.web_cpu_limit, p.db_cpu_limit FROM plan p LEFT JOIN account a ON p.Plan_ID=a.plan_id WHERE p.Plan_ID = ? AND a.id IS NOT NULL GROUP BY p.Plan_ID";
-        planList = jdbcTemplate.query(query,
+        String query = "SELECT p.Plan_ID, p.name, p.cost, p.cost_disc, p.QuotaKB, p.db, p.apache, " +
+                "p.active, p.username, p.sites, p.web_cpu_limit, p.db_cpu_limit FROM plan p " +
+                "LEFT JOIN account a ON p.Plan_ID=a.plan_id WHERE p.Plan_ID = ? AND a.id IS NOT NULL GROUP BY p.Plan_ID";
+        plans = jdbcTemplate.query(query,
                 new Object[]{planId},
                 this::rowMap);
     }
 
     private Plan rowMap(ResultSet rs, int rowNum) throws SQLException {
         VirtualHostingPlanProperties planProperties = new VirtualHostingPlanProperties();
-        if (rs.getInt("Plan_ID") == 9802
-                || rs.getInt("Plan_ID") == 9804
-                || rs.getInt("Plan_ID") == 9805
-                || rs.getInt("Plan_ID") == 9806
-                || rs.getInt("Plan_ID") == 9807) {
-            planProperties.setFtpLimit(new PlanPropertyLimit(5, -1));
+        if (rs.getInt("Plan_ID") == PLAN_UNLIMITED_ID
+                || rs.getInt("Plan_ID") == PLAN_START_ID
+                || rs.getInt("Plan_ID") == PLAN_UNLIMITED_PLUS_ID
+                || rs.getInt("Plan_ID") == PLAN_BUSINESS_ID
+                || rs.getInt("Plan_ID") == PLAN_BUSINESS_PLUS_ID) {
+            planProperties.setFtpLimit(new PlanPropertyLimit(5, PLAN_PROPERTY_LIMIT_UNLIMITED));
         } else {
-            planProperties.setFtpLimit(new PlanPropertyLimit(-1, -1));
+            planProperties.setFtpLimit(new PlanPropertyLimit(PLAN_PROPERTY_LIMIT_UNLIMITED));
         }
 
         planProperties.setWebCpuLimit(new PlanPropertyLimit(rs.getInt("web_cpu_limit")));
         planProperties.setDbCpuLimit(new PlanPropertyLimit(rs.getInt("db_cpu_limit")));
         planProperties.setQuotaKBLimit(new PlanPropertyLimit(rs.getInt("QuotaKB")));
-        planProperties.setSitesLimit(new PlanPropertyLimit(rs.getInt("sites")));
-        planProperties.setSshLimit(new PlanPropertyLimit(-1));
+        planProperties.setSitesLimit(new PlanPropertyLimit(
+                rs.getInt("sites") == 1000 ?
+                        PLAN_PROPERTY_LIMIT_UNLIMITED :
+                        rs.getInt("sites"))
+        );
+        planProperties.setSshLimit(new PlanPropertyLimit(PLAN_PROPERTY_LIMIT_UNLIMITED));
         planProperties.setPhpEnabled(rs.getBoolean("apache"));
 
-        if (rs.getInt("Plan_ID") == 9806 || rs.getInt("Plan_ID") == 9807) {
+        if (rs.getInt("Plan_ID") == PLAN_BUSINESS_ID
+                || rs.getInt("Plan_ID") == PLAN_BUSINESS_PLUS_ID) {
             planProperties.setBusinessServices(true);
         }
 
         Map<DBType, PlanPropertyLimit> dbList = new HashMap<>();
-        dbList.put(DBType.MYSQL, new PlanPropertyLimit(rs.getInt("db")));
+        dbList.put(DBType.MYSQL, new PlanPropertyLimit(
+                rs.getInt("db") == 1000 ?
+                        PLAN_PROPERTY_LIMIT_UNLIMITED :
+                        rs.getInt("db"))
+        );
 
         planProperties.setDb(dbList);
 
@@ -152,6 +178,11 @@ public class PlanDBImportService {
     public boolean importToMongo() {
         planRepository.deleteAll();
         abonementRepository.deleteAll();
+        try (Stream<PaymentService> paymentServiceStream = paymentServiceRepository.findByOldIdRegex(PLAN_SERVICE_PREFIX + ".*")) {
+            paymentServiceStream.forEach(
+                    paymentServiceRepository::delete
+            );
+        }
         pull();
         pushToMongo();
         return true;
@@ -167,12 +198,18 @@ public class PlanDBImportService {
             planRepository.delete(plan);
         }
 
+        try (Stream<PaymentService> paymentServiceStream = paymentServiceRepository.findByOldIdRegex(planId)) {
+            paymentServiceStream.forEach(
+                    paymentServiceRepository::delete
+            );
+        }
+
         pull(planId);
         pushToMongo();
         return true;
     }
 
     private void pushToMongo() {
-        planRepository.save(planList);
+        planRepository.save(plans);
     }
 }

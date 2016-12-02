@@ -21,7 +21,7 @@ import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getPartnerPromocodeActionId;
+import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PROMOCODE_ACTION_ID;
 
 /**
  * Сервис для загрузки первичных данных в БД
@@ -93,7 +93,7 @@ public class AccountPromocodeDBImportService {
                     accountPromocode.setOwnedByAccount(true);
 
                     Map<String, Boolean> actionsWithStatus = new HashMap<>();
-                    actionsWithStatus.put(getPartnerPromocodeActionId(), true);
+                    actionsWithStatus.put(PARTNER_PROMOCODE_ACTION_ID, true);
 
                     accountPromocode.setActionsWithStatus(actionsWithStatus);
 

@@ -10,16 +10,18 @@ import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.PromocodeActionType;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getBonusFreeDomainPromocodeActionId;
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getBonusParking3MPromocodeActionId;
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getBonusUnlimited1MPromocodeActionId;
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getBonusUnlimited3MPromocodeActionId;
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getParkingPlanServiceId;
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getPartnerPromocodeActionId;
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getUnlimitedPlanServiceId;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PARKING_3_M_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_UNLIMITED_1_M_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_UNLIMITED_3_M_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_PARKING_DOMAINS_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_UNLIMITED_SERVICE_ID;
 
 
 /**
@@ -29,9 +31,15 @@ import static ru.majordomo.hms.personmgr.common.ImportConstants.getUnlimitedPlan
 public class PromocodeActionDBSeedService {
     private final static Logger logger = LoggerFactory.getLogger(PromocodeActionDBSeedService.class);
 
-    @Autowired
-    private PromocodeActionRepository promocodeActionRepository;
+    private final PromocodeActionRepository promocodeActionRepository;
 
+    private final PlanRepository planRepository;
+
+    @Autowired
+    public PromocodeActionDBSeedService(PlanRepository planRepository, PromocodeActionRepository promocodeActionRepository) {
+        this.planRepository = planRepository;
+        this.promocodeActionRepository = promocodeActionRepository;
+    }
 
     public boolean seedDB() {
         boolean result = false;
@@ -65,7 +73,7 @@ public class PromocodeActionDBSeedService {
 
         promocodeAction.setProperties(properties);
 
-        promocodeAction.setId(getPartnerPromocodeActionId());
+        promocodeAction.setId(PARTNER_PROMOCODE_ACTION_ID);
 
         promocodeActionRepository.save(promocodeAction);
 
@@ -74,13 +82,16 @@ public class PromocodeActionDBSeedService {
 
         promocodeAction.setActionType(PromocodeActionType.SERVICE_ABONEMENT);
 
+        //Безлимитный план
+        Plan plan = planRepository.findByOldId(PLAN_UNLIMITED_SERVICE_ID);
+
         properties = new HashMap<>();
-        properties.put("serviceId", getUnlimitedPlanServiceId());
+        properties.put("serviceId", plan.getServiceId());
         properties.put("period", "P1M");
 
         promocodeAction.setProperties(properties);
 
-        promocodeAction.setId(getBonusUnlimited1MPromocodeActionId());
+        promocodeAction.setId(BONUS_UNLIMITED_1_M_PROMOCODE_ACTION_ID);
 
         promocodeActionRepository.save(promocodeAction);
 
@@ -90,12 +101,12 @@ public class PromocodeActionDBSeedService {
         promocodeAction.setActionType(PromocodeActionType.SERVICE_ABONEMENT);
 
         properties = new HashMap<>();
-        properties.put("serviceId", getUnlimitedPlanServiceId());
+        properties.put("serviceId", plan.getServiceId());
         properties.put("period", "P3M");
 
         promocodeAction.setProperties(properties);
 
-        promocodeAction.setId(getBonusUnlimited3MPromocodeActionId());
+        promocodeAction.setId(BONUS_UNLIMITED_3_M_PROMOCODE_ACTION_ID);
 
         promocodeActionRepository.save(promocodeAction);
 
@@ -104,13 +115,16 @@ public class PromocodeActionDBSeedService {
 
         promocodeAction.setActionType(PromocodeActionType.SERVICE_ABONEMENT);
 
+        //ПарковкаДоменов план
+        plan = planRepository.findByOldId(PLAN_PARKING_DOMAINS_SERVICE_ID);
+
         properties = new HashMap<>();
-        properties.put("serviceId", getParkingPlanServiceId());
+        properties.put("serviceId", plan.getServiceId());
         properties.put("period", "P3M");
 
         promocodeAction.setProperties(properties);
 
-        promocodeAction.setId(getBonusParking3MPromocodeActionId());
+        promocodeAction.setId(BONUS_PARKING_3_M_PROMOCODE_ACTION_ID);
 
         promocodeActionRepository.save(promocodeAction);
 
@@ -119,7 +133,7 @@ public class PromocodeActionDBSeedService {
 
         promocodeAction.setActionType(PromocodeActionType.SERVICE_FREE_DOMAIN);
 
-        promocodeAction.setId(getBonusFreeDomainPromocodeActionId());
+        promocodeAction.setId(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
 
         promocodeActionRepository.save(promocodeAction);
     }

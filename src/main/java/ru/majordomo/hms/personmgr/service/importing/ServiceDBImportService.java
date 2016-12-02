@@ -18,16 +18,16 @@ import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
-import ru.majordomo.hms.personmgr.common.ImportConstants;
+import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 
-import static ru.majordomo.hms.personmgr.common.StringConstants.FREE_SERVICE_NAME_POSTFIX;
-import static ru.majordomo.hms.personmgr.common.StringConstants.FREE_SERVICE_POSTFIX;
-import static ru.majordomo.hms.personmgr.common.StringConstants.SERVICE_MONEY_RETURN_PREFIX;
-import static ru.majordomo.hms.personmgr.common.StringConstants.SERVICE_MONEY_TRANSFER_PREFIX;
-import static ru.majordomo.hms.personmgr.common.StringConstants.SERVICE_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.FREE_SERVICE_NAME_POSTFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.FREE_SERVICE_POSTFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_MONEY_RETURN_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_MONEY_TRANSFER_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_PREFIX;
 
 
 /**
@@ -49,7 +49,7 @@ public class ServiceDBImportService {
 
     public void pull() {
         String query = "SELECT id, usluga, service_cost FROM uslugi WHERE id NOT IN(:usluga_ids)";
-        SqlParameterSource namedParameters = new MapSqlParameterSource("usluga_ids", ImportConstants.notNeededServiceIds);
+        SqlParameterSource namedParameters = new MapSqlParameterSource("usluga_ids", Constants.NOT_NEEDED_SERVICE_IDS);
 
         serviceList.addAll(jdbcTemplate.query(query, namedParameters, (rs, rowNum) -> {
             PaymentService newService = new PaymentService();
@@ -64,7 +64,7 @@ public class ServiceDBImportService {
 
             logger.info("found PaymentService: " + newService.toString());
 
-            if (ImportConstants.optionallyFreeServiceIds.contains(Integer.valueOf(rs.getString("id")))) {
+            if (Constants.OPTIONALLY_FREE_SERVICE_IDS.contains(Integer.valueOf(rs.getString("id")))) {
                 PaymentService newServiceFree = new PaymentService();
 
                 newServiceFree.setPaymentType(ServicePaymentType.MONTH);

@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.service;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,8 +21,8 @@ import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 
-import static ru.majordomo.hms.personmgr.common.ImportConstants.getPartnerPromocodeActionId;
-import static ru.majordomo.hms.personmgr.common.StringConstants.BONUS_PAYMENT_TYPE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PAYMENT_TYPE_ID;
 
 @Service
 public class PromocodeProcessor {
@@ -105,7 +104,7 @@ public class PromocodeProcessor {
         promocode.setActive(true);
         promocode.setCreatedDate(LocalDate.now());
         promocode.setType(PromocodeType.PARTNER);
-        promocode.setActionIds(Collections.singletonList(getPartnerPromocodeActionId()));
+        promocode.setActionIds(Collections.singletonList(PARTNER_PROMOCODE_ACTION_ID));
 
         promocodeRepository.save(promocode);
 

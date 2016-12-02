@@ -44,6 +44,6 @@ public interface PaymentServiceRepository extends MongoRepository<PaymentService
     void delete(String s);
 
     @Override
-    @CacheEvict("paymentServices")
+    @CacheEvict(value = "paymentServices", allEntries = true)
     void deleteAll();
 }
