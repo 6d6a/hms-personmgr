@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.controller.rest;
+package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,9 +22,7 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
-import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 import ru.majordomo.hms.personmgr.service.PromocodeProcessor;
 import ru.majordomo.hms.personmgr.service.SequenceCounterService;
 
@@ -36,32 +34,36 @@ import static ru.majordomo.hms.personmgr.common.Constants.VH_ACCOUNT_PREFIX;
  */
 @RestController
 @RequestMapping("/account")
-public class RestAccountController extends CommonRestController {
+public class RestAccountController extends CommonRestResourceController {
     private final static Logger logger = LoggerFactory.getLogger(RestAccountController.class);
 
-    @Autowired
-    private SequenceCounterService sequenceCounterService;
+    private final SequenceCounterService sequenceCounterService;
+
+    private final PersonalAccountRepository personalAccountRepository;
+
+    private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
+
+    private final PlanRepository planRepository;
+
+    private final PromocodeProcessor promocodeProcessor;
+
+    private final AccountServiceRepository accountServiceRepository;
 
     @Autowired
-    private BusinessActionBuilder businessActionBuilder;
-
-    @Autowired
-    private ProcessingBusinessActionRepository processingBusinessActionRepository;
-
-    @Autowired
-    private PersonalAccountRepository personalAccountRepository;
-
-    @Autowired
-    private ProcessingBusinessOperationRepository processingBusinessOperationRepository;
-
-    @Autowired
-    private PlanRepository planRepository;
-
-    @Autowired
-    private PromocodeProcessor promocodeProcessor;
-
-    @Autowired
-    private AccountServiceRepository accountServiceRepository;
+    public RestAccountController(
+            SequenceCounterService sequenceCounterService,
+            PersonalAccountRepository personalAccountRepository,
+            ProcessingBusinessOperationRepository processingBusinessOperationRepository,
+            PlanRepository planRepository, PromocodeProcessor promocodeProcessor,
+            AccountServiceRepository accountServiceRepository
+    ) {
+        this.sequenceCounterService = sequenceCounterService;
+        this.personalAccountRepository = personalAccountRepository;
+        this.processingBusinessOperationRepository = processingBusinessOperationRepository;
+        this.planRepository = planRepository;
+        this.promocodeProcessor = promocodeProcessor;
+        this.accountServiceRepository = accountServiceRepository;
+    }
 
 
     @RequestMapping(value = "", method = RequestMethod.POST)

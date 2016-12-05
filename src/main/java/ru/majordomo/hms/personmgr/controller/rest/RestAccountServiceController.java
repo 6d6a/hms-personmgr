@@ -34,7 +34,10 @@ public class RestAccountServiceController extends CommonRestController{
     }
 
     @RequestMapping(value = "/{accountServiceId}", method = RequestMethod.GET)
-    public ResponseEntity<AccountService> get(@PathVariable(value = "accountId") String accountId, @PathVariable(value = "accountServiceId") String accountServiceId) {
+    public ResponseEntity<AccountService> get(
+            @PathVariable(value = "accountId") String accountId,
+            @PathVariable(value = "accountServiceId") String accountServiceId
+    ) {
         PersonalAccount account = personalAccountRepository.findByAccountId(accountId);
         if(account == null){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);

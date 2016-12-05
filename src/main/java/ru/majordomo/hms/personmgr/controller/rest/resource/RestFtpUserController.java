@@ -1,8 +1,7 @@
-package ru.majordomo.hms.personmgr.controller.rest;
+package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,28 +13,11 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
-import ru.majordomo.hms.personmgr.service.PlanCheckerService;
 
-/**
- * RestFtpUserController
- */
 @RestController
-@RequestMapping({"/{accountId}/ftp-user", "/ftp-user"})
-public class RestFtpUserController extends CommonRestController {
+@RequestMapping("/{accountId}/ftp-user")
+public class RestFtpUserController extends CommonRestResourceController {
     private final static Logger logger = LoggerFactory.getLogger(RestFtpUserController.class);
-
-    private final BusinessActionBuilder businessActionBuilder;
-
-    private final PlanCheckerService planCheckerService;
-
-    @Autowired
-    public RestFtpUserController(
-            BusinessActionBuilder businessActionBuilder,
-            PlanCheckerService planCheckerService) {
-        this.businessActionBuilder = businessActionBuilder;
-        this.planCheckerService = planCheckerService;
-    }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(

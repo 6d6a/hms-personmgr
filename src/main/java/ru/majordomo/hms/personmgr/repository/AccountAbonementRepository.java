@@ -14,6 +14,7 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 
 public interface AccountAbonementRepository extends MongoRepository<AccountAbonement, String> {
     AccountAbonement findOne(String id);
+    AccountAbonement findByIdAndPersonalAccountId(@Param("id") String id, @Param("personalAccountId") String personalAccountId);
     List<AccountAbonement> findAll();
     @RestResource(path = "findListByAbonementId", rel = "findListByAbonementId")
     List<AccountAbonement> findByAbonementId(@Param("abonementId") String abonementId);

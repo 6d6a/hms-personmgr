@@ -18,8 +18,12 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 @RequestMapping("/{accountId}/processing-actions")
 public class RestProcessingBusinessActionController {
 
+    private final ProcessingBusinessActionRepository repository;
+
     @Autowired
-    ProcessingBusinessActionRepository repository;
+    public RestProcessingBusinessActionController(ProcessingBusinessActionRepository repository) {
+        this.repository = repository;
+    }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<Page<ProcessingBusinessAction>> listAll(Pageable pageable, @PathVariable("accountId") String accountId) {
