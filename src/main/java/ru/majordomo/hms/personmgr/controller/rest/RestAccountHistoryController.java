@@ -21,7 +21,7 @@ import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 
 @RestController
 @RequestMapping("/{accountId}/account-history")
-public class RestAccountHistoryController {
+public class RestAccountHistoryController extends CommonRestController {
 
     private final PersonalAccountRepository accountRepository;
     private final AccountHistoryRepository accountHistoryRepository;

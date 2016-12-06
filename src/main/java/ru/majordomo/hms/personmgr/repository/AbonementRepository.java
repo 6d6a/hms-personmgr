@@ -18,4 +18,7 @@ public interface AbonementRepository extends MongoRepository<Abonement, String> 
     @RestResource(path = "findListByType", rel = "findListByType")
     List<Abonement> findByType(@Param("type") AbonementType type);
     Page<Abonement> findByType(@Param("type") AbonementType type, Pageable pageable);
+    @RestResource(path = "findListByIdIn", rel = "findListByIdIn")
+    List<Abonement> findByIdIn(@Param("ids") List<String> ids);
+    Page<Abonement> findByIdIn(@Param("ids") List<String> ids, Pageable pageable);
 }

@@ -15,7 +15,7 @@ import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
 
 @RestController
 @RequestMapping({"/{accountId}/domain-tlds", "/domain-tlds"})
-public class RestDomainTldController {
+public class RestDomainTldController extends CommonRestController {
 
     private final DomainTldRepository repository;
 

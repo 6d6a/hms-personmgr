@@ -15,7 +15,7 @@ import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 
 @RestController
 @RequestMapping("/{accountId}/account-promocodes")
-public class RestAccountPromocodeController {
+public class RestAccountPromocodeController extends CommonRestController {
 
     private final AccountPromocodeRepository repository;
 

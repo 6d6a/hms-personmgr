@@ -18,7 +18,7 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 @RestController
 @RequestMapping("/{accountId}")
-public class RestPersonalAccountController {
+public class RestPersonalAccountController extends CommonRestController {
 
     private final PersonalAccountRepository accountRepository;
     private final PlanRepository planRepository;
