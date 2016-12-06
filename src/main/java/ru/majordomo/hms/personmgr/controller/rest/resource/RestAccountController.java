@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
+
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
@@ -91,6 +93,8 @@ public class RestAccountController extends CommonRestResourceController {
         personalAccount.setAccountId(accountId);
         personalAccount.setClientId(accountId);
         personalAccount.setName(VH_ACCOUNT_PREFIX + accountId);
+        personalAccount.setActive(true);
+        personalAccount.setCreated(LocalDateTime.now());
 
         personalAccountRepository.save(personalAccount);
         logger.info("personalAccount saved: " + personalAccount.toString());

@@ -5,6 +5,7 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -46,6 +47,17 @@ public class PersonalAccount extends BaseModel {
 
     @NotNull
     @Indexed
+    private boolean active;
+
+    @NotNull
+    @Indexed
+    private LocalDateTime created;
+
+    @Indexed
+    private LocalDateTime deactivated;
+
+    @NotNull
+    @Indexed
     private AccountType accountType;
 
     private Set<MailManagerMessageType> notifications = new HashSet<>();
@@ -62,7 +74,7 @@ public class PersonalAccount extends BaseModel {
     }
 
     @PersistenceConstructor
-    public PersonalAccount(String id, String accountId, String clientId, String planId, String name, AccountType accountType, List<AccountDiscount> discounts) {
+    public PersonalAccount(String id, String accountId, String clientId, String planId, String name, AccountType accountType, List<AccountDiscount> discounts, boolean active, LocalDateTime created, LocalDateTime deactivated) {
         super();
         this.setId(id);
         this.accountId = accountId;
@@ -71,9 +83,12 @@ public class PersonalAccount extends BaseModel {
         this.name = name;
         this.accountType = accountType;
         this.discounts = discounts;
+        this.active = active;
+        this.created = created;
+        this.deactivated = deactivated;
     }
 
-    public PersonalAccount(String accountId, String clientId, String planId, String name, AccountType accountType, List<AccountDiscount> discounts) {
+    public PersonalAccount(String accountId, String clientId, String planId, String name, AccountType accountType, List<AccountDiscount> discounts, boolean active, LocalDateTime created, LocalDateTime deactivated) {
         super();
         this.accountId = accountId;
         this.clientId = clientId;
@@ -81,6 +96,9 @@ public class PersonalAccount extends BaseModel {
         this.name = name;
         this.accountType = accountType;
         this.discounts = discounts;
+        this.active = active;
+        this.created = created;
+        this.deactivated = deactivated;
     }
 
     public String getName() {
@@ -89,6 +107,30 @@ public class PersonalAccount extends BaseModel {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public LocalDateTime getCreated() {
+        return created;
+    }
+
+    public void setCreated(LocalDateTime created) {
+        this.created = created;
+    }
+
+    public LocalDateTime getDeactivated() {
+        return deactivated;
+    }
+
+    public void setDeactivated(LocalDateTime deactivated) {
+        this.deactivated = deactivated;
     }
 
     public AccountType getAccountType() {
@@ -202,9 +244,13 @@ public class PersonalAccount extends BaseModel {
                 ", clientId='" + clientId + '\'' +
                 ", planId='" + planId + '\'' +
                 ", name='" + name + '\'' +
+                ", active=" + active +
+                ", created=" + created +
+                ", deactivated=" + deactivated +
                 ", accountType=" + accountType +
                 ", notifications=" + notifications +
                 ", settings=" + settings +
+                ", discounts=" + discounts +
                 ", services=" + services +
                 "} " + super.toString();
     }

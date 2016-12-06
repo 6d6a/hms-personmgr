@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,6 +17,8 @@ import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+
+import static ru.majordomo.hms.personmgr.common.Constants.VH_ACCOUNT_PREFIX;
 
 /**
  * DBImportService
@@ -37,12 +40,12 @@ public class PersonalAccountDBImportService {
     }
 
     private void pull() {
-        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days FROM account a LEFT JOIN Money m ON a.id = m.acc_id ORDER BY a.id ASC";
+        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, a.status, c.client_auto_bill FROM account a LEFT JOIN Money m ON a.id = m.acc_id LEFT JOIN client c ON a.client_id = c.Client_ID ORDER BY a.id ASC";
         jdbcTemplate.query(query, this::rowMap);
     }
 
     private void pull(String accountId) {
-        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days FROM account a LEFT JOIN Money m ON a.id = m.acc_id WHERE id = ?";
+        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, a.status, c.client_auto_bill FROM account a LEFT JOIN Money m ON a.id = m.acc_id LEFT JOIN client c ON a.client_id = c.Client_ID WHERE id = ?";
         jdbcTemplate.query(query,
                 new Object[] { accountId },
                 this::rowMap
@@ -57,9 +60,20 @@ public class PersonalAccountDBImportService {
         Plan plan = planRepository.findByOldId(rs.getString("plan_id"));
 
         if (plan != null) {
-            personalAccount = new PersonalAccount(rs.getString("id"), rs.getString("id"), rs.getString("client_id"), plan.getId(), rs.getString("name"), AccountType.VIRTUAL_HOSTING, new ArrayList<>());
+            //Создаем PersonalAccount
+            personalAccount = new PersonalAccount();
+            personalAccount.setId(rs.getString("id"));
+            personalAccount.setAccountType(AccountType.VIRTUAL_HOSTING);
+            personalAccount.setPlanId(plan.getId());
+            personalAccount.setAccountId(rs.getString("id"));
+            personalAccount.setClientId(rs.getString("client_id"));
+            personalAccount.setName(rs.getString("name"));
+            personalAccount.setActive(rs.getBoolean("status"));
+            personalAccount.setCreated(LocalDateTime.now());
+
             personalAccount.setSetting("notify_days", rs.getString("notify_days"));
             personalAccount.setSetting("credit", rs.getString("credit").equals("y") ? "1" : "0");
+            personalAccount.setSetting("auto_bill", rs.getString("client_auto_bill"));
 
             personalAccounts.add(personalAccount);
         } else {
