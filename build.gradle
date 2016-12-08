@@ -90,6 +90,11 @@ dependencies {
 
     compile group: 'ru.majordomo.hms.common', name: 'hms-common', version: '0.0.1-SNAPSHOT'
 
+    compile('org.hibernate:hibernate-validator:5.3.3.Final')
+    compile('org.hibernate:hibernate-validator-cdi:5.3.3.Final')
+    compile('javax.el:javax.el-api:2.2.4')
+    compile('org.glassfish.web:javax.el:2.2.4')
+
     testCompile('org.springframework.boot:spring-boot-starter-test') {
         exclude(module: 'commons-logging')
     }

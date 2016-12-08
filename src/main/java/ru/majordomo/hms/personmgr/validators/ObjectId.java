@@ -11,15 +11,12 @@ import javax.validation.Payload;
 
 import ru.majordomo.hms.personmgr.model.BaseModel;
 
-/**
- * ObjectId
- */
 @Documented
 @Constraint(validatedBy = ObjectIdValidator.class)
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ObjectId {
-    String message() default "Object with ObjectId ${validatedValue} with type {value} not found in DB";
+    String message() default "{ru.majordomo.hms.personmgr.validators.ObjectId.message}";
 
     Class<?>[] groups() default {};
 

@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.validators;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
@@ -15,18 +16,15 @@ import ru.majordomo.hms.personmgr.model.BaseModel;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
-/**
- * ObjectIdListValidator
- */
 @Component
 class ObjectIdMapValidator implements ConstraintValidator<ObjectIdMap, Map<String, Integer>> {
-    private final MongoOperations operations;
+    private final MongoTemplate mongoTemplate;
     private Class<? extends BaseModel> objectModel;
     private String collection;
 
     @Autowired
-    public ObjectIdMapValidator(MongoOperations operations) {
-        this.operations = operations;
+    public ObjectIdMapValidator(MongoTemplate mongoTemplate) {
+        this.mongoTemplate = mongoTemplate;
     }
 
     @Override
@@ -47,15 +45,23 @@ class ObjectIdMapValidator implements ConstraintValidator<ObjectIdMap, Map<Strin
             try {
                 boolean foundObject;
                 if (!collection.equals("")) {
-                    foundObject = operations.exists(new Query(where("_id").is(next.getKey())), this.objectModel, collection);
+                    foundObject = mongoTemplate.exists(
+                            new Query(where("_id").is(next.getKey())),
+                            this.objectModel,
+                            collection
+                    );
                 } else {
-                    foundObject = operations.exists(new Query(where("_id").is(next.getKey())), this.objectModel);
+                    foundObject = mongoTemplate.exists(
+                            new Query(where("_id").is(next.getKey())),
+                            this.objectModel
+                    );
                 }
 
                 if (!foundObject) {
                     return false;
                 }
             } catch (RuntimeException e) {
+                e.printStackTrace();
                 return false;
             }
         }

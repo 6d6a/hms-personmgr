@@ -91,10 +91,15 @@ public class PersonalAccountDBImportService {
     }
 
     public boolean importToMongo(String accountId) {
-        PersonalAccount account = personalAccountRepository.findByAccountId(accountId);
+        PersonalAccount account = null;
+        try {
+            account = personalAccountRepository.findByAccountId(accountId);
 
-        if (account != null) {
-            personalAccountRepository.delete(account);
+            if (account != null) {
+                personalAccountRepository.delete(account);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         pull(accountId);

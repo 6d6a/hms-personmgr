@@ -12,9 +12,12 @@ import org.springframework.cloud.netflix.feign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.annotation.PropertySources;
+import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventListener;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 
 
 import feign.Feign;
@@ -32,6 +35,7 @@ import ru.majordomo.hms.personmgr.event.PromocodeEventListener;
 import ru.majordomo.hms.personmgr.event.SeoEventListener;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.service.importing.*;
+import ru.majordomo.hms.personmgr.validators.ObjectIdValidator;
 
 @SpringBootApplication
 @PropertySources({
@@ -128,8 +132,8 @@ public class Application implements CommandLineRunner {
 //                imported = serviceDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "service db_imported" : "service db_not_imported");
 
-                imported = planDBImportService.importToMongo();
-                sb.append(" ").append(imported ? "plan db_imported" : "plan db_not_imported");
+//                imported = planDBImportService.importToMongo();
+//                sb.append(" ").append(imported ? "plan db_imported" : "plan db_not_imported");
 
                   imported = personalAccountDBImportService.importToMongo("100800");
 //                imported = personalAccountDBImportService.importToMongo();
@@ -228,12 +232,33 @@ public class Application implements CommandLineRunner {
 
     @Bean
     public LocalValidatorFactoryBean validator() {
-        return new LocalValidatorFactoryBean();
+        LocalValidatorFactoryBean validatorFactoryBean = new LocalValidatorFactoryBean();
+        validatorFactoryBean.setValidationMessageSource(messageSource());
+        return validatorFactoryBean;
     }
 
     @Bean
     public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
         return new PropertySourcesPlaceholderConfigurer();
+    }
+
+    @Bean
+    public ReloadableResourceBundleMessageSource messageSource() {
+        ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();
+        messageSource.setBasename("classpath:messages/messages");
+        return messageSource;
+    }
+
+    @Bean
+    public MethodValidationPostProcessor methodValidationPostProcessor() {
+        MethodValidationPostProcessor methodValidationPostProcessor = new MethodValidationPostProcessor();
+        methodValidationPostProcessor.setValidator(validator());
+        return methodValidationPostProcessor;
+    }
+
+    @Bean
+    public MessageSourceAccessor messageSourceAccessor() {
+        return new MessageSourceAccessor(messageSource());
     }
 
 //    @Bean
