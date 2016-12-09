@@ -38,21 +38,15 @@ public class RestAccountAbonementController extends CommonRestController {
 
     private final PersonalAccountRepository accountRepository;
     private final AccountAbonementRepository accountAbonementRepository;
-    private final PlanRepository planRepository;
-    private final FinFeignClient finFeignClient;
     private final AbonementService abonementService;
 
     @Autowired
     public RestAccountAbonementController(
             PersonalAccountRepository accountRepository,
             AccountAbonementRepository accountAbonementRepository,
-            PlanRepository planRepository,
-            FinFeignClient finFeignClient,
             AbonementService abonementService) {
         this.accountRepository = accountRepository;
         this.accountAbonementRepository = accountAbonementRepository;
-        this.planRepository = planRepository;
-        this.finFeignClient = finFeignClient;
         this.abonementService = abonementService;
     }
 
