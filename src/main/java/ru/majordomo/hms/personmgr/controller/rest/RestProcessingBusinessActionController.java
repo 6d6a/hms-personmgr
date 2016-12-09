@@ -16,10 +16,14 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 
 @RestController
 @RequestMapping("/{accountId}/processing-actions")
-public class RestProcessingBusinessActionController {
+public class RestProcessingBusinessActionController extends CommonRestController {
+
+    private final ProcessingBusinessActionRepository repository;
 
     @Autowired
-    ProcessingBusinessActionRepository repository;
+    public RestProcessingBusinessActionController(ProcessingBusinessActionRepository repository) {
+        this.repository = repository;
+    }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<Page<ProcessingBusinessAction>> listAll(Pageable pageable, @PathVariable("accountId") String accountId) {

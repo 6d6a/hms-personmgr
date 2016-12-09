@@ -4,6 +4,7 @@ import com.github.fakemongo.Fongo;
 import com.mongodb.Mongo;
 
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
 import org.springframework.boot.context.embedded.jetty.JettyEmbeddedServletContainerFactory;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +14,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import ru.majordomo.hms.personmgr.controller.rest.RestPlanController;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 @Configuration
 @EnableWebMvc
@@ -23,10 +25,13 @@ public class ConfigRestPlanController extends AbstractMongoConfiguration {
         return new JettyEmbeddedServletContainerFactory(0);
     }
 
+
     @Bean
-    public RestPlanController restPlanController() {
-        return new RestPlanController();
+    @Autowired
+    public RestPlanController restPlanController(PlanRepository repository) {
+        return new RestPlanController(repository);
     }
+
     @Override
     protected String getDatabaseName() {
         return "personmgr" + ObjectId.get().toString();

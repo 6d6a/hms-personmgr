@@ -20,30 +20,30 @@ public interface PaymentServiceRepository extends MongoRepository<PaymentService
     List<PaymentService> findByPaymentType(@Param("paymentType") ServicePaymentType paymentType);
     PaymentService findByName(@Param("name") String name);
     Stream<PaymentService> findByOldIdRegex(@Param("oldId") String oldId);
-    @Cacheable("paymentServices")
+    @Cacheable("paymentServicesOldId")
     PaymentService findByOldId(@Param("oldId") String oldId);
 
     @Override
-    @CachePut("paymentServices")
+    @CachePut({"paymentServices", "paymentServicesOldId"})
     <S extends PaymentService> List<S> save(Iterable<S> entites);
 
     @Override
-    @CachePut("paymentServices")
+    @CachePut({"paymentServices", "paymentServicesOldId"})
     <S extends PaymentService> S save(S entity);
 
     @Override
-    @CacheEvict("paymentServices")
+    @CacheEvict({"paymentServices", "paymentServicesOldId"})
     void delete(Iterable<? extends PaymentService> entities);
 
     @Override
-    @CacheEvict("paymentServices")
+    @CacheEvict({"paymentServices", "paymentServicesOldId"})
     void delete(PaymentService entity);
 
     @Override
-    @CacheEvict("paymentServices")
+    @CacheEvict({"paymentServices", "paymentServicesOldId"})
     void delete(String s);
 
     @Override
-    @CacheEvict(value = "paymentServices", allEntries = true)
+    @CacheEvict(value = {"paymentServices", "paymentServicesOldId"}, allEntries = true)
     void deleteAll();
 }

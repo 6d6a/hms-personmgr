@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.controller.rest;
+package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDateTime;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -22,9 +24,7 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
-import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 import ru.majordomo.hms.personmgr.service.PromocodeProcessor;
 import ru.majordomo.hms.personmgr.service.SequenceCounterService;
 
@@ -36,32 +36,36 @@ import static ru.majordomo.hms.personmgr.common.Constants.VH_ACCOUNT_PREFIX;
  */
 @RestController
 @RequestMapping("/account")
-public class RestAccountController extends CommonRestController {
+public class RestAccountController extends CommonRestResourceController {
     private final static Logger logger = LoggerFactory.getLogger(RestAccountController.class);
 
-    @Autowired
-    private SequenceCounterService sequenceCounterService;
+    private final SequenceCounterService sequenceCounterService;
+
+    private final PersonalAccountRepository personalAccountRepository;
+
+    private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
+
+    private final PlanRepository planRepository;
+
+    private final PromocodeProcessor promocodeProcessor;
+
+    private final AccountServiceRepository accountServiceRepository;
 
     @Autowired
-    private BusinessActionBuilder businessActionBuilder;
-
-    @Autowired
-    private ProcessingBusinessActionRepository processingBusinessActionRepository;
-
-    @Autowired
-    private PersonalAccountRepository personalAccountRepository;
-
-    @Autowired
-    private ProcessingBusinessOperationRepository processingBusinessOperationRepository;
-
-    @Autowired
-    private PlanRepository planRepository;
-
-    @Autowired
-    private PromocodeProcessor promocodeProcessor;
-
-    @Autowired
-    private AccountServiceRepository accountServiceRepository;
+    public RestAccountController(
+            SequenceCounterService sequenceCounterService,
+            PersonalAccountRepository personalAccountRepository,
+            ProcessingBusinessOperationRepository processingBusinessOperationRepository,
+            PlanRepository planRepository, PromocodeProcessor promocodeProcessor,
+            AccountServiceRepository accountServiceRepository
+    ) {
+        this.sequenceCounterService = sequenceCounterService;
+        this.personalAccountRepository = personalAccountRepository;
+        this.processingBusinessOperationRepository = processingBusinessOperationRepository;
+        this.planRepository = planRepository;
+        this.promocodeProcessor = promocodeProcessor;
+        this.accountServiceRepository = accountServiceRepository;
+    }
 
 
     @RequestMapping(value = "", method = RequestMethod.POST)
@@ -89,6 +93,8 @@ public class RestAccountController extends CommonRestController {
         personalAccount.setAccountId(accountId);
         personalAccount.setClientId(accountId);
         personalAccount.setName(VH_ACCOUNT_PREFIX + accountId);
+        personalAccount.setActive(true);
+        personalAccount.setCreated(LocalDateTime.now());
 
         personalAccountRepository.save(personalAccount);
         logger.info("personalAccount saved: " + personalAccount.toString());

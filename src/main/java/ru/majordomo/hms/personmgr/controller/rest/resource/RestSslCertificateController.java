@@ -1,11 +1,9 @@
-package ru.majordomo.hms.personmgr.controller.rest;
+package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,25 +11,13 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
-import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 
-/**
- * RestPersonController
- */
 @RestController
-@RequestMapping({"/{accountId}/person", "/person"})
-public class RestPersonController extends CommonRestController {
-    private final static Logger logger = LoggerFactory.getLogger(RestPersonController.class);
-
-    @Autowired
-    private BusinessActionBuilder businessActionBuilder;
-
-    @Autowired
-    private ProcessingBusinessActionRepository processingBusinessActionRepository;
+@RequestMapping("/{accountId}/ssl-certificate")
+public class RestSslCertificateController extends CommonRestResourceController {
+    private final static Logger logger = LoggerFactory.getLogger(RestSslCertificateController.class);
 
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
@@ -42,44 +28,44 @@ public class RestPersonController extends CommonRestController {
 
         logger.info(message.toString());
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.PERSON_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.SSL_CERTIFICATE_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         return this.createSuccessResponse(businessAction);
     }
 
-    @RequestMapping(value = "/{personId}", method = RequestMethod.PATCH)
+    @RequestMapping(value = "/{sslcertificateId}", method = RequestMethod.PATCH)
     public SimpleServiceMessage update(
-            @PathVariable String personId,
+            @PathVariable String sslcertificateId,
             @RequestBody SimpleServiceMessage message, HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info("Updating person with id " + personId + " " + message.toString());
+        logger.info("Updating sslcertificate with id " + sslcertificateId + " " + message.toString());
 
-        message.getParams().put("resourceId", personId);
+        message.getParams().put("id", sslcertificateId);
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.PERSON_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.SSL_CERTIFICATE_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         return this.createSuccessResponse(businessAction);
     }
 
-    @RequestMapping(value = "/{personId}", method = RequestMethod.DELETE)
+    @RequestMapping(value = "/{sslcertificateId}", method = RequestMethod.DELETE)
     public SimpleServiceMessage delete(
-            @PathVariable String personId,
+            @PathVariable String sslcertificateId,
             HttpServletResponse response,
             @PathVariable(value = "accountId", required = false) String accountId) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(accountId);
-        message.addParam("resourceId", personId);
+        message.addParam("sslcertificateId", sslcertificateId);
         message.setAccountId(accountId);
 
-        logger.info("Deleting person with id " + personId + " " + message.toString());
+        logger.info("Deleting sslcertificate with id " + sslcertificateId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.PERSON_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

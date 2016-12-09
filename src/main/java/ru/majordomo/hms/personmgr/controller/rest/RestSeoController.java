@@ -31,26 +31,37 @@ import ru.majordomo.hms.rc.user.resources.Person;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
 @RestController
-@RequestMapping({"/seo", "/{accountId}/seo"})
+@RequestMapping("/{accountId}/seo")
 public class RestSeoController extends CommonRestController {
 
-    @Autowired
-    private PersonalAccountRepository accountRepository;
+    private final PersonalAccountRepository accountRepository;
+
+    private final AccountSeoOrderRepository accountSeoOrderRepository;
+
+    private final SeoRepository seoRepository;
+
+    private final BusinessActionBuilder businessActionBuilder;
+
+    private final RcUserFeignClient rcUserFeignClient;
+
+    private final FinFeignClient finFeignClient;
 
     @Autowired
-    private AccountSeoOrderRepository accountSeoOrderRepository;
-
-    @Autowired
-    private SeoRepository seoRepository;
-
-    @Autowired
-    private BusinessActionBuilder businessActionBuilder;
-
-    @Autowired
-    private RcUserFeignClient rcUserFeignClient;
-
-    @Autowired
-    private FinFeignClient finFeignClient;
+    public RestSeoController(
+            PersonalAccountRepository accountRepository,
+            AccountSeoOrderRepository accountSeoOrderRepository,
+            SeoRepository seoRepository,
+            BusinessActionBuilder businessActionBuilder,
+            RcUserFeignClient rcUserFeignClient,
+            FinFeignClient finFeignClient
+    ) {
+        this.accountRepository = accountRepository;
+        this.accountSeoOrderRepository = accountSeoOrderRepository;
+        this.seoRepository = seoRepository;
+        this.businessActionBuilder = businessActionBuilder;
+        this.rcUserFeignClient = rcUserFeignClient;
+        this.finFeignClient = finFeignClient;
+    }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<List<Seo>> getSeoOrders(@PathVariable(value = "accountId") String accountId) {
@@ -79,7 +90,10 @@ public class RestSeoController extends CommonRestController {
     }
 
     @RequestMapping(value = "/order", method = RequestMethod.POST)
-    public ResponseEntity<SimpleServiceMessage> makeSeoOrder(@PathVariable(value = "accountId") String accountId, @RequestBody Map<String, String> requestBody) {
+    public ResponseEntity<SimpleServiceMessage> makeSeoOrder(
+            @PathVariable(value = "accountId") String accountId,
+            @RequestBody Map<String, String> requestBody
+    ) {
         PersonalAccount account = accountRepository.findOne(accountId);
         if(account == null){
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -106,7 +120,8 @@ public class RestSeoController extends CommonRestController {
                 return new ResponseEntity<>(this.createErrorResponse("Seo with type " + seoType + " not found"), HttpStatus.BAD_REQUEST);
             }
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(this.createErrorResponse("seoType from requestBody must be one of: " + Arrays.toString(SeoType.values())), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(this.createErrorResponse("seoType from requestBody must be one of: " +
+                    Arrays.toString(SeoType.values())), HttpStatus.BAD_REQUEST);
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -115,15 +130,16 @@ public class RestSeoController extends CommonRestController {
         AccountSeoOrder order = accountSeoOrderRepository.findByPersonalAccountIdAndWebSiteIdAndCreatedAfter(account.getId(), webSiteId, now);
 
         if(order != null && order.getSeo().getType() == seo.getType()){
-            return new ResponseEntity<>(this.createErrorResponse("AccountSeoOrder already found for specified websiteId " + webSiteId), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(this.createErrorResponse("AccountSeoOrder already found for specified websiteId " +
+                    webSiteId), HttpStatus.BAD_REQUEST);
         }
 
         WebSite webSite = rcUserFeignClient.getWebSite(account.getId(), webSiteId);
         if (webSite == null) {
-            return new ResponseEntity<>(this.createErrorResponse("WebSite with id " + webSiteId + " not found"), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(this.createErrorResponse("WebSite with id " + webSiteId +
+                    " not found"), HttpStatus.BAD_REQUEST);
         }
 
-        //TODO Списать деньгов с аккаунта
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", seo.getServiceId());
         paymentOperation.put("amount", seo.getService().getCost());
@@ -163,7 +179,10 @@ public class RestSeoController extends CommonRestController {
             clientEmails = String.join(", ", person.getEmailAddresses());
         }
 
-        parameters.put("body", "1. Аккаунт: " + account.getName() + "<br>2. E-mail: " + clientEmails + "<br>3. Имя сайта: " + webSiteName + "<br><br>" + "Услуга " + seo.getName() + " оплачена из ПУ.");
+        parameters.put("body", "1. Аккаунт: " + account.getName() + "<br>" +
+                "2. E-mail: " + clientEmails + "<br>" +
+                "3. Имя сайта: " + webSiteName + "<br><br>" +
+                "Услуга " + seo.getName() + " оплачена из ПУ.");
         parameters.put("subject", "Услуга " + seo.getName() + " оплачена");
 
         message.addParam("parametrs", parameters);

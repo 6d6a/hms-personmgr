@@ -18,7 +18,7 @@ import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 @RestController
 @RequestMapping("/{accountId}/account-service")
-public class RestAccountServiceController extends CommonRestController{
+public class RestAccountServiceController extends CommonRestController {
 
     private final AccountServiceRepository accountServiceRepository;
 
@@ -34,7 +34,10 @@ public class RestAccountServiceController extends CommonRestController{
     }
 
     @RequestMapping(value = "/{accountServiceId}", method = RequestMethod.GET)
-    public ResponseEntity<AccountService> get(@PathVariable(value = "accountId") String accountId, @PathVariable(value = "accountServiceId") String accountServiceId) {
+    public ResponseEntity<AccountService> get(
+            @PathVariable(value = "accountId") String accountId,
+            @PathVariable(value = "accountServiceId") String accountServiceId
+    ) {
         PersonalAccount account = personalAccountRepository.findByAccountId(accountId);
         if(account == null){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);

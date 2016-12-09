@@ -1,7 +1,7 @@
 package ru.majordomo.hms.personmgr.validators;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
@@ -19,13 +19,13 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
  */
 @Component
 class ObjectIdListValidator implements ConstraintValidator<ObjectIdList, List<String>> {
-    private final MongoOperations operations;
+    private final MongoTemplate mongoTemplate;
     private Class<? extends BaseModel> objectModel;
     private String collection;
 
     @Autowired
-    public ObjectIdListValidator(MongoOperations operations) {
-        this.operations = operations;
+    public ObjectIdListValidator(MongoTemplate mongoTemplate) {
+        this.mongoTemplate = mongoTemplate;
     }
 
     @Override
@@ -43,15 +43,23 @@ class ObjectIdListValidator implements ConstraintValidator<ObjectIdList, List<St
                 try {
                     boolean foundObject;
                     if (!collection.equals("")) {
-                        foundObject = operations.exists(new Query(where("_id").is(next)), this.objectModel, collection);
+                        foundObject = mongoTemplate.exists(
+                                new Query(where("_id").is(next)),
+                                this.objectModel,
+                                collection
+                        );
                     } else {
-                        foundObject = operations.exists(new Query(where("_id").is(next)), this.objectModel);
+                        foundObject = mongoTemplate.exists(
+                                new Query(where("_id").is(next)),
+                                this.objectModel
+                        );
                     }
 
                     if (!foundObject) {
                         return false;
                     }
                 } catch (RuntimeException e) {
+                    e.printStackTrace();
                     return false;
                 }
             }

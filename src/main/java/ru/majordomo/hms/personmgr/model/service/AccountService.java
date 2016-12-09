@@ -42,7 +42,7 @@ public class AccountService extends ModelBelongsToPersonalAccount {
     }
 
     public String getName() {
-        return paymentService.getName();
+        return paymentService != null ? paymentService.getName() : null;
     }
 
     public PaymentService getPaymentService() {
@@ -54,7 +54,7 @@ public class AccountService extends ModelBelongsToPersonalAccount {
     }
 
     public BigDecimal getCost() {
-        return paymentService.getCost();
+        return paymentService != null ? paymentService.getCost() : null;
     }
 
     public AccountService() {

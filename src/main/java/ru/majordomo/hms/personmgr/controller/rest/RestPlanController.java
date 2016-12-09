@@ -15,10 +15,14 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 @RestController
 @RequestMapping({"/{accountId}/plans", "/plans"})
-public class RestPlanController {
+public class RestPlanController extends CommonRestController {
+
+    private final PlanRepository repository;
 
     @Autowired
-    PlanRepository repository;
+    public RestPlanController(PlanRepository repository) {
+        this.repository = repository;
+    }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<List<Plan>> listAll(@PathVariable(value = "accountId", required = false) String accountId) {
