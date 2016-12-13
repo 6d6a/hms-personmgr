@@ -28,6 +28,8 @@ public class Constants {
     public static final String SERVICE_PREFIX = "service_";
     public static final String SERVICE_MONEY_RETURN_PREFIX = "service_money_return_";
     public static final String SERVICE_MONEY_TRANSFER_PREFIX = "service_money_transfer_";
+    public static final int PLAN_PARKING_ID = 109;
+    public static final int PLAN_PARKING_PLUS_ID = 124;
     public static final int PLAN_UNLIMITED_ID = 9802;
     public static final String PLAN_UNLIMITED_SERVICE_ID = PLAN_SERVICE_PREFIX + PLAN_UNLIMITED_ID;
     public static final int PLAN_PARKING_DOMAINS_ID = 9803;

@@ -4,12 +4,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
@@ -82,8 +84,8 @@ public class PlanChangeService {
             throw new ParameterValidationException("Account has abonement. Need to delete it first.");
         }
 
-        //Проверим не менялся ли тариф в последний месяц
-        checkLastMonthPlanChange(account);
+        //Проверим, можно ли менять тариф
+        canChangePlan(account, currentPlan, newPlan);
 
         //Удалим старую услугу и добавим новую
         processAccountServices(account, currentPlan, newPlan);
@@ -113,6 +115,25 @@ public class PlanChangeService {
 
         if(accountStats != null && !accountStats.isEmpty()){
             throw new ParameterValidationException("Account plan already changed in last month.");
+        }
+    }
+
+    /**
+     * Проверим не отрицательный ли баланс
+     *
+     * @param account Аккаунт
+     */
+    private void checkBalance(PersonalAccount account) {
+        Map<String, Object> balance = finFeignClient.getBalance(account.getId());
+
+        if(balance == null){
+            throw new ResourceNotFoundException("Account balance not found.");
+        }
+
+        BigDecimal available = new BigDecimal((String) balance.get("available"));
+
+        if(available.compareTo(BigDecimal.ZERO) < 0){
+            throw new LowBalanceException("Account balance is lower than zero.");
         }
     }
 
@@ -179,6 +200,10 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void canChangePlan(PersonalAccount account, Plan currentPlan, Plan newPlan) {
+        //Проверим не менялся ли тариф в последний месяц
+        checkLastMonthPlanChange(account);
 
+        //Проверим баланс
+        checkBalance(account);
     }
 }
