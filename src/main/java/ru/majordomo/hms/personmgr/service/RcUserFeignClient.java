@@ -9,7 +9,7 @@ import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.rc.user.resources.Person;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
-@FeignClient(name = "rc-user", fallback = RcUserFeignClientFallback.class)
+@FeignClient(name = "rc-user")
 public interface RcUserFeignClient {
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/database/count", consumes = "application/json")
     Count getDatabaseCount(@PathVariable("accountId") String accountId);

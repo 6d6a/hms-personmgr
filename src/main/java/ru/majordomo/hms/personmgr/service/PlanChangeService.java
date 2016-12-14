@@ -17,6 +17,7 @@ import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
@@ -59,7 +60,7 @@ public class PlanChangeService {
     /**
      * Изменение тарифного плана
      *
-     * @param account Аккаунт
+     * @param account   Аккаунт
      * @param newPlanId ID нового тарифа
      */
     public void changePlan(PersonalAccount account, String newPlanId) {
@@ -68,19 +69,19 @@ public class PlanChangeService {
 
         Plan currentPlan = planRepository.findOne(currentPlanId);
 
-        if(currentPlan == null){
+        if (currentPlan == null) {
             throw new ResourceNotFoundException("Account plan not found");
         }
 
         Plan newPlan = planRepository.findByOldId(newPlanId);
 
-        if(newPlan == null){
+        if (newPlan == null) {
             throw new ParameterValidationException("New plan with specified planId not found");
         }
 
         List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
 
-        if(accountAbonements != null && !accountAbonements.isEmpty()){
+        if (accountAbonements != null && !accountAbonements.isEmpty()) {
             throw new ParameterValidationException("Account has abonement. Need to delete it first.");
         }
 
@@ -113,7 +114,7 @@ public class PlanChangeService {
                 LocalDateTime.now().minusMonths(1)
         );
 
-        if(accountStats != null && !accountStats.isEmpty()){
+        if (accountStats != null && !accountStats.isEmpty()) {
             throw new ParameterValidationException("Account plan already changed in last month.");
         }
     }
@@ -124,23 +125,32 @@ public class PlanChangeService {
      * @param account Аккаунт
      */
     private void checkBalance(PersonalAccount account) {
-        Map<String, Object> balance = finFeignClient.getBalance(account.getId());
+        BigDecimal available = getBalance(account);
 
-        if(balance == null){
-            throw new ResourceNotFoundException("Account balance not found.");
-        }
-
-        BigDecimal available = new BigDecimal((String) balance.get("available"));
-
-        if(available.compareTo(BigDecimal.ZERO) < 0){
+        if (available.compareTo(BigDecimal.ZERO) < 0) {
             throw new LowBalanceException("Account balance is lower than zero.");
         }
     }
 
     /**
-     * Сохраним в статистику об изменении тарифного плана
+     * Получим баланс
      *
      * @param account Аккаунт
+     */
+    private BigDecimal getBalance(PersonalAccount account) {
+        Map<String, Object> balance = finFeignClient.getBalance(account.getId());
+
+        if (balance == null) {
+            throw new ResourceNotFoundException("Account balance not found.");
+        }
+
+        return new BigDecimal((String) balance.get("available"));
+    }
+
+    /**
+     * Сохраним в статистику об изменении тарифного плана
+     *
+     * @param account   Аккаунт
      * @param newPlanId ID нового тарифа
      */
     private void saveStat(PersonalAccount account, String newPlanId) {
@@ -161,9 +171,9 @@ public class PlanChangeService {
     /**
      * Сохраним в историю запись об изменении тарифного плана
      *
-     * @param account Аккаунт
+     * @param account     Аккаунт
      * @param currentPlan текущий тариф
-     * @param newPlan новый тариф
+     * @param newPlan     новый тариф
      */
     private void saveHistory(PersonalAccount account, Plan currentPlan, Plan newPlan) {
         accountHistoryService.addMessage(account.getId(), "Произведена смена тарифа с " + currentPlan.getName() + " на " + newPlan.getName(), "operator");
@@ -173,9 +183,9 @@ public class PlanChangeService {
     /**
      * Работа с услугами привязанными к аккаунту
      *
-     * @param account Аккаунт
+     * @param account     Аккаунт
      * @param currentPlan текущий тариф
-     * @param newPlan новый тариф
+     * @param newPlan     новый тариф
      */
     private void processAccountServices(PersonalAccount account, Plan currentPlan, Plan newPlan) {
         AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), currentPlan.getServiceId());
@@ -195,9 +205,9 @@ public class PlanChangeService {
     /**
      * Может ли быть произведена смена тарифа
      *
-     * @param account Аккаунт
+     * @param account     Аккаунт
      * @param currentPlan текущий тариф
-     * @param newPlan новый тариф
+     * @param newPlan     новый тариф
      */
     private void canChangePlan(PersonalAccount account, Plan currentPlan, Plan newPlan) {
         //Проверим не менялся ли тариф в последний месяц
@@ -205,5 +215,112 @@ public class PlanChangeService {
 
         //Проверим баланс
         checkBalance(account);
+
+        //Проверим возможность перехода с бизнес тарифа
+        checkBusinessPlan(currentPlan, newPlan);
+
+        //Проверим доступный баланс если тариф только с абонементом
+        checkOnlyAbonementPlan(account, newPlan);
+
+        //Проверим лимиты нового тарифа
+        checkAccountLimits(account, newPlan);
+    }
+
+    /**
+     * Может ли быть произведена смена тарифа (с Бизнес можно только на Бизнес)
+     *
+     * @param currentPlan текущий тариф
+     * @param newPlan     новый тариф
+     */
+    private void checkBusinessPlan(Plan currentPlan, Plan newPlan) {
+        VirtualHostingPlanProperties currentPlanProperties = (VirtualHostingPlanProperties) currentPlan.getPlanProperties();
+        VirtualHostingPlanProperties newPlanProperties = (VirtualHostingPlanProperties) newPlan.getPlanProperties();
+        if (currentPlanProperties.isBusinessServices() && !newPlanProperties.isBusinessServices()) {
+            throw new ParameterValidationException("Account is on business plan. Change allowed only to business plans.");
+        }
+    }
+
+    /**
+     * Проверить наличие на счету средств если тариф только с абонементом
+     *
+     * @param account Аккаунт
+     * @param newPlan новый тариф
+     */
+    private void checkOnlyAbonementPlan(PersonalAccount account, Plan newPlan) {
+        if (newPlan.isAbonementOnly()) {
+            BigDecimal available = getBalance(account);
+
+            if (available.compareTo(newPlan.getAbonements().get(0).getService().getCost()) < 0) {
+                throw new LowBalanceException("Account balance is too low for specified plan. Plan is abonementOnly.");
+            }
+        }
+    }
+
+    /**
+     * Проверить счетчики аккаунта и соответствие их новому тарифу
+     *
+     * @param account Аккаунт
+     * @param newPlan новый тариф
+     */
+    private void checkAccountLimits(PersonalAccount account, Plan newPlan) {
+        //Database
+        checkAccountDatabaseLimits(account, newPlan);
+
+        //FtpUser
+        checkAccountFtpUserLimits(account, newPlan);
+
+        //WebSite
+        checkAccountWebSiteLimits(account, newPlan);
+
+        //Quota
+        checkAccountQuotaLimits(account, newPlan);
+    }
+
+    /**
+     * Проверить DB счетчики аккаунта и соответствие их новому тарифу
+     *
+     * @param account Аккаунт
+     * @param newPlan новый тариф
+     */
+    private void checkAccountDatabaseLimits(PersonalAccount account, Plan newPlan) {
+        if (planCheckerService.getCurrentDatabaseCount(account.getId()).compareTo(planCheckerService.getPlanDatabaseLimit(newPlan)) > 0) {
+            throw new ParameterValidationException("Account current DB count is more than plan limit.");
+        }
+    }
+
+    /**
+     * Проверить FtpUser счетчики аккаунта и соответствие их новому тарифу
+     *
+     * @param account Аккаунт
+     * @param newPlan новый тариф
+     */
+    private void checkAccountFtpUserLimits(PersonalAccount account, Plan newPlan) {
+        if (planCheckerService.getCurrentFtpUserCount(account.getId()).compareTo(planCheckerService.getPlanFtpUserLimit(newPlan)) > 0) {
+            throw new ParameterValidationException("Account current FtpUser count is more than plan limit.");
+        }
+    }
+
+    /**
+     * Проверить WebSite счетчики аккаунта и соответствие их новому тарифу
+     *
+     * @param account Аккаунт
+     * @param newPlan новый тариф
+     */
+    private void checkAccountWebSiteLimits(PersonalAccount account, Plan newPlan) {
+        if (planCheckerService.getCurrentWebSiteCount(account.getId()).compareTo(planCheckerService.getPlanFtpUserLimit(newPlan)) > 0) {
+            throw new ParameterValidationException("Account current WebSite count is more than plan limit.");
+        }
+    }
+
+    /**
+     * Проверить Quota счетчики аккаунта и соответствие их новому тарифу
+     *
+     * @param account Аккаунт
+     * @param newPlan новый тариф
+     */
+    private void checkAccountQuotaLimits(PersonalAccount account, Plan newPlan) {
+        if (planCheckerService.getCurrentFtpUserCount(account.getId()).compareTo(planCheckerService.getPlanFtpUserLimit(newPlan)) > 0) {
+            throw new ParameterValidationException("Account current Quota is more than plan limit.");
+        }
     }
 }
