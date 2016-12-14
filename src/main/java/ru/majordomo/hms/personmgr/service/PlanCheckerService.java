@@ -27,7 +27,7 @@ public class PlanCheckerService {
 
         logger.info("Checking limit for databases. currentDatabaseCount " + currentDatabaseCount + " planDatabaseCount " + planDatabaseCount);
 
-        return planDatabaseCount.compareTo(new Count(-1)) != 0 || currentDatabaseCount.compareTo(planDatabaseCount) < 0;
+        return planDatabaseCount.compareTo(new Count(-1)) == 0 || currentDatabaseCount.compareTo(planDatabaseCount) < 0;
     }
 
     public boolean canAddFtpUser(String accountId) {
@@ -36,7 +36,7 @@ public class PlanCheckerService {
 
         logger.info("Checking FtpUser limit. currentFtpUserCount " + currentFtpUserCount + " planFtpUserCount " + planFtpUserCount);
 
-        return planFtpUserCount.compareTo(new Count(-1)) != 0 || currentFtpUserCount.compareTo(planFtpUserCount) < 0;
+        return planFtpUserCount.compareTo(new Count(-1)) == 0 || currentFtpUserCount.compareTo(planFtpUserCount) < 0;
     }
 
     public boolean canAddWebSite(String accountId) {
@@ -45,7 +45,7 @@ public class PlanCheckerService {
 
         logger.info("Checking WebSite limit. currentWebsiteCount " + currentWebsiteCount + " planWebsiteCount " + planWebsiteCount);
 
-        return planWebsiteCount.compareTo(new Count(-1)) != 0 || currentWebsiteCount.compareTo(planWebsiteCount) < 0;
+        return planWebsiteCount.compareTo(new Count(-1)) == 0 || currentWebsiteCount.compareTo(planWebsiteCount) < 0;
     }
 
     public Long getCurrentDatabaseCount(String accountId) {
