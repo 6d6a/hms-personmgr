@@ -3,9 +3,7 @@ package ru.majordomo.hms.personmgr.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PathVariable;
 
-import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.personmgr.common.DBType;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -13,52 +11,66 @@ import ru.majordomo.hms.personmgr.model.plan.PlanProperties;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.rc.user.resources.Person;
-import ru.majordomo.hms.rc.user.resources.WebSite;
 
 @Service
 public class PlanLimitsService {
 
-    @Autowired
-    private PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountRepository personalAccountRepository;
+
+    private final PlanRepository planRepository;
 
     @Autowired
-    private PlanRepository planRepository;
+    public PlanLimitsService(PersonalAccountRepository personalAccountRepository, PlanRepository planRepository) {
+        this.personalAccountRepository = personalAccountRepository;
+        this.planRepository = planRepository;
+    }
 
-    public Long getDatabaseLimit(String accountId) {
+    public Long getDatabaseFreeLimit(String accountId) {
         VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) getPlanProperties(accountId);
 
-        return (long) planProperties.getDb().get(DBType.MYSQL).getFreeLimit();
+        return planProperties.getDb().get(DBType.MYSQL).getFreeLimit();
     }
 
-    public Long getDatabaseLimit(Plan plan) {
+    public Long getDatabaseFreeLimit(Plan plan) {
         VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
 
-        return (long) planProperties.getDb().get(DBType.MYSQL).getFreeLimit();
+        return planProperties.getDb().get(DBType.MYSQL).getFreeLimit();
     }
 
-    public Long getWebsiteLimit(String accountId) {
+    public Long getWebsiteFreeLimit(String accountId) {
         VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) getPlanProperties(accountId);
 
-        return (long) planProperties.getSitesLimit().getFreeLimit();
+        return planProperties.getSitesLimit().getFreeLimit();
     }
 
-    public Long getWebsiteLimit(Plan plan) {
+    public Long getWebsiteFreeLimit(Plan plan) {
         VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
 
-        return (long) planProperties.getSitesLimit().getFreeLimit();
+        return planProperties.getSitesLimit().getFreeLimit();
     }
 
-    public Long getFtpUserLimit(String accountId) {
+    public Long getFtpUserFreeLimit(String accountId) {
         VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) getPlanProperties(accountId);
 
-        return (long) planProperties.getFtpLimit().getFreeLimit();
+        return planProperties.getFtpLimit().getFreeLimit();
     }
 
-    public Long getFtpUserLimit(Plan plan) {
+    public Long getFtpUserFreeLimit(Plan plan) {
         VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
 
-        return (long) planProperties.getFtpLimit().getFreeLimit();
+        return planProperties.getFtpLimit().getFreeLimit();
+    }
+
+    public Long getQuotaKBFreeLimit(String accountId) {
+        VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) getPlanProperties(accountId);
+
+        return planProperties.getQuotaKBLimit().getFreeLimit();
+    }
+
+    public Long getQuotaKBFreeLimit(Plan plan) {
+        VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
+
+        return planProperties.getQuotaKBLimit().getFreeLimit();
     }
 
     private PlanProperties getPlanProperties(String accountId) {

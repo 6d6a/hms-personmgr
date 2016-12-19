@@ -11,13 +11,13 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
-
-/**
- * ProcessingBusinessActionEventListener
- */
 public class DomainTldEventListener extends AbstractMongoEventListener<DomainTld> {
+    private final MongoOperations mongoOperations;
+
     @Autowired
-    private MongoOperations mongoOperations;
+    public DomainTldEventListener(MongoOperations mongoOperations) {
+        this.mongoOperations = mongoOperations;
+    }
 
     @Override
     public void onAfterConvert(AfterConvertEvent<DomainTld> event) {

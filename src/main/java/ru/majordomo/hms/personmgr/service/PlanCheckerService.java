@@ -23,7 +23,7 @@ public class PlanCheckerService {
 
     public boolean canAddDatabase(String accountId) {
         Long currentDatabaseCount = getCurrentDatabaseCount(accountId);
-        Long planDatabaseCount = planLimitsService.getDatabaseLimit(accountId);
+        Long planDatabaseCount = planLimitsService.getDatabaseFreeLimit(accountId);
 
         logger.info("Checking limit for databases. currentDatabaseCount " + currentDatabaseCount + " planDatabaseCount " + planDatabaseCount);
 
@@ -32,7 +32,7 @@ public class PlanCheckerService {
 
     public boolean canAddFtpUser(String accountId) {
         Long currentFtpUserCount = getCurrentFtpUserCount(accountId);
-        Long planFtpUserCount = planLimitsService.getFtpUserLimit(accountId);
+        Long planFtpUserCount = planLimitsService.getFtpUserFreeLimit(accountId);
 
         logger.info("Checking FtpUser limit. currentFtpUserCount " + currentFtpUserCount + " planFtpUserCount " + planFtpUserCount);
 
@@ -41,7 +41,7 @@ public class PlanCheckerService {
 
     public boolean canAddWebSite(String accountId) {
         Long currentWebsiteCount = getCurrentWebSiteCount(accountId);
-        Long planWebsiteCount = planLimitsService.getWebsiteLimit(accountId);
+        Long planWebsiteCount = planLimitsService.getWebsiteFreeLimit(accountId);
 
         logger.info("Checking WebSite limit. currentWebsiteCount " + currentWebsiteCount + " planWebsiteCount " + planWebsiteCount);
 
@@ -60,15 +60,23 @@ public class PlanCheckerService {
         return rcUserFeignClient.getWebsiteCount(accountId).getCount();
     }
 
-    public Long getPlanDatabaseLimit(Plan plan) {
-        return planLimitsService.getDatabaseLimit(plan);
+    public Long getCurrentQuotaUsed(String accountId) {
+        return rcUserFeignClient.getQuotaUsed(accountId).getCount();
     }
 
-    public Long getPlanFtpUserLimit(Plan plan) {
-        return planLimitsService.getFtpUserLimit(plan);
+    public Long getPlanDatabaseFreeLimit(Plan plan) {
+        return planLimitsService.getDatabaseFreeLimit(plan);
     }
 
-    public Long getPlanWebSiteLimit(Plan plan) {
-        return planLimitsService.getWebsiteLimit(plan);
+    public Long getPlanFtpUserFreeLimit(Plan plan) {
+        return planLimitsService.getFtpUserFreeLimit(plan);
+    }
+
+    public Long getPlanWebSiteFreeLimit(Plan plan) {
+        return planLimitsService.getWebsiteFreeLimit(plan);
+    }
+
+    public Long getPlanQuotaKBFreeLimit(Plan plan) {
+        return planLimitsService.getQuotaKBFreeLimit(plan);
     }
 }

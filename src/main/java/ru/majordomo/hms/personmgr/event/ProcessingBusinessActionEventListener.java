@@ -7,13 +7,13 @@ import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
 
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 
-
-/**
- * ProcessingBusinessActionEventListener
- */
 public class ProcessingBusinessActionEventListener extends AbstractMongoEventListener<ProcessingBusinessAction> {
+    private final MongoOperations mongoOperations;
+
     @Autowired
-    private MongoOperations mongoOperations;
+    public ProcessingBusinessActionEventListener(MongoOperations mongoOperations) {
+        this.mongoOperations = mongoOperations;
+    }
 
     @Override
     public void onAfterConvert(AfterConvertEvent<ProcessingBusinessAction> event) {

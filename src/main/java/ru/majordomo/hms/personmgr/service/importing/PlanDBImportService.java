@@ -40,6 +40,9 @@ import static ru.majordomo.hms.personmgr.common.Constants.PLAN_SERVICE_PREFIX;
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_START_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_UNLIMITED_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_UNLIMITED_PLUS_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_10_RUB_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_FREE_SERVICE_ID;
 
 /**
  * PlanDBImportService
@@ -176,6 +179,25 @@ public class PlanDBImportService {
             abonementOnly = true;
         }
 
+        int smsCost = rs.getInt("sms_cost");
+        PaymentService smsService;
+        String smsServiceId;
+        switch (smsCost) {
+            case 0:
+                smsService = paymentServiceRepository.findByOldId(SMS_NOTIFICATIONS_FREE_SERVICE_ID);
+                break;
+
+            case 29:
+                smsService = paymentServiceRepository.findByOldId(SMS_NOTIFICATIONS_29_RUB_SERVICE_ID);
+                break;
+
+            default:
+                //10 руб
+                smsService = paymentServiceRepository.findByOldId(SMS_NOTIFICATIONS_10_RUB_SERVICE_ID);
+                break;
+        }
+        smsServiceId = smsService.getId();
+
         Plan plan = new Plan();
         plan.setName(rs.getString("username"));
         plan.setInternalName(rs.getString("name"));
@@ -186,6 +208,7 @@ public class PlanDBImportService {
         plan.setPlanProperties(planProperties);
         plan.setAbonementIds(Collections.singletonList(abonement.getId()));
         plan.setAbonementOnly(abonementOnly);
+        plan.setSmsServiceId(smsServiceId);
 
         return plan;
     }

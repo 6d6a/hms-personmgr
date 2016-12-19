@@ -6,17 +6,18 @@ import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventLis
 import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
 import org.springframework.data.mongodb.core.query.Query;
 
-import java.util.List;
-
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
-import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 public class AccountPromocodeEventListener extends AbstractMongoEventListener<AccountPromocode> {
+    private final MongoOperations mongoOperations;
+
     @Autowired
-    private MongoOperations mongoOperations;
+    public AccountPromocodeEventListener(MongoOperations mongoOperations) {
+        this.mongoOperations = mongoOperations;
+    }
 
     @Override
     public void onAfterConvert(AfterConvertEvent<AccountPromocode> event) {

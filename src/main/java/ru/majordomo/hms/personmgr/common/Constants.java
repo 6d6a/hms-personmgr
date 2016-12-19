@@ -39,6 +39,23 @@ public class Constants {
     public static final int PLAN_BUSINESS_ID = 9806;
     public static final int PLAN_BUSINESS_PLUS_ID = 9807;
 
+    public static final int ADDITIONAL_DOMAIN_ID = 22;
+    public static final String ADDITIONAL_DOMAIN_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_DOMAIN_ID;
+
+    public static final int ADDITIONAL_FTP_ID = 4;
+    public static final String ADDITIONAL_FTP_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_FTP_ID;
+    public static final int ADDITIONAL_FTP_FREE_ID = 20;
+    public static final String ADDITIONAL_FTP_FREE_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_FTP_FREE_ID;
+
+    public static final int SMS_NOTIFICATIONS_10_RUB_ID = 18;
+    public static final String SMS_NOTIFICATIONS_10_RUB_SERVICE_ID = SERVICE_PREFIX + SMS_NOTIFICATIONS_10_RUB_ID;
+    public static final String SMS_NOTIFICATIONS_FREE_SERVICE_ID = SERVICE_PREFIX + SMS_NOTIFICATIONS_10_RUB_ID + FREE_SERVICE_POSTFIX;
+    public static final int SMS_NOTIFICATIONS_29_RUB_ID = 21;
+    public static final String SMS_NOTIFICATIONS_29_RUB_SERVICE_ID = SERVICE_PREFIX + SMS_NOTIFICATIONS_29_RUB_ID;
+
+    public static final int ADDITIONAL_QUOTA_100_ID = 15;
+    public static final String ADDITIONAL_QUOTA_100_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_QUOTA_100_ID;
+
     public static final int PLAN_PROPERTY_LIMIT_UNLIMITED = -1;
 
     public static final Map<String, DomainCategory> DOMAIN_CATEGORY_MAP = new HashMap<>();
@@ -114,9 +131,14 @@ public class Constants {
         Constants.NOT_NEEDED_SERVICE_IDS.add(16);
         Constants.NOT_NEEDED_SERVICE_IDS.add(17);
         Constants.NOT_NEEDED_SERVICE_IDS.add(19);
+        Constants.NOT_NEEDED_SERVICE_IDS.add(20);
         Constants.NOT_NEEDED_SERVICE_IDS.add(21);
 
+        //ДопFTP
+        Constants.OPTIONALLY_FREE_SERVICE_IDS.add(4);
+        //Защита от спама
         Constants.OPTIONALLY_FREE_SERVICE_IDS.add(13);
+        //СМС-уведомления
         Constants.OPTIONALLY_FREE_SERVICE_IDS.add(18);
     }
 }

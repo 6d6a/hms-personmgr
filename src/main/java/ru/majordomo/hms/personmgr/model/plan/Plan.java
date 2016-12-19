@@ -49,11 +49,16 @@ public class Plan extends BaseModel {
     @ObjectIdList(value = Abonement.class)
     private List<String> abonementIds = new ArrayList<>();
 
+    private String smsServiceId;
+
     @Transient
     private PaymentService service;
 
     @Transient
     private List<Abonement> abonements = new ArrayList<>();
+
+    @Transient
+    private PaymentService smsService;
 
     public Plan() {
         super();
@@ -162,6 +167,22 @@ public class Plan extends BaseModel {
         this.abonementOnly = abonementOnly;
     }
 
+    public String getSmsServiceId() {
+        return smsServiceId;
+    }
+
+    public void setSmsServiceId(String smsServiceId) {
+        this.smsServiceId = smsServiceId;
+    }
+
+    public PaymentService getSmsService() {
+        return smsService;
+    }
+
+    public void setSmsService(PaymentService smsService) {
+        this.smsService = smsService;
+    }
+
     @Override
     public String toString() {
         return "Plan{" +
@@ -174,8 +195,10 @@ public class Plan extends BaseModel {
                 ", active=" + active +
                 ", planProperties=" + planProperties +
                 ", abonementIds=" + abonementIds +
+                ", smsServiceId='" + smsServiceId + '\'' +
                 ", service=" + service +
                 ", abonements=" + abonements +
+                ", smsService=" + smsService +
                 "} " + super.toString();
     }
 }

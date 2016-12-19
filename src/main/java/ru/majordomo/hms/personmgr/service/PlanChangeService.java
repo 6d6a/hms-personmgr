@@ -88,8 +88,11 @@ public class PlanChangeService {
         //Проверим, можно ли менять тариф
         canChangePlan(account, currentPlan, newPlan);
 
-        //Удалим старую услугу и добавим новую
-        processAccountServices(account, currentPlan, newPlan);
+        //Удалим старую услугу тарифа и добавим новую
+        replacePlanService(account, currentPlan, newPlan);
+
+        //Удалим старую услугу смс-уведомлений и добавим новую
+        replaceSmsNotificationsService(account, currentPlan, newPlan);
 
         //Укажем новый тариф
         account.setPlanId(newPlan.getId());
@@ -187,19 +190,8 @@ public class PlanChangeService {
      * @param currentPlan текущий тариф
      * @param newPlan     новый тариф
      */
-    private void processAccountServices(PersonalAccount account, Plan currentPlan, Plan newPlan) {
-        AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), currentPlan.getServiceId());
-
-        if (accountService != null) {
-            accountServiceRepository.delete(accountService);
-        }
-
-        //Создаем AccountService с выбранным тарифом
-        AccountService service = new AccountService();
-        service.setPersonalAccountId(account.getId());
-        service.setServiceId(newPlan.getServiceId());
-
-        accountServiceRepository.save(service);
+    private void replacePlanService(PersonalAccount account, Plan currentPlan, Plan newPlan) {
+        replaceAccountService(account, currentPlan.getServiceId(), newPlan.getServiceId());
     }
 
     /**
@@ -283,7 +275,7 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void checkAccountDatabaseLimits(PersonalAccount account, Plan newPlan) {
-        if (planCheckerService.getCurrentDatabaseCount(account.getId()).compareTo(planCheckerService.getPlanDatabaseLimit(newPlan)) > 0) {
+        if (planCheckerService.getCurrentDatabaseCount(account.getId()).compareTo(planCheckerService.getPlanDatabaseFreeLimit(newPlan)) > 0) {
             throw new ParameterValidationException("Account current DB count is more than plan limit.");
         }
     }
@@ -295,7 +287,7 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void checkAccountFtpUserLimits(PersonalAccount account, Plan newPlan) {
-        if (planCheckerService.getCurrentFtpUserCount(account.getId()).compareTo(planCheckerService.getPlanFtpUserLimit(newPlan)) > 0) {
+        if (planCheckerService.getCurrentFtpUserCount(account.getId()).compareTo(planCheckerService.getPlanFtpUserFreeLimit(newPlan)) > 0) {
             throw new ParameterValidationException("Account current FtpUser count is more than plan limit.");
         }
     }
@@ -307,7 +299,7 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void checkAccountWebSiteLimits(PersonalAccount account, Plan newPlan) {
-        if (planCheckerService.getCurrentWebSiteCount(account.getId()).compareTo(planCheckerService.getPlanFtpUserLimit(newPlan)) > 0) {
+        if (planCheckerService.getCurrentWebSiteCount(account.getId()).compareTo(planCheckerService.getPlanWebSiteFreeLimit(newPlan)) > 0) {
             throw new ParameterValidationException("Account current WebSite count is more than plan limit.");
         }
     }
@@ -319,8 +311,44 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void checkAccountQuotaLimits(PersonalAccount account, Plan newPlan) {
-        if (planCheckerService.getCurrentFtpUserCount(account.getId()).compareTo(planCheckerService.getPlanFtpUserLimit(newPlan)) > 0) {
+        if (planCheckerService.getCurrentQuotaUsed(account.getId()).compareTo(planCheckerService.getPlanQuotaKBFreeLimit(newPlan)) > 0) {
             throw new ParameterValidationException("Account current Quota is more than plan limit.");
+        }
+    }
+
+    /**
+     * Обновляем услугу смс-уведомлений (она могла быть на стором тарифе с другой стоимостью или бесплатной)
+     *
+     * @param account     Аккаунт
+     * @param currentPlan текущий тариф
+     * @param newPlan     новый тариф
+     */
+    private void replaceSmsNotificationsService(PersonalAccount account, Plan currentPlan, Plan newPlan) {
+        replaceAccountService(account, currentPlan.getSmsServiceId(), newPlan.getSmsServiceId());
+    }
+
+
+    /**
+     * Заменяем старую услугу на новую
+     *
+     * @param account   Аккаунт
+     * @param oldServiceId id текущей услуги
+     * @param newServiceId id новой услуги
+     */
+    private void replaceAccountService(PersonalAccount account, String oldServiceId, String newServiceId) {
+        if (!oldServiceId.equals(newServiceId)) {
+            AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), oldServiceId);
+
+            if (accountService != null) {
+                accountServiceRepository.delete(accountService);
+            }
+
+            //Создаем AccountService с выбранным тарифом
+            AccountService service = new AccountService();
+            service.setPersonalAccountId(account.getId());
+            service.setServiceId(newServiceId);
+
+            accountServiceRepository.save(service);
         }
     }
 }

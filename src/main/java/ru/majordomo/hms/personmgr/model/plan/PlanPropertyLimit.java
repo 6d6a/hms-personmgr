@@ -4,9 +4,9 @@ package ru.majordomo.hms.personmgr.model.plan;
  * PlanPropertyLimit
  */
 public class PlanPropertyLimit {
-    private int limit = 0;
+    private long limit = 0;
 
-    private int freeLimit = 0;
+    private long freeLimit = 0;
 
     PlanPropertyLimit() {
     }
@@ -21,19 +21,29 @@ public class PlanPropertyLimit {
         this.limit = limit;
     }
 
-    public int getLimit() {
-        return limit;
+    public PlanPropertyLimit(long one_limit) {
+        this.limit = one_limit;
+        this.freeLimit = one_limit;
     }
 
-    public void setLimit(int limit) {
+    public PlanPropertyLimit(long freeLimit, long limit) {
+        this.freeLimit = freeLimit;
         this.limit = limit;
     }
 
-    public int getFreeLimit() {
+    public long getLimit() {
+        return limit;
+    }
+
+    public void setLimit(long limit) {
+        this.limit = limit;
+    }
+
+    public long getFreeLimit() {
         return freeLimit;
     }
 
-    public void setFreeLimit(int freeLimit) {
+    public void setFreeLimit(long freeLimit) {
         this.freeLimit = freeLimit;
     }
 

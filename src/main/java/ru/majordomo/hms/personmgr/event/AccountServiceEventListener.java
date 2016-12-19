@@ -12,8 +12,12 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 public class AccountServiceEventListener extends AbstractMongoEventListener<AccountService> {
+    private final MongoOperations mongoOperations;
+
     @Autowired
-    private MongoOperations mongoOperations;
+    public AccountServiceEventListener(MongoOperations mongoOperations) {
+        this.mongoOperations = mongoOperations;
+    }
 
     @Override
     public void onAfterConvert(AfterConvertEvent<AccountService> event) {
