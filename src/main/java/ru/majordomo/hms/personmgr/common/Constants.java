@@ -39,8 +39,8 @@ public class Constants {
     public static final int PLAN_BUSINESS_ID = 9806;
     public static final int PLAN_BUSINESS_PLUS_ID = 9807;
 
-    public static final int ADDITIONAL_DOMAIN_ID = 22;
-    public static final String ADDITIONAL_DOMAIN_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_DOMAIN_ID;
+    public static final int ADDITIONAL_WEB_SITE_ID = 22;
+    public static final String ADDITIONAL_WEB_SITE_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_WEB_SITE_ID;
 
     public static final int ADDITIONAL_FTP_ID = 4;
     public static final String ADDITIONAL_FTP_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_FTP_ID;

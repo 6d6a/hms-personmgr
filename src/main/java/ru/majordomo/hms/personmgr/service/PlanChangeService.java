@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
@@ -22,8 +24,15 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+
+import static java.lang.Math.floor;
+import static java.time.temporal.ChronoUnit.DAYS;
+import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_FTP_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_WEB_SITE_SERVICE_ID;
 
 @Service
 public class PlanChangeService {
@@ -35,6 +44,7 @@ public class PlanChangeService {
     private final AccountServiceRepository accountServiceRepository;
     private final PersonalAccountRepository personalAccountRepository;
     private final PlanCheckerService planCheckerService;
+    private final PaymentServiceRepository paymentServiceRepository;
 
     @Autowired
     public PlanChangeService(
@@ -45,7 +55,8 @@ public class PlanChangeService {
             AccountHistoryService accountHistoryService,
             AccountServiceRepository accountServiceRepository,
             PersonalAccountRepository personalAccountRepository,
-            PlanCheckerService planCheckerService
+            PlanCheckerService planCheckerService,
+            PaymentServiceRepository paymentServiceRepository
     ) {
         this.finFeignClient = finFeignClient;
         this.planRepository = planRepository;
@@ -55,6 +66,7 @@ public class PlanChangeService {
         this.accountServiceRepository = accountServiceRepository;
         this.personalAccountRepository = personalAccountRepository;
         this.planCheckerService = planCheckerService;
+        this.paymentServiceRepository = paymentServiceRepository;
     }
 
     /**
@@ -88,15 +100,15 @@ public class PlanChangeService {
         //Проверим, можно ли менять тариф
         canChangePlan(account, currentPlan, newPlan);
 
-        //Удалим старую услугу тарифа и добавим новую
-        replacePlanService(account, currentPlan, newPlan);
-
-        //Удалим старую услугу смс-уведомлений и добавим новую
-        replaceSmsNotificationsService(account, currentPlan, newPlan);
+        //Произведем нужные действия со всеми услугами
+        processServices(account, currentPlan, newPlan);
 
         //Укажем новый тариф
         account.setPlanId(newPlan.getId());
         personalAccountRepository.save(account);
+
+        //Произведем нужные действия с абонементами
+        processAbonements(account, currentPlan, newPlan);
 
         //Сохраним статистику смены тарифа
         saveStat(account, newPlanId);
@@ -219,6 +231,135 @@ public class PlanChangeService {
     }
 
     /**
+     * Произведем нужные действия с абонементами
+     *
+     * @param account     Аккаунт
+     * @param currentPlan текущий тариф
+     * @param newPlan     новый тариф
+     */
+    private void processAbonements(PersonalAccount account, Plan currentPlan, Plan newPlan) {
+        //Если старый тариф был только абонементным, то нужно удалить абонемент и вернуть неизрасходованные средства
+        processCurrentAccountAbonement(account, currentPlan);
+
+        //Если новый тариф только абонементный, то нужно сразу купить абонемент и списать средства
+        processNewAccountAbonement(account, newPlan);
+    }
+
+    /**
+     * Добавляем при необходимости абонемент на тариф
+     *
+     * @param account   Аккаунт
+     * @param currentPlan текущий тариф
+     */
+    private void processCurrentAccountAbonement(PersonalAccount account, Plan currentPlan) {
+        if (currentPlan.isAbonementOnly()) {
+            addRemainingAccountAbonementCost(account, currentPlan);
+
+            deleteAccountAbonement(account, currentPlan);
+        }
+    }
+
+    /**
+     * Возвращаем неизрасходованные средства за старый абонемент
+     *
+     * @param account   Аккаунт
+     * @param currentPlan текущий тариф
+     */
+    private void addRemainingAccountAbonementCost(PersonalAccount account, Plan currentPlan) {
+        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), currentPlan.getAbonementIds().get(0));
+
+        if (accountAbonements != null && !accountAbonements.isEmpty()) {
+            AccountAbonement accountAbonement = accountAbonements.get(0);
+            Abonement abonement = accountAbonement.getAbonement();
+
+            if (accountAbonement.getExpired().isAfter(LocalDateTime.now())) {
+                long remainingDays = DAYS.between(accountAbonement.getExpired(), LocalDateTime.now());
+                BigDecimal remainedServiceCost = (BigDecimal.valueOf(remainingDays)).multiply(abonement.getService().getCost().divide(BigDecimal.valueOf(365L), 2, BigDecimal.ROUND_DOWN));
+                //TODO вернуть денег сначала за неизрасходованные дни
+            }
+
+        }
+    }
+
+    /**
+     * Удаляем старый абонемент
+     *
+     * @param account   Аккаунт
+     * @param currentPlan текущий тариф
+     */
+    private void deleteAccountAbonement(PersonalAccount account, Plan currentPlan) {
+        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), currentPlan.getAbonementIds().get(0));
+
+        if (accountAbonements != null && !accountAbonements.isEmpty()) {
+            accountAbonementRepository.delete(accountAbonements);
+        }
+    }
+
+    /**
+     * Добавляем при необходимости абонемент на тариф
+     *
+     * @param account   Аккаунт
+     * @param newPlan новый тариф
+     */
+    private void processNewAccountAbonement(PersonalAccount account, Plan newPlan) {
+        if (newPlan.isAbonementOnly()) {
+            Abonement abonement = newPlan.getAbonements().get(0);
+            addAccountAbonement(account, abonement);
+
+            Map<String, Object> paymentOperation = new HashMap<>();
+            paymentOperation.put("serviceId", abonement.getServiceId());
+            paymentOperation.put("amount", abonement.getService().getCost());
+
+            Map<String, Object> response = finFeignClient.charge(account.getId(), paymentOperation);
+
+            if (response.get("success") != null && !((boolean) response.get("success"))) {
+                throw new LowBalanceException("Could not charge money");
+            }
+        }
+    }
+
+    /**
+     * Добавляем абонемент на тариф
+     *
+     * @param account   Аккаунт
+     * @param abonement новый абонемент
+     */
+    private void addAccountAbonement(PersonalAccount account, Abonement abonement) {
+        AccountAbonement accountAbonement = new AccountAbonement();
+        accountAbonement.setAbonementId(abonement.getId());
+        accountAbonement.setPersonalAccountId(account.getId());
+        accountAbonement.setCreated(LocalDateTime.now());
+        accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
+        accountAbonement.setAutorenew(false);
+
+        accountAbonementRepository.save(accountAbonement);
+    }
+
+    /**
+     * Произвести все действия с услугами
+     *
+     * @param account     Аккаунт
+     * @param currentPlan текущий тариф
+     * @param newPlan     новый тариф
+     */
+    private void processServices(PersonalAccount account, Plan currentPlan, Plan newPlan) {
+        //Удалим старую услугу тарифа и добавим новую
+        replacePlanService(account, currentPlan, newPlan);
+
+        //Удалим старую услугу смс-уведомлений и добавим новую
+        replaceSmsNotificationsService(account, currentPlan, newPlan);
+
+        //Обработаем услуги Доп.FTP
+        processFtpUserService(account, newPlan);
+
+        //Обработаем услуги Доп.Сайт
+        processWebSiteService(account, newPlan);
+
+        //Обработаем услуги Доп.место
+        processQuotaService(account, newPlan);
+    }
+
+    /**
      * Может ли быть произведена смена тарифа (с Бизнес можно только на Бизнес)
      *
      * @param currentPlan текущий тариф
@@ -317,7 +458,7 @@ public class PlanChangeService {
     }
 
     /**
-     * Обновляем услугу смс-уведомлений (она могла быть на стором тарифе с другой стоимостью или бесплатной)
+     * Обновляем услугу смс-уведомлений (она могла быть на старом тарифе с другой стоимостью или бесплатной)
      *
      * @param account     Аккаунт
      * @param currentPlan текущий тариф
@@ -337,18 +478,120 @@ public class PlanChangeService {
      */
     private void replaceAccountService(PersonalAccount account, String oldServiceId, String newServiceId) {
         if (!oldServiceId.equals(newServiceId)) {
-            AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), oldServiceId);
+            deleteAccountService(account, oldServiceId);
 
-            if (accountService != null) {
-                accountServiceRepository.delete(accountService);
-            }
-
-            //Создаем AccountService с выбранным тарифом
-            AccountService service = new AccountService();
-            service.setPersonalAccountId(account.getId());
-            service.setServiceId(newServiceId);
-
-            accountServiceRepository.save(service);
+            addAccountService(account, newServiceId);
         }
+    }
+
+    /**
+     * Удаляем старую услугу
+     *
+     * @param account   Аккаунт
+     * @param oldServiceId id текущей услуги
+     */
+    private void deleteAccountService(PersonalAccount account, String oldServiceId) {
+        List<AccountService> accountService = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), oldServiceId);
+
+        if (accountService != null && !accountService.isEmpty()) {
+            accountServiceRepository.delete(accountService);
+        }
+    }
+
+    /**
+     * Добавляем новую услугу
+     *
+     * @param account   Аккаунт
+     * @param newServiceId id новой услуги
+     */
+    private void addAccountService(PersonalAccount account, String newServiceId) {
+        AccountService service = new AccountService();
+        service.setPersonalAccountId(account.getId());
+        service.setServiceId(newServiceId);
+
+        accountServiceRepository.save(service);
+    }
+
+    /**
+     * Удаляем или добавляем услуги в зависимости от счетчиков
+     *
+     * @param account   Аккаунт
+     * @param serviceId id услуги
+     * @param currentCount текущее кол-во услуг
+     * @param planFreeLimit бесплатно по тарифу
+     */
+    private void deleteOrAddAccountService(PersonalAccount account, String serviceId, Long currentCount, Long planFreeLimit) {
+        if (currentCount.compareTo(planFreeLimit) <= 0) {
+            deleteAccountService(account, serviceId);
+        } else {
+            Long notFreeServiceCount = currentCount - planFreeLimit;
+            for (int i = 1 ; i <= notFreeServiceCount.intValue(); i++) {
+                addAccountService(account, serviceId);
+            }
+        }
+    }
+
+    /**
+     * Удаляем или добавляем услуги в зависимости от счетчиков
+     *
+     * @param account   Аккаунт
+     * @param serviceId id услуги
+     * @param currentCount текущее кол-во услуг
+     * @param planFreeLimit бесплатно по тарифу
+     */
+    private void deleteOrAddAccountService(PersonalAccount account, String serviceId, Long currentCount, Long planFreeLimit, Long oneServiceCapacity) {
+        if (currentCount.compareTo(planFreeLimit) <= 0) {
+            deleteAccountService(account, serviceId);
+        } else {
+            int notFreeQuotaCount = 1 + (int) floor((currentCount.intValue() - planFreeLimit.intValue()) / oneServiceCapacity);
+            for (int i = 1 ; i <= notFreeQuotaCount; i++) {
+                addAccountService(account, serviceId);
+            }
+        }
+    }
+
+    /**
+     * Обрабатываем услуги Доп.FTP в соответствии с новым тарифом
+     *
+     * @param account     Аккаунт
+     * @param newPlan     новый тариф
+     */
+    private void processFtpUserService(PersonalAccount account, Plan newPlan) {
+        Long currentFtpUserCount = planCheckerService.getCurrentFtpUserCount(account.getId());
+        Long planFtpUserFreeLimit = planCheckerService.getPlanFtpUserFreeLimit(newPlan);
+
+        String ftpServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_FTP_SERVICE_ID).getId();
+
+        deleteOrAddAccountService(account, ftpServiceId, currentFtpUserCount, planFtpUserFreeLimit);
+    }
+
+    /**
+     * Обрабатываем услуги Доп.Сайт в соответствии с новым тарифом
+     *
+     * @param account     Аккаунт
+     * @param newPlan     новый тариф
+     */
+    private void processWebSiteService(PersonalAccount account, Plan newPlan) {
+        Long currentWebSiteCount = planCheckerService.getCurrentWebSiteCount(account.getId());
+        Long planWebSiteFreeLimit = planCheckerService.getPlanWebSiteFreeLimit(newPlan);
+
+        String webSiteServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_WEB_SITE_SERVICE_ID).getId();
+
+        deleteOrAddAccountService(account, webSiteServiceId, currentWebSiteCount, planWebSiteFreeLimit);
+    }
+
+    /**
+     * Обрабатываем услуги Доп.место в соответствии с новым тарифом
+     *
+     * @param account     Аккаунт
+     * @param newPlan     новый тариф
+     */
+    private void processQuotaService(PersonalAccount account, Plan newPlan) {
+        Long currentQuotaUsed = planCheckerService.getCurrentQuotaUsed(account.getId());
+        Long planQuotaKBFreeLimit = planCheckerService.getPlanQuotaKBFreeLimit(newPlan);
+
+        String webSiteServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
+
+        deleteOrAddAccountService(account, webSiteServiceId, currentQuotaUsed, planQuotaKBFreeLimit, 102400L);
     }
 }

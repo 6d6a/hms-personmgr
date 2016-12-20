@@ -32,4 +32,5 @@ public interface AccountAbonementRepository extends MongoRepository<AccountAbone
     Page<AccountAbonement> findByPersonalAccountIdAndAutorenew(@Param("personalAccountId") String personalAccountId, @Param("autorenew") String autorenew, Pageable pageable);
     List<AccountAbonement> findByPersonalAccountIdAndExpiredAfterAndAutorenew(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired, @Param("autorenew") String autorenew);
     List<AccountAbonement> findByPersonalAccountIdAndExpiredBeforeAndAutorenew(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired, @Param("autorenew") String autorenew);
+    List<AccountAbonement> findByPersonalAccountIdAndAbonementId(@Param("personalAccountId") String personalAccountId, @Param("abonementId") String abonementId);
 }
