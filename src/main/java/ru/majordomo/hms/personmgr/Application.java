@@ -15,6 +15,7 @@ import org.springframework.context.annotation.PropertySources;
 import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventListener;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
@@ -167,64 +168,77 @@ public class Application implements CommandLineRunner {
     }
 
     @Bean
-    public ProcessingBusinessActionEventListener processingBusinessActionEventListener() {
-        return new ProcessingBusinessActionEventListener();
+    @Autowired
+    public ProcessingBusinessActionEventListener processingBusinessActionEventListener(MongoOperations mongoOperations) {
+        return new ProcessingBusinessActionEventListener(mongoOperations);
     }
 
     @Bean
-    public AccountDomainEventListener accountDomainEventListener() {
-        return new AccountDomainEventListener();
+    @Autowired
+    public AccountDomainEventListener accountDomainEventListener(MongoOperations mongoOperations) {
+        return new AccountDomainEventListener(mongoOperations);
     }
 
     @Bean
-    public DomainTldEventListener domainTldEventListener() {
-        return new DomainTldEventListener();
+    @Autowired
+    public DomainTldEventListener domainTldEventListener(MongoOperations mongoOperations) {
+        return new DomainTldEventListener(mongoOperations);
     }
 
     @Bean
-    public PlanEventListener planEventListener() {
-        return new PlanEventListener();
+    @Autowired
+    public PlanEventListener planEventListener(MongoOperations mongoOperations) {
+        return new PlanEventListener(mongoOperations);
     }
 
     @Bean
-    public PromocodeEventListener promocodeEventListener() {
-        return new PromocodeEventListener();
+    @Autowired
+    public PromocodeEventListener promocodeEventListener(MongoOperations mongoOperations) {
+        return new PromocodeEventListener(mongoOperations);
     }
 
     @Bean
-    public SeoEventListener seoEventListener() {
-        return new SeoEventListener();
+    @Autowired
+    public SeoEventListener seoEventListener(MongoOperations mongoOperations) {
+        return new SeoEventListener(mongoOperations);
     }
 
     @Bean
-    public AccountSeoOrderEventListener accountSeoOrderEventListener() {
-        return new AccountSeoOrderEventListener();
+    @Autowired
+    public AccountSeoOrderEventListener accountSeoOrderEventListener(MongoOperations mongoOperations) {
+        return new AccountSeoOrderEventListener(mongoOperations);
     }
 
     @Bean
-    public AccountPromocodeEventListener accountPromocodeEventListener() {
-        return new AccountPromocodeEventListener();
+    @Autowired
+    public AccountPromocodeEventListener accountPromocodeEventListener(MongoOperations mongoOperations) {
+        return new AccountPromocodeEventListener(mongoOperations);
     }
 
     @Bean
-    public AbonementEventListener abonementEventListener() {
-        return new AbonementEventListener();
+    @Autowired
+    public AbonementEventListener abonementEventListener(MongoOperations mongoOperations) {
+        return new AbonementEventListener(mongoOperations);
     }
 
     @Bean
-    public AccountAbonementEventListener accountAbonementEventListener() {
-        return new AccountAbonementEventListener();
+    @Autowired
+    public AccountAbonementEventListener accountAbonementEventListener(MongoOperations mongoOperations) {
+        return new AccountAbonementEventListener(mongoOperations);
     }
 
     @Bean
-    public PersonalAccountEventListener personalAccountEventListener() {
-        return new PersonalAccountEventListener();
+    @Autowired
+    public PersonalAccountEventListener personalAccountEventListener(MongoOperations mongoOperations) {
+        return new PersonalAccountEventListener(mongoOperations);
     }
 
     @Bean
-    public AccountServiceEventListener accountServiceEventListener() {
-        return new AccountServiceEventListener();
+    @Autowired
+    public AccountServiceEventListener accountServiceEventListener(MongoOperations mongoOperations) {
+        return new AccountServiceEventListener(mongoOperations);
     }
+
     @Bean
     public ValidatingMongoEventListener validatingMongoEventListener() {
         return new ValidatingMongoEventListener(validator());
