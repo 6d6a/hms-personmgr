@@ -55,6 +55,7 @@ public class Constants {
 
     public static final int ADDITIONAL_QUOTA_100_ID = 15;
     public static final String ADDITIONAL_QUOTA_100_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_QUOTA_100_ID;
+    public static final long ADDITIONAL_QUOTA_100_CAPACITY = 102400L;
 
     public static final int PLAN_PROPERTY_LIMIT_UNLIMITED = -1;
 

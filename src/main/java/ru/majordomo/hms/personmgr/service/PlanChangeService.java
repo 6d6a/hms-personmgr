@@ -31,8 +31,10 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import static java.lang.Math.floor;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_FTP_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_CAPACITY;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_WEB_SITE_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PAYMENT_TYPE_ID;
 
 @Service
 public class PlanChangeService {
@@ -85,7 +87,7 @@ public class PlanChangeService {
             throw new ResourceNotFoundException("Account plan not found");
         }
 
-        Plan newPlan = planRepository.findByOldId(newPlanId);
+        Plan newPlan = planRepository.findOne(newPlanId);
 
         if (newPlan == null) {
             throw new ParameterValidationException("New plan with specified planId not found");
@@ -143,7 +145,8 @@ public class PlanChangeService {
         BigDecimal available = getBalance(account);
 
         if (available.compareTo(BigDecimal.ZERO) < 0) {
-            throw new LowBalanceException("Account balance is lower than zero.");
+            throw new LowBalanceException("Account balance is lower than zero. balance is: "
+                    + available.toPlainString());
         }
     }
 
@@ -159,7 +162,7 @@ public class PlanChangeService {
             throw new ResourceNotFoundException("Account balance not found.");
         }
 
-        return new BigDecimal((String) balance.get("available"));
+        return BigDecimal.valueOf((double) balance.get("available"));
     }
 
     /**
@@ -266,7 +269,10 @@ public class PlanChangeService {
      * @param currentPlan текущий тариф
      */
     private void addRemainingAccountAbonementCost(PersonalAccount account, Plan currentPlan) {
-        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), currentPlan.getAbonementIds().get(0));
+        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(
+                account.getId(),
+                currentPlan.getAbonementIds().get(0)
+        );
 
         if (accountAbonements != null && !accountAbonements.isEmpty()) {
             AccountAbonement accountAbonement = accountAbonements.get(0);
@@ -275,9 +281,16 @@ public class PlanChangeService {
             if (accountAbonement.getExpired().isAfter(LocalDateTime.now())) {
                 long remainingDays = DAYS.between(accountAbonement.getExpired(), LocalDateTime.now());
                 BigDecimal remainedServiceCost = (BigDecimal.valueOf(remainingDays)).multiply(abonement.getService().getCost().divide(BigDecimal.valueOf(365L), 2, BigDecimal.ROUND_DOWN));
-                //TODO вернуть денег сначала за неизрасходованные дни
-            }
 
+                Map<String, Object> payment = new HashMap<>();
+                payment.put("accountId", account.getName());
+                payment.put("paymentTypeId", BONUS_PAYMENT_TYPE_ID);
+                payment.put("amount", remainedServiceCost);
+                payment.put("documentNumber", "N/A");
+                payment.put("message", "Возврат неиспользованных средств при отказе от абонемента");
+
+                finFeignClient.addPayment(payment);
+            }
         }
     }
 
@@ -288,7 +301,10 @@ public class PlanChangeService {
      * @param currentPlan текущий тариф
      */
     private void deleteAccountAbonement(PersonalAccount account, Plan currentPlan) {
-        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), currentPlan.getAbonementIds().get(0));
+        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(
+                account.getId(),
+                currentPlan.getAbonementIds().get(0)
+        );
 
         if (accountAbonements != null && !accountAbonements.isEmpty()) {
             accountAbonementRepository.delete(accountAbonements);
@@ -384,7 +400,8 @@ public class PlanChangeService {
             BigDecimal available = getBalance(account);
 
             if (available.compareTo(newPlan.getAbonements().get(0).getService().getCost()) < 0) {
-                throw new LowBalanceException("Account balance is too low for specified plan. Plan is abonementOnly.");
+                throw new LowBalanceException("Account balance is too low for specified plan. Plan is abonementOnly. " +
+                        "Current balance is: " + available.toPlainString());
             }
         }
     }
@@ -416,8 +433,11 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void checkAccountDatabaseLimits(PersonalAccount account, Plan newPlan) {
-        if (planCheckerService.getCurrentDatabaseCount(account.getId()).compareTo(planCheckerService.getPlanDatabaseFreeLimit(newPlan)) > 0) {
-            throw new ParameterValidationException("Account current DB count is more than plan limit.");
+        Long count = planCheckerService.getCurrentDatabaseCount(account.getId());
+        Long freeLimit = planCheckerService.getPlanDatabaseFreeLimit(newPlan);
+        if (freeLimit.compareTo(-1L) != 0 && count.compareTo(freeLimit) > 0) {
+            throw new ParameterValidationException("Account current DB count is more than plan freeLimit. " +
+                    "Current: " + count + " FreeLimit: " + freeLimit);
         }
     }
 
@@ -428,8 +448,11 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void checkAccountFtpUserLimits(PersonalAccount account, Plan newPlan) {
-        if (planCheckerService.getCurrentFtpUserCount(account.getId()).compareTo(planCheckerService.getPlanFtpUserFreeLimit(newPlan)) > 0) {
-            throw new ParameterValidationException("Account current FtpUser count is more than plan limit.");
+        Long count = planCheckerService.getCurrentFtpUserCount(account.getId());
+        Long freeLimit = planCheckerService.getPlanFtpUserFreeLimit(newPlan);
+        if (freeLimit.compareTo(-1L) != 0 && count.compareTo(freeLimit) > 0) {
+            throw new ParameterValidationException("Account current FtpUser count is more than plan freeLimit. "  +
+                    "Current: " + count + " FreeLimit: " + freeLimit);
         }
     }
 
@@ -440,8 +463,11 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void checkAccountWebSiteLimits(PersonalAccount account, Plan newPlan) {
-        if (planCheckerService.getCurrentWebSiteCount(account.getId()).compareTo(planCheckerService.getPlanWebSiteFreeLimit(newPlan)) > 0) {
-            throw new ParameterValidationException("Account current WebSite count is more than plan limit.");
+        Long count = planCheckerService.getCurrentWebSiteCount(account.getId());
+        Long freeLimit = planCheckerService.getPlanWebSiteFreeLimit(newPlan);
+        if (freeLimit.compareTo(-1L) != 0 && count.compareTo(freeLimit) > 0) {
+            throw new ParameterValidationException("Account current WebSite count is more than plan limit. "  +
+                    "Current: " + count + " FreeLimit: " + freeLimit);
         }
     }
 
@@ -452,8 +478,11 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void checkAccountQuotaLimits(PersonalAccount account, Plan newPlan) {
-        if (planCheckerService.getCurrentQuotaUsed(account.getId()).compareTo(planCheckerService.getPlanQuotaKBFreeLimit(newPlan)) > 0) {
-            throw new ParameterValidationException("Account current Quota is more than plan limit.");
+        Long count = planCheckerService.getCurrentQuotaUsed(account.getId());
+        Long freeLimit = planCheckerService.getPlanQuotaKBFreeLimit(newPlan);
+        if (freeLimit.compareTo(-1L) != 0 && count.compareTo(freeLimit) > 0) {
+            throw new ParameterValidationException("Account current Quota is more than plan limit. "  +
+                    "Current: " + count + " FreeLimit: " + freeLimit);
         }
     }
 
@@ -465,7 +494,9 @@ public class PlanChangeService {
      * @param newPlan     новый тариф
      */
     private void replaceSmsNotificationsService(PersonalAccount account, Plan currentPlan, Plan newPlan) {
-        replaceAccountService(account, currentPlan.getSmsServiceId(), newPlan.getSmsServiceId());
+        if (currentPlan.getSmsServiceId() != null && newPlan.getSmsServiceId() != null) {
+            replaceAccountService(account, currentPlan.getSmsServiceId(), newPlan.getSmsServiceId());
+        }
     }
 
 
@@ -592,6 +623,6 @@ public class PlanChangeService {
 
         String webSiteServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
 
-        deleteOrAddAccountService(account, webSiteServiceId, currentQuotaUsed, planQuotaKBFreeLimit, 102400L);
+        deleteOrAddAccountService(account, webSiteServiceId, currentQuotaUsed, planQuotaKBFreeLimit, ADDITIONAL_QUOTA_100_CAPACITY);
     }
 }

@@ -15,6 +15,6 @@ public interface FinFeignClient {
     @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/payment_operations/charge", consumes = "application/json")
     Map<String, Object> charge(@PathVariable("accountId") String accountId, Map<String, Object> paymentOperation);
 
-    @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/balance", consumes = "application/json")
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/balance", consumes = "application/json")
     Map<String, Object> getBalance(@PathVariable("accountId") String accountId);
 }
