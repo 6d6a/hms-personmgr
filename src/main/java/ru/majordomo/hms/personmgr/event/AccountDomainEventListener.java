@@ -11,13 +11,13 @@ import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
-
-/**
- * AccountDomainEventListener
- */
 public class AccountDomainEventListener extends AbstractMongoEventListener<AccountDomain> {
+    private final MongoOperations mongoOperations;
+
     @Autowired
-    private MongoOperations mongoOperations;
+    public AccountDomainEventListener(MongoOperations mongoOperations) {
+        this.mongoOperations = mongoOperations;
+    }
 
     @Override
     public void onAfterConvert(AfterConvertEvent<AccountDomain> event) {

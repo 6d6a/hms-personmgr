@@ -12,8 +12,12 @@ import ru.majordomo.hms.personmgr.model.seo.Seo;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 public class AccountSeoOrderEventListener extends AbstractMongoEventListener<AccountSeoOrder> {
+    private final MongoOperations mongoOperations;
+
     @Autowired
-    private MongoOperations mongoOperations;
+    public AccountSeoOrderEventListener(MongoOperations mongoOperations) {
+        this.mongoOperations = mongoOperations;
+    }
 
     @Override
     public void onAfterConvert(AfterConvertEvent<AccountSeoOrder> event) {

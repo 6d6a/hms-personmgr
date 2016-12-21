@@ -93,9 +93,9 @@ public class AbonementService {
 
         accountAbonementRepository.save(accountAbonement);
 
-        AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), plan.getServiceId());
+        List<AccountService> accountService = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), plan.getServiceId());
 
-        if (accountService != null) {
+        if (accountService != null && !accountService.isEmpty()) {
             accountServiceRepository.delete(accountService);
         }
     }

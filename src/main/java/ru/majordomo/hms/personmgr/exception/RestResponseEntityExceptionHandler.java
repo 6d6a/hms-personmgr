@@ -46,7 +46,7 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
 
-    @ExceptionHandler({ ParameterValidationException.class, DataIntegrityViolationException.class })
+    @ExceptionHandler({ ParameterValidationException.class, DataIntegrityViolationException.class, LowBalanceException.class })
     public ResponseEntity<Object> handleBadRequest(
             final RuntimeException ex,
             final WebRequest request

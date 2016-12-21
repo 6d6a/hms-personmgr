@@ -36,6 +36,10 @@ public class Plan extends BaseModel {
     @NotNull
     private AccountType accountType;
 
+    @NotNull
+    @Indexed
+    private boolean abonementOnly;
+
     @Indexed
     private boolean active;
 
@@ -45,18 +49,23 @@ public class Plan extends BaseModel {
     @ObjectIdList(value = Abonement.class)
     private List<String> abonementIds = new ArrayList<>();
 
+    private String smsServiceId;
+
     @Transient
     private PaymentService service;
 
     @Transient
     private List<Abonement> abonements = new ArrayList<>();
 
+    @Transient
+    private PaymentService smsService;
+
     public Plan() {
         super();
     }
 
     @PersistenceConstructor
-    public Plan(String id, String name, String internalName, String serviceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties, List<String> abonementIds) {
+    public Plan(String id, String name, String internalName, String serviceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties, List<String> abonementIds, boolean abonementOnly) {
         super();
         this.setId(id);
         this.serviceId = serviceId;
@@ -67,18 +76,7 @@ public class Plan extends BaseModel {
         this.active = active;
         this.planProperties = planProperties;
         this.abonementIds = abonementIds;
-    }
-
-    public Plan(String name, String internalName, String serviceId, String oldId, AccountType accountType, boolean active, PlanProperties planProperties, List<String> abonementIds) {
-        super();
-        this.serviceId = serviceId;
-        this.oldId = oldId;
-        this.name = name;
-        this.internalName = internalName;
-        this.accountType = accountType;
-        this.active = active;
-        this.planProperties = planProperties;
-        this.abonementIds = abonementIds;
+        this.abonementOnly = abonementOnly;
     }
 
     public String getName() {
@@ -161,6 +159,30 @@ public class Plan extends BaseModel {
         this.abonements = abonements;
     }
 
+    public boolean isAbonementOnly() {
+        return abonementOnly;
+    }
+
+    public void setAbonementOnly(boolean abonementOnly) {
+        this.abonementOnly = abonementOnly;
+    }
+
+    public String getSmsServiceId() {
+        return smsServiceId;
+    }
+
+    public void setSmsServiceId(String smsServiceId) {
+        this.smsServiceId = smsServiceId;
+    }
+
+    public PaymentService getSmsService() {
+        return smsService;
+    }
+
+    public void setSmsService(PaymentService smsService) {
+        this.smsService = smsService;
+    }
+
     @Override
     public String toString() {
         return "Plan{" +
@@ -169,11 +191,14 @@ public class Plan extends BaseModel {
                 ", serviceId='" + serviceId + '\'' +
                 ", oldId='" + oldId + '\'' +
                 ", accountType=" + accountType +
+                ", abonementOnly=" + abonementOnly +
                 ", active=" + active +
                 ", planProperties=" + planProperties +
                 ", abonementIds=" + abonementIds +
+                ", smsServiceId='" + smsServiceId + '\'' +
                 ", service=" + service +
                 ", abonements=" + abonements +
+                ", smsService=" + smsService +
                 "} " + super.toString();
     }
 }

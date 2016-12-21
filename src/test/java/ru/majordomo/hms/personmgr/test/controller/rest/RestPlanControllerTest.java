@@ -60,6 +60,7 @@ public class RestPlanControllerTest {
             plan.setOldId(ObjectId.get().toString());
             plan.setAccountType(AccountType.VIRTUAL_HOSTING);
             plan.setActive(true);
+            plan.setAbonementOnly(false);
 
             VirtualHostingPlanProperties planProperties = new VirtualHostingPlanProperties();
             planProperties.setSitesLimit(new PlanPropertyLimit(i + 1));
@@ -68,7 +69,6 @@ public class RestPlanControllerTest {
             planProperties.setQuotaKBLimit(new PlanPropertyLimit(i + 10));
             planProperties.setFtpLimit(new PlanPropertyLimit(i + 3));
             planProperties.setSshLimit(new PlanPropertyLimit(i + 1));
-            planProperties.setPhpEnabled(true);
             planProperties.setDb(ImmutableMap.of(MYSQL, new PlanPropertyLimit(i + 1)));
 
             plan.setPlanProperties(planProperties);

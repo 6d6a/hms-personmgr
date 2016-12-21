@@ -2,48 +2,68 @@ package ru.majordomo.hms.personmgr.model.plan;
 
 import org.springframework.data.annotation.PersistenceConstructor;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.DBType;
 
-/**
- * VirtualHostingPlanProperties
- */
 public class VirtualHostingPlanProperties extends PlanProperties {
 
+    @NotNull
     private PlanPropertyLimit sitesLimit = new PlanPropertyLimit();
 
+    @NotNull
     private PlanPropertyLimit webCpuLimit = new PlanPropertyLimit();
 
+    @NotNull
     private PlanPropertyLimit dbCpuLimit = new PlanPropertyLimit();
 
+    @NotNull
     private PlanPropertyLimit quotaKBLimit = new PlanPropertyLimit();
 
+    @NotNull
     private PlanPropertyLimit ftpLimit = new PlanPropertyLimit();
 
+    @NotNull
     private PlanPropertyLimit sshLimit = new PlanPropertyLimit();
 
-    private boolean phpEnabled = false;
-
+    @NotNull
     private boolean businessServices = false;
 
+    @NotNull
     private Map<DBType, PlanPropertyLimit> db = new HashMap<>();
+
+    @NotNull
+    private List<String> serviceTemplateIds = new ArrayList<>();
 
     public VirtualHostingPlanProperties() {
     }
 
     @PersistenceConstructor
-    public VirtualHostingPlanProperties(PlanPropertyLimit sitesLimit, PlanPropertyLimit webCpuLimit, PlanPropertyLimit dbCpuLimit, PlanPropertyLimit quotaKBLimit, PlanPropertyLimit ftpLimit, PlanPropertyLimit sshLimit, boolean phpEnabled, boolean businessServices, Map<DBType, PlanPropertyLimit> db) {
+    public VirtualHostingPlanProperties(
+            PlanPropertyLimit sitesLimit,
+            PlanPropertyLimit webCpuLimit,
+            PlanPropertyLimit dbCpuLimit,
+            PlanPropertyLimit quotaKBLimit,
+            PlanPropertyLimit ftpLimit,
+            PlanPropertyLimit sshLimit,
+            boolean businessServices,
+            Map<DBType, PlanPropertyLimit> db,
+            List<String> serviceTemplateIds
+    ) {
         this.sitesLimit = sitesLimit;
         this.webCpuLimit = webCpuLimit;
         this.dbCpuLimit = dbCpuLimit;
         this.quotaKBLimit = quotaKBLimit;
         this.ftpLimit = ftpLimit;
         this.sshLimit = sshLimit;
-        this.phpEnabled = phpEnabled;
         this.businessServices = businessServices;
         this.db = db;
+        this.serviceTemplateIds = serviceTemplateIds;
     }
 
     public PlanPropertyLimit getSitesLimit() {
@@ -94,14 +114,6 @@ public class VirtualHostingPlanProperties extends PlanProperties {
         this.sshLimit = sshLimit;
     }
 
-    public boolean isPhpEnabled() {
-        return phpEnabled;
-    }
-
-    public void setPhpEnabled(boolean phpEnabled) {
-        this.phpEnabled = phpEnabled;
-    }
-
     public boolean isBusinessServices() {
         return businessServices;
     }
@@ -118,6 +130,14 @@ public class VirtualHostingPlanProperties extends PlanProperties {
         this.db = db;
     }
 
+    public List<String> getServiceTemplateIds() {
+        return serviceTemplateIds;
+    }
+
+    public void setServiceTemplateIds(List<String> serviceTemplateIds) {
+        this.serviceTemplateIds = serviceTemplateIds;
+    }
+
     @Override
     public String toString() {
         return "VirtualHostingPlanProperties{" +
@@ -127,9 +147,9 @@ public class VirtualHostingPlanProperties extends PlanProperties {
                 ", quotaKBLimit=" + quotaKBLimit +
                 ", ftpLimit=" + ftpLimit +
                 ", sshLimit=" + sshLimit +
-                ", phpEnabled=" + phpEnabled +
                 ", businessServices=" + businessServices +
                 ", db=" + db +
+                ", serviceTemplateIds=" + serviceTemplateIds +
                 "} " + super.toString();
     }
 }

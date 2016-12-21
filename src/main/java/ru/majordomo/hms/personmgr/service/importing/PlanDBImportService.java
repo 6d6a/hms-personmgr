@@ -31,12 +31,18 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_BUSINESS_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_BUSINESS_PLUS_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_PARKING_DOMAINS_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_PARKING_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_PARKING_PLUS_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_PROPERTY_LIMIT_UNLIMITED;
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_SERVICE_ABONEMENT_PREFIX;
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_SERVICE_PREFIX;
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_START_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_UNLIMITED_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_UNLIMITED_PLUS_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_10_RUB_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_FREE_SERVICE_ID;
 
 /**
  * PlanDBImportService
@@ -102,7 +108,8 @@ public class PlanDBImportService {
                         rs.getInt("sites"))
         );
         planProperties.setSshLimit(new PlanPropertyLimit(PLAN_PROPERTY_LIMIT_UNLIMITED));
-        planProperties.setPhpEnabled(rs.getBoolean("apache"));
+
+        //TODO serviceTemplateIds rs.getBoolean("apache") включен ли php (Для Старт только perl)
 
         if (rs.getInt("Plan_ID") == PLAN_BUSINESS_ID
                 || rs.getInt("Plan_ID") == PLAN_BUSINESS_PLUS_ID) {
@@ -164,15 +171,46 @@ public class PlanDBImportService {
 
         abonementRepository.save(abonement);
 
-        return new Plan(rs.getString("username"),
-                rs.getString("name"),
-                finServiceId,
-                rs.getString("Plan_ID"),
-                AccountType.VIRTUAL_HOSTING,
-                rs.getBoolean("active"),
-                planProperties,
-                Collections.singletonList(abonement.getId())
-        );
+        boolean abonementOnly = false;
+
+        if (rs.getInt("Plan_ID") == PLAN_PARKING_DOMAINS_ID ||
+                rs.getInt("Plan_ID") == PLAN_PARKING_ID ||
+                rs.getInt("Plan_ID") == PLAN_PARKING_PLUS_ID) {
+            abonementOnly = true;
+        }
+
+        int smsCost = rs.getInt("sms_cost");
+        PaymentService smsService;
+        String smsServiceId;
+        switch (smsCost) {
+            case 0:
+                smsService = paymentServiceRepository.findByOldId(SMS_NOTIFICATIONS_FREE_SERVICE_ID);
+                break;
+
+            case 29:
+                smsService = paymentServiceRepository.findByOldId(SMS_NOTIFICATIONS_29_RUB_SERVICE_ID);
+                break;
+
+            default:
+                //10 руб
+                smsService = paymentServiceRepository.findByOldId(SMS_NOTIFICATIONS_10_RUB_SERVICE_ID);
+                break;
+        }
+        smsServiceId = smsService.getId();
+
+        Plan plan = new Plan();
+        plan.setName(rs.getString("username"));
+        plan.setInternalName(rs.getString("name"));
+        plan.setServiceId(finServiceId);
+        plan.setOldId(rs.getString("Plan_ID"));
+        plan.setAccountType(AccountType.VIRTUAL_HOSTING);
+        plan.setActive(rs.getBoolean("active"));
+        plan.setPlanProperties(planProperties);
+        plan.setAbonementIds(Collections.singletonList(abonement.getId()));
+        plan.setAbonementOnly(abonementOnly);
+        plan.setSmsServiceId(smsServiceId);
+
+        return plan;
     }
 
     public boolean importToMongo() {
