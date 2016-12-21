@@ -105,12 +105,12 @@ public class PlanChangeService {
         //Произведем нужные действия со всеми услугами
         processServices(account, currentPlan, newPlan);
 
+        //Произведем нужные действия с абонементами
+        processAbonements(account, currentPlan, newPlan);
+
         //Укажем новый тариф
         account.setPlanId(newPlan.getId());
         personalAccountRepository.save(account);
-
-        //Произведем нужные действия с абонементами
-        processAbonements(account, currentPlan, newPlan);
 
         //Сохраним статистику смены тарифа
         saveStat(account, newPlanId);
