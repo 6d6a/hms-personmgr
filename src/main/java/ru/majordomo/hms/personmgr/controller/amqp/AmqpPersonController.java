@@ -18,6 +18,8 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
 @EnableRabbit
@@ -29,10 +31,27 @@ public class AmqpPersonController {
     @Autowired
     private BusinessFlowDirector businessFlowDirector;
 
+    @Autowired
+    private PersonalAccountRepository accountRepository;
+
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.person.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "person.create", type = ExchangeTypes.TOPIC), key = "pm"))
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.info("Received from " + provider + ": " + message.toString());
+
+
+        PersonalAccount account = accountRepository.findByAccountId(message.getAccountId());
+
+        if (account.getOwnerPersonId() == null) {
+            String objRef = message.getObjRef();
+            String personId = objRef.substring(objRef.lastIndexOf("/") + 1);
+            if (objRef.equals(personId)) {
+                logger.error("Не удалось получить personId из objRef: " + objRef);
+            } else {
+                account.setOwnerPersonId(personId);
+            }
+        }
+
 
         businessFlowDirector.processMessage(message);
     }
