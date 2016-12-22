@@ -70,6 +70,8 @@ public class PersonalAccount extends BaseModel {
     @Transient
     private List<AccountService> services = new ArrayList<>();
 
+    private String ownerPersonId;
+
     public PersonalAccount() {
     }
 
@@ -237,6 +239,14 @@ public class PersonalAccount extends BaseModel {
         this.services.remove(service);
     }
 
+    public String getOwnerPersonId() {
+        return ownerPersonId;
+    }
+
+    public void setOwnerPersonId(String ownerPersonId) {
+        this.ownerPersonId = ownerPersonId;
+    }
+
     @Override
     public String toString() {
         return "PersonalAccount{" +
@@ -252,6 +262,7 @@ public class PersonalAccount extends BaseModel {
                 ", settings=" + settings +
                 ", discounts=" + discounts +
                 ", services=" + services +
+                ", ownerPersonId=" + ownerPersonId + 
                 "} " + super.toString();
     }
 }

@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +19,9 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.PlanChangeService;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.rc.user.resources.Person;
 
 @RestController
 @RequestMapping("/{accountId}")
@@ -28,15 +31,18 @@ public class RestPersonalAccountController extends CommonRestController {
     private final PersonalAccountRepository accountRepository;
     private final PlanRepository planRepository;
     private final PlanChangeService planChangeService;
+    private final RcUserFeignClient rcUserFeignClient;
 
     @Autowired
     public RestPersonalAccountController(
             PersonalAccountRepository accountRepository,
             PlanRepository planRepository,
-            PlanChangeService planChangeService) {
+            PlanChangeService planChangeService,
+            RcUserFeignClient rcUserFeignClient) {
         this.accountRepository = accountRepository;
         this.planRepository = planRepository;
         this.planChangeService = planChangeService;
+        this.rcUserFeignClient = rcUserFeignClient;
     }
 
     @RequestMapping(value = "/account", method = RequestMethod.GET)
@@ -79,5 +85,32 @@ public class RestPersonalAccountController extends CommonRestController {
         planChangeService.changePlan(account, planId);
 
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/owner", method = RequestMethod.POST)
+    public ResponseEntity changeOwner(
+            @PathVariable(value = "accountId") String accountId,
+            @RequestBody Map<String, String> owner
+    ) {
+        PersonalAccount account = accountRepository.findOne(accountId);
+
+        if (owner.get("personId") == null) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        Person person;
+
+        try {
+            person = rcUserFeignClient.getPerson(accountId, owner.get("personId"));
+        } catch (FeignException e) {
+            return new ResponseEntity(HttpStatus.NOT_FOUND);
+        }
+
+        if (person != null) {
+            account.setOwnerPersonId(person.getId());
+            accountRepository.save(account);
+        }
+
+        return new ResponseEntity(HttpStatus.OK);
     }
 }

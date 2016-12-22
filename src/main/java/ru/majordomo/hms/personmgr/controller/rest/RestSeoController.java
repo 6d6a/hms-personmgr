@@ -174,7 +174,11 @@ public class RestSeoController extends CommonRestController {
         String clientEmails = "";
         String webSiteName = webSite.getName();
 
-        Person person = rcUserFeignClient.getPersonOwner(account.getId());
+        Person person = null;
+        if (account.getOwnerPersonId() != null) {
+            person = rcUserFeignClient.getPerson(account.getId(), account.getOwnerPersonId());
+        }
+
         if (person != null) {
             clientEmails = String.join(", ", person.getEmailAddresses());
         }
