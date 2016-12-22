@@ -262,6 +262,7 @@ public class PersonalAccount extends BaseModel {
                 ", settings=" + settings +
                 ", discounts=" + discounts +
                 ", services=" + services +
+                ", ownerPersonId=" + ownerPersonId + 
                 "} " + super.toString();
     }
 }
