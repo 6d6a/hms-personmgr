@@ -14,6 +14,7 @@ import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_NO_MO
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_REMAINING_DAYS;
 
 public class Constants {
+    public static final String TECHNICAL_ACCOUNT_ID = "999";
     public static final String VH_ACCOUNT_PREFIX = "AC_";
     public static final String PLAN_SERVICE_PREFIX = "plan_";
     public static final String PLAN_SERVICE_ABONEMENT_PREFIX = PLAN_SERVICE_PREFIX + "abonement_";
@@ -28,6 +29,11 @@ public class Constants {
     public static final String SERVICE_PREFIX = "service_";
     public static final String SERVICE_MONEY_RETURN_PREFIX = "service_money_return_";
     public static final String SERVICE_MONEY_TRANSFER_PREFIX = "service_money_transfer_";
+    public static final String ACCOUNT_SETTING_OVERQUOTED = "overquoted";
+    public static final String ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED = "add_quota_if_overquoted";
+    public static final String ACCOUNT_SETTING_AUTO_BILL_SENDING = "auto_bill_sending";
+    public static final String ACCOUNT_SETTING_CREDIT = "credit";
+    public static final String ACCOUNT_SETTING_NOTIFY_DAYS = "notify_days";
     public static final int PLAN_PARKING_ID = 109;
     public static final int PLAN_PARKING_PLUS_ID = 124;
     public static final int PLAN_UNLIMITED_ID = 9802;

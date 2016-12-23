@@ -25,13 +25,13 @@ public class BusinessActionProcessor {
     private MailManager mailManager;
 
     public ProcessingBusinessAction process(ProcessingBusinessAction action) {
-        logger.info("processing BusinessAction " + action.getId());
+        logger.debug("processing BusinessAction " + action.getId());
 
         action.getMessage().setOperationIdentity(action.getOperationId());
         action.getMessage().setActionIdentity(action.getId());
 
         GenericMessageDestination destination = action.getDestination();
-        logger.info("BusinessAction destination type: " + destination.getType());
+        logger.debug("BusinessAction destination type: " + destination.getType());
         switch (destination.getType()) {
             case AMQP:
                 AmqpMessageDestination amqpMessageDestination = (AmqpMessageDestination) action.getDestination();
@@ -41,7 +41,7 @@ public class BusinessActionProcessor {
             case MAIL_MANAGER:
                 try {
                     mailManager.sendEmail(action.getMessage());
-                    logger.info("mail sent");
+                    logger.debug("mail sent");
                     action.setState(State.PROCESSED);
                 } catch (RestClientException exception) {
                     action.setState(State.ERROR);

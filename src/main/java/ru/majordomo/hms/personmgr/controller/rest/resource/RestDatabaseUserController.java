@@ -26,7 +26,7 @@ public class RestDatabaseUserController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info(message.toString());
+        logger.debug(message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_USER_CREATE_RC, message);
 
@@ -42,7 +42,7 @@ public class RestDatabaseUserController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info("Updating database user with id " + databaseUserId + " " + message.toString());
+        logger.debug("Updating database user with id " + databaseUserId + " " + message.toString());
 
         message.getParams().put("resourceId", databaseUserId);
 
@@ -63,7 +63,7 @@ public class RestDatabaseUserController extends CommonRestResourceController {
         message.addParam("resourceId", databaseUserId);
         message.setAccountId(accountId);
 
-        logger.info("Deleting database user with id " + databaseUserId + " " + message.toString());
+        logger.debug("Deleting database user with id " + databaseUserId + " " + message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_USER_DELETE_RC, message);
 

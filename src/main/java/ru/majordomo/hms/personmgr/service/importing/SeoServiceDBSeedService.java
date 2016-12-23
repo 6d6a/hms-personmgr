@@ -73,7 +73,7 @@ public class SeoServiceDBSeedService {
 
         paymentServiceRepository.save(paymentService);
 
-        logger.info(paymentService.toString());
+        logger.debug(paymentService.toString());
 
         seo.setServiceId(paymentService.getId());
 
@@ -96,7 +96,7 @@ public class SeoServiceDBSeedService {
 
         paymentServiceRepository.save(paymentService);
 
-        logger.info(paymentService.toString());
+        logger.debug(paymentService.toString());
 
         seo.setServiceId(paymentService.getId());
 

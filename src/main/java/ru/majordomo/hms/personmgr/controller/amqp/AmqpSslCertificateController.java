@@ -32,7 +32,7 @@ public class AmqpSslCertificateController {
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.ssl-certificate.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "ssl-certificate.create", type = ExchangeTypes.TOPIC), key = "pm"))
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
-        logger.info("Received from " + provider + ": " + message.toString());
+        logger.debug("Received from " + provider + ": " + message.toString());
 
         businessFlowDirector.processMessage(message);
     }
@@ -40,7 +40,7 @@ public class AmqpSslCertificateController {
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.ssl-certificate.update", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "ssl-certificate.update", type = ExchangeTypes.TOPIC), key = "pm"))
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
-        logger.info("Received update message from " + provider + ": " + message.toString());
+        logger.debug("Received update message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
     }
@@ -48,7 +48,7 @@ public class AmqpSslCertificateController {
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.ssl-certificate.delete", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "ssl-certificate.delete", type = ExchangeTypes.TOPIC), key = "pm"))
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
-        logger.info("Received delete message from " + provider + ": " + message.toString());
+        logger.debug("Received delete message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
     }

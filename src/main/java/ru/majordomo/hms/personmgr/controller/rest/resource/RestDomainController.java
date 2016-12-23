@@ -26,7 +26,7 @@ public class RestDomainController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info(message.toString());
+        logger.debug(message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_CREATE_RC, message);
 
@@ -42,7 +42,7 @@ public class RestDomainController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info("Updating domain with id " + domainId + " " + message.toString());
+        logger.debug("Updating domain with id " + domainId + " " + message.toString());
 
         message.getParams().put("resourceId", domainId);
 
@@ -63,7 +63,7 @@ public class RestDomainController extends CommonRestResourceController {
         message.addParam("resourceId", domainId);
         message.setAccountId(accountId);
 
-        logger.info("Deleting domain with id " + domainId + " " + message.toString());
+        logger.debug("Deleting domain with id " + domainId + " " + message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_DELETE_RC, message);
 

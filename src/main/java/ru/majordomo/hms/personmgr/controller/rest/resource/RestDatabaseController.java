@@ -26,7 +26,7 @@ public class RestDatabaseController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info(message.toString());
+        logger.debug(message.toString());
 
         if (accountId != null) {
             if (!planCheckerService.canAddDatabase(accountId)) {
@@ -50,7 +50,7 @@ public class RestDatabaseController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info("Updating database with id " + databaseId + " " + message.toString());
+        logger.debug("Updating database with id " + databaseId + " " + message.toString());
 
         message.addParam("resourceId", databaseId);
 
@@ -71,7 +71,7 @@ public class RestDatabaseController extends CommonRestResourceController {
         message.addParam("resourceId", databaseId);
         message.setAccountId(accountId);
 
-        logger.info("Deleting database with id " + databaseId + " " + message.toString());
+        logger.debug("Deleting database with id " + databaseId + " " + message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DATABASE_DELETE_RC, message);
 

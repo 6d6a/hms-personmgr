@@ -50,7 +50,7 @@ public class AccountDomainDBImportService {
 
             PersonalAccount account = personalAccountRepository.findByAccountId(rs.getString("acc_id"));
 
-            logger.info("rs.getString(\"acc_id\") " + rs.getString("acc_id") + " rs.getString(\"source\") " + rs.getString("source") + " rs.getString(\"Domain_name\") " + rs.getString("Domain_name"));
+            logger.debug("rs.getString(\"acc_id\") " + rs.getString("acc_id") + " rs.getString(\"source\") " + rs.getString("source") + " rs.getString(\"Domain_name\") " + rs.getString("Domain_name"));
 
             if (account != null) {
                 accountDomain.setPersonalAccountId(account.getId());
@@ -76,7 +76,7 @@ public class AccountDomainDBImportService {
         try {
             accountDomainRepository.save(accountDomains);
         } catch (ConstraintViolationException e) {
-            logger.info(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
+            logger.debug(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
         }
     }
 }

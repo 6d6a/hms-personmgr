@@ -61,7 +61,7 @@ public class NotificationDBImportService {
         try {
             notificationRepository.save(notifications);
         } catch (ConstraintViolationException e) {
-            logger.info(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
+            logger.debug(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
         }
     }
 }

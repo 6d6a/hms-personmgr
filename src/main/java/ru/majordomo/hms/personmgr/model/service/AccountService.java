@@ -20,6 +20,9 @@ public class AccountService extends ModelBelongsToPersonalAccount {
     @ObjectId(PaymentService.class)
     private String serviceId;
 
+    @NotNull
+    private int quantity = 1;
+
     @Transient
     private PaymentService paymentService = new PaymentService();
 
@@ -54,7 +57,15 @@ public class AccountService extends ModelBelongsToPersonalAccount {
     }
 
     public BigDecimal getCost() {
-        return paymentService != null ? paymentService.getCost() : null;
+        return paymentService != null ? paymentService.getCost().multiply(BigDecimal.valueOf(quantity)) : null;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
     }
 
     public AccountService() {
@@ -70,6 +81,7 @@ public class AccountService extends ModelBelongsToPersonalAccount {
     public String toString() {
         return "AccountService{" +
                 "serviceId='" + serviceId + '\'' +
+                ", quantity=" + quantity +
                 ", paymentService=" + paymentService +
                 ", lastBilled=" + lastBilled +
                 "} " + super.toString();

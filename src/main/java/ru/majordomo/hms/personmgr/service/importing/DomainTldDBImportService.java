@@ -54,7 +54,7 @@ public class DomainTldDBImportService {
         domainTlds.addAll(jdbcTemplate.query(query, (rs, rowNum) -> {
             DomainTld domainTld = new DomainTld();
 
-            logger.info("domain_tld " + rs.getString("domain_tld") + " parking_registrator_id " + rs.getString("parking_registrator_id"));
+            logger.debug("domain_tld " + rs.getString("domain_tld") + " parking_registrator_id " + rs.getString("parking_registrator_id"));
 
             domainTld.setActive(rs.getBoolean("available"));
             domainTld.setDomainCategory(DOMAIN_CATEGORY_MAP.get(rs.getString("category")));
@@ -81,7 +81,7 @@ public class DomainTldDBImportService {
             paymentService.setName("Регистрация домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
 
             paymentServiceRepository.save(paymentService);
-            logger.info(paymentService.toString());
+            logger.debug(paymentService.toString());
 
             domainTld.setRegistrationServiceId(paymentService.getId());
 
@@ -95,7 +95,7 @@ public class DomainTldDBImportService {
             paymentService.setName("Продление домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
 
             paymentServiceRepository.save(paymentService);
-            logger.info(paymentService.toString());
+            logger.debug(paymentService.toString());
 
             domainTld.setRenewServiceId(paymentService.getId());
 
@@ -113,7 +113,7 @@ public class DomainTldDBImportService {
         try {
             domainTldRepository.save(domainTlds);
         } catch (ConstraintViolationException e) {
-            logger.info(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
+            logger.debug(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
         }
     }
 }

@@ -26,7 +26,7 @@ public class RestUnixAccountController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info(message.toString());
+        logger.debug(message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
 
@@ -42,7 +42,7 @@ public class RestUnixAccountController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info("Updating unix account with id " + unixaccountId + " " + message.toString());
+        logger.debug("Updating unix account with id " + unixaccountId + " " + message.toString());
 
         message.getParams().put("resourceId", unixaccountId);
 
@@ -63,7 +63,7 @@ public class RestUnixAccountController extends CommonRestResourceController {
         message.addParam("resourceId", unixaccountId);
         message.setAccountId(accountId);
 
-        logger.info("Deleting unix account with id " + unixaccountId + " " + message.toString());
+        logger.debug("Deleting unix account with id " + unixaccountId + " " + message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_DELETE_RC, message);
 

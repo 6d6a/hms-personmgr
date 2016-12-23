@@ -26,7 +26,7 @@ public class RestSslCertificateController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info(message.toString());
+        logger.debug(message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.SSL_CERTIFICATE_CREATE_RC, message);
 
@@ -42,7 +42,7 @@ public class RestSslCertificateController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info("Updating sslcertificate with id " + sslcertificateId + " " + message.toString());
+        logger.debug("Updating sslcertificate with id " + sslcertificateId + " " + message.toString());
 
         message.getParams().put("id", sslcertificateId);
 
@@ -63,7 +63,7 @@ public class RestSslCertificateController extends CommonRestResourceController {
         message.addParam("sslcertificateId", sslcertificateId);
         message.setAccountId(accountId);
 
-        logger.info("Deleting sslcertificate with id " + sslcertificateId + " " + message.toString());
+        logger.debug("Deleting sslcertificate with id " + sslcertificateId + " " + message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
 

@@ -36,7 +36,7 @@ public class AccountHistoryService {
             accountHistory.setDateTime(dateTime);
 
             accountHistoryRepository.save(accountHistory);
-            logger.info("saved AccountHistory: " + accountHistory.toString());
+            logger.debug("saved AccountHistory: " + accountHistory.toString());
         }
     }
 

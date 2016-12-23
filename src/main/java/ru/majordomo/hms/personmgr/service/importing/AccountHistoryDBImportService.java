@@ -51,7 +51,7 @@ public class AccountHistoryDBImportService {
 
             PersonalAccount account = personalAccountRepository.findByAccountId(rs.getString("account"));
 
-            logger.info("rs.getString(\"account\") " + rs.getString("account"));
+            logger.debug("rs.getString(\"account\") " + rs.getString("account"));
 
             if (account != null) {
                 accountHistory.setPersonalAccountId(account.getId());
@@ -87,7 +87,7 @@ public class AccountHistoryDBImportService {
         try {
             accountHistoryRepository.save(accountHistoryList);
         } catch (ConstraintViolationException e) {
-            logger.info(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
+            logger.debug(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
         }
     }
 }

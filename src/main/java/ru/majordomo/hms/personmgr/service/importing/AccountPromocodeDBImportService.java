@@ -56,16 +56,16 @@ public class AccountPromocodeDBImportService {
     }
 
     private void pull(String accountId) {
-        logger.info("Start finding for " + accountId);
+        logger.debug("Start finding for " + accountId);
         PersonalAccount personalAccount = personalAccountRepository.findByAccountId(accountId);
 
         if (personalAccount != null) {
             this.pull(accountId, personalAccount.getId());
         }
-        logger.info("Finish finding for " + accountId);
+        logger.debug("Finish finding for " + accountId);
     }
     private void pull(String accountId, String personalAccountId) {
-        logger.info("Start pull for " + accountId);
+        logger.debug("Start pull for " + accountId);
 
         String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.valid_till FROM promorecord p WHERE accountid = :accountid";
 
@@ -74,7 +74,7 @@ public class AccountPromocodeDBImportService {
         partnersNamedParameterJdbcTemplate.query(query,
                 namedParameters,
                 (rs, rowNum) -> {
-                    logger.info("Found code " + rs.getString("postfix") + rs.getString("id") + " for " + accountId);
+                    logger.debug("Found code " + rs.getString("postfix") + rs.getString("id") + " for " + accountId);
                     AccountPromocode accountPromocode = new AccountPromocode();
 
                     String personalAccountIdLocal = personalAccountId;
@@ -83,7 +83,7 @@ public class AccountPromocodeDBImportService {
                         PersonalAccount personalAccount = personalAccountRepository.findByAccountId(rs.getString("accountid"));
 
                         if (personalAccount != null) {
-                            logger.info("Found personalAccount for " + accountId);
+                            logger.debug("Found personalAccount for " + accountId);
                             personalAccountIdLocal = personalAccount.getId();
                         }
                     }
@@ -100,7 +100,7 @@ public class AccountPromocodeDBImportService {
                     Promocode promocode = promocodeRepository.findByCode(rs.getString("postfix") + rs.getString("id"));
 
                     if (promocode != null) {
-                        logger.info("Found promocode by code " + rs.getString("postfix") + rs.getString("id"));
+                        logger.debug("Found promocode by code " + rs.getString("postfix") + rs.getString("id"));
                         accountPromocode.setPromocodeId(promocode.getId());
                     }
 
@@ -113,13 +113,13 @@ public class AccountPromocodeDBImportService {
                     namedParameterJdbcTemplate.query(queryPromocodes,
                             namedParametersP,
                             (rsP, rowNumP) -> {
-                                logger.info("Found promocodes code " + rs.getString("postfix") + rs.getString("id") + " for " + accountId);
+                                logger.debug("Found promocodes code " + rs.getString("postfix") + rs.getString("id") + " for " + accountId);
                                 AccountPromocode accountPromocodeP = new AccountPromocode();
 
                                 PersonalAccount personalAccountP = personalAccountRepository.findByAccountId(rs.getString("accountid"));
 
                                 if (personalAccountP != null) {
-                                    logger.info("Found personalAccount for " + accountId);
+                                    logger.debug("Found personalAccount for " + accountId);
 
                                     accountPromocodeP.setPersonalAccountId(personalAccountP.getId());
                                 } else {
@@ -131,7 +131,7 @@ public class AccountPromocodeDBImportService {
                                 accountPromocodeP.setActionsWithStatus(actionsWithStatus);
 
                                 if (promocode != null) {
-                                    logger.info("Found promocode by code " + rs.getString("postfix") + rs.getString("id"));
+                                    logger.debug("Found promocode by code " + rs.getString("postfix") + rs.getString("id"));
                                     accountPromocodeP.setPromocodeId(promocode.getId());
                                 }
 

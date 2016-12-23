@@ -20,9 +20,7 @@ import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
-import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
-import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
@@ -31,8 +29,6 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import static java.lang.Math.floor;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_FTP_SERVICE_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_CAPACITY;
-import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_WEB_SITE_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PAYMENT_TYPE_ID;
 
@@ -43,10 +39,12 @@ public class PlanChangeService {
     private final AccountAbonementRepository accountAbonementRepository;
     private final AccountStatRepository accountStatRepository;
     private final AccountHistoryService accountHistoryService;
-    private final AccountServiceRepository accountServiceRepository;
     private final PersonalAccountRepository personalAccountRepository;
-    private final PlanCheckerService planCheckerService;
     private final PaymentServiceRepository paymentServiceRepository;
+    private final AccountCountersService accountCountersService;
+    private final PlanLimitsService planLimitsService;
+    private final AccountQuotaService accountQuotaService;
+    private final AccountServiceHelper accountServiceHelper;
 
     @Autowired
     public PlanChangeService(
@@ -55,20 +53,24 @@ public class PlanChangeService {
             AccountAbonementRepository accountAbonementRepository,
             AccountStatRepository accountStatRepository,
             AccountHistoryService accountHistoryService,
-            AccountServiceRepository accountServiceRepository,
             PersonalAccountRepository personalAccountRepository,
-            PlanCheckerService planCheckerService,
-            PaymentServiceRepository paymentServiceRepository
+            PaymentServiceRepository paymentServiceRepository,
+            AccountCountersService accountCountersService,
+            PlanLimitsService planLimitsService,
+            AccountQuotaService accountQuotaService,
+            AccountServiceHelper accountServiceHelper
     ) {
         this.finFeignClient = finFeignClient;
         this.planRepository = planRepository;
         this.accountAbonementRepository = accountAbonementRepository;
         this.accountStatRepository = accountStatRepository;
         this.accountHistoryService = accountHistoryService;
-        this.accountServiceRepository = accountServiceRepository;
         this.personalAccountRepository = personalAccountRepository;
-        this.planCheckerService = planCheckerService;
         this.paymentServiceRepository = paymentServiceRepository;
+        this.accountCountersService = accountCountersService;
+        this.planLimitsService = planLimitsService;
+        this.accountQuotaService = accountQuotaService;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     /**
@@ -206,7 +208,7 @@ public class PlanChangeService {
      * @param newPlan     новый тариф
      */
     private void replacePlanService(PersonalAccount account, Plan currentPlan, Plan newPlan) {
-        replaceAccountService(account, currentPlan.getServiceId(), newPlan.getServiceId());
+        accountServiceHelper.replaceAccountService(account, currentPlan.getServiceId(), newPlan.getServiceId());
     }
 
     /**
@@ -372,7 +374,7 @@ public class PlanChangeService {
         processWebSiteService(account, newPlan);
 
         //Обработаем услуги Доп.место
-        processQuotaService(account, newPlan);
+        accountQuotaService.processQuotaService(account, newPlan);
     }
 
     /**
@@ -433,8 +435,8 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void checkAccountDatabaseLimits(PersonalAccount account, Plan newPlan) {
-        Long count = planCheckerService.getCurrentDatabaseCount(account.getId());
-        Long freeLimit = planCheckerService.getPlanDatabaseFreeLimit(newPlan);
+        Long count = accountCountersService.getCurrentDatabaseCount(account.getId());
+        Long freeLimit = planLimitsService.getDatabaseFreeLimit(newPlan);
         if (freeLimit.compareTo(-1L) != 0 && count.compareTo(freeLimit) > 0) {
             throw new ParameterValidationException("Account current DB count is more than plan freeLimit. " +
                     "Current: " + count + " FreeLimit: " + freeLimit);
@@ -448,8 +450,8 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void checkAccountFtpUserLimits(PersonalAccount account, Plan newPlan) {
-        Long count = planCheckerService.getCurrentFtpUserCount(account.getId());
-        Long freeLimit = planCheckerService.getPlanFtpUserFreeLimit(newPlan);
+        Long count = accountCountersService.getCurrentFtpUserCount(account.getId());
+        Long freeLimit = planLimitsService.getFtpUserFreeLimit(newPlan);
         if (freeLimit.compareTo(-1L) != 0 && count.compareTo(freeLimit) > 0) {
             throw new ParameterValidationException("Account current FtpUser count is more than plan freeLimit. "  +
                     "Current: " + count + " FreeLimit: " + freeLimit);
@@ -463,8 +465,8 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void checkAccountWebSiteLimits(PersonalAccount account, Plan newPlan) {
-        Long count = planCheckerService.getCurrentWebSiteCount(account.getId());
-        Long freeLimit = planCheckerService.getPlanWebSiteFreeLimit(newPlan);
+        Long count = accountCountersService.getCurrentWebSiteCount(account.getId());
+        Long freeLimit = planLimitsService.getWebsiteFreeLimit(newPlan);
         if (freeLimit.compareTo(-1L) != 0 && count.compareTo(freeLimit) > 0) {
             throw new ParameterValidationException("Account current WebSite count is more than plan limit. "  +
                     "Current: " + count + " FreeLimit: " + freeLimit);
@@ -478,8 +480,8 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void checkAccountQuotaLimits(PersonalAccount account, Plan newPlan) {
-        Long count = planCheckerService.getCurrentQuotaUsed(account.getId());
-        Long freeLimit = planCheckerService.getPlanQuotaKBFreeLimit(newPlan);
+        Long count = accountCountersService.getCurrentQuotaUsed(account.getId());
+        Long freeLimit = planLimitsService.getQuotaKBFreeLimit(newPlan);
         if (freeLimit.compareTo(-1L) != 0 && count.compareTo(freeLimit) > 0) {
             throw new ParameterValidationException("Account current Quota is more than plan limit. "  +
                     "Current: " + count + " FreeLimit: " + freeLimit);
@@ -495,89 +497,7 @@ public class PlanChangeService {
      */
     private void replaceSmsNotificationsService(PersonalAccount account, Plan currentPlan, Plan newPlan) {
         if (currentPlan.getSmsServiceId() != null && newPlan.getSmsServiceId() != null) {
-            replaceAccountService(account, currentPlan.getSmsServiceId(), newPlan.getSmsServiceId());
-        }
-    }
-
-
-    /**
-     * Заменяем старую услугу на новую
-     *
-     * @param account   Аккаунт
-     * @param oldServiceId id текущей услуги
-     * @param newServiceId id новой услуги
-     */
-    private void replaceAccountService(PersonalAccount account, String oldServiceId, String newServiceId) {
-        if (!oldServiceId.equals(newServiceId)) {
-            deleteAccountService(account, oldServiceId);
-
-            addAccountService(account, newServiceId);
-        }
-    }
-
-    /**
-     * Удаляем старую услугу
-     *
-     * @param account   Аккаунт
-     * @param oldServiceId id текущей услуги
-     */
-    private void deleteAccountService(PersonalAccount account, String oldServiceId) {
-        List<AccountService> accountService = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), oldServiceId);
-
-        if (accountService != null && !accountService.isEmpty()) {
-            accountServiceRepository.delete(accountService);
-        }
-    }
-
-    /**
-     * Добавляем новую услугу
-     *
-     * @param account   Аккаунт
-     * @param newServiceId id новой услуги
-     */
-    private void addAccountService(PersonalAccount account, String newServiceId) {
-        AccountService service = new AccountService();
-        service.setPersonalAccountId(account.getId());
-        service.setServiceId(newServiceId);
-
-        accountServiceRepository.save(service);
-    }
-
-    /**
-     * Удаляем или добавляем услуги в зависимости от счетчиков
-     *
-     * @param account   Аккаунт
-     * @param serviceId id услуги
-     * @param currentCount текущее кол-во услуг
-     * @param planFreeLimit бесплатно по тарифу
-     */
-    private void deleteOrAddAccountService(PersonalAccount account, String serviceId, Long currentCount, Long planFreeLimit) {
-        if (currentCount.compareTo(planFreeLimit) <= 0) {
-            deleteAccountService(account, serviceId);
-        } else {
-            Long notFreeServiceCount = currentCount - planFreeLimit;
-            for (int i = 1 ; i <= notFreeServiceCount.intValue(); i++) {
-                addAccountService(account, serviceId);
-            }
-        }
-    }
-
-    /**
-     * Удаляем или добавляем услуги в зависимости от счетчиков
-     *
-     * @param account   Аккаунт
-     * @param serviceId id услуги
-     * @param currentCount текущее кол-во услуг
-     * @param planFreeLimit бесплатно по тарифу
-     */
-    private void deleteOrAddAccountService(PersonalAccount account, String serviceId, Long currentCount, Long planFreeLimit, Long oneServiceCapacity) {
-        if (currentCount.compareTo(planFreeLimit) <= 0) {
-            deleteAccountService(account, serviceId);
-        } else {
-            int notFreeQuotaCount = 1 + (int) floor((currentCount.intValue() - planFreeLimit.intValue()) / oneServiceCapacity);
-            for (int i = 1 ; i <= notFreeQuotaCount; i++) {
-                addAccountService(account, serviceId);
-            }
+            accountServiceHelper.replaceAccountService(account, currentPlan.getSmsServiceId(), newPlan.getSmsServiceId());
         }
     }
 
@@ -588,8 +508,8 @@ public class PlanChangeService {
      * @param newPlan     новый тариф
      */
     private void processFtpUserService(PersonalAccount account, Plan newPlan) {
-        Long currentFtpUserCount = planCheckerService.getCurrentFtpUserCount(account.getId());
-        Long planFtpUserFreeLimit = planCheckerService.getPlanFtpUserFreeLimit(newPlan);
+        Long currentFtpUserCount = accountCountersService.getCurrentFtpUserCount(account.getId());
+        Long planFtpUserFreeLimit = planLimitsService.getFtpUserFreeLimit(newPlan);
 
         String ftpServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_FTP_SERVICE_ID).getId();
 
@@ -603,8 +523,8 @@ public class PlanChangeService {
      * @param newPlan     новый тариф
      */
     private void processWebSiteService(PersonalAccount account, Plan newPlan) {
-        Long currentWebSiteCount = planCheckerService.getCurrentWebSiteCount(account.getId());
-        Long planWebSiteFreeLimit = planCheckerService.getPlanWebSiteFreeLimit(newPlan);
+        Long currentWebSiteCount = accountCountersService.getCurrentWebSiteCount(account.getId());
+        Long planWebSiteFreeLimit = planLimitsService.getWebsiteFreeLimit(newPlan);
 
         String webSiteServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_WEB_SITE_SERVICE_ID).getId();
 
@@ -612,17 +532,19 @@ public class PlanChangeService {
     }
 
     /**
-     * Обрабатываем услуги Доп.место в соответствии с новым тарифом
+     * Удаляем или добавляем услуги в зависимости от счетчиков
      *
-     * @param account     Аккаунт
-     * @param newPlan     новый тариф
+     * @param account   Аккаунт
+     * @param serviceId id услуги
+     * @param currentCount текущее кол-во услуг
+     * @param planFreeLimit бесплатно по тарифу
      */
-    private void processQuotaService(PersonalAccount account, Plan newPlan) {
-        Long currentQuotaUsed = planCheckerService.getCurrentQuotaUsed(account.getId());
-        Long planQuotaKBFreeLimit = planCheckerService.getPlanQuotaKBFreeLimit(newPlan);
-
-        String webSiteServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
-
-        deleteOrAddAccountService(account, webSiteServiceId, currentQuotaUsed, planQuotaKBFreeLimit, ADDITIONAL_QUOTA_100_CAPACITY);
+    public void deleteOrAddAccountService(PersonalAccount account, String serviceId, Long currentCount, Long planFreeLimit) {
+        if (currentCount.compareTo(planFreeLimit) <= 0) {
+            accountServiceHelper.deleteAccountService(account, serviceId);
+        } else {
+            int notFreeServiceCount = (int) floor(currentCount - planFreeLimit);
+            accountServiceHelper.addAccountService(account, serviceId, notFreeServiceCount);
+        }
     }
 }

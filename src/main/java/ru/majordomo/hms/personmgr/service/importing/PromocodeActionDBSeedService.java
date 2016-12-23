@@ -48,15 +48,15 @@ public class PromocodeActionDBSeedService {
 
         this.seedPromocodeActions();
 
-        logger.info("promocodeAction found with findAll():");
-        logger.info("-------------------------------");
+        logger.debug("promocodeAction found with findAll():");
+        logger.debug("-------------------------------");
 
         List<PromocodeAction> promocodeActions = promocodeActionRepository.findAll();
         if (promocodeActions.size() > 0) {
             result = true;
         }
         for (PromocodeAction promocodeAction : promocodeActions) {
-            logger.info("promocodeAction: " + promocodeAction.toString());
+            logger.debug("promocodeAction: " + promocodeAction.toString());
         }
 
         return result;

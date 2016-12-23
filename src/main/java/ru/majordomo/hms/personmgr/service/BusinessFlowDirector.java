@@ -32,7 +32,7 @@ public class BusinessFlowDirector {
     public void process() {
         ProcessingBusinessAction businessAction = processingBusinessActionRepository.findFirstByStateOrderByPriorityAscCreatedDateAsc(State.NEED_TO_PROCESS);
         if (businessAction != null) {
-            logger.info("Processing businessAction " + businessAction.toString());
+            logger.debug("Processing businessAction " + businessAction.toString());
 
             businessAction.setState(State.PROCESSING);
 
@@ -45,16 +45,16 @@ public class BusinessFlowDirector {
     }
 
     public State processMessage(SimpleServiceMessage message) {
-        logger.info("Processing message : " + message.toString());
+        logger.debug("Processing message : " + message.toString());
 
         ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
         if (businessAction != null) {
             if ((boolean) message.getParam("success")) {
-                logger.info("ProcessingBusinessAction -> success, operationIdentity: " + message.getOperationIdentity() + " actionIdentity: " + message.getActionIdentity());
+                logger.debug("ProcessingBusinessAction -> success, operationIdentity: " + message.getOperationIdentity() + " actionIdentity: " + message.getActionIdentity());
                 businessAction.setState(State.PROCESSED);
             } else {
-                logger.info("ProcessingBusinessAction -> error, operationIdentity: " + message.getOperationIdentity() + " actionIdentity: " + message.getActionIdentity());
+                logger.debug("ProcessingBusinessAction -> error, operationIdentity: " + message.getOperationIdentity() + " actionIdentity: " + message.getActionIdentity());
                 businessAction.setState(State.ERROR);
 
                 if (businessAction.getOperationId() != null) {
@@ -70,7 +70,7 @@ public class BusinessFlowDirector {
 
             return businessAction.getState();
         } else {
-            logger.info("ProcessingBusinessAction with id: " + message.getActionIdentity() + " not found");
+            logger.debug("ProcessingBusinessAction with id: " + message.getActionIdentity() + " not found");
             return State.ERROR;
         }
     }

@@ -74,15 +74,15 @@ public class BusinessActionDBSeedService {
 
         this.seedSeoOrderActions();
 
-        logger.info("BusinessAction found with findAll():");
-        logger.info("-------------------------------");
+        logger.debug("BusinessAction found with findAll():");
+        logger.debug("-------------------------------");
 
         List<BusinessAction> businessActions = businessActionRepository.findAll();
         if (businessActions.size() > 0) {
             result = true;
         }
         for (BusinessAction businessAction : businessActions) {
-            logger.info("businessAction: " + businessAction.toString());
+            logger.debug("businessAction: " + businessAction.toString());
         }
 
         return result;
