@@ -48,10 +48,10 @@ public class AccountNotificationDBImportService {
 
     private void pull(String accountName) {
         PersonalAccount personalAccount = personalAccountRepository.findByName(accountName);
-        logger.info("Start pull for " + accountName);
+        logger.debug("Start pull for " + accountName);
 
         if (personalAccount != null) {
-            logger.info("Start pull found account " + accountName);
+            logger.debug("Start pull found account " + accountName);
 
             personalAccount.addNotification(MailManagerMessageType.EMAIL_NEWS);
             personalAccount.addNotification(MailManagerMessageType.EMAIL_REMAINING_DAYS);
@@ -127,7 +127,7 @@ public class AccountNotificationDBImportService {
         try {
             personalAccountRepository.save(personalAccountList);
         } catch (ConstraintViolationException e) {
-            logger.info(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
+            logger.debug(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
         }
     }
 }

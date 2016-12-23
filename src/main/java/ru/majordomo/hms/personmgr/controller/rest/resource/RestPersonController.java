@@ -27,7 +27,7 @@ public class RestPersonController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info(message.toString());
+        logger.debug(message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.PERSON_CREATE_RC, message);
 
@@ -43,7 +43,7 @@ public class RestPersonController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info("Updating person with id " + personId + " " + message.toString());
+        logger.debug("Updating person with id " + personId + " " + message.toString());
 
         message.getParams().put("resourceId", personId);
 
@@ -64,7 +64,7 @@ public class RestPersonController extends CommonRestResourceController {
         message.addParam("resourceId", personId);
         message.setAccountId(accountId);
 
-        logger.info("Deleting person with id " + personId + " " + message.toString());
+        logger.debug("Deleting person with id " + personId + " " + message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.PERSON_DELETE_RC, message);
 

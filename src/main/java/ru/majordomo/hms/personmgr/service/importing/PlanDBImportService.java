@@ -136,7 +136,7 @@ public class PlanDBImportService {
 
         paymentServiceRepository.save(paymentService);
 
-        logger.info("paymentService " + paymentService.toString());
+        logger.debug("paymentService " + paymentService.toString());
 
         String finServiceId = paymentService.getId();
 
@@ -159,7 +159,7 @@ public class PlanDBImportService {
 
         paymentServiceRepository.save(paymentService);
 
-        logger.info("AbonementFinService " + paymentService.toString());
+        logger.debug("AbonementFinService " + paymentService.toString());
 
         String AbonementFinServiceId = paymentService.getId();
 

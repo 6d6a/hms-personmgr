@@ -26,7 +26,7 @@ public class RestFtpUserController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info(message.toString());
+        logger.debug(message.toString());
 
         if (accountId != null) {
             if (!planCheckerService.canAddFtpUser(accountId)) {
@@ -50,7 +50,7 @@ public class RestFtpUserController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info("Updating ftpuser with id " + ftpuserId + " " + message.toString());
+        logger.debug("Updating ftpuser with id " + ftpuserId + " " + message.toString());
 
         message.getParams().put("resourceId", ftpuserId);
 
@@ -71,7 +71,7 @@ public class RestFtpUserController extends CommonRestResourceController {
         message.addParam("resourceId", ftpuserId);
         message.setAccountId(accountId);
 
-        logger.info("Deleting ftpuser with id " + ftpuserId + " " + message.toString());
+        logger.debug("Deleting ftpuser with id " + ftpuserId + " " + message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.FTP_USER_DELETE_RC, message);
 

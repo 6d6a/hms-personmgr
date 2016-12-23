@@ -71,7 +71,7 @@ public class AccountAbonementDBImportService {
         PersonalAccount account = personalAccountRepository.findByAccountId(rs.getString("acc_id"));
 
         if (account != null) {
-            logger.info("Found account: " + rs.getString("acc_id"));
+            logger.debug("Found account: " + rs.getString("acc_id"));
 
             Plan plan = planRepository.findOne(account.getPlanId());
 
@@ -89,14 +89,14 @@ public class AccountAbonementDBImportService {
 
                 accountAbonement.setAbonementId(plan.getAbonementIds().get(0));
 
-                logger.info("Found accountAbonement for account: " + rs.getString("acc_id") + " accountAbonement: " + accountAbonement);
+                logger.debug("Found accountAbonement for account: " + rs.getString("acc_id") + " accountAbonement: " + accountAbonement);
 
                 accountAbonements.add(accountAbonement);
             } else {
-                logger.info("Plan not found account: " + rs.getString("acc_id") + " planId: " + account.getPlanId());
+                logger.debug("Plan not found account: " + rs.getString("acc_id") + " planId: " + account.getPlanId());
             }
         } else {
-            logger.info("Account not found account: " + rs.getString("acc_id"));
+            logger.debug("Account not found account: " + rs.getString("acc_id"));
         }
 
         return accountAbonement;
@@ -130,7 +130,7 @@ public class AccountAbonementDBImportService {
         try {
             accountAbonementRepository.save(accountAbonements);
         } catch (ConstraintViolationException e) {
-            logger.info(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
+            logger.debug(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
         }
     }
 }

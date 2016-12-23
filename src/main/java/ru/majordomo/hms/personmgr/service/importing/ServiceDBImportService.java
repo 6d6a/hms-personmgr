@@ -62,7 +62,7 @@ public class ServiceDBImportService {
             newService.setActive(true);
             newService.setOldId(SERVICE_PREFIX + rs.getString("id") + (rs.getString("id").equals("20") ? FREE_SERVICE_POSTFIX : ""));
 
-            logger.info("found PaymentService: " + newService.toString());
+            logger.debug("found PaymentService: " + newService.toString());
 
             if (Constants.OPTIONALLY_FREE_SERVICE_IDS.contains(Integer.valueOf(rs.getString("id")))) {
                 PaymentService newServiceFree = new PaymentService();
@@ -77,7 +77,7 @@ public class ServiceDBImportService {
 
                 serviceList.add(newServiceFree);
 
-                logger.info("found free PaymentService: " + newServiceFree.toString());
+                logger.debug("found free PaymentService: " + newServiceFree.toString());
             }
 
             return newService;
@@ -96,7 +96,7 @@ public class ServiceDBImportService {
 
         serviceList.add(newService);
 
-        logger.info("found Возврат средств PaymentService: " + newService.toString());
+        logger.debug("found Возврат средств PaymentService: " + newService.toString());
 
         //Перенос средств
         newService = new PaymentService();
@@ -111,7 +111,7 @@ public class ServiceDBImportService {
 
         serviceList.add(newService);
 
-        logger.info("found Перенос средств PaymentService: " + newService.toString());
+        logger.debug("found Перенос средств PaymentService: " + newService.toString());
     }
 
     public boolean importToMongo() {
@@ -125,7 +125,7 @@ public class ServiceDBImportService {
         try {
             paymentServiceRepository.save(serviceList);
         } catch (ConstraintViolationException e) {
-            logger.info(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
+            logger.debug(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
         }
     }
 }

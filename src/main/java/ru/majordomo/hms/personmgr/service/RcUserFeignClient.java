@@ -20,14 +20,11 @@ public interface RcUserFeignClient {
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/ftp-user/count", consumes = "application/json")
     Count getFtpUserCount(@PathVariable("accountId") String accountId);
 
-    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/quota-used", consumes = "application/json")
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/quota", consumes = "application/json")
     Count getQuotaUsed(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/website/{webSiteId}", consumes = "application/json")
     WebSite getWebSite(@PathVariable("accountId") String accountId, @PathVariable("webSiteId") String webSiteId);
-
-//    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/person/owner", consumes = "application/json")
-//    Person getPersonOwner(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/person/{personId}", consumes = "application/json")
     Person getPerson(@PathVariable("accountId") String accountId, @PathVariable("personId") String personId);

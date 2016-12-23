@@ -25,7 +25,7 @@ public class RestMailboxController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info("Creating mailbox: " + message.toString());
+        logger.debug("Creating mailbox: " + message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.MAILBOX_CREATE_RC, message);
 
@@ -41,7 +41,7 @@ public class RestMailboxController extends CommonRestResourceController {
             @PathVariable(value = "accountId", required = false) String accountId) {
         message.setAccountId(accountId);
 
-        logger.info("Updating mailbox with id " + mailboxId + " " + message.toString());
+        logger.debug("Updating mailbox with id " + mailboxId + " " + message.toString());
 
         message.getParams().put("resourceId", mailboxId);
 
@@ -62,7 +62,7 @@ public class RestMailboxController extends CommonRestResourceController {
         message.addParam("resourceId", mailboxId);
         message.setAccountId(accountId);
 
-        logger.info("Deleting mailbox with id " + mailboxId + " " + message.toString());
+        logger.debug("Deleting mailbox with id " + mailboxId + " " + message.toString());
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.MAILBOX_DELETE_RC, message);
 

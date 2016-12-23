@@ -29,7 +29,7 @@ public class AmqpAccountHistoryController {
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.account-history", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "account-history", type = ExchangeTypes.TOPIC), key = "pm"))
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
-        logger.info("Received from " + provider + ": " + message.toString());
+        logger.debug("Received from " + provider + ": " + message.toString());
 
         String historyMessage = (String) message.getParam("historyMessage");
         String operator = (String) message.getParam("operator");

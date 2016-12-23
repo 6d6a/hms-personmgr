@@ -55,7 +55,7 @@ public class AmqpAccountController {
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.account.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "account.create", type = ExchangeTypes.TOPIC), key = "pm"))
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
-        logger.info("Received from " + provider + ": " + message.toString());
+        logger.debug("Received from " + provider + ": " + message.toString());
 
         try {
             State state = businessFlowDirector.processMessage(message);
@@ -81,7 +81,7 @@ public class AmqpAccountController {
                             PersonalAccount personalAccount = personalAccountRepository.findOne(message.getAccountId());
                             //надо обработать промокод
                             if (personalAccount != null && message.getParam("promocode") != null) {
-                                logger.info("We got promocode " + message.getParam("promocode") + ". Try to process it");
+                                logger.debug("We got promocode " + message.getParam("promocode") + ". Try to process it");
                                 promocodeProcessor.processPromocode(personalAccount, (String) message.getParam("promocode"));
                             }
 
@@ -116,7 +116,7 @@ public class AmqpAccountController {
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.account.update", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "account.update", type = ExchangeTypes.TOPIC), key = "pm"))
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
-        logger.info("Received update message from " + provider + ": " + message.toString());
+        logger.debug("Received update message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
     }
@@ -124,7 +124,7 @@ public class AmqpAccountController {
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.account.delete", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "account.delete", type = ExchangeTypes.TOPIC), key = "pm"))
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
-        logger.info("Received delete message from " + provider + ": " + message.toString());
+        logger.debug("Received delete message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
     }

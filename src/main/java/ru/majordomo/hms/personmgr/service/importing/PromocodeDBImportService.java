@@ -55,7 +55,7 @@ public class PromocodeDBImportService {
     }
 
     private Promocode rowMap(ResultSet rs, int rowNum) throws SQLException {
-//        logger.info("Found Partner promocode " + rs.getString("postfix") + rs.getString("id"));
+//        logger.debug("Found Partner promocode " + rs.getString("postfix") + rs.getString("id"));
         Promocode promocode = new Promocode();
         promocode.setType(PromocodeType.PARTNER);
         promocode.setCode(rs.getString("postfix") + rs.getString("id"));
@@ -82,7 +82,7 @@ public class PromocodeDBImportService {
     }
 
     private void pushToMongo() {
-        logger.info("pushToMongo promocodesList");
+        logger.debug("pushToMongo promocodesList");
         promocodeRepository.save(promocodesList);
     }
 }

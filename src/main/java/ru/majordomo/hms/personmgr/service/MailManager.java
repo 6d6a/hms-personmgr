@@ -46,19 +46,19 @@ public class MailManager {
         HttpEntity<String> entity = new HttpEntity<>(credentials, headers);
         HashMap someResponse = restTemplate.postForObject(URL_ROOT + URL_MAP.get("login"), entity, HashMap.class);
         headers.set("Authorization", "Bearer " + someResponse.get("token"));
-        logger.info("Token for mailManager: " + someResponse.get("token"));
+        logger.debug("Token for mailManager: " + someResponse.get("token"));
         return someResponse.get("token").toString();
     }
 
     public HashMap sendEmail(SimpleServiceMessage message) throws RestClientException {
         HttpEntity entity = new HttpEntity<>(message.getParams(), headers);
-        logger.info("HttpEntity in mailManager sendEmail: " + entity.toString());
+        logger.debug("HttpEntity in mailManager sendEmail: " + entity.toString());
         return restTemplate.postForObject(URL_ROOT + URL_MAP.get("sendEmail"), entity, HashMap.class);
     }
 
     public HashMap sendSms(SimpleServiceMessage message) throws RestClientException {
         HttpEntity entity = new HttpEntity<>(message.getParams(), headers);
-        logger.info("HttpEntity in mailManager sendSms: " + entity.toString());
+        logger.debug("HttpEntity in mailManager sendSms: " + entity.toString());
         return restTemplate.postForObject(URL_ROOT + URL_MAP.get("sendSms"), entity, HashMap.class);
     }
 }

@@ -18,7 +18,10 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
-import static ru.majordomo.hms.personmgr.common.Constants.VH_ACCOUNT_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED;
+import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_AUTO_BILL_SENDING;
+import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_CREDIT;
+import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_NOTIFY_DAYS;
 
 /**
  * DBImportService
@@ -40,12 +43,12 @@ public class PersonalAccountDBImportService {
     }
 
     private void pull() {
-        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, a.status, c.client_auto_bill FROM account a LEFT JOIN Money m ON a.id = m.acc_id LEFT JOIN client c ON a.client_id = c.Client_ID ORDER BY a.id ASC";
+        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, a.status, c.client_auto_bill, a.overquoted, a.overquot_addcost FROM account a LEFT JOIN Money m ON a.id = m.acc_id LEFT JOIN client c ON a.client_id = c.Client_ID ORDER BY a.id ASC";
         jdbcTemplate.query(query, this::rowMap);
     }
 
     private void pull(String accountId) {
-        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, a.status, c.client_auto_bill FROM account a LEFT JOIN Money m ON a.id = m.acc_id LEFT JOIN client c ON a.client_id = c.Client_ID WHERE id = ?";
+        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, a.status, c.client_auto_bill, a.overquoted, a.overquot_addcost FROM account a LEFT JOIN Money m ON a.id = m.acc_id LEFT JOIN client c ON a.client_id = c.Client_ID WHERE id = ?";
         jdbcTemplate.query(query,
                 new Object[] { accountId },
                 this::rowMap
@@ -53,7 +56,7 @@ public class PersonalAccountDBImportService {
     }
 
     private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
-        logger.info("Found PersonalAccount " + rs.getString("name"));
+        logger.debug("Found PersonalAccount " + rs.getString("name"));
 
         PersonalAccount personalAccount = new PersonalAccount();
 
@@ -71,13 +74,15 @@ public class PersonalAccountDBImportService {
             personalAccount.setActive(rs.getBoolean("status"));
             personalAccount.setCreated(LocalDateTime.now());
 
-            personalAccount.setSetting("notify_days", rs.getString("notify_days"));
-            personalAccount.setSetting("credit", rs.getString("credit").equals("y") ? "1" : "0");
-            personalAccount.setSetting("auto_bill", rs.getString("client_auto_bill"));
+            personalAccount.setSetting(ACCOUNT_SETTING_NOTIFY_DAYS, rs.getString("notify_days"));
+            personalAccount.setSetting(ACCOUNT_SETTING_CREDIT, rs.getString("credit").equals("y") ? "1" : "0");
+            personalAccount.setSetting(ACCOUNT_SETTING_AUTO_BILL_SENDING, rs.getString("client_auto_bill"));
+            personalAccount.setOverquoted(rs.getString("overquoted").equals("1"));
+            personalAccount.setAddQuotaIfOverquoted(rs.getString("overquot_addcost").equals("1"));
 
             personalAccounts.add(personalAccount);
         } else {
-            logger.info("Plan not found account: " + rs.getString("acc_id") + " planId: " + rs.getString("plan_id"));
+            logger.debug("Plan not found account: " + rs.getString("acc_id") + " planId: " + rs.getString("plan_id"));
         }
 
         return personalAccount;
@@ -108,7 +113,7 @@ public class PersonalAccountDBImportService {
     }
 
     private void pushToMongo() {
-        logger.info("pushToMongo personalAccounts");
+        logger.debug("pushToMongo personalAccounts");
 
         personalAccountRepository.save(personalAccounts);
     }

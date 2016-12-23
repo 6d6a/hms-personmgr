@@ -55,11 +55,11 @@ public class PaymentChargesProcessorService {
 
     private void processCharge(PersonalAccount paymentAccount) {
         LocalDateTime chargeDate = LocalDateTime.now().minusDays(1).withHour(23).withMinute(59).withSecond(59);
-        logger.info("processing charges for PersonalAccount: " + paymentAccount.getAccountId()
+        logger.debug("processing charges for PersonalAccount: " + paymentAccount.getAccountId()
                 + " name: " + paymentAccount.getName()
                 + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE_TIME));
 
-        logger.info("processing monthly charge for PersonalAccount: " + paymentAccount.getAccountId()
+        logger.debug("processing monthly charge for PersonalAccount: " + paymentAccount.getAccountId()
                 + " name: " + paymentAccount.getName()
                 + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE_TIME));
         List<AccountService> accountServices = paymentAccount.getServices();
@@ -74,7 +74,7 @@ public class PaymentChargesProcessorService {
                 })
         );
 
-        logger.info("processing daily charge for PersonalAccount: " + paymentAccount.getAccountId()
+        logger.debug("processing daily charge for PersonalAccount: " + paymentAccount.getAccountId()
                 + " name: " + paymentAccount.getName());
         accountServices.stream().filter((accountService) -> accountService.getPaymentService().getPaymentType() == ServicePaymentType.DAY
                 && (accountService.getLastBilled() == null
@@ -90,7 +90,6 @@ public class PaymentChargesProcessorService {
 
     private void makeCharge(PersonalAccount paymentAccount, AccountService accountService, BigDecimal cost, LocalDateTime chargeDate) {
         if (cost.compareTo(BigDecimal.ZERO) == 1) {
-            //TODO отправлять заявку на списание в FIN
             Map<String, Object> paymentOperation = new HashMap<>();
             paymentOperation.put("serviceId", accountService.getServiceId());
             paymentOperation.put("amount", cost);
@@ -105,11 +104,11 @@ public class PaymentChargesProcessorService {
             }
 
             if (response != null && response.get("success") != null && !((boolean) response.get("success"))) {
-                logger.info("Error. Charge Processor returned false fo service: " + accountService.toString());
+                logger.debug("Error. Charge Processor returned false fo service: " + accountService.toString());
             } else {
                 accountService.setLastBilled(chargeDate);
                 accountServiceRepository.save(accountService);
-                logger.info("Success. Charge Processor returned true fo service: " + accountService.toString());
+                logger.debug("Success. Charge Processor returned true fo service: " + accountService.toString());
             }
         }
     }

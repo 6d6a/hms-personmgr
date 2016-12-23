@@ -25,6 +25,9 @@ import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
+import static java.lang.Math.floor;
+import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_CAPACITY;
+import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.FREE_SERVICE_POSTFIX;
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_SERVICE_PREFIX;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_PREFIX;
@@ -70,9 +73,8 @@ public class PersonalAccountServicesDBImportService {
     }
 
     private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
-        logger.info("Found PersonalAccount " + rs.getString("name"));
+        logger.debug("Found PersonalAccount " + rs.getString("name"));
 
-//        PersonalAccount account = personalAccountRepository.findByAccountId(rs.getString("id"));
         List<AccountService> accountServices = new ArrayList<>();
 
         PaymentService service = paymentServiceRepository.findByOldId(PLAN_SERVICE_PREFIX
@@ -80,7 +82,6 @@ public class PersonalAccountServicesDBImportService {
 
         if (service != null) {
             AccountService accountService = new AccountService(service);
-//            accountService.setPersonalAccountId(account.getId());
             accountService.setPersonalAccountId(rs.getString("id"));
 
             accountServices.add(accountService);
@@ -90,21 +91,25 @@ public class PersonalAccountServicesDBImportService {
         SqlParameterSource namedParameters = new MapSqlParameterSource("acc_id", rs.getString("id"))
                 .addValue("usluga_ids", Constants.NOT_NEEDED_SERVICE_IDS);
 
-        accountServices.addAll(jdbcTemplate.query(queryExtend,
+        jdbcTemplate.query(queryExtend,
                 namedParameters,
                 (rsE, rowNumE) -> {
+                    AccountService accountServiceE;
                     PaymentService serviceE = paymentServiceRepository.findByOldId(SERVICE_PREFIX + rsE.getString("usluga")
                             + (rsE.getBigDecimal("cost").compareTo(BigDecimal.ZERO) == 0 ? FREE_SERVICE_POSTFIX: ""));
 
-                    AccountService accountServiceE = new AccountService(serviceE);
-
-//                    accountServiceE.setPersonalAccountId(account.getId());
+                    accountServiceE = new AccountService(serviceE);
                     accountServiceE.setPersonalAccountId(rsE.getString("acc_id"));
+                    accountServices.add(accountServiceE);
+
+                    if (rsE.getInt("usluga") == ADDITIONAL_QUOTA_100_ID) {
+                        int quantity = 1 + (int) floor(rsE.getLong("value") / ADDITIONAL_QUOTA_100_CAPACITY);
+                        accountServiceE.setQuantity(quantity);
+                    }
+
                     return accountServiceE;
                 }
-        ));
-
-//        account.setServices(accountServices);
+        );
 
         try {
             accountServiceRepository.save(accountServices);
@@ -112,7 +117,6 @@ public class PersonalAccountServicesDBImportService {
             e.printStackTrace();
         }
 
-//        return account;
         return null;
     }
 

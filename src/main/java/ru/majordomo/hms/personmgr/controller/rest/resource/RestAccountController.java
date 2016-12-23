@@ -73,7 +73,7 @@ public class RestAccountController extends CommonRestResourceController {
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response
     ) {
-        logger.info("Got SimpleServiceMessage: " + message.toString());
+        logger.debug("Got SimpleServiceMessage: " + message.toString());
         //Create pm, si and fin account
 
         String accountId = String.valueOf(sequenceCounterService.getNextSequence("PersonalAccount"));
@@ -82,7 +82,7 @@ public class RestAccountController extends CommonRestResourceController {
         Plan plan = planRepository.findByOldId((String) message.getParam("plan"));
 
         if (plan == null) {
-            logger.info("No plan found with OldId: " + message.getParam("plan"));
+            logger.debug("No plan found with OldId: " + message.getParam("plan"));
             return this.createErrorResponse("No plan found with OldId: " + message.getParam("plan"));
         }
 
@@ -97,7 +97,7 @@ public class RestAccountController extends CommonRestResourceController {
         personalAccount.setCreated(LocalDateTime.now());
 
         personalAccountRepository.save(personalAccount);
-        logger.info("personalAccount saved: " + personalAccount.toString());
+        logger.debug("personalAccount saved: " + personalAccount.toString());
 
         //Создаем AccountService с выбранным тарифом
         AccountService service = new AccountService();
@@ -105,11 +105,11 @@ public class RestAccountController extends CommonRestResourceController {
         service.setServiceId(plan.getServiceId());
 
         accountServiceRepository.save(service);
-        logger.info("AccountService saved: " + service.toString());
+        logger.debug("AccountService saved: " + service.toString());
 
         //генерируем партнерский промокод
         promocodeProcessor.generatePartnerPromocode(personalAccount);
-        logger.info("PartnerPromocode generated");
+        logger.debug("PartnerPromocode generated");
 
         ProcessingBusinessOperation processingBusinessOperation = new ProcessingBusinessOperation();
         processingBusinessOperation.setPersonalAccountId(personalAccount.getId());
@@ -120,7 +120,7 @@ public class RestAccountController extends CommonRestResourceController {
 
         processingBusinessOperationRepository.save(processingBusinessOperation);
 
-        logger.info("processingBusinessOperation saved: " + processingBusinessOperation.toString());
+        logger.debug("processingBusinessOperation saved: " + processingBusinessOperation.toString());
 
 
         message.setAccountId(personalAccount.getId());
@@ -129,7 +129,7 @@ public class RestAccountController extends CommonRestResourceController {
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_SI, message);
 
-        logger.info("ProcessingBusinessAction saved: " + businessAction.toString());
+        logger.debug("ProcessingBusinessAction saved: " + businessAction.toString());
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -141,7 +141,7 @@ public class RestAccountController extends CommonRestResourceController {
 //            @PathVariable String accountId,
 //            @RequestBody SimpleServiceMessage message, HttpServletResponse response
 //    ) {
-//        logger.info("Updating account with id " + accountId + " " + message.toString());
+//        logger.debug("Updating account with id " + accountId + " " + message.toString());
 //
 //        message.addParam("accountId", accountId);
 //
@@ -162,7 +162,7 @@ public class RestAccountController extends CommonRestResourceController {
 //        message.addParam("accountId", accountId);
 //        message.setAccountId(accountId);
 //
-//        logger.info("Deleting account with id " + accountId + " " + message.toString());
+//        logger.debug("Deleting account with id " + accountId + " " + message.toString());
 //
 //        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_DELETE_RC, message);
 //

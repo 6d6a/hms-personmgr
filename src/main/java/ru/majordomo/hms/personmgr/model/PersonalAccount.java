@@ -23,6 +23,9 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
+import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED;
+import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_OVERQUOTED;
+
 /**
  * PaymentAccount
  */
@@ -245,6 +248,22 @@ public class PersonalAccount extends BaseModel {
 
     public void setOwnerPersonId(String ownerPersonId) {
         this.ownerPersonId = ownerPersonId;
+    }
+
+    public boolean isOverquoted() {
+        return this.settings.get(ACCOUNT_SETTING_OVERQUOTED) != null ? Boolean.valueOf(this.settings.get(ACCOUNT_SETTING_OVERQUOTED)) : false;
+    }
+
+    public void setOverquoted(boolean overquoted) {
+        this.settings.put(ACCOUNT_SETTING_OVERQUOTED, String.valueOf(overquoted));
+    }
+
+    public boolean isAddQuotaIfOverquoted() {
+        return this.settings.get(ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED) != null ? Boolean.valueOf(this.settings.get(ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED)) : false;
+    }
+
+    public void setAddQuotaIfOverquoted(boolean addQuotaIfOverquoted) {
+        this.settings.put(ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED, String.valueOf(addQuotaIfOverquoted));
     }
 
     @Override
