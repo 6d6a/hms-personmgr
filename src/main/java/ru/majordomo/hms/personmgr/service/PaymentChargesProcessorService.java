@@ -29,14 +29,23 @@ import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 public class PaymentChargesProcessorService {
     private final static Logger logger = LoggerFactory.getLogger(PaymentChargesProcessorService.class);
 
-    @Autowired
-    private PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountRepository personalAccountRepository;
+    private final FinFeignClient finFeignClient;
+    private final AccountServiceRepository accountServiceRepository;
+    private final AccountHelper accountHelper;
 
     @Autowired
-    private FinFeignClient finFeignClient;
-
-    @Autowired
-    private AccountServiceRepository accountServiceRepository;
+    public PaymentChargesProcessorService(
+            PersonalAccountRepository personalAccountRepository,
+            FinFeignClient finFeignClient,
+            AccountServiceRepository accountServiceRepository,
+            AccountHelper accountHelper
+    ) {
+        this.personalAccountRepository = personalAccountRepository;
+        this.finFeignClient = finFeignClient;
+        this.accountServiceRepository = accountServiceRepository;
+        this.accountHelper = accountHelper;
+    }
 
     //Выполняем списания в 01:00:00 каждый день
     @Scheduled(cron = "0 0 1 * * *")
@@ -97,6 +106,7 @@ public class PaymentChargesProcessorService {
             Map<String, Object> response = null;
 
             try {
+//                accountHelper.charge(paymentAccount, accountService.getPaymentService());
                 response = finFeignClient.charge(paymentAccount.getId(), paymentOperation);
             } catch (Exception e) {
                 e.printStackTrace();

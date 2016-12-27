@@ -24,6 +24,7 @@ import ru.majordomo.hms.personmgr.model.seo.Seo;
 import ru.majordomo.hms.personmgr.repository.AccountSeoOrderRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.SeoRepository;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 import ru.majordomo.hms.personmgr.service.FinFeignClient;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
@@ -44,7 +45,7 @@ public class RestSeoController extends CommonRestController {
 
     private final RcUserFeignClient rcUserFeignClient;
 
-    private final FinFeignClient finFeignClient;
+    private final AccountHelper accountHelper;
 
     @Autowired
     public RestSeoController(
@@ -53,14 +54,14 @@ public class RestSeoController extends CommonRestController {
             SeoRepository seoRepository,
             BusinessActionBuilder businessActionBuilder,
             RcUserFeignClient rcUserFeignClient,
-            FinFeignClient finFeignClient
+            AccountHelper accountHelper
     ) {
         this.accountRepository = accountRepository;
         this.accountSeoOrderRepository = accountSeoOrderRepository;
         this.seoRepository = seoRepository;
         this.businessActionBuilder = businessActionBuilder;
         this.rcUserFeignClient = rcUserFeignClient;
-        this.finFeignClient = finFeignClient;
+        this.accountHelper = accountHelper;
     }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
@@ -140,15 +141,9 @@ public class RestSeoController extends CommonRestController {
                     " not found"), HttpStatus.BAD_REQUEST);
         }
 
-        Map<String, Object> paymentOperation = new HashMap<>();
-        paymentOperation.put("serviceId", seo.getServiceId());
-        paymentOperation.put("amount", seo.getService().getCost());
+        accountHelper.checkBalance(account, seo.getService());
 
-        Map<String, Object> response = finFeignClient.charge(account.getId(), paymentOperation);
-
-        if (response.get("success") != null && !((boolean) response.get("success"))) {
-            return new ResponseEntity<>(this.createErrorResponse("Could not charge money"), HttpStatus.BAD_REQUEST);
-        }
+        accountHelper.charge(account, seo.getService());
 
         order = new AccountSeoOrder();
         order.setPersonalAccountId(account.getId());
@@ -171,17 +166,8 @@ public class RestSeoController extends CommonRestController {
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("client_id", message.getAccountId());
 
-        String clientEmails = "";
+        String clientEmails = accountHelper.getEmail(account);
         String webSiteName = webSite.getName();
-
-        Person person = null;
-        if (account.getOwnerPersonId() != null) {
-            person = rcUserFeignClient.getPerson(account.getId(), account.getOwnerPersonId());
-        }
-
-        if (person != null) {
-            clientEmails = String.join(", ", person.getEmailAddresses());
-        }
 
         parameters.put("body", "1. Аккаунт: " + account.getName() + "<br>" +
                 "2. E-mail: " + clientEmails + "<br>" +

@@ -27,18 +27,21 @@ public class AbonementService {
     private final PlanRepository planRepository;
     private final AccountAbonementRepository accountAbonementRepository;
     private final AccountServiceRepository accountServiceRepository;
+    private final AccountHelper accountHelper;
 
     @Autowired
     public AbonementService(
             FinFeignClient finFeignClient,
             PlanRepository planRepository,
             AccountAbonementRepository accountAbonementRepository,
-            AccountServiceRepository accountServiceRepository
+            AccountServiceRepository accountServiceRepository,
+            AccountHelper accountHelper
     ) {
         this.finFeignClient = finFeignClient;
         this.planRepository = planRepository;
         this.accountAbonementRepository = accountAbonementRepository;
         this.accountServiceRepository = accountServiceRepository;
+        this.accountHelper = accountHelper;
     }
 
 
@@ -74,15 +77,7 @@ public class AbonementService {
             throw new ParameterValidationException("Account already has abonement");
         }
 
-        Map<String, Object> paymentOperation = new HashMap<>();
-        paymentOperation.put("serviceId", abonement.getServiceId());
-        paymentOperation.put("amount", abonement.getService().getCost());
-
-        Map<String, Object> response = finFeignClient.charge(account.getId(), paymentOperation);
-
-        if (response.get("success") != null && !((boolean) response.get("success"))) {
-            throw new ParameterValidationException("Could not charge money for abonement");
-        }
+        accountHelper.charge(account, abonement.getService());
 
         AccountAbonement accountAbonement = new AccountAbonement();
         accountAbonement.setAbonementId(abonementId);

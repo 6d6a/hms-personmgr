@@ -45,6 +45,7 @@ public class PlanChangeService {
     private final PlanLimitsService planLimitsService;
     private final AccountQuotaService accountQuotaService;
     private final AccountServiceHelper accountServiceHelper;
+    private final AccountHelper accountHelper;
 
     @Autowired
     public PlanChangeService(
@@ -58,7 +59,8 @@ public class PlanChangeService {
             AccountCountersService accountCountersService,
             PlanLimitsService planLimitsService,
             AccountQuotaService accountQuotaService,
-            AccountServiceHelper accountServiceHelper
+            AccountServiceHelper accountServiceHelper,
+            AccountHelper accountHelper
     ) {
         this.finFeignClient = finFeignClient;
         this.planRepository = planRepository;
@@ -71,6 +73,7 @@ public class PlanChangeService {
         this.planLimitsService = planLimitsService;
         this.accountQuotaService = accountQuotaService;
         this.accountServiceHelper = accountServiceHelper;
+        this.accountHelper = accountHelper;
     }
 
     /**
@@ -139,35 +142,6 @@ public class PlanChangeService {
     }
 
     /**
-     * Проверим не отрицательный ли баланс
-     *
-     * @param account Аккаунт
-     */
-    private void checkBalance(PersonalAccount account) {
-        BigDecimal available = getBalance(account);
-
-        if (available.compareTo(BigDecimal.ZERO) < 0) {
-            throw new LowBalanceException("Account balance is lower than zero. balance is: "
-                    + available.toPlainString());
-        }
-    }
-
-    /**
-     * Получим баланс
-     *
-     * @param account Аккаунт
-     */
-    private BigDecimal getBalance(PersonalAccount account) {
-        Map<String, Object> balance = finFeignClient.getBalance(account.getId());
-
-        if (balance == null) {
-            throw new ResourceNotFoundException("Account balance not found.");
-        }
-
-        return BigDecimal.valueOf((double) balance.get("available"));
-    }
-
-    /**
      * Сохраним в статистику об изменении тарифного плана
      *
      * @param account   Аккаунт
@@ -223,7 +197,7 @@ public class PlanChangeService {
         checkLastMonthPlanChange(account);
 
         //Проверим баланс
-        checkBalance(account);
+        accountHelper.checkBalance(account);
 
         //Проверим возможность перехода с бизнес тарифа
         checkBusinessPlan(currentPlan, newPlan);
@@ -324,15 +298,7 @@ public class PlanChangeService {
             Abonement abonement = newPlan.getAbonements().get(0);
             addAccountAbonement(account, abonement);
 
-            Map<String, Object> paymentOperation = new HashMap<>();
-            paymentOperation.put("serviceId", abonement.getServiceId());
-            paymentOperation.put("amount", abonement.getService().getCost());
-
-            Map<String, Object> response = finFeignClient.charge(account.getId(), paymentOperation);
-
-            if (response.get("success") != null && !((boolean) response.get("success"))) {
-                throw new LowBalanceException("Could not charge money");
-            }
+            accountHelper.charge(account, abonement.getService());
         }
     }
 
@@ -399,12 +365,7 @@ public class PlanChangeService {
      */
     private void checkOnlyAbonementPlan(PersonalAccount account, Plan newPlan) {
         if (newPlan.isAbonementOnly()) {
-            BigDecimal available = getBalance(account);
-
-            if (available.compareTo(newPlan.getAbonements().get(0).getService().getCost()) < 0) {
-                throw new LowBalanceException("Account balance is too low for specified plan. Plan is abonementOnly. " +
-                        "Current balance is: " + available.toPlainString());
-            }
+            accountHelper.checkBalance(account, newPlan.getAbonements().get(0).getService());
         }
     }
 
