@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
@@ -103,7 +104,7 @@ public class PaymentChargesProcessorService {
             paymentOperation.put("serviceId", accountService.getServiceId());
             paymentOperation.put("amount", cost);
 
-            Map<String, Object> response = null;
+            SimpleServiceMessage response;
 
             try {
 //                accountHelper.charge(paymentAccount, accountService.getPaymentService());
@@ -113,7 +114,7 @@ public class PaymentChargesProcessorService {
                 return;
             }
 
-            if (response != null && response.get("success") != null && !((boolean) response.get("success"))) {
+            if (response != null && response.getParam("success") != null && !((boolean) response.getParam("success"))) {
                 logger.debug("Error. Charge Processor returned false fo service: " + accountService.toString());
             } else {
                 accountService.setLastBilled(chargeDate);
