@@ -25,7 +25,7 @@ public class DomainTldService {
     public DomainTld findDomainTldByDomainNameAndRegistrator(String domainName, DomainRegistrar registrator) {
         String tld = getTldFromDomain(domainName);
 
-        return domainTldRepository.findByTldAndRegistrator(tld, registrator);
+        return domainTldRepository.findByTldAndRegistrar(tld, registrator);
     }
 
     private String getTldFromDomain(String domainName) {

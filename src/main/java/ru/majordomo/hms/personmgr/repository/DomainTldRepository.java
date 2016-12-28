@@ -14,9 +14,9 @@ import ru.majordomo.hms.rc.user.resources.DomainRegistrar;
 
 public interface DomainTldRepository extends MongoRepository<DomainTld, String> {
     DomainTld findOne(String id);
-    Page<DomainTld> findByRegistrator(@Param("registrator") DomainRegistrar registrator, Pageable pageable);
+    Page<DomainTld> findByRegistrar(@Param("registrar") DomainRegistrar registrar, Pageable pageable);
     List<DomainTld> findAll();
-    DomainTld findByTldAndRegistrator(@Param("tld") String tld, @Param("registrator") DomainRegistrar registrator);
+    DomainTld findByTldAndRegistrar(@Param("tld") String tld, @Param("registrar") DomainRegistrar registrar);
     DomainTld findByTldAndActive(@Param("tld") String tld, @Param("active") boolean active);
     Page<DomainTld> findByTld(@Param("tld") String tld, Pageable pageable);
     Page<DomainTld> findByActive(@Param("active") boolean active, Pageable pageable);
