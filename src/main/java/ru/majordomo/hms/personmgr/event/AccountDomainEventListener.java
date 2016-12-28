@@ -22,7 +22,7 @@ public class AccountDomainEventListener extends AbstractMongoEventListener<Accou
         super.onAfterConvert(event);
         AccountDomain accountDomain = event.getSource();
 
-        DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(accountDomain.getName(), accountDomain.getRegistrator());
+        DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(accountDomain.getName(), accountDomain.getRegistrar());
         accountDomain.setDomainTld(domainTld);
     }
 }

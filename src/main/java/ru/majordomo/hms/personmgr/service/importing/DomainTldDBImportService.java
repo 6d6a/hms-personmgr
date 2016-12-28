@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.validation.ConstraintViolation;
@@ -24,8 +25,10 @@ import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_CATEGORY_MAP;
-import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_REGISTRATOR_MAP;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_REGISTRAR_MAP;
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_REGISTRATOR_NAME_MAP;
+import static ru.majordomo.hms.personmgr.common.Constants.REGISTRATION_COST_SERVICE_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.RENEW_COST_SERVICE_PREFIX;
 
 /**
  * Сервис для загрузки первичных данных в БД
@@ -47,8 +50,6 @@ public class DomainTldDBImportService {
     }
 
     public void pull() {
-        domainTldRepository.deleteAll();
-
         String query = "SELECT domain_tld, parking_registrator_id, registration_cost, renew_cost, registration_time, renew_time, renew_due_days, renew_after_days, priority, available, permanent, category FROM parking_domains_cost";
 
         domainTlds.addAll(jdbcTemplate.query(query, (rs, rowNum) -> {
@@ -58,7 +59,7 @@ public class DomainTldDBImportService {
 
             domainTld.setActive(rs.getBoolean("available"));
             domainTld.setDomainCategory(DOMAIN_CATEGORY_MAP.get(rs.getString("category")));
-            domainTld.setRegistrator(DOMAIN_REGISTRATOR_MAP.get(rs.getInt("parking_registrator_id")));
+            domainTld.setRegistrar(DOMAIN_REGISTRAR_MAP.get(rs.getInt("parking_registrator_id")));
             domainTld.setPriority(rs.getShort("priority"));
             domainTld.setRegisterYears(rs.getByte("registration_time"));
             domainTld.setRenewYears(rs.getByte("renew_time"));
@@ -77,7 +78,7 @@ public class DomainTldDBImportService {
             paymentService.setActive(domainTld.isActive());
             paymentService.setCost(rs.getBigDecimal("registration_cost"));
             paymentService.setLimit(-1);
-            paymentService.setOldId("registration_cost_" +  domainTld.getTld() + "_" + DOMAIN_REGISTRATOR_MAP.get(rs.getInt("parking_registrator_id")));
+            paymentService.setOldId(REGISTRATION_COST_SERVICE_PREFIX +  domainTld.getTld() + "_" + DOMAIN_REGISTRAR_MAP.get(rs.getInt("parking_registrator_id")));
             paymentService.setName("Регистрация домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
 
             paymentServiceRepository.save(paymentService);
@@ -91,7 +92,7 @@ public class DomainTldDBImportService {
             paymentService.setActive(domainTld.isActive());
             paymentService.setCost(rs.getBigDecimal("renew_cost"));
             paymentService.setLimit(-1);
-            paymentService.setOldId("renew_cost_" +  domainTld.getTld() + "_" + DOMAIN_REGISTRATOR_MAP.get(rs.getInt("parking_registrator_id")));
+            paymentService.setOldId(RENEW_COST_SERVICE_PREFIX +  domainTld.getTld() + "_" + DOMAIN_REGISTRAR_MAP.get(rs.getInt("parking_registrator_id")));
             paymentService.setName("Продление домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
 
             paymentServiceRepository.save(paymentService);
@@ -104,6 +105,15 @@ public class DomainTldDBImportService {
     }
 
     public boolean importToMongo() {
+        domainTldRepository.deleteAll();
+
+        try (Stream<PaymentService> paymentServiceStream = paymentServiceRepository.findByOldIdRegex(REGISTRATION_COST_SERVICE_PREFIX + ".*|"
+                + RENEW_COST_SERVICE_PREFIX + ".*")) {
+            paymentServiceStream.forEach(
+                    paymentServiceRepository::delete
+            );
+        }
+
         pull();
         pushToMongo();
         return true;

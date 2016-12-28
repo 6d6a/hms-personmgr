@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import ru.majordomo.hms.rc.user.resources.DomainRegistrar;
+
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_CHANGE_ACCOUNT_PASSWORD;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_CHANGE_FTP_PASSWORD;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_LOGIN_TO_CONTROL_PANEL;
@@ -27,6 +29,8 @@ public class Constants {
     public static final String FREE_SERVICE_POSTFIX = "_free";
     public static final String FREE_SERVICE_NAME_POSTFIX = " (бесплатно)";
     public static final String SERVICE_PREFIX = "service_";
+    public static final String REGISTRATION_COST_SERVICE_PREFIX = "registration_cost_";
+    public static final String RENEW_COST_SERVICE_PREFIX = "renew_cost_";
     public static final String SERVICE_MONEY_RETURN_PREFIX = "service_money_return_";
     public static final String SERVICE_MONEY_TRANSFER_PREFIX = "service_money_transfer_";
     public static final String ACCOUNT_SETTING_OVERQUOTED = "overquoted";
@@ -66,8 +70,8 @@ public class Constants {
     public static final int PLAN_PROPERTY_LIMIT_UNLIMITED = -1;
 
     public static final Map<String, DomainCategory> DOMAIN_CATEGORY_MAP = new HashMap<>();
-    public static final Map<Integer, DomainRegistrator> DOMAIN_REGISTRATOR_MAP = new HashMap<>();
-    public static final Map<String, DomainRegistrator> DOMAIN_REGISTRATOR_STRING_MAP = new HashMap<>();
+    public static final Map<Integer, DomainRegistrar> DOMAIN_REGISTRAR_MAP = new HashMap<>();
+    public static final Map<String, DomainRegistrar> DOMAIN_REGISTRAR_STRING_MAP = new HashMap<String, DomainRegistrar>();
     public static final Map<Integer, String> DOMAIN_REGISTRATOR_NAME_MAP = new HashMap<>();
 
     public static final Set<Integer> NOT_NEEDED_SERVICE_IDS = new HashSet<>();
@@ -97,24 +101,24 @@ public class Constants {
         Constants.DOMAIN_CATEGORY_MAP.put("thematic", DomainCategory.THEMATIC);
         Constants.DOMAIN_CATEGORY_MAP.put("geo", DomainCategory.GEO);
 
-        Constants.DOMAIN_REGISTRATOR_MAP.put(1, DomainRegistrator.NETHOUSE);
-        Constants.DOMAIN_REGISTRATOR_MAP.put(2, DomainRegistrator.R01);
-        Constants.DOMAIN_REGISTRATOR_MAP.put(3, DomainRegistrator.RUCENTER);
-        Constants.DOMAIN_REGISTRATOR_MAP.put(4, DomainRegistrator.ENOM);
-        Constants.DOMAIN_REGISTRATOR_MAP.put(5, DomainRegistrator.GODADDY);
-        Constants.DOMAIN_REGISTRATOR_MAP.put(6, DomainRegistrator.GANDI);
-        Constants.DOMAIN_REGISTRATOR_MAP.put(7, DomainRegistrator.UKRNAMES);
-        Constants.DOMAIN_REGISTRATOR_MAP.put(8, DomainRegistrator.REGRU);
-        Constants.DOMAIN_REGISTRATOR_MAP.put(9, DomainRegistrator.WEBNAMES);
+        Constants.DOMAIN_REGISTRAR_MAP.put(1, DomainRegistrar.NETHOUSE);
+        Constants.DOMAIN_REGISTRAR_MAP.put(2, DomainRegistrar.R01);
+        Constants.DOMAIN_REGISTRAR_MAP.put(3, DomainRegistrar.RUCENTER);
+        Constants.DOMAIN_REGISTRAR_MAP.put(4, DomainRegistrar.ENOM);
+        Constants.DOMAIN_REGISTRAR_MAP.put(5, DomainRegistrar.GODADDY);
+        Constants.DOMAIN_REGISTRAR_MAP.put(6, DomainRegistrar.GANDI);
+        Constants.DOMAIN_REGISTRAR_MAP.put(7, DomainRegistrar.UKRNAMES);
+        Constants.DOMAIN_REGISTRAR_MAP.put(8, DomainRegistrar.REGRU);
+        Constants.DOMAIN_REGISTRAR_MAP.put(9, DomainRegistrar.WEBNAMES);
 
-        Constants.DOMAIN_REGISTRATOR_STRING_MAP.put("Registrant", DomainRegistrator.NETHOUSE);
-        Constants.DOMAIN_REGISTRATOR_STRING_MAP.put("GPT", DomainRegistrator.R01);
-        Constants.DOMAIN_REGISTRATOR_STRING_MAP.put("RUCENTER", DomainRegistrator.RUCENTER);
-        Constants.DOMAIN_REGISTRATOR_STRING_MAP.put("Enom", DomainRegistrator.ENOM);
-        Constants.DOMAIN_REGISTRATOR_STRING_MAP.put("GoDaddy", DomainRegistrator.GODADDY);
-        Constants.DOMAIN_REGISTRATOR_STRING_MAP.put("Ukrnames", DomainRegistrator.UKRNAMES);
-        Constants.DOMAIN_REGISTRATOR_STRING_MAP.put("RegRu", DomainRegistrator.REGRU);
-        Constants.DOMAIN_REGISTRATOR_STRING_MAP.put("Webnames", DomainRegistrator.WEBNAMES);
+        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("Registrant", DomainRegistrar.NETHOUSE);
+        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("GPT", DomainRegistrar.R01);
+        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("RUCENTER", DomainRegistrar.RUCENTER);
+        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("Enom", DomainRegistrar.ENOM);
+        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("GoDaddy", DomainRegistrar.GODADDY);
+        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("Ukrnames", DomainRegistrar.UKRNAMES);
+        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("RegRu", DomainRegistrar.REGRU);
+        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("Webnames", DomainRegistrar.WEBNAMES);
 
         Constants.DOMAIN_REGISTRATOR_NAME_MAP.put(1, "Nethouse");
         Constants.DOMAIN_REGISTRATOR_NAME_MAP.put(2, "R01");

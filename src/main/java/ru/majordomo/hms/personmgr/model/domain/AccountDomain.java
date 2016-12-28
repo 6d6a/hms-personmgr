@@ -7,8 +7,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import javax.validation.constraints.NotNull;
 
-import ru.majordomo.hms.personmgr.common.DomainRegistrator;
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
+import ru.majordomo.hms.rc.user.resources.DomainRegistrar;
 
 /**
  * AccountDomain
@@ -18,7 +18,7 @@ public class AccountDomain extends ModelBelongsToPersonalAccount {
     private String resourceId;
 
     @Indexed
-    private DomainRegistrator registrator;
+    private DomainRegistrar registrar;
 
     @NotNull
     @Indexed(unique = true)
@@ -35,14 +35,14 @@ public class AccountDomain extends ModelBelongsToPersonalAccount {
     }
 
     @PersistenceConstructor
-    public AccountDomain(String id, String name, String personalAccountId, String resourceId, DomainRegistrator registrator, boolean autorenew) {
+    public AccountDomain(String id, String name, String personalAccountId, String resourceId, DomainRegistrar registrar, boolean autorenew) {
         super();
         this.autorenew = autorenew;
         this.name = name;
         this.setId(id);
         this.setPersonalAccountId(personalAccountId);
         this.resourceId = resourceId;
-        this.registrator = registrator;
+        this.registrar = registrar;
     }
 
     public String getResourceId() {
@@ -53,12 +53,12 @@ public class AccountDomain extends ModelBelongsToPersonalAccount {
         this.resourceId = resourceId;
     }
 
-    public DomainRegistrator getRegistrator() {
-        return registrator;
+    public DomainRegistrar getRegistrar() {
+        return registrar;
     }
 
-    public void setRegistrator(DomainRegistrator registrator) {
-        this.registrator = registrator;
+    public void setRegistrar(DomainRegistrar registrar) {
+        this.registrar = registrar;
     }
 
     public DomainTld getDomainTld() {
@@ -89,7 +89,7 @@ public class AccountDomain extends ModelBelongsToPersonalAccount {
     public String toString() {
         return "AccountDomain{" +
                 "resourceId='" + resourceId + '\'' +
-                ", registrator=" + registrator +
+                ", registrar=" + registrar +
                 ", name='" + name + '\'' +
                 ", autorenew=" + autorenew +
                 ", domainTld=" + domainTld +

@@ -6,9 +6,9 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import ru.majordomo.hms.personmgr.common.DomainCategory;
-import ru.majordomo.hms.personmgr.common.DomainRegistrator;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.rc.user.resources.DomainRegistrar;
 
 import javax.validation.constraints.NotNull;
 
@@ -24,7 +24,7 @@ public class DomainTld extends BaseModel {
     private String tld;
     @Indexed
     @NotNull
-    private DomainRegistrator registrator;
+    private DomainRegistrar registrar;
     @NotNull
     private byte registerYears;
     @NotNull
@@ -58,20 +58,17 @@ public class DomainTld extends BaseModel {
     @Transient
     private PaymentService renewService;
 
-    @Transient
-    private String encodedTld;
-
     public DomainTld() {
     }
 
     @PersistenceConstructor
-    public DomainTld(String id, String tld, DomainRegistrator registrator, byte registerYears, byte renewYears, short renewStartDays, short renewEndDays, boolean active, boolean variablePrice, DomainCategory domainCategory, short priority, String registrationServiceId, String renewServiceId) {
+    public DomainTld(String id, String tld, DomainRegistrar registrar, byte registerYears, byte renewYears, short renewStartDays, short renewEndDays, boolean active, boolean variablePrice, DomainCategory domainCategory, short priority, String registrationServiceId, String renewServiceId) {
         super();
         this.registrationServiceId = registrationServiceId;
         this.renewServiceId = renewServiceId;
         this.setId(id);
         this.tld = tld;
-        this.registrator = registrator;
+        this.registrar = registrar;
         this.registerYears = registerYears;
         this.renewYears = renewYears;
         this.renewStartDays = renewStartDays;
@@ -90,12 +87,12 @@ public class DomainTld extends BaseModel {
         this.tld = tld;
     }
 
-    public DomainRegistrator getRegistrator() {
-        return registrator;
+    public DomainRegistrar getRegistrar() {
+        return registrar;
     }
 
-    public void setRegistrator(DomainRegistrator registrator) {
-        this.registrator = registrator;
+    public void setRegistrar(DomainRegistrar registrar) {
+        this.registrar = registrar;
     }
 
     public byte getRegisterYears() {
@@ -198,15 +195,11 @@ public class DomainTld extends BaseModel {
         return IDN.toUnicode(tld);
     }
 
-    public void setEncodedTld(String encodedTld) {
-        this.encodedTld = encodedTld;
-    }
-
     @Override
     public String toString() {
         return "DomainTld{" +
                 "tld='" + tld + '\'' +
-                ", registrator=" + registrator +
+                ", registrar=" + registrar +
                 ", registerYears=" + registerYears +
                 ", renewYears=" + renewYears +
                 ", renewStartDays=" + renewStartDays +

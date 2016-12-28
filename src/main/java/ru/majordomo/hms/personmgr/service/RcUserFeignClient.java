@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import ru.majordomo.hms.personmgr.common.Count;
+import ru.majordomo.hms.rc.user.resources.Domain;
 import ru.majordomo.hms.rc.user.resources.Person;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
@@ -28,4 +29,7 @@ public interface RcUserFeignClient {
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/person/{personId}", consumes = "application/json")
     Person getPerson(@PathVariable("accountId") String accountId, @PathVariable("personId") String personId);
+
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/domain/{domainId}", consumes = "application/json")
+    Domain getDomain(@PathVariable("accountId") String accountId, @PathVariable("domainId") String domainId);
 }

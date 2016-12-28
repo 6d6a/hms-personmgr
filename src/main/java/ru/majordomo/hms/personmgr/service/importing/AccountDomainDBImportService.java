@@ -19,7 +19,7 @@ import ru.majordomo.hms.personmgr.model.domain.AccountDomain;
 import ru.majordomo.hms.personmgr.repository.AccountDomainRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
-import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_REGISTRATOR_STRING_MAP;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_REGISTRAR_STRING_MAP;
 
 /**
  * Сервис для загрузки первичных данных в БД
@@ -55,7 +55,7 @@ public class AccountDomainDBImportService {
             if (account != null) {
                 accountDomain.setPersonalAccountId(account.getId());
 
-                accountDomain.setRegistrator(DOMAIN_REGISTRATOR_STRING_MAP.get(rs.getString("source")));
+                accountDomain.setRegistrar(DOMAIN_REGISTRAR_STRING_MAP.get(rs.getString("source")));
                 accountDomain.setName(rs.getString("Domain_name"));
                 accountDomain.setAutorenew(rs.getString("status") != null);
 

@@ -20,7 +20,9 @@ import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.DomainTldService;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.rc.user.resources.Domain;
 
 @RestController
 @RequestMapping("/{accountId}/domain")
@@ -29,13 +31,20 @@ public class RestDomainController extends CommonRestResourceController {
     private final DomainTldService domainTldService;
     private final PersonalAccountRepository accountRepository;
     private final AccountHelper accountHelper;
+    private final RcUserFeignClient rcUserFeignClient;
     private final static Logger logger = LoggerFactory.getLogger(RestDomainController.class);
 
     @Autowired
-    public RestDomainController(DomainTldService domainTldService, PersonalAccountRepository accountRepository, AccountHelper accountHelper) {
+    public RestDomainController(
+            DomainTldService domainTldService,
+            PersonalAccountRepository accountRepository,
+            AccountHelper accountHelper,
+            RcUserFeignClient rcUserFeignClient
+    ) {
         this.domainTldService = domainTldService;
         this.accountRepository = accountRepository;
         this.accountHelper = accountHelper;
+        this.rcUserFeignClient = rcUserFeignClient;
     }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
@@ -84,8 +93,10 @@ public class RestDomainController extends CommonRestResourceController {
         String domainName = (String) message.getParam("name");
 
         if (isRenew) {
-            //TODO нужно брать tld в зависимости от registrator
-            DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
+            Domain domain = rcUserFeignClient.getDomain(accountId, domainId);
+
+            DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domainName, domain.getRegSpec().getRegistrar());
+
             accountHelper.checkBalance(account, domainTld.getRenewService());
             accountHelper.charge(account, domainTld.getRenewService());
         }
