@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
@@ -65,7 +67,9 @@ public class RestDomainController extends CommonRestResourceController {
         if (isRegistration) {
             DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
             accountHelper.checkBalance(account, domainTld.getRegistrationService());
-            accountHelper.charge(account, domainTld.getRegistrationService());
+            SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRegistrationService());
+            String documentNumber = (String) blockResult.getParam("documentNumber");
+            message.addParam("documentNumber", documentNumber);
         }
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_CREATE_RC, message);
@@ -98,7 +102,11 @@ public class RestDomainController extends CommonRestResourceController {
             DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domainName, domain.getRegSpec().getRegistrar());
 
             accountHelper.checkBalance(account, domainTld.getRenewService());
-            accountHelper.charge(account, domainTld.getRenewService());
+
+            SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRenewService());
+
+            String documentNumber = (String) blockResult.getParam("documentNumber");
+            message.addParam("documentNumber", documentNumber);
         }
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, message);
