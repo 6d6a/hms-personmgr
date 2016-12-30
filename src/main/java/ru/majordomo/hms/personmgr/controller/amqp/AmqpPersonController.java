@@ -49,6 +49,7 @@ public class AmqpPersonController {
                 logger.error("Не удалось получить personId из objRef: " + objRef);
             } else {
                 account.setOwnerPersonId(personId);
+                accountRepository.save(account);
             }
         }
 
