@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.model;
 
-import org.bson.types.ObjectId;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.type.MapType;
 import org.codehaus.jackson.map.type.TypeFactory;

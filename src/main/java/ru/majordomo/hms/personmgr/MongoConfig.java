@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
+import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventListener;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -17,6 +18,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
  * MongoConfig
  */
 @Configuration
+@EnableMongoAuditing
 public class MongoConfig extends AbstractMongoConfiguration {
 
     @Value("${spring.data.mongodb.uri}")
