@@ -20,13 +20,18 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationReposito
 @Service
 public class BusinessFlowDirector {
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
-    @Autowired
-    private BusinessActionProcessor businessActionProcessor;
-    @Autowired
-    private ProcessingBusinessActionRepository processingBusinessActionRepository;
+    private final BusinessActionProcessor businessActionProcessor;
+    private final ProcessingBusinessActionRepository processingBusinessActionRepository;
+    private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
+    private final FinFeignClient finFeignClient;
 
     @Autowired
-    private ProcessingBusinessOperationRepository processingBusinessOperationRepository;
+    public BusinessFlowDirector(BusinessActionProcessor businessActionProcessor, ProcessingBusinessActionRepository processingBusinessActionRepository, ProcessingBusinessOperationRepository processingBusinessOperationRepository, FinFeignClient finFeignClient) {
+        this.businessActionProcessor = businessActionProcessor;
+        this.processingBusinessActionRepository = processingBusinessActionRepository;
+        this.processingBusinessOperationRepository = processingBusinessOperationRepository;
+        this.finFeignClient = finFeignClient;
+    }
 
     @Scheduled(fixedDelay = 300)
     public void process() {
@@ -68,10 +73,22 @@ public class BusinessFlowDirector {
 
             processingBusinessActionRepository.save(businessAction);
 
+            processBlockedPayment(businessAction);
+
             return businessAction.getState();
         } else {
             logger.debug("ProcessingBusinessAction with id: " + message.getActionIdentity() + " not found");
             return State.ERROR;
+        }
+    }
+
+    private void processBlockedPayment(ProcessingBusinessAction businessAction) {
+        if (businessAction.getState() == State.PROCESSED && businessAction.getMessage().getParam("documentNumber") != null) {
+            finFeignClient.chargeBlocked(businessAction.getMessage().getAccountId(), (String) businessAction.getMessage().getParam("documentNumber"));
+            //Спишем заблокированные средства
+        } else if (businessAction.getState() == State.ERROR && businessAction.getMessage().getParam("documentNumber") != null) {
+            //Разблокируем средства
+            finFeignClient.unblock(businessAction.getMessage().getAccountId(), (String) businessAction.getMessage().getParam("documentNumber"));
         }
     }
 }

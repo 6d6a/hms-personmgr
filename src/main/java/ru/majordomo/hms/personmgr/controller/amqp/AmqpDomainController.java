@@ -27,12 +27,10 @@ public class AmqpDomainController {
     private final static Logger logger = LoggerFactory.getLogger(AmqpDomainController.class);
 
     private final BusinessFlowDirector businessFlowDirector;
-    private final FinFeignClient finFeignClient;
 
     @Autowired
     public AmqpDomainController(BusinessFlowDirector businessFlowDirector, FinFeignClient finFeignClient) {
         this.businessFlowDirector = businessFlowDirector;
-        this.finFeignClient = finFeignClient;
     }
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.domain.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "domain.create", type = ExchangeTypes.TOPIC), key = "pm"))
@@ -41,8 +39,6 @@ public class AmqpDomainController {
         logger.debug("Received from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
-
-        processBlockedPayment(state, message);
     }
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.domain.update", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "domain.update", type = ExchangeTypes.TOPIC), key = "pm"))
@@ -51,8 +47,6 @@ public class AmqpDomainController {
         logger.debug("Received update message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
-
-        processBlockedPayment(state, message);
     }
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.domain.delete", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "domain.delete", type = ExchangeTypes.TOPIC), key = "pm"))
@@ -61,15 +55,5 @@ public class AmqpDomainController {
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
-    }
-
-    private void processBlockedPayment(State state, SimpleServiceMessage message) {
-        if (state == State.PROCESSED && message.getParam("documentNumber") != null) {
-            finFeignClient.chargeBlocked(message.getAccountId(), (String) message.getParam("documentNumber"));
-            //Спишем заблокированные средства
-        } else if (state == State.ERROR && message.getParam("documentNumber") != null) {
-            //Разблокируем средства
-            finFeignClient.unblock(message.getAccountId(), (String) message.getParam("documentNumber"));
-        }
     }
 }
