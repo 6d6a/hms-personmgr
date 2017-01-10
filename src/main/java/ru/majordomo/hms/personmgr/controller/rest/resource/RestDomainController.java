@@ -94,12 +94,10 @@ public class RestDomainController extends CommonRestResourceController {
 
         boolean isRenew = message.getParam("renew") != null && (boolean) message.getParam("renew");
 
-        String domainName = (String) message.getParam("name");
-
         if (isRenew) {
             Domain domain = rcUserFeignClient.getDomain(accountId, domainId);
 
-            DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domainName, domain.getRegSpec().getRegistrar());
+            DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domain.getName(), domain.getRegSpec().getRegistrar());
 
             accountHelper.checkBalance(account, domainTld.getRenewService());
 
