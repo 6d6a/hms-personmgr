@@ -20,10 +20,10 @@ public interface FinFeignClient {
     @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/payment_operations/block", consumes = "application/json")
     SimpleServiceMessage block(@PathVariable("accountId") String accountId, Map<String, Object> paymentOperation);
 
-    @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/payment_operations/{documentNumber}", consumes = "application/json")
+    @RequestMapping(method = RequestMethod.DELETE, value = "/{accountId}/payment_operations/{documentNumber}", consumes = "application/json")
     SimpleServiceMessage unblock(@PathVariable("accountId") String accountId, @PathVariable("documentNumber") String documentNumber);
 
-    @RequestMapping(method = RequestMethod.DELETE, value = "/{accountId}/payment_operations/{documentNumber}/charge", consumes = "application/json")
+    @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/payment_operations/{documentNumber}/charge", consumes = "application/json")
     SimpleServiceMessage chargeBlocked(@PathVariable("accountId") String accountId, @PathVariable("documentNumber") String documentNumber);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/balance", consumes = "application/json")
