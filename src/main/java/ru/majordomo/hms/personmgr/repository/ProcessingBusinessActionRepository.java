@@ -6,7 +6,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
@@ -22,6 +24,8 @@ public interface ProcessingBusinessActionRepository extends MongoRepository<Proc
     ProcessingBusinessAction findByBusinessActionType(@Param("businessActionType") BusinessActionType businessActionType);
 
     ProcessingBusinessAction findFirstByStateOrderByPriorityAscCreatedDateAsc(@Param("state") State state);
+
+    Stream<ProcessingBusinessAction> findByCreatedDateBeforeOrderByCreatedDateAsc(@Param("createdDate") LocalDateTime createdDate);
 
     Page<ProcessingBusinessAction> findByPersonalAccountId(@Param("accountId") String accountId, Pageable pageable);
 

@@ -6,6 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.stream.Stream;
+
 import ru.majordomo.hms.personmgr.Application;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -46,6 +49,28 @@ public class BusinessFlowDirector {
             businessActionProcessor.process(businessAction);
 
             processingBusinessActionRepository.save(businessAction);
+        }
+    }
+
+    @Scheduled(cron = "0 10 * * * *")
+    public void clean() {
+        try (Stream<ProcessingBusinessAction> businessActionStream = processingBusinessActionRepository.findByCreatedDateBeforeOrderByCreatedDateAsc(LocalDateTime.now().minusDays(1L))) {
+            businessActionStream.forEach(
+                    this::processClean
+            );
+        }
+    }
+
+    private void processClean(ProcessingBusinessAction businessAction) {
+        logger.debug("Processing businessAction clean for " + businessAction.toString());
+
+        switch (businessAction.getState()) {
+            case PROCESSED:
+            case FINISHED:
+                processingBusinessActionRepository.delete(businessAction);
+                break;
+            default:
+                logger.error("Found old businessAction with wrong(not processed) state " + businessAction.toString());
         }
     }
 
