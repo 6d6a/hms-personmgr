@@ -28,9 +28,6 @@ public class RestProcessingBusinessActionController extends CommonRestController
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<Page<ProcessingBusinessAction>> listAll(Pageable pageable, @PathVariable("accountId") String accountId) {
         Page<ProcessingBusinessAction> actions = repository.findByPersonalAccountId(accountId, pageable);
-        if(actions.getTotalElements() == 0){
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }
         return new ResponseEntity<>(actions, HttpStatus.OK);
     }
 
