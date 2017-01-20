@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 
-import java.util.Collections;
-
 @RestController
 @RequestMapping("/{accountId}/processing-actions")
 public class RestProcessingBusinessActionController extends CommonRestController {
