@@ -72,6 +72,10 @@ public class BusinessActionDBSeedService {
         this.seedUnixAccountUpdateActions();
         this.seedUnixAccountDeleteActions();
 
+        this.seedDnsRecordCreateActions();
+        this.seedDnsRecordUpdateActions();
+        this.seedDnsRecordDeleteActions();
+
         this.seedSeoOrderActions();
 
         logger.debug("BusinessAction found with findAll():");
@@ -721,6 +725,63 @@ public class BusinessActionDBSeedService {
         mailManagerMessageDestination = new MailManagerMessageDestination();
 
         action.setDestination(mailManagerMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedDnsRecordCreateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+
+        //DnsRecord create
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.DNS_RECORD_CREATE_RC);
+        action.setName("DnsRecord create");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("dns-record.create");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedDnsRecordUpdateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //DnsRecord update
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.DNS_RECORD_UPDATE_RC);
+        action.setName("DnsRecord update");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("dns-record.update");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedDnsRecordDeleteActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //DnsRecord delete
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.DNS_RECORD_DELETE_RC);
+        action.setName("DnsRecord delete");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("dns-record.delete");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
 
         action.setPriority(1);
 
