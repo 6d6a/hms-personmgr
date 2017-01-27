@@ -130,7 +130,7 @@ public class Constants {
         Constants.DOMAIN_REGISTRATOR_NAME_MAP.put(8, "РЕГ.РУ");
         Constants.DOMAIN_REGISTRATOR_NAME_MAP.put(9, "Webnames");
 
-        Constants.NOT_NEEDED_SERVICE_IDS.add(1);
+//        Constants.NOT_NEEDED_SERVICE_IDS.add(1);
         Constants.NOT_NEEDED_SERVICE_IDS.add(2);
         Constants.NOT_NEEDED_SERVICE_IDS.add(3);
         Constants.NOT_NEEDED_SERVICE_IDS.add(5);

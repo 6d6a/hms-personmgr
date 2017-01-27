@@ -112,8 +112,8 @@ public class Application implements CommandLineRunner {
 
             if (option.equals(dbSeedOption)) {
                 boolean seeded;
-//                seeded = businessActionDBSeedService.seedDB();
-//                sb.append(" ").append(seeded ? "businessFlow db_seeded" : "businessFlow db_not_seeded");
+                seeded = businessActionDBSeedService.seedDB();
+                sb.append(" ").append(seeded ? "businessFlow db_seeded" : "businessFlow db_not_seeded");
 //
 //                seeded = promocodeActionDBSeedService.seedDB();
 //                sb.append(" ").append(seeded ? "promocodeAction db_seeded" : "promocodeAction db_not_seeded");
