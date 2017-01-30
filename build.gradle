@@ -58,7 +58,7 @@ configurations {
 }
 
 dependencies {
-    compile('ru.majordomo.hms.rc.user:resources:1.2')
+    compile('ru.majordomo.hms.rc.user:resources:1+')
 
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
     compile('org.springframework.boot:spring-boot-starter-amqp')
