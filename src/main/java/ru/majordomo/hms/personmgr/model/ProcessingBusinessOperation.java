@@ -5,16 +5,22 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 
+@Document
 public class ProcessingBusinessOperation extends Step  {
 
     private String accountName;
+
+    @Indexed
+    private BusinessOperationType type = BusinessOperationType.COMMON_OPERATION;
 
     @Indexed
     private String personalAccountId;
@@ -32,12 +38,24 @@ public class ProcessingBusinessOperation extends Step  {
     }
 
     @PersistenceConstructor
-    public ProcessingBusinessOperation(String id, String name, State state, int priority, String accountName, String personalAccountId, LocalDateTime createdDate, LocalDateTime updatedDate, Map<String, Object> mapParams) {
+    public ProcessingBusinessOperation(
+            String id,
+            String name,
+            State state,
+            int priority,
+            BusinessOperationType type,
+            String accountName,
+            String personalAccountId,
+            LocalDateTime createdDate,
+            LocalDateTime updatedDate,
+            Map<String, Object> mapParams
+    ) {
         super();
         this.setId(id);
         this.setName(name);
         this.setState(state);
         this.setPriority(priority);
+        this.type = type;
         this.accountName = accountName;
         this.personalAccountId = personalAccountId;
         this.createdDate = createdDate;
@@ -93,6 +111,14 @@ public class ProcessingBusinessOperation extends Step  {
         return this.mapParams.get(key);
     }
 
+    public BusinessOperationType getType() {
+        return type;
+    }
+
+    public void setType(BusinessOperationType type) {
+        this.type = type;
+    }
+
     @Override
     public boolean equals(Object obj) {
         return super.equals(obj);
@@ -107,6 +133,7 @@ public class ProcessingBusinessOperation extends Step  {
     public String toString() {
         return "ProcessingBusinessOperation{" +
                 "accountName='" + accountName + '\'' +
+                ", type=" + type +
                 ", personalAccountId='" + personalAccountId + '\'' +
                 ", createdDate=" + createdDate +
                 ", updatedDate=" + updatedDate +

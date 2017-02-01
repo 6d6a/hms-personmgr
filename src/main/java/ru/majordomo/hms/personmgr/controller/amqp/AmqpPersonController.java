@@ -13,14 +13,20 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
-import ru.majordomo.hms.personmgr.common.message.ResponseMessage;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
+import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
+import ru.majordomo.hms.personmgr.service.PromocodeProcessor;
 
 @EnableRabbit
 @Service
@@ -28,21 +34,45 @@ public class AmqpPersonController {
 
     private final static Logger logger = LoggerFactory.getLogger(AmqpPersonController.class);
 
-    @Autowired
-    private BusinessFlowDirector businessFlowDirector;
+    private final BusinessFlowDirector businessFlowDirector;
+    private final PersonalAccountRepository accountRepository;
+    private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
+    private final BusinessActionBuilder businessActionBuilder;
 
     @Autowired
-    private PersonalAccountRepository accountRepository;
+    public AmqpPersonController(
+            BusinessFlowDirector businessFlowDirector,
+            PersonalAccountRepository accountRepository,
+            ProcessingBusinessOperationRepository processingBusinessOperationRepository,
+            BusinessActionBuilder businessActionBuilder
+    ) {
+        this.businessFlowDirector = businessFlowDirector;
+        this.accountRepository = accountRepository;
+        this.processingBusinessOperationRepository = processingBusinessOperationRepository;
+        this.businessActionBuilder = businessActionBuilder;
+    }
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.person.create", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "person.create", type = ExchangeTypes.TOPIC), key = "pm"))
+    @RabbitListener(
+            bindings = @QueueBinding(
+                    value = @Queue(
+                            value = "pm.person.create",
+                            durable = "true",
+                            autoDelete = "true"
+                    ),
+                    exchange = @Exchange(
+                            value = "person.create",
+                            type = ExchangeTypes.TOPIC
+                    ),
+                    key = "pm"
+            )
+    )
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
 
+        PersonalAccount account = accountRepository.findOne(message.getAccountId());
 
-        PersonalAccount account = accountRepository.findByAccountId(message.getAccountId());
-
-        if (account.getOwnerPersonId() == null) {
+        if (account != null && account.getOwnerPersonId() == null) {
             String objRef = message.getObjRef();
             String personId = objRef.substring(objRef.lastIndexOf("/") + 1);
             if (objRef.equals(personId)) {
@@ -53,11 +83,31 @@ public class AmqpPersonController {
             }
         }
 
+        State state = businessFlowDirector.processMessage(message);
 
-        businessFlowDirector.processMessage(message);
+        if (state == State.PROCESSED) {
+            ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+            if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
+                message.addParam("quota", businessOperation.getMapParams().get("quota"));
+                businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
+            }
+        }
     }
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.person.update", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "person.update", type = ExchangeTypes.TOPIC), key = "pm"))
+    @RabbitListener(
+            bindings = @QueueBinding(
+                    value = @Queue(
+                            value = "pm.person.update",
+                            durable = "true",
+                            autoDelete = "true"
+                    ),
+                    exchange = @Exchange(
+                            value = "person.update",
+                            type = ExchangeTypes.TOPIC
+                    ),
+                    key = "pm"
+            )
+    )
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received update message from " + provider + ": " + message.toString());
@@ -65,7 +115,20 @@ public class AmqpPersonController {
         State state = businessFlowDirector.processMessage(message);
     }
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.person.delete", durable = "true", autoDelete = "true"), exchange = @Exchange(value = "person.delete", type = ExchangeTypes.TOPIC), key = "pm"))
+    @RabbitListener(
+            bindings = @QueueBinding(
+                    value = @Queue(
+                            value = "pm.person.delete",
+                            durable = "true",
+                            autoDelete = "true"
+                    ),
+                    exchange = @Exchange(
+                            value = "person.delete",
+                            type = ExchangeTypes.TOPIC
+                    ),
+                    key = "pm"
+            )
+    )
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received delete message from " + provider + ": " + message.toString());
