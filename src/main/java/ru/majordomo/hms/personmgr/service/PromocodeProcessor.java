@@ -64,6 +64,7 @@ public class PromocodeProcessor {
                 accountPromocode.setOwnedByAccount(false);
                 accountPromocode.setPersonalAccountId(account.getId());
                 accountPromocode.setPromocodeId(promocode.getId());
+                accountPromocode.setPromocode(promocode);
 
                 accountPromocodeRepository.save(accountPromocode);
 

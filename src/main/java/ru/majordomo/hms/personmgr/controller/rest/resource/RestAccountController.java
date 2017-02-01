@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
@@ -25,46 +26,42 @@ import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
+import ru.majordomo.hms.personmgr.service.PlanLimitsService;
 import ru.majordomo.hms.personmgr.service.PromocodeProcessor;
 import ru.majordomo.hms.personmgr.service.SequenceCounterService;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static ru.majordomo.hms.personmgr.common.Constants.VH_ACCOUNT_PREFIX;
 
-/**
- * RestAccountController
- */
 @RestController
 @RequestMapping("/account")
 public class RestAccountController extends CommonRestResourceController {
     private final static Logger logger = LoggerFactory.getLogger(RestAccountController.class);
 
     private final SequenceCounterService sequenceCounterService;
-
     private final PersonalAccountRepository personalAccountRepository;
-
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
-
     private final PlanRepository planRepository;
-
     private final PromocodeProcessor promocodeProcessor;
-
     private final AccountServiceRepository accountServiceRepository;
+    private final PlanLimitsService planLimitsService;
 
     @Autowired
     public RestAccountController(
             SequenceCounterService sequenceCounterService,
             PersonalAccountRepository personalAccountRepository,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
-            PlanRepository planRepository, PromocodeProcessor promocodeProcessor,
-            AccountServiceRepository accountServiceRepository
-    ) {
+            PlanRepository planRepository,
+            PromocodeProcessor promocodeProcessor,
+            AccountServiceRepository accountServiceRepository,
+            PlanLimitsService planLimitsService) {
         this.sequenceCounterService = sequenceCounterService;
         this.personalAccountRepository = personalAccountRepository;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
         this.planRepository = planRepository;
         this.promocodeProcessor = promocodeProcessor;
         this.accountServiceRepository = accountServiceRepository;
+        this.planLimitsService = planLimitsService;
     }
 
 
@@ -107,6 +104,10 @@ public class RestAccountController extends CommonRestResourceController {
         accountServiceRepository.save(service);
         logger.debug("AccountService saved: " + service.toString());
 
+        //Сохраним в мессагу квоту по тарифу
+        Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
+        message.addParam("quota", planQuotaKBFreeLimit);
+
         //генерируем партнерский промокод
         promocodeProcessor.generatePartnerPromocode(personalAccount);
         logger.debug("PartnerPromocode generated");
@@ -117,11 +118,11 @@ public class RestAccountController extends CommonRestResourceController {
         processingBusinessOperation.setAccountName(personalAccount.getName());
         processingBusinessOperation.setMapParams(message.getParams());
         processingBusinessOperation.addMapParam("password", password);
+        processingBusinessOperation.setType(BusinessOperationType.ACCOUNT_CREATE);
 
         processingBusinessOperationRepository.save(processingBusinessOperation);
 
         logger.debug("processingBusinessOperation saved: " + processingBusinessOperation.toString());
-
 
         message.setAccountId(personalAccount.getId());
         message.setOperationIdentity(processingBusinessOperation.getId());
