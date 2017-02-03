@@ -28,4 +28,8 @@ public interface PersonalAccountRepository extends MongoRepository<PersonalAccou
     @Query("{}")
     Stream<PersonalAccount> findAllStream();
     Stream<PersonalAccount> findByIdNotIn(@Param("ids") List<String> ids);
+
+    @RestResource(path = "findListByAccountIdContaining", rel = "findListByAccountIdContaining")
+    List<PersonalAccount> findByAccountIdContaining(@Param("accountId") String accountId);
+    Page<PersonalAccount> findByAccountIdContaining(@Param("accountId") String accountId, Pageable pageable);
 }

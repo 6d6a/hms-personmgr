@@ -15,6 +15,10 @@ logging:
                     personmgr:
                         service:
                             FinFeignClient: ERROR
+                        controller:
+                            amqp:
+                                AmqpPersonController: ERROR
+                                AmqpUnixAccountController: ERROR
 security:
     oauth2:
         resource:
@@ -44,6 +48,9 @@ spring:
             database: personmgr
 #            uri: mongodb://localhost:27017/personmgr
     rabbitmq:
+#        host: 172.16.104.98
         host: localhost
         password: guest
         username: guest
+    jackson:
+        date-format: yyyy-MM-dd HH:mm:ss

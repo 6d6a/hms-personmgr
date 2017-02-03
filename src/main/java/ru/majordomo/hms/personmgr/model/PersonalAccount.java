@@ -1,9 +1,13 @@
 package ru.majordomo.hms.personmgr.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -54,9 +58,15 @@ public class PersonalAccount extends BaseModel {
 
     @NotNull
     @Indexed
+    @JsonFormat
+            (shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime created;
 
     @Indexed
+    @JsonFormat
+            (shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime deactivated;
 
     @NotNull
@@ -79,7 +89,18 @@ public class PersonalAccount extends BaseModel {
     }
 
     @PersistenceConstructor
-    public PersonalAccount(String id, String accountId, String clientId, String planId, String name, AccountType accountType, List<AccountDiscount> discounts, boolean active, LocalDateTime created, LocalDateTime deactivated) {
+    public PersonalAccount(
+            String id,
+            String accountId,
+            String clientId,
+            String planId,
+            String name,
+            AccountType accountType,
+            List<AccountDiscount> discounts,
+            @Value("#root.active ?: true") boolean active,
+            @Value("#root.created ?: T(java.time.LocalDateTime).of(1970,1,1,0,0,0)") LocalDateTime created,
+            LocalDateTime deactivated
+    ) {
         super();
         this.setId(id);
         this.accountId = accountId;
