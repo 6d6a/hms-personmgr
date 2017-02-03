@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.apache.commons.validator.routines.EmailValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,12 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -47,6 +54,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
     private final AccountServiceRepository accountServiceRepository;
     private final PlanLimitsService planLimitsService;
     private final SiFeignClient siFeignClient;
+    private List<String> registrationRequiredFields;
 
     @Autowired
     public AccountResourceRestController(
@@ -66,17 +74,32 @@ public class AccountResourceRestController extends CommonResourceRestController 
         this.accountServiceRepository = accountServiceRepository;
         this.planLimitsService = planLimitsService;
         this.siFeignClient = siFeignClient;
+
+        registrationRequiredFields.addAll(Arrays.asList(
+                "plan",
+                "emailAddresses",
+                "name",
+                "agreement"
+        ));
     }
 
 
+    @SuppressWarnings("unchecked")
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response
     ) {
         logger.debug("Got SimpleServiceMessage: " + message.toString());
-        //Create pm, si and fin account
 
+        for (String field : registrationRequiredFields) {
+            if (message.getParam(field) == null) {
+                logger.debug("No " + field + " property found in request");
+                return this.createErrorResponse("No " + field + " property found in request");
+            }
+        }
+
+        //Create pm, si and fin account
         String accountId = String.valueOf(sequenceCounterService.getNextSequence("PersonalAccount"));
         String password = randomAlphabetic(8);
 
@@ -85,6 +108,15 @@ public class AccountResourceRestController extends CommonResourceRestController 
         if (plan == null) {
             logger.debug("No plan found with OldId: " + message.getParam("plan"));
             return this.createErrorResponse("No plan found with OldId: " + message.getParam("plan"));
+        }
+
+        EmailValidator validator = EmailValidator.getInstance(true, true);
+        List<String> emails = (List<String>) message.getParam("emailAddresses");
+
+        for (String emailAddress: emails) {
+            if (!validator.isValid(emailAddress)) {
+                return this.createErrorResponse("Адрес " + emailAddress + " некорректен");
+            }
         }
 
         //Создаем PersonalAccount
