@@ -2,6 +2,8 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -24,7 +27,6 @@ import ru.majordomo.hms.personmgr.validators.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Person;
 
 @RestController
-@RequestMapping("/{accountId}")
 @Validated
 public class PersonalAccountRestController extends CommonRestController {
 
@@ -45,7 +47,18 @@ public class PersonalAccountRestController extends CommonRestController {
         this.rcUserFeignClient = rcUserFeignClient;
     }
 
-    @RequestMapping(value = "/account", method = RequestMethod.GET)
+    @RequestMapping(value = "/accounts", method = RequestMethod.GET)
+    public ResponseEntity<Page<PersonalAccount>> getAccounts(@RequestParam("accountId") String accountId, Pageable pageable) {
+        Page<PersonalAccount> accounts = accountRepository.findByAccountIdContaining(accountId, pageable);
+
+        if(accounts == null || !accounts.hasContent()){
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+
+        return new ResponseEntity<>(accounts, HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/{accountId}/account", method = RequestMethod.GET)
     public ResponseEntity<PersonalAccount> getAccount(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
@@ -54,7 +67,7 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(account, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/plan", method = RequestMethod.GET)
+    @RequestMapping(value = "/{accountId}/plan", method = RequestMethod.GET)
     public ResponseEntity<Plan> getAccountPlan(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
@@ -69,7 +82,7 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(plan, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/plan", method = RequestMethod.POST)
+    @RequestMapping(value = "/{accountId}/plan", method = RequestMethod.POST)
     public ResponseEntity<Object> changeAccountPlan(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Map<String, String> requestBody
@@ -87,7 +100,7 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/owner", method = RequestMethod.POST)
+    @RequestMapping(value = "/{accountId}/owner", method = RequestMethod.POST)
     public ResponseEntity changeOwner(
             @PathVariable(value = "accountId") String accountId,
             @RequestBody Map<String, String> owner
