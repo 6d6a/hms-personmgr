@@ -35,7 +35,7 @@ import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static ru.majordomo.hms.personmgr.common.Constants.VH_ACCOUNT_PREFIX;
 
 @RestController
-@RequestMapping("/account")
+@RequestMapping("/register")
 public class AccountResourceRestController extends CommonResourceRestController {
     private final static Logger logger = LoggerFactory.getLogger(AccountResourceRestController.class);
 
