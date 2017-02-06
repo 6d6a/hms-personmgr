@@ -10,12 +10,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -40,6 +35,7 @@ import ru.majordomo.hms.personmgr.service.SiFeignClient;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static ru.majordomo.hms.personmgr.common.Constants.VH_ACCOUNT_PREFIX;
+import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_CREATE;
 
 @RestController
 @RequestMapping("/account")
@@ -54,7 +50,6 @@ public class AccountResourceRestController extends CommonResourceRestController 
     private final AccountServiceRepository accountServiceRepository;
     private final PlanLimitsService planLimitsService;
     private final SiFeignClient siFeignClient;
-    private List<String> registrationRequiredFields;
 
     @Autowired
     public AccountResourceRestController(
@@ -74,13 +69,6 @@ public class AccountResourceRestController extends CommonResourceRestController 
         this.accountServiceRepository = accountServiceRepository;
         this.planLimitsService = planLimitsService;
         this.siFeignClient = siFeignClient;
-
-        registrationRequiredFields.addAll(Arrays.asList(
-                "plan",
-                "emailAddresses",
-                "name",
-                "agreement"
-        ));
     }
 
 
@@ -92,11 +80,18 @@ public class AccountResourceRestController extends CommonResourceRestController 
     ) {
         logger.debug("Got SimpleServiceMessage: " + message.toString());
 
-        for (String field : registrationRequiredFields) {
+        for (String field : ACCOUNT_CREATE) {
             if (message.getParam(field) == null) {
                 logger.debug("No " + field + " property found in request");
                 return this.createErrorResponse("No " + field + " property found in request");
             }
+        }
+
+        boolean agreement = (boolean) message.getParam("agreement");
+
+        if (!agreement) {
+            logger.debug("Agreement not accepted");
+            return this.createErrorResponse("Agreement not accepted");
         }
 
         //Create pm, si and fin account

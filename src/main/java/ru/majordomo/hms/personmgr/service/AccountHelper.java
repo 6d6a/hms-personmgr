@@ -56,7 +56,22 @@ public class AccountHelper {
             throw new ResourceNotFoundException("Account balance not found.");
         }
 
-        return BigDecimal.valueOf((double) balance.get("available"));
+        BigDecimal available;
+
+        try {
+            if (balance.get("available") instanceof Integer) {
+                available = BigDecimal.valueOf((Integer) balance.get("available"));
+            } else if (balance.get("available") instanceof Double) {
+                available = BigDecimal.valueOf((Double) balance.get("available"));
+            } else {
+                available = (BigDecimal) balance.get("available");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            available = BigDecimal.ZERO;
+        }
+
+        return available;
     }
 
     /**
