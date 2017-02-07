@@ -170,12 +170,6 @@ public class AccountResourceRestController extends CommonResourceRestController 
 
         message.addParam("token", siResponse.getParam("token"));
 
-        Map<String, String> credentials = new HashMap<>();
-        credentials.put("username", personalAccount.getName());
-        credentials.put("password", password);
-
-        message.addParam("credentials", credentials);
-
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_FIN, message);
 
         logger.debug("ProcessingBusinessAction saved: " + businessAction.toString());
@@ -187,6 +181,12 @@ public class AccountResourceRestController extends CommonResourceRestController 
 
         SimpleServiceMessage responseMessage = this.createSuccessResponse(businessAction);
         responseMessage.addParam("token", siResponse.getParam("token"));
+
+        Map<String, String> credentials = new HashMap<>();
+        credentials.put("username", personalAccount.getName());
+        credentials.put("password", password);
+
+        responseMessage.addParam("credentials", credentials);
 
         return responseMessage;
     }
