@@ -36,6 +36,7 @@ import ru.majordomo.hms.personmgr.event.PromocodeEventListener;
 import ru.majordomo.hms.personmgr.event.SeoEventListener;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.service.DomainTldService;
+import ru.majordomo.hms.personmgr.service.PlanBuilder;
 import ru.majordomo.hms.personmgr.service.importing.*;
 import ru.majordomo.hms.personmgr.validators.ObjectIdValidator;
 
@@ -188,8 +189,8 @@ public class Application implements CommandLineRunner {
 
     @Bean
     @Autowired
-    public PlanEventListener planEventListener(MongoOperations mongoOperations) {
-        return new PlanEventListener(mongoOperations);
+    public PlanEventListener planEventListener(PlanBuilder planBuilder) {
+        return new PlanEventListener(planBuilder);
     }
 
     @Bean

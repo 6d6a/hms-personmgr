@@ -10,11 +10,13 @@ import org.springframework.boot.context.embedded.jetty.JettyEmbeddedServletConta
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
+import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import ru.majordomo.hms.personmgr.controller.rest.PlanRestController;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.service.PlanBuilder;
 
 @Configuration
 @EnableWebMvc
@@ -25,11 +27,16 @@ public class ConfigPlanRestController extends AbstractMongoConfiguration {
         return new JettyEmbeddedServletContainerFactory(0);
     }
 
+    @Bean
+    @Autowired
+    public PlanBuilder planBuilder(MongoOperations mongoOperations) {
+        return new PlanBuilder(mongoOperations);
+    }
 
     @Bean
     @Autowired
-    public PlanRestController restPlanController(PlanRepository repository) {
-        return new PlanRestController(repository);
+    public PlanRestController restPlanController(PlanRepository repository, PlanBuilder planBuilder) {
+        return new PlanRestController(repository, planBuilder);
     }
 
     @Override
