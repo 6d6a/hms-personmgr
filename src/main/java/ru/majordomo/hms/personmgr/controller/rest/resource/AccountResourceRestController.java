@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -158,6 +160,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
         message.setAccountId(personalAccount.getId());
         message.setOperationIdentity(processingBusinessOperation.getId());
         message.addParam("username", personalAccount.getName());
+        message.addParam("password", password);
 
         SimpleServiceMessage siResponse = siFeignClient.createWebAccessAccount(message);
 
@@ -166,6 +169,12 @@ public class AccountResourceRestController extends CommonResourceRestController 
         }
 
         message.addParam("token", siResponse.getParam("token"));
+
+        Map<String, String> credentials = new HashMap<>();
+        credentials.put("username", personalAccount.getName());
+        credentials.put("password", password);
+
+        message.addParam("credentials", credentials);
 
         ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_FIN, message);
 
