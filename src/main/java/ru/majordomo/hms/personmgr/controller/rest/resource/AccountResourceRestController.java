@@ -38,7 +38,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.VH_ACCOUNT_PREFIX;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_CREATE;
 
 @RestController
-@RequestMapping("/account")
+@RequestMapping("/register")
 public class AccountResourceRestController extends CommonResourceRestController {
     private final static Logger logger = LoggerFactory.getLogger(AccountResourceRestController.class);
 
