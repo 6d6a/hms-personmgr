@@ -1,6 +1,7 @@
 buildscript {
     ext {
         springBootVersion = '1.4.1.RELEASE'
+        querydslVersion = '4.1.4'
     }
     repositories {
         maven {
@@ -19,14 +20,17 @@ buildscript {
 }
 plugins {
     id 'org.ajoberstar.grgit' version '1.5.1'
+    id "com.ewerk.gradle.plugins.querydsl" version "1.0.7"
 }
 
 apply plugin: 'java'
+apply plugin: 'idea'
 apply plugin: 'spring-boot'
 apply plugin: 'docker'
 apply plugin: 'docker-compose'
 apply plugin: 'org.ajoberstar.grgit'
 apply plugin: 'ru.majordomo.copycompose'
+apply plugin: "com.ewerk.gradle.plugins.querydsl"
 
 group = 'hms'
 
@@ -97,6 +101,9 @@ dependencies {
     compile('javax.el:javax.el-api:2.2.4')
     compile('org.glassfish.web:javax.el:2.2.4')
 
+    compile "com.querydsl:querydsl-mongodb:$querydslVersion"
+    compile "com.querydsl:querydsl-apt:$querydslVersion"
+    
     testCompile('org.springframework.boot:spring-boot-starter-test') {
         exclude(module: 'commons-logging')
     }
@@ -162,4 +169,19 @@ composeUp.finalizedBy delCompose
 
 composeDown {
     doLast { delete 'docker-compose.yml' }
+}
+
+def generatedSrcDir = 'src/main/generated'
+
+querydsl {
+    springDataMongo = true
+    querydslSourcesDir = file(generatedSrcDir)
+    library = "com.querydsl:querydsl-mongodb:$querydslVersion"
+}
+
+idea {
+    module {
+        sourceDirs += file(generatedSrcDir)
+        generatedSourceDirs += file(generatedSrcDir)
+    }
 }

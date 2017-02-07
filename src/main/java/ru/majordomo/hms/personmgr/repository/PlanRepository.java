@@ -5,6 +5,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.querydsl.QueryDslPredicateExecutor;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
@@ -12,7 +13,8 @@ import java.util.List;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 
-public interface PlanRepository extends MongoRepository<Plan, String> {
+public interface PlanRepository extends MongoRepository<Plan, String>,
+        QueryDslPredicateExecutor<Plan> {
     @Cacheable("plans")
     Plan findOne(String id);
     List<Plan> findAll();
