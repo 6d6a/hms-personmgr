@@ -41,32 +41,30 @@ public class PersonalAccountServicesDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(PersonalAccountServicesDBImportService.class);
 
     private NamedParameterJdbcTemplate jdbcTemplate;
-    private PersonalAccountRepository personalAccountRepository;
     private final PaymentServiceRepository paymentServiceRepository;
     private final AccountServiceRepository accountServiceRepository;
-    private List<PersonalAccount> paymentAccounts = new ArrayList<>();
 
     @Autowired
-    public PersonalAccountServicesDBImportService(NamedParameterJdbcTemplate jdbcTemplate,
-                                                  PersonalAccountRepository personalAccountRepository,
-                                                  PaymentServiceRepository paymentServiceRepository,
-                                                  AccountServiceRepository accountServiceRepository) {
+    public PersonalAccountServicesDBImportService(
+            NamedParameterJdbcTemplate jdbcTemplate,
+            PaymentServiceRepository paymentServiceRepository,
+            AccountServiceRepository accountServiceRepository
+    ) {
         this.jdbcTemplate = jdbcTemplate;
-        this.personalAccountRepository = personalAccountRepository;
         this.paymentServiceRepository = paymentServiceRepository;
         this.accountServiceRepository = accountServiceRepository;
     }
 
     private void pull() {
         String query = "SELECT id, name, plan_id FROM account ORDER BY id ASC";
-        paymentAccounts = jdbcTemplate.query(query, this::rowMap);
+        jdbcTemplate.query(query, this::rowMap);
     }
 
     private void pull(String accountId) {
         String query = "SELECT id, name, plan_id FROM account WHERE id = :accountId";
         SqlParameterSource namedParameters1 = new MapSqlParameterSource("accountId", accountId);
 
-        paymentAccounts = jdbcTemplate.query(query,
+        jdbcTemplate.query(query,
                 namedParameters1,
                 this::rowMap
         );
@@ -85,11 +83,13 @@ public class PersonalAccountServicesDBImportService {
             accountService.setPersonalAccountId(rs.getString("id"));
 
             accountServices.add(accountService);
+
+            logger.debug("Added Plan service " + service.getId() + " for PersonalAccount " + rs.getString("name"));
         }
 
         String queryExtend = "SELECT acc_id, Domain_name, usluga, cost, value, promo FROM extend WHERE acc_id = :acc_id AND usluga NOT IN (:usluga_ids)";
         SqlParameterSource namedParameters = new MapSqlParameterSource("acc_id", rs.getString("id"))
-                .addValue("usluga_ids", Constants.NOT_NEEDED_SERVICE_IDS);
+                .addValue("usluga_ids", Constants.NOT_NEEDED_ACCOUNT_SERVICE_IDS);
 
         jdbcTemplate.query(queryExtend,
                 namedParameters,
@@ -100,12 +100,15 @@ public class PersonalAccountServicesDBImportService {
 
                     accountServiceE = new AccountService(serviceE);
                     accountServiceE.setPersonalAccountId(rsE.getString("acc_id"));
-                    accountServices.add(accountServiceE);
 
                     if (rsE.getInt("usluga") == ADDITIONAL_QUOTA_100_ID) {
                         int quantity = 1 + (int) floor(rsE.getLong("value") / ADDITIONAL_QUOTA_100_CAPACITY);
                         accountServiceE.setQuantity(quantity);
                     }
+
+                    accountServices.add(accountServiceE);
+
+                    logger.debug("Added accountService for service " + serviceE.getId() + " for PersonalAccount " + rsE.getString("acc_id"));
 
                     return accountServiceE;
                 }

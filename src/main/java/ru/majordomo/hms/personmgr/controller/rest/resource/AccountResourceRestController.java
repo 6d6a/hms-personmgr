@@ -82,12 +82,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
     ) {
         logger.debug("Got SimpleServiceMessage: " + message.toString());
 
-        for (String field : ACCOUNT_CREATE) {
-            if (message.getParam(field) == null) {
-                logger.debug("No " + field + " property found in request");
-                return this.createErrorResponse("No " + field + " property found in request");
-            }
-        }
+        checkRequiredParams(message.getParams(), ACCOUNT_CREATE);
 
         boolean agreement = (boolean) message.getParam("agreement");
 

@@ -50,9 +50,9 @@ public class PlanRestController extends CommonRestController {
         return new ResponseEntity<>(plans, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/plans/{plaId}", method = RequestMethod.GET)
-    public ResponseEntity<Plan> get(@PathVariable(value = "plaId") String plaId) {
-        Plan plan = repository.findOne(plaId);
+    @RequestMapping(value = "/plans/{planId}", method = RequestMethod.GET)
+    public ResponseEntity<Plan> get(@PathVariable(value = "planId") String planId) {
+        Plan plan = repository.findOne(planId);
 
         return new ResponseEntity<>(plan, HttpStatus.OK);
     }

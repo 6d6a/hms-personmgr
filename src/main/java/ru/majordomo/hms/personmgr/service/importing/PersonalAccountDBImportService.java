@@ -18,14 +18,6 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
-import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED;
-import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_AUTO_BILL_SENDING;
-import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_CREDIT;
-import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_NOTIFY_DAYS;
-
-/**
- * DBImportService
- */
 @Service
 public class PersonalAccountDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(PersonalAccountDBImportService.class);
@@ -74,9 +66,9 @@ public class PersonalAccountDBImportService {
             personalAccount.setActive(rs.getBoolean("status"));
             personalAccount.setCreated(LocalDateTime.now());
 
-            personalAccount.setSetting(ACCOUNT_SETTING_NOTIFY_DAYS, rs.getString("notify_days"));
-            personalAccount.setSetting(ACCOUNT_SETTING_CREDIT, rs.getString("credit").equals("y") ? "1" : "0");
-            personalAccount.setSetting(ACCOUNT_SETTING_AUTO_BILL_SENDING, rs.getString("client_auto_bill"));
+            personalAccount.setNotifyDays(rs.getInt("notify_days"));
+            personalAccount.setCredit(rs.getString("credit").equals("y"));
+            personalAccount.setAutoBillSending(rs.getString("client_auto_bill").equals("1"));
             personalAccount.setOverquoted(rs.getString("overquoted").equals("1"));
             personalAccount.setAddQuotaIfOverquoted(rs.getString("overquot_addcost").equals("1"));
 

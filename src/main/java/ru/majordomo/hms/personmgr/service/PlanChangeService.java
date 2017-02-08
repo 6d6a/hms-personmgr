@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
@@ -502,7 +501,7 @@ public class PlanChangeService {
      */
     public void deleteOrAddAccountService(PersonalAccount account, String serviceId, Long currentCount, Long planFreeLimit) {
         if (currentCount.compareTo(planFreeLimit) <= 0) {
-            accountServiceHelper.deleteAccountService(account, serviceId);
+            accountServiceHelper.deleteAccountServiceByServiceId(account, serviceId);
         } else {
             int notFreeServiceCount = (int) floor(currentCount - planFreeLimit);
             accountServiceHelper.addAccountService(account, serviceId, notFreeServiceCount);

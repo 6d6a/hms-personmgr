@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.controller.rest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,30 +22,28 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.seo.AccountSeoOrder;
 import ru.majordomo.hms.personmgr.model.seo.Seo;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountSeoOrderRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.SeoRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
-import ru.majordomo.hms.rc.user.resources.Person;
+import ru.majordomo.hms.personmgr.validators.ObjectId;
 import ru.majordomo.hms.rc.user.resources.WebSite;
+
+import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SEO_ORDER_CREATE;
 
 @RestController
 @RequestMapping("/{accountId}/seo")
+@Validated
 public class SeoRestController extends CommonRestController {
 
     private final PersonalAccountRepository accountRepository;
-
     private final AccountSeoOrderRepository accountSeoOrderRepository;
-
     private final SeoRepository seoRepository;
-
     private final BusinessActionBuilder businessActionBuilder;
-
     private final RcUserFeignClient rcUserFeignClient;
-
     private final AccountHelper accountHelper;
 
     @Autowired
@@ -65,22 +64,20 @@ public class SeoRestController extends CommonRestController {
     }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
-    public ResponseEntity<List<Seo>> getSeoOrders(@PathVariable(value = "accountId") String accountId) {
-        PersonalAccount account = accountRepository.findOne(accountId);
-        if(account == null){
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }
+    public ResponseEntity<List<Seo>> getSeos(
+            @ObjectId(AccountService.class) @PathVariable(value = "accountId") String accountId
+    ) {
         List<Seo> seos = seoRepository.findAll();
 
         return new ResponseEntity<>(seos, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/order", method = RequestMethod.GET)
-    public ResponseEntity<List<AccountSeoOrder>> getSeoOrder(@PathVariable(value = "accountId") String accountId) {
+    public ResponseEntity<List<AccountSeoOrder>> getSeoOrder(
+            @ObjectId(AccountService.class) @PathVariable(value = "accountId") String accountId
+    ) {
         PersonalAccount account = accountRepository.findOne(accountId);
-        if(account == null){
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }
+
         List<AccountSeoOrder> orders = accountSeoOrderRepository.findByPersonalAccountId(account.getId());
 
         if(orders == null || orders.isEmpty()){
@@ -92,37 +89,35 @@ public class SeoRestController extends CommonRestController {
 
     @RequestMapping(value = "/order", method = RequestMethod.POST)
     public ResponseEntity<SimpleServiceMessage> makeSeoOrder(
-            @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, String> requestBody
+            @ObjectId(AccountService.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody Map<String, Object> requestBody
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
-        if(account == null){
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-        String webSiteId = requestBody.get("webSiteId");
 
-        if(webSiteId == null){
-            return new ResponseEntity<>(this.createErrorResponse("webSiteId not found in requestBody"), HttpStatus.BAD_REQUEST);
-        }
+        checkRequiredParams(requestBody, ACCOUNT_SEO_ORDER_CREATE);
+
+        String webSiteId = (String) requestBody.get("webSiteId");
 
         Seo seo;
 
-        String seoTypeString = requestBody.get("seoType");
-
-        if(seoTypeString == null){
-            return new ResponseEntity<>(this.createErrorResponse("seoType not found in requestBody"), HttpStatus.BAD_REQUEST);
-        }
+        String seoTypeString = (String) requestBody.get("seoType");
 
         try {
             SeoType seoType = SeoType.valueOf(seoTypeString);
             seo = seoRepository.findByType(seoType);
 
             if(seo == null){
-                return new ResponseEntity<>(this.createErrorResponse("Seo with type " + seoType + " not found"), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(
+                        this.createErrorResponse("Seo with type " + seoType + " not found"),
+                        HttpStatus.BAD_REQUEST
+                );
             }
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(this.createErrorResponse("seoType from requestBody must be one of: " +
-                    Arrays.toString(SeoType.values())), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(
+                    this.createErrorResponse("seoType from requestBody must be one of: " +
+                    Arrays.toString(SeoType.values())),
+                    HttpStatus.BAD_REQUEST
+            );
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -131,8 +126,10 @@ public class SeoRestController extends CommonRestController {
         AccountSeoOrder order = accountSeoOrderRepository.findByPersonalAccountIdAndWebSiteIdAndCreatedAfter(account.getId(), webSiteId, now);
 
         if(order != null && order.getSeo().getType() == seo.getType()){
-            return new ResponseEntity<>(this.createErrorResponse("AccountSeoOrder already found for specified websiteId " +
-                    webSiteId), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(
+                    this.createErrorResponse("AccountSeoOrder already found for specified websiteId " + webSiteId),
+                    HttpStatus.BAD_REQUEST
+            );
         }
 
         WebSite webSite = rcUserFeignClient.getWebSite(account.getId(), webSiteId);
@@ -179,6 +176,9 @@ public class SeoRestController extends CommonRestController {
 
         businessActionBuilder.build(BusinessActionType.SEO_ORDER_MM, message);
 
-        return new ResponseEntity<>(this.createSuccessResponse("AccountSeoOrder created for websiteId " + webSiteId), HttpStatus.OK);
+        return new ResponseEntity<>(
+                this.createSuccessResponse("AccountSeoOrder created for websiteId " + webSiteId),
+                HttpStatus.OK
+        );
     }
 }
