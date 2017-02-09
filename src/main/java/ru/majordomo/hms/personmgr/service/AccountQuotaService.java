@@ -178,7 +178,7 @@ public class AccountQuotaService {
                 account.setOverquoted(false);
                 //TODO set writable to true to Quotable resources
 
-                accountServiceHelper.deleteAccountService(account, quotaServiceId);
+                accountServiceHelper.deleteAccountServiceByServiceId(account, quotaServiceId);
             }
         }
 

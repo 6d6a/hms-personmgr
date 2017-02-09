@@ -28,7 +28,11 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED;
+import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_AUTO_BILL_SENDING;
+import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_CREDIT;
+import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_NOTIFY_DAYS;
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_OVERQUOTED;
+import static ru.majordomo.hms.personmgr.common.Constants.DEFAULT_NOTIFY_DAYS;
 
 /**
  * PaymentAccount
@@ -59,13 +63,15 @@ public class PersonalAccount extends BaseModel {
     @NotNull
     @Indexed
     @JsonFormat
-            (shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+            (shape = JsonFormat.Shape.STRING,
+             pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime created;
 
     @Indexed
     @JsonFormat
-            (shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+            (shape = JsonFormat.Shape.STRING,
+             pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime deactivated;
 
@@ -271,20 +277,60 @@ public class PersonalAccount extends BaseModel {
         this.ownerPersonId = ownerPersonId;
     }
 
-    public boolean isOverquoted() {
-        return this.settings.get(ACCOUNT_SETTING_OVERQUOTED) != null ? Boolean.valueOf(this.settings.get(ACCOUNT_SETTING_OVERQUOTED)) : false;
+    public Boolean isOverquoted() {
+        return getBooleanSettingByName(ACCOUNT_SETTING_OVERQUOTED);
     }
 
-    public void setOverquoted(boolean overquoted) {
-        this.settings.put(ACCOUNT_SETTING_OVERQUOTED, String.valueOf(overquoted));
+    public void setOverquoted(Boolean value) {
+        setBooleanSettingByName(ACCOUNT_SETTING_OVERQUOTED, value);
     }
 
-    public boolean isAddQuotaIfOverquoted() {
-        return this.settings.get(ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED) != null ? Boolean.valueOf(this.settings.get(ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED)) : false;
+    public Boolean isAddQuotaIfOverquoted() {
+        return getBooleanSettingByName(ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED);
     }
 
-    public void setAddQuotaIfOverquoted(boolean addQuotaIfOverquoted) {
-        this.settings.put(ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED, String.valueOf(addQuotaIfOverquoted));
+    public void setAddQuotaIfOverquoted(Boolean value) {
+        setBooleanSettingByName(ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED, value);
+    }
+
+    public Boolean isCredit() {
+        return getBooleanSettingByName(ACCOUNT_SETTING_CREDIT);
+    }
+
+    public void setCredit(Boolean value) {
+        setBooleanSettingByName(ACCOUNT_SETTING_CREDIT, value);
+    }
+
+    public Boolean isAutoBillSending() {
+        return getBooleanSettingByName(ACCOUNT_SETTING_AUTO_BILL_SENDING);
+    }
+
+    public void setAutoBillSending(Boolean value) {
+        setBooleanSettingByName(ACCOUNT_SETTING_AUTO_BILL_SENDING, value);
+    }
+
+    public Integer getNotifyDays() {
+        return getIntegerSettingByName(ACCOUNT_SETTING_NOTIFY_DAYS) != 0 ? getIntegerSettingByName(ACCOUNT_SETTING_NOTIFY_DAYS) : DEFAULT_NOTIFY_DAYS;
+    }
+
+    public void setNotifyDays(Integer value) {
+        setIntegerSettingByName(ACCOUNT_SETTING_NOTIFY_DAYS, value);
+    }
+
+    private boolean getBooleanSettingByName(String name) {
+        return this.settings.get(name) != null ? Boolean.valueOf(this.settings.get(name)) : false;
+    }
+
+    private void setBooleanSettingByName(String name, boolean value) {
+        this.settings.put(name, String.valueOf(value));
+    }
+
+    private Integer getIntegerSettingByName(String name) {
+        return this.settings.get(name) != null ? Integer.valueOf(this.settings.get(name)) : 0;
+    }
+
+    private void setIntegerSettingByName(String name, Integer value) {
+        this.settings.put(name, String.valueOf(value));
     }
 
     @Override
@@ -302,7 +348,7 @@ public class PersonalAccount extends BaseModel {
                 ", settings=" + settings +
                 ", discounts=" + discounts +
                 ", services=" + services +
-                ", ownerPersonId=" + ownerPersonId + 
+                ", ownerPersonId=" + ownerPersonId +
                 "} " + super.toString();
     }
 }

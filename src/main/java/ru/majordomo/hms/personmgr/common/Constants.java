@@ -49,6 +49,8 @@ public class Constants {
     public static final int PLAN_BUSINESS_ID = 9806;
     public static final int PLAN_BUSINESS_PLUS_ID = 9807;
 
+    public static final Integer DEFAULT_NOTIFY_DAYS = 14;
+
     public static final int ADDITIONAL_WEB_SITE_ID = 22;
     public static final String ADDITIONAL_WEB_SITE_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_WEB_SITE_ID;
 
@@ -63,10 +65,14 @@ public class Constants {
     public static final int SMS_NOTIFICATIONS_29_RUB_ID = 21;
     public static final String SMS_NOTIFICATIONS_29_RUB_SERVICE_ID = SERVICE_PREFIX + SMS_NOTIFICATIONS_29_RUB_ID;
 
+    //Id услуги Доп.место в BillingDB
     public static final int ADDITIONAL_QUOTA_100_ID = 15;
+    //Id услуги Доп.место
     public static final String ADDITIONAL_QUOTA_100_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_QUOTA_100_ID;
+    //Размер одной услуги Доп.место 100Мб
     public static final long ADDITIONAL_QUOTA_100_CAPACITY = 102400L;
 
+    //Значение Limit в тарифе, обозначающее "безлимитность"
     public static final int PLAN_PROPERTY_LIMIT_UNLIMITED = -1;
 
     public static final Map<String, DomainCategory> DOMAIN_CATEGORY_MAP = new HashMap<>();
@@ -74,7 +80,11 @@ public class Constants {
     public static final Map<String, DomainRegistrar> DOMAIN_REGISTRAR_STRING_MAP = new HashMap<String, DomainRegistrar>();
     public static final Map<Integer, String> DOMAIN_REGISTRATOR_NAME_MAP = new HashMap<>();
 
+    //Id услуг не нужных при импорте
     public static final Set<Integer> NOT_NEEDED_SERVICE_IDS = new HashSet<>();
+    //При импорте "услуг аккаунта" не нужны некоторые услуги
+    public static final Set<Integer> NOT_NEEDED_ACCOUNT_SERVICE_IDS = new HashSet<>();
+    //Услуги которые могут быть бесплатными
     public static final Set<Integer> OPTIONALLY_FREE_SERVICE_IDS = new HashSet<>();
 
     public static final String PARTNER_PROMOCODE_ACTION_ID = "57f3c4b8038d8a6054409853";
@@ -86,70 +96,73 @@ public class Constants {
     public static final Map<Integer, MailManagerMessageType> MANAGER_MESSAGE_TYPE_MAP = new HashMap<>();
 
     static {
-        Constants.MANAGER_MESSAGE_TYPE_MAP.put(24, SMS_NO_MONEY_TO_AUTORENEW_DOMAIN);
-        Constants.MANAGER_MESSAGE_TYPE_MAP.put(26, SMS_NEW_PAYMENT);
-        Constants.MANAGER_MESSAGE_TYPE_MAP.put(28, SMS_DOMAIN_DELEGATION_ENDING);
-        Constants.MANAGER_MESSAGE_TYPE_MAP.put(29, SMS_REMAINING_DAYS);
-        Constants.MANAGER_MESSAGE_TYPE_MAP.put(42, EMAIL_CHANGE_ACCOUNT_PASSWORD);
-        Constants.MANAGER_MESSAGE_TYPE_MAP.put(44, EMAIL_LOGIN_TO_CONTROL_PANEL);
-        Constants.MANAGER_MESSAGE_TYPE_MAP.put(77, EMAIL_CHANGE_FTP_PASSWORD);
+        MANAGER_MESSAGE_TYPE_MAP.put(24, SMS_NO_MONEY_TO_AUTORENEW_DOMAIN);
+        MANAGER_MESSAGE_TYPE_MAP.put(26, SMS_NEW_PAYMENT);
+        MANAGER_MESSAGE_TYPE_MAP.put(28, SMS_DOMAIN_DELEGATION_ENDING);
+        MANAGER_MESSAGE_TYPE_MAP.put(29, SMS_REMAINING_DAYS);
+        MANAGER_MESSAGE_TYPE_MAP.put(42, EMAIL_CHANGE_ACCOUNT_PASSWORD);
+        MANAGER_MESSAGE_TYPE_MAP.put(44, EMAIL_LOGIN_TO_CONTROL_PANEL);
+        MANAGER_MESSAGE_TYPE_MAP.put(77, EMAIL_CHANGE_FTP_PASSWORD);
 
-        Constants.DOMAIN_CATEGORY_MAP.put("russian", DomainCategory.RUSSIAN);
-        Constants.DOMAIN_CATEGORY_MAP.put("cyrillic", DomainCategory.CYRILLIC);
-        Constants.DOMAIN_CATEGORY_MAP.put("international", DomainCategory.INTERNATIONAL);
-        Constants.DOMAIN_CATEGORY_MAP.put("business", DomainCategory.BUSINESS);
-        Constants.DOMAIN_CATEGORY_MAP.put("thematic", DomainCategory.THEMATIC);
-        Constants.DOMAIN_CATEGORY_MAP.put("geo", DomainCategory.GEO);
+        DOMAIN_CATEGORY_MAP.put("russian", DomainCategory.RUSSIAN);
+        DOMAIN_CATEGORY_MAP.put("cyrillic", DomainCategory.CYRILLIC);
+        DOMAIN_CATEGORY_MAP.put("international", DomainCategory.INTERNATIONAL);
+        DOMAIN_CATEGORY_MAP.put("business", DomainCategory.BUSINESS);
+        DOMAIN_CATEGORY_MAP.put("thematic", DomainCategory.THEMATIC);
+        DOMAIN_CATEGORY_MAP.put("geo", DomainCategory.GEO);
 
-        Constants.DOMAIN_REGISTRAR_MAP.put(1, DomainRegistrar.NETHOUSE);
-        Constants.DOMAIN_REGISTRAR_MAP.put(2, DomainRegistrar.R01);
-        Constants.DOMAIN_REGISTRAR_MAP.put(3, DomainRegistrar.RUCENTER);
-        Constants.DOMAIN_REGISTRAR_MAP.put(4, DomainRegistrar.ENOM);
-        Constants.DOMAIN_REGISTRAR_MAP.put(5, DomainRegistrar.GODADDY);
-        Constants.DOMAIN_REGISTRAR_MAP.put(6, DomainRegistrar.GANDI);
-        Constants.DOMAIN_REGISTRAR_MAP.put(7, DomainRegistrar.UKRNAMES);
-        Constants.DOMAIN_REGISTRAR_MAP.put(8, DomainRegistrar.REGRU);
-        Constants.DOMAIN_REGISTRAR_MAP.put(9, DomainRegistrar.WEBNAMES);
+        DOMAIN_REGISTRAR_MAP.put(1, DomainRegistrar.NETHOUSE);
+        DOMAIN_REGISTRAR_MAP.put(2, DomainRegistrar.R01);
+        DOMAIN_REGISTRAR_MAP.put(3, DomainRegistrar.RUCENTER);
+        DOMAIN_REGISTRAR_MAP.put(4, DomainRegistrar.ENOM);
+        DOMAIN_REGISTRAR_MAP.put(5, DomainRegistrar.GODADDY);
+        DOMAIN_REGISTRAR_MAP.put(6, DomainRegistrar.GANDI);
+        DOMAIN_REGISTRAR_MAP.put(7, DomainRegistrar.UKRNAMES);
+        DOMAIN_REGISTRAR_MAP.put(8, DomainRegistrar.REGRU);
+        DOMAIN_REGISTRAR_MAP.put(9, DomainRegistrar.WEBNAMES);
 
-        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("Registrant", DomainRegistrar.NETHOUSE);
-        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("GPT", DomainRegistrar.R01);
-        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("RUCENTER", DomainRegistrar.RUCENTER);
-        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("Enom", DomainRegistrar.ENOM);
-        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("GoDaddy", DomainRegistrar.GODADDY);
-        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("Ukrnames", DomainRegistrar.UKRNAMES);
-        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("RegRu", DomainRegistrar.REGRU);
-        Constants.DOMAIN_REGISTRAR_STRING_MAP.put("Webnames", DomainRegistrar.WEBNAMES);
+        DOMAIN_REGISTRAR_STRING_MAP.put("Registrant", DomainRegistrar.NETHOUSE);
+        DOMAIN_REGISTRAR_STRING_MAP.put("GPT", DomainRegistrar.R01);
+        DOMAIN_REGISTRAR_STRING_MAP.put("RUCENTER", DomainRegistrar.RUCENTER);
+        DOMAIN_REGISTRAR_STRING_MAP.put("Enom", DomainRegistrar.ENOM);
+        DOMAIN_REGISTRAR_STRING_MAP.put("GoDaddy", DomainRegistrar.GODADDY);
+        DOMAIN_REGISTRAR_STRING_MAP.put("Ukrnames", DomainRegistrar.UKRNAMES);
+        DOMAIN_REGISTRAR_STRING_MAP.put("RegRu", DomainRegistrar.REGRU);
+        DOMAIN_REGISTRAR_STRING_MAP.put("Webnames", DomainRegistrar.WEBNAMES);
 
-        Constants.DOMAIN_REGISTRATOR_NAME_MAP.put(1, "Nethouse");
-        Constants.DOMAIN_REGISTRATOR_NAME_MAP.put(2, "R01");
-        Constants.DOMAIN_REGISTRATOR_NAME_MAP.put(3, "RU-CENTER");
-        Constants.DOMAIN_REGISTRATOR_NAME_MAP.put(4, "Enom");
-        Constants.DOMAIN_REGISTRATOR_NAME_MAP.put(5, "GoDaddy");
-        Constants.DOMAIN_REGISTRATOR_NAME_MAP.put(6, "Gandi");
-        Constants.DOMAIN_REGISTRATOR_NAME_MAP.put(7, "Ukrnames");
-        Constants.DOMAIN_REGISTRATOR_NAME_MAP.put(8, "РЕГ.РУ");
-        Constants.DOMAIN_REGISTRATOR_NAME_MAP.put(9, "Webnames");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(1, "Nethouse");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(2, "R01");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(3, "RU-CENTER");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(4, "Enom");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(5, "GoDaddy");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(6, "Gandi");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(7, "Ukrnames");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(8, "РЕГ.РУ");
+        DOMAIN_REGISTRATOR_NAME_MAP.put(9, "Webnames");
 
-//        Constants.NOT_NEEDED_SERVICE_IDS.add(1);
-        Constants.NOT_NEEDED_SERVICE_IDS.add(2);
-        Constants.NOT_NEEDED_SERVICE_IDS.add(3);
-        Constants.NOT_NEEDED_SERVICE_IDS.add(5);
-        Constants.NOT_NEEDED_SERVICE_IDS.add(7);
-        Constants.NOT_NEEDED_SERVICE_IDS.add(8);
-        Constants.NOT_NEEDED_SERVICE_IDS.add(10);
-        Constants.NOT_NEEDED_SERVICE_IDS.add(11);
-        Constants.NOT_NEEDED_SERVICE_IDS.add(14);
-        Constants.NOT_NEEDED_SERVICE_IDS.add(16);
-        Constants.NOT_NEEDED_SERVICE_IDS.add(17);
-        Constants.NOT_NEEDED_SERVICE_IDS.add(19);
-        Constants.NOT_NEEDED_SERVICE_IDS.add(20);
-        Constants.NOT_NEEDED_SERVICE_IDS.add(21);
+        NOT_NEEDED_SERVICE_IDS.add(2);
+        NOT_NEEDED_SERVICE_IDS.add(3);
+        NOT_NEEDED_SERVICE_IDS.add(5);
+        NOT_NEEDED_SERVICE_IDS.add(7);
+        NOT_NEEDED_SERVICE_IDS.add(8);
+        NOT_NEEDED_SERVICE_IDS.add(10);
+        NOT_NEEDED_SERVICE_IDS.add(11);
+        NOT_NEEDED_SERVICE_IDS.add(14);
+        NOT_NEEDED_SERVICE_IDS.add(16);
+        NOT_NEEDED_SERVICE_IDS.add(17);
+        NOT_NEEDED_SERVICE_IDS.add(19);
+        NOT_NEEDED_SERVICE_IDS.add(20);
+        NOT_NEEDED_SERVICE_IDS.add(21);
+
+        NOT_NEEDED_ACCOUNT_SERVICE_IDS.addAll(NOT_NEEDED_SERVICE_IDS);
+        //"Тарифный план (хостинг)"
+        NOT_NEEDED_ACCOUNT_SERVICE_IDS.add(1);
 
         //ДопFTP
-        Constants.OPTIONALLY_FREE_SERVICE_IDS.add(4);
+        OPTIONALLY_FREE_SERVICE_IDS.add(4);
         //Защита от спама
-        Constants.OPTIONALLY_FREE_SERVICE_IDS.add(13);
+        OPTIONALLY_FREE_SERVICE_IDS.add(13);
         //СМС-уведомления
-        Constants.OPTIONALLY_FREE_SERVICE_IDS.add(18);
+        OPTIONALLY_FREE_SERVICE_IDS.add(18);
     }
 }

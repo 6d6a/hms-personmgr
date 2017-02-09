@@ -143,8 +143,8 @@ public class Application implements CommandLineRunner {
 //                sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
 
 //                imported = personalAccountServicesDBImportService.importToMongo();
-//                imported = personalAccountServicesDBImportService.importToMongo("100800");
-//                sb.append(" ").append(imported ? "personalAccountServices db_imported" : "personalAccountServices db_not_imported");
+                imported = personalAccountServicesDBImportService.importToMongo("100800");
+                sb.append(" ").append(imported ? "personalAccountServices db_imported" : "personalAccountServices db_not_imported");
 
 //                imported = promocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "promocode db_imported" : "promocode db_not_imported");
@@ -155,8 +155,8 @@ public class Application implements CommandLineRunner {
 //                imported = bonusPromocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "bonusPromocode db_imported" : "bonusPromocode db_not_imported");
 
-                imported = domainTldDBImportService.importToMongo();
-                sb.append(" ").append(imported ? "domainTldD db_imported" : "domainTldD db_not_imported");
+//                imported = domainTldDBImportService.importToMongo();
+//                sb.append(" ").append(imported ? "domainTldD db_imported" : "domainTldD db_not_imported");
 
 //                imported = accountDomainDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "accountDomain db_imported" : "accountDomain db_not_imported");

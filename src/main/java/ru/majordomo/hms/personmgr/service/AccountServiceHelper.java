@@ -22,13 +22,27 @@ public class AccountServiceHelper {
      * Удаляем старую услугу
      *
      * @param account   Аккаунт
-     * @param oldServiceId id текущей услуги
+     * @param serviceId id услуги ServiceId
      */
-    public void deleteAccountService(PersonalAccount account, String oldServiceId) {
-        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), oldServiceId);
+    public void deleteAccountServiceByServiceId(PersonalAccount account, String serviceId) {
+        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), serviceId);
 
         if (accountServices != null && !accountServices.isEmpty()) {
             accountServiceRepository.delete(accountServices);
+        }
+    }
+
+    /**
+     * Удаляем старую услугу
+     *
+     * @param account   Аккаунт
+     * @param accountServiceId id услуги AccountService
+     */
+    public void deleteAccountServiceById(PersonalAccount account, String accountServiceId) {
+        AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndId(account.getId(), accountServiceId);
+
+        if (accountService != null) {
+            accountServiceRepository.delete(accountService);
         }
     }
 
@@ -92,9 +106,31 @@ public class AccountServiceHelper {
      */
     public void replaceAccountService(PersonalAccount account, String oldServiceId, String newServiceId) {
         if (!oldServiceId.equals(newServiceId)) {
-            deleteAccountService(account, oldServiceId);
+            deleteAccountServiceByServiceId(account, oldServiceId);
 
             addAccountService(account, newServiceId);
         }
+    }
+
+    /**
+     * Проверяем есть ли услуга на аккаунте
+     *
+     * @param account   Аккаунт
+     * @param serviceId id услуги
+     */
+    public boolean accountHasService(PersonalAccount account, String serviceId) {
+        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), serviceId);
+
+        return accountServices != null && !accountServices.isEmpty();
+    }
+
+    /**
+     * Проверяем есть ли услуга на аккаунте
+     *
+     * @param account   Аккаунт
+     * @param serviceId id услуги
+     */
+    public List<AccountService> getAccountServices(PersonalAccount account, String serviceId) {
+        return accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), serviceId);
     }
 }
