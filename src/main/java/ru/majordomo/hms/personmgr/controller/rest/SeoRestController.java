@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +24,6 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.seo.AccountSeoOrder;
 import ru.majordomo.hms.personmgr.model.seo.Seo;
-import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountSeoOrderRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.SeoRepository;
@@ -38,6 +39,8 @@ import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SEO_ORDER_
 @RequestMapping("/{accountId}/seo")
 @Validated
 public class SeoRestController extends CommonRestController {
+    private final static Logger logger = LoggerFactory.getLogger(SeoRestController.class);
+
 
     private final PersonalAccountRepository accountRepository;
     private final AccountSeoOrderRepository accountSeoOrderRepository;
@@ -65,7 +68,7 @@ public class SeoRestController extends CommonRestController {
 
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<List<Seo>> getSeos(
-            @ObjectId(AccountService.class) @PathVariable(value = "accountId") String accountId
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
         List<Seo> seos = seoRepository.findAll();
 
@@ -74,7 +77,7 @@ public class SeoRestController extends CommonRestController {
 
     @RequestMapping(value = "/order", method = RequestMethod.GET)
     public ResponseEntity<List<AccountSeoOrder>> getSeoOrder(
-            @ObjectId(AccountService.class) @PathVariable(value = "accountId") String accountId
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
@@ -89,7 +92,7 @@ public class SeoRestController extends CommonRestController {
 
     @RequestMapping(value = "/order", method = RequestMethod.POST)
     public ResponseEntity<SimpleServiceMessage> makeSeoOrder(
-            @ObjectId(AccountService.class) @PathVariable(value = "accountId") String accountId,
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Map<String, Object> requestBody
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
@@ -132,7 +135,14 @@ public class SeoRestController extends CommonRestController {
             );
         }
 
-        WebSite webSite = rcUserFeignClient.getWebSite(account.getId(), webSiteId);
+        WebSite webSite = null;
+
+        try {
+            webSite = rcUserFeignClient.getWebSite(account.getId(), webSiteId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         if (webSite == null) {
             return new ResponseEntity<>(this.createErrorResponse("WebSite with id " + webSiteId +
                     " not found"), HttpStatus.BAD_REQUEST);
