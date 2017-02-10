@@ -43,10 +43,10 @@ public class PromocodeDBImportService {
         promocodesList = partnersNamedParameterJdbcTemplate.query(query, this::rowMap);
     }
 
-    private void pull(String accountName) {
+    private void pull(String accountId) {
         String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.created FROM promorecord p WHERE accountid = :accountid";
 
-        SqlParameterSource namedParametersE = new MapSqlParameterSource("accountid", accountName);
+        SqlParameterSource namedParametersE = new MapSqlParameterSource("accountid", accountId);
 
         promocodesList = partnersNamedParameterJdbcTemplate.query(query,
                 namedParametersE,
@@ -74,9 +74,9 @@ public class PromocodeDBImportService {
         return true;
     }
 
-    public boolean importToMongo(String accountName) {
+    public boolean importToMongo(String accountId) {
         promocodeRepository.deleteAll();
-        pull(accountName);
+        pull(accountId);
         pushToMongo();
         return true;
     }
