@@ -63,6 +63,7 @@ public class PromocodeProcessor {
                 accountPromocode = new AccountPromocode();
                 accountPromocode.setOwnedByAccount(false);
                 accountPromocode.setPersonalAccountId(account.getId());
+                accountPromocode.setOwnerPersonalAccountId(ownerAccountPromocode.getPersonalAccountId());
                 accountPromocode.setPromocodeId(promocode.getId());
                 accountPromocode.setPromocode(promocode);
 
@@ -85,6 +86,7 @@ public class PromocodeProcessor {
                 accountPromocode = new AccountPromocode();
                 accountPromocode.setOwnedByAccount(true);
                 accountPromocode.setPersonalAccountId(account.getId());
+                accountPromocode.setOwnerPersonalAccountId(account.getId());
                 accountPromocode.setPromocodeId(promocode.getId());
 
                 accountPromocodeRepository.save(accountPromocode);
@@ -112,6 +114,7 @@ public class PromocodeProcessor {
         AccountPromocode accountPromocode = new AccountPromocode();
         accountPromocode.setPromocodeId(promocode.getId());
         accountPromocode.setOwnedByAccount(true);
+        accountPromocode.setOwnerPersonalAccountId(account.getId());
         accountPromocode.setPersonalAccountId(account.getId());
 
         accountPromocodeRepository.save(accountPromocode);

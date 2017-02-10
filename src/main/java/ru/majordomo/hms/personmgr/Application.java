@@ -138,19 +138,25 @@ public class Application implements CommandLineRunner {
 //                imported = planDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "plan db_imported" : "plan db_not_imported");
 
-//                  imported = personalAccountDBImportService.importToMongo("100800");
+//                imported = personalAccountDBImportService.importToMongo("100800");
+//                  imported = personalAccountDBImportService.importToMongo("137010");
+//                imported = personalAccountDBImportService.importToMongo("188480");
+//                imported = personalAccountDBImportService.importToMongo("188401");
+//                imported = personalAccountDBImportService.importToMongo("188378");
+//                imported = personalAccountDBImportService.importToMongo("188239");
+//                imported = personalAccountDBImportService.importToMongo("188235");
 //                imported = personalAccountDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
 
 //                imported = personalAccountServicesDBImportService.importToMongo();
-                imported = personalAccountServicesDBImportService.importToMongo("100800");
-                sb.append(" ").append(imported ? "personalAccountServices db_imported" : "personalAccountServices db_not_imported");
+//                imported = personalAccountServicesDBImportService.importToMongo("100800");
+//                sb.append(" ").append(imported ? "personalAccountServices db_imported" : "personalAccountServices db_not_imported");
 
 //                imported = promocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "promocode db_imported" : "promocode db_not_imported");
 
-//                imported = accountPromocodeDBImportService.importToMongo("100800");
-//                sb.append(" ").append(imported ? "accountPromocode db_imported" : "accountPromocode db_not_imported");
+                imported = accountPromocodeDBImportService.importToMongo("137010");
+                sb.append(" ").append(imported ? "accountPromocode db_imported" : "accountPromocode db_not_imported");
 
 //                imported = bonusPromocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "bonusPromocode db_imported" : "bonusPromocode db_not_imported");

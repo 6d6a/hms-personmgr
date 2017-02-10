@@ -109,11 +109,19 @@ public class BusinessFlowDirector {
 
     private void processBlockedPayment(ProcessingBusinessAction businessAction) {
         if (businessAction.getState() == State.PROCESSED && businessAction.getMessage().getParam("documentNumber") != null) {
-            finFeignClient.chargeBlocked(businessAction.getMessage().getAccountId(), (String) businessAction.getMessage().getParam("documentNumber"));
             //Спишем заблокированные средства
+            try {
+                finFeignClient.chargeBlocked(businessAction.getMessage().getAccountId(), (String) businessAction.getMessage().getParam("documentNumber"));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         } else if (businessAction.getState() == State.ERROR && businessAction.getMessage().getParam("documentNumber") != null) {
             //Разблокируем средства
-            finFeignClient.unblock(businessAction.getMessage().getAccountId(), (String) businessAction.getMessage().getParam("documentNumber"));
+            try {
+                finFeignClient.unblock(businessAction.getMessage().getAccountId(), (String) businessAction.getMessage().getParam("documentNumber"));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }
