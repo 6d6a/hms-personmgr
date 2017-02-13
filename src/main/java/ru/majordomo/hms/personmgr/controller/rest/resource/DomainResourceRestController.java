@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
@@ -51,10 +52,11 @@ public class DomainResourceRestController extends CommonResourceRestController {
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId", required = false) String accountId) {
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
         message.setAccountId(accountId);
 
-        logger.debug(message.toString());
+        logger.debug("Creating domain " + message.toString());
 
         PersonalAccount account = accountRepository.findOne(accountId);
 
@@ -70,30 +72,31 @@ public class DomainResourceRestController extends CommonResourceRestController {
             message.addParam("documentNumber", documentNumber);
         }
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = process(BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         return this.createSuccessResponse(businessAction);
     }
 
-    @RequestMapping(value = "/{domainId}", method = RequestMethod.PATCH)
+    @RequestMapping(value = "/{resourceId}", method = RequestMethod.PATCH)
     public SimpleServiceMessage update(
-            @PathVariable String domainId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId", required = false) String accountId) {
+            @PathVariable String resourceId,
+            @RequestBody SimpleServiceMessage message,
+            HttpServletResponse response,
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
         message.setAccountId(accountId);
+        message.getParams().put("resourceId", resourceId);
 
-        logger.debug("Updating domain with id " + domainId + " " + message.toString());
-
-        message.getParams().put("resourceId", domainId);
+        logger.debug("Updating domain with id " + resourceId + " " + message.toString());
 
         boolean isRenew = message.getParam("renew") != null && (boolean) message.getParam("renew");
 
         if (isRenew) {
-            Domain domain = rcUserFeignClient.getDomain(accountId, domainId);
+            Domain domain = rcUserFeignClient.getDomain(accountId, resourceId);
 
             DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domain.getName(), domain.getRegSpec().getRegistrar());
 
@@ -105,26 +108,26 @@ public class DomainResourceRestController extends CommonResourceRestController {
             message.addParam("documentNumber", documentNumber);
         }
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = process(BusinessOperationType.DOMAIN_UPDATE, BusinessActionType.DOMAIN_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         return this.createSuccessResponse(businessAction);
     }
 
-    @RequestMapping(value = "/{domainId}", method = RequestMethod.DELETE)
+    @RequestMapping(value = "/{resourceId}", method = RequestMethod.DELETE)
     public SimpleServiceMessage delete(
-            @PathVariable String domainId,
+            @PathVariable String resourceId,
             HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId", required = false) String accountId) {
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
         SimpleServiceMessage message = new SimpleServiceMessage();
-        message.setAccountId(accountId);
-        message.addParam("resourceId", domainId);
+        message.addParam("resourceId", resourceId);
         message.setAccountId(accountId);
 
-        logger.debug("Deleting domain with id " + domainId + " " + message.toString());
+        logger.debug("Deleting domain with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = process(BusinessOperationType.DOMAIN_DELETE, BusinessActionType.DOMAIN_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

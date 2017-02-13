@@ -9,23 +9,29 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.BusinessActionNotFoundException;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 
-/**
- * BusinessActionBuilder
- */
 @Service
 public class BusinessActionBuilder {
-    @Autowired
-    private BusinessActionRepository businessActionRepository;
+    private final BusinessActionRepository businessActionRepository;
+    private final ProcessingBusinessActionRepository processingBusinessActionRepository;
 
     @Autowired
-    private ProcessingBusinessActionRepository processingBusinessActionRepository;
+    public BusinessActionBuilder(
+            BusinessActionRepository businessActionRepository,
+            ProcessingBusinessActionRepository processingBusinessActionRepository
+    ) {
+        this.businessActionRepository = businessActionRepository;
+        this.processingBusinessActionRepository = processingBusinessActionRepository;
+    }
 
 
-    public ProcessingBusinessAction build(BusinessActionType businessActionType, SimpleServiceMessage message) {
+    public ProcessingBusinessAction build(
+            BusinessActionType businessActionType,
+            SimpleServiceMessage message
+    ) {
         BusinessAction businessAction = businessActionRepository.findByBusinessActionType(businessActionType);
 
         ProcessingBusinessAction processingBusinessAction;
@@ -35,7 +41,7 @@ public class BusinessActionBuilder {
 
             processingBusinessAction.setMessage(message);
             processingBusinessAction.setOperationId(message.getOperationIdentity());
-            processingBusinessAction.setMapParams(message.getParams());
+            processingBusinessAction.setParams(message.getParams());
             processingBusinessAction.setState(State.NEED_TO_PROCESS);
             processingBusinessAction.setPersonalAccountId(message.getAccountId());
         } else {
@@ -44,5 +50,18 @@ public class BusinessActionBuilder {
         processingBusinessActionRepository.save(processingBusinessAction);
 
         return processingBusinessAction;
+    }
+
+    public ProcessingBusinessAction build(
+            BusinessActionType businessActionType,
+            SimpleServiceMessage message,
+            ProcessingBusinessOperation operation
+    ) {
+        ProcessingBusinessAction action = build(businessActionType, message);
+        action.setOperationId(operation.getId());
+
+        processingBusinessActionRepository.save(action);
+
+        return action;
     }
 }

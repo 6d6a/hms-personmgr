@@ -19,7 +19,6 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
-import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
@@ -30,6 +29,7 @@ import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
+import ru.majordomo.hms.personmgr.service.BusinessOperationBuilder;
 import ru.majordomo.hms.personmgr.service.PlanLimitsService;
 import ru.majordomo.hms.personmgr.service.PromocodeProcessor;
 import ru.majordomo.hms.personmgr.service.SequenceCounterService;
@@ -52,6 +52,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
     private final AccountServiceRepository accountServiceRepository;
     private final PlanLimitsService planLimitsService;
     private final SiFeignClient siFeignClient;
+    private final BusinessOperationBuilder businessOperationBuilder;
 
     @Autowired
     public AccountResourceRestController(
@@ -62,7 +63,9 @@ public class AccountResourceRestController extends CommonResourceRestController 
             PromocodeProcessor promocodeProcessor,
             AccountServiceRepository accountServiceRepository,
             PlanLimitsService planLimitsService,
-            SiFeignClient siFeignClient) {
+            SiFeignClient siFeignClient,
+            BusinessOperationBuilder businessOperationBuilder
+    ) {
         this.sequenceCounterService = sequenceCounterService;
         this.personalAccountRepository = personalAccountRepository;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
@@ -71,6 +74,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
         this.accountServiceRepository = accountServiceRepository;
         this.planLimitsService = planLimitsService;
         this.siFeignClient = siFeignClient;
+        this.businessOperationBuilder = businessOperationBuilder;
     }
 
 
@@ -140,22 +144,13 @@ public class AccountResourceRestController extends CommonResourceRestController 
         promocodeProcessor.generatePartnerPromocode(personalAccount);
         logger.debug("PartnerPromocode generated");
 
-        ProcessingBusinessOperation processingBusinessOperation = new ProcessingBusinessOperation();
-        processingBusinessOperation.setPersonalAccountId(personalAccount.getId());
-        processingBusinessOperation.setState(State.PROCESSING);
-        processingBusinessOperation.setAccountName(personalAccount.getName());
-        processingBusinessOperation.setMapParams(message.getParams());
-        processingBusinessOperation.addMapParam("password", password);
-        processingBusinessOperation.setType(BusinessOperationType.ACCOUNT_CREATE);
-
-        processingBusinessOperationRepository.save(processingBusinessOperation);
-
-        logger.debug("processingBusinessOperation saved: " + processingBusinessOperation.toString());
-
         message.setAccountId(personalAccount.getId());
-        message.setOperationIdentity(processingBusinessOperation.getId());
         message.addParam("username", personalAccount.getName());
         message.addParam("password", password);
+
+        ProcessingBusinessOperation processingBusinessOperation = businessOperationBuilder.build(BusinessOperationType.ACCOUNT_CREATE, message);
+
+        logger.debug("processingBusinessOperation saved: " + processingBusinessOperation.toString());
 
         SimpleServiceMessage siResponse = siFeignClient.createWebAccessAccount(message);
 
@@ -165,11 +160,11 @@ public class AccountResourceRestController extends CommonResourceRestController 
 
         message.addParam("token", siResponse.getParam("token"));
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_FIN, message);
+        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_FIN, message, processingBusinessOperation);
 
         logger.debug("ProcessingBusinessAction saved: " + businessAction.toString());
 
-        processingBusinessOperation.addMapParam("token", siResponse.getParam("token"));
+        processingBusinessOperation.addParam("token", siResponse.getParam("token"));
         processingBusinessOperationRepository.save(processingBusinessOperation);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);

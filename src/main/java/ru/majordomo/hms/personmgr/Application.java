@@ -1,5 +1,9 @@
 package ru.majordomo.hms.personmgr;
 
+import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.databind.Module;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +19,7 @@ import org.springframework.context.annotation.PropertySources;
 import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventListener;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -22,6 +27,7 @@ import org.springframework.validation.beanvalidation.MethodValidationPostProcess
 
 
 import feign.Feign;
+import ru.majordomo.hms.personmgr.Serializer.PageSerializer;
 import ru.majordomo.hms.personmgr.event.AbonementEventListener;
 import ru.majordomo.hms.personmgr.event.AccountAbonementEventListener;
 import ru.majordomo.hms.personmgr.event.AccountDomainEventListener;
@@ -281,6 +287,13 @@ public class Application implements CommandLineRunner {
     @Bean
     public MessageSourceAccessor messageSourceAccessor() {
         return new MessageSourceAccessor(messageSource());
+    }
+
+    @Bean
+    public Module jacksonPageWithJsonViewModule() {
+        SimpleModule module = new SimpleModule("jackson-page-with-jsonview", Version.unknownVersion());
+        module.addSerializer(PageImpl.class, new PageSerializer());
+        return module;
     }
 
 //    @Bean

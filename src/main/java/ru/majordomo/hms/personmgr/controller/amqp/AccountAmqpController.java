@@ -72,7 +72,7 @@ public class AccountAmqpController {
                 case "si":
                     if (state == State.PROCESSED) {
 //                        if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
-//                            message.setParams(businessOperation.getMapParams());
+//                            message.setParams(businessOperation.getParams());
 //                            businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_FIN, message);
 //                        }
                     }
@@ -88,7 +88,7 @@ public class AccountAmqpController {
                             }
                         }
                         if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
-                            message.setParams(businessOperation.getMapParams());
+                            message.setParams(businessOperation.getParams());
                             //Создадим персону
                             businessActionBuilder.build(BusinessActionType.PERSON_CREATE_RC, message);
                         }

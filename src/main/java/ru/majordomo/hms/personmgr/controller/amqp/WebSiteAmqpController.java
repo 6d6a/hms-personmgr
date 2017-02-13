@@ -1,8 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.type.TypeFactory;
-import org.codehaus.jackson.type.JavaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.ExchangeTypes;
@@ -12,7 +9,8 @@ import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
@@ -22,31 +20,40 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
-import ru.majordomo.hms.personmgr.common.message.MailManagerEmailMessage;
-import ru.majordomo.hms.personmgr.common.message.MailManagerEmailMessageParams;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.rc.user.resources.WebSite;
 
 @EnableRabbit
 @Service
-public class WebSiteAmqpController {
+public class WebSiteAmqpController extends CommonAmqpController {
 
     private final static Logger logger = LoggerFactory.getLogger(WebSiteAmqpController.class);
 
     private final BusinessActionBuilder businessActionBuilder;
     private final BusinessFlowDirector businessFlowDirector;
-
-    @Value( "${mail_manager.dev_email}" )
-    private String mailManagerDevEmail;
+    private final AccountHelper accountHelper;
+    private final PersonalAccountRepository accountRepository;
+    private final RcUserFeignClient rcUserFeignClient;
 
     @Autowired
     public WebSiteAmqpController(
             BusinessActionBuilder businessActionBuilder,
-            BusinessFlowDirector businessFlowDirector
+            BusinessFlowDirector businessFlowDirector,
+            AccountHelper accountHelper,
+            PersonalAccountRepository accountRepository,
+            RcUserFeignClient rcUserFeignClient
     ) {
         this.businessActionBuilder = businessActionBuilder;
         this.businessFlowDirector = businessFlowDirector;
+        this.accountHelper = accountHelper;
+        this.accountRepository = accountRepository;
+        this.rcUserFeignClient = rcUserFeignClient;
     }
 
     @RabbitListener(
@@ -70,27 +77,43 @@ public class WebSiteAmqpController {
         State state = businessFlowDirector.processMessage(message);
 
         if (state == State.PROCESSED) {
-            MailManagerEmailMessage mailManagerEmailMessage = new MailManagerEmailMessage();
-            mailManagerEmailMessage.setOperationIdentity(message.getOperationIdentity());
-            MailManagerEmailMessageParams messageParams = new MailManagerEmailMessageParams();
-            messageParams.setEmail(mailManagerDevEmail);
-            messageParams.setApi_name("MajordomoVHWebSiteCreated");
-            messageParams.setPriority(10);
+            PersonalAccount account = accountRepository.findOne(message.getAccountId());
+
+            SimpleServiceMessage mailMessage = new SimpleServiceMessage();
+            mailMessage.setAccountId(account.getId());
+
+            String webSiteId = getResourceIdByObjRef(message.getObjRef());
+
+            WebSite webSite = null;
+
+            try {
+                webSite = rcUserFeignClient.getWebSite(account.getId(), webSiteId);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            if (webSite == null) {
+                logger.debug("WebSite with id " + webSiteId + " not found");
+
+                return;
+            }
+
+            String webSiteName = webSite.getName();
+
+            String emails = accountHelper.getEmail(account);
+
+            mailMessage.setParams(new HashMap<>());
+            mailMessage.addParam("email", emails);
+            mailMessage.addParam("api_name", "MajordomoVHWebSiteCreated");
+            mailMessage.addParam("priority", 10);
 
             HashMap<String, String> parameters = new HashMap<>();
-            parameters.put("client_id", "ac_100800");
-            parameters.put("website_name", "test-site.ru");
+            parameters.put("client_id", message.getAccountId());
+            parameters.put("website_name", webSiteName);
 
-            messageParams.setParametrs(parameters);
-            mailManagerEmailMessage.setParams(messageParams);
+            mailMessage.addParam("parametrs", parameters);
 
-            ObjectMapper mapper = new ObjectMapper();
-            TypeFactory typeFactory = mapper.getTypeFactory();
-            JavaType mapType = typeFactory.constructType(SimpleServiceMessage.class);
-
-            SimpleServiceMessage serviceMessage = mapper.convertValue(mailManagerEmailMessage, mapType);
-
-            businessActionBuilder.build(BusinessActionType.WEB_SITE_CREATE_MM, serviceMessage);
+            businessActionBuilder.build(BusinessActionType.WEB_SITE_CREATE_MM, mailMessage);
         }
     }
 

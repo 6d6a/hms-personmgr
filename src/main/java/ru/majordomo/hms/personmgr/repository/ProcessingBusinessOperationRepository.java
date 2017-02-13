@@ -22,5 +22,7 @@ public interface ProcessingBusinessOperationRepository extends MongoRepository<P
 
     Page<ProcessingBusinessOperation> findByPersonalAccountId(@Param("accountId") String accountId, Pageable pageable);
 
+    ProcessingBusinessOperation findByIdAndPersonalAccountId(@Param("id") String id, @Param("accountId") String accountId);
+
     ProcessingBusinessOperation findByIdAndPersonalAccountIdAndStateIn(@Param("id") String id, @Param("accountId") String accountId, @Param("states") List<State> states);
 }

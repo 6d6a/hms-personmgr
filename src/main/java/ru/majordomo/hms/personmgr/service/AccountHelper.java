@@ -34,7 +34,11 @@ public class AccountHelper {
 
         Person person = null;
         if (account.getOwnerPersonId() != null) {
-            person = rcUserFeignClient.getPerson(account.getId(), account.getOwnerPersonId());
+            try {
+                person = rcUserFeignClient.getPerson(account.getId(), account.getOwnerPersonId());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         if (person != null) {
@@ -50,7 +54,13 @@ public class AccountHelper {
      * @param account Аккаунт
      */
     public BigDecimal getBalance(PersonalAccount account) {
-        Map<String, Object> balance = finFeignClient.getBalance(account.getId());
+        Map<String, Object> balance = null;
+
+        try {
+            balance = finFeignClient.getBalance(account.getId());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         if (balance == null) {
             throw new ResourceNotFoundException("Account balance not found.");
@@ -108,24 +118,36 @@ public class AccountHelper {
         paymentOperation.put("serviceId", service.getId());
         paymentOperation.put("amount", service.getCost());
 
-        SimpleServiceMessage response = finFeignClient.charge(account.getId(), paymentOperation);
+        SimpleServiceMessage response = null;
 
-        if (response.getParam("success") == null || !((boolean) response.getParam("success"))) {
+        try {
+            response = finFeignClient.charge(account.getId(), paymentOperation);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
             throw new ChargeException("Account balance is too low for specified service. " +
                     " Service cost is: " + service.getCost());
         }
 
         return response;
     }
+
     //TODO на самом деле сюда ещё должна быть возможность передать discountedService
     public SimpleServiceMessage block(PersonalAccount account, PaymentService service) {
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", service.getId());
         paymentOperation.put("amount", service.getCost());
 
-        SimpleServiceMessage response = finFeignClient.block(account.getId(), paymentOperation);
+        SimpleServiceMessage response = null;
+        try {
+            response = finFeignClient.block(account.getId(), paymentOperation);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        if (response.getParam("success") == null || !((boolean) response.getParam("success"))) {
+        if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
             throw new ChargeException("Account balance is too low for specified service. " +
                     " Service cost is: " + service.getCost());
         }

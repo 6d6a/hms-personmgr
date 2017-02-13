@@ -68,25 +68,25 @@ public class PersonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
 
-        PersonalAccount account = accountRepository.findOne(message.getAccountId());
-
-        if (account != null && account.getOwnerPersonId() == null) {
-            String objRef = message.getObjRef();
-            String personId = objRef.substring(objRef.lastIndexOf("/") + 1);
-            if (objRef.equals(personId)) {
-                logger.error("Не удалось получить personId из objRef: " + objRef);
-            } else {
-                account.setOwnerPersonId(personId);
-                accountRepository.save(account);
-            }
-        }
-
         State state = businessFlowDirector.processMessage(message);
 
         if (state == State.PROCESSED) {
+            PersonalAccount account = accountRepository.findOne(message.getAccountId());
+
+            if (account != null && account.getOwnerPersonId() == null) {
+                String objRef = message.getObjRef();
+                String personId = objRef.substring(objRef.lastIndexOf("/") + 1);
+                if (objRef.equals(personId)) {
+                    logger.error("Не удалось получить personId из objRef: " + objRef);
+                } else {
+                    account.setOwnerPersonId(personId);
+                    accountRepository.save(account);
+                }
+            }
+
             ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
             if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
-                message.addParam("quota", businessOperation.getMapParams().get("quota"));
+                message.addParam("quota", businessOperation.getParams().get("quota"));
                 businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
             }
         }

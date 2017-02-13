@@ -6,16 +6,20 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
+import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 @RestController
 @RequestMapping("/{accountId}/processing-actions")
+@Validated
 public class ProcessingBusinessActionRestController extends CommonRestController {
 
     private final ProcessingBusinessActionRepository repository;
@@ -26,28 +30,34 @@ public class ProcessingBusinessActionRestController extends CommonRestController
     }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
-    public ResponseEntity<Page<ProcessingBusinessAction>> listAll(Pageable pageable, @PathVariable("accountId") String accountId) {
+    public ResponseEntity<Page<ProcessingBusinessAction>> listAll(
+            @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
+            Pageable pageable
+    ) {
         Page<ProcessingBusinessAction> actions = repository.findByPersonalAccountId(accountId, pageable);
+
         return new ResponseEntity<>(actions, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ProcessingBusinessAction> get(@PathVariable("id") String id, @PathVariable("accountId") String accountId) {
+    public ResponseEntity<ProcessingBusinessAction> get(
+            @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
+            @ObjectId(ProcessingBusinessAction.class) @PathVariable("id") String id
+    ) {
         ProcessingBusinessAction action = repository.findByIdAndPersonalAccountId(id, accountId);
-        if (action == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+
         return new ResponseEntity<>(action, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-    public ResponseEntity<ProcessingBusinessAction> delete(@PathVariable("id") String id, @PathVariable("accountId") String accountId) {
+    public ResponseEntity<Void> delete(
+            @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
+            @ObjectId(ProcessingBusinessAction.class) @PathVariable("id") String id
+    ) {
         ProcessingBusinessAction action = repository.findByIdAndPersonalAccountId(id, accountId);
-        if (action == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
 
-        repository.delete(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        repository.delete(action);
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }

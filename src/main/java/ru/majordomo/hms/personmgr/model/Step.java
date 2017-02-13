@@ -1,19 +1,27 @@
 package ru.majordomo.hms.personmgr.model;
 
+import com.fasterxml.jackson.annotation.JsonView;
+
 import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.util.Objects;
 
 import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.common.Views;
 
 /**
  * Step
  */
 public abstract class Step extends BaseModel implements Comparable<Step> {
+    @JsonView(Views.Public.class)
     @Indexed
     private String name;
+
+    @JsonView(Views.Public.class)
     @Indexed
     private State state;
+
+    @JsonView(Views.Internal.class)
     @Indexed
     private int priority;
 
