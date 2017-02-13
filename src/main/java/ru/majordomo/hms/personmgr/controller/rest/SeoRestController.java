@@ -41,7 +41,6 @@ import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SEO_ORDER_
 public class SeoRestController extends CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(SeoRestController.class);
 
-
     private final PersonalAccountRepository accountRepository;
     private final AccountSeoOrderRepository accountSeoOrderRepository;
     private final SeoRepository seoRepository;

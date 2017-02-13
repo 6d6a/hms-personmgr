@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import com.netflix.servo.util.Strings;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.ExchangeTypes;
@@ -16,15 +14,17 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
@@ -37,16 +37,22 @@ public class UnixAccountAmqpController {
     private final BusinessFlowDirector businessFlowDirector;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final BusinessActionBuilder businessActionBuilder;
+    private final AccountHelper accountHelper;
+    private final PersonalAccountRepository personalAccountRepository;
 
     @Autowired
     public UnixAccountAmqpController(
             BusinessFlowDirector businessFlowDirector,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
-            BusinessActionBuilder businessActionBuilder
+            BusinessActionBuilder businessActionBuilder,
+            AccountHelper accountHelper,
+            PersonalAccountRepository personalAccountRepository
     ) {
         this.businessFlowDirector = businessFlowDirector;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
         this.businessActionBuilder = businessActionBuilder;
+        this.accountHelper = accountHelper;
+        this.personalAccountRepository = personalAccountRepository;
     }
 
     @RabbitListener(
@@ -76,18 +82,20 @@ public class UnixAccountAmqpController {
                 businessOperation.setState(State.PROCESSED);
                 processingBusinessOperationRepository.save(businessOperation);
 
-                List<String> emails = (List<String>) businessOperation.getMapParam("emailAddresses");
+                PersonalAccount account = personalAccountRepository.findOne(businessOperation.getPersonalAccountId());
+                String emails = accountHelper.getEmail(account);
+
                 message.setParams(new HashMap<>());
-                message.addParam("email", Strings.join(",", emails.iterator()));
+                message.addParam("email", emails);
                 message.addParam("api_name", "MajordomoVHClientCreatedConfirmation");
                 message.addParam("priority", 10);
 
                 HashMap<String, String> parameters = new HashMap<>();
                 parameters.put("client_id", message.getAccountId());
-                parameters.put("password", (String) businessOperation.getMapParam("password"));
-                parameters.put("ftp_ip", "ftp_ip");
-                parameters.put("ftp_login", "ftp_login");
-                parameters.put("ftp_password", "ftp_password");
+                parameters.put("password", (String) businessOperation.getParam("password"));
+                parameters.put("ftp_ip", "FTP_IP");
+                parameters.put("ftp_login", "FTP_LOGIN");
+                parameters.put("ftp_password", "FTP_PASSWORD");
 
                 message.addParam("parametrs", parameters);
 

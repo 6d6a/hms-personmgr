@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
-
 
 @RestController
 @RequestMapping("/{accountId}/dns-record")
@@ -28,12 +28,13 @@ public class DnsRecordResourceRestController extends CommonResourceRestControlle
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId", required = false) String accountId) {
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
         message.setAccountId(accountId);
 
         logger.debug("Creating DnsRecord. Message: " + message.toString());
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DNS_RECORD_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = process(BusinessOperationType.DNS_RECORD_CREATE, BusinessActionType.DNS_RECORD_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -43,15 +44,16 @@ public class DnsRecordResourceRestController extends CommonResourceRestControlle
     @RequestMapping(value = "/{resourceId}", method = RequestMethod.PATCH)
     public SimpleServiceMessage update(
             @PathVariable String resourceId,
-            @RequestBody SimpleServiceMessage message, HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId", required = false) String accountId) {
+            @RequestBody SimpleServiceMessage message,
+            HttpServletResponse response,
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
         message.setAccountId(accountId);
+        message.getParams().put("resourceId", resourceId);
 
         logger.debug("Updating DnsRecord with id " + resourceId + " " + message.toString());
 
-        message.getParams().put("resourceId", resourceId);
-
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DNS_RECORD_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = process(BusinessOperationType.DNS_RECORD_UPDATE, BusinessActionType.DNS_RECORD_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -62,14 +64,15 @@ public class DnsRecordResourceRestController extends CommonResourceRestControlle
     public SimpleServiceMessage delete(
             @PathVariable String resourceId,
             HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId", required = false) String accountId) {
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.addParam("resourceId", resourceId);
         message.setAccountId(accountId);
 
         logger.debug("Deleting DnsRecord with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.DNS_RECORD_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = process(BusinessOperationType.DNS_RECORD_DELETE, BusinessActionType.DNS_RECORD_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

@@ -1,6 +1,8 @@
 package ru.majordomo.hms.personmgr.model;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonView;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.PersistenceConstructor;
@@ -13,26 +15,28 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.common.Views;
 
 @Document
 public class ProcessingBusinessOperation extends Step  {
-
-    private String accountName;
-
+    @JsonView(Views.Public.class)
     @Indexed
     private BusinessOperationType type = BusinessOperationType.COMMON_OPERATION;
 
+    @JsonView(Views.Public.class)
     @Indexed
     private String personalAccountId;
 
+    @JsonView(Views.Public.class)
     @CreatedDate
     private LocalDateTime createdDate;
 
+    @JsonView(Views.Public.class)
     @LastModifiedDate
     private LocalDateTime updatedDate;
 
-    @JsonIgnore
-    private Map<String,Object> mapParams = new HashMap<>();
+    @JsonView(Views.Internal.class)
+    private Map<String,Object> params = new HashMap<>();
 
     public ProcessingBusinessOperation() {
     }
@@ -44,11 +48,10 @@ public class ProcessingBusinessOperation extends Step  {
             State state,
             int priority,
             BusinessOperationType type,
-            String accountName,
             String personalAccountId,
             LocalDateTime createdDate,
             LocalDateTime updatedDate,
-            Map<String, Object> mapParams
+            Map<String, Object> params
     ) {
         super();
         this.setId(id);
@@ -56,19 +59,10 @@ public class ProcessingBusinessOperation extends Step  {
         this.setState(state);
         this.setPriority(priority);
         this.type = type;
-        this.accountName = accountName;
         this.personalAccountId = personalAccountId;
         this.createdDate = createdDate;
         this.updatedDate = updatedDate;
-        this.mapParams = mapParams;
-    }
-
-    public String getAccountName() {
-        return accountName;
-    }
-
-    public void setAccountName(String accountName) {
-        this.accountName = accountName;
+        this.params = params;
     }
 
     public String getPersonalAccountId() {
@@ -95,20 +89,20 @@ public class ProcessingBusinessOperation extends Step  {
         this.updatedDate = updatedDate;
     }
 
-    public Map<String, Object> getMapParams() {
-        return mapParams;
+    public Map<String, Object> getParams() {
+        return params;
     }
 
-    public void setMapParams(Map<String, Object> mapParams) {
-        this.mapParams = mapParams;
+    public void setParams(Map<String, Object> params) {
+        this.params = params;
     }
 
-    public void addMapParam(String key, Object value) {
-        this.mapParams.put(key, value);
+    public void addParam(String key, Object value) {
+        this.params.put(key, value);
     }
 
-    public Object getMapParam(String key) {
-        return this.mapParams.get(key);
+    public Object getParam(String key) {
+        return this.params.get(key);
     }
 
     public BusinessOperationType getType() {
@@ -132,12 +126,11 @@ public class ProcessingBusinessOperation extends Step  {
     @Override
     public String toString() {
         return "ProcessingBusinessOperation{" +
-                "accountName='" + accountName + '\'' +
                 ", type=" + type +
                 ", personalAccountId='" + personalAccountId + '\'' +
                 ", createdDate=" + createdDate +
                 ", updatedDate=" + updatedDate +
-                ", mapParams=" + mapParams +
+                ", params=" + params +
                 "} " + super.toString();
     }
 }

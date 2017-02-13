@@ -1,8 +1,7 @@
 package ru.majordomo.hms.personmgr.model;
 
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.type.MapType;
-import org.codehaus.jackson.map.type.TypeFactory;
+import com.fasterxml.jackson.annotation.JsonView;
+
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.PersistenceConstructor;
@@ -14,9 +13,9 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
-import ru.majordomo.hms.personmgr.common.message.ServiceMessageParams;
 
 /**
  * ProcessingBusinessAction
@@ -31,9 +30,8 @@ public class ProcessingBusinessAction extends BusinessAction {
     @LastModifiedDate
     private LocalDateTime updatedDate;
 
-    private ServiceMessageParams params;
-
-    private Map<String,Object> mapParams = new HashMap<>();
+    @JsonView(Views.Internal.class)
+    private Map<String,Object> params = new HashMap<>();
 
     public ProcessingBusinessAction(BusinessAction businessAction) {
         super();
@@ -47,13 +45,25 @@ public class ProcessingBusinessAction extends BusinessAction {
     }
 
     @PersistenceConstructor
-    public ProcessingBusinessAction(String id, String name, State state, int priority, String operationId, BusinessActionType businessActionType, GenericMessageDestination destination, SimpleServiceMessage message, String personalAccountId, LocalDateTime createdDate, LocalDateTime updatedDate, ServiceMessageParams params, Map<String, Object> mapParams) {
+    public ProcessingBusinessAction(
+            String id,
+            String name,
+            State state,
+            int priority,
+            String operationId,
+            BusinessActionType businessActionType,
+            GenericMessageDestination destination,
+            SimpleServiceMessage message,
+            String personalAccountId,
+            LocalDateTime createdDate,
+            LocalDateTime updatedDate,
+            Map<String, Object> params
+    ) {
         super(id, name, state, priority, operationId, businessActionType, destination, message);
         this.personalAccountId = personalAccountId;
         this.createdDate = createdDate;
         this.updatedDate = updatedDate;
         this.params = params;
-        this.mapParams = mapParams;
     }
 
     public String getPersonalAccountId() {
@@ -62,19 +72,6 @@ public class ProcessingBusinessAction extends BusinessAction {
 
     public void setPersonalAccountId(String personalAccountId) {
         this.personalAccountId = personalAccountId;
-    }
-
-    public ServiceMessageParams getParams() {
-        return params;
-    }
-
-    public void setParams(ServiceMessageParams params) {
-        this.params = params;
-
-        ObjectMapper mapper = new ObjectMapper();
-        TypeFactory typeFactory = mapper.getTypeFactory();
-        MapType mapType = typeFactory.constructMapType(HashMap.class, String.class, Object.class);
-        this.mapParams = mapper.convertValue(params, mapType);
     }
 
     public LocalDateTime getCreatedDate() {
@@ -93,12 +90,12 @@ public class ProcessingBusinessAction extends BusinessAction {
         this.updatedDate = updatedDate;
     }
 
-    public Map<String, Object> getMapParams() {
-        return mapParams;
+    public Map<String, Object> getParams() {
+        return params;
     }
 
-    public void setMapParams(Map<String, Object> mapParams) {
-        this.mapParams = mapParams;
+    public void setParams(Map<String, Object> params) {
+        this.params = params;
     }
 
     @Override
@@ -113,6 +110,11 @@ public class ProcessingBusinessAction extends BusinessAction {
 
     @Override
     public String toString() {
-        return "ProcessingBusinessAction{} " + super.toString();
+        return "ProcessingBusinessAction{" +
+                "personalAccountId='" + personalAccountId + '\'' +
+                ", createdDate=" + createdDate +
+                ", updatedDate=" + updatedDate +
+                ", params=" + params +
+                "} " + super.toString();
     }
 }

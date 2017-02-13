@@ -17,9 +17,7 @@ import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 
-/**
- * BusinessFlowDirector
- */
+
 @Service
 public class BusinessFlowDirector {
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
@@ -29,7 +27,12 @@ public class BusinessFlowDirector {
     private final FinFeignClient finFeignClient;
 
     @Autowired
-    public BusinessFlowDirector(BusinessActionProcessor businessActionProcessor, ProcessingBusinessActionRepository processingBusinessActionRepository, ProcessingBusinessOperationRepository processingBusinessOperationRepository, FinFeignClient finFeignClient) {
+    public BusinessFlowDirector(
+            BusinessActionProcessor businessActionProcessor,
+            ProcessingBusinessActionRepository processingBusinessActionRepository,
+            ProcessingBusinessOperationRepository processingBusinessOperationRepository,
+            FinFeignClient finFeignClient
+    ) {
         this.businessActionProcessor = businessActionProcessor;
         this.processingBusinessActionRepository = processingBusinessActionRepository;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
@@ -54,7 +57,9 @@ public class BusinessFlowDirector {
 
     @Scheduled(cron = "0 10 * * * *")
     public void clean() {
-        try (Stream<ProcessingBusinessAction> businessActionStream = processingBusinessActionRepository.findByCreatedDateBeforeOrderByCreatedDateAsc(LocalDateTime.now().minusDays(1L))) {
+        try (Stream<ProcessingBusinessAction> businessActionStream = processingBusinessActionRepository.findByCreatedDateBeforeOrderByCreatedDateAsc(
+                LocalDateTime.now().minusDays(1L))
+        ) {
             businessActionStream.forEach(
                     this::processClean
             );
@@ -64,13 +69,16 @@ public class BusinessFlowDirector {
     private void processClean(ProcessingBusinessAction businessAction) {
         logger.debug("Processing businessAction clean for " + businessAction.toString());
 
+        logger.error("Found old businessAction with " + businessAction.getState() + " state " + businessAction.toString());
+
         switch (businessAction.getState()) {
+            case ERROR:
+            case PROCESSING:
             case PROCESSED:
             case FINISHED:
                 processingBusinessActionRepository.delete(businessAction);
+
                 break;
-            default:
-                logger.error("Found old businessAction with wrong(not processed) state " + businessAction.toString());
         }
     }
 

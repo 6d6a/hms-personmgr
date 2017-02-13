@@ -1,11 +1,16 @@
 package ru.majordomo.hms.personmgr.model;
 
+import com.fasterxml.jackson.annotation.JsonView;
+
 import org.springframework.data.annotation.Id;
+
+import ru.majordomo.hms.personmgr.common.Views;
 
 /**
  * Base class for document classes.
  */
 public class BaseModel {
+    @JsonView(Views.Public.class)
     @Id
     private String id;
 
