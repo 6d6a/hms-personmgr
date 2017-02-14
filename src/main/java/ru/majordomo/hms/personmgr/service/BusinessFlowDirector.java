@@ -10,13 +10,13 @@ import java.time.LocalDateTime;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.Application;
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
-
 
 @Service
 public class BusinessFlowDirector {
@@ -69,7 +69,9 @@ public class BusinessFlowDirector {
     private void processClean(ProcessingBusinessAction businessAction) {
         logger.debug("Processing businessAction clean for " + businessAction.toString());
 
-        logger.error("Found old businessAction with " + businessAction.getState() + " state " + businessAction.toString());
+        logger.error("Found old businessAction with " + businessAction.getState() +
+                " state " + businessAction.toString()
+        );
 
         switch (businessAction.getState()) {
             case ERROR:
@@ -89,24 +91,37 @@ public class BusinessFlowDirector {
 
         if (businessAction != null) {
             if ((boolean) message.getParam("success")) {
-                logger.debug("ProcessingBusinessAction -> success, operationIdentity: " + message.getOperationIdentity() + " actionIdentity: " + message.getActionIdentity());
                 businessAction.setState(State.PROCESSED);
             } else {
-                logger.debug("ProcessingBusinessAction -> error, operationIdentity: " + message.getOperationIdentity() + " actionIdentity: " + message.getActionIdentity());
                 businessAction.setState(State.ERROR);
-
-                if (businessAction.getOperationId() != null) {
-                    ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(businessAction.getOperationId());
-                    if (businessOperation != null) {
-                        businessOperation.setState(State.ERROR);
-                        processingBusinessOperationRepository.save(businessOperation);
-                    }
-                }
             }
+
+            logger.debug("ProcessingBusinessAction -> " + businessAction.getState() + ", operationIdentity: " +
+                    message.getOperationIdentity() +
+                    " actionIdentity: " + message.getActionIdentity()
+            );
 
             processingBusinessActionRepository.save(businessAction);
 
             processBlockedPayment(businessAction);
+
+            if (businessAction.getOperationId() != null) {
+                ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(businessAction.getOperationId());
+                if (businessOperation != null) {
+                    switch (businessAction.getState()) {
+                        case PROCESSED:
+                            if (businessOperation.getType() != BusinessOperationType.ACCOUNT_CREATE) {
+                                businessOperation.setState(businessAction.getState());
+                            }
+                        case ERROR:
+                            businessOperation.setState(businessAction.getState());
+                    }
+                    logger.debug("ProcessingBusinessOperation -> " + businessOperation.getState() + ", operationIdentity: " +
+                            message.getOperationIdentity()
+                    );
+                    processingBusinessOperationRepository.save(businessOperation);
+                }
+            }
 
             return businessAction.getState();
         } else {
