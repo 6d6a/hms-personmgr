@@ -34,15 +34,15 @@ public class AccountCountersService {
         List<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
         Long currentQuota = 0L;
         for (Quotable item : unixAccounts) {
-            currentQuota += item.getQuota();
+            currentQuota += item.getQuotaUsed();
         }
         List<Database> databases = rcUserFeignClient.getDatabases(accountId);
         for (Quotable item : databases) {
-            currentQuota += item.getQuota();
+            currentQuota += item.getQuotaUsed();
         }
         List<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(accountId);
         for (Quotable item : mailboxes) {
-            currentQuota += item.getQuota();
+            currentQuota += item.getQuotaUsed();
         }
 
         return currentQuota;
