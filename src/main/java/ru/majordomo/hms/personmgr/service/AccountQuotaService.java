@@ -91,7 +91,10 @@ public class AccountQuotaService {
         Long currentQuotaUsed = accountCountersService.getCurrentQuotaUsed(account.getId());
         Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
         List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), ADDITIONAL_QUOTA_100_SERVICE_ID);
-        Long additionalServiceQuota = accountServices.get(0).getQuantity() * ADDITIONAL_QUOTA_100_CAPACITY;
+        Long additionalServiceQuota = 0L;
+        if (accountServices.size() > 0) {
+            additionalServiceQuota = accountServices.get(0).getQuantity() * ADDITIONAL_QUOTA_100_CAPACITY;
+        }
         String quotaServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
 
         logger.debug("Processing processQuotaService for account: " + account.getAccountId()
