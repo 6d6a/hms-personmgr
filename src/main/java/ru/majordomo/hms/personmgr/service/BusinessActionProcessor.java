@@ -4,25 +4,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
 
-import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestination;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 
-/**
- * BusinessActionProcessor
- */
 @Service
 public class BusinessActionProcessor {
     private final static Logger logger = LoggerFactory.getLogger(BusinessActionProcessor.class);
 
-    @Autowired
-    private AmqpSender amqpSender;
+    private final AmqpSender amqpSender;
 
     @Autowired
-    private MailManager mailManager;
+    public BusinessActionProcessor(AmqpSender amqpSender) {
+        this.amqpSender = amqpSender;
+    }
 
     public ProcessingBusinessAction process(ProcessingBusinessAction action) {
         logger.debug("processing BusinessAction " + action.getId());
@@ -39,14 +35,7 @@ public class BusinessActionProcessor {
 
                 break;
             case MAIL_MANAGER:
-                try {
-                    mailManager.sendEmail(action.getMessage());
-                    logger.debug("mail sent");
-                    action.setState(State.PROCESSED);
-                } catch (RestClientException exception) {
-                    action.setState(State.ERROR);
-                    logger.error(exception.toString() + " " + exception.getMessage());
-                }
+                logger.error("MAIL_MANAGER destinationType not used any more (deprecated)");
 
                 break;
         }

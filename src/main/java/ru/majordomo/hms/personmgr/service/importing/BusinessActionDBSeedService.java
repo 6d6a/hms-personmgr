@@ -76,8 +76,6 @@ public class BusinessActionDBSeedService {
         this.seedDnsRecordUpdateActions();
         this.seedDnsRecordDeleteActions();
 
-        this.seedSeoOrderActions();
-
         logger.debug("BusinessAction found with findAll():");
         logger.debug("-------------------------------");
 
@@ -109,18 +107,6 @@ public class BusinessActionDBSeedService {
         action.setDestination(amqpMessageDestination);
 
         action.setPriority(1);
-
-        businessActionRepository.save(action);
-
-        action = new BusinessAction();
-        action.setBusinessActionType(BusinessActionType.WEB_SITE_CREATE_MM);
-        action.setName("WebSite create MM");
-
-        mailManagerMessageDestination = new MailManagerMessageDestination();
-
-        action.setDestination(mailManagerMessageDestination);
-
-        action.setPriority(2);
 
         businessActionRepository.save(action);
     }
@@ -493,18 +479,6 @@ public class BusinessActionDBSeedService {
         action.setPriority(3);
 
         businessActionRepository.save(action);
-
-        action = new BusinessAction();
-        action.setBusinessActionType(BusinessActionType.ACCOUNT_CREATE_MM);
-        action.setName("Account create MM");
-
-        mailManagerMessageDestination = new MailManagerMessageDestination();
-
-        action.setDestination(mailManagerMessageDestination);
-
-        action.setPriority(4);
-
-        businessActionRepository.save(action);
     }
 
     private void seedAccountUpdateActions() {
@@ -707,24 +681,6 @@ public class BusinessActionDBSeedService {
         amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
-
-        action.setPriority(1);
-
-        businessActionRepository.save(action);
-    }
-
-    private void seedSeoOrderActions() {
-        BusinessAction action;
-        MailManagerMessageDestination mailManagerMessageDestination;
-
-        //Seo order
-        action = new BusinessAction();
-        action.setBusinessActionType(BusinessActionType.SEO_ORDER_MM);
-        action.setName("Seo order MM");
-
-        mailManagerMessageDestination = new MailManagerMessageDestination();
-
-        action.setDestination(mailManagerMessageDestination);
 
         action.setPriority(1);
 

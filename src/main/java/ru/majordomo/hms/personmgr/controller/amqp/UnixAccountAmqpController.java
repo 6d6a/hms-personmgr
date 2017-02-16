@@ -9,6 +9,7 @@ import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
@@ -16,17 +17,17 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
+
+import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
 
 @EnableRabbit
 @Service
@@ -36,23 +37,19 @@ public class UnixAccountAmqpController {
 
     private final BusinessFlowDirector businessFlowDirector;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
-    private final BusinessActionBuilder businessActionBuilder;
-    private final AccountHelper accountHelper;
     private final PersonalAccountRepository personalAccountRepository;
+    private final ApplicationEventPublisher publisher;
 
     @Autowired
     public UnixAccountAmqpController(
             BusinessFlowDirector businessFlowDirector,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
-            BusinessActionBuilder businessActionBuilder,
-            AccountHelper accountHelper,
-            PersonalAccountRepository personalAccountRepository
-    ) {
+            PersonalAccountRepository personalAccountRepository,
+            ApplicationEventPublisher publisher) {
         this.businessFlowDirector = businessFlowDirector;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
-        this.businessActionBuilder = businessActionBuilder;
-        this.accountHelper = accountHelper;
         this.personalAccountRepository = personalAccountRepository;
+        this.publisher = publisher;
     }
 
     @RabbitListener(
@@ -69,7 +66,7 @@ public class UnixAccountAmqpController {
                     key = "pm"
             )
     )
-    @SuppressWarnings("unchecked")
+
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
@@ -83,23 +80,10 @@ public class UnixAccountAmqpController {
                 processingBusinessOperationRepository.save(businessOperation);
 
                 PersonalAccount account = personalAccountRepository.findOne(businessOperation.getPersonalAccountId());
-                String emails = accountHelper.getEmail(account);
+                Map<String, String> params = new HashMap<>();
+                params.put(PASSWORD_KEY, (String) businessOperation.getParam(PASSWORD_KEY));
 
-                message.setParams(new HashMap<>());
-                message.addParam("email", emails);
-                message.addParam("api_name", "MajordomoVHClientCreatedConfirmation");
-                message.addParam("priority", 10);
-
-                HashMap<String, String> parameters = new HashMap<>();
-                parameters.put("client_id", message.getAccountId());
-                parameters.put("password", (String) businessOperation.getParam("password"));
-                parameters.put("ftp_ip", "FTP_IP");
-                parameters.put("ftp_login", "FTP_LOGIN");
-                parameters.put("ftp_password", "FTP_PASSWORD");
-
-                message.addParam("parametrs", parameters);
-
-                businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_MM, message);
+                publisher.publishEvent(new AccountCreatedEvent(account, params));
             }
         }
     }

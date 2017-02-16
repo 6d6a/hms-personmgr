@@ -3,16 +3,18 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountQuotaAddedEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountQuotaDiscardEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
@@ -24,6 +26,7 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import static java.lang.Math.floor;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_CAPACITY;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.TECHNICAL_ACCOUNT_ID;
 
 @Service
@@ -37,8 +40,7 @@ public class AccountQuotaService {
     private final AccountServiceHelper accountServiceHelper;
     private final PlanRepository planRepository;
     private final AccountServiceRepository accountServiceRepository;
-    private final AccountHelper accountHelper;
-    private final BusinessActionBuilder businessActionBuilder;
+    private final ApplicationEventPublisher publisher;
 
     @Autowired
     public AccountQuotaService(
@@ -49,8 +51,7 @@ public class AccountQuotaService {
             AccountServiceHelper accountServiceHelper,
             PlanRepository planRepository,
             AccountServiceRepository accountServiceRepository,
-            AccountHelper accountHelper,
-            BusinessActionBuilder businessActionBuilder
+            ApplicationEventPublisher publisher
     ) {
         this.personalAccountRepository = personalAccountRepository;
         this.accountCountersService = accountCountersService;
@@ -59,8 +60,7 @@ public class AccountQuotaService {
         this.accountServiceHelper = accountServiceHelper;
         this.planRepository = planRepository;
         this.accountServiceRepository = accountServiceRepository;
-        this.accountHelper = accountHelper;
-        this.businessActionBuilder = businessActionBuilder;
+        this.publisher = publisher;
     }
 
     //Выполняем проверку квоты каждые 30 минут
@@ -119,25 +119,10 @@ public class AccountQuotaService {
                         logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
                                 + " account quota is increased");
 
+                        Map<String, String> params = new HashMap<>();
+                        params.put(SERVICE_NAME_KEY, plan.getName());
 
-                        SimpleServiceMessage message = new SimpleServiceMessage();
-                        String email = accountHelper.getEmail(account);
-
-                        message.setAccountId(account.getId());
-                        message.setParams(new HashMap<>());
-                        message.addParam("email", email);
-                        message.addParam("api_name", "MajordomoVHQuotaAdd");
-                        message.addParam("priority", 10);
-
-
-                        HashMap<String, String> parameters = new HashMap<>();
-                        parameters.put("client_id", message.getAccountId());
-                        parameters.put("acc_id", account.getName());
-                        parameters.put("tariff", plan.getName());
-
-                        message.addParam("parametrs", parameters);
-
-                        businessActionBuilder.build(BusinessActionType.ACCOUNT_QUOTA_ADD_MM, message);
+                        publisher.publishEvent(new AccountQuotaAddedEvent(account, params));
                     }
                     updateQuotaService(account, quotaServiceId, currentQuotaUsed, planQuotaKBFreeLimit, additionalServiceQuota, ADDITIONAL_QUOTA_100_CAPACITY);
                 }
@@ -148,26 +133,10 @@ public class AccountQuotaService {
 
                 //TODO set writable to false to Quotable resources
 
-                SimpleServiceMessage message = new SimpleServiceMessage();
-                String email = accountHelper.getEmail(account);
+                Map<String, String> params = new HashMap<>();
+                params.put(SERVICE_NAME_KEY, plan.getName());
 
-                message.setAccountId(account.getId());
-                message.setParams(new HashMap<>());
-                message.addParam("email", email);
-                message.addParam("api_name", "MajordomoVHQuotaDiscard");
-                message.addParam("priority", 10);
-
-
-                HashMap<String, String> parameters = new HashMap<>();
-                parameters.put("client_id", message.getAccountId());
-                parameters.put("acc_id", account.getName());
-                parameters.put("tariff", plan.getName());
-                //TODO Брать список доменов
-                parameters.put("domains", "<Домены расположенные на аккаунте>");
-
-                message.addParam("parametrs", parameters);
-
-                businessActionBuilder.build(BusinessActionType.ACCOUNT_QUOTA_DISCARD_MM, message);
+                publisher.publishEvent(new AccountQuotaDiscardEvent(account, params));
             }
         } else {
             logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()

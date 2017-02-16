@@ -1,10 +1,11 @@
-package ru.majordomo.hms.personmgr.event;
+package ru.majordomo.hms.personmgr.event.promocode.listener;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventListener;
 import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
@@ -13,11 +14,12 @@ import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
-public class PromocodeEventListener extends AbstractMongoEventListener<Promocode> {
+@Component
+public class PromocodeMongoEventListener extends AbstractMongoEventListener<Promocode> {
     private final MongoOperations mongoOperations;
 
     @Autowired
-    public PromocodeEventListener(MongoOperations mongoOperations) {
+    public PromocodeMongoEventListener(MongoOperations mongoOperations) {
         this.mongoOperations = mongoOperations;
     }
 

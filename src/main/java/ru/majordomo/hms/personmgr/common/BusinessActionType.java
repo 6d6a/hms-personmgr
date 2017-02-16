@@ -1,11 +1,7 @@
 package ru.majordomo.hms.personmgr.common;
 
-/**
- * BusinessActionType
- */
 public enum BusinessActionType {
     WEB_SITE_CREATE_RC,
-    WEB_SITE_CREATE_MM,
     WEB_SITE_UPDATE_RC,
     WEB_SITE_DELETE_RC,
     DATABASE_CREATE_RC,
@@ -26,7 +22,6 @@ public enum BusinessActionType {
     ACCOUNT_CREATE_RC,
     ACCOUNT_CREATE_SI,
     ACCOUNT_CREATE_FIN,
-    ACCOUNT_CREATE_MM,
     ACCOUNT_UPDATE_RC,
     ACCOUNT_DELETE_RC,
     SSL_CERTIFICATE_CREATE_RC,
@@ -38,9 +33,6 @@ public enum BusinessActionType {
     UNIX_ACCOUNT_CREATE_RC,
     UNIX_ACCOUNT_UPDATE_RC,
     UNIX_ACCOUNT_DELETE_RC,
-    SEO_ORDER_MM,
-    ACCOUNT_QUOTA_DISCARD_MM,
-    ACCOUNT_QUOTA_ADD_MM,
     DNS_RECORD_CREATE_RC,
     DNS_RECORD_UPDATE_RC,
     DNS_RECORD_DELETE_RC

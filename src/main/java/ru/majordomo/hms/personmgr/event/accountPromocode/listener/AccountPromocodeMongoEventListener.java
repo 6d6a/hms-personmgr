@@ -1,18 +1,20 @@
-package ru.majordomo.hms.personmgr.event;
+package ru.majordomo.hms.personmgr.event.accountPromocode.listener;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventListener;
 import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
+import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 
-public class AccountPromocodeEventListener extends AbstractMongoEventListener<AccountPromocode> {
+@Component
+public class AccountPromocodeMongoEventListener extends AbstractMongoEventListener<AccountPromocode> {
     private final MongoOperations mongoOperations;
 
     @Autowired
-    public AccountPromocodeEventListener(MongoOperations mongoOperations) {
+    public AccountPromocodeMongoEventListener(MongoOperations mongoOperations) {
         this.mongoOperations = mongoOperations;
     }
 

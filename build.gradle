@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        springBootVersion = '1.4.1.RELEASE'
+        springBootVersion = '1.5.1.RELEASE'
         querydslVersion = '4.1.4'
     }
     repositories {
@@ -114,7 +114,7 @@ dependencies {
 
 dependencyManagement {
     imports {
-        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Camden.SR1"
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Camden.SR5"
     }
 }
 

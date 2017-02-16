@@ -20,31 +20,12 @@ import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventListener;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 
-
-import feign.Feign;
 import ru.majordomo.hms.personmgr.Serializer.PageSerializer;
-import ru.majordomo.hms.personmgr.event.AbonementEventListener;
-import ru.majordomo.hms.personmgr.event.AccountAbonementEventListener;
-import ru.majordomo.hms.personmgr.event.AccountDomainEventListener;
-import ru.majordomo.hms.personmgr.event.AccountPromocodeEventListener;
-import ru.majordomo.hms.personmgr.event.AccountSeoOrderEventListener;
-import ru.majordomo.hms.personmgr.event.AccountServiceEventListener;
-import ru.majordomo.hms.personmgr.event.DomainTldEventListener;
-import ru.majordomo.hms.personmgr.event.PersonalAccountEventListener;
-import ru.majordomo.hms.personmgr.event.PlanEventListener;
-import ru.majordomo.hms.personmgr.event.ProcessingBusinessActionEventListener;
-import ru.majordomo.hms.personmgr.event.PromocodeEventListener;
-import ru.majordomo.hms.personmgr.event.SeoEventListener;
-import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
-import ru.majordomo.hms.personmgr.service.DomainTldService;
-import ru.majordomo.hms.personmgr.service.PlanBuilder;
 import ru.majordomo.hms.personmgr.service.importing.*;
-import ru.majordomo.hms.personmgr.validators.ObjectIdValidator;
 
 @SpringBootApplication
 @PropertySources({
@@ -179,78 +160,6 @@ public class Application implements CommandLineRunner {
         }
         sb = sb.length() == 0 ? sb.append("No Options Specified") : sb;
         logger.info(String.format("Launched personal manager with following options: %s", sb.toString()));
-    }
-
-    @Bean
-    @Autowired
-    public ProcessingBusinessActionEventListener processingBusinessActionEventListener(MongoOperations mongoOperations) {
-        return new ProcessingBusinessActionEventListener(mongoOperations);
-    }
-
-    @Bean
-    @Autowired
-    public AccountDomainEventListener accountDomainEventListener(DomainTldService domainTldService) {
-        return new AccountDomainEventListener(domainTldService);
-    }
-
-    @Bean
-    @Autowired
-    public DomainTldEventListener domainTldEventListener(MongoOperations mongoOperations) {
-        return new DomainTldEventListener(mongoOperations);
-    }
-
-    @Bean
-    @Autowired
-    public PlanEventListener planEventListener(PlanBuilder planBuilder) {
-        return new PlanEventListener(planBuilder);
-    }
-
-    @Bean
-    @Autowired
-    public PromocodeEventListener promocodeEventListener(MongoOperations mongoOperations) {
-        return new PromocodeEventListener(mongoOperations);
-    }
-
-    @Bean
-    @Autowired
-    public SeoEventListener seoEventListener(MongoOperations mongoOperations) {
-        return new SeoEventListener(mongoOperations);
-    }
-
-    @Bean
-    @Autowired
-    public AccountSeoOrderEventListener accountSeoOrderEventListener(MongoOperations mongoOperations) {
-        return new AccountSeoOrderEventListener(mongoOperations);
-    }
-
-    @Bean
-    @Autowired
-    public AccountPromocodeEventListener accountPromocodeEventListener(MongoOperations mongoOperations) {
-        return new AccountPromocodeEventListener(mongoOperations);
-    }
-
-    @Bean
-    @Autowired
-    public AbonementEventListener abonementEventListener(MongoOperations mongoOperations) {
-        return new AbonementEventListener(mongoOperations);
-    }
-
-    @Bean
-    @Autowired
-    public AccountAbonementEventListener accountAbonementEventListener(MongoOperations mongoOperations) {
-        return new AccountAbonementEventListener(mongoOperations);
-    }
-
-    @Bean
-    @Autowired
-    public PersonalAccountEventListener personalAccountEventListener(MongoOperations mongoOperations) {
-        return new PersonalAccountEventListener(mongoOperations);
-    }
-
-    @Bean
-    @Autowired
-    public AccountServiceEventListener accountServiceEventListener(MongoOperations mongoOperations) {
-        return new AccountServiceEventListener(mongoOperations);
     }
 
     @Bean
