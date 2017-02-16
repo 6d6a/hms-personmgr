@@ -2,6 +2,12 @@ package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.rc.user.resources.Database;
+import ru.majordomo.hms.rc.user.resources.Mailbox;
+import ru.majordomo.hms.rc.user.resources.Quotable;
+import ru.majordomo.hms.rc.user.resources.UnixAccount;
+
+import java.util.List;
 
 @Service
 public class AccountCountersService {
@@ -25,6 +31,20 @@ public class AccountCountersService {
     }
 
     public Long getCurrentQuotaUsed(String accountId) {
-        return rcUserFeignClient.getQuotaUsed(accountId).getCount();
+        List<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
+        Long currentQuota = 0L;
+        for (Quotable item : unixAccounts) {
+            currentQuota += item.getQuota();
+        }
+        List<Database> databases = rcUserFeignClient.getDatabases(accountId);
+        for (Quotable item : databases) {
+            currentQuota += item.getQuota();
+        }
+        List<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(accountId);
+        for (Quotable item : mailboxes) {
+            currentQuota += item.getQuota();
+        }
+
+        return currentQuota;
     }
 }

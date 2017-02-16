@@ -6,9 +6,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import ru.majordomo.hms.personmgr.common.Count;
-import ru.majordomo.hms.rc.user.resources.Domain;
-import ru.majordomo.hms.rc.user.resources.Person;
-import ru.majordomo.hms.rc.user.resources.WebSite;
+import ru.majordomo.hms.rc.user.resources.*;
+
+import java.util.List;
 
 @FeignClient(name = "rc-user")
 public interface RcUserFeignClient {
@@ -23,6 +23,15 @@ public interface RcUserFeignClient {
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/quota", consumes = "application/json")
     Count getQuotaUsed(@PathVariable("accountId") String accountId);
+
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/unix-account")
+    List<UnixAccount> getUnixAccounts(@PathVariable("accountId") String accountId);
+
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/database")
+    List<Database> getDatabases(@PathVariable("accountId") String accountId);
+
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/mailbox")
+    List<Mailbox> getMailboxes(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/website/{webSiteId}", consumes = "application/json")
     WebSite getWebSite(@PathVariable("accountId") String accountId, @PathVariable("webSiteId") String webSiteId);
