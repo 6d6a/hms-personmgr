@@ -36,6 +36,7 @@ import ru.majordomo.hms.personmgr.service.SequenceCounterService;
 import ru.majordomo.hms.personmgr.service.SiFeignClient;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
+import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.VH_ACCOUNT_PREFIX;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_CREATE;
 
@@ -146,7 +147,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
 
         message.setAccountId(personalAccount.getId());
         message.addParam("username", personalAccount.getName());
-        message.addParam("password", password);
+        message.addParam(PASSWORD_KEY, password);
 
         ProcessingBusinessOperation processingBusinessOperation = businessOperationBuilder.build(BusinessOperationType.ACCOUNT_CREATE, message);
 
@@ -174,7 +175,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
 
         Map<String, String> credentials = new HashMap<>();
         credentials.put("username", personalAccount.getName());
-        credentials.put("password", password);
+        credentials.put(PASSWORD_KEY, password);
 
         responseMessage.addParam("credentials", credentials);
 

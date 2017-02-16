@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.controller.rest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -18,9 +19,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.SeoType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.seo.SeoOrderedEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.seo.AccountSeoOrder;
 import ru.majordomo.hms.personmgr.model.seo.Seo;
@@ -28,11 +29,12 @@ import ru.majordomo.hms.personmgr.repository.AccountSeoOrderRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.SeoRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
+import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.WEB_SITE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SEO_ORDER_CREATE;
 
 @RestController
@@ -44,25 +46,24 @@ public class SeoRestController extends CommonRestController {
     private final PersonalAccountRepository accountRepository;
     private final AccountSeoOrderRepository accountSeoOrderRepository;
     private final SeoRepository seoRepository;
-    private final BusinessActionBuilder businessActionBuilder;
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountHelper accountHelper;
+    private final ApplicationEventPublisher publisher;
 
     @Autowired
     public SeoRestController(
             PersonalAccountRepository accountRepository,
             AccountSeoOrderRepository accountSeoOrderRepository,
             SeoRepository seoRepository,
-            BusinessActionBuilder businessActionBuilder,
             RcUserFeignClient rcUserFeignClient,
-            AccountHelper accountHelper
-    ) {
+            AccountHelper accountHelper,
+            ApplicationEventPublisher publisher) {
         this.accountRepository = accountRepository;
         this.accountSeoOrderRepository = accountSeoOrderRepository;
         this.seoRepository = seoRepository;
-        this.businessActionBuilder = businessActionBuilder;
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
+        this.publisher = publisher;
     }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
@@ -159,31 +160,13 @@ public class SeoRestController extends CommonRestController {
 
         accountSeoOrderRepository.save(order);
 
-        //Письмо в  СЕО
-        SimpleServiceMessage message = new SimpleServiceMessage();
-        message.setAccountId(account.getId());
-        //TODO Поставить pro@
-        String email = "web-script@majordomo.ru";
-        message.setParams(new HashMap<>());
-        message.addParam("email", email);
-        message.addParam("api_name", "MajordomoServiceMessage");
-        message.addParam("priority", 10);
+        Map<String, String> params = new HashMap<>();
+        params.put(WEB_SITE_ID_KEY, webSiteId);
+        params.put(SERVICE_NAME_KEY, seo.getName());
 
-        HashMap<String, String> parameters = new HashMap<>();
-        parameters.put("client_id", message.getAccountId());
-
-        String clientEmails = accountHelper.getEmail(account);
-        String webSiteName = webSite.getName();
-
-        parameters.put("body", "1. Аккаунт: " + account.getName() + "<br>" +
-                "2. E-mail: " + clientEmails + "<br>" +
-                "3. Имя сайта: " + webSiteName + "<br><br>" +
-                "Услуга " + seo.getName() + " оплачена из ПУ.");
-        parameters.put("subject", "Услуга " + seo.getName() + " оплачена");
-
-        message.addParam("parametrs", parameters);
-
-        businessActionBuilder.build(BusinessActionType.SEO_ORDER_MM, message);
+        logger.debug("Trying to publish SeoOrderedEvent publisher: " + publisher.toString() + " " + publisher.getClass());
+        publisher.publishEvent(new SeoOrderedEvent(account, params));
+        logger.debug("Published SeoOrderedEvent");
 
         return new ResponseEntity<>(
                 this.createSuccessResponse("AccountSeoOrder created for websiteId " + webSiteId),

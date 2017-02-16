@@ -1,17 +1,19 @@
-package ru.majordomo.hms.personmgr.event;
+package ru.majordomo.hms.personmgr.event.processingBusinessAction.listener;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventListener;
 import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
+import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 
-public class ProcessingBusinessActionEventListener extends AbstractMongoEventListener<ProcessingBusinessAction> {
+@Component
+public class ProcessingBusinessActionMongoEventListener extends AbstractMongoEventListener<ProcessingBusinessAction> {
     private final MongoOperations mongoOperations;
 
     @Autowired
-    public ProcessingBusinessActionEventListener(MongoOperations mongoOperations) {
+    public ProcessingBusinessActionMongoEventListener(MongoOperations mongoOperations) {
         this.mongoOperations = mongoOperations;
     }
 

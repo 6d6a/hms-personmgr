@@ -38,6 +38,10 @@ public class Constants {
     public static final String ACCOUNT_SETTING_AUTO_BILL_SENDING = "auto_bill_sending";
     public static final String ACCOUNT_SETTING_CREDIT = "credit";
     public static final String ACCOUNT_SETTING_NOTIFY_DAYS = "notify_days";
+    public static final String WEB_SITE_ID_KEY = "webSiteId";
+    public static final String PASSWORD_KEY = "password";
+    public static final String SERVICE_NAME_KEY = "serviceName";
+    public static final String DOMAINS_KEY = "domains";
     public static final int PLAN_PARKING_ID = 109;
     public static final int PLAN_PARKING_PLUS_ID = 124;
     public static final int PLAN_UNLIMITED_ID = 9802;

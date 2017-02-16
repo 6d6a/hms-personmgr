@@ -9,8 +9,7 @@ import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
@@ -18,42 +17,33 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
-import ru.majordomo.hms.rc.user.resources.WebSite;
+
+import static ru.majordomo.hms.personmgr.common.Constants.WEB_SITE_ID_KEY;
 
 @EnableRabbit
 @Service
-public class WebSiteAmqpController extends CommonAmqpController {
+public class WebSiteAmqpController extends CommonAmqpController  {
 
     private final static Logger logger = LoggerFactory.getLogger(WebSiteAmqpController.class);
 
-    private final BusinessActionBuilder businessActionBuilder;
     private final BusinessFlowDirector businessFlowDirector;
-    private final AccountHelper accountHelper;
     private final PersonalAccountRepository accountRepository;
-    private final RcUserFeignClient rcUserFeignClient;
+    private final ApplicationEventPublisher publisher;
 
     @Autowired
     public WebSiteAmqpController(
-            BusinessActionBuilder businessActionBuilder,
             BusinessFlowDirector businessFlowDirector,
-            AccountHelper accountHelper,
             PersonalAccountRepository accountRepository,
-            RcUserFeignClient rcUserFeignClient
-    ) {
-        this.businessActionBuilder = businessActionBuilder;
+            ApplicationEventPublisher publisher) {
         this.businessFlowDirector = businessFlowDirector;
-        this.accountHelper = accountHelper;
         this.accountRepository = accountRepository;
-        this.rcUserFeignClient = rcUserFeignClient;
+        this.publisher = publisher;
     }
 
     @RabbitListener(
@@ -82,38 +72,12 @@ public class WebSiteAmqpController extends CommonAmqpController {
             SimpleServiceMessage mailMessage = new SimpleServiceMessage();
             mailMessage.setAccountId(account.getId());
 
-            String webSiteId = getResourceIdByObjRef(message.getObjRef());
+            String resourceId = getResourceIdByObjRef(message.getObjRef());
 
-            WebSite webSite = null;
+            Map<String, String> params = new HashMap<>();
+            params.put(WEB_SITE_ID_KEY, resourceId);
 
-            try {
-                webSite = rcUserFeignClient.getWebSite(account.getId(), webSiteId);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            if (webSite == null) {
-                logger.debug("WebSite with id " + webSiteId + " not found");
-
-                return;
-            }
-
-            String webSiteName = webSite.getName();
-
-            String emails = accountHelper.getEmail(account);
-
-            mailMessage.setParams(new HashMap<>());
-            mailMessage.addParam("email", emails);
-            mailMessage.addParam("api_name", "MajordomoVHWebSiteCreated");
-            mailMessage.addParam("priority", 10);
-
-            HashMap<String, String> parameters = new HashMap<>();
-            parameters.put("client_id", message.getAccountId());
-            parameters.put("website_name", webSiteName);
-
-            mailMessage.addParam("parametrs", parameters);
-
-            businessActionBuilder.build(BusinessActionType.WEB_SITE_CREATE_MM, mailMessage);
+            publisher.publishEvent(new AccountCreatedEvent(account, params));
         }
     }
 
