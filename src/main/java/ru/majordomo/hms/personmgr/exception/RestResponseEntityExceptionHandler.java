@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.exception;
 
 
+import feign.codec.DecodeException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
@@ -46,7 +47,7 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
 
-    @ExceptionHandler({ ParameterValidationException.class, DataIntegrityViolationException.class, LowBalanceException.class })
+    @ExceptionHandler({ ParameterValidationException.class, DataIntegrityViolationException.class, LowBalanceException.class, DecodeException.class })
     public ResponseEntity<Object> handleBadRequest(
             final RuntimeException ex,
             final WebRequest request
