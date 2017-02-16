@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 
@@ -47,7 +48,7 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
 
-    @ExceptionHandler({ ParameterValidationException.class, DataIntegrityViolationException.class, LowBalanceException.class, DecodeException.class })
+    @ExceptionHandler({ ParameterValidationException.class, DataIntegrityViolationException.class, LowBalanceException.class })
     public ResponseEntity<Object> handleBadRequest(
             final RuntimeException ex,
             final WebRequest request
@@ -56,6 +57,20 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
                 HttpStatus.BAD_REQUEST.value(),
                 ex.getMessage(),
                 new HashMap<>()
+        );
+        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler({ DecodeException.class})
+    public ResponseEntity<Object> handleBadRequest(
+            final DecodeException ex,
+            final WebRequest request
+    ) {
+        final ErrorMessage bodyOfResponse = new ErrorMessage(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                Arrays.stream(ex.getStackTrace())
+                        .collect(Collectors.toMap(StackTraceElement::getClassName, StackTraceElement::getMethodName))
         );
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
