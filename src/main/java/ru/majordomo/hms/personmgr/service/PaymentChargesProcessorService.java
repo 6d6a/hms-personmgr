@@ -3,17 +3,13 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -22,70 +18,68 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
-
-/**
- * PaymentChargesProcessorService
- */
 @Service
 public class PaymentChargesProcessorService {
     private final static Logger logger = LoggerFactory.getLogger(PaymentChargesProcessorService.class);
 
     private final PersonalAccountRepository personalAccountRepository;
-    private final FinFeignClient finFeignClient;
     private final AccountServiceRepository accountServiceRepository;
     private final AccountHelper accountHelper;
 
     @Autowired
     public PaymentChargesProcessorService(
             PersonalAccountRepository personalAccountRepository,
-            FinFeignClient finFeignClient,
             AccountServiceRepository accountServiceRepository,
             AccountHelper accountHelper
     ) {
         this.personalAccountRepository = personalAccountRepository;
-        this.finFeignClient = finFeignClient;
         this.accountServiceRepository = accountServiceRepository;
         this.accountHelper = accountHelper;
     }
 
-    //Выполняем списания в 01:00:00 каждый день
-    @Scheduled(cron = "0 0 1 * * *")
-    public void processCharges() {
-        try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findAllStream()) {
-            personalAccountStream.forEach(
-                    this::processCharge
-            );
-        }
-    }
-
-    public void processCharges(String paymentAccountName) {
+    public void processCharge(String paymentAccountName) {
         PersonalAccount account = personalAccountRepository.findByName(paymentAccountName);
         this.processCharge(account);
     }
 
-    private void processCharge(PersonalAccount paymentAccount) {
+    public void processCharge(PersonalAccount account) {
         LocalDateTime chargeDate = LocalDateTime.now().minusDays(1).withHour(23).withMinute(59).withSecond(59);
-        logger.debug("processing charges for PersonalAccount: " + paymentAccount.getAccountId()
-                + " name: " + paymentAccount.getName()
+
+        logger.debug("processing charges for PersonalAccount: " + account.getAccountId()
+                + " name: " + account.getName()
                 + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE_TIME));
 
-        logger.debug("processing monthly charge for PersonalAccount: " + paymentAccount.getAccountId()
-                + " name: " + paymentAccount.getName()
+        logger.debug("processing monthly charge for PersonalAccount: " + account.getAccountId()
+                + " name: " + account.getName()
                 + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE_TIME));
-        List<AccountService> accountServices = paymentAccount.getServices();
-        accountServices.stream().filter((accountService) -> accountService.getPaymentService().getPaymentType() == ServicePaymentType.MONTH
-                && (accountService.getLastBilled() == null
-                || accountService.getLastBilled().isBefore(chargeDate.minusMonths(1))
-                || accountService.getLastBilled().isEqual(chargeDate.minusMonths(1)))
+
+        List<AccountService> accountServices = account.getServices();
+
+        logger.debug("accountServices : " + accountServices);
+
+        accountServices.stream().filter(
+                (accountService) -> {
+                    logger.debug("accountService.getPaymentService() : " + accountService.getPaymentService());
+
+                    if (accountService.getPaymentService() == null) {
+                        logger.debug("accountService.getPaymentService() == null");
+//                        throw new ChargeException("accountService.getPaymentService() == null");
+                    }
+
+                    return accountService.getPaymentService() != null && accountService.getPaymentService().getPaymentType() == ServicePaymentType.MONTH
+                            && (accountService.getLastBilled() == null
+                            || accountService.getLastBilled().isBefore(chargeDate.minusMonths(1))
+                            || accountService.getLastBilled().isEqual(chargeDate.minusMonths(1)));
+                }
         ).collect(Collectors.toList()).forEach(
                 (accountService -> {
                     BigDecimal cost = accountService.getCost();
-                    this.makeCharge(paymentAccount, accountService, cost, chargeDate);
+                    this.makeCharge(account, accountService, cost, chargeDate);
                 })
         );
 
-        logger.debug("processing daily charge for PersonalAccount: " + paymentAccount.getAccountId()
-                + " name: " + paymentAccount.getName());
+        logger.debug("processing daily charge for PersonalAccount: " + account.getAccountId()
+                + " name: " + account.getName());
         accountServices.stream().filter((accountService) -> accountService.getPaymentService().getPaymentType() == ServicePaymentType.DAY
                 && (accountService.getLastBilled() == null
                 || accountService.getLastBilled().isBefore(chargeDate.minusDays(1))
@@ -93,25 +87,19 @@ public class PaymentChargesProcessorService {
         ).collect(Collectors.toList()).forEach(
                 (accountService -> {
                     BigDecimal cost = accountService.getCost();
-                    this.makeCharge(paymentAccount, accountService, cost, chargeDate);
+                    this.makeCharge(account, accountService, cost, chargeDate);
                 })
         );
     }
 
     private void makeCharge(PersonalAccount paymentAccount, AccountService accountService, BigDecimal cost, LocalDateTime chargeDate) {
         if (cost.compareTo(BigDecimal.ZERO) == 1) {
-            Map<String, Object> paymentOperation = new HashMap<>();
-            paymentOperation.put("serviceId", accountService.getServiceId());
-            paymentOperation.put("amount", cost);
-
-            SimpleServiceMessage response;
+            SimpleServiceMessage response = null;
 
             try {
-//                accountHelper.charge(paymentAccount, accountService.getPaymentService());
-                response = finFeignClient.charge(paymentAccount.getId(), paymentOperation);
+                response = accountHelper.charge(paymentAccount, accountService.getPaymentService(), cost);
             } catch (Exception e) {
                 e.printStackTrace();
-                return;
             }
 
             if (response != null && response.getParam("success") != null && !((boolean) response.getParam("success"))) {

@@ -111,12 +111,18 @@ public class AccountHelper {
                     "Current balance is: " + available.toPlainString() + " service cost is: " + service.getCost());
         }
     }
-
     //TODO на самом деле сюда ещё должна быть возможность передать discountedService
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service) {
+        BigDecimal amount = service.getCost();
+
+        return charge(account, service, amount);
+    }
+
+    //TODO на самом деле сюда ещё должна быть возможность передать discountedService
+    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount) {
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", service.getId());
-        paymentOperation.put("amount", service.getCost());
+        paymentOperation.put("amount", amount);
 
         SimpleServiceMessage response = null;
 

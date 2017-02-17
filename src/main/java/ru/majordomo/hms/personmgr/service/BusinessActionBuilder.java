@@ -1,11 +1,13 @@
 package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.processingBusinessAction.ProcessingBusinessActionNewEvent;
 import ru.majordomo.hms.personmgr.exception.BusinessActionNotFoundException;
 import ru.majordomo.hms.personmgr.model.BusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
@@ -17,14 +19,16 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 public class BusinessActionBuilder {
     private final BusinessActionRepository businessActionRepository;
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
+    private final ApplicationEventPublisher publisher;
 
     @Autowired
     public BusinessActionBuilder(
             BusinessActionRepository businessActionRepository,
-            ProcessingBusinessActionRepository processingBusinessActionRepository
-    ) {
+            ProcessingBusinessActionRepository processingBusinessActionRepository,
+            ApplicationEventPublisher publisher) {
         this.businessActionRepository = businessActionRepository;
         this.processingBusinessActionRepository = processingBusinessActionRepository;
+        this.publisher = publisher;
     }
 
 
@@ -48,6 +52,8 @@ public class BusinessActionBuilder {
             throw new BusinessActionNotFoundException();
         }
         processingBusinessActionRepository.save(processingBusinessAction);
+
+        publisher.publishEvent(new ProcessingBusinessActionNewEvent(processingBusinessAction));
 
         return processingBusinessAction;
     }

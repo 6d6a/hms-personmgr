@@ -3,11 +3,7 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.Application;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
@@ -21,52 +17,25 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationReposito
 @Service
 public class BusinessFlowDirector {
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
-    private final BusinessActionProcessor businessActionProcessor;
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
+    private final BusinessActionProcessor businessActionProcessor;
     private final FinFeignClient finFeignClient;
 
     @Autowired
     public BusinessFlowDirector(
-            BusinessActionProcessor businessActionProcessor,
             ProcessingBusinessActionRepository processingBusinessActionRepository,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
+            BusinessActionProcessor businessActionProcessor,
             FinFeignClient finFeignClient
     ) {
-        this.businessActionProcessor = businessActionProcessor;
         this.processingBusinessActionRepository = processingBusinessActionRepository;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
+        this.businessActionProcessor = businessActionProcessor;
         this.finFeignClient = finFeignClient;
     }
 
-    @Scheduled(fixedDelay = 300)
-    public void process() {
-        ProcessingBusinessAction businessAction = processingBusinessActionRepository.findFirstByStateOrderByPriorityAscCreatedDateAsc(State.NEED_TO_PROCESS);
-        if (businessAction != null) {
-            logger.debug("Processing businessAction " + businessAction.toString());
-
-            businessAction.setState(State.PROCESSING);
-
-            processingBusinessActionRepository.save(businessAction);
-
-            businessActionProcessor.process(businessAction);
-
-            processingBusinessActionRepository.save(businessAction);
-        }
-    }
-
-    @Scheduled(cron = "0 10 * * * *")
-    public void clean() {
-        try (Stream<ProcessingBusinessAction> businessActionStream = processingBusinessActionRepository.findByCreatedDateBeforeOrderByCreatedDateAsc(
-                LocalDateTime.now().minusDays(1L))
-        ) {
-            businessActionStream.forEach(
-                    this::processClean
-            );
-        }
-    }
-
-    private void processClean(ProcessingBusinessAction businessAction) {
+    public void processClean(ProcessingBusinessAction businessAction) {
         logger.debug("Processing businessAction clean for " + businessAction.toString());
 
         logger.error("Found old businessAction with " + businessAction.getState() +
@@ -82,6 +51,16 @@ public class BusinessFlowDirector {
 
                 break;
         }
+    }
+
+    public void process(ProcessingBusinessAction action) {
+        action.setState(State.PROCESSING);
+
+        processingBusinessActionRepository.save(action);
+
+        businessActionProcessor.process(action);
+
+        processingBusinessActionRepository.save(action);
     }
 
     public State processMessage(SimpleServiceMessage message) {
