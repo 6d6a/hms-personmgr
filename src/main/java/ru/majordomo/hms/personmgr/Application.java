@@ -25,6 +25,8 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 
 import ru.majordomo.hms.personmgr.Serializer.PageSerializer;
+import ru.majordomo.hms.personmgr.service.PaymentChargesProcessorService;
+import ru.majordomo.hms.personmgr.service.SchedulerService;
 import ru.majordomo.hms.personmgr.service.importing.*;
 
 @SpringBootApplication
@@ -87,6 +89,9 @@ public class Application implements CommandLineRunner {
     @Autowired
     private PersonalAccountServicesDBImportService personalAccountServicesDBImportService;
 
+    @Autowired
+    private SchedulerService schedulerService;
+
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
@@ -94,6 +99,7 @@ public class Application implements CommandLineRunner {
     public void run(String... args) {
         String dbSeedOption = "--db_seed";
         String dbImportOption = "--db_import";
+        String processChargesOption = "--process_charges";
         StringBuilder sb = new StringBuilder();
         for (String option : args) {
             sb.append(" ").append(option);
@@ -156,6 +162,10 @@ public class Application implements CommandLineRunner {
 
 //                  imported = accountAbonementDBImportService.importToMongo();
 //                  sb.append(" ").append(imported ? "accountAbonement db_imported" : "accountAbonement db_not_imported");
+            } else if (option.equals(processChargesOption)) {
+                schedulerService.processCharges();
+//                paymentChargesProcessorService.processCharges("ac_100800");
+//                monthlyBillService.processMonthlyBill("ac_179219", LocalDate.of(2016, 11, 17));
             }
         }
         sb = sb.length() == 0 ? sb.append("No Options Specified") : sb;

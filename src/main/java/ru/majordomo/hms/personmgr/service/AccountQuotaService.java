@@ -4,14 +4,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaAddedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaDiscardEvent;
@@ -27,7 +24,6 @@ import static java.lang.Math.floor;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_CAPACITY;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.TECHNICAL_ACCOUNT_ID;
 
 @Service
 public class AccountQuotaService {
@@ -63,19 +59,7 @@ public class AccountQuotaService {
         this.publisher = publisher;
     }
 
-    //Выполняем проверку квоты каждые 30 минут
-    @Scheduled(cron = "0 */30 * * * *")
-    public void processQuotaChecks() {
-        logger.debug("Started processQuotaChecks");
-        try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findByIdNotIn(Collections.singletonList(TECHNICAL_ACCOUNT_ID))) {
-            personalAccountStream.forEach(
-                    this::processQuotaCheck
-            );
-        }
-        logger.debug("Ended processQuotaChecks");
-    }
-
-    private void processQuotaCheck(PersonalAccount account) {
+    public void processQuotaCheck(PersonalAccount account) {
         logger.debug("Processing processQuotaCheck for account: " + account.getAccountId());
         Plan plan = planRepository.findOne(account.getPlanId());
         processQuotaService(account, plan);
