@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
@@ -27,9 +29,7 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 import static java.lang.Math.floor;
 import static java.time.temporal.ChronoUnit.DAYS;
-import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_FTP_SERVICE_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_WEB_SITE_SERVICE_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PAYMENT_TYPE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @Service
 public class PlanChangeService {
@@ -45,6 +45,7 @@ public class PlanChangeService {
     private final AccountQuotaService accountQuotaService;
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHelper accountHelper;
+    private final ApplicationEventPublisher publisher;
 
     @Autowired
     public PlanChangeService(
@@ -59,7 +60,8 @@ public class PlanChangeService {
             PlanLimitsService planLimitsService,
             AccountQuotaService accountQuotaService,
             AccountServiceHelper accountServiceHelper,
-            AccountHelper accountHelper
+            AccountHelper accountHelper,
+            ApplicationEventPublisher publisher
     ) {
         this.finFeignClient = finFeignClient;
         this.planRepository = planRepository;
@@ -73,6 +75,7 @@ public class PlanChangeService {
         this.accountQuotaService = accountQuotaService;
         this.accountServiceHelper = accountServiceHelper;
         this.accountHelper = accountHelper;
+        this.publisher = publisher;
     }
 
     /**
@@ -115,6 +118,10 @@ public class PlanChangeService {
         //Укажем новый тариф
         account.setPlanId(newPlan.getId());
         personalAccountRepository.save(account);
+
+        if (isFromRegularToBusiness(currentPlan, newPlan)) {
+            publisher.publishEvent(new AccountNotifySupportOnChangePlanEvent(account));
+        }
 
         //Сохраним статистику смены тарифа
         saveStat(account, newPlanId);
@@ -354,6 +361,18 @@ public class PlanChangeService {
         if (currentPlanProperties.isBusinessServices() && !newPlanProperties.isBusinessServices()) {
             throw new ParameterValidationException("Account is on business plan. Change allowed only to business plans.");
         }
+    }
+
+    /**
+     * Является ли это переходом с обычного тарифа на бизнес
+     *
+     * @param currentPlan текущий тариф
+     * @param newPlan     новый тариф
+     */
+    private boolean isFromRegularToBusiness(Plan currentPlan, Plan newPlan) {
+        VirtualHostingPlanProperties currentPlanProperties = (VirtualHostingPlanProperties) currentPlan.getPlanProperties();
+        VirtualHostingPlanProperties newPlanProperties = (VirtualHostingPlanProperties) newPlan.getPlanProperties();
+        return !currentPlanProperties.isBusinessServices() && newPlanProperties.isBusinessServices();
     }
 
     /**

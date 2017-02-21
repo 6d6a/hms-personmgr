@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -14,6 +15,7 @@ import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.rc.user.resources.Person;
+import ru.majordomo.hms.rc.user.resources.Domain;
 
 @Service
 public class AccountHelper {
@@ -82,6 +84,23 @@ public class AccountHelper {
         }
 
         return available;
+    }
+
+    /**
+     * Получаем домены
+     *
+     * @param account Аккаунт
+     */
+    public List<Domain> getDomains(PersonalAccount account) {
+        List<Domain> domains = null;
+
+        try {
+            domains = rcUserFeignClient.getDomains(account.getId());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return domains;
     }
 
     /**

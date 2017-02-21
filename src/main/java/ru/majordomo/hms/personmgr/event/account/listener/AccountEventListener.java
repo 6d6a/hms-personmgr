@@ -8,19 +8,24 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaAddedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaDiscardEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.TECHNICAL_SUPPORT_EMAIL;
 
 @Component
 public class AccountEventListener {
@@ -97,7 +102,7 @@ public class AccountEventListener {
 
     @EventListener
     @Async("threadPoolTaskExecutor")
-    public void onAccountDiscardAdded(AccountQuotaDiscardEvent event) {
+    public void onAccountQuotaDiscard(AccountQuotaDiscardEvent event) {
         PersonalAccount account = event.getSource();
         Map<String, ?> params = event.getParams();
 
@@ -119,8 +124,35 @@ public class AccountEventListener {
         parameters.put("client_id", message.getAccountId());
         parameters.put("acc_id", account.getName());
         parameters.put("tariff", planName);
-        //TODO Брать список доменов
-        parameters.put("domains", "<Домены расположенные на аккаунте>");
+        List<Domain> domains = accountHelper.getDomains(account);
+        List<String> domainNames = new ArrayList<>();
+        for (Domain domain: domains) {
+            domainNames.add(domain.getName());
+        }
+        parameters.put("domains", String.join("<br>", domainNames));
+
+        message.addParam("parametrs", parameters);
+
+        publisher.publishEvent(new SendMailEvent(message));
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountNotifySupportOnChangePlan(AccountNotifySupportOnChangePlanEvent event) {
+        PersonalAccount account = event.getSource();
+
+        logger.debug("We got AccountNotifySupportOnChangePlanEvent");
+
+        SimpleServiceMessage message = new SimpleServiceMessage();
+
+        message.setAccountId(account.getId());
+        message.setParams(new HashMap<>());
+        message.addParam("email", TECHNICAL_SUPPORT_EMAIL);
+        message.addParam("api_name", "MajordomoCorporatePlanChange");
+        message.addParam("priority", 1);
+
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", message.getAccountId());;
 
         message.addParam("parametrs", parameters);
 

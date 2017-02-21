@@ -39,6 +39,9 @@ public interface RcUserFeignClient {
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/person/{personId}", consumes = "application/json")
     Person getPerson(@PathVariable("accountId") String accountId, @PathVariable("personId") String personId);
 
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/domain", consumes = "application/json")
+    List<Domain> getDomains(@PathVariable("accountId") String accountId);
+
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/domain/{domainId}", consumes = "application/json")
     Domain getDomain(@PathVariable("accountId") String accountId, @PathVariable("domainId") String domainId);
 }
