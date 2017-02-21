@@ -52,6 +52,7 @@ public class Constants {
     public static final int PLAN_UNLIMITED_PLUS_ID = 9805;
     public static final int PLAN_BUSINESS_ID = 9806;
     public static final int PLAN_BUSINESS_PLUS_ID = 9807;
+    public static final String TECHNICAL_SUPPORT_EMAIL = "support@majordomo.ru";
 
     public static final Integer DEFAULT_NOTIFY_DAYS = 14;
 
