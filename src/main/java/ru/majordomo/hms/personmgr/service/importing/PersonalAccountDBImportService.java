@@ -35,12 +35,24 @@ public class PersonalAccountDBImportService {
     }
 
     private void pull() {
-        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, a.status, c.client_auto_bill, a.overquoted, a.overquot_addcost FROM account a LEFT JOIN Money m ON a.id = m.acc_id LEFT JOIN client c ON a.client_id = c.Client_ID ORDER BY a.id ASC";
+        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, " +
+                "a.status, c.client_auto_bill, a.overquoted, a.overquot_addcost, e.value as sms_phone " +
+                "FROM account a " +
+                "LEFT JOIN Money m ON a.id = m.acc_id " +
+                "LEFT JOIN client c ON a.client_id = c.Client_ID " +
+                "LEFT JOIN extend e ON (a.id = e.acc_id AND e.usluga = 18) " +
+                "ORDER BY a.id ASC";
         jdbcTemplate.query(query, this::rowMap);
     }
 
     private void pull(String accountId) {
-        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, a.status, c.client_auto_bill, a.overquoted, a.overquot_addcost FROM account a LEFT JOIN Money m ON a.id = m.acc_id LEFT JOIN client c ON a.client_id = c.Client_ID WHERE id = ?";
+        String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, " +
+                "a.status, c.client_auto_bill, a.overquoted, a.overquot_addcost, e.value as sms_phone " +
+                "FROM account a " +
+                "LEFT JOIN Money m ON a.id = m.acc_id " +
+                "LEFT JOIN client c ON a.client_id = c.Client_ID " +
+                "LEFT JOIN extend e ON (a.id = e.acc_id AND e.usluga = 18) " +
+                "WHERE id = ?";
         jdbcTemplate.query(query,
                 new Object[] { accountId },
                 this::rowMap
@@ -71,6 +83,12 @@ public class PersonalAccountDBImportService {
             personalAccount.setAutoBillSending(rs.getString("client_auto_bill").equals("1"));
             personalAccount.setOverquoted(rs.getString("overquoted").equals("1"));
             personalAccount.setAddQuotaIfOverquoted(rs.getString("overquot_addcost").equals("1"));
+
+            String smsPhone = rs.getString("sms_phone");
+
+            if (!smsPhone.equals("")) {
+                personalAccount.setSmsPhoneNumber(smsPhone);
+            }
 
             personalAccounts.add(personalAccount);
         } else {

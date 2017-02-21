@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -21,7 +20,7 @@ import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.WEB_SITE_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 
 @Component
 public class SeoEventListener {
@@ -55,7 +54,7 @@ public class SeoEventListener {
 
         WebSite webSite = null;
 
-        String webSiteId = (String) params.get(WEB_SITE_ID_KEY);
+        String webSiteId = (String) params.get(RESOURCE_ID_KEY);
         String serviceName = (String) params.get(SERVICE_NAME_KEY);
 
         try {

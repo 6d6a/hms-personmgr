@@ -32,6 +32,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_AUTO_B
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_CREDIT;
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_NOTIFY_DAYS;
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_OVERQUOTED;
+import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_SMS_PHONE_NUMBER;
 import static ru.majordomo.hms.personmgr.common.Constants.DEFAULT_NOTIFY_DAYS;
 
 /**
@@ -317,6 +318,14 @@ public class PersonalAccount extends BaseModel {
         setIntegerSettingByName(ACCOUNT_SETTING_NOTIFY_DAYS, value);
     }
 
+    public String getSmsPhoneNumber() {
+        return getStringSettingByName(ACCOUNT_SETTING_SMS_PHONE_NUMBER);
+    }
+
+    public void setSmsPhoneNumber(String value) {
+        setStringSettingByName(ACCOUNT_SETTING_SMS_PHONE_NUMBER, value);
+    }
+
     private boolean getBooleanSettingByName(String name) {
         return this.settings.get(name) != null ? Boolean.valueOf(this.settings.get(name)) : false;
     }
@@ -331,6 +340,14 @@ public class PersonalAccount extends BaseModel {
 
     private void setIntegerSettingByName(String name, Integer value) {
         this.settings.put(name, String.valueOf(value));
+    }
+
+    private String getStringSettingByName(String name) {
+        return this.settings.get(name);
+    }
+
+    private void setStringSettingByName(String name, String value) {
+        this.settings.put(name, value);
     }
 
     @Override

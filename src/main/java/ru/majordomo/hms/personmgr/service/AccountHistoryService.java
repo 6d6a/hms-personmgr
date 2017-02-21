@@ -33,7 +33,7 @@ public class AccountHistoryService {
             accountHistory.setPersonalAccountId(account.getId());
             accountHistory.setMessage(message);
             accountHistory.setOperator(operator);
-            accountHistory.setDateTime(dateTime);
+            accountHistory.setCreated(dateTime);
 
             accountHistoryRepository.save(accountHistory);
             logger.debug("saved AccountHistory: " + accountHistory.toString());

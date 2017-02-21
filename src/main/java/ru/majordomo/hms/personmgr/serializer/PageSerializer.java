@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.Serializer;
+package ru.majordomo.hms.personmgr.serializer;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
