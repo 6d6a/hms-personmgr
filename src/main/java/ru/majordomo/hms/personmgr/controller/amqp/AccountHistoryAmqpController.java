@@ -18,6 +18,9 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
+
 @EnableRabbit
 @Service
 public class AccountHistoryAmqpController {
@@ -41,8 +44,8 @@ public class AccountHistoryAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
 
-        String historyMessage = (String) message.getParam("historyMessage");
-        String operator = (String) message.getParam("operator");
+        String historyMessage = (String) message.getParam(HISTORY_MESSAGE_KEY);
+        String operator = (String) message.getParam(OPERATOR_KEY);
 
         if (historyMessage != null && operator != null) {
             accountHistoryService.addMessage(message.getAccountId(), historyMessage, operator);

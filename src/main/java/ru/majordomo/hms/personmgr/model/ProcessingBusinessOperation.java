@@ -98,7 +98,11 @@ public class ProcessingBusinessOperation extends Step  {
     }
 
     public void addParam(String key, Object value) {
-        this.params.put(key, value);
+        if (params == null) {
+            params = new HashMap<>();
+        }
+
+        params.put(key, value);
     }
 
     public Object getParam(String key) {

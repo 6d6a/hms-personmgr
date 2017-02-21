@@ -19,7 +19,7 @@ import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
-import static ru.majordomo.hms.personmgr.common.Constants.WEB_SITE_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 
 @Component
 public class WebSiteEventListener {
@@ -50,7 +50,7 @@ public class WebSiteEventListener {
 
         WebSite webSite = null;
 
-        String webSiteId = (String) params.get(WEB_SITE_ID_KEY);
+        String webSiteId = (String) params.get(RESOURCE_ID_KEY);
 
         try {
             webSite = rcUserFeignClient.getWebSite(account.getId(), webSiteId);

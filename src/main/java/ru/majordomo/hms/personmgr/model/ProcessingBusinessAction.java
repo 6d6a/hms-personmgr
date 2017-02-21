@@ -94,6 +94,18 @@ public class ProcessingBusinessAction extends BusinessAction {
         return params;
     }
 
+    public Object getParam(String key) {
+        return params.get(key);
+    }
+
+    public void addParam(String key, Object value) {
+        if (params == null) {
+            params = new HashMap<>();
+        }
+
+        params.put(key, value);
+    }
+
     public void setParams(Map<String, Object> params) {
         this.params = params;
     }

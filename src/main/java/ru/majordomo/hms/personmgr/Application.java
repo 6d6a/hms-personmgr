@@ -24,8 +24,10 @@ import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventL
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 
-import ru.majordomo.hms.personmgr.Serializer.PageSerializer;
-import ru.majordomo.hms.personmgr.service.PaymentChargesProcessorService;
+import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.serializer.PageSerializer;
+import ru.majordomo.hms.personmgr.service.DomainService;
 import ru.majordomo.hms.personmgr.service.SchedulerService;
 import ru.majordomo.hms.personmgr.service.importing.*;
 
@@ -91,6 +93,12 @@ public class Application implements CommandLineRunner {
 
     @Autowired
     private SchedulerService schedulerService;
+
+    @Autowired
+    private DomainService domainService;
+
+    @Autowired
+    private PersonalAccountRepository personalAccountRepository;
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
@@ -163,7 +171,9 @@ public class Application implements CommandLineRunner {
 //                  imported = accountAbonementDBImportService.importToMongo();
 //                  sb.append(" ").append(imported ? "accountAbonement db_imported" : "accountAbonement db_not_imported");
             } else if (option.equals(processChargesOption)) {
-                schedulerService.processCharges();
+//                schedulerService.processCharges();
+                PersonalAccount account = personalAccountRepository.findByAccountId("100800");
+                domainService.processDomainsAutoRenewByAccount(account);
 //                paymentChargesProcessorService.processCharges("ac_100800");
 //                monthlyBillService.processMonthlyBill("ac_179219", LocalDate.of(2016, 11, 17));
             }
@@ -214,9 +224,4 @@ public class Application implements CommandLineRunner {
         module.addSerializer(PageImpl.class, new PageSerializer());
         return module;
     }
-
-//    @Bean
-//    public Feign.Builder feignBuilder() {
-//        return Feign.builder();
-//    }
 }
