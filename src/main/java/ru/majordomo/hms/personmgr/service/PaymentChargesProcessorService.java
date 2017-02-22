@@ -3,16 +3,18 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
@@ -25,16 +27,19 @@ public class PaymentChargesProcessorService {
     private final PersonalAccountRepository personalAccountRepository;
     private final AccountServiceRepository accountServiceRepository;
     private final AccountHelper accountHelper;
+    private final ApplicationEventPublisher publisher;
 
     @Autowired
     public PaymentChargesProcessorService(
             PersonalAccountRepository personalAccountRepository,
             AccountServiceRepository accountServiceRepository,
-            AccountHelper accountHelper
+            AccountHelper accountHelper,
+            ApplicationEventPublisher publisher
     ) {
         this.personalAccountRepository = personalAccountRepository;
         this.accountServiceRepository = accountServiceRepository;
         this.accountHelper = accountHelper;
+        this.publisher = publisher;
     }
 
     public void processCharge(String paymentAccountName) {
@@ -57,39 +62,48 @@ public class PaymentChargesProcessorService {
 
         logger.debug("accountServices : " + accountServices);
 
-        accountServices.stream().filter(
-                (accountService) -> {
-                    logger.debug("accountService.getPaymentService() : " + accountService.getPaymentService());
+        Integer daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
+        BigDecimal balance = accountHelper.getBalance(account);
+        BigDecimal dailyCost = BigDecimal.valueOf(0L);
 
-                    if (accountService.getPaymentService() == null) {
-                        logger.debug("accountService.getPaymentService() == null");
-//                        throw new ChargeException("accountService.getPaymentService() == null");
-                    }
+        for (AccountService accountService : accountServices) {
+            if (accountService.getPaymentService() == null) {
+                logger.debug("accountService.getPaymentService() == null");
+//                throw new ChargeException("accountService.getPaymentService() == null");
+            }
 
-                    return accountService.getPaymentService() != null && accountService.getPaymentService().getPaymentType() == ServicePaymentType.MONTH
-                            && (accountService.getLastBilled() == null
-                            || accountService.getLastBilled().isBefore(chargeDate.minusMonths(1))
-                            || accountService.getLastBilled().isEqual(chargeDate.minusMonths(1)));
+            if (accountService.getPaymentService() != null
+                    && (accountService.getLastBilled() == null
+                    || accountService.getLastBilled().isBefore(chargeDate.minusDays(1))
+                    || accountService.getLastBilled().isEqual(chargeDate.minusDays(1))))
+            {
+                BigDecimal cost;
+                switch (accountService.getPaymentService().getPaymentType()) {
+                    case MONTH:
+                        cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
+                        this.makeCharge(account, accountService, cost, chargeDate);
+                        dailyCost = dailyCost.add(accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP));
+                        break;
+                    case DAY:
+                        cost = accountService.getCost();
+                        this.makeCharge(account, accountService, cost, chargeDate);
+                        dailyCost = dailyCost.add(accountService.getCost());
+                        break;
                 }
-        ).collect(Collectors.toList()).forEach(
-                (accountService -> {
-                    BigDecimal cost = accountService.getCost();
-                    this.makeCharge(account, accountService, cost, chargeDate);
-                })
-        );
+            }
+        }
 
-        logger.debug("processing daily charge for PersonalAccount: " + account.getAccountId()
-                + " name: " + account.getName());
-        accountServices.stream().filter((accountService) -> accountService.getPaymentService().getPaymentType() == ServicePaymentType.DAY
-                && (accountService.getLastBilled() == null
-                || accountService.getLastBilled().isBefore(chargeDate.minusDays(1))
-                || accountService.getLastBilled().isEqual(chargeDate.minusDays(1)))
-        ).collect(Collectors.toList()).forEach(
-                (accountService -> {
-                    BigDecimal cost = accountService.getCost();
-                    this.makeCharge(account, accountService, cost, chargeDate);
-                })
-        );
+        if (dailyCost.compareTo(BigDecimal.valueOf(0L)) != 0) {
+            Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue() - 1;
+
+            if (account.getNotifyDays() > 0 && remainingDays > 0 && remainingDays <= account.getNotifyDays() && account.isActive()) {
+                //Уведомление об окончании средств
+                Map<String, Integer> params = new HashMap<>();
+                params.put("remainingDays", remainingDays);
+
+                publisher.publishEvent(new AccountNotifyRemainingDaysEvent(account, params));
+            }
+        }
     }
 
     private void makeCharge(PersonalAccount paymentAccount, AccountService accountService, BigDecimal cost, LocalDateTime chargeDate) {
