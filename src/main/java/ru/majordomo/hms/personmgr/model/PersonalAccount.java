@@ -20,6 +20,7 @@ import java.util.Set;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.model.discount.AccountDiscount;
@@ -27,12 +28,13 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
-import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED;
-import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_AUTO_BILL_SENDING;
-import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_CREDIT;
-import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_NOTIFY_DAYS;
-import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_OVERQUOTED;
-import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_SETTING_SMS_PHONE_NUMBER;
+import static ru.majordomo.hms.personmgr.common.AccountSetting.ABONEMENT_AUTO_RENEW;
+import static ru.majordomo.hms.personmgr.common.AccountSetting.ADD_QUOTA_IF_OVERQUOTED;
+import static ru.majordomo.hms.personmgr.common.AccountSetting.AUTO_BILL_SENDING;
+import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT;
+import static ru.majordomo.hms.personmgr.common.AccountSetting.NOTIFY_DAYS;
+import static ru.majordomo.hms.personmgr.common.AccountSetting.OVERQUOTED;
+import static ru.majordomo.hms.personmgr.common.AccountSetting.SMS_PHONE_NUMBER;
 import static ru.majordomo.hms.personmgr.common.Constants.DEFAULT_NOTIFY_DAYS;
 
 /**
@@ -82,7 +84,7 @@ public class PersonalAccount extends BaseModel {
 
     private Set<MailManagerMessageType> notifications = new HashSet<>();
 
-    private Map<String, String> settings = new HashMap<>();
+    private Map<AccountSetting, String> settings = new HashMap<>();
 
     @Valid
     private List<AccountDiscount> discounts = new ArrayList<>();
@@ -214,15 +216,15 @@ public class PersonalAccount extends BaseModel {
         this.notifications.remove(notification);
     }
 
-    public Map<String, String> getSettings() {
+    public Map<AccountSetting, String> getSettings() {
         return settings;
     }
 
-    public void setSettings(Map<String, String> settings) {
+    public void setSettings(Map<AccountSetting, String> settings) {
         this.settings = settings;
     }
 
-    public void setSetting(String name, String setting) {
+    public void setSetting(AccountSetting name, String setting) {
         this.settings.put(name, setting);
     }
 
@@ -279,75 +281,97 @@ public class PersonalAccount extends BaseModel {
     }
 
     public Boolean isOverquoted() {
-        return getBooleanSettingByName(ACCOUNT_SETTING_OVERQUOTED);
+        return getBooleanSettingByName(OVERQUOTED);
     }
 
     public void setOverquoted(Boolean value) {
-        setBooleanSettingByName(ACCOUNT_SETTING_OVERQUOTED, value);
+        setBooleanSettingByName(OVERQUOTED, value);
     }
 
     public Boolean isAddQuotaIfOverquoted() {
-        return getBooleanSettingByName(ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED);
+        return getBooleanSettingByName(ADD_QUOTA_IF_OVERQUOTED);
     }
 
     public void setAddQuotaIfOverquoted(Boolean value) {
-        setBooleanSettingByName(ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED, value);
+        setBooleanSettingByName(ADD_QUOTA_IF_OVERQUOTED, value);
     }
 
     public Boolean isCredit() {
-        return getBooleanSettingByName(ACCOUNT_SETTING_CREDIT);
+        return getBooleanSettingByName(CREDIT);
     }
 
     public void setCredit(Boolean value) {
-        setBooleanSettingByName(ACCOUNT_SETTING_CREDIT, value);
+        setBooleanSettingByName(CREDIT, value);
     }
 
     public Boolean isAutoBillSending() {
-        return getBooleanSettingByName(ACCOUNT_SETTING_AUTO_BILL_SENDING);
+        return getBooleanSettingByName(AUTO_BILL_SENDING);
     }
 
     public void setAutoBillSending(Boolean value) {
-        setBooleanSettingByName(ACCOUNT_SETTING_AUTO_BILL_SENDING, value);
+        setBooleanSettingByName(AUTO_BILL_SENDING, value);
+    }
+
+    public Boolean isAbonementAutoRenew() {
+        return getBooleanSettingByName(ABONEMENT_AUTO_RENEW);
+    }
+
+    public void setAbonementAutoRenew(Boolean value) {
+        setBooleanSettingByName(ABONEMENT_AUTO_RENEW, value);
     }
 
     public Integer getNotifyDays() {
-        return getIntegerSettingByName(ACCOUNT_SETTING_NOTIFY_DAYS) != 0 ? getIntegerSettingByName(ACCOUNT_SETTING_NOTIFY_DAYS) : DEFAULT_NOTIFY_DAYS;
+        return getIntegerSettingByName(NOTIFY_DAYS) != 0 ?
+                getIntegerSettingByName(NOTIFY_DAYS) :
+                DEFAULT_NOTIFY_DAYS;
     }
 
     public void setNotifyDays(Integer value) {
-        setIntegerSettingByName(ACCOUNT_SETTING_NOTIFY_DAYS, value);
+        setIntegerSettingByName(NOTIFY_DAYS, value);
     }
 
     public String getSmsPhoneNumber() {
-        return getStringSettingByName(ACCOUNT_SETTING_SMS_PHONE_NUMBER);
+        return getStringSettingByName(SMS_PHONE_NUMBER);
     }
 
     public void setSmsPhoneNumber(String value) {
-        setStringSettingByName(ACCOUNT_SETTING_SMS_PHONE_NUMBER, value);
+        setStringSettingByName(SMS_PHONE_NUMBER, value);
     }
 
-    private boolean getBooleanSettingByName(String name) {
+    private boolean getBooleanSettingByName(AccountSetting name) {
         return this.settings.get(name) != null ? Boolean.valueOf(this.settings.get(name)) : false;
     }
 
-    private void setBooleanSettingByName(String name, boolean value) {
+    private void setBooleanSettingByName(AccountSetting name, boolean value) {
         this.settings.put(name, String.valueOf(value));
     }
 
-    private Integer getIntegerSettingByName(String name) {
+    private Integer getIntegerSettingByName(AccountSetting name) {
         return this.settings.get(name) != null ? Integer.valueOf(this.settings.get(name)) : 0;
     }
 
-    private void setIntegerSettingByName(String name, Integer value) {
+    private void setIntegerSettingByName(AccountSetting name, Integer value) {
         this.settings.put(name, String.valueOf(value));
     }
 
-    private String getStringSettingByName(String name) {
+    private String getStringSettingByName(AccountSetting name) {
         return this.settings.get(name);
     }
 
-    private void setStringSettingByName(String name, String value) {
+    private void setStringSettingByName(AccountSetting name, String value) {
         this.settings.put(name, value);
+    }
+
+    public void setSettingByName(AccountSetting name, Object value) {
+        if (value instanceof Integer) {
+            setIntegerSettingByName(name, (Integer) value);
+        } else if (value instanceof Boolean) {
+            setBooleanSettingByName(name, (Boolean) value);
+        } else if (value instanceof String) {
+            setStringSettingByName(name, (String) value);
+        } else {
+            throw new IllegalArgumentException("AccountSetting value must be one of Integer, Boolean or String");
+        }
     }
 
     @Override

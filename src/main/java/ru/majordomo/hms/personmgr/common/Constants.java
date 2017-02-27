@@ -33,12 +33,6 @@ public class Constants {
     public static final String RENEW_COST_SERVICE_PREFIX = "renew_cost_";
     public static final String SERVICE_MONEY_RETURN_PREFIX = "service_money_return_";
     public static final String SERVICE_MONEY_TRANSFER_PREFIX = "service_money_transfer_";
-    public static final String ACCOUNT_SETTING_OVERQUOTED = "overquoted";
-    public static final String ACCOUNT_SETTING_ADD_QUOTA_IF_OVERQUOTED = "add_quota_if_overquoted";
-    public static final String ACCOUNT_SETTING_AUTO_BILL_SENDING = "auto_bill_sending";
-    public static final String ACCOUNT_SETTING_CREDIT = "credit";
-    public static final String ACCOUNT_SETTING_NOTIFY_DAYS = "notify_days";
-    public static final String ACCOUNT_SETTING_SMS_PHONE_NUMBER = "sms_phone_number";
     public static final String RESOURCE_ID_KEY = "resourceId";
     public static final String PASSWORD_KEY = "password";
     public static final String SERVICE_NAME_KEY = "serviceName";

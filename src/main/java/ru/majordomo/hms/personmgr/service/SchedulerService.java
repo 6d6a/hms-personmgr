@@ -12,8 +12,10 @@ import java.util.Collections;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessChargesEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessDomainsAutoRenewEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringDomainsEvent;
 import ru.majordomo.hms.personmgr.event.processingBusinessAction.ProcessingBusinessActionCleanEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
@@ -91,6 +93,26 @@ public class SchedulerService {
             businessActionStream.forEach(action -> publisher.publishEvent(new ProcessingBusinessActionCleanEvent(action)));
         }
         logger.debug("Ended cleanBusinessActions");
+    }
+
+    //Выполняем обработку абонементов с истекающим сроком действия в 00:32:00 каждый день
+    @Scheduled(cron = "0 32 0 * * *")
+    public void processExpiringAbonements() {
+        logger.debug("Started processExpiringAbonements");
+        try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findAllStream()) {
+            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessExpiringAbonementsEvent(account)));
+        }
+        logger.debug("Ended processExpiringAbonements");
+    }
+
+    //Выполняем обработку абонементов с истекающим сроком действия в 01:32:00 каждый день
+    @Scheduled(cron = "0 32 1 * * *")
+    public void processAbonementsAutoRenew() {
+        logger.debug("Started processAbonementsAutoRenew");
+        try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findAllStream()) {
+            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessAbonementsAutoRenewEvent(account)));
+        }
+        logger.debug("Ended processAbonementsAutoRenew");
     }
 
     //Теоретически это теперь не нужно

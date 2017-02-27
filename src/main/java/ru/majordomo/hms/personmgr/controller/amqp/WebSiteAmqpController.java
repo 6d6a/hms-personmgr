@@ -19,7 +19,7 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
+import ru.majordomo.hms.personmgr.event.webSite.WebSiteCreatedEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
@@ -66,7 +66,7 @@ public class WebSiteAmqpController extends CommonAmqpController  {
 
         State state = businessFlowDirector.processMessage(message);
 
-        if (state == State.PROCESSED) {
+        if (state == State.PROCESSED && message.getAccountId() != null) {
             PersonalAccount account = accountRepository.findOne(message.getAccountId());
 
             SimpleServiceMessage mailMessage = new SimpleServiceMessage();
@@ -77,7 +77,7 @@ public class WebSiteAmqpController extends CommonAmqpController  {
             Map<String, String> params = new HashMap<>();
             params.put(RESOURCE_ID_KEY, resourceId);
 
-            publisher.publishEvent(new AccountCreatedEvent(account, params));
+            publisher.publishEvent(new WebSiteCreatedEvent(account, params));
         }
     }
 
