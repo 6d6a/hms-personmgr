@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
@@ -174,7 +175,7 @@ public class AccountEventListener {
 
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("acc_id", account.getName());
-        parameters.put("days", pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
+        parameters.put("days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
         List<Domain> domains = accountHelper.getDomains(account);
         List<String> domainNames = new ArrayList<>();
         for (Domain domain : domains) {
@@ -185,17 +186,5 @@ public class AccountEventListener {
         message.addParam("parametrs", parameters);
 
         publisher.publishEvent(new SendMailEvent(message));
-    }
-
-    private String pluralizef(String form1, String form2, String form3, Integer number)
-    {
-        List<String> messages = new LinkedList<>();
-        messages.add(form1);
-        messages.add(form2);
-        messages.add(form3);
-
-        Integer index = number % 10 == 1 && number % 100 != 11 ? 0 : (number % 10 >= 2 && number % 10 <= 4 && (number % 100 < 10 || number % 100 >= 20) ? 1 : 2);
-
-        return String.format(messages.get(index), number);
     }
 }
