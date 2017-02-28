@@ -9,15 +9,26 @@ import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountDomainAutoRenewCompletedEvent;
+import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
+
+import static ru.majordomo.hms.personmgr.common.Constants.AUTO_RENEW_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 
 @EnableRabbit
 @Service
@@ -26,10 +37,20 @@ public class DomainAmqpController {
     private final static Logger logger = LoggerFactory.getLogger(DomainAmqpController.class);
 
     private final BusinessFlowDirector businessFlowDirector;
+    private final ProcessingBusinessActionRepository processingBusinessActionRepository;
+    private final PersonalAccountRepository personalAccountRepository;
+    private final ApplicationEventPublisher publisher;
 
     @Autowired
-    public DomainAmqpController(BusinessFlowDirector businessFlowDirector) {
+    public DomainAmqpController(
+            BusinessFlowDirector businessFlowDirector,
+            ProcessingBusinessActionRepository processingBusinessActionRepository,
+            PersonalAccountRepository personalAccountRepository,
+            ApplicationEventPublisher publisher) {
         this.businessFlowDirector = businessFlowDirector;
+        this.processingBusinessActionRepository = processingBusinessActionRepository;
+        this.personalAccountRepository = personalAccountRepository;
+        this.publisher = publisher;
     }
 
     @RabbitListener(
@@ -72,6 +93,21 @@ public class DomainAmqpController {
         logger.debug("Received update message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
+
+        if (state == State.PROCESSED) {
+            ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+
+            if (businessAction != null
+                    && businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_UPDATE_RC)
+                    && (Boolean) businessAction.getParam(AUTO_RENEW_KEY)) {
+                PersonalAccount account = personalAccountRepository.findOne(businessAction.getPersonalAccountId());
+
+                Map<String, String> params = new HashMap<>();
+                params.put(RESOURCE_ID_KEY, (String) businessAction.getParam(RESOURCE_ID_KEY));
+
+                publisher.publishEvent(new AccountDomainAutoRenewCompletedEvent(account, params));
+            }
+        }
     }
 
     @RabbitListener(

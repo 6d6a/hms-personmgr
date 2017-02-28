@@ -56,7 +56,7 @@ public class AccountHistoryDBImportService {
             if (account != null) {
                 accountHistory.setPersonalAccountId(account.getId());
 
-                accountHistory.setDateTime(new Timestamp(rs.getLong("date") * 1000).toLocalDateTime());
+                accountHistory.setCreated(new Timestamp(rs.getLong("date") * 1000).toLocalDateTime());
 
                 try {
                     accountHistory.setMessage(EncodingUtils.getString(rs.getString("action").getBytes("windows-1251"), "koi8-r"));

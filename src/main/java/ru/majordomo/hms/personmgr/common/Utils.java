@@ -1,14 +1,27 @@
 package ru.majordomo.hms.personmgr.common;
 
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 
-/**
- * Utils
- */
 public class Utils {
-    public static String pluralizef(String form1, String form2, String form3, Integer number)
-    {
+    public static String formatBigDecimal(BigDecimal value) {
+        DecimalFormatSymbols russianDecimalSymbols = new DecimalFormatSymbols(Locale.forLanguageTag("ru"));
+        russianDecimalSymbols.setDecimalSeparator(',');
+        russianDecimalSymbols.setGroupingSeparator(' ');
+
+        DecimalFormat df = new DecimalFormat("###.##", russianDecimalSymbols);
+
+        return df.format(value);
+    }
+
+    public static String formatBigDecimalWithCurrency(BigDecimal value) {
+        return formatBigDecimal(value) + " руб.";
+    }
+    public static String pluralizef(String form1, String form2, String form3, Integer number) {
         List<String> messages = new LinkedList<>();
         messages.add(form1);
         messages.add(form2);

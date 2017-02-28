@@ -13,6 +13,8 @@ import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessChargesEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountProcessDomainsAutoRenewEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringDomainsEvent;
 import ru.majordomo.hms.personmgr.event.processingBusinessAction.ProcessingBusinessActionCleanEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
@@ -48,6 +50,26 @@ public class SchedulerService {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessChargesEvent(account)));
         }
         logger.debug("Ended processCharges");
+    }
+
+    //Выполняем обработку доменов с истекающим сроком действия в 03:36:00 каждый день
+    @Scheduled(cron = "0 36 3 * * *")
+    public void processExpiringDomains() {
+        logger.debug("Started processExpiringDomains");
+        try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findAllStream()) {
+            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessExpiringDomainsEvent(account)));
+        }
+        logger.debug("Ended processExpiringDomains");
+    }
+
+    //Выполняем автопродление доменов в 02:22:00 каждый день
+    @Scheduled(cron = "0 22 2 * * *")
+    public void processDomainsAutoRenew() {
+        logger.debug("Started processDomainsAutoRenew");
+        try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findAllStream()) {
+            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessDomainsAutoRenewEvent(account)));
+        }
+        logger.debug("Ended processDomainsAutoRenew");
     }
 
     //Выполняем проверку квоты каждые 30 минут

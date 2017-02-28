@@ -24,7 +24,7 @@ import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
-import static ru.majordomo.hms.personmgr.common.Constants.WEB_SITE_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 
 @EnableRabbit
 @Service
@@ -75,7 +75,7 @@ public class WebSiteAmqpController extends CommonAmqpController  {
             String resourceId = getResourceIdByObjRef(message.getObjRef());
 
             Map<String, String> params = new HashMap<>();
-            params.put(WEB_SITE_ID_KEY, resourceId);
+            params.put(RESOURCE_ID_KEY, resourceId);
 
             publisher.publishEvent(new AccountCreatedEvent(account, params));
         }

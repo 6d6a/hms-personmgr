@@ -34,7 +34,7 @@ import ru.majordomo.hms.personmgr.validators.ObjectId;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.WEB_SITE_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SEO_ORDER_CREATE;
 
 @RestController
@@ -161,7 +161,7 @@ public class SeoRestController extends CommonRestController {
         accountSeoOrderRepository.save(order);
 
         Map<String, String> params = new HashMap<>();
-        params.put(WEB_SITE_ID_KEY, webSiteId);
+        params.put(RESOURCE_ID_KEY, webSiteId);
         params.put(SERVICE_NAME_KEY, seo.getName());
 
         logger.debug("Trying to publish SeoOrderedEvent publisher: " + publisher.toString() + " " + publisher.getClass());
