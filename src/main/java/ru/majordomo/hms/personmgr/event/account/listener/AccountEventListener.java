@@ -8,16 +8,11 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountQuotaAddedEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountQuotaDiscardEvent;
+import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
@@ -153,6 +148,40 @@ public class AccountEventListener {
 
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("client_id", message.getAccountId());;
+
+        message.addParam("parametrs", parameters);
+
+        publisher.publishEvent(new SendMailEvent(message));
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountNotifyRemainingDays(AccountNotifyRemainingDaysEvent event) {
+        PersonalAccount account = event.getSource();
+        Map<String, ?> params = event.getParams();
+
+        logger.debug("We got AccountNotifyRemainingDaysEvent");
+
+        String email = accountHelper.getEmail(account);
+        Integer remainingDays = (Integer) params.get("remainingDays");
+
+        SimpleServiceMessage message = new SimpleServiceMessage();
+
+        message.setAccountId(account.getId());
+        message.setParams(new HashMap<>());
+        message.addParam("email", email);
+        message.addParam("api_name", "MajordomoVHMoneyLowLevel");
+        message.addParam("priority", 10);
+
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("acc_id", account.getName());
+        parameters.put("days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
+        List<Domain> domains = accountHelper.getDomains(account);
+        List<String> domainNames = new ArrayList<>();
+        for (Domain domain : domains) {
+            domainNames.add(domain.getName());
+        }
+        parameters.put("domains", "<br>" + String.join("<br>", domainNames));
 
         message.addParam("parametrs", parameters);
 
