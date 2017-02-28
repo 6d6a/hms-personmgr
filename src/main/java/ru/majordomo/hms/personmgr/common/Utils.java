@@ -21,6 +21,7 @@ public class Utils {
     public static String formatBigDecimalWithCurrency(BigDecimal value) {
         return formatBigDecimal(value) + " руб.";
     }
+
     public static String pluralizef(String form1, String form2, String form3, Integer number) {
         List<String> messages = new LinkedList<>();
         messages.add(form1);

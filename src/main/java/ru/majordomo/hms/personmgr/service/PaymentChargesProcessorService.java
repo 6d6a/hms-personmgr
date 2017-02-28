@@ -93,7 +93,7 @@ public class PaymentChargesProcessorService {
             }
         }
 
-        if (dailyCost.compareTo(BigDecimal.ZERO) != 0) {
+        if (dailyCost.compareTo(BigDecimal.ZERO) > 0) {
             Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue() - 1;
 
             if (account.getNotifyDays() > 0 && remainingDays > 0 && remainingDays <= account.getNotifyDays() && account.isActive()) {
