@@ -41,6 +41,7 @@ public class PersonalAccountDBImportService {
                 "LEFT JOIN Money m ON a.id = m.acc_id " +
                 "LEFT JOIN client c ON a.client_id = c.Client_ID " +
                 "LEFT JOIN extend e ON (a.id = e.acc_id AND e.usluga = 18) " +
+                "WHERE a.client_id != 0 " +
                 "ORDER BY a.id ASC";
         jdbcTemplate.query(query, this::rowMap);
     }
@@ -52,7 +53,7 @@ public class PersonalAccountDBImportService {
                 "LEFT JOIN Money m ON a.id = m.acc_id " +
                 "LEFT JOIN client c ON a.client_id = c.Client_ID " +
                 "LEFT JOIN extend e ON (a.id = e.acc_id AND e.usluga = 18) " +
-                "WHERE id = ?";
+                "WHERE a.client_id != 0 AND a.id = ?";
         jdbcTemplate.query(query,
                 new Object[] { accountId },
                 this::rowMap
@@ -86,7 +87,7 @@ public class PersonalAccountDBImportService {
 
             String smsPhone = rs.getString("sms_phone");
 
-            if (!smsPhone.equals("")) {
+            if (smsPhone != null && !smsPhone.equals("")) {
                 personalAccount.setSmsPhoneNumber(smsPhone);
             }
 

@@ -29,6 +29,7 @@ public class Constants {
     public static final String FREE_SERVICE_POSTFIX = "_free";
     public static final String FREE_SERVICE_NAME_POSTFIX = " (бесплатно)";
     public static final String SERVICE_PREFIX = "service_";
+    public static final String SERVICE_OLD_PREFIX = "service_old_";
     public static final String REGISTRATION_COST_SERVICE_PREFIX = "registration_cost_";
     public static final String RENEW_COST_SERVICE_PREFIX = "renew_cost_";
     public static final String SERVICE_MONEY_RETURN_PREFIX = "service_money_return_";
@@ -144,15 +145,15 @@ public class Constants {
         DOMAIN_REGISTRATOR_NAME_MAP.put(9, "Webnames");
 
         NOT_NEEDED_SERVICE_IDS.add(2);
-        NOT_NEEDED_SERVICE_IDS.add(3);
+//        NOT_NEEDED_SERVICE_IDS.add(3);
         NOT_NEEDED_SERVICE_IDS.add(5);
         NOT_NEEDED_SERVICE_IDS.add(7);
         NOT_NEEDED_SERVICE_IDS.add(8);
         NOT_NEEDED_SERVICE_IDS.add(10);
         NOT_NEEDED_SERVICE_IDS.add(11);
-        NOT_NEEDED_SERVICE_IDS.add(14);
+//        NOT_NEEDED_SERVICE_IDS.add(14);
         NOT_NEEDED_SERVICE_IDS.add(16);
-        NOT_NEEDED_SERVICE_IDS.add(17);
+//        NOT_NEEDED_SERVICE_IDS.add(17);
         NOT_NEEDED_SERVICE_IDS.add(19);
         NOT_NEEDED_SERVICE_IDS.add(20);
         NOT_NEEDED_SERVICE_IDS.add(21);

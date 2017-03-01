@@ -16,9 +16,6 @@ import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.validators.ObjectIdList;
 
-/**
- * Plan
- */
 @Document
 public class Plan extends BaseModel {
     @NotNull
@@ -28,9 +25,11 @@ public class Plan extends BaseModel {
     private String internalName;
 
     @NotNull
+    @Indexed
     private String serviceId;
 
     @NotNull
+    @Indexed
     private String oldId;
 
     @NotNull

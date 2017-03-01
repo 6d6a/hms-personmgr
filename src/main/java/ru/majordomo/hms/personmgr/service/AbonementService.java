@@ -163,7 +163,7 @@ public class AbonementService {
                 message.setParams(new HashMap<>());
                 message.addParam("email", email);
                 message.addParam("api_name", "MajordomoVHAbNoMoneyProlong");
-                message.addParam("priority", 10);
+                message.addParam("priority", 1);
 
                 HashMap<String, String> parameters = new HashMap<>();
                 parameters.put("client_id", message.getAccountId());

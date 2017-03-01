@@ -27,6 +27,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.FREE_SERVICE_NAME_POST
 import static ru.majordomo.hms.personmgr.common.Constants.FREE_SERVICE_POSTFIX;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_MONEY_RETURN_PREFIX;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_MONEY_TRANSFER_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_OLD_PREFIX;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_PREFIX;
 
 
@@ -114,12 +115,66 @@ public class ServiceDBImportService {
         logger.debug("found Перенос средств PaymentService: " + newService.toString());
     }
 
+    public void pullFix() {
+        String query = "SELECT id, usluga, service_cost FROM uslugi WHERE id IN(3,14,17)";
+
+        serviceList.addAll(jdbcTemplate.query(query, (rs, rowNum) -> {
+            PaymentService newService = new PaymentService();
+
+            newService.setPaymentType(ServicePaymentType.MONTH);
+            newService.setCost(rs.getBigDecimal("service_cost"));
+            newService.setLimit(0);
+            newService.setName(rs.getString("usluga"));
+            newService.setAccountType(AccountType.VIRTUAL_HOSTING);
+            newService.setActive(true);
+            newService.setOldId(SERVICE_PREFIX + rs.getString("id"));
+
+            logger.debug("found PaymentService: " + newService.toString());
+
+            return newService;
+        }));
+    }
+
+
+    public void pullOld() {
+        String query = "SELECT id, name, active FROM payment_type";
+
+        serviceList.addAll(jdbcTemplate.query(query, (rs, rowNum) -> {
+            PaymentService oldService = new PaymentService();
+
+            oldService.setPaymentType(ServicePaymentType.ONE_TIME);
+            oldService.setCost(BigDecimal.ZERO);
+            oldService.setLimit(0);
+            oldService.setName(rs.getString("name"));
+            oldService.setAccountType(AccountType.VIRTUAL_HOSTING);
+            oldService.setActive(rs.getString("active").equals("1"));
+            oldService.setOldId(SERVICE_OLD_PREFIX + rs.getString("id"));
+
+            logger.debug("found Old PaymentService: " + oldService.toString());
+
+            return oldService;
+        }));
+    }
+
     public boolean importToMongo() {
         paymentServiceRepository.deleteAll();
         pull();
+        pullOld();
         pushToMongo();
         return true;
     }
+
+    public boolean importToMongoOld() {
+        pullOld();
+        pushToMongo();
+        return true;
+    }
+    public boolean importToMongoFix() {
+        pullFix();
+        pushToMongo();
+        return true;
+    }
+
 
     private void pushToMongo() {
         try {
