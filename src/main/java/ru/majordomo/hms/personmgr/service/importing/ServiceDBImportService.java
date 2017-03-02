@@ -116,22 +116,34 @@ public class ServiceDBImportService {
     }
 
     public void pullFix() {
-        String query = "SELECT id, usluga, service_cost FROM uslugi WHERE id IN(3,14,17)";
+        String query = "SELECT id, usluga, service_cost FROM uslugi WHERE id IN(14)";
 
         serviceList.addAll(jdbcTemplate.query(query, (rs, rowNum) -> {
-            PaymentService newService = new PaymentService();
+//            PaymentService newService = new PaymentService();
+//
+//            newService.setPaymentType(ServicePaymentType.MONTH);
+//            newService.setCost(rs.getBigDecimal("service_cost"));
+//            newService.setLimit(0);
+//            newService.setName(rs.getString("usluga"));
+//            newService.setAccountType(AccountType.VIRTUAL_HOSTING);
+//            newService.setActive(true);
+//            newService.setOldId(SERVICE_PREFIX + rs.getString("id"));
+//
+//            logger.debug("found PaymentService: " + newService.toString());
 
-            newService.setPaymentType(ServicePaymentType.MONTH);
-            newService.setCost(rs.getBigDecimal("service_cost"));
-            newService.setLimit(0);
-            newService.setName(rs.getString("usluga"));
-            newService.setAccountType(AccountType.VIRTUAL_HOSTING);
-            newService.setActive(true);
-            newService.setOldId(SERVICE_PREFIX + rs.getString("id"));
+//            return newService;
 
-            logger.debug("found PaymentService: " + newService.toString());
+            PaymentService newServiceFree = new PaymentService();
 
-            return newService;
+            newServiceFree.setPaymentType(ServicePaymentType.MONTH);
+            newServiceFree.setCost(BigDecimal.ZERO);
+            newServiceFree.setLimit(0);
+            newServiceFree.setName(rs.getString("usluga") + FREE_SERVICE_NAME_POSTFIX);
+            newServiceFree.setAccountType(AccountType.VIRTUAL_HOSTING);
+            newServiceFree.setActive(true);
+            newServiceFree.setOldId(SERVICE_PREFIX + rs.getString("id") + FREE_SERVICE_POSTFIX);
+
+            return newServiceFree;
         }));
     }
 

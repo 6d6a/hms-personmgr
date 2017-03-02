@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
@@ -125,12 +126,60 @@ public class AccountServiceHelper {
     }
 
     /**
-     * Проверяем есть ли услуга на аккаунте
+     * Получить определенные услуги на аккаунте
      *
      * @param account   Аккаунт
      * @param serviceId id услуги
      */
     public List<AccountService> getAccountServices(PersonalAccount account, String serviceId) {
         return accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), serviceId);
+    }
+
+    /**
+     * Включаем услугу
+     *
+     * @param account   Аккаунт
+     * @param serviceId id услуги
+     */
+    public void enableAccountService(PersonalAccount account, String serviceId) {
+        setEnabledAccountService(account, serviceId, true);
+    }
+
+    /**
+     * Выключаем услугу
+     *
+     * @param account   Аккаунт
+     * @param serviceId id услуги
+     */
+    public void disableAccountService(PersonalAccount account, String serviceId) {
+        setEnabledAccountService(account, serviceId, false);
+    }
+
+    /**
+     * Меняем статус услуги
+     *
+     * @param account   Аккаунт
+     * @param serviceId id услуги
+     */
+    public void setEnabledAccountService(PersonalAccount account, String serviceId, boolean enabled) {
+        List<AccountService> accountServices = getAccountServices(account, serviceId);
+
+        accountServices.forEach(accountService -> accountService.setEnabled(enabled));
+
+        accountServiceRepository.save(accountServices);
+    }
+
+    /**
+     * Меняем статус услуги
+     *
+     * @param account   Аккаунт
+     * @param serviceId id услуги
+     */
+    public void setLastBilledAccountService(PersonalAccount account, String serviceId) {
+        List<AccountService> accountServices = getAccountServices(account, serviceId);
+
+        accountServices.forEach(accountService -> accountService.setLastBilled(LocalDateTime.now()));
+
+        accountServiceRepository.save(accountServices);
     }
 }

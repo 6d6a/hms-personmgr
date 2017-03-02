@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,6 +17,7 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 
@@ -24,6 +26,13 @@ import ru.majordomo.hms.personmgr.validators.ObjectId;
 @Validated
 public class PersonResourceRestController extends CommonResourceRestController {
     private final static Logger logger = LoggerFactory.getLogger(PersonResourceRestController.class);
+
+    private final PersonalAccountRepository accountRepository;
+
+    @Autowired
+    public PersonResourceRestController(PersonalAccountRepository accountRepository) {
+        this.accountRepository = accountRepository;
+    }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
@@ -72,6 +81,13 @@ public class PersonResourceRestController extends CommonResourceRestController {
         message.setAccountId(accountId);
 
         logger.debug("Deleting person with id " + resourceId + " " + message.toString());
+
+        PersonalAccount account = accountRepository.findOne(message.getAccountId());
+
+        //Если пытаемся удалить персону "владельца аккаунта"
+        if (account != null && account.getOwnerPersonId() != null && account.getOwnerPersonId().equals(resourceId)) {
+            this.createErrorResponse("Person with id " + resourceId + " is set as accountOwner and prohibited to delete");
+        }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.PERSON_DELETE, BusinessActionType.PERSON_DELETE_RC, message);
 

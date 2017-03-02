@@ -24,7 +24,6 @@ import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventL
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.serializer.PageSerializer;
 import ru.majordomo.hms.personmgr.service.DomainService;
@@ -89,7 +88,7 @@ public class Application implements CommandLineRunner {
     private ServiceDBImportService serviceDBImportService;
 
     @Autowired
-    private PersonalAccountServicesDBImportService personalAccountServicesDBImportService;
+    private AccountServicesDBImportService accountServicesDBImportService;
 
     @Autowired
     private SchedulerService schedulerService;
@@ -133,8 +132,8 @@ public class Application implements CommandLineRunner {
 //                imported = accountNotificationDBImportService.importToMongo("ac_100800");
 //                sb.append(" ").append(imported ? "accountNotification db_imported" : "accountNotification db_not_imported");
 
-                imported = serviceDBImportService.importToMongoFix();
-                sb.append(" ").append(imported ? "service db_imported" : "service db_not_imported");
+//                imported = serviceDBImportService.importToMongoFix();
+//                sb.append(" ").append(imported ? "service db_imported" : "service db_not_imported");
 
 //                imported = planDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "plan db_imported" : "plan db_not_imported");
@@ -149,9 +148,9 @@ public class Application implements CommandLineRunner {
 //                imported = personalAccountDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
 
-//                imported = personalAccountServicesDBImportService.importToMongo();
-//                imported = personalAccountServicesDBImportService.importToMongo("100800");
-//                sb.append(" ").append(imported ? "personalAccountServices db_imported" : "personalAccountServices db_not_imported");
+//                imported = accountServicesDBImportService.importToMongo();
+                imported = accountServicesDBImportService.importToMongo("100800");
+                sb.append(" ").append(imported ? "accountServices db_imported" : "accountServices db_not_imported");
 
 //                imported = promocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "promocode db_imported" : "promocode db_not_imported");

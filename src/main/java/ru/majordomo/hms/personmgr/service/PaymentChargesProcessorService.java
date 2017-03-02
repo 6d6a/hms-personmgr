@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
@@ -72,7 +73,8 @@ public class PaymentChargesProcessorService {
 //                throw new ChargeException("accountService.getPaymentService() == null");
             }
 
-            if (accountService.getPaymentService() != null
+            if (accountService.isEnabled()
+                    && accountService.getPaymentService() != null
                     && (accountService.getLastBilled() == null
                     || accountService.getLastBilled().isBefore(chargeDate.minusDays(1))
                     || accountService.getLastBilled().isEqual(chargeDate.minusDays(1))))
@@ -82,12 +84,12 @@ public class PaymentChargesProcessorService {
                     case MONTH:
                         cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
                         this.makeCharge(account, accountService, cost, chargeDate);
-                        dailyCost = dailyCost.add(accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP));
+                        dailyCost = dailyCost.add(cost);
                         break;
                     case DAY:
                         cost = accountService.getCost();
                         this.makeCharge(account, accountService, cost, chargeDate);
-                        dailyCost = dailyCost.add(accountService.getCost());
+                        dailyCost = dailyCost.add(cost);
                         break;
                 }
             }
@@ -96,7 +98,12 @@ public class PaymentChargesProcessorService {
         if (dailyCost.compareTo(BigDecimal.ZERO) > 0) {
             Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue() - 1;
 
-            if (account.getNotifyDays() > 0 && remainingDays > 0 && remainingDays <= account.getNotifyDays() && account.isActive()) {
+            if (account.getNotifyDays() > 0 &&
+                    remainingDays > 0 &&
+                    remainingDays <= account.getNotifyDays() &&
+                    account.isActive() &&
+                    account.hasNotification(MailManagerMessageType.EMAIL_REMAINING_DAYS)
+                    ) {
                 //Уведомление об окончании средств
                 Map<String, Integer> params = new HashMap<>();
                 params.put("remainingDays", remainingDays);
