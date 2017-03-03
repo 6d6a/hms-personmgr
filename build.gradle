@@ -1,56 +1,127 @@
-import de.undercouch.gradle.tasks.download.Download
+import org.ajoberstar.grgit.*
 
 buildscript {
+    ext {
+        querydslVersion = '4.1.4'
+    }
     repositories {
-            maven {
-                url 'https://nexus.intr/repository/mavengroup/'
-            }
+        maven {
+            url('http://nexus.intr/repository/mavengroup/')
         }
+    }
+    configurations.all {
+        resolutionStrategy.cacheDynamicVersionsFor 5, 'minutes'
+    }
     dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath("se.transmode.gradle:gradle-docker:1.2")
+        classpath "com.avast.gradle:docker-compose-gradle-plugin:0.3.9"
         classpath("ru.majordomo.gradle.plugins:copycompose:1.+")
-        classpath('de.undercouch:gradle-download-task:3.1.2')
+        classpath("org.ajoberstar:gradle-git:1.6.0")
     }
 }
+plugins {
+    id "com.ewerk.gradle.plugins.querydsl" version "1.0.7"
+}
 
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'spring-boot'
+apply plugin: 'docker'
+apply plugin: 'docker-compose'
+apply plugin: 'org.ajoberstar.grgit'
 apply plugin: 'ru.majordomo.gradle.plugins.copycompose'
+apply plugin: "com.ewerk.gradle.plugins.querydsl"
+apply from: "https://nexus.intr/repository/init/gradle-init/0.1/dockertask.gradle"
 
-task downloadInit(type: Download) {
-    src 'https://nexus.intr/repository/init/gradle-init/0.1/init.gradle'
-    dest buildDir
+jar {
+    baseName = 'personmgr'
+    version = '0.0.1-SNAPSHOT'
 }
 
-task buildDocker(type: GradleBuild, dependsOn: downloadInit) {
-    buildFile new File('real-build.gradle')
-    startParameter.addInitScript(new File('build/init.gradle'))
-    def props = project.properties.servicesMap
-    if(project.hasProperty('debug')) {
-        props['debug'] = 'yes'
+
+description = """personmgr"""
+
+repositories {
+    maven {
+        url('http://nexus.intr/repository/mavengroup/')
     }
-    startParameter.setProjectProperties(props)
-    tasks = ['buildDocker']
 }
 
-task composeUp(type: GradleBuild,dependsOn: downloadInit) {
-    buildFile new File('real-build.gradle')
-    startParameter.addInitScript(new File('build/init.gradle'))
-    def props = project.properties.servicesMap
-    if(project.hasProperty('debug')) {
-        props['debug'] = 'yes'
+configurations {
+    compile.exclude module: "spring-boot-starter-tomcat"
+    compile.exclude module: "hystrix-core"
+    compile.exclude module: "feign-hystrix"
+}
+
+dependencies {
+    compile('ru.majordomo.hms.rc.user:resources:1+')
+    compile('ru.majordomo.hms.rc.staff:resources:1+')
+
+    compile('org.springframework.boot:spring-boot-starter-data-mongodb')
+    compile('org.springframework.boot:spring-boot-starter-amqp')
+//    compile('org.springframework.boot:spring-boot-starter-data-redis')
+    compile('org.springframework.boot:spring-boot-starter-data-rest')
+    compile('org.springframework.boot:spring-boot-starter-jdbc')
+    compile('org.springframework.boot:spring-boot-starter-web')
+    compile('org.springframework.boot:spring-boot-starter-web-services')
+    compile("org.springframework.boot:spring-boot-starter-cache")
+    compile("org.springframework.boot:spring-boot-starter-jetty")
+
+    compile('org.springframework.cloud:spring-cloud-starter-eureka')
+    compile('org.springframework.cloud:spring-cloud-starter-feign')
+    compile("org.springframework.cloud:spring-cloud-starter-bus-amqp")
+    compile("org.springframework.cloud:spring-cloud-netflix-hystrix-stream")
+    compile('org.springframework.cloud:spring-cloud-starter-config')
+//    compile('org.springframework.cloud:spring-cloud-starter-oauth2')
+
+//    compile group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version:'2.0.11.RELEASE'
+//    compile group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.5.RELEASE'
+    compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version: '1.9.13'
+    compile group: 'org.codehaus.jackson', name: 'jackson-core-asl', version: '1.9.13'
+
+    compile("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.8.6")
+
+    compile("commons-validator:commons-validator:1.5.1")
+    
+    compile(group: 'com.mysql', name: 'management', version: '1.1.6') {
+        exclude(module: 'jmxtools')
     }
-    startParameter.setProjectProperties(props)
-    tasks = ['composeUp']
+
+    compile group: 'ru.majordomo.hms.common', name: 'hms-common', version: '0.0.1-SNAPSHOT'
+
+    compile('org.hibernate:hibernate-validator:5.3.3.Final')
+    compile('org.hibernate:hibernate-validator-cdi:5.3.3.Final')
+    compile('javax.el:javax.el-api:2.2.4')
+    compile('org.glassfish.web:javax.el:2.2.4')
+
+    compile "com.querydsl:querydsl-mongodb:$querydslVersion"
+    compile "com.querydsl:querydsl-apt:$querydslVersion"
+    
+    testCompile('org.springframework.boot:spring-boot-starter-test') {
+        exclude(module: 'commons-logging')
+    }
+    testCompile('com.github.fakemongo:fongo:2.0.9')
+    compile("com.cronutils:cron-utils:5.0.1")
 }
 
-task composeDown(type: GradleBuild, dependsOn: downloadInit) {
-    buildFile new File('real-build.gradle')
-    startParameter.addInitScript(new File('build/init.gradle'))
-    startParameter.setProjectProperties(project.properties.servicesMap)
-    tasks = ['composeDown']
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springVersion}"
+    }
 }
 
-task build(type: GradleBuild, dependsOn: downloadInit) {
-    buildFile new File('real-build.gradle')
-    startParameter.addInitScript(new File('build/init.gradle'))
-    startParameter.setProjectProperties(project.properties.servicesMap)
-    tasks = ['build']
+def generatedSrcDir = 'src/main/generated'
+
+querydsl {
+    springDataMongo = true
+    querydslSourcesDir = file(generatedSrcDir)
+    library = "com.querydsl:querydsl-mongodb:$querydslVersion"
+}
+
+idea {
+    module {
+        sourceDirs += file(generatedSrcDir)
+        generatedSourceDirs += file(generatedSrcDir)
+    }
 }
