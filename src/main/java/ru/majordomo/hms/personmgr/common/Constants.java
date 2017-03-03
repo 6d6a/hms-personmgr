@@ -41,6 +41,7 @@ public class Constants {
     public static final String HISTORY_MESSAGE_KEY = "historyMessage";
     public static final String OPERATOR_KEY = "operator";
     public static final String AUTO_RENEW_KEY = "autoRenew";
+    public static final String ENABLED_KEY = "enabled";
     public static final int PLAN_PARKING_ID = 109;
     public static final int PLAN_PARKING_PLUS_ID = 124;
     public static final int PLAN_UNLIMITED_ID = 9802;
@@ -68,6 +69,9 @@ public class Constants {
     public static final String SMS_NOTIFICATIONS_FREE_SERVICE_ID = SERVICE_PREFIX + SMS_NOTIFICATIONS_10_RUB_ID + FREE_SERVICE_POSTFIX;
     public static final int SMS_NOTIFICATIONS_29_RUB_ID = 21;
     public static final String SMS_NOTIFICATIONS_29_RUB_SERVICE_ID = SERVICE_PREFIX + SMS_NOTIFICATIONS_29_RUB_ID;
+
+    public static final int ANTI_SPAM_ID = 13;
+    public static final String ANTI_SPAM_SERVICE_ID = SERVICE_PREFIX + ANTI_SPAM_ID;
 
     //Id услуги Доп.место в BillingDB
     public static final int ADDITIONAL_QUOTA_100_ID = 15;
@@ -156,16 +160,22 @@ public class Constants {
 //        NOT_NEEDED_SERVICE_IDS.add(17);
         NOT_NEEDED_SERVICE_IDS.add(19);
         NOT_NEEDED_SERVICE_IDS.add(20);
-        NOT_NEEDED_SERVICE_IDS.add(21);
+//        NOT_NEEDED_SERVICE_IDS.add(21);
 
         NOT_NEEDED_ACCOUNT_SERVICE_IDS.addAll(NOT_NEEDED_SERVICE_IDS);
         //"Тарифный план (хостинг)"
         NOT_NEEDED_ACCOUNT_SERVICE_IDS.add(1);
+        //Доменный алиас
+        NOT_NEEDED_ACCOUNT_SERVICE_IDS.add(2);
+        //Дополнительный домен
+        NOT_NEEDED_ACCOUNT_SERVICE_IDS.add(3);
 
         //ДопFTP
         OPTIONALLY_FREE_SERVICE_IDS.add(4);
         //Защита от спама
         OPTIONALLY_FREE_SERVICE_IDS.add(13);
+        //Дополнительный Webalizer
+        OPTIONALLY_FREE_SERVICE_IDS.add(14);
         //СМС-уведомления
         OPTIONALLY_FREE_SERVICE_IDS.add(18);
     }

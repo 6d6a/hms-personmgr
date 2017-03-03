@@ -5,6 +5,7 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -130,6 +131,39 @@ public class AccountHelper {
                     "Current balance is: " + available.toPlainString() + " service cost is: " + service.getCost());
         }
     }
+
+    /**
+     * Проверим хватает ли баланса на один день услуги
+     *
+     * @param account Аккаунт
+     */
+    public void checkBalance(PersonalAccount account, PaymentService service, boolean forOneDay) {
+        if (!forOneDay) {
+            checkBalance(account, service);
+        } else {
+            BigDecimal dayCost = getDayCostByService(service);
+
+            BigDecimal available = getBalance(account);
+
+            if (available.compareTo(dayCost) < 0) {
+                throw new LowBalanceException("Account balance is too low for specified service. " +
+                        "Current balance is: " + available.toPlainString() + " service oneDayCost is: " + dayCost);
+            }
+        }
+    }
+
+    public BigDecimal getDayCostByService(PaymentService service, LocalDateTime chargeDate) {
+        Integer daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
+
+        return service.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
+    }
+
+    public BigDecimal getDayCostByService(PaymentService service) {
+        LocalDateTime chargeDate = LocalDateTime.now();
+
+        return getDayCostByService(service, chargeDate);
+    }
+
     //TODO на самом деле сюда ещё должна быть возможность передать discountedService
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service) {
         BigDecimal amount = service.getCost();

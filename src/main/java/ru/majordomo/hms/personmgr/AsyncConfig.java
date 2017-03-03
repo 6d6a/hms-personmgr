@@ -10,7 +10,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
 
-import ru.majordomo.hms.personmgr.exception.MyAsyncUncaughtExceptionHandler;
+import ru.majordomo.hms.personmgr.exception.handler.MyAsyncUncaughtExceptionHandler;
 
 @Configuration
 @EnableAsync

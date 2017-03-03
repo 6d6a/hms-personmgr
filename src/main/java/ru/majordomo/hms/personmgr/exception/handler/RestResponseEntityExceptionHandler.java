@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.exception;
+package ru.majordomo.hms.personmgr.exception.handler;
 
 
 import feign.codec.DecodeException;
@@ -25,6 +25,8 @@ import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
 import ru.majordomo.hms.personmgr.common.message.ErrorMessage;
+import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 
 @ControllerAdvice
 public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionHandler {
