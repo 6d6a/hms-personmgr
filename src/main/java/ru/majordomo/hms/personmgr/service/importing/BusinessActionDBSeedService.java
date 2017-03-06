@@ -76,6 +76,10 @@ public class BusinessActionDBSeedService {
         this.seedDnsRecordUpdateActions();
         this.seedDnsRecordDeleteActions();
 
+        this.seedResourceArchiveCreateActions();
+        this.seedResourceArchiveUpdateActions();
+        this.seedResourceArchiveDeleteActions();
+
         logger.debug("BusinessAction found with findAll():");
         logger.debug("-------------------------------");
 
@@ -735,6 +739,63 @@ public class BusinessActionDBSeedService {
 
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("dns-record.delete");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedResourceArchiveCreateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+
+        //ResourceArchive create
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.RESOURCE_ARCHIVE_CREATE_RC);
+        action.setName("ResourceArchive create");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("resource-archive.create");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedResourceArchiveUpdateActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //DnsRecord update
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.RESOURCE_ARCHIVE_UPDATE_RC);
+        action.setName("ResourceArchive update");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("resource-archive.update");
+        amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedResourceArchiveDeleteActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //DnsRecord delete
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.RESOURCE_ARCHIVE_DELETE_RC);
+        action.setName("ResourceArchive delete");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("resource-archive.delete");
         amqpMessageDestination.setRoutingKey("rc.user");
 
         action.setDestination(amqpMessageDestination);
