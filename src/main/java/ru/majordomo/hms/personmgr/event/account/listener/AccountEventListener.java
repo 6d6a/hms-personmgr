@@ -8,32 +8,46 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.*;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.TokenHelper;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.IP_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.TECHNICAL_SUPPORT_EMAIL;
+import static ru.majordomo.hms.personmgr.common.Constants.TOKEN_KEY;
 
 @Component
 public class AccountEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountEventListener.class);
 
     private final AccountHelper accountHelper;
+    private final TokenHelper tokenHelper;
     private final ApplicationEventPublisher publisher;
 
     @Autowired
     public AccountEventListener(
             AccountHelper accountHelper,
-            ApplicationEventPublisher publisher) {
+            TokenHelper tokenHelper,
+            ApplicationEventPublisher publisher
+    ) {
         this.accountHelper = accountHelper;
+        this.tokenHelper = tokenHelper;
         this.publisher = publisher;
     }
 
@@ -186,5 +200,117 @@ public class AccountEventListener {
         message.addParam("parametrs", parameters);
 
         publisher.publishEvent(new SendMailEvent(message));
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountPasswordRecover(AccountPasswordRecoverEvent event) {
+        PersonalAccount account = event.getSource();
+        Map<String, ?> params = event.getParams();
+
+        logger.debug("We got AccountPasswordRecoverEvent");
+
+        String emails = accountHelper.getEmail(account);
+
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setParams(new HashMap<>());
+        message.addParam("email", emails);
+        message.addParam("api_name", "MajordomoVHPasswordChange");
+        message.addParam("priority", 10);
+
+        String token = tokenHelper.generateToken(account, TokenType.PASSWORD_RECOVERY_REQUEST);
+
+        String ip = (String) params.get(IP_KEY);
+
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getAccountId());
+        parameters.put("account", account.getName());
+        parameters.put("ip", ip);
+        parameters.put("key", token);
+
+        message.addParam("parametrs", parameters);
+
+        publisher.publishEvent(new SendMailEvent(message));
+
+        //Запишем в историю клиента
+        Map<String, String> historyParams = new HashMap<>();
+        historyParams.put(HISTORY_MESSAGE_KEY, "Получена заявка на смену пароля к панели управления с IP: " + ip);
+        historyParams.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.event.account.listener.AccountEventListener.onAccountPasswordRecover");
+
+        publisher.publishEvent(new AccountHistoryEvent(account, historyParams));
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountPasswordRecoverConfirmed(AccountPasswordRecoverConfirmedEvent event) {
+        PersonalAccount account = event.getSource();
+        Map<String, ?> params = event.getParams();
+
+        logger.debug("We got AccountPasswordRecoverConfirmedEvent");
+
+        String emails = accountHelper.getEmail(account);
+
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setParams(new HashMap<>());
+        message.addParam("email", emails);
+        message.addParam("api_name", "MajordomoVHResetPassConfirm");
+        message.addParam("priority", 10);
+
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getAccountId());
+        parameters.put("pass", (String) params.get(PASSWORD_KEY));
+
+        message.addParam("parametrs", parameters);
+
+        publisher.publishEvent(new SendMailEvent(message));
+
+        String ip = (String) params.get(IP_KEY);
+
+        //Запишем в историю клиента
+        Map<String, String> historyParams = new HashMap<>();
+        historyParams.put(HISTORY_MESSAGE_KEY, "Произведена смена пароля к панели управления с IP: " + ip);
+        historyParams.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.event.account.listener.AccountEventListener.onAccountPasswordRecoverConfirmed");
+
+        publisher.publishEvent(new AccountHistoryEvent(account, historyParams));
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountPasswordChangedEvent(AccountPasswordChangedEvent event) {
+        PersonalAccount account = event.getSource();
+        Map<String, ?> params = event.getParams();
+
+        logger.debug("We got AccountPasswordChangedEvent");
+
+        String ip = (String) params.get(IP_KEY);
+
+        //Запишем в историю клиента
+        Map<String, String> historyParams = new HashMap<>();
+        historyParams.put(HISTORY_MESSAGE_KEY, "Произведена смена пароля к панели управления с IP: " + ip);
+        historyParams.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.event.account.listener.AccountEventListener.onAccountPasswordChangedEvent");
+
+        publisher.publishEvent(new AccountHistoryEvent(account, historyParams));
+
+        if (account.hasNotification(MailManagerMessageType.EMAIL_CHANGE_ACCOUNT_PASSWORD)) {
+            String emails = accountHelper.getEmail(account);
+
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.addParam("email", emails);
+            message.addParam("api_name", "MajordomoVHPassChAccount");
+            message.addParam("priority", 10);
+
+            HashMap<String, String> parameters = new HashMap<>();
+            parameters.put("client_id", account.getAccountId());
+            parameters.put("acc_id", account.getAccountId());
+            parameters.put("ip", ip);
+            parameters.put("date", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy H:m:s")));
+
+            message.addParam("parametrs", parameters);
+
+            publisher.publishEvent(new SendMailEvent(message));
+        }
     }
 }
