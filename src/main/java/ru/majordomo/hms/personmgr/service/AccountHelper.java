@@ -12,24 +12,30 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ChargeException;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.rc.user.resources.Person;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
+import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
+
 @Service
 public class AccountHelper {
     private final RcUserFeignClient rcUserFeignClient;
     private final FinFeignClient finFeignClient;
+    private final SiFeignClient siFeignClient;
 
     @Autowired
     public AccountHelper(
             RcUserFeignClient rcUserFeignClient,
-            FinFeignClient finFeignClient
+            FinFeignClient finFeignClient,
+            SiFeignClient siFeignClient
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
+        this.siFeignClient = siFeignClient;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -214,4 +220,22 @@ public class AccountHelper {
         return response;
     }
 
+    public SimpleServiceMessage changePassword(PersonalAccount account, String newPassword) {
+        Map<String, String> params = new HashMap<>();
+        params.put(PASSWORD_KEY, newPassword);
+
+        SimpleServiceMessage response = null;
+
+        try {
+            response = siFeignClient.changePassword(account.getId(), params);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
+            throw new InternalApiException("Account password not changed. ");
+        }
+
+        return response;
+    }
 }

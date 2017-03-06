@@ -18,10 +18,13 @@ import ru.majordomo.hms.personmgr.event.account.AccountProcessDomainsAutoRenewEv
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringDomainsEvent;
 import ru.majordomo.hms.personmgr.event.processingBusinessAction.ProcessingBusinessActionCleanEvent;
+import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.Token;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
+import ru.majordomo.hms.personmgr.repository.TokenRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.TECHNICAL_ACCOUNT_ID;
 
@@ -31,16 +34,19 @@ public class SchedulerService {
 
     private final PersonalAccountRepository personalAccountRepository;
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
+    private final TokenRepository tokenRepository;
     private final ApplicationEventPublisher publisher;
 
     @Autowired
     public SchedulerService(
             PersonalAccountRepository personalAccountRepository,
             ProcessingBusinessActionRepository processingBusinessActionRepository,
+            TokenRepository tokenRepository,
             ApplicationEventPublisher publisher
     ) {
         this.personalAccountRepository = personalAccountRepository;
         this.processingBusinessActionRepository = processingBusinessActionRepository;
+        this.tokenRepository = tokenRepository;
         this.publisher = publisher;
     }
 
@@ -114,6 +120,18 @@ public class SchedulerService {
         }
         logger.debug("Ended processAbonementsAutoRenew");
     }
+
+    @Scheduled(cron = "0 20 * * * *")
+    public void cleanTokens() {
+        logger.debug("Started cleanTokens");
+        try (Stream<Token> tokenStream = tokenRepository.findByCreatedBeforeOrderByCreatedDateAsc(
+                LocalDateTime.now().minusDays(1L))
+        ) {
+            tokenStream.forEach(token -> publisher.publishEvent(new TokenDeleteEvent(token)));
+        }
+        logger.debug("Ended cleanTokens");
+    }
+
 
     //Теоретически это теперь не нужно
 //    @Scheduled(fixedDelay = 300)
