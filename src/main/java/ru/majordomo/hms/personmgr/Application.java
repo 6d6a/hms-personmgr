@@ -27,7 +27,6 @@ import org.springframework.validation.beanvalidation.MethodValidationPostProcess
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.serializer.PageSerializer;
 import ru.majordomo.hms.personmgr.service.DomainService;
-import ru.majordomo.hms.personmgr.service.SchedulerService;
 import ru.majordomo.hms.personmgr.service.importing.*;
 
 @SpringBootApplication
@@ -89,9 +88,6 @@ public class Application implements CommandLineRunner {
 
     @Autowired
     private AccountServicesDBImportService accountServicesDBImportService;
-
-    @Autowired
-    private SchedulerService schedulerService;
 
     @Autowired
     private DomainService domainService;
@@ -170,7 +166,6 @@ public class Application implements CommandLineRunner {
 //                  imported = accountAbonementDBImportService.importToMongo();
 //                  sb.append(" ").append(imported ? "accountAbonement db_imported" : "accountAbonement db_not_imported");
             } else if (option.equals(processChargesOption)) {
-                schedulerService.processExpiringAbonements();
 //                PersonalAccount account = personalAccountRepository.findByAccountId("100800");
 //                domainService.processDomainsAutoRenewByAccount(account);
 //                paymentChargesProcessorService.processCharges("ac_100800");
