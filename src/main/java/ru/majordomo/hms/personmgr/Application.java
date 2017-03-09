@@ -145,14 +145,15 @@ public class Application implements CommandLineRunner {
 //                sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
 
 //                imported = accountServicesDBImportService.importToMongo();
-                imported = accountServicesDBImportService.importToMongo("100800");
-                sb.append(" ").append(imported ? "accountServices db_imported" : "accountServices db_not_imported");
+//                imported = accountServicesDBImportService.importToMongo("100800");
+//                sb.append(" ").append(imported ? "accountServices db_imported" : "accountServices db_not_imported");
 
 //                imported = promocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "promocode db_imported" : "promocode db_not_imported");
 
-//                imported = accountPromocodeDBImportService.importToMongo("137010");
-//                sb.append(" ").append(imported ? "accountPromocode db_imported" : "accountPromocode db_not_imported");
+                imported = accountPromocodeDBImportService.importToMongo();
+//                imported = accountPromocodeDBImportService.importToMongo("100800");
+                sb.append(" ").append(imported ? "accountPromocode db_imported" : "accountPromocode db_not_imported");
 
 //                imported = bonusPromocodeDBImportService.importToMongo();
 //                sb.append(" ").append(imported ? "bonusPromocode db_imported" : "bonusPromocode db_not_imported");

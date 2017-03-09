@@ -79,18 +79,20 @@ public class AccountAmqpController {
                     break;
                 case "fin":
                     if (state == State.PROCESSED) {
-                        //надо обработать промокод
-                        if (message.getParam("promocode") != null) {
-                            PersonalAccount account = accountRepository.findByAccountId(message.getAccountId());
-                            if (account != null) {
-                                logger.debug("We got promocode " + message.getParam("promocode") + ". Try to process it");
-                                promocodeProcessor.processPromocode(account, (String) message.getParam("promocode"));
+                        if (businessOperation != null) {
+                            //надо обработать промокод
+                            if (businessOperation.getParam("promocode") != null) {
+                                PersonalAccount account = accountRepository.findByAccountId(message.getAccountId());
+                                if (account != null) {
+                                    logger.debug("We got promocode " + businessOperation.getParam("promocode") + ". Try to process it");
+                                    promocodeProcessor.processPromocode(account, (String) businessOperation.getParam("promocode"));
+                                }
                             }
-                        }
-                        if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
-                            message.setParams(businessOperation.getParams());
-                            //Создадим персону
-                            businessActionBuilder.build(BusinessActionType.PERSON_CREATE_RC, message);
+                            if (businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
+                                message.setParams(businessOperation.getParams());
+                                //Создадим персону
+                                businessActionBuilder.build(BusinessActionType.PERSON_CREATE_RC, message);
+                            }
                         }
                     } else {
                         //TODO delete si account and PM
