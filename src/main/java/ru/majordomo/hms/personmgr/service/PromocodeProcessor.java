@@ -151,7 +151,7 @@ public class PromocodeProcessor {
                     payment.put("accountId", account.getName());
                     payment.put("paymentTypeId", BONUS_PAYMENT_TYPE_ID);
                     payment.put("amount", new BigDecimal(action.getProperties().get("amount")));
-                    payment.put("documentNumber", "N/A");
+                    payment.put("documentNumber", account.getName() + "_" + accountPromocode.getPromocode().getCode());
                     payment.put("message", "Бонусный платеж при использовании промокода " + accountPromocode.getPromocode().getCode());
 
                     try {
