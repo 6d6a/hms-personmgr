@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventLis
 import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
 import org.springframework.stereotype.Component;
 
+import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 
@@ -26,5 +27,7 @@ public class AccountPromocodeMongoEventListener extends AbstractMongoEventListen
         Promocode promocode = mongoOperations.findById(accountPromocode.getPromocodeId(), Promocode.class);
 
         accountPromocode.setPromocode(promocode);
+
+        accountPromocode.setPersonalAccountName(mongoOperations.findById(accountPromocode.getPersonalAccountId(), PersonalAccount.class).getName());
     }
 }
