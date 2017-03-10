@@ -54,3 +54,11 @@ spring:
         username: guest
     jackson:
         date-format: yyyy-MM-dd HH:mm:ss
+
+management:
+  port: 18070
+  security:
+    enabled: false
+
+endpoints:
+  sensitive: false
