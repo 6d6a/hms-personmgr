@@ -83,6 +83,10 @@ public class PaymentAmqpController extends CommonAmqpController  {
                     // Аккаунт которому необходимо начислить средства
                     PersonalAccount accountForPartnerBonus = accountRepository.findByAccountId(accountPromocode.getOwnerPersonalAccountId());
 
+                    if (accountForPartnerBonus == null) {
+                        throw new ParameterValidationException("PersonalAccount with ID: " + accountPromocode.getOwnerPersonalAccountId() + " not found.");
+                    }
+
                     // Проверка даты создания аккаунта
                     if (account.getCreated().isBefore(accountForPartnerBonus.getCreated().plusYears(1))) {
                         // Все условия выполнены
@@ -99,8 +103,8 @@ public class PaymentAmqpController extends CommonAmqpController  {
                         payment.put("message", "Бонусный платеж за использование промокода " + accountPromocode.getPromocode().getCode() + " на аккаунте: " + accountForPartnerBonus.getName());
 
                         try {
-                            finFeignClient.addPayment(payment);
-                            //logger.debug("Processed promocode addPayment: " + payment.toString());
+                            String responseMessage = finFeignClient.addPayment(payment);
+                            logger.debug("Processed promocode addPayment: " + responseMessage);
 
                         } catch (Exception e) {
                             e.printStackTrace();
