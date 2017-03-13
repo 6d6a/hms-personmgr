@@ -145,7 +145,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
         promocodeProcessor.generatePartnerPromocode(personalAccount);
         logger.debug("PartnerPromocode generated");
 
-        message.setAccountId(personalAccount.getId());
+        message.setAccountId(personalAccount.getAccountId());
         message.addParam("username", personalAccount.getName());
         message.addParam(PASSWORD_KEY, password);
 

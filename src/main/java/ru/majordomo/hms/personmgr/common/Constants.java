@@ -26,6 +26,9 @@ public class Constants {
     public static final String SEO_AUDIT_SERVICE_ID = "1";
     public static final String SEO_CONTEXT_SERVICE_ID = "2";
     public static final String BONUS_PAYMENT_TYPE_ID = "31";
+    public static final String BONUS_PARTNER_TYPE_ID = "35";
+    public static final String REAL_PAYMENT_TYPE_KIND = "REAL";
+    public static final String BONUS_PARTNER_PERCENT = "0.25";
     public static final String FREE_SERVICE_POSTFIX = "_free";
     public static final String FREE_SERVICE_NAME_POSTFIX = " (бесплатно)";
     public static final String SERVICE_PREFIX = "service_";

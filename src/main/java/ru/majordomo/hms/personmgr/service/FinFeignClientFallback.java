@@ -9,7 +9,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 @Service
 public class FinFeignClientFallback implements FinFeignClient {
     @Override
-    public Map<String, Object> addPayment(Map<String, Object> payment) {
+    public String addPayment(Map<String, Object> payment) {
         return null;
     }
 

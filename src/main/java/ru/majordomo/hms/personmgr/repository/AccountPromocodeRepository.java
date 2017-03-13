@@ -18,6 +18,8 @@ public interface AccountPromocodeRepository extends MongoRepository<AccountPromo
     List<AccountPromocode> findByPromocodeId(@Param("promocodeId") String promocodeId);
     AccountPromocode findOneByPromocodeId(@Param("promocodeId") String promocodeId);
     AccountPromocode findByPromocodeIdAndOwnedByAccount(@Param("promocodeId") String promocodeId, @Param("ownedByAccount") boolean ownedByAccount);
+    AccountPromocode findOneByPersonalAccountIdAndOwnedByAccount(@Param("personalAccountId") String personalAccountId, @Param("ownedByAccount") boolean ownedByAccount);
+    Long countByPersonalAccountIdAndOwnedByAccount(@Param("personalAccountId") String personalAccountId, @Param("ownedByAccount") boolean ownedByAccount);
     List<AccountPromocode> findByOwnedByAccount(@Param("ownedByAccount") boolean ownedByAccount);
 
     @RestResource(path = "findListByPersonalAccountId", rel = "findListByPersonalAccountId")
