@@ -71,22 +71,20 @@ public class PaymentAmqpController extends CommonAmqpController  {
             PersonalAccount account = accountRepository.findByAccountId(message.getAccountId());
             if (account != null) {
 
+                if (accountPromocodeRepository.countByPersonalAccountIdAndOwnedByAccount(account.getId(), false) > 1) {
+                    throw new ParameterValidationException("Account has more than one AccountPromocodes with OwnedByAccount == false. Id: " + account.getId());
+                }
+
                 // Проверка на то что аккаунт создан по партнерскому промокоду
-                List<AccountPromocode> accountPromocodes = accountPromocodeRepository.findByPersonalAccountIdAndOwnedByAccount(account.getId(), false);
+                AccountPromocode accountPromocode = accountPromocodeRepository.findOneByPersonalAccountIdAndOwnedByAccount(account.getId(), false);
 
-                if (accountPromocodes.size() != 0) {
-
-                    if (accountPromocodes.size() > 2) {
-                        throw new ParameterValidationException("Account has more than one AccountPromocodes with OwnedByAccount == false. AccountId: " + account.getAccountId());
-                    }
+                if (accountPromocode != null) {
 
                     // Аккаунт которому необходимо начислить средства
-                    PersonalAccount accountForPartnerBonus = accountRepository.findByAccountId(accountPromocodes.get(0).getOwnerPersonalAccountId());
+                    PersonalAccount accountForPartnerBonus = accountRepository.findByAccountId(accountPromocode.getOwnerPersonalAccountId());
 
                     // Проверка даты создания аккаунта
-                    LocalDateTime createdDate = account.getCreated();
-                    LocalDateTime createdDateForPartnerBonus = accountForPartnerBonus.getCreated().plusYears(1);
-                    if (createdDate.isBefore(createdDateForPartnerBonus)) {
+                    if (account.getCreated().isBefore(accountForPartnerBonus.getCreated().plusYears(1))) {
                         // Все условия выполнены
 
                         BigDecimal amount = new BigDecimal((Integer) message.getParam("amount"));
@@ -98,8 +96,7 @@ public class PaymentAmqpController extends CommonAmqpController  {
                         payment.put("accountId", accountForPartnerBonus.getName());
                         payment.put("paymentTypeId", BONUS_PARTNER_TYPE_ID);
                         payment.put("amount", promocodeBonus);
-                        //payment.put("documentNumber", "test0000000000000012");
-                        payment.put("message", "Бонусный платеж за использование промокода " + accountPromocodes.get(0).getPromocode().getCode() + " на аккаунте: " + accountForPartnerBonus.getName());
+                        payment.put("message", "Бонусный платеж за использование промокода " + accountPromocode.getPromocode().getCode() + " на аккаунте: " + accountForPartnerBonus.getName());
 
                         try {
                             finFeignClient.addPayment(payment);
