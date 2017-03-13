@@ -155,8 +155,8 @@ public class PromocodeProcessor {
                     payment.put("message", "Бонусный платеж при использовании промокода " + accountPromocode.getPromocode().getCode());
 
                     try {
-                        payment = finFeignClient.addPayment(payment);
-                        logger.debug("Processed promocode addPayment: " + payment.toString());
+                        finFeignClient.addPayment(payment);
+                        //logger.debug("Processed promocode addPayment: " + payment.toString());
 
                     } catch (Exception e) {
                         e.printStackTrace();

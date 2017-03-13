@@ -12,7 +12,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 @FeignClient(name = "fin", fallback = FinFeignClientFallback.class)
 public interface FinFeignClient {
     @RequestMapping(method = RequestMethod.POST, value = "/payment_integration/add_payment", consumes = "application/json")
-    Map<String, Object> addPayment(Map<String, Object> payment);
+    String addPayment(Map<String, Object> payment);
 
     @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/payment_operations/charge", consumes = "application/json")
     SimpleServiceMessage charge(@PathVariable("accountId") String accountId, Map<String, Object> paymentOperation);
