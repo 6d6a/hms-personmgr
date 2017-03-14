@@ -8,11 +8,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
+import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.service.FinFeignClient;
 
@@ -35,16 +38,19 @@ public class PaymentAmqpController extends CommonAmqpController  {
     private final PersonalAccountRepository accountRepository;
     private final AccountPromocodeRepository accountPromocodeRepository;
     private final FinFeignClient finFeignClient;
+    private final AccountStatRepository accountStatRepository;
 
     @Autowired
     public PaymentAmqpController(
             PersonalAccountRepository accountRepository,
             AccountPromocodeRepository accountPromocodeRepository,
-            FinFeignClient finFeignClient
+            FinFeignClient finFeignClient,
+            AccountStatRepository accountStatRepository
     ) {
         this.accountRepository = accountRepository;
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.finFeignClient = finFeignClient;
+        this.accountStatRepository = accountStatRepository;
     }
 
     @RabbitListener(
@@ -105,6 +111,19 @@ public class PaymentAmqpController extends CommonAmqpController  {
                         try {
                             String responseMessage = finFeignClient.addPayment(payment);
                             logger.debug("Processed promocode addPayment: " + responseMessage);
+
+                            //Статистика
+                            AccountStat accountStat = new AccountStat();
+                            accountStat.setPersonalAccountId(accountForPartnerBonus.getId());
+                            accountStat.setCreated(LocalDateTime.now());
+                            accountStat.setType(AccountStatType.VIRTUAL_HOSTING_PARTNER_PROMOCODE_BALANCE_FILL);
+
+                            Map<String, String> data = new HashMap<>();
+                            data.put("usedByPersonalAccountId", account.getId());
+
+                            accountStat.setData(data);
+
+                            accountStatRepository.save(accountStat);
 
                         } catch (Exception e) {
                             e.printStackTrace();

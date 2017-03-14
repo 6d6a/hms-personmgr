@@ -18,6 +18,7 @@ public interface AccountStatRepository extends MongoRepository<AccountStat, Stri
     List<AccountStat> findAll();
     @RestResource(path = "findListByPersonalAccountId", rel = "findListByPersonalAccountId")
     List<AccountStat> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
+    List<AccountStat> findByPersonalAccountIdAndType(@Param("personalAccountId") String personalAccountId, @Param("type") AccountStatType type);
     Page<AccountStat> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId, Pageable pageable);
     AccountStat findByIdAndPersonalAccountId(@Param("id") String id, @Param("personalAccountId") String personalAccountId);
     List<AccountStat> findByType(@Param("type") AccountStatType type);
