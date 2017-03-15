@@ -12,6 +12,7 @@ import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -56,17 +57,27 @@ public class AccountStatRestController extends CommonRestController {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
 
-        List<AccountStat> accountStats;
+        AccountStatType statTypeForSearch;
+        List<AccountStat> accountStats = new ArrayList<>();
         if (type == null) {
             accountStats = accountStatRepository.findByPersonalAccountId(accountId);
-        } else if (Utils.isInEnum(type, AccountStatType.class)) {
-            accountStats = accountStatRepository.findByPersonalAccountIdAndType(accountId, AccountStatType.valueOf(type));
         } else {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }
-
-        if (accountStats.isEmpty()){
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            switch (type) {
+                case "partner_fill":
+                    statTypeForSearch = AccountStatType.VIRTUAL_HOSTING_PARTNER_PROMOCODE_BALANCE_FILL;
+                    break;
+                case "plan_change":
+                    statTypeForSearch = AccountStatType.VIRTUAL_HOSTING_PLAN_CHANGE;
+                    break;
+                default:
+                    if (Utils.isInEnum(type.toUpperCase(), AccountStatType.class)) {
+                        statTypeForSearch = AccountStatType.valueOf(type.toUpperCase());
+                    } else {
+                        return new ResponseEntity<>(accountStats, HttpStatus.OK);
+                    }
+                    break;
+            }
+            accountStats = accountStatRepository.findByPersonalAccountIdAndType(accountId, statTypeForSearch);
         }
 
         return new ResponseEntity<>(accountStats, HttpStatus.OK);
