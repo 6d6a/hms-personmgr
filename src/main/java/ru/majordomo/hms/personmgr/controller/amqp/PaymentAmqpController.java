@@ -120,6 +120,7 @@ public class PaymentAmqpController extends CommonAmqpController  {
 
                             Map<String, String> data = new HashMap<>();
                             data.put("usedByPersonalAccountId", account.getId());
+                            data.put("amount", promocodeBonus.toString());
 
                             accountStat.setData(data);
 

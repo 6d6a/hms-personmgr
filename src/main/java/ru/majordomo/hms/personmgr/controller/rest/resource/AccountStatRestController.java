@@ -56,13 +56,27 @@ public class AccountStatRestController extends CommonRestController {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
 
+        AccountStatType statTypeForSearch;
         List<AccountStat> accountStats;
         if (type == null) {
             accountStats = accountStatRepository.findByPersonalAccountId(accountId);
-        } else if (Utils.isInEnum(type, AccountStatType.class)) {
-            accountStats = accountStatRepository.findByPersonalAccountIdAndType(accountId, AccountStatType.valueOf(type));
         } else {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            switch (type) {
+                case "partner_fill":
+                    statTypeForSearch = AccountStatType.VIRTUAL_HOSTING_PARTNER_PROMOCODE_BALANCE_FILL;
+                    break;
+                case "plan_change":
+                    statTypeForSearch = AccountStatType.VIRTUAL_HOSTING_PLAN_CHANGE;
+                    break;
+                default:
+                    if (Utils.isInEnum(type.toUpperCase(), AccountStatType.class)) {
+                        statTypeForSearch = AccountStatType.valueOf(type.toUpperCase());
+                    } else {
+                        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+                    }
+                    break;
+            }
+            accountStats = accountStatRepository.findByPersonalAccountIdAndType(accountId, statTypeForSearch);
         }
 
         if (accountStats.isEmpty()){
