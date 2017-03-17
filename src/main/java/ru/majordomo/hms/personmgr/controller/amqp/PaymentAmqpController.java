@@ -74,7 +74,7 @@ public class PaymentAmqpController extends CommonAmqpController  {
         // Пополнение баланса партнера при поступлении средств клиенту, если этот клиент регистрировался по промокоду
         if (message.getParam("paymentTypeKind").equals(REAL_PAYMENT_TYPE_KIND)) {
 
-            PersonalAccount account = accountRepository.findByAccountId(message.getAccountId());
+            PersonalAccount account = accountRepository.findOne(message.getAccountId());
             if (account != null) {
 
                 if (accountPromocodeRepository.countByPersonalAccountIdAndOwnedByAccount(account.getId(), false) > 1) {
