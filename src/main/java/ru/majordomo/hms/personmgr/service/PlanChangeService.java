@@ -213,6 +213,23 @@ public class PlanChangeService {
 
         //Проверим лимиты нового тарифа
         checkAccountLimits(account, newPlan);
+
+        //Проверка на активные бонусные абонементы
+        checkBonusAbonements(account);
+    }
+
+    /**
+     * Проверка наличия бонусных абонементов
+     *
+     * @param account Аккаунт
+     */
+    private void checkBonusAbonements(PersonalAccount account) {
+        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
+        for (AccountAbonement accountAbonement :accountAbonements) {
+            if (accountAbonement.isBonus()) {
+                throw new ParameterValidationException("Account is on bonus abonement. Change is not allowed.");
+            }
+        }
     }
 
     /**
@@ -321,6 +338,7 @@ public class PlanChangeService {
         accountAbonement.setCreated(LocalDateTime.now());
         accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
         accountAbonement.setAutorenew(false);
+        accountAbonement.setBonus(false);
 
         accountAbonementRepository.save(accountAbonement);
     }

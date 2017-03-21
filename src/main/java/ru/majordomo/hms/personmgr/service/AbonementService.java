@@ -28,7 +28,9 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.abonement.AccountAbonementPreorder;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.repository.AccountAbonementPreorderRepository;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
@@ -46,6 +48,7 @@ public class AbonementService {
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final ApplicationEventPublisher publisher;
+    private final AccountAbonementPreorderRepository accountAbonementPreorderRepository;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -55,13 +58,15 @@ public class AbonementService {
             AccountAbonementRepository accountAbonementRepository,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
-            ApplicationEventPublisher publisher
+            ApplicationEventPublisher publisher,
+            AccountAbonementPreorderRepository accountAbonementPreorderRepository
     ) {
         this.planRepository = planRepository;
         this.accountAbonementRepository = accountAbonementRepository;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
         this.publisher = publisher;
+        this.accountAbonementPreorderRepository = accountAbonementPreorderRepository;
     }
 
     /**
@@ -71,7 +76,7 @@ public class AbonementService {
      * @param abonementId id абонемента
      * @param autorenew автопродление абонемента
      */
-    public void addAbonement(PersonalAccount account, String abonementId, Boolean autorenew) {
+    public void addAbonement(PersonalAccount account, String abonementId, Boolean autorenew, Boolean bonus) {
         Plan plan = getAccountPlan(account);
 
         Abonement abonement = getAbonement(account, plan, abonementId);
@@ -84,6 +89,7 @@ public class AbonementService {
         accountAbonement.setCreated(LocalDateTime.now());
         accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
         accountAbonement.setAutorenew(autorenew);
+        accountAbonement.setBonus(bonus);
 
         accountAbonementRepository.save(accountAbonement);
 
@@ -204,6 +210,8 @@ public class AbonementService {
             BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
             String currentExpired = accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
 
+            // Если абонемент не бонусный
+            if (!accountAbonement.isBonus()) {
             if (accountAbonement.isAutorenew()) {
                 logger.debug("Abonement has autorenew option enabled");
 
@@ -254,6 +262,55 @@ public class AbonementService {
                 params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
 
                 publisher.publishEvent(new AccountHistoryEvent(account, params));
+            }
+            } else {
+                AccountAbonementPreorder accountAbonementPreorder = accountAbonementPreorderRepository.findByPersonalAccountId(account.getId());
+                if (accountAbonementPreorder != null) {
+                    BigDecimal regularAbonementCost = accountAbonementPreorder.getAbonement().getService().getCost();
+
+                    if (balance.compareTo(regularAbonementCost) >= 0) {
+
+                        addAbonement(account, accountAbonementPreorder.getAbonementId(), true, false);
+
+                        accountAbonementPreorderRepository.delete(accountAbonementPreorder.getId());
+
+                        Map<String, String> params = new HashMap<>();
+                        params.put(HISTORY_MESSAGE_KEY, "Автоматическая покупка предзаказанного абонемента. Со счета аккаунта списано " +
+                                formatBigDecimalWithCurrency(regularAbonementCost)
+                        );
+                        params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
+
+                        publisher.publishEvent(new AccountHistoryEvent(account, params));
+
+                    } else {
+                        logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + regularAbonementCost);
+
+                        //Удаляем абонемент и включаем услуги хостинга по тарифу
+                        processAccountAbonementDelete(account, accountAbonement);
+
+                        accountAbonementPreorderRepository.delete(accountAbonementPreorder.getId());
+
+                        Map<String, String> params = new HashMap<>();
+                        params.put(HISTORY_MESSAGE_KEY, "Автоматическая покупка предзаказанного абонемента невозможна из-за нехватки средств. Стоимость абонемента: " +
+                                formatBigDecimalWithCurrency(abonementCost)
+                        );
+                        params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
+
+                        publisher.publishEvent(new AccountHistoryEvent(account, params));
+                    }
+
+                } else {
+                    //Удаляем абонемент и включаем услуги хостинга по тарифу
+                    processAccountAbonementDelete(account, accountAbonement);
+
+                    //Запишем в историю клиента
+                    Map<String, String> params = new HashMap<>();
+                    params.put(HISTORY_MESSAGE_KEY, "Бонусный абонемент удален. Обычный абонемент не был предзаказн. Дата окончания: " + currentExpired
+                    );
+                    params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
+
+                    publisher.publishEvent(new AccountHistoryEvent(account, params));
+                }
             }
         });
     }

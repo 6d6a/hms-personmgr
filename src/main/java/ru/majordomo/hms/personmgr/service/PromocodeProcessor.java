@@ -14,11 +14,15 @@ import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
+import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PROMOCODE_ACTION_ID;
@@ -36,6 +40,15 @@ public class PromocodeProcessor {
 
     @Autowired
     private FinFeignClient finFeignClient;
+
+    @Autowired
+    private AbonementService abonementService;
+
+    @Autowired
+    private PlanRepository planRepository;
+
+    @Autowired
+    private AbonementRepository abonementRepository;
 
     public void processPromocode(PersonalAccount account, String promocodeString) {
         Promocode promocode = promocodeRepository.findByCodeAndActive(promocodeString, true);
@@ -88,8 +101,11 @@ public class PromocodeProcessor {
                 accountPromocode.setPersonalAccountId(account.getId());
                 accountPromocode.setOwnerPersonalAccountId(account.getId());
                 accountPromocode.setPromocodeId(promocode.getId());
+                accountPromocode.setPromocode(promocode);
 
                 accountPromocodeRepository.save(accountPromocode);
+
+                processBonusPromocodeActions(account, accountPromocode);
 
                 break;
         }
@@ -162,6 +178,48 @@ public class PromocodeProcessor {
                         e.printStackTrace();
                     }
 
+                    break;
+            }
+        }
+    }
+
+    private void processBonusPromocodeActions(PersonalAccount account, AccountPromocode accountPromocode) {
+        List<PromocodeAction> promocodeActions = accountPromocode.getPromocode().getActions();
+        logger.debug("Processing promocode actions for account: " + account.getName() + " for code: " + accountPromocode.getPromocode().getCode());
+
+        for (PromocodeAction action : promocodeActions) {
+            switch (action.getActionType()) {
+                case SERVICE_ABONEMENT:
+                    logger.debug("Processing promocode SERVICE_ABONEMENT codeAction: " + action.toString());
+
+                    Plan plan = planRepository.findOne(account.getPlanId());
+                    // Проверка на то что промокод соответствует тарифному плану
+                    if (action.getProperties().get("serviceId").equals(plan.getServiceId())) {
+
+                        List<String> abonementIds = plan.getAbonementIds();
+
+                        String bonusAbonementId = null;
+
+                        // Ищем соответствующий abonementId по периоду и плану
+                        for (String abonementId : abonementIds) {
+                            if ( (abonementRepository.findOne(abonementId).getPeriod()).equals(action.getProperties().get("period")) ) {
+                                bonusAbonementId = abonementId;
+                                break;
+                            }
+                        }
+
+                        if (bonusAbonementId != null) {
+                            abonementService.addAbonement(account, bonusAbonementId, false, true);
+                        } else {
+                            throw new ParameterValidationException("abonementId with period: " + action.getProperties().get("period") + " not found for planName: " + plan.getName());
+                        }
+                    } else {
+                        throw new ParameterValidationException("Wrong promocode action '" + action.toString() + "' for planId: " + account.getPlanId());
+                    }
+                    break;
+                case SERVICE_FREE_DOMAIN:
+                    logger.debug("Processing promocode SERVICE_FREE_DOMAIN codeAction: " + action.toString());
+                    //TODO бесплатный домен
                     break;
             }
         }

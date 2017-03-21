@@ -89,6 +89,8 @@ public class AccountAbonementDBImportService {
 
                 accountAbonement.setAbonementId(plan.getAbonementIds().get(0));
 
+                accountAbonement.setBonus(false);
+
                 logger.debug("Found accountAbonement for account: " + rs.getString("acc_id") + " accountAbonement: " + accountAbonement);
 
                 accountAbonements.add(accountAbonement);

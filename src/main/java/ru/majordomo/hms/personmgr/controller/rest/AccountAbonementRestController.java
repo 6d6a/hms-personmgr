@@ -20,10 +20,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import ru.majordomo.hms.personmgr.common.AbonementType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
@@ -38,16 +40,19 @@ public class AccountAbonementRestController extends CommonRestController {
 
     private final PersonalAccountRepository accountRepository;
     private final AccountAbonementRepository accountAbonementRepository;
+    private final AbonementRepository abonementRepository;
     private final AbonementService abonementService;
 
     @Autowired
     public AccountAbonementRestController(
             PersonalAccountRepository accountRepository,
             AccountAbonementRepository accountAbonementRepository,
-            AbonementService abonementService) {
+            AbonementService abonementService,
+            AbonementRepository abonementRepository) {
         this.accountRepository = accountRepository;
         this.accountAbonementRepository = accountAbonementRepository;
         this.abonementService = abonementService;
+        this.abonementRepository = abonementRepository;
     }
 
     @RequestMapping(value = "/{accountAbonementId}", method = RequestMethod.GET)
@@ -72,13 +77,14 @@ public class AccountAbonementRestController extends CommonRestController {
 
         AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
 
-        Boolean autorenew = requestBody.get("autorenew") != null ? Boolean.valueOf(requestBody.get("autorenew")) : false;
-
-        accountAbonement.setAutorenew(autorenew);
-
-        accountAbonementRepository.save(accountAbonement);
-
-        return new ResponseEntity<>(HttpStatus.OK);
+        if (!accountAbonement.isBonus()) {
+            Boolean autorenew = requestBody.get("autorenew") != null ? Boolean.valueOf(requestBody.get("autorenew")) : false;
+            accountAbonement.setAutorenew(autorenew);
+            accountAbonementRepository.save(accountAbonement);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
+        }
     }
 
     @RequestMapping(value = "/{accountAbonementId}", method = RequestMethod.DELETE)
@@ -88,9 +94,13 @@ public class AccountAbonementRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
-        abonementService.deleteAbonement(account, accountAbonementId);
-
-        return new ResponseEntity<>(HttpStatus.OK);
+        AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
+        if (!accountAbonement.isBonus()) {
+            abonementService.deleteAbonement(account, accountAbonementId);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
+        }
     }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
@@ -124,7 +134,9 @@ public class AccountAbonementRestController extends CommonRestController {
 
         Boolean autorenew = requestBody.get("autorenew") != null ? Boolean.valueOf(requestBody.get("autorenew")) : false;
 
-        abonementService.addAbonement(account, abonementId, autorenew);
+        if ((abonementRepository.findOne(abonementId)).getType() == AbonementType.VIRTUAL_HOSTING_PLAN)
+            abonementService.addAbonement(account, abonementId, autorenew, false);
+        else throw new ParameterValidationException("AbonementType of abonement with abonementId: '" + abonementId + "' is not VIRTUAL_HOSTING_PLAN");
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
