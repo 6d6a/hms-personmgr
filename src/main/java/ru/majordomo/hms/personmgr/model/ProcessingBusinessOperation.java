@@ -38,6 +38,9 @@ public class ProcessingBusinessOperation extends Step  {
     @JsonView(Views.Internal.class)
     private Map<String,Object> params = new HashMap<>();
 
+    @JsonView(Views.Public.class)
+    private Map<String,Object> publicParams = new HashMap<>();
+
     public ProcessingBusinessOperation() {
     }
 
@@ -107,6 +110,26 @@ public class ProcessingBusinessOperation extends Step  {
 
     public Object getParam(String key) {
         return this.params.get(key);
+    }
+
+    public Map<String, Object> getPublicParams() {
+        return publicParams;
+    }
+
+    public void setPublicParams(Map<String, Object> publicParams) {
+        this.publicParams = publicParams;
+    }
+
+    public void addPublicParam(String key, Object value) {
+        if (publicParams == null) {
+            publicParams = new HashMap<>();
+        }
+
+        publicParams.put(key, value);
+    }
+
+    public Object getPublicParam(String key) {
+        return this.publicParams.get(key);
     }
 
     public BusinessOperationType getType() {
