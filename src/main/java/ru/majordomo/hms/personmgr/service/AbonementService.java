@@ -28,9 +28,7 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
-import ru.majordomo.hms.personmgr.model.abonement.AccountAbonementPreorder;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.repository.AccountAbonementPreorderRepository;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
@@ -48,7 +46,6 @@ public class AbonementService {
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final ApplicationEventPublisher publisher;
-    private final AccountAbonementPreorderRepository accountAbonementPreorderRepository;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -58,15 +55,13 @@ public class AbonementService {
             AccountAbonementRepository accountAbonementRepository,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
-            ApplicationEventPublisher publisher,
-            AccountAbonementPreorderRepository accountAbonementPreorderRepository
+            ApplicationEventPublisher publisher
     ) {
         this.planRepository = planRepository;
         this.accountAbonementRepository = accountAbonementRepository;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
         this.publisher = publisher;
-        this.accountAbonementPreorderRepository = accountAbonementPreorderRepository;
     }
 
     /**
@@ -76,20 +71,23 @@ public class AbonementService {
      * @param abonementId id абонемента
      * @param autorenew автопродление абонемента
      */
-    public void addAbonement(PersonalAccount account, String abonementId, Boolean autorenew, Boolean bonus) {
+    public void addAbonement(PersonalAccount account, String abonementId, Boolean autorenew, Boolean internal, Boolean preorder) {
         Plan plan = getAccountPlan(account);
 
-        Abonement abonement = getAbonement(account, plan, abonementId);
+        Abonement abonement = checkAbonementAllownes(account, plan, abonementId, preorder);
 
-        accountHelper.charge(account, abonement.getService());
+        if (!preorder) {
+            accountHelper.charge(account, abonement.getService());
+        }
 
         AccountAbonement accountAbonement = new AccountAbonement();
         accountAbonement.setAbonementId(abonementId);
         accountAbonement.setPersonalAccountId(account.getId());
         accountAbonement.setCreated(LocalDateTime.now());
-        accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
+        accountAbonement.setExpired(preorder ? null : LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
         accountAbonement.setAutorenew(autorenew);
-        accountAbonement.setBonus(bonus);
+        accountAbonement.setInternal(internal);
+        accountAbonement.setPreordered(preorder);
 
         accountAbonementRepository.save(accountAbonement);
 
@@ -138,20 +136,40 @@ public class AbonementService {
                 + expireEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         );
 
-        List<AccountAbonement> accountAbonements  = accountAbonementRepository.findByPersonalAccountIdAndExpiredBefore(account.getId(), expireEnd);
-
-        if (accountAbonements.isEmpty()) {
-            logger.debug("Not found expiring abonements for accountId: " + account.getId());
-        }
+        List<AccountAbonement> accountAbonements  = accountAbonementRepository.findByPersonalAccountIdAndExpiredBeforeAndPreordered(account.getId(), expireEnd, false);
 
         //Ну вообще-то должен быть только один Абонемент)
         accountAbonements.forEach(accountAbonement -> {
+
+            // Проверить есть ли preorder - если да, то цену брать из него
+            BigDecimal abonementCost;
+            AccountAbonement preorderAccountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), true);
+            if (preorderAccountAbonement != null) {
+                abonementCost = preorderAccountAbonement.getAbonement().getService().getCost();
+            } else {
+                abonementCost = accountAbonement.getAbonement().getService().getCost();
+            }
+
+            if (accountAbonements.isEmpty()) {
+                logger.debug("Not found expiring abonements for accountId: " + account.getId());
+            }
+
             logger.debug("We found expiring abonement: " + accountAbonement);
 
             BigDecimal balance = accountHelper.getBalance(account);
-            BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
 
-            if (balance.compareTo(abonementCost) < 0) {
+            Boolean sendMessage = false;
+
+            // Автопроделния у абонементов с internal == true не должно быть
+            if (accountAbonement.isAutorenew()) {
+                if (balance.compareTo(abonementCost) < 0) {
+                    sendMessage = true;
+                }
+            } else {
+                sendMessage = true;
+            }
+
+            if (sendMessage) {
                 logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
 
                 List<Domain> domains = accountHelper.getDomains(account);
@@ -176,7 +194,7 @@ public class AbonementService {
                 parameters.put("acc_id", account.getName());
                 parameters.put("domains", String.join("<br>", domainNames));
                 parameters.put("balance", formatBigDecimalWithCurrency(balance));
-                parameters.put("cost", formatBigDecimalWithCurrency(abonementCost));
+                parameters.put("cost", formatBigDecimalWithCurrency(abonementCost)); //Этот параметр передаётся, но не используется
                 parameters.put("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
                 parameters.put("auto_renew", accountAbonement.isAutorenew() ? "включено" : "выключено");
                 parameters.put("from", "noreply@majordomo.ru");
@@ -210,8 +228,9 @@ public class AbonementService {
             BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
             String currentExpired = accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
 
-            // Если абонемент не бонусный
-            if (!accountAbonement.isBonus()) {
+            // Если абонемент не бонусный (internal)
+            if (!accountAbonement.isInternal()) {
+            // Если включено автопродление
             if (accountAbonement.isAutorenew()) {
                 logger.debug("Abonement has autorenew option enabled");
 
@@ -264,35 +283,43 @@ public class AbonementService {
                 publisher.publishEvent(new AccountHistoryEvent(account, params));
             }
             } else {
-                AccountAbonementPreorder accountAbonementPreorder = accountAbonementPreorderRepository.findByPersonalAccountId(account.getId());
-                if (accountAbonementPreorder != null) {
-                    BigDecimal regularAbonementCost = accountAbonementPreorder.getAbonement().getService().getCost();
+                // Если абонемент бонусный (internal)
+                // Проверяем есть ли преордер (преордер может быть только у бонусного абонемента)
+                AccountAbonement preorderAccountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), true);
+                if (preorderAccountAbonement != null) {
+                    BigDecimal preorderAccountAbonementCost = preorderAccountAbonement.getAbonement().getService().getCost();
 
-                    if (balance.compareTo(regularAbonementCost) >= 0) {
+                    if (balance.compareTo(preorderAccountAbonementCost) >= 0) {
 
-                        addAbonement(account, accountAbonementPreorder.getAbonementId(), true, false);
-
-                        accountAbonementPreorderRepository.delete(accountAbonementPreorder.getId());
+                        // Списываем деньги за предзаказанный
+                        accountHelper.charge(account, preorderAccountAbonement.getAbonement().getService());
+                        // Устанавливаем дату окончания
+                        preorderAccountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(preorderAccountAbonement.getAbonement().getPeriod())));
+                        // Удаляем старый
+                        accountAbonementRepository.delete(accountAbonement);
+                        // Убираем пометку, что абонмент предзаказанный
+                        preorderAccountAbonement.setPreordered(false);
 
                         Map<String, String> params = new HashMap<>();
                         params.put(HISTORY_MESSAGE_KEY, "Автоматическая покупка предзаказанного абонемента. Со счета аккаунта списано " +
-                                formatBigDecimalWithCurrency(regularAbonementCost)
+                                formatBigDecimalWithCurrency(preorderAccountAbonementCost)
                         );
                         params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
 
                         publisher.publishEvent(new AccountHistoryEvent(account, params));
 
                     } else {
-                        logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + regularAbonementCost);
+                        logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + preorderAccountAbonementCost);
+
+                        //Удаляем предзаказнный
+                        accountAbonementRepository.delete(preorderAccountAbonement.getId());
 
                         //Удаляем абонемент и включаем услуги хостинга по тарифу
                         processAccountAbonementDelete(account, accountAbonement);
 
-                        accountAbonementPreorderRepository.delete(accountAbonementPreorder.getId());
-
                         Map<String, String> params = new HashMap<>();
                         params.put(HISTORY_MESSAGE_KEY, "Автоматическая покупка предзаказанного абонемента невозможна из-за нехватки средств. Стоимость абонемента: " +
-                                formatBigDecimalWithCurrency(abonementCost)
+                                formatBigDecimalWithCurrency(preorderAccountAbonementCost)
                         );
                         params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
 
@@ -325,7 +352,21 @@ public class AbonementService {
         return plan;
     }
 
-    private Abonement getAbonement(PersonalAccount account, Plan plan, String abonementId) {
+    private Abonement checkAbonementAllownes(PersonalAccount account, Plan plan, String abonementId, Boolean preorder) {
+
+        //Преордер нельзя сделать, если уже есть преордер или нет активного бонусного (internal) абонемента
+        if (preorder) {
+            List<AccountAbonement> internalAccountAbonements = accountAbonementRepository.findByPersonalAccountIdAndInternal(account.getId(), true);
+            if (internalAccountAbonements != null && !internalAccountAbonements.isEmpty()) {
+                AccountAbonement preorderAccountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), true);
+                if (preorderAccountAbonement != null) {
+                    throw new ParameterValidationException("Account already has preorder abonement");
+                }
+            } else {
+                throw new ParameterValidationException("Account does't has any internal abonement");
+            }
+        }
+
         if (!plan.getAbonementIds().contains(abonementId)) {
             throw new ParameterValidationException("Current account plan does not have abonement with specified abonementId");
         }
@@ -340,8 +381,10 @@ public class AbonementService {
 
         List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
 
-        if(accountAbonements != null && !accountAbonements.isEmpty()){
-            throw new ParameterValidationException("Account already has abonement");
+        if (!preorder) {
+            if (accountAbonements != null && !accountAbonements.isEmpty()) {
+                throw new ParameterValidationException("Account already has abonement");
+            }
         }
 
         return abonement;

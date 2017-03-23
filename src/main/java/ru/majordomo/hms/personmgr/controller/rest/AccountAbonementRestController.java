@@ -3,7 +3,6 @@ package ru.majordomo.hms.personmgr.controller.rest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -13,24 +12,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
-import java.time.Period;
-import java.util.HashMap;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import ru.majordomo.hms.personmgr.common.AbonementType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 @RestController
@@ -77,7 +70,7 @@ public class AccountAbonementRestController extends CommonRestController {
 
         AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
 
-        if (!accountAbonement.isBonus()) {
+        if (!accountAbonement.isInternal()) {
             Boolean autorenew = requestBody.get("autorenew") != null ? Boolean.valueOf(requestBody.get("autorenew")) : false;
             accountAbonement.setAutorenew(autorenew);
             accountAbonementRepository.save(accountAbonement);
@@ -95,7 +88,7 @@ public class AccountAbonementRestController extends CommonRestController {
         PersonalAccount account = accountRepository.findOne(accountId);
 
         AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
-        if (!accountAbonement.isBonus()) {
+        if (!accountAbonement.isInternal()) {
             abonementService.deleteAbonement(account, accountAbonementId);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
@@ -134,9 +127,13 @@ public class AccountAbonementRestController extends CommonRestController {
 
         Boolean autorenew = requestBody.get("autorenew") != null ? Boolean.valueOf(requestBody.get("autorenew")) : false;
 
-        if ((abonementRepository.findOne(abonementId)).getType() == AbonementType.VIRTUAL_HOSTING_PLAN)
-            abonementService.addAbonement(account, abonementId, autorenew, false);
-        else throw new ParameterValidationException("AbonementType of abonement with abonementId: '" + abonementId + "' is not VIRTUAL_HOSTING_PLAN");
+        Boolean preorder = requestBody.get("preorder") != null ? Boolean.valueOf(requestBody.get("preorder")) : false;
+
+        // Internal абонементы с ценой 0 юзер не может заказывать
+        if ((abonementRepository.findOne(abonementId)).getService().getCost().compareTo(BigDecimal.ZERO) > 0)
+            abonementService.addAbonement(account, abonementId, autorenew, false, preorder);
+        else
+            throw new ParameterValidationException("Service of abonement with abonementId: '" + abonementId + "' has ZERO cost");
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

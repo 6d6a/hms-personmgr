@@ -226,7 +226,7 @@ public class PlanChangeService {
     private void checkBonusAbonements(PersonalAccount account) {
         List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
         for (AccountAbonement accountAbonement :accountAbonements) {
-            if (accountAbonement.isBonus()) {
+            if (accountAbonement.isInternal()) {
                 throw new ParameterValidationException("Account is on bonus abonement. Change is not allowed.");
             }
         }
@@ -338,7 +338,8 @@ public class PlanChangeService {
         accountAbonement.setCreated(LocalDateTime.now());
         accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
         accountAbonement.setAutorenew(false);
-        accountAbonement.setBonus(false);
+        accountAbonement.setInternal(false);
+        accountAbonement.setPreordered(false);
 
         accountAbonementRepository.save(accountAbonement);
     }

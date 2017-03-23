@@ -24,6 +24,7 @@ public interface AccountAbonementRepository extends MongoRepository<AccountAbone
     Page<AccountAbonement> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId, Pageable pageable);
     List<AccountAbonement> findByPersonalAccountIdAndExpiredAfter(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired);
     List<AccountAbonement> findByPersonalAccountIdAndExpiredBefore(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired);
+    List<AccountAbonement> findByPersonalAccountIdAndExpiredBeforeAndPreordered(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired, @Param("preordered") Boolean preordered);
     @RestResource(path = "findListByAbonementIdAndAutorenew", rel = "findListByAbonementIdAndAutorenew")
     List<AccountAbonement> findByAbonementIdAndAutorenew(@Param("abonementId") String abonementId, @Param("autorenew") String autorenew);
     Page<AccountAbonement> findByAbonementIdAndAutorenew(@Param("abonementId") String abonementId, @Param("autorenew") String autorenew, Pageable pageable);
@@ -33,4 +34,6 @@ public interface AccountAbonementRepository extends MongoRepository<AccountAbone
     List<AccountAbonement> findByPersonalAccountIdAndExpiredAfterAndAutorenew(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired, @Param("autorenew") String autorenew);
     List<AccountAbonement> findByPersonalAccountIdAndExpiredBeforeAndAutorenew(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired, @Param("autorenew") String autorenew);
     List<AccountAbonement> findByPersonalAccountIdAndAbonementId(@Param("personalAccountId") String personalAccountId, @Param("abonementId") String abonementId);
+    List<AccountAbonement> findByPersonalAccountIdAndInternal(@Param("personalAccountId") String personalAccountId, @Param("internal") Boolean internal);
+    AccountAbonement findByPersonalAccountIdAndPreordered(@Param("personalAccountId") String personalAccountId, @Param("preordered") Boolean preordered);
 }

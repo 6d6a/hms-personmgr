@@ -32,23 +32,29 @@ import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PAYMENT_TYPE_ID;
 public class PromocodeProcessor {
     private final static Logger logger = LoggerFactory.getLogger(PromocodeProcessor.class);
 
-    @Autowired
-    private PromocodeRepository promocodeRepository;
+    private final PromocodeRepository promocodeRepository;
+    private final AccountPromocodeRepository accountPromocodeRepository;
+    private final FinFeignClient finFeignClient;
+    private final AbonementService abonementService;
+    private final PlanRepository planRepository;
+    private final AbonementRepository abonementRepository;
 
     @Autowired
-    private AccountPromocodeRepository accountPromocodeRepository;
-
-    @Autowired
-    private FinFeignClient finFeignClient;
-
-    @Autowired
-    private AbonementService abonementService;
-
-    @Autowired
-    private PlanRepository planRepository;
-
-    @Autowired
-    private AbonementRepository abonementRepository;
+    public PromocodeProcessor(
+            PromocodeRepository promocodeRepository,
+            AccountPromocodeRepository accountPromocodeRepository,
+            FinFeignClient finFeignClient,
+            AbonementService abonementService,
+            PlanRepository planRepository,
+            AbonementRepository abonementRepository
+    ) {
+        this.promocodeRepository = promocodeRepository;
+        this.accountPromocodeRepository = accountPromocodeRepository;
+        this.finFeignClient = finFeignClient;
+        this.abonementService = abonementService;
+        this.planRepository = planRepository;
+        this.abonementRepository = abonementRepository;
+    }
 
     public void processPromocode(PersonalAccount account, String promocodeString) {
         Promocode promocode = promocodeRepository.findByCodeAndActive(promocodeString, true);
@@ -209,7 +215,7 @@ public class PromocodeProcessor {
                         }
 
                         if (bonusAbonementId != null) {
-                            abonementService.addAbonement(account, bonusAbonementId, false, true);
+                            abonementService.addAbonement(account, bonusAbonementId, false, true, false);
                         } else {
                             throw new ParameterValidationException("abonementId with period: " + action.getProperties().get("period") + " not found for planName: " + plan.getName());
                         }
