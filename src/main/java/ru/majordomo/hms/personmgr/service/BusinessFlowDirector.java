@@ -94,6 +94,8 @@ public class BusinessFlowDirector {
                             }
                         case ERROR:
                             businessOperation.setState(businessAction.getState());
+                            if (message.getParam("errorMessage") != null && !message.getParam("errorMessage").equals(""))
+                                businessOperation.addPublicParam("message", message.getParam("errorMessage"));
                     }
                     logger.debug("ProcessingBusinessOperation -> " + businessOperation.getState() + ", operationIdentity: " +
                             message.getOperationIdentity()
