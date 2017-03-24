@@ -70,13 +70,13 @@ public class AccountAbonementRestController extends CommonRestController {
 
         AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
 
-        if (!accountAbonement.isInternal()) {
+        if (!accountAbonement.getAbonement().isInternal()) {
             Boolean autorenew = requestBody.get("autorenew") != null ? Boolean.valueOf(requestBody.get("autorenew")) : false;
             accountAbonement.setAutorenew(autorenew);
             accountAbonementRepository.save(accountAbonement);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -88,11 +88,11 @@ public class AccountAbonementRestController extends CommonRestController {
         PersonalAccount account = accountRepository.findOne(accountId);
 
         AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
-        if (!accountAbonement.isInternal()) {
+        if (!accountAbonement.getAbonement().isInternal()) {
             abonementService.deleteAbonement(account, accountAbonementId);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -129,11 +129,11 @@ public class AccountAbonementRestController extends CommonRestController {
 
         Boolean preorder = requestBody.get("preorder") != null ? Boolean.valueOf(requestBody.get("preorder")) : false;
 
-        // Internal абонементы с ценой 0 юзер не может заказывать
-        if ((abonementRepository.findOne(abonementId)).getService().getCost().compareTo(BigDecimal.ZERO) > 0)
+        // Internal абонементы юзер не может заказывать
+        if (!(abonementRepository.findOne(abonementId).isInternal()))
             abonementService.addAbonement(account, abonementId, autorenew, false, preorder);
         else
-            throw new ParameterValidationException("Service of abonement with abonementId: '" + abonementId + "' has ZERO cost");
+            throw new ParameterValidationException("Interal abonement is not allowed for adding");
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

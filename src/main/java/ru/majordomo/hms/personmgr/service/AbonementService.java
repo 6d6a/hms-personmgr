@@ -29,6 +29,7 @@ import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
@@ -86,7 +87,6 @@ public class AbonementService {
         accountAbonement.setCreated(LocalDateTime.now());
         accountAbonement.setExpired(preorder ? null : LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
         accountAbonement.setAutorenew(autorenew);
-        accountAbonement.setInternal(internal);
         accountAbonement.setPreordered(preorder);
 
         accountAbonementRepository.save(accountAbonement);
@@ -229,7 +229,7 @@ public class AbonementService {
             String currentExpired = accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
 
             // Если абонемент не бонусный (internal)
-            if (!accountAbonement.isInternal()) {
+            if (!accountAbonement.getAbonement().isInternal()) {
             // Если включено автопродление
             if (accountAbonement.isAutorenew()) {
                 logger.debug("Abonement has autorenew option enabled");
@@ -356,8 +356,17 @@ public class AbonementService {
 
         //Преордер нельзя сделать, если уже есть преордер или нет активного бонусного (internal) абонемента
         if (preorder) {
-            List<AccountAbonement> internalAccountAbonements = accountAbonementRepository.findByPersonalAccountIdAndInternal(account.getId(), true);
-            if (internalAccountAbonements != null && !internalAccountAbonements.isEmpty()) {
+
+            Boolean hasInternal = false;
+            List<AccountAbonement> allAccountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
+            for (AccountAbonement accountAbonement : allAccountAbonements) {
+                if (accountAbonement.getAbonement().isInternal()) {
+                    hasInternal = true;
+                    break;
+                }
+            }
+
+            if (hasInternal) {
                 AccountAbonement preorderAccountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), true);
                 if (preorderAccountAbonement != null) {
                     throw new ParameterValidationException("Account already has preorder abonement");

@@ -26,6 +26,7 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.service.AbonementService;
 
 /**
  * Сервис для загрузки первичных данных в БД
@@ -39,13 +40,15 @@ public class AccountAbonementDBImportService {
     private PersonalAccountRepository personalAccountRepository;
     private NamedParameterJdbcTemplate jdbcTemplate;
     private List<AccountAbonement> accountAbonements = new ArrayList<>();
+    private AbonementService abonementService;
 
     @Autowired
-    public AccountAbonementDBImportService(NamedParameterJdbcTemplate jdbcTemplate, AccountAbonementRepository accountAbonementRepository, PlanRepository planRepository, PersonalAccountRepository personalAccountRepository) {
+    public AccountAbonementDBImportService(NamedParameterJdbcTemplate jdbcTemplate, AccountAbonementRepository accountAbonementRepository, PlanRepository planRepository, PersonalAccountRepository personalAccountRepository, AbonementService abonementService) {
         this.jdbcTemplate = jdbcTemplate;
         this.accountAbonementRepository = accountAbonementRepository;
         this.planRepository = planRepository;
         this.personalAccountRepository = personalAccountRepository;
+        this.abonementService = abonementService;
     }
 
     public void pull() {
@@ -87,9 +90,7 @@ public class AccountAbonementDBImportService {
 
                 accountAbonement.setAutorenew(rs.getString("auto") != null);
 
-                accountAbonement.setAbonementId(plan.getAbonementIds().get(0));
-
-                accountAbonement.setInternal(false);
+                accountAbonement.setAbonementId(plan.getNotInternalAbonementIdFormPlan());
 
                 accountAbonement.setPreordered(false);
 

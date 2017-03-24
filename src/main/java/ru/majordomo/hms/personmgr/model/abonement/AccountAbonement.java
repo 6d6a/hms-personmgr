@@ -30,10 +30,6 @@ public class AccountAbonement extends ModelBelongsToPersonalAccount {
 
     @NotNull
     @Indexed
-    private boolean internal;
-
-    @NotNull
-    @Indexed
     private boolean preordered;
 
     @Transient
@@ -43,14 +39,14 @@ public class AccountAbonement extends ModelBelongsToPersonalAccount {
     }
 
     @PersistenceConstructor
-    public AccountAbonement(String id, String abonementId, LocalDateTime created, LocalDateTime expired, boolean autorenew, boolean internal) {
+    public AccountAbonement(String id, String abonementId, LocalDateTime created, LocalDateTime expired, boolean autorenew, boolean preordered) {
         super();
         this.setId(id);
         this.abonementId = abonementId;
         this.created = created;
         this.expired = expired;
         this.autorenew = autorenew;
-        this.internal = internal;
+        this.preordered = preordered;
     }
 
     public String getAbonementId() {
@@ -85,14 +81,6 @@ public class AccountAbonement extends ModelBelongsToPersonalAccount {
         this.autorenew = autorenew;
     }
 
-    public boolean isInternal() {
-        return internal;
-    }
-
-    public void setInternal(boolean internal) {
-        this.internal = internal;
-    }
-
     public boolean isPreordered() {
         return preordered;
     }
@@ -117,6 +105,7 @@ public class AccountAbonement extends ModelBelongsToPersonalAccount {
                 ", expired=" + expired +
                 ", autorenew=" + autorenew +
                 ", abonement=" + abonement +
+                ", preordered=" + preordered +
                 "} " + super.toString();
     }
 }
