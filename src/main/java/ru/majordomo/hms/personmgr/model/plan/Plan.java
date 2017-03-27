@@ -182,7 +182,7 @@ public class Plan extends BaseModel {
         this.smsService = smsService;
     }
 
-    public String getNotInternalAbonementIdFormPlan() {
+    public String getNotInternalAbonementId() {
         for (Abonement abonement : this.getAbonements()) {
             if (!abonement.isInternal()) {
                 return abonement.getId();
@@ -191,7 +191,7 @@ public class Plan extends BaseModel {
         return null;
     }
 
-    public Abonement getNotInternalAbonementFormPlan() {
+    public Abonement getNotInternalAbonement() {
         for (Abonement abonement : this.getAbonements()) {
             if (!abonement.isInternal()) {
                 return abonement;

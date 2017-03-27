@@ -273,7 +273,7 @@ public class PlanChangeService {
     private void addRemainingAccountAbonementCost(PersonalAccount account, Plan currentPlan) {
         List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(
                 account.getId(),
-                currentPlan.getNotInternalAbonementIdFormPlan()
+                currentPlan.getNotInternalAbonementId()
         );
 
         if (accountAbonements != null && !accountAbonements.isEmpty()) {
@@ -305,7 +305,7 @@ public class PlanChangeService {
     private void deleteAccountAbonement(PersonalAccount account, Plan currentPlan) {
         List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(
                 account.getId(),
-                currentPlan.getNotInternalAbonementIdFormPlan()
+                currentPlan.getNotInternalAbonementId()
         );
 
         if (accountAbonements != null && !accountAbonements.isEmpty()) {
@@ -321,7 +321,7 @@ public class PlanChangeService {
      */
     private void processNewAccountAbonement(PersonalAccount account, Plan newPlan) {
         if (newPlan.isAbonementOnly()) {
-            Abonement abonement = newPlan.getNotInternalAbonementFormPlan();
+            Abonement abonement = newPlan.getNotInternalAbonement();
             addAccountAbonement(account, abonement);
 
             accountHelper.charge(account, abonement.getService());
@@ -404,7 +404,7 @@ public class PlanChangeService {
      */
     private void checkOnlyAbonementPlan(PersonalAccount account, Plan newPlan) {
         if (newPlan.isAbonementOnly()) {
-            accountHelper.checkBalance(account, newPlan.getNotInternalAbonementFormPlan().getService());
+            accountHelper.checkBalance(account, newPlan.getNotInternalAbonement().getService());
         }
     }
 

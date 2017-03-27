@@ -90,7 +90,7 @@ public class AccountAbonementDBImportService {
 
                 accountAbonement.setAutorenew(rs.getString("auto") != null);
 
-                accountAbonement.setAbonementId(plan.getNotInternalAbonementIdFormPlan());
+                accountAbonement.setAbonementId(plan.getNotInternalAbonementId());
 
                 accountAbonement.setPreordered(false);
 

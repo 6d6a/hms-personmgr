@@ -171,6 +171,73 @@ public class PlanDBImportService {
 
         abonementRepository.save(abonement);
 
+        List<String> addAbonementsIds = Collections.singletonList(abonement.getId());
+
+        //Бонусные абонементы (internal)
+        if (rs.getInt("Plan_ID") == PLAN_UNLIMITED_ID) {
+
+            PaymentService paymentService3m = new PaymentService();
+            paymentService3m.setPaymentType(ServicePaymentType.ONE_TIME);
+            paymentService3m.setAccountType(AccountType.VIRTUAL_HOSTING);
+            paymentService3m.setActive(rs.getBoolean("active"));
+            paymentService3m.setCost(BigDecimal.ZERO);
+            paymentService3m.setLimit(1);
+            paymentService3m.setOldId(PLAN_SERVICE_ABONEMENT_PREFIX + rs.getString("Plan_ID") + "_3M");
+            paymentService3m.setName(rs.getString("username") + " (абонемент на 3 месяца)");
+
+            paymentServiceRepository.save(paymentService3m);
+
+            Abonement abonement3m = new Abonement();
+            abonement3m.setServiceId(paymentService3m.getId());
+            abonement3m.setName(rs.getString("username") + " (абонемент на 3 месяца)");
+            abonement3m.setPeriod("P3M");
+            abonement3m.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+
+            PaymentService paymentService1m = new PaymentService();
+            paymentService1m.setPaymentType(ServicePaymentType.ONE_TIME);
+            paymentService1m.setAccountType(AccountType.VIRTUAL_HOSTING);
+            paymentService1m.setActive(rs.getBoolean("active"));
+            paymentService1m.setCost(BigDecimal.ZERO);
+            paymentService1m.setLimit(1);
+            paymentService1m.setOldId(PLAN_SERVICE_ABONEMENT_PREFIX + rs.getString("Plan_ID") + "_1M");
+            paymentService1m.setName(rs.getString("username") + " (абонемент на 1 месяц)");
+
+            paymentServiceRepository.save(paymentService1m);
+
+            Abonement abonement1m = new Abonement();
+            abonement1m.setServiceId(paymentService1m.getId());
+            abonement1m.setName(rs.getString("username") + " (абонемент на 1 месяц)");
+            abonement1m.setPeriod("P1M");
+            abonement1m.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+
+            addAbonementsIds.add(abonement3m.getId());
+            addAbonementsIds.add(abonement1m.getId());
+        }
+
+        if (rs.getInt("Plan_ID") == PLAN_PARKING_DOMAINS_ID) {
+
+            PaymentService paymentService3m = new PaymentService();
+            paymentService3m.setPaymentType(ServicePaymentType.ONE_TIME);
+            paymentService3m.setAccountType(AccountType.VIRTUAL_HOSTING);
+            paymentService3m.setActive(rs.getBoolean("active"));
+            paymentService3m.setCost(BigDecimal.ZERO);
+            paymentService3m.setLimit(1);
+            paymentService3m.setOldId(PLAN_SERVICE_ABONEMENT_PREFIX + rs.getString("Plan_ID") + "_3M");
+            paymentService3m.setName(rs.getString("username") + " (абонемент на 3 месяца)");
+
+            paymentServiceRepository.save(paymentService3m);
+
+            Abonement abonement3m = new Abonement();
+            abonement3m.setServiceId(paymentService3m.getId());
+            abonement3m.setName(rs.getString("username") + " (абонемент на 3 месяца)");
+            abonement3m.setPeriod("P3M");
+            abonement3m.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+
+            addAbonementsIds.add(abonement3m.getId());
+        }
+
+        //TODO импорт промокодов, когда будет готов заказ бонусного домена
+
         boolean abonementOnly = false;
 
         if (rs.getInt("Plan_ID") == PLAN_PARKING_DOMAINS_ID ||
@@ -206,7 +273,7 @@ public class PlanDBImportService {
         plan.setAccountType(AccountType.VIRTUAL_HOSTING);
         plan.setActive(rs.getBoolean("active"));
         plan.setPlanProperties(planProperties);
-        plan.setAbonementIds(Collections.singletonList(abonement.getId()));
+        plan.setAbonementIds(addAbonementsIds);
         plan.setAbonementOnly(abonementOnly);
         plan.setSmsServiceId(smsServiceId);
 

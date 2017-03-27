@@ -19,6 +19,7 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.AbonementType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
@@ -129,8 +130,14 @@ public class AccountAbonementRestController extends CommonRestController {
 
         Boolean preorder = requestBody.get("preorder") != null ? Boolean.valueOf(requestBody.get("preorder")) : false;
 
+        Abonement abonement = abonementRepository.findOne(abonementId);
+
+        if (abonement == null) {
+            throw new ParameterValidationException("Abonement with abonementId: " + abonementId + " not found");
+        }
+
         // Internal абонементы юзер не может заказывать
-        if (!(abonementRepository.findOne(abonementId).isInternal()))
+        if (!(abonement.isInternal()))
             abonementService.addAbonement(account, abonementId, autorenew, false, preorder);
         else
             throw new ParameterValidationException("Interal abonement is not allowed for adding");
