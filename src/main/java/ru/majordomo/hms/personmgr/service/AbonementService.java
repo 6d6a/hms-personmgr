@@ -300,6 +300,8 @@ public class AbonementService {
                         // Убираем пометку, что абонмент предзаказанный
                         preorderAccountAbonement.setPreordered(false);
 
+                        accountAbonementRepository.save(preorderAccountAbonement);
+
                         Map<String, String> params = new HashMap<>();
                         params.put(HISTORY_MESSAGE_KEY, "Автоматическая покупка предзаказанного абонемента. Со счета аккаунта списано " +
                                 formatBigDecimalWithCurrency(preorderAccountAbonementCost)

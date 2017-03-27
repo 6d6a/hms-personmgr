@@ -168,6 +168,7 @@ public class PlanDBImportService {
         abonement.setName(abonementName);
         abonement.setPeriod("P1Y");
         abonement.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+        abonement.setInternal(false);
 
         abonementRepository.save(abonement);
 
@@ -192,6 +193,7 @@ public class PlanDBImportService {
             abonement3m.setName(rs.getString("username") + " (абонемент на 3 месяца)");
             abonement3m.setPeriod("P3M");
             abonement3m.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+            abonement3m.setInternal(true);
 
             PaymentService paymentService1m = new PaymentService();
             paymentService1m.setPaymentType(ServicePaymentType.ONE_TIME);
@@ -209,6 +211,7 @@ public class PlanDBImportService {
             abonement1m.setName(rs.getString("username") + " (абонемент на 1 месяц)");
             abonement1m.setPeriod("P1M");
             abonement1m.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+            abonement1m.setInternal(true);
 
             addAbonementsIds.add(abonement3m.getId());
             addAbonementsIds.add(abonement1m.getId());
@@ -232,6 +235,7 @@ public class PlanDBImportService {
             abonement3m.setName(rs.getString("username") + " (абонемент на 3 месяца)");
             abonement3m.setPeriod("P3M");
             abonement3m.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+            abonement3m.setInternal(true);
 
             addAbonementsIds.add(abonement3m.getId());
         }

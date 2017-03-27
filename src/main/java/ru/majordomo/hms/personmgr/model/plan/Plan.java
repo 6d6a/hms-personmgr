@@ -183,12 +183,8 @@ public class Plan extends BaseModel {
     }
 
     public String getNotInternalAbonementId() {
-        for (Abonement abonement : this.getAbonements()) {
-            if (!abonement.isInternal()) {
-                return abonement.getId();
-            }
-        }
-        return null;
+        Abonement abonement = getNotInternalAbonement();
+        return abonement != null ? abonement.getId() : null;
     }
 
     public Abonement getNotInternalAbonement() {
