@@ -182,6 +182,20 @@ public class Plan extends BaseModel {
         this.smsService = smsService;
     }
 
+    public String getNotInternalAbonementId() {
+        Abonement abonement = getNotInternalAbonement();
+        return abonement != null ? abonement.getId() : null;
+    }
+
+    public Abonement getNotInternalAbonement() {
+        for (Abonement abonement : this.getAbonements()) {
+            if (!abonement.isInternal()) {
+                return abonement;
+            }
+        }
+        return null;
+    }
+
     @Override
     public String toString() {
         return "Plan{" +

@@ -46,6 +46,7 @@ public class PlanChangeService {
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHelper accountHelper;
     private final ApplicationEventPublisher publisher;
+    private final AbonementService abonementService;
 
     @Autowired
     public PlanChangeService(
@@ -61,7 +62,8 @@ public class PlanChangeService {
             AccountQuotaService accountQuotaService,
             AccountServiceHelper accountServiceHelper,
             AccountHelper accountHelper,
-            ApplicationEventPublisher publisher
+            ApplicationEventPublisher publisher,
+            AbonementService abonementService
     ) {
         this.finFeignClient = finFeignClient;
         this.planRepository = planRepository;
@@ -76,6 +78,7 @@ public class PlanChangeService {
         this.accountServiceHelper = accountServiceHelper;
         this.accountHelper = accountHelper;
         this.publisher = publisher;
+        this.abonementService = abonementService;
     }
 
     /**
@@ -213,6 +216,23 @@ public class PlanChangeService {
 
         //Проверим лимиты нового тарифа
         checkAccountLimits(account, newPlan);
+
+        //Проверка на активные бонусные абонементы
+        checkBonusAbonements(account);
+    }
+
+    /**
+     * Проверка наличия бонусных абонементов
+     *
+     * @param account Аккаунт
+     */
+    private void checkBonusAbonements(PersonalAccount account) {
+        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
+        for (AccountAbonement accountAbonement :accountAbonements) {
+            if (accountAbonement.getAbonement().isInternal()) {
+                throw new ParameterValidationException("Account is on bonus abonement. Change is not allowed.");
+            }
+        }
     }
 
     /**
@@ -253,7 +273,7 @@ public class PlanChangeService {
     private void addRemainingAccountAbonementCost(PersonalAccount account, Plan currentPlan) {
         List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(
                 account.getId(),
-                currentPlan.getAbonementIds().get(0)
+                currentPlan.getNotInternalAbonementId()
         );
 
         if (accountAbonements != null && !accountAbonements.isEmpty()) {
@@ -285,7 +305,7 @@ public class PlanChangeService {
     private void deleteAccountAbonement(PersonalAccount account, Plan currentPlan) {
         List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(
                 account.getId(),
-                currentPlan.getAbonementIds().get(0)
+                currentPlan.getNotInternalAbonementId()
         );
 
         if (accountAbonements != null && !accountAbonements.isEmpty()) {
@@ -301,7 +321,7 @@ public class PlanChangeService {
      */
     private void processNewAccountAbonement(PersonalAccount account, Plan newPlan) {
         if (newPlan.isAbonementOnly()) {
-            Abonement abonement = newPlan.getAbonements().get(0);
+            Abonement abonement = newPlan.getNotInternalAbonement();
             addAccountAbonement(account, abonement);
 
             accountHelper.charge(account, abonement.getService());
@@ -321,6 +341,7 @@ public class PlanChangeService {
         accountAbonement.setCreated(LocalDateTime.now());
         accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
         accountAbonement.setAutorenew(false);
+        accountAbonement.setPreordered(false);
 
         accountAbonementRepository.save(accountAbonement);
     }
@@ -383,7 +404,7 @@ public class PlanChangeService {
      */
     private void checkOnlyAbonementPlan(PersonalAccount account, Plan newPlan) {
         if (newPlan.isAbonementOnly()) {
-            accountHelper.checkBalance(account, newPlan.getAbonements().get(0).getService());
+            accountHelper.checkBalance(account, newPlan.getNotInternalAbonement().getService());
         }
     }
 

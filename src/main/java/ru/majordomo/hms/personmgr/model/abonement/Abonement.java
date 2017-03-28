@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.model.abonement;
 
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import javax.validation.constraints.NotNull;
@@ -24,6 +25,10 @@ public class Abonement extends BaseModel {
     @ObjectId(PaymentService.class)
     private String serviceId;
 
+    @NotNull
+    @Indexed
+    private boolean internal;
+
     @Transient
     private PaymentService service;
 
@@ -31,13 +36,14 @@ public class Abonement extends BaseModel {
     }
 
     @PersistenceConstructor
-    public Abonement(String id, AbonementType type, String name, String period, String serviceId) {
+    public Abonement(String id, AbonementType type, String name, String period, String serviceId, Boolean internal) {
         super();
         this.setId(id);
         this.type = type;
         this.name = name;
         this.period = period;
         this.serviceId = serviceId;
+        this.internal = internal;
     }
 
     public AbonementType getType() {
@@ -80,6 +86,14 @@ public class Abonement extends BaseModel {
         this.service = service;
     }
 
+    public boolean isInternal() {
+        return internal;
+    }
+
+    public void setInternal(boolean internal) {
+        this.internal = internal;
+    }
+
     @Override
     public String toString() {
         return "Abonement{" +
@@ -88,6 +102,7 @@ public class Abonement extends BaseModel {
                 ", period='" + period + '\'' +
                 ", serviceId='" + serviceId + '\'' +
                 ", service=" + service +
+                ", internal=" + internal +
                 "} " + super.toString();
     }
 }
