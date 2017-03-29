@@ -5,6 +5,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +40,7 @@ public class AccountHistoryRestController extends CommonRestController {
         this.accountHistoryService = accountHistoryService;
     }
 
+    @PreAuthorize("hasAuthority('ACCOUNT_HISTORY_VIEW')")
     @RequestMapping(value = "/{accountHistoryId}", method = RequestMethod.GET)
     public ResponseEntity<AccountHistory> getAccountHistory(
             @PathVariable(value = "accountId") String accountId,
@@ -56,6 +59,7 @@ public class AccountHistoryRestController extends CommonRestController {
         return new ResponseEntity<>(accountHistory, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ACCOUNT_HISTORY_VIEW')")
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<Page<AccountHistory>> getAccountHistoryAll(
             @PathVariable(value = "accountId") String accountId,
@@ -74,10 +78,12 @@ public class AccountHistoryRestController extends CommonRestController {
         return new ResponseEntity<>(accountHistories, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ACCOUNT_HISTORY_ADD')")
     @RequestMapping(value = "", method = RequestMethod.POST)
     public ResponseEntity<AccountHistory> addAccountHistory(
             @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, String> requestBody
+            @RequestBody Map<String, String> requestBody,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
         if(account == null){
@@ -85,7 +91,7 @@ public class AccountHistoryRestController extends CommonRestController {
         }
 
         String historyMessage = requestBody.get("historyMessage");
-        String operator = requestBody.get("operator");
+        String operator = request.getUserPrincipal().getName();
 
         if (historyMessage != null && operator != null) {
             accountHistoryService.addMessage(account.getAccountId(), historyMessage, operator);

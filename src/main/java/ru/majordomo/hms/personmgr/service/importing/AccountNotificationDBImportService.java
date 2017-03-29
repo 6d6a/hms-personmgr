@@ -46,12 +46,12 @@ public class AccountNotificationDBImportService {
         }
     }
 
-    private void pull(String accountName) {
-        PersonalAccount personalAccount = personalAccountRepository.findByName(accountName);
-        logger.debug("Start pull for " + accountName);
+    private void pull(String accountId) {
+        PersonalAccount personalAccount = personalAccountRepository.findByAccountId(accountId);
+        logger.debug("Start pull for " + accountId);
 
         if (personalAccount != null) {
-            logger.debug("Start pull found account " + accountName);
+            logger.debug("Start pull found account " + accountId);
 
             personalAccount.addNotification(MailManagerMessageType.EMAIL_NEWS);
             personalAccount.addNotification(MailManagerMessageType.EMAIL_REMAINING_DAYS);
@@ -117,8 +117,8 @@ public class AccountNotificationDBImportService {
         return true;
     }
 
-    public boolean importToMongo(String accountName) {
-        pull(accountName);
+    public boolean importToMongo(String accountId) {
+        pull(accountId);
         pushToMongo();
         return true;
     }
@@ -127,7 +127,10 @@ public class AccountNotificationDBImportService {
         try {
             personalAccountRepository.save(personalAccountList);
         } catch (ConstraintViolationException e) {
-            logger.debug(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
+            logger.debug(e.getMessage() +
+                    " with errors: " +
+                    e.getConstraintViolations().stream().map(ConstraintViolation::getMessage).collect(Collectors.joining())
+            );
         }
     }
 }

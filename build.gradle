@@ -60,7 +60,6 @@ dependencies {
 
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
     compile('org.springframework.boot:spring-boot-starter-amqp')
-//    compile('org.springframework.boot:spring-boot-starter-data-redis')
     compile('org.springframework.boot:spring-boot-starter-data-rest')
     compile('org.springframework.boot:spring-boot-starter-jdbc')
     compile('org.springframework.boot:spring-boot-starter-web')
@@ -73,10 +72,8 @@ dependencies {
     compile("org.springframework.cloud:spring-cloud-starter-bus-amqp")
     compile("org.springframework.cloud:spring-cloud-netflix-hystrix-stream")
     compile('org.springframework.cloud:spring-cloud-starter-config')
-//    compile('org.springframework.cloud:spring-cloud-starter-oauth2')
+    compile('org.springframework.cloud:spring-cloud-starter-oauth2')
 
-//    compile group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version:'2.0.11.RELEASE'
-//    compile group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.5.RELEASE'
     compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version: '1.9.13'
     compile group: 'org.codehaus.jackson', name: 'jackson-core-asl', version: '1.9.13'
 

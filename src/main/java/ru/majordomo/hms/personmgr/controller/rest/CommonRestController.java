@@ -2,16 +2,15 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 
 import java.util.Map;
 import java.util.Set;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.controller.rest.resource.AccountResourceRestController;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
-
-import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_CREATE;
 
 public class CommonRestController {
     private final static Logger logger = LoggerFactory.getLogger(CommonRestController.class);
@@ -70,5 +69,14 @@ public class CommonRestController {
                 throw new ParameterValidationException("No " + field + " property found in request");
             }
         }
+    }
+
+    protected void checkParamsWithRoles(Map<String, Object> params, Map<String, String> paramsWithRoles, SecurityContextHolderAwareRequestWrapper request) {
+        paramsWithRoles.forEach((param, role) -> {
+            if (params.get(param) != null && !request.isUserInRole(role)) {
+                logger.debug("Changing '" + param + "' property is forbidden. Only role '" + role + "' allowed to edit.");
+                throw new ParameterWithRoleSecurityException("Changing '" + param + "' property is forbidden");
+            }
+        });
     }
 }

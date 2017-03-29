@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,8 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
+
+import static ru.majordomo.hms.personmgr.common.FieldRoles.MAILBOX_PATCH;
 
 @RestController
 @RequestMapping("/{accountId}/mailbox")
@@ -46,12 +49,15 @@ public class MailboxResourceRestController extends CommonResourceRestController 
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         message.setAccountId(accountId);
         message.getParams().put("resourceId", resourceId);
 
         logger.debug("Updating mailbox with id " + resourceId + " " + message.toString());
+
+        checkParamsWithRoles(message.getParams(), MAILBOX_PATCH, request);
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_UPDATE, BusinessActionType.MAILBOX_UPDATE_RC, message);
 
