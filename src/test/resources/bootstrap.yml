@@ -1,0 +1,13 @@
+eureka:
+    instance:
+        prefer-ip-address: true
+spring:
+    application:
+        name: pm
+    cloud:
+        config:
+            discovery:
+                enabled: true
+            fail-fast: false
+    profiles:
+        active: default
