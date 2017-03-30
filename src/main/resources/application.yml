@@ -62,3 +62,27 @@ management:
 
 endpoints:
   sensitive: false
+
+datasource:
+    billing:
+        driver-class-name: com.mysql.jdbc.Driver
+        password: ***REMOVED***
+        url: jdbc:mysql://staff.intr/BillingDB
+        username: root
+    billing2:
+        driver-class-name: com.mysql.jdbc.Driver
+        password: ***REMOVED***
+        url: jdbc:mysql://staff.intr/billing
+        username: root
+    partners:
+        driver-class-name: com.mysql.jdbc.Driver
+        password: ***REMOVED***
+        url: jdbc:mysql://staff.intr/partners
+        username: root
+
+mail_manager:
+    dev_email: web-script@majordomo.ru
+    password: ***REMOVED***
+    service_message_api_name: RegistrantServiceMessage
+    url: http://mailing_manager.dolnigin.dev.majordomo.ru/app_dev.php/api/
+    username: api_user

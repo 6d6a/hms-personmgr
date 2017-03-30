@@ -8,9 +8,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 
 @Document
-public class AccountHistory extends ModelBelongsToPersonalAccount {
-    @CreatedDate
+public class AccountComment extends ModelBelongsToPersonalAccount {
     @Indexed
+    @CreatedDate
     private LocalDateTime created;
 
     @TextIndexed
@@ -18,7 +18,7 @@ public class AccountHistory extends ModelBelongsToPersonalAccount {
 
     private String operator;
 
-    public AccountHistory() {
+    public AccountComment() {
     }
 
     public LocalDateTime getCreated() {
@@ -47,7 +47,7 @@ public class AccountHistory extends ModelBelongsToPersonalAccount {
 
     @Override
     public String toString() {
-        return "AccountHistory{" +
+        return "AccountComment{" +
                 ", created=" + created +
                 ", message='" + message + '\'' +
                 ", operator='" + operator + '\'' +

@@ -48,6 +48,7 @@ public class Constants {
     public static final String OPERATOR_KEY = "operator";
     public static final String AUTO_RENEW_KEY = "autoRenew";
     public static final String ENABLED_KEY = "enabled";
+
     public static final int PLAN_PARKING_ID = 109;
     public static final int PLAN_PARKING_PLUS_ID = 124;
     public static final int PLAN_UNLIMITED_ID = 9802;

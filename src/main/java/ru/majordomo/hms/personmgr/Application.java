@@ -14,8 +14,6 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.netflix.feign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.context.annotation.PropertySources;
 import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
@@ -24,76 +22,22 @@ import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventL
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.serializer.PageSerializer;
-import ru.majordomo.hms.personmgr.service.DomainService;
-import ru.majordomo.hms.personmgr.service.importing.*;
+import ru.majordomo.hms.personmgr.service.importing.DBImportService;
 
 @SpringBootApplication
-@PropertySources({
-        @PropertySource(name = "application", value = "classpath:application.yml"),
-        @PropertySource(name = "mail_manager", value = "classpath:mail_manager.properties")
-})
 @EnableDiscoveryClient
 @EnableFeignClients
 @EnableCaching
 public class Application implements CommandLineRunner {
-
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
-    @Autowired
-    private BusinessActionDBSeedService businessActionDBSeedService;
+    private final DBImportService dbImportService;
 
     @Autowired
-    private AccountHistoryDBImportService accountHistoryDBImportService;
-
-    @Autowired
-    private NotificationDBImportService notificationDBImportService;
-
-    @Autowired
-    private AccountNotificationDBImportService accountNotificationDBImportService;
-
-    @Autowired
-    private PersonalAccountDBImportService personalAccountDBImportService;
-
-    @Autowired
-    private PlanDBImportService planDBImportService;
-
-    @Autowired
-    private PromocodeActionDBSeedService promocodeActionDBSeedService;
-
-    @Autowired
-    private PromocodeDBImportService promocodeDBImportService;
-
-    @Autowired
-    private AccountPromocodeDBImportService accountPromocodeDBImportService;
-
-    @Autowired
-    private BonusPromocodeDBImportService bonusPromocodeDBImportService;
-
-    @Autowired
-    private DomainTldDBImportService domainTldDBImportService;
-
-    @Autowired
-    private AccountDomainDBImportService accountDomainDBImportService;
-
-    @Autowired
-    private SeoServiceDBSeedService seoServiceDBSeedService;
-
-    @Autowired
-    private AccountAbonementDBImportService accountAbonementDBImportService;
-
-    @Autowired
-    private ServiceDBImportService serviceDBImportService;
-
-    @Autowired
-    private AccountServicesDBImportService accountServicesDBImportService;
-
-    @Autowired
-    private DomainService domainService;
-
-    @Autowired
-    private PersonalAccountRepository personalAccountRepository;
+    public Application(DBImportService dbImportService) {
+        this.dbImportService = dbImportService;
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
@@ -102,71 +46,28 @@ public class Application implements CommandLineRunner {
     public void run(String... args) {
         String dbSeedOption = "--db_seed";
         String dbImportOption = "--db_import";
-        String processChargesOption = "--process_charges";
+        String dbImportOneAccountOption = "--db_import_one_account";
+        String processOption = "--process";
         StringBuilder sb = new StringBuilder();
         for (String option : args) {
             sb.append(" ").append(option);
 
             if (option.equals(dbSeedOption)) {
                 boolean seeded;
-//                seeded = businessActionDBSeedService.seedDB();
-//                sb.append(" ").append(seeded ? "businessFlow db_seeded" : "businessFlow db_not_seeded");
-//
-//                seeded = promocodeActionDBSeedService.seedDB();
-//                sb.append(" ").append(seeded ? "promocodeAction db_seeded" : "promocodeAction db_not_seeded");
 
-//                seeded = seoServiceDBSeedService.seedDB();
-//                sb.append(" ").append(seeded ? "seo db_seeded" : "seo db_not_seeded");
+                seeded = dbImportService.seedDB();
+                sb.append(" ").append(seeded ? "dbImportService db_seeded" : "dbImportService db_not_seeded");
             } else if (option.equals(dbImportOption)) {
                 boolean imported;
-//                imported = accountHistoryDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "accountHistory db_imported" : "accountHistory db_not_imported");
 
-//                imported = notificationDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "notification db_imported" : "notification db_not_imported");
+                imported = dbImportService.importToMongo();
+                sb.append(" ").append(imported ? "dbImportService db_imported" : "dbImportService db_not_imported");
+            } else if (option.equals(dbImportOneAccountOption)) {
+                boolean imported;
 
-//                imported = accountNotificationDBImportService.importToMongo("ac_100800");
-//                sb.append(" ").append(imported ? "accountNotification db_imported" : "accountNotification db_not_imported");
-
-//                imported = serviceDBImportService.importToMongoFix();
-//                sb.append(" ").append(imported ? "service db_imported" : "service db_not_imported");
-
-//                imported = planDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "plan db_imported" : "plan db_not_imported");
-
-//                imported = personalAccountDBImportService.importToMongo("100800");
-//                  imported = personalAccountDBImportService.importToMongo("137010");
-//                imported = personalAccountDBImportService.importToMongo("188480");
-//                imported = personalAccountDBImportService.importToMongo("188401");
-//                imported = personalAccountDBImportService.importToMongo("188378");
-//                imported = personalAccountDBImportService.importToMongo("188239");
-//                imported = personalAccountDBImportService.importToMongo("188235");
-//                imported = personalAccountDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
-
-//                imported = accountServicesDBImportService.importToMongo();
-//                imported = accountServicesDBImportService.importToMongo("100800");
-//                sb.append(" ").append(imported ? "accountServices db_imported" : "accountServices db_not_imported");
-
-//                imported = promocodeDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "promocode db_imported" : "promocode db_not_imported");
-
-                imported = accountPromocodeDBImportService.importToMongo();
-//                imported = accountPromocodeDBImportService.importToMongo("100800");
-                sb.append(" ").append(imported ? "accountPromocode db_imported" : "accountPromocode db_not_imported");
-
-//                imported = bonusPromocodeDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "bonusPromocode db_imported" : "bonusPromocode db_not_imported");
-
-//                imported = domainTldDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "domainTldD db_imported" : "domainTldD db_not_imported");
-
-//                imported = accountDomainDBImportService.importToMongo();
-//                sb.append(" ").append(imported ? "accountDomain db_imported" : "accountDomain db_not_imported");
-
-//                  imported = accountAbonementDBImportService.importToMongo();
-//                  sb.append(" ").append(imported ? "accountAbonement db_imported" : "accountAbonement db_not_imported");
-            } else if (option.equals(processChargesOption)) {
+                imported = dbImportService.importToMongo("100800");
+                sb.append(" ").append(imported ? "dbImportService db_imported" : "dbImportService db_not_imported");
+            } else if (option.equals(processOption)) {
 //                PersonalAccount account = personalAccountRepository.findByAccountId("100800");
 //                domainService.processDomainsAutoRenewByAccount(account);
 //                paymentChargesProcessorService.processCharges("ac_100800");
