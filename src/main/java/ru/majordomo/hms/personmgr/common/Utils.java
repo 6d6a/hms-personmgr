@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.common;
 
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -40,5 +42,20 @@ public class Utils {
             }
         }
         return false;
+    }
+
+    public static int planChangeComparator(long x, long y) {
+        if (x < -1L || y < -1L) {
+            throw new ParameterValidationException("Found not positive Long value, can not compare.");
+        }
+
+        if (x != -1L && y == -1L) {
+            return -1;
+        }
+        else if (x == -1L && y != -1L) {
+            return 1;
+        } else {
+            return (x < y) ? -1 : ((x == y) ? 0 : 1);
+        }
     }
 }

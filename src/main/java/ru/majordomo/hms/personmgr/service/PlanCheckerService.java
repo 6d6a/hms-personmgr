@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import static ru.majordomo.hms.personmgr.common.Utils.planChangeComparator;
+
 @Service
 public class PlanCheckerService {
     private final static Logger logger = LoggerFactory.getLogger(PlanCheckerService.class);
@@ -27,7 +29,7 @@ public class PlanCheckerService {
 
         logger.debug("Checking limit for databases. currentDatabaseCount " + currentDatabaseCount + " planDatabaseCount " + planDatabaseCount);
 
-        return planDatabaseCount.compareTo(-1L) == 0 || currentDatabaseCount.compareTo(planDatabaseCount) < 0;
+        return planChangeComparator(currentDatabaseCount, planDatabaseCount) < 0;
     }
 
     public boolean canAddFtpUser(String accountId) {
@@ -36,7 +38,7 @@ public class PlanCheckerService {
 
         logger.debug("Checking FtpUser limit. currentFtpUserCount " + currentFtpUserCount + " planFtpUserCount " + planFtpUserCount);
 
-        return planFtpUserCount.compareTo(-1L) == 0 || currentFtpUserCount.compareTo(planFtpUserCount) < 0;
+        return planChangeComparator(currentFtpUserCount, planFtpUserCount) < 0;
     }
 
     public boolean canAddWebSite(String accountId) {
@@ -45,6 +47,6 @@ public class PlanCheckerService {
 
         logger.debug("Checking WebSite limit. currentWebsiteCount " + currentWebsiteCount + " planWebsiteCount " + planWebsiteCount);
 
-        return planWebsiteCount.compareTo(-1L) == 0 || currentWebsiteCount.compareTo(planWebsiteCount) < 0;
+        return planChangeComparator(currentWebsiteCount, planWebsiteCount) < 0;
     }
 }
