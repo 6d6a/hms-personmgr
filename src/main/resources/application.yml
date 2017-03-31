@@ -34,7 +34,7 @@ security:
             clientId: service
             clientSecret: service_secret
             accessTokenUri: http://localhost:8080/oauth/token
-            grant-type: client_credentials
+            grant-type: password
             scope: service
     sessions: STATELESS
 server:
@@ -86,3 +86,7 @@ mail_manager:
     service_message_api_name: RegistrantServiceMessage
     url: http://mailing_manager.dolnigin.dev.majordomo.ru/app_dev.php/api/
     username: api_user
+
+si_oauth:
+    serviceUsername: service
+    servicePassword: service
