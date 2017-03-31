@@ -30,7 +30,7 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import static java.lang.Math.floor;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
-import static ru.majordomo.hms.personmgr.common.Utils.comparator;
+import static ru.majordomo.hms.personmgr.common.Utils.planChangeComparator;
 
 @Service
 public class PlanChangeService {
@@ -104,7 +104,7 @@ public class PlanChangeService {
             throw new ParameterValidationException("New plan with specified planId not found");
         }
 
-        if (currentPlan == newPlan) {
+        if (currentPlanId.equals(newPlanId)) {
             throw new ParameterValidationException("New plan is the same as old plan");
         }
 
@@ -445,7 +445,7 @@ public class PlanChangeService {
     private void checkAccountDatabaseLimits(PersonalAccount account, Plan newPlan) {
         Long count = accountCountersService.getCurrentDatabaseCount(account.getId());
         Long freeLimit = planLimitsService.getDatabaseFreeLimit(newPlan);
-        if (comparator(count, freeLimit) > 0) {
+        if (planChangeComparator(count, freeLimit) > 0) {
             throw new ParameterValidationException("Account current DB count is more than plan freeLimit. " +
                     "Current: " + count + " FreeLimit: " + freeLimit);
         }
@@ -460,7 +460,7 @@ public class PlanChangeService {
     private void checkAccountFtpUserLimits(PersonalAccount account, Plan newPlan) {
         Long count = accountCountersService.getCurrentFtpUserCount(account.getId());
         Long freeLimit = planLimitsService.getFtpUserFreeLimit(newPlan);
-        if (comparator(count, freeLimit) > 0) {
+        if (planChangeComparator(count, freeLimit) > 0) {
             throw new ParameterValidationException("Account current FtpUser count is more than plan freeLimit. "  +
                     "Current: " + count + " FreeLimit: " + freeLimit);
         }
@@ -475,7 +475,7 @@ public class PlanChangeService {
     private void checkAccountWebSiteLimits(PersonalAccount account, Plan newPlan) {
         Long count = accountCountersService.getCurrentWebSiteCount(account.getId());
         Long freeLimit = planLimitsService.getWebsiteFreeLimit(newPlan);
-        if (comparator(count, freeLimit) > 0) {
+        if (planChangeComparator(count, freeLimit) > 0) {
             throw new ParameterValidationException("Account current WebSite count is more than plan limit. "  +
                     "Current: " + count + " FreeLimit: " + freeLimit);
         }
@@ -490,7 +490,7 @@ public class PlanChangeService {
     private void checkAccountQuotaLimits(PersonalAccount account, Plan newPlan) {
         Long count = accountCountersService.getCurrentQuotaUsed(account.getId());
         Long freeLimit = planLimitsService.getQuotaKBFreeLimit(newPlan);
-        if (comparator(count, freeLimit) > 0) {
+        if (planChangeComparator(count, freeLimit) > 0) {
             throw new ParameterValidationException("Account current Quota is more than plan limit. "  +
                     "Current: " + count + " FreeLimit: " + freeLimit);
         }
@@ -548,7 +548,7 @@ public class PlanChangeService {
      * @param planFreeLimit бесплатно по тарифу
      */
     public void deleteOrAddAccountService(PersonalAccount account, String serviceId, Long currentCount, Long planFreeLimit) {
-        if (comparator(currentCount, planFreeLimit) <= 0) {
+        if (planChangeComparator(currentCount, planFreeLimit) <= 0) {
             accountServiceHelper.deleteAccountServiceByServiceId(account, serviceId);
         } else {
             int notFreeServiceCount = (int) floor(currentCount - planFreeLimit);

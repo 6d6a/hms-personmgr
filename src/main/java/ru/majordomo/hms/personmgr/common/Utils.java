@@ -44,7 +44,7 @@ public class Utils {
         return false;
     }
 
-    public static int comparator(long x, long y) {
+    public static int planChangeComparator(long x, long y) {
         if (x < -1L || y < -1L) {
             throw new ParameterValidationException("Found not positive Long value, can not compare.");
         }
