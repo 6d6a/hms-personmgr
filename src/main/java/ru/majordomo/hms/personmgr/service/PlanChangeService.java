@@ -151,7 +151,7 @@ public class PlanChangeService {
         );
 
         if (accountStats != null && !accountStats.isEmpty()) {
-            if (currentPlan.getService().getCost().compareTo(newPlan.getService().getCost()) < 0) {
+            if (currentPlan.getService().getCost().compareTo(newPlan.getService().getCost()) > 0) {
                 throw new ParameterValidationException("Account plan already changed in last month. You can not switch to plan witch lower cost.");
             }
 
