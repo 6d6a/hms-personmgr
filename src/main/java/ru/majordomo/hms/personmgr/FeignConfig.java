@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
+import org.springframework.security.oauth2.client.token.AccessTokenRequest;
+import org.springframework.security.oauth2.client.token.DefaultAccessTokenRequest;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.web.context.request.RequestContextListener;
 
@@ -36,7 +38,8 @@ public class FeignConfig {
 
     @Bean
     public RequestInterceptor oauth2FeignRequestInterceptor(){
-        OAuth2ClientContext oAuth2ClientContext = new DefaultOAuth2ClientContext();
+        AccessTokenRequest accessTokenRequest = new DefaultAccessTokenRequest();
+        OAuth2ClientContext oAuth2ClientContext = new DefaultOAuth2ClientContext(accessTokenRequest);
 
         return new OAuth2FeignRequestInterceptor(oAuth2ClientContext, resource());
     }
@@ -47,6 +50,7 @@ public class FeignConfig {
         details.setClientId(clientId);
         details.setClientSecret(clientSecret);
         details.setScope(Collections.singletonList(scope));
+        details.setGrantType("password");
         details.setUsername(username);
         details.setPassword(password);
 
