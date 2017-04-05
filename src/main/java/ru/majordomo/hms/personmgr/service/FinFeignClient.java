@@ -7,9 +7,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.FeignConfig;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
-@FeignClient(name = "fin", fallback = FinFeignClientFallback.class)
+@FeignClient(name = "fin", fallback = FinFeignClientFallback.class, configuration = FeignConfig.class)
 public interface FinFeignClient {
     @RequestMapping(method = RequestMethod.POST, value = "/payment_integration/add_payment", consumes = "application/json")
     String addPayment(Map<String, Object> payment);

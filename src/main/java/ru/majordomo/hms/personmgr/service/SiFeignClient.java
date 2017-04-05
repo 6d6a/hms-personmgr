@@ -7,9 +7,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.FeignConfig;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
-@FeignClient(name = "si")
+@FeignClient(name = "si", configuration = FeignConfig.class)
 public interface SiFeignClient {
     @RequestMapping(method = RequestMethod.POST, value = "/web-access-accounts/create_from_message", consumes = "application/json")
     SimpleServiceMessage createWebAccessAccount(SimpleServiceMessage message);
