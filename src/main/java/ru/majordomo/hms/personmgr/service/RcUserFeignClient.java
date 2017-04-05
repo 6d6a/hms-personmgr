@@ -6,13 +6,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import ru.majordomo.hms.personmgr.FeignConfig;
 import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import java.time.LocalDate;
 import java.util.List;
 
-@FeignClient(name = "rc-user")
+@FeignClient(name = "rc-user", configuration = FeignConfig.class)
 public interface RcUserFeignClient {
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/database/count", consumes = "application/json")
     Count getDatabaseCount(@PathVariable("accountId") String accountId);

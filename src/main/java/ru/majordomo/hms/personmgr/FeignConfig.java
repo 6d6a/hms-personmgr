@@ -1,7 +1,6 @@
 package ru.majordomo.hms.personmgr;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.security.oauth2.client.feign.OAuth2FeignRequestInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
@@ -15,6 +14,7 @@ import org.springframework.web.context.request.RequestContextListener;
 import java.util.Collections;
 
 import feign.RequestInterceptor;
+import ru.majordomo.hms.personmgr.security.OAuth2FeignRequestInterceptor;
 
 @Configuration
 public class FeignConfig {
