@@ -22,7 +22,6 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
-import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
@@ -90,9 +89,8 @@ public class PlanChangeService {
      * @param account   Аккаунт
      * @param newPlanId ID нового тарифа
      */
-    public PlanChangeAgreement changePlan(PersonalAccount account, String newPlanId, PlanChangeAgreement ConfirmingAgreement) {
+    public PlanChangeAgreement changePlan(PersonalAccount account, String newPlanId, PlanChangeAgreement requestAgreement) {
 
-        //ТОDO проверить что новый план активный
         PlanChangeAgreement planChangeAgreement = new PlanChangeAgreement();
         planChangeAgreement.setBalance(accountHelper.getBalance(account));
         planChangeAgreement.setDelta(BigDecimal.ZERO);
@@ -137,8 +135,8 @@ public class PlanChangeService {
                 if (newBalanceAfterDecline.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) { // Денег на новый абонемент не хватает
                     planChangeAgreement.setNeedToFeelBalance(newPlan.getNotInternalAbonement().getService().getCost().subtract(newBalanceAfterDecline));
 
-                    if (ConfirmingAgreement != null) {
-                        throw new ParameterValidationException("Balance to low to change plan by abonement recalculate");
+                    if (requestAgreement != null) {
+                        throw new ParameterValidationException("Balance too low to change plan by abonement recalculate");
                     }
                 }
 
@@ -146,9 +144,9 @@ public class PlanChangeService {
 
         }
 
-        if (ConfirmingAgreement != null) {
+        if (requestAgreement != null) {
 
-            if (!planChangeAgreement.equals(ConfirmingAgreement)) {
+            if (!planChangeAgreement.equals(requestAgreement)) {
                 throw new ParameterValidationException("Oops. Something wrong.");
             }
 
@@ -161,7 +159,7 @@ public class PlanChangeService {
                 if (currentPlan.isAbonementOnly()) {
                     processAbonementOnlyAbonements(account, currentPlan, newPlan);
                 } else {
-                    processNotAbonementOnlyAbonements(account, currentPlan, newPlan, planChangeAgreement);
+                    processNotAbonementOnlyPlans(account, currentPlan, newPlan, planChangeAgreement);
                 }
             }
 
@@ -346,7 +344,7 @@ public class PlanChangeService {
         }
     }
 
-    private void processNotAbonementOnlyAbonements(PersonalAccount account, Plan currentPlan, Plan newPlan, PlanChangeAgreement planChangeAgreement) {
+    private void processNotAbonementOnlyPlans(PersonalAccount account, Plan currentPlan, Plan newPlan, PlanChangeAgreement planChangeAgreement) {
 
         if (!currentPlan.isAbonementOnly()) {
             //Начислить деньги
@@ -367,7 +365,7 @@ public class PlanChangeService {
             //Снять деньги
             if (planChangeAgreement.getDelta().compareTo(BigDecimal.ZERO) < 0) {
                 try {
-                    accountHelper.charge(account, currentPlan.getService(), planChangeAgreement.getDelta());
+                    accountHelper.charge(account, currentPlan.getService(), planChangeAgreement.getDelta().abs());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -422,10 +420,13 @@ public class PlanChangeService {
                 payment.put("accountId", account.getName());
                 payment.put("paymentTypeId", BONUS_PAYMENT_TYPE_ID);
                 payment.put("amount", remainedServiceCost);
-                //payment.put("documentNumber", "N/A");
                 payment.put("message", "Возврат неиспользованных средств при отказе от абонемента");
 
-                finFeignClient.addPayment(payment);
+                try {
+                    finFeignClient.addPayment(payment);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
