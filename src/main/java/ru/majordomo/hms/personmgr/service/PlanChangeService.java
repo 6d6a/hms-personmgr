@@ -197,7 +197,7 @@ public class PlanChangeService {
         BigDecimal currentPlanCost = planRepository.findOne(account.getPlanId()).getService().getCost();
 
         if (accountAbonement.getExpired() != null) {
-            LocalDateTime nextDate = accountAbonement.getExpired().minusYears(1L); // первая дата для начала пересчета АБ
+            LocalDateTime nextDate = accountAbonement.getExpired().minus(Period.parse(accountAbonement.getAbonement().getPeriod())); // первая дата для начала пересчета АБ
             LocalDateTime stopDate = LocalDateTime.now(); // дата окончания пересчета абонемента
             while (stopDate.isAfter(nextDate)) {
                 Integer daysInMonth = nextDate.toLocalDate().lengthOfMonth();
