@@ -157,7 +157,7 @@ public class PlanChangeService {
             if (accountAbonement != null) {
                 //Произведем нужные действия с абонементами
                 if (currentPlan.isAbonementOnly()) {
-                    processAbonementOnlyAbonements(account, currentPlan, newPlan);
+                    processAbonementOnlyPlans(account, currentPlan, newPlan);
                 } else {
                     processNotAbonementOnlyPlans(account, currentPlan, newPlan, planChangeAgreement);
                 }
@@ -333,7 +333,7 @@ public class PlanChangeService {
      * @param currentPlan текущий тариф
      * @param newPlan     новый тариф
      */
-    private void processAbonementOnlyAbonements(PersonalAccount account, Plan currentPlan, Plan newPlan) {
+    private void processAbonementOnlyPlans(PersonalAccount account, Plan currentPlan, Plan newPlan) {
 
         if (currentPlan.isAbonementOnly()) {
             //Если старый тариф был только абонементным, то нужно удалить абонемент и вернуть неизрасходованные средства
