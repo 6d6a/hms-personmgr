@@ -1,7 +1,7 @@
 FROM docker-registry.intr/user/javabox
 ADD ./"${jarBuildName}" app.jar
 RUN sh -c 'touch /app.jar'
-RUN adduser -D personmgr
+RUN adduser -u 32156 -D personmgr
 USER personmgr
-HEALTHCHECK CMD /healthcheck.sh http://localhost:18070/health
+HEALTHCHECK CMD /healthcheck.sh
 ENTRYPOINT [ ${entryPoint} ]

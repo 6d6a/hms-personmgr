@@ -56,7 +56,7 @@ spring:
         date-format: yyyy-MM-dd HH:mm:ss
 
 management:
-  port: 18070
+  port: 18080
   security:
     enabled: false
 
