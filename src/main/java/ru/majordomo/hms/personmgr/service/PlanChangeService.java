@@ -20,6 +20,7 @@ import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
@@ -88,7 +89,12 @@ public class PlanChangeService {
      * @param account   Аккаунт
      * @param newPlanId ID нового тарифа
      */
-    public void changePlan(PersonalAccount account, String newPlanId) {
+    public PlanChangeAgreement changePlan(PersonalAccount account, String newPlanId, PlanChangeAgreement requestAgreement) {
+
+        PlanChangeAgreement planChangeAgreement = new PlanChangeAgreement();
+        planChangeAgreement.setBalance(accountHelper.getBalance(account));
+        planChangeAgreement.setDelta(BigDecimal.ZERO);
+        planChangeAgreement.setNeedToFeelBalance(BigDecimal.ZERO);
 
         String currentPlanId = account.getPlanId();
 
@@ -108,34 +114,106 @@ public class PlanChangeService {
             throw new ParameterValidationException("New plan is the same as old plan");
         }
 
-        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
-
-        if (accountAbonements != null && !accountAbonements.isEmpty()) {
-            throw new ParameterValidationException("Account has abonement. Need to delete it first.");
-        }
-
         //Проверим, можно ли менять тариф
         canChangePlan(account, currentPlan, newPlan);
 
-        //Произведем нужные действия со всеми услугами
-        processServices(account, currentPlan, newPlan);
+        AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), false);
+        AccountAbonement preorderdAccountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), true);
 
-        //Произведем нужные действия с абонементами
-        processAbonements(account, currentPlan, newPlan);
+        if (accountAbonement != null) {
+            //Если тариф не isAbonementOnly (например "Парковка") и имеет абонемент - необходимо сменить тариф с пересчётом баланса
+            if (!currentPlan.isAbonementOnly()) {
 
-        //Укажем новый тариф
-        account.setPlanId(newPlan.getId());
-        personalAccountRepository.save(account);
+                if (newPlan.getService().getCost().compareTo(currentPlan.getService().getCost()) < 0) {
+                    throw new ParameterValidationException("New plan cost is lower than current plan cost. Abonement recalculate prohibited.");
+                }
 
-        if (isFromRegularToBusiness(currentPlan, newPlan)) {
-            publisher.publishEvent(new AccountNotifySupportOnChangePlanEvent(account));
+                //Только перерасчёт и валидация без сохранения
+                planChangeAgreement = this.calculateDeclineAbonementValues(account, planChangeAgreement);
+                BigDecimal newBalanceAfterDecline = accountHelper.getBalance(account).add(planChangeAgreement.getDelta());
+
+                if (newBalanceAfterDecline.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) { // Денег на новый абонемент не хватает
+                    planChangeAgreement.setNeedToFeelBalance(newPlan.getNotInternalAbonement().getService().getCost().subtract(newBalanceAfterDecline));
+
+                    if (requestAgreement != null) {
+                        throw new ParameterValidationException("Balance too low to change plan by abonement recalculate");
+                    }
+                }
+
+            }
+
         }
 
-        //Сохраним статистику смены тарифа
-        saveStat(account, newPlanId);
+        if (requestAgreement != null) {
 
-        //Сохраним историю аккаунта
-        saveHistory(account, currentPlan, newPlan);
+            if (!planChangeAgreement.equals(requestAgreement)) {
+                throw new ParameterValidationException("Oops. Something wrong.");
+            }
+
+            if (preorderdAccountAbonement != null) {
+                accountAbonementRepository.delete(preorderdAccountAbonement.getId());
+            }
+
+            if (accountAbonement != null) {
+                //Произведем нужные действия с абонементами
+                if (currentPlan.isAbonementOnly()) {
+                    processAbonementOnlyPlans(account, currentPlan, newPlan);
+                } else {
+                    processNotAbonementOnlyPlans(account, currentPlan, newPlan, planChangeAgreement);
+                }
+            }
+
+            //Произведем нужные действия со всеми услугами
+            processServices(account, currentPlan, newPlan);
+
+            //Укажем новый тариф
+            account.setPlanId(newPlan.getId());
+            personalAccountRepository.save(account);
+
+            if (isFromRegularToBusiness(currentPlan, newPlan)) {
+                publisher.publishEvent(new AccountNotifySupportOnChangePlanEvent(account));
+            }
+
+            //Сохраним статистику смены тарифа
+            saveStat(account, newPlanId);
+
+            //Сохраним историю аккаунта
+            saveHistory(account, currentPlan, newPlan);
+        }
+
+        return planChangeAgreement;
+    }
+
+    // Для тарифов, которые НЕ isAbonementOnly
+    private PlanChangeAgreement calculateDeclineAbonementValues(PersonalAccount account, PlanChangeAgreement planChangeAgreement) {
+        AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), false);
+
+        if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
+            throw new ParameterValidationException("Account plan is abonement only");
+        }
+
+        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal delta;
+        BigDecimal currentPlanCost = planRepository.findOne(account.getPlanId()).getService().getCost();
+
+        if (accountAbonement.getExpired() != null) {
+            LocalDateTime nextDate = accountAbonement.getExpired().minus(Period.parse(accountAbonement.getAbonement().getPeriod())); // первая дата для начала пересчета АБ
+            LocalDateTime stopDate = LocalDateTime.now(); // дата окончания пересчета абонемента
+            while (stopDate.isAfter(nextDate)) {
+                Integer daysInMonth = nextDate.toLocalDate().lengthOfMonth();
+                total = total.add(currentPlanCost.divide(BigDecimal.valueOf(daysInMonth), 4, BigDecimal.ROUND_HALF_UP));
+                nextDate = nextDate.plusDays(1L);
+            }
+        } else {
+            throw new ParameterValidationException("Abonement is not activated");
+        }
+
+        delta = (accountAbonement.getAbonement().getService().getCost()).subtract(total);
+
+        // delta может быть как отрицательной (будет списано), так и положительной (будет начислено)
+        planChangeAgreement.setDelta(delta);
+        
+        return planChangeAgreement;
     }
 
     /**
@@ -210,6 +288,11 @@ public class PlanChangeService {
      * @param newPlan     новый тариф
      */
     private void canChangePlan(PersonalAccount account, Plan currentPlan, Plan newPlan) {
+
+        if (!newPlan.isActive()) {
+            throw new ParameterValidationException("New plan is not active");
+        }
+
         //Проверим не менялся ли тариф в последний месяц
         checkLastMonthPlanChange(account, currentPlan, newPlan);
 
@@ -250,12 +333,48 @@ public class PlanChangeService {
      * @param currentPlan текущий тариф
      * @param newPlan     новый тариф
      */
-    private void processAbonements(PersonalAccount account, Plan currentPlan, Plan newPlan) {
-        //Если старый тариф был только абонементным, то нужно удалить абонемент и вернуть неизрасходованные средства
-        processCurrentAccountAbonement(account, currentPlan);
+    private void processAbonementOnlyPlans(PersonalAccount account, Plan currentPlan, Plan newPlan) {
 
-        //Если новый тариф только абонементный, то нужно сразу купить абонемент и списать средства
-        processNewAccountAbonement(account, newPlan);
+        if (currentPlan.isAbonementOnly()) {
+            //Если старый тариф был только абонементным, то нужно удалить абонемент и вернуть неизрасходованные средства
+            processCurrentAccountAbonement(account, currentPlan);
+
+            //Если новый тариф только абонементный, то нужно сразу купить абонемент и списать средства
+            processNewAccountAbonement(account, newPlan);
+        }
+    }
+
+    private void processNotAbonementOnlyPlans(PersonalAccount account, Plan currentPlan, Plan newPlan, PlanChangeAgreement planChangeAgreement) {
+
+        if (!currentPlan.isAbonementOnly()) {
+            //Начислить деньги
+            if (planChangeAgreement.getDelta().compareTo(BigDecimal.ZERO) > 0) {
+                Map<String, Object> payment = new HashMap<>();
+                payment.put("accountId", account.getName());
+                payment.put("paymentTypeId", BONUS_PAYMENT_TYPE_ID);
+                payment.put("amount", planChangeAgreement.getDelta());
+                payment.put("message", "Возврат средств при отказе от абонемента при смене тарифного плана");
+
+                try {
+                    finFeignClient.addPayment(payment);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            //Снять деньги
+            if (planChangeAgreement.getDelta().compareTo(BigDecimal.ZERO) < 0) {
+                try {
+                    accountHelper.charge(account, currentPlan.getService(), planChangeAgreement.getDelta().abs());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            deleteAccountAbonement(account, currentPlan);
+
+            processNewAccountAbonement(account, newPlan);
+        }
     }
 
     /**
@@ -274,6 +393,7 @@ public class PlanChangeService {
 
     /**
      * Возвращаем неизрасходованные средства за старый абонемент
+     * Только для тарифов, котороые isAbonementOnly
      *
      * @param account   Аккаунт
      * @param currentPlan текущий тариф
@@ -283,6 +403,10 @@ public class PlanChangeService {
                 account.getId(),
                 currentPlan.getNotInternalAbonementId()
         );
+
+        if (!planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
+            throw new ParameterValidationException("Account plan is not abonement only");
+        }
 
         if (accountAbonements != null && !accountAbonements.isEmpty()) {
             AccountAbonement accountAbonement = accountAbonements.get(0);
@@ -296,10 +420,13 @@ public class PlanChangeService {
                 payment.put("accountId", account.getName());
                 payment.put("paymentTypeId", BONUS_PAYMENT_TYPE_ID);
                 payment.put("amount", remainedServiceCost);
-                payment.put("documentNumber", "N/A");
                 payment.put("message", "Возврат неиспользованных средств при отказе от абонемента");
 
-                finFeignClient.addPayment(payment);
+                try {
+                    finFeignClient.addPayment(payment);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -328,12 +455,10 @@ public class PlanChangeService {
      * @param newPlan новый тариф
      */
     private void processNewAccountAbonement(PersonalAccount account, Plan newPlan) {
-        if (newPlan.isAbonementOnly()) {
-            Abonement abonement = newPlan.getNotInternalAbonement();
-            addAccountAbonement(account, abonement);
+        Abonement abonement = newPlan.getNotInternalAbonement();
+        addAccountAbonement(account, abonement);
 
-            accountHelper.charge(account, abonement.getService());
-        }
+        accountHelper.charge(account, abonement.getService());
     }
 
     /**

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,6 +34,7 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.Token;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
@@ -121,23 +123,35 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(plan, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/plan",
+    @RequestMapping(value = "/{accountId}/plan/{planId}",
                     method = RequestMethod.POST)
     public ResponseEntity<Object> changeAccountPlan(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, String> requestBody
+            @PathVariable(value = "planId") String planId,
+            @RequestBody PlanChangeAgreement planChangeAgreement
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
-        String planId = requestBody.get("planId");
-
-        if (planId == null) {
-            throw new ParameterValidationException("planId field is required in requestBody");
-        }
-
-        planChangeService.changePlan(account, planId);
+        planChangeService.changePlan(account, planId, planChangeAgreement);
 
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/{accountId}/plan-check/{planId}",
+                    method = RequestMethod.POST)
+    public ResponseEntity<PlanChangeAgreement> changeAccountPlanCheck(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @PathVariable(value = "planId") String planId
+    ) {
+        PersonalAccount account = accountRepository.findOne(accountId);
+
+        PlanChangeAgreement planChangeAgreement = planChangeService.changePlan(account, planId, null);
+
+        if (planChangeAgreement.getNeedToFeelBalance().compareTo(BigDecimal.ZERO) != 0) {
+            return new ResponseEntity<>(planChangeAgreement, HttpStatus.ACCEPTED); // 202 Accepted
+        } else {
+            return new ResponseEntity<>(planChangeAgreement, HttpStatus.OK);
+        }
     }
 
     @RequestMapping(value = "/{accountId}/owner",
