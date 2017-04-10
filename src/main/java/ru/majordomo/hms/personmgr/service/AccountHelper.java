@@ -15,7 +15,10 @@ import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.present.AccountPresent;
+import ru.majordomo.hms.personmgr.model.present.Present;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.repository.AccountPresentRepository;
 import ru.majordomo.hms.rc.user.resources.Person;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -26,16 +29,19 @@ public class AccountHelper {
     private final RcUserFeignClient rcUserFeignClient;
     private final FinFeignClient finFeignClient;
     private final SiFeignClient siFeignClient;
+    private final AccountPresentRepository accountPresentRepository;
 
     @Autowired
     public AccountHelper(
             RcUserFeignClient rcUserFeignClient,
             FinFeignClient finFeignClient,
-            SiFeignClient siFeignClient
+            SiFeignClient siFeignClient,
+            AccountPresentRepository accountPresentRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
         this.siFeignClient = siFeignClient;
+        this.accountPresentRepository = accountPresentRepository;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -237,5 +243,24 @@ public class AccountHelper {
         }
 
         return response;
+    }
+
+    public void givePresent(PersonalAccount account, Present present) {
+        Long currentCount = accountPresentRepository.countByPersonalAccountIdAndPresentId(account.getId(), present.getId());
+        if ((currentCount < present.getLimitPerAccount()) || present.getLimitPerAccount() == -1) {
+            AccountPresent accountPresent = new AccountPresent();
+            accountPresent.setPersonalAccountId(account.getId());
+            accountPresent.setPresentId(present.getId());
+            accountPresent.setPresent(present);
+            accountPresent.setCreated(LocalDateTime.now());
+
+            Map<String, Boolean> actionsWithStatus = new HashMap<>();
+            for (String actionId : present.getActionIds()) {
+                actionsWithStatus.put(actionId, true);
+            }
+            accountPresent.setActionsWithStatus(actionsWithStatus);
+
+            accountPresentRepository.save(accountPresent);
+        }
     }
 }

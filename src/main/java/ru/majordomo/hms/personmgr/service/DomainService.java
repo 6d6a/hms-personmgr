@@ -127,7 +127,7 @@ public class DomainService {
             message.addParam("email", email);
             //TODO Убрать точку в шаблоне после баланса, так как получается "руб.."
             message.addParam("api_name", "MajordomoVHDomainsExpires");
-            message.addParam("priority", 10);
+            message.addParam("priority", 1);
 
             HashMap<String, String> parameters = new HashMap<>();
             parameters.put("client_id", message.getAccountId());
@@ -194,7 +194,7 @@ public class DomainService {
                 message.setParams(new HashMap<>());
                 message.addParam("email", email);
                 message.addParam("api_name", "MajordomoVHNomoneyProlong");
-                message.addParam("priority", 10);
+                message.addParam("priority", 1);
 
                 HashMap<String, String> parameters = new HashMap<>();
                 parameters.put("client_id", message.getAccountId());
@@ -218,7 +218,7 @@ public class DomainService {
                     message.setParams(new HashMap<>());
                     message.addParam("phone", smsPhone);
                     message.addParam("api_name", "MajordomoNoMoneyToAutoRenewDomain");
-                    message.addParam("priority", 10);
+                    message.addParam("priority", 1);
 
                     parameters = new HashMap<>();
                     parameters.put("client_id", message.getAccountId());

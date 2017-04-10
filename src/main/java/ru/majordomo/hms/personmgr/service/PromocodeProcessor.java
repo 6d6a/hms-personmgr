@@ -17,14 +17,14 @@ import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.present.AccountPresent;
+import ru.majordomo.hms.personmgr.model.present.Present;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
-import ru.majordomo.hms.personmgr.repository.AbonementRepository;
-import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
+import ru.majordomo.hms.personmgr.repository.*;
 
+import static ru.majordomo.hms.personmgr.common.Constants.FREE_DOMAIN_PROMOTION;
 import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PROMOCODE_ACTION_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PAYMENT_TYPE_ID;
 
@@ -38,6 +38,9 @@ public class PromocodeProcessor {
     private final AbonementService abonementService;
     private final PlanRepository planRepository;
     private final AbonementRepository abonementRepository;
+    private final AccountPresentRepository accountPresentRepository;
+    private final PresentRepository presentRepository;
+    private final AccountHelper accountHelper;
 
     @Autowired
     public PromocodeProcessor(
@@ -46,7 +49,10 @@ public class PromocodeProcessor {
             FinFeignClient finFeignClient,
             AbonementService abonementService,
             PlanRepository planRepository,
-            AbonementRepository abonementRepository
+            AbonementRepository abonementRepository,
+            AccountPresentRepository accountPresentRepository,
+            PresentRepository presentRepository,
+            AccountHelper accountHelper
     ) {
         this.promocodeRepository = promocodeRepository;
         this.accountPromocodeRepository = accountPromocodeRepository;
@@ -54,6 +60,9 @@ public class PromocodeProcessor {
         this.abonementService = abonementService;
         this.planRepository = planRepository;
         this.abonementRepository = abonementRepository;
+        this.accountPresentRepository = accountPresentRepository;
+        this.presentRepository = presentRepository;
+        this.accountHelper = accountHelper;
     }
 
     public void processPromocode(PersonalAccount account, String promocodeString) {
@@ -225,7 +234,11 @@ public class PromocodeProcessor {
                     break;
                 case SERVICE_FREE_DOMAIN:
                     logger.debug("Processing promocode SERVICE_FREE_DOMAIN codeAction: " + action.toString());
-                    //TODO бесплатный домен
+                    Present present = presentRepository.findByNameOfPromotion(FREE_DOMAIN_PROMOTION);
+                    List<AccountPresent> accountPresents = accountPresentRepository.findByPersonalAccountIdAndPresentId(account.getId(), present.getId());
+                    if (accountPresents == null || accountPresents.isEmpty()) {
+                        accountHelper.givePresent(account, present);
+                    }
                     break;
             }
         }

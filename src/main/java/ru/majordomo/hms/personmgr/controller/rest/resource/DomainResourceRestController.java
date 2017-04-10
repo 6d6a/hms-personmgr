@@ -18,12 +18,20 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
+import ru.majordomo.hms.personmgr.model.present.AccountPresent;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
+import ru.majordomo.hms.personmgr.repository.AccountPresentRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.DomainTldService;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
+
+import java.util.List;
+import java.util.Map;
+
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
 
 @RestController
 @RequestMapping("/{accountId}/domain")
@@ -33,6 +41,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
     private final PersonalAccountRepository accountRepository;
     private final AccountHelper accountHelper;
     private final RcUserFeignClient rcUserFeignClient;
+    private final AccountPresentRepository accountPresentRepository;
     private final static Logger logger = LoggerFactory.getLogger(DomainResourceRestController.class);
 
     @Autowired
@@ -40,12 +49,14 @@ public class DomainResourceRestController extends CommonResourceRestController {
             DomainTldService domainTldService,
             PersonalAccountRepository accountRepository,
             AccountHelper accountHelper,
-            RcUserFeignClient rcUserFeignClient
+            RcUserFeignClient rcUserFeignClient,
+            AccountPresentRepository accountPresentRepository
     ) {
         this.domainTldService = domainTldService;
         this.accountRepository = accountRepository;
         this.accountHelper = accountHelper;
         this.rcUserFeignClient = rcUserFeignClient;
+        this.accountPresentRepository = accountPresentRepository;
     }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
@@ -65,11 +76,24 @@ public class DomainResourceRestController extends CommonResourceRestController {
         String domainName = (String) message.getParam("name");
 
         if (isRegistration) {
-            DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
-            accountHelper.checkBalance(account, domainTld.getRegistrationService());
-            SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRegistrationService());
-            String documentNumber = (String) blockResult.getParam("documentNumber");
-            message.addParam("documentNumber", documentNumber);
+            List<AccountPresent> accountPresents = accountPresentRepository.findByPersonalAccountId(account.getId());
+            boolean domainRegistrationByPresent = false;
+            for (AccountPresent accountPresent: accountPresents) {
+                Map<String, Boolean> map = accountPresent.getActionsWithStatus();
+                if (map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) != null && map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) == true) {
+                    map.put(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID, false);
+                    domainRegistrationByPresent = true;
+                    break;
+                }
+            }
+
+            if (!domainRegistrationByPresent) {
+                DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
+                accountHelper.checkBalance(account, domainTld.getRegistrationService());
+                SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRegistrationService());
+                String documentNumber = (String) blockResult.getParam("documentNumber");
+                message.addParam("documentNumber", documentNumber);
+            }
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message);
