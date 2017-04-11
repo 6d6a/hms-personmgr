@@ -9,23 +9,19 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.present.AccountPresent;
-import ru.majordomo.hms.personmgr.model.present.Present;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
-import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.FinFeignClient;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,8 +39,8 @@ public class PaymentAmqpController extends CommonAmqpController  {
     private final FinFeignClient finFeignClient;
     private final AccountStatRepository accountStatRepository;
     private final PlanRepository planRepository;
-    private final AccountPresentRepository accountPresentRepository;
-    private final PresentRepository presentRepository;
+    private final AccountPromotionRepository accountPromotionRepository;
+    private final PromotionRepository promotionRepository;
     private final AccountHelper accountHelper;
 
     @Autowired
@@ -54,8 +50,8 @@ public class PaymentAmqpController extends CommonAmqpController  {
             FinFeignClient finFeignClient,
             AccountStatRepository accountStatRepository,
             PlanRepository planRepository,
-            AccountPresentRepository accountPresentRepository,
-            PresentRepository presentRepository,
+            AccountPromotionRepository accountPromotionRepository,
+            PromotionRepository promotionRepository,
             AccountHelper accountHelper
     ) {
         this.accountRepository = accountRepository;
@@ -63,8 +59,8 @@ public class PaymentAmqpController extends CommonAmqpController  {
         this.finFeignClient = finFeignClient;
         this.accountStatRepository = accountStatRepository;
         this.planRepository = planRepository;
-        this.accountPresentRepository = accountPresentRepository;
-        this.presentRepository = presentRepository;
+        this.accountPromotionRepository = accountPromotionRepository;
+        this.promotionRepository = promotionRepository;
         this.accountHelper = accountHelper;
     }
 
@@ -94,10 +90,10 @@ public class PaymentAmqpController extends CommonAmqpController  {
 
                 BigDecimal amount = new BigDecimal((Integer) message.getParam("amount"));
                 if (amount.compareTo((planRepository.findOne(account.getPlanId()).getService().getCost()).multiply(new BigDecimal(3L))) >= 0) {
-                    Present present = presentRepository.findByNameOfPromotion(FREE_DOMAIN_PROMOTION);
-                    List<AccountPresent> accountPresents = accountPresentRepository.findByPersonalAccountIdAndPresentId(account.getId(), present.getId());
-                    if (accountPresents == null || accountPresents.isEmpty()) {
-                        accountHelper.givePresent(account, present);
+                    Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
+                    List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
+                    if (accountPromotions == null || accountPromotions.isEmpty()) {
+                        accountHelper.giveGift(account, promotion);
                     }
                 }
 

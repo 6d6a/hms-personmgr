@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.model.present;
+package ru.majordomo.hms.personmgr.model.promotion;
 
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.annotation.Transient;
@@ -7,18 +7,17 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 
-import javax.jdo.annotations.Unique;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 @Document
-public class Present extends BaseModel {
+public class Promotion extends BaseModel {
 
     @NotNull
-    @Unique
-    private String NameOfPromotion;
+    @Indexed(unique = true)
+    private String name;
 
     @NotNull
     private LocalDate createdDate;
@@ -36,13 +35,13 @@ public class Present extends BaseModel {
     private List<PromocodeAction> actions = new ArrayList<>();
 
     @PersistenceConstructor
-    public Present(LocalDate createdDate, LocalDate usedDate, boolean active, List<String> actionIds) {
+    public Promotion(LocalDate createdDate, LocalDate usedDate, boolean active, List<String> actionIds) {
         this.createdDate = createdDate;
         this.active = active;
         this.actionIds = actionIds;
     }
 
-    public Present(){}
+    public Promotion(){}
 
     public LocalDate getCreatedDate() {
         return createdDate;
@@ -84,18 +83,18 @@ public class Present extends BaseModel {
         this.limitPerAccount = limitPerAccount;
     }
 
-    public String getNameOfPromotion() {
-        return NameOfPromotion;
+    public String getName() {
+        return name;
     }
 
-    public void setNameOfPromotion(String nameOfPromotion) {
-        NameOfPromotion = nameOfPromotion;
+    public void setName(String name) {
+        this.name = name;
     }
 
     @Override
     public String toString() {
-        return "Present{" +
-                "NameOfPromotion='" + NameOfPromotion + '\'' +
+        return "Promotion{" +
+                "name='" + name + '\'' +
                 ", createdDate=" + createdDate +
                 ", active=" + active +
                 ", limitPerAccount=" + limitPerAccount +

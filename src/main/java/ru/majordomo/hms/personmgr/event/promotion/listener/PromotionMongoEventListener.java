@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.event.present.listener;
+package ru.majordomo.hms.personmgr.event.promotion.listener;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
@@ -9,28 +9,28 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import ru.majordomo.hms.personmgr.model.present.Present;
+import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 @Component
-public class PresentMongoEventListener extends AbstractMongoEventListener<Present> {
+public class PromotionMongoEventListener extends AbstractMongoEventListener<Promotion> {
 
         private final MongoOperations mongoOperations;
 
         @Autowired
-        public PresentMongoEventListener(MongoOperations mongoOperations) {
+        public PromotionMongoEventListener(MongoOperations mongoOperations) {
             this.mongoOperations = mongoOperations;
         }
 
         @Override
-        public void onAfterConvert(AfterConvertEvent<Present> event) {
+        public void onAfterConvert(AfterConvertEvent<Promotion> event) {
             super.onAfterConvert(event);
-            Present present = event.getSource();
+            Promotion promotion = event.getSource();
 
-            List<PromocodeAction> actions = mongoOperations.find(new Query(where("_id").in(present.getActionIds())), PromocodeAction.class);
+            List<PromocodeAction> actions = mongoOperations.find(new Query(where("_id").in(promotion.getActionIds())), PromocodeAction.class);
 
-            present.setActions(actions);
+            promotion.setActions(actions);
         }
 }

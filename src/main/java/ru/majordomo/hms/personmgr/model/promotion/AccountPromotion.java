@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.model.present;
+package ru.majordomo.hms.personmgr.model.promotion;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.PersistenceConstructor;
@@ -13,13 +13,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Document
-public class AccountPresent extends ModelBelongsToPersonalAccount {
+public class AccountPromotion extends ModelBelongsToPersonalAccount {
     @NotNull
-    @ObjectId(Present.class)
-    private String presentId;
+    @ObjectId(Promotion.class)
+    private String promotionId;
 
     @Transient
-    private Present present;
+    private Promotion promotion;
 
     @CreatedDate
     private LocalDateTime created;
@@ -27,27 +27,27 @@ public class AccountPresent extends ModelBelongsToPersonalAccount {
     private Map<String, Boolean> actionsWithStatus = new HashMap<>();
 
     @PersistenceConstructor
-    public AccountPresent(String presentId, LocalDateTime created) {
-        this.presentId = presentId;
+    public AccountPromotion(String promotionId, LocalDateTime created) {
+        this.promotionId = promotionId;
         this.created = created;
     }
 
-    public AccountPresent() {}
+    public AccountPromotion() {}
 
-    public String getPresentId() {
-        return presentId;
+    public String getPromotionId() {
+        return promotionId;
     }
 
-    public void setPresentId(String presentId) {
-        this.presentId = presentId;
+    public void setPromotionId(String promotionId) {
+        this.promotionId = promotionId;
     }
 
-    public Present getPresent() {
-        return present;
+    public Promotion getPromotion() {
+        return promotion;
     }
 
-    public void setPresent(Present present) {
-        this.present = present;
+    public void setPromotion(Promotion promotion) {
+        this.promotion = promotion;
     }
 
     public LocalDateTime getCreated() {
@@ -68,9 +68,9 @@ public class AccountPresent extends ModelBelongsToPersonalAccount {
 
     @Override
     public String toString() {
-        return "AccountPresent{" +
-                "presentId='" + presentId + '\'' +
-                ", present=" + present +
+        return "AccountPromotion{" +
+                "promotionId='" + promotionId + '\'' +
+                ", promotion=" + promotion +
                 ", created=" + created +
                 ", actionsWithStatus=" + actionsWithStatus +
                 '}';
