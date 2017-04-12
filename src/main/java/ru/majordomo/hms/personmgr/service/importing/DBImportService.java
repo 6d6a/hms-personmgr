@@ -26,6 +26,8 @@ public class DBImportService {
     private final ServiceDBImportService serviceDBImportService;
     private final AccountServicesDBImportService accountServicesDBImportService;
     private final AccountCommentDBImportService accountCommentDBImportService;
+    private final PromotionDBSeedService promotionDBSeedService;
+    private final AccountPromotionDBImportService accountPromotionDBImportService;
 
     @Autowired
     public DBImportService(
@@ -45,7 +47,9 @@ public class DBImportService {
             SeoServiceDBSeedService seoServiceDBSeedService,
             BonusPromocodeDBImportService bonusPromocodeDBImportService,
             DomainTldDBImportService domainTldDBImportService,
-            AccountCommentDBImportService accountCommentDBImportService
+            AccountCommentDBImportService accountCommentDBImportService,
+            PromotionDBSeedService promotionDBSeedService,
+            AccountPromotionDBImportService accountPromotionDBImportService
     ) {
         this.accountNotificationDBImportService = accountNotificationDBImportService;
         this.businessActionDBSeedService = businessActionDBSeedService;
@@ -64,6 +68,8 @@ public class DBImportService {
         this.bonusPromocodeDBImportService = bonusPromocodeDBImportService;
         this.domainTldDBImportService = domainTldDBImportService;
         this.accountCommentDBImportService = accountCommentDBImportService;
+        this.promotionDBSeedService = promotionDBSeedService;
+        this.accountPromotionDBImportService = accountPromotionDBImportService;
     }
 
     public boolean seedDB() {
@@ -77,6 +83,9 @@ public class DBImportService {
 //
 //        seeded = seoServiceDBSeedService.seedDB();
 //        logger.debug(seeded ? "seo db_seeded" : "seo db_not_seeded");
+
+//        seeded = presentDBSeedService.seedDB();
+//        logger.debug(seeded ? "promotion db_seeded" : "promotion db_not_seeded");
 
         return true;
     }
@@ -125,6 +134,9 @@ public class DBImportService {
 //
 //        imported = accountCommentDBImportService.importToMongo();
 //        logger.debug(imported ? "accountComment db_imported" : "accountComment db_not_imported");
+//
+//        imported = accountPromotionDBImportService.importToMongo();
+//        logger.debug(imported ? "accountPromotion db_imported" : "accountPromotion db_not_imported");
 
         return true;
     }

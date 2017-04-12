@@ -13,6 +13,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
@@ -89,11 +90,15 @@ public class PaymentAmqpController extends CommonAmqpController  {
             if (account != null) {
 
                 BigDecimal amount = new BigDecimal((Integer) message.getParam("amount"));
-                if (amount.compareTo((planRepository.findOne(account.getPlanId()).getService().getCost()).multiply(new BigDecimal(3L))) >= 0) {
-                    Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
-                    List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
-                    if (accountPromotions == null || accountPromotions.isEmpty()) {
-                        accountHelper.giveGift(account, promotion);
+                Plan plan = planRepository.findOne(account.getPlanId());
+                if (amount.compareTo((plan.getService().getCost()).multiply(new BigDecimal(3L))) >= 0) {
+                    // TODO Проверка на то что аккаунт новый (на нём не было доменов)
+                    if (plan.isAbonementOnly() && plan.isActive()) {
+                        Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
+                        List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
+                        if (accountPromotions == null || accountPromotions.isEmpty()) {
+                            accountHelper.giveGift(account, promotion);
+                        }
                     }
                 }
 

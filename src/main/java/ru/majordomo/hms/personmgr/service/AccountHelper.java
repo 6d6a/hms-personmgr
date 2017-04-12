@@ -247,7 +247,7 @@ public class AccountHelper {
 
     public void giveGift(PersonalAccount account, Promotion promotion) {
         Long currentCount = accountPromotionRepository.countByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
-        if ((currentCount < promotion.getLimitPerAccount()) || promotion.getLimitPerAccount() == -1) {
+        if (currentCount < promotion.getLimitPerAccount() || promotion.getLimitPerAccount() == -1) {
             AccountPromotion accountPromotion = new AccountPromotion();
             accountPromotion.setPersonalAccountId(account.getId());
             accountPromotion.setPromotionId(promotion.getId());

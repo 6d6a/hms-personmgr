@@ -35,7 +35,7 @@ public class Promotion extends BaseModel {
     private List<PromocodeAction> actions = new ArrayList<>();
 
     @PersistenceConstructor
-    public Promotion(LocalDate createdDate, LocalDate usedDate, boolean active, List<String> actionIds) {
+    public Promotion(LocalDate createdDate, boolean active, List<String> actionIds) {
         this.createdDate = createdDate;
         this.active = active;
         this.actionIds = actionIds;

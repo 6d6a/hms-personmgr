@@ -18,9 +18,11 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.DomainTldService;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
@@ -41,6 +43,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
     private final AccountHelper accountHelper;
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountPromotionRepository accountPromotionRepository;
+    private final PromocodeActionRepository promocodeActionRepository;
     private final static Logger logger = LoggerFactory.getLogger(DomainResourceRestController.class);
 
     @Autowired
@@ -49,13 +52,15 @@ public class DomainResourceRestController extends CommonResourceRestController {
             PersonalAccountRepository accountRepository,
             AccountHelper accountHelper,
             RcUserFeignClient rcUserFeignClient,
-            AccountPromotionRepository accountPromotionRepository
+            AccountPromotionRepository accountPromotionRepository,
+            PromocodeActionRepository promocodeActionRepository
     ) {
         this.domainTldService = domainTldService;
         this.accountRepository = accountRepository;
         this.accountHelper = accountHelper;
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountPromotionRepository = accountPromotionRepository;
+        this.promocodeActionRepository = promocodeActionRepository;
     }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
@@ -74,15 +79,25 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
         String domainName = (String) message.getParam("name");
 
+        DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
+
         if (isRegistration) {
-            List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountId(account.getId());
+
             boolean domainRegistrationByPromotion = false;
+
+            List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountId(account.getId());
             for (AccountPromotion accountPromotion : accountPromotions) {
                 Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
                 if (map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) != null && map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) == true) {
-                    map.put(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID, false);
-                    domainRegistrationByPromotion = true;
-                    break;
+
+                    PromocodeAction promocodeAction = promocodeActionRepository.findOne(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
+                    List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
+
+                    if (availableTlds.contains(domainTld.getTld())) {
+                        map.put(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID, false);
+                        domainRegistrationByPromotion = true;
+                        break;
+                    }
                 }
                 // Сохраняем с отметкой, что action использован
                 accountPromotion.setActionsWithStatus(map);
@@ -90,7 +105,6 @@ public class DomainResourceRestController extends CommonResourceRestController {
             }
 
             if (!domainRegistrationByPromotion) {
-                DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
                 accountHelper.checkBalance(account, domainTld.getRegistrationService());
                 SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRegistrationService());
                 String documentNumber = (String) blockResult.getParam("documentNumber");

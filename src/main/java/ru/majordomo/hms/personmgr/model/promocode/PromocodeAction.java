@@ -21,13 +21,13 @@ public class PromocodeAction extends BaseModel {
     @Indexed
     private PromocodeActionType actionType;
 
-    private Map<String, String> properties = new HashMap<>();
+    private Map<String, Object> properties = new HashMap<>();
 
     public PromocodeAction() {
     }
 
     @PersistenceConstructor
-    public PromocodeAction(PromocodeActionType actionType, Map<String, String> properties) {
+    public PromocodeAction(PromocodeActionType actionType, Map<String, Object> properties) {
         this.actionType = actionType;
         this.properties = properties;
     }
@@ -40,11 +40,11 @@ public class PromocodeAction extends BaseModel {
         this.actionType = actionType;
     }
 
-    public Map<String, String> getProperties() {
+    public Map<String, Object> getProperties() {
         return properties;
     }
 
-    public void setProperties(Map<String, String> properties) {
+    public void setProperties(Map<String, Object> properties) {
         this.properties = properties;
     }
 
