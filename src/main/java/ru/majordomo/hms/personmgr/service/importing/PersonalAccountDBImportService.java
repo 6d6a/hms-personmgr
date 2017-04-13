@@ -84,6 +84,7 @@ public class PersonalAccountDBImportService {
             personalAccount.setAutoBillSending(rs.getString("client_auto_bill").equals("1"));
             personalAccount.setOverquoted(rs.getString("overquoted").equals("1"));
             personalAccount.setAddQuotaIfOverquoted(rs.getString("overquot_addcost").equals("1"));
+            personalAccount.setAccountNew(false);
 
             String smsPhone = rs.getString("sms_phone");
 

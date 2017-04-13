@@ -72,6 +72,15 @@ public class DomainAmqpController {
         logger.debug("Received from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
+
+        if (state == State.PROCESSED) {
+            ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+
+            if (businessAction != null && businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_CREATE_RC)) {
+                PersonalAccount account = personalAccountRepository.findOne(businessAction.getPersonalAccountId());
+                account.setAccountNew(false);
+            }
+        }
     }
 
     @RabbitListener(

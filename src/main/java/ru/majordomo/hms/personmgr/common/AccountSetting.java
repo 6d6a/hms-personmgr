@@ -8,5 +8,6 @@ public enum AccountSetting {
     ABONEMENT_AUTO_RENEW,
     CREDIT,
     NOTIFY_DAYS,
-    SMS_PHONE_NUMBER
+    SMS_PHONE_NUMBER,
+    NEW_ACCOUNT
 }

@@ -20,6 +20,7 @@ import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.FinFeignClient;
+import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -43,6 +44,7 @@ public class PaymentAmqpController extends CommonAmqpController  {
     private final AccountPromotionRepository accountPromotionRepository;
     private final PromotionRepository promotionRepository;
     private final AccountHelper accountHelper;
+    private final AccountDomainRepository accountDomainRepository;
 
     @Autowired
     public PaymentAmqpController(
@@ -53,7 +55,8 @@ public class PaymentAmqpController extends CommonAmqpController  {
             PlanRepository planRepository,
             AccountPromotionRepository accountPromotionRepository,
             PromotionRepository promotionRepository,
-            AccountHelper accountHelper
+            AccountHelper accountHelper,
+            AccountDomainRepository accountDomainRepository
     ) {
         this.accountRepository = accountRepository;
         this.accountPromocodeRepository = accountPromocodeRepository;
@@ -63,6 +66,7 @@ public class PaymentAmqpController extends CommonAmqpController  {
         this.accountPromotionRepository = accountPromotionRepository;
         this.promotionRepository = promotionRepository;
         this.accountHelper = accountHelper;
+        this.accountDomainRepository = accountDomainRepository;
     }
 
     @RabbitListener(
@@ -91,13 +95,19 @@ public class PaymentAmqpController extends CommonAmqpController  {
 
                 BigDecimal amount = new BigDecimal((Integer) message.getParam("amount"));
                 Plan plan = planRepository.findOne(account.getPlanId());
+                // При открытии нового аккаунта виртуального хостинга по тарифным планам «Безлимитный», «Безлимитный+», «Бизнес», «Бизнес+»
+                // мы бесплатно зарегистрируем на Вас 1 домен в зоне .ru или .рф при единовременной оплате за
+                // 3 месяца. Бонус предоставляется при открытии аккаунта для первого домена на аккаунте.
                 if (amount.compareTo((plan.getService().getCost()).multiply(new BigDecimal(3L))) >= 0) {
-                    // TODO Проверка на то что аккаунт новый (на нём не было доменов)
-                    if (plan.isAbonementOnly() && plan.isActive()) {
-                        Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
-                        List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
-                        if (accountPromotions == null || accountPromotions.isEmpty()) {
-                            accountHelper.giveGift(account, promotion);
+                    //Проверка на то что аккаунт новый (на нём не было доменов)
+                    if (account.isAccountNew()) {
+                        List<Domain> domains = accountHelper.getDomains(account);
+                        if (!plan.isAbonementOnly() && plan.isActive() && (domains == null || domains.size() == 0)) {
+                            Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
+                            List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
+                            if (accountPromotions == null || accountPromotions.isEmpty()) {
+                                accountHelper.giveGift(account, promotion);
+                            }
                         }
                     }
                 }
@@ -122,7 +132,6 @@ public class PaymentAmqpController extends CommonAmqpController  {
                     if (account.getCreated().isBefore(accountForPartnerBonus.getCreated().plusYears(1))) {
                         // Все условия выполнены
 
-                        //BigDecimal amount = new BigDecimal((Integer) message.getParam("amount"));
                         BigDecimal percent = new BigDecimal(BONUS_PARTNER_PERCENT);
 
                         BigDecimal promocodeBonus = amount.multiply(percent);
