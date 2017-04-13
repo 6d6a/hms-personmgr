@@ -35,7 +35,7 @@ public class AccountPromocode extends ModelBelongsToPersonalAccount {
     @ObjectId(PersonalAccount.class)
     private String ownerPersonalAccountId;
 
-    //TODO скорее всего нужно выпилить
+    //TODO скорее всего нужно выпилить (нигде не используется)
     private Map<String, Boolean> actionsWithStatus = new HashMap<>();
 
     @Transient
