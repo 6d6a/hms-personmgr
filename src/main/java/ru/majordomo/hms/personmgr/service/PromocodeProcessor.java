@@ -17,14 +17,14 @@ import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
-import ru.majordomo.hms.personmgr.repository.AbonementRepository;
-import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
+import ru.majordomo.hms.personmgr.repository.*;
 
+import static ru.majordomo.hms.personmgr.common.Constants.FREE_DOMAIN_PROMOTION;
 import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PROMOCODE_ACTION_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PAYMENT_TYPE_ID;
 
@@ -38,6 +38,9 @@ public class PromocodeProcessor {
     private final AbonementService abonementService;
     private final PlanRepository planRepository;
     private final AbonementRepository abonementRepository;
+    private final AccountPromotionRepository accountPromotionRepository;
+    private final PromotionRepository promotionRepository;
+    private final AccountHelper accountHelper;
 
     @Autowired
     public PromocodeProcessor(
@@ -46,7 +49,10 @@ public class PromocodeProcessor {
             FinFeignClient finFeignClient,
             AbonementService abonementService,
             PlanRepository planRepository,
-            AbonementRepository abonementRepository
+            AbonementRepository abonementRepository,
+            AccountPromotionRepository accountPromotionRepository,
+            PromotionRepository promotionRepository,
+            AccountHelper accountHelper
     ) {
         this.promocodeRepository = promocodeRepository;
         this.accountPromocodeRepository = accountPromocodeRepository;
@@ -54,6 +60,9 @@ public class PromocodeProcessor {
         this.abonementService = abonementService;
         this.planRepository = planRepository;
         this.abonementRepository = abonementRepository;
+        this.accountPromotionRepository = accountPromotionRepository;
+        this.promotionRepository = promotionRepository;
+        this.accountHelper = accountHelper;
     }
 
     public void processPromocode(PersonalAccount account, String promocodeString) {
@@ -172,7 +181,7 @@ public class PromocodeProcessor {
                     Map<String, Object> payment = new HashMap<>();
                     payment.put("accountId", account.getName());
                     payment.put("paymentTypeId", BONUS_PAYMENT_TYPE_ID);
-                    payment.put("amount", new BigDecimal(action.getProperties().get("amount")));
+                    payment.put("amount", new BigDecimal((String) action.getProperties().get("amount")));
                     payment.put("documentNumber", account.getName() + "_" + accountPromocode.getPromocode().getCode());
                     payment.put("message", "Бонусный платеж при использовании промокода " + accountPromocode.getPromocode().getCode());
 
@@ -225,7 +234,11 @@ public class PromocodeProcessor {
                     break;
                 case SERVICE_FREE_DOMAIN:
                     logger.debug("Processing promocode SERVICE_FREE_DOMAIN codeAction: " + action.toString());
-                    //TODO бесплатный домен
+                    Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
+                    List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
+                    if (accountPromotions == null || accountPromotions.isEmpty()) {
+                        accountHelper.giveGift(account, promotion);
+                    }
                     break;
             }
         }

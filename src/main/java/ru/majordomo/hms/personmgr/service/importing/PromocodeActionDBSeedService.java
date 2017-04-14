@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +69,7 @@ public class PromocodeActionDBSeedService {
 
         promocodeAction.setActionType(PromocodeActionType.BALANCE_FILL);
 
-        Map<String, String> properties = new HashMap<>();
+        Map<String, Object> properties = new HashMap<>();
         properties.put("amount", "50");
 
         promocodeAction.setProperties(properties);
@@ -132,6 +133,12 @@ public class PromocodeActionDBSeedService {
         promocodeAction = new PromocodeAction();
 
         promocodeAction.setActionType(PromocodeActionType.SERVICE_FREE_DOMAIN);
+
+        properties = new HashMap<>();
+        List<String> tlds = new ArrayList<>();
+        tlds.add("ru");
+        tlds.add("xn--p1ai");
+        properties.put("tlds", tlds);
 
         promocodeAction.setId(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
 

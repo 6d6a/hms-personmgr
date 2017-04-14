@@ -15,7 +15,10 @@ import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.rc.user.resources.Person;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -26,16 +29,19 @@ public class AccountHelper {
     private final RcUserFeignClient rcUserFeignClient;
     private final FinFeignClient finFeignClient;
     private final SiFeignClient siFeignClient;
+    private final AccountPromotionRepository accountPromotionRepository;
 
     @Autowired
     public AccountHelper(
             RcUserFeignClient rcUserFeignClient,
             FinFeignClient finFeignClient,
-            SiFeignClient siFeignClient
+            SiFeignClient siFeignClient,
+            AccountPromotionRepository accountPromotionRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
         this.siFeignClient = siFeignClient;
+        this.accountPromotionRepository = accountPromotionRepository;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -237,5 +243,24 @@ public class AccountHelper {
         }
 
         return response;
+    }
+
+    public void giveGift(PersonalAccount account, Promotion promotion) {
+        Long currentCount = accountPromotionRepository.countByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
+        if (currentCount < promotion.getLimitPerAccount() || promotion.getLimitPerAccount() == -1) {
+            AccountPromotion accountPromotion = new AccountPromotion();
+            accountPromotion.setPersonalAccountId(account.getId());
+            accountPromotion.setPromotionId(promotion.getId());
+            accountPromotion.setPromotion(promotion);
+            accountPromotion.setCreated(LocalDateTime.now());
+
+            Map<String, Boolean> actionsWithStatus = new HashMap<>();
+            for (String actionId : promotion.getActionIds()) {
+                actionsWithStatus.put(actionId, true);
+            }
+            accountPromotion.setActionsWithStatus(actionsWithStatus);
+
+            accountPromotionRepository.save(accountPromotion);
+        }
     }
 }

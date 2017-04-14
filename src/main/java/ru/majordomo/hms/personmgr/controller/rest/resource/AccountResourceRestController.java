@@ -125,6 +125,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
         personalAccount.setName(VH_ACCOUNT_PREFIX + accountId);
         personalAccount.setActive(true);
         personalAccount.setCreated(LocalDateTime.now());
+        personalAccount.setAccountNew(true);
 
         personalAccountRepository.save(personalAccount);
         logger.debug("personalAccount saved: " + personalAccount.toString());

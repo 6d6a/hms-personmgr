@@ -28,13 +28,7 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
-import static ru.majordomo.hms.personmgr.common.AccountSetting.ABONEMENT_AUTO_RENEW;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.ADD_QUOTA_IF_OVERQUOTED;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.AUTO_BILL_SENDING;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.NOTIFY_DAYS;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.OVERQUOTED;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.SMS_PHONE_NUMBER;
+import static ru.majordomo.hms.personmgr.common.AccountSetting.*;
 import static ru.majordomo.hms.personmgr.common.Constants.DEFAULT_NOTIFY_DAYS;
 
 /**
@@ -318,6 +312,14 @@ public class PersonalAccount extends BaseModel {
 
     public void setAbonementAutoRenew(Boolean value) {
         setBooleanSettingByName(ABONEMENT_AUTO_RENEW, value);
+    }
+
+    public Boolean isAccountNew() {
+        return getBooleanSettingByName(NEW_ACCOUNT);
+    }
+
+    public void setAccountNew(Boolean value) {
+        setBooleanSettingByName(NEW_ACCOUNT, value);
     }
 
     public Integer getNotifyDays() {
