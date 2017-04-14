@@ -91,7 +91,7 @@ public class AbonementService {
 
         accountAbonementRepository.save(accountAbonement);
 
-        if (!accountServiceHelper.accountHasService(account, plan.getServiceId())) {
+        if (accountServiceHelper.accountHasService(account, plan.getServiceId())) {
             accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
         }
     }
@@ -111,7 +111,7 @@ public class AbonementService {
 
         accountAbonementRepository.save(accountAbonement);
 
-        if (!accountServiceHelper.accountHasService(account, plan.getServiceId())) {
+        if (accountServiceHelper.accountHasService(account, plan.getServiceId())) {
             accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
         }
     }
