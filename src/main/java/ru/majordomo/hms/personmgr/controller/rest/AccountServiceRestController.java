@@ -130,7 +130,7 @@ public class AccountServiceRestController extends CommonRestController {
     public ResponseEntity<AccountService> getSmsService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        PersonalAccount account = accountRepository.findByAccountId(accountId);
+        PersonalAccount account = accountRepository.findOne(accountId);
 
         PaymentService paymentService = getSmsPaymentServiceByPlanId(account.getPlanId());
 
