@@ -33,11 +33,17 @@ public interface RcUserFeignClient {
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/database")
     List<Database> getDatabases(@PathVariable("accountId") String accountId);
 
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/database-user")
+    List<DatabaseUser> getDatabaseUsers(@PathVariable("accountId") String accountId);
+
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/mailbox")
     List<Mailbox> getMailboxes(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/website/{webSiteId}", consumes = "application/json")
     WebSite getWebSite(@PathVariable("accountId") String accountId, @PathVariable("webSiteId") String webSiteId);
+
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/website}", consumes = "application/json")
+    List<WebSite> getWebSites(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/person/{personId}", consumes = "application/json")
     Person getPerson(@PathVariable("accountId") String accountId, @PathVariable("personId") String personId);
@@ -60,4 +66,7 @@ public interface RcUserFeignClient {
             @RequestParam("paidTillStart") String paidTillStart,
             @RequestParam("paidTillEnd") String paidTillEnd
     );
+
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/ftp-user}", consumes = "application/json")
+    List<FTPUser> getFTPUsers(@PathVariable("accountId") String accountId);
 }

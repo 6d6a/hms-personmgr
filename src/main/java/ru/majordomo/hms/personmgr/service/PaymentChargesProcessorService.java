@@ -8,11 +8,13 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
@@ -20,6 +22,7 @@ import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.rc.user.resources.*;
 
 @Service
 public class PaymentChargesProcessorService {
@@ -49,6 +52,9 @@ public class PaymentChargesProcessorService {
     }
 
     public void processCharge(PersonalAccount account) {
+
+        if (account.isActive()) {
+
         LocalDateTime chargeDate = LocalDateTime.now().minusDays(1).withHour(23).withMinute(59).withSecond(59);
 
         logger.debug("processing charges for PersonalAccount: " + account.getAccountId()
@@ -95,6 +101,33 @@ public class PaymentChargesProcessorService {
             }
         }
 
+        //После списаний баланс отрицательный
+        if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0) {
+            if (account.isCredit()) {
+                //Если у аккаунта подключен кредит
+
+                LocalDateTime creditActivationDate = account.getCreditActivationDate();
+
+                //Проверяем что дата активации выставлена
+                if (creditActivationDate == null) {
+                    // Далее дата активация выставляется в null, только при платеже, который вывел аккаунт из минуса
+                    account.setCreditActivationDate(LocalDateTime.now());
+                } else {
+                    // Проверяем сколько он уже пользуется
+                    if ( creditActivationDate.isAfter(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {
+                        // Выклчаем аккаунт, если срок кредита истёк
+                        accountHelper.switchAccountResources(account, false);
+                        //TODO уведомление юзеру о выключении аккаунта
+                    }
+                }
+
+            } else {
+                accountHelper.switchAccountResources(account, false);
+                //TODO уведомление юзеру о выключении аккаунта
+            }
+        }
+
+
         if (dailyCost.compareTo(BigDecimal.ZERO) > 0) {
             Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue() - 1;
 
@@ -110,6 +143,8 @@ public class PaymentChargesProcessorService {
 
                 publisher.publishEvent(new AccountNotifyRemainingDaysEvent(account, params));
             }
+        }
+
         }
     }
 

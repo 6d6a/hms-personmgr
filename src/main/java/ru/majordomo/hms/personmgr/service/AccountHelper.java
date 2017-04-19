@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
@@ -19,8 +20,7 @@ import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
-import ru.majordomo.hms.rc.user.resources.Person;
-import ru.majordomo.hms.rc.user.resources.Domain;
+import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
 
@@ -30,18 +30,21 @@ public class AccountHelper {
     private final FinFeignClient finFeignClient;
     private final SiFeignClient siFeignClient;
     private final AccountPromotionRepository accountPromotionRepository;
+    private final BusinessActionBuilder businessActionBuilder;
 
     @Autowired
     public AccountHelper(
             RcUserFeignClient rcUserFeignClient,
             FinFeignClient finFeignClient,
             SiFeignClient siFeignClient,
-            AccountPromotionRepository accountPromotionRepository
+            AccountPromotionRepository accountPromotionRepository,
+            BusinessActionBuilder businessActionBuilder
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
         this.siFeignClient = siFeignClient;
         this.accountPromotionRepository = accountPromotionRepository;
+        this.businessActionBuilder = businessActionBuilder;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -261,6 +264,84 @@ public class AccountHelper {
             accountPromotion.setActionsWithStatus(actionsWithStatus);
 
             accountPromotionRepository.save(accountPromotion);
+        }
+    }
+
+    public void switchAccountResources(PersonalAccount account, Boolean state) {
+
+        account.setActive(state);
+        account.setDeactivated(LocalDateTime.now());
+
+        List<WebSite> webSites = rcUserFeignClient.getWebSites(account.getId());
+
+        for (WebSite webSite : webSites) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.addParam("resourceId", webSite.getId());
+            message.setAccountId(account.getId());
+            message.setParams(new HashMap<>());
+            message.addParam("switchedOn", state);
+
+            businessActionBuilder.build(BusinessActionType.WEB_SITE_UPDATE_RC, message);
+        }
+
+        List<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
+
+        for (DatabaseUser databaseUser : databaseUsers) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.addParam("resourceId", databaseUser.getId());
+            message.setAccountId(account.getId());
+            message.setParams(new HashMap<>());
+            message.addParam("switchedOn", state);
+
+            businessActionBuilder.build(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
+        }
+
+        List<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+        for (Mailbox mailbox : mailboxes) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.addParam("resourceId", mailbox.getId());
+            message.setAccountId(account.getId());
+            message.setParams(new HashMap<>());
+            message.addParam("switchedOn", state);
+
+            businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
+        }
+
+        List<Domain> domains = rcUserFeignClient.getDomains(account.getId());
+
+        for (Domain domain : domains) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.addParam("resourceId", domain.getId());
+            message.setAccountId(account.getId());
+            message.setParams(new HashMap<>());
+            message.addParam("switchedOn", state);
+
+            businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, message);
+        }
+
+        List<FTPUser> ftpUsers = rcUserFeignClient.getFTPUsers(account.getId());
+
+        for (FTPUser ftpUser : ftpUsers) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.addParam("resourceId", ftpUser.getId());
+            message.setAccountId(account.getId());
+            message.setParams(new HashMap<>());
+            message.addParam("switchedOn", state);
+
+            businessActionBuilder.build(BusinessActionType.FTP_USER_UPDATE_RC, message);
+        }
+
+        List<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
+
+        for (UnixAccount unixAccount : unixAccounts) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.addParam("resourceId", unixAccount.getId());
+            message.setAccountId(account.getId());
+            message.setParams(new HashMap<>());
+            message.addParam("switchedOn", state);
+
+            businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
         }
     }
 }

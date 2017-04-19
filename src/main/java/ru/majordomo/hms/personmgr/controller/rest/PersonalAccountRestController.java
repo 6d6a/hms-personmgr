@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -307,6 +308,38 @@ public class PersonalAccountRestController extends CommonRestController {
         publisher.publishEvent(new AccountPasswordRecoverConfirmedEvent(account, params));
 
         publisher.publishEvent(new TokenDeleteEvent(token));
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/{accountId}/credit",
+            method = RequestMethod.POST)
+    public ResponseEntity<Object> enableCredit(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
+        PersonalAccount account = accountRepository.findOne(accountId);
+
+        if (account.isCredit()) {
+            throw new ParameterValidationException("Account already have credit");
+        }
+
+        account.setCredit(true);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/{accountId}/credit",
+            method = RequestMethod.DELETE)
+    public ResponseEntity<Object> disableCredit(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
+        PersonalAccount account = accountRepository.findOne(accountId);
+
+        if (!account.isCredit()) {
+            throw new ParameterValidationException("Account does not have credit");
+        }
+
+        account.setCredit(false);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

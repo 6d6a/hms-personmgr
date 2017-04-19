@@ -87,10 +87,25 @@ public class PaymentAmqpController extends CommonAmqpController  {
         String provider = headers.get("provider");
         logger.debug("Received payment create message from " + provider + ": " + message.toString());
 
+        PersonalAccount account = accountRepository.findOne(message.getAccountId());
+
+        if (account != null) {
+            // Если баланс после пополнения положительный
+            BigDecimal balance = accountHelper.getBalance(account);
+            if (balance.compareTo(BigDecimal.ZERO) > 0) {
+                // Обнуляем дату активации кредита
+                if (account.getCreditActivationDate() != null) account.setCreditActivationDate(null);
+
+                // Включаем аккаунт, если был выключен
+                if (!account.isActive()) {
+                    accountHelper.switchAccountResources(account, true);
+                }
+            }
+        }
+
         // Пополнение баланса партнера при поступлении средств клиенту, если этот клиент регистрировался по промокоду
         if (message.getParam("paymentTypeKind").equals(REAL_PAYMENT_TYPE_KIND)) {
 
-            PersonalAccount account = accountRepository.findOne(message.getAccountId());
             if (account != null) {
 
                 BigDecimal amount = new BigDecimal((Integer) message.getParam("amount"));
