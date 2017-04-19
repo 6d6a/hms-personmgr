@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,9 @@ import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
 
 @Service
 public class AccountHelper {
+
+    private final static Logger logger = LoggerFactory.getLogger(AccountHelper.class);
+
     private final RcUserFeignClient rcUserFeignClient;
     private final FinFeignClient finFeignClient;
     private final SiFeignClient siFeignClient;
@@ -272,76 +277,118 @@ public class AccountHelper {
         account.setActive(state);
         account.setDeactivated(LocalDateTime.now());
 
-        List<WebSite> webSites = rcUserFeignClient.getWebSites(account.getId());
+        try {
 
-        for (WebSite webSite : webSites) {
-            SimpleServiceMessage message = new SimpleServiceMessage();
-            message.addParam("resourceId", webSite.getId());
-            message.setAccountId(account.getId());
-            message.setParams(new HashMap<>());
-            message.addParam("switchedOn", state);
+            List<WebSite> webSites = rcUserFeignClient.getWebSites(account.getId());
 
-            businessActionBuilder.build(BusinessActionType.WEB_SITE_UPDATE_RC, message);
+            for (WebSite webSite : webSites) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.addParam("resourceId", webSite.getId());
+                message.setAccountId(account.getId());
+                message.setParams(new HashMap<>());
+                message.addParam("switchedOn", state);
+
+                businessActionBuilder.build(BusinessActionType.WEB_SITE_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account WebSite switch failed for accountId: " + account.getId());
+            e.printStackTrace();
         }
 
-        List<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
+        try {
 
-        for (DatabaseUser databaseUser : databaseUsers) {
-            SimpleServiceMessage message = new SimpleServiceMessage();
-            message.addParam("resourceId", databaseUser.getId());
-            message.setAccountId(account.getId());
-            message.setParams(new HashMap<>());
-            message.addParam("switchedOn", state);
+            List<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
 
-            businessActionBuilder.build(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
+            for (DatabaseUser databaseUser : databaseUsers) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.addParam("resourceId", databaseUser.getId());
+                message.setAccountId(account.getId());
+                message.setParams(new HashMap<>());
+                message.addParam("switchedOn", state);
+
+                businessActionBuilder.build(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account DatabaseUsers switch failed for accountId: " + account.getId());
+            e.printStackTrace();
         }
 
-        List<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+        try {
 
-        for (Mailbox mailbox : mailboxes) {
-            SimpleServiceMessage message = new SimpleServiceMessage();
-            message.addParam("resourceId", mailbox.getId());
-            message.setAccountId(account.getId());
-            message.setParams(new HashMap<>());
-            message.addParam("switchedOn", state);
+            List<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
 
-            businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
+            for (Mailbox mailbox : mailboxes) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.addParam("resourceId", mailbox.getId());
+                message.setAccountId(account.getId());
+                message.setParams(new HashMap<>());
+                message.addParam("switchedOn", state);
+
+                businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account Mailboxes switch failed for accountId: " + account.getId());
+            e.printStackTrace();
         }
 
-        List<Domain> domains = rcUserFeignClient.getDomains(account.getId());
+        try {
 
-        for (Domain domain : domains) {
-            SimpleServiceMessage message = new SimpleServiceMessage();
-            message.addParam("resourceId", domain.getId());
-            message.setAccountId(account.getId());
-            message.setParams(new HashMap<>());
-            message.addParam("switchedOn", state);
+            List<Domain> domains = rcUserFeignClient.getDomains(account.getId());
 
-            businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, message);
+            for (Domain domain : domains) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.addParam("resourceId", domain.getId());
+                message.setAccountId(account.getId());
+                message.setParams(new HashMap<>());
+                message.addParam("switchedOn", state);
+
+                businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account Domains switch failed for accountId: " + account.getId());
+            e.printStackTrace();
         }
 
-        List<FTPUser> ftpUsers = rcUserFeignClient.getFTPUsers(account.getId());
+        try {
 
-        for (FTPUser ftpUser : ftpUsers) {
-            SimpleServiceMessage message = new SimpleServiceMessage();
-            message.addParam("resourceId", ftpUser.getId());
-            message.setAccountId(account.getId());
-            message.setParams(new HashMap<>());
-            message.addParam("switchedOn", state);
+            List<FTPUser> ftpUsers = rcUserFeignClient.getFTPUsers(account.getId());
 
-            businessActionBuilder.build(BusinessActionType.FTP_USER_UPDATE_RC, message);
+            for (FTPUser ftpUser : ftpUsers) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.addParam("resourceId", ftpUser.getId());
+                message.setAccountId(account.getId());
+                message.setParams(new HashMap<>());
+                message.addParam("switchedOn", state);
+
+                businessActionBuilder.build(BusinessActionType.FTP_USER_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account FTPUsers switch failed for accountId: " + account.getId());
+            e.printStackTrace();
         }
 
-        List<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
+        try {
 
-        for (UnixAccount unixAccount : unixAccounts) {
-            SimpleServiceMessage message = new SimpleServiceMessage();
-            message.addParam("resourceId", unixAccount.getId());
-            message.setAccountId(account.getId());
-            message.setParams(new HashMap<>());
-            message.addParam("switchedOn", state);
+            List<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
 
-            businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
+            for (UnixAccount unixAccount : unixAccounts) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.addParam("resourceId", unixAccount.getId());
+                message.setAccountId(account.getId());
+                message.setParams(new HashMap<>());
+                message.addParam("switchedOn", state);
+
+                businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account UnixAccounts switch failed for accountId: " + account.getId());
+            e.printStackTrace();
         }
     }
 }

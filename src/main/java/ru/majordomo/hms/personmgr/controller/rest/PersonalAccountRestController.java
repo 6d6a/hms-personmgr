@@ -313,33 +313,16 @@ public class PersonalAccountRestController extends CommonRestController {
     }
 
     @RequestMapping(value = "/{accountId}/credit",
-            method = RequestMethod.POST)
-    public ResponseEntity<Object> enableCredit(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+            method = RequestMethod.PATCH)
+    public ResponseEntity<Object> switchCredit(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody Map<String, Object> requestBody
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
-        if (account.isCredit()) {
-            throw new ParameterValidationException("Account already have credit");
-        }
+        Boolean credit = (Boolean) requestBody.get("credit");
 
-        account.setCredit(true);
-
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @RequestMapping(value = "/{accountId}/credit",
-            method = RequestMethod.DELETE)
-    public ResponseEntity<Object> disableCredit(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
-    ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
-
-        if (!account.isCredit()) {
-            throw new ParameterValidationException("Account does not have credit");
-        }
-
-        account.setCredit(false);
+        account.setCredit(credit);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
