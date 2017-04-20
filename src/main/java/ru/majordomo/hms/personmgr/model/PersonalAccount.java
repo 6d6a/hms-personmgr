@@ -390,7 +390,9 @@ public class PersonalAccount extends BaseModel {
     }
 
     public void setSettingByName(AccountSetting name, Object value) {
-        if (value instanceof Integer) {
+        if (value == null) {
+            this.removeSettingByName(name);
+        } else if (value instanceof Integer) {
             setIntegerSettingByName(name, (Integer) value);
         } else if (value instanceof Boolean) {
             setBooleanSettingByName(name, (Boolean) value);
@@ -401,6 +403,10 @@ public class PersonalAccount extends BaseModel {
         } else {
             throw new IllegalArgumentException("AccountSetting value must be one of Integer, Boolean or String");
         }
+    }
+
+    public void removeSettingByName(AccountSetting name) {
+        this.settings.remove(name);
     }
 
     @Override

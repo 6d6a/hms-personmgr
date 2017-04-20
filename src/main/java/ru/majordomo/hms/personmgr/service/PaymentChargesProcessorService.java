@@ -112,6 +112,7 @@ public class PaymentChargesProcessorService {
                 if (creditActivationDate == null) {
                     // Далее дата активация выставляется в null, только при платеже, который вывел аккаунт из минуса
                     account.setCreditActivationDate(LocalDateTime.now());
+                    personalAccountRepository.save(account);
                 } else {
                     // Проверяем сколько он уже пользуется
                     if ( creditActivationDate.isAfter(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {

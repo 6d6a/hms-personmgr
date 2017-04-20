@@ -86,7 +86,6 @@ public class PersonalAccountDBImportService {
             personalAccount.setAddQuotaIfOverquoted(rs.getString("overquot_addcost").equals("1"));
             personalAccount.setAccountNew(false);
             personalAccount.setCreditPeriod("P14D");
-            personalAccount.setCreditActivationDate(null);
 
             String smsPhone = rs.getString("sms_phone");
 

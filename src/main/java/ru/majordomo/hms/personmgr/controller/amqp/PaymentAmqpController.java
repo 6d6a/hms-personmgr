@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @EnableRabbit
@@ -94,7 +95,10 @@ public class PaymentAmqpController extends CommonAmqpController  {
             BigDecimal balance = accountHelper.getBalance(account);
             if (balance.compareTo(BigDecimal.ZERO) > 0) {
                 // Обнуляем дату активации кредита
-                if (account.getCreditActivationDate() != null) account.setCreditActivationDate(null);
+                if (account.getCreditActivationDate() != null) {
+                    account.removeSettingByName(CREDIT_ACTIVATION_DATE);
+                    accountRepository.save(account);
+                }
 
                 // Включаем аккаунт, если был выключен
                 if (!account.isActive()) {

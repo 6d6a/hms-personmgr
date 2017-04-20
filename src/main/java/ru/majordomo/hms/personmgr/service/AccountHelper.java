@@ -22,6 +22,7 @@ import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
@@ -36,6 +37,7 @@ public class AccountHelper {
     private final SiFeignClient siFeignClient;
     private final AccountPromotionRepository accountPromotionRepository;
     private final BusinessActionBuilder businessActionBuilder;
+    private final PersonalAccountRepository personalAccountRepository;
 
     @Autowired
     public AccountHelper(
@@ -43,13 +45,15 @@ public class AccountHelper {
             FinFeignClient finFeignClient,
             SiFeignClient siFeignClient,
             AccountPromotionRepository accountPromotionRepository,
-            BusinessActionBuilder businessActionBuilder
+            BusinessActionBuilder businessActionBuilder,
+            PersonalAccountRepository personalAccountRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
         this.siFeignClient = siFeignClient;
         this.accountPromotionRepository = accountPromotionRepository;
         this.businessActionBuilder = businessActionBuilder;
+        this.personalAccountRepository = personalAccountRepository;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -275,7 +279,12 @@ public class AccountHelper {
     public void switchAccountResources(PersonalAccount account, Boolean state) {
 
         account.setActive(state);
-        account.setDeactivated(LocalDateTime.now());
+        if (!state) {
+            account.setDeactivated(LocalDateTime.now());
+        } else {
+            account.setDeactivated(null);
+        }
+        personalAccountRepository.save(account);
 
         try {
 

@@ -322,7 +322,25 @@ public class PersonalAccountRestController extends CommonRestController {
 
         Boolean credit = (Boolean) requestBody.get("credit");
 
+        if (!credit) {
+            // Выключение кредита
+            if (!account.isCredit()) {
+                throw new ParameterValidationException("Credit already enabled.");
+            } else if (account.getCreditActivationDate() != null) {
+                // Кредит был активирован (Прошло первое списание)
+                throw new ParameterValidationException("Credit already activated. Credit disabling prohibited.");
+            }
+        } else {
+            // Включение кредита
+            if (account.isCredit()) {
+                throw new ParameterValidationException("Credit already disabled.");
+            } else if (!account.isActive()) {
+                accountHelper.switchAccountResources(account, true);
+            }
+        }
+
         account.setCredit(credit);
+        accountRepository.save(account);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
