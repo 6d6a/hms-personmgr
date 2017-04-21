@@ -42,7 +42,7 @@ public interface RcUserFeignClient {
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/website/{webSiteId}", consumes = "application/json")
     WebSite getWebSite(@PathVariable("accountId") String accountId, @PathVariable("webSiteId") String webSiteId);
 
-    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/website}", consumes = "application/json")
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/website", consumes = "application/json")
     List<WebSite> getWebSites(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/person/{personId}", consumes = "application/json")
