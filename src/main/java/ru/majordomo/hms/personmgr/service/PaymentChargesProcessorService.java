@@ -115,7 +115,7 @@ public class PaymentChargesProcessorService {
                     personalAccountRepository.save(account);
                 } else {
                     // Проверяем сколько он уже пользуется
-                    if ( creditActivationDate.isAfter(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {
+                    if ( creditActivationDate.isBefore(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {
                         // Выклчаем аккаунт, если срок кредита истёк
                         accountHelper.switchAccountResources(account, false);
                         //TODO уведомление юзеру о выключении аккаунта
@@ -154,7 +154,7 @@ public class PaymentChargesProcessorService {
             SimpleServiceMessage response = null;
 
             try {
-                response = accountHelper.charge(paymentAccount, accountService.getPaymentService(), cost);
+                response = accountHelper.charge(paymentAccount, accountService.getPaymentService(), cost, true);
             } catch (Exception e) {
                 e.printStackTrace();
             }

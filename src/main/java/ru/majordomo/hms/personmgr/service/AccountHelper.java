@@ -192,14 +192,19 @@ public class AccountHelper {
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service) {
         BigDecimal amount = service.getCost();
 
-        return charge(account, service, amount);
+        return charge(account, service, amount, false);
+    }
+
+    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount) {
+        return charge(account, service, amount, false);
     }
 
     //TODO на самом деле сюда ещё должна быть возможность передать discountedService
-    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount) {
+    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount, Boolean forceCharge) {
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", service.getId());
         paymentOperation.put("amount", amount);
+        paymentOperation.put("forceCharge", true);
 
         SimpleServiceMessage response = null;
 

@@ -67,6 +67,6 @@ public interface RcUserFeignClient {
             @RequestParam("paidTillEnd") String paidTillEnd
     );
 
-    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/ftp-user}", consumes = "application/json")
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/ftp-user", consumes = "application/json")
     List<FTPUser> getFTPUsers(@PathVariable("accountId") String accountId);
 }
