@@ -17,6 +17,7 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountDailyChargeEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
@@ -55,96 +56,71 @@ public class PaymentChargesProcessorService {
 
         if (account.isActive()) {
 
-        LocalDateTime chargeDate = LocalDateTime.now().minusDays(1).withHour(23).withMinute(59).withSecond(59);
+            LocalDateTime chargeDate = LocalDateTime.now().minusDays(1).withHour(23).withMinute(59).withSecond(59);
 
-        logger.debug("processing charges for PersonalAccount: " + account.getAccountId()
-                + " name: " + account.getName()
-                + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE_TIME));
+            logger.debug("processing charges for PersonalAccount: " + account.getAccountId()
+                    + " name: " + account.getName()
+                    + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE_TIME));
 
-        logger.debug("processing monthly charge for PersonalAccount: " + account.getAccountId()
-                + " name: " + account.getName()
-                + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE_TIME));
+            logger.debug("processing monthly charge for PersonalAccount: " + account.getAccountId()
+                    + " name: " + account.getName()
+                    + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE_TIME));
 
-        List<AccountService> accountServices = account.getServices();
+            List<AccountService> accountServices = account.getServices();
 
-        logger.debug("accountServices : " + accountServices);
+            logger.debug("accountServices : " + accountServices);
 
-        Integer daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
-        BigDecimal balance = accountHelper.getBalance(account);
-        BigDecimal dailyCost = BigDecimal.ZERO;
+            Integer daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
+            BigDecimal balance = accountHelper.getBalance(account);
+            BigDecimal dailyCost = BigDecimal.ZERO;
 
-        for (AccountService accountService : accountServices) {
-            if (accountService.getPaymentService() == null) {
-                logger.debug("accountService.getPaymentService() == null");
-//                throw new ChargeException("accountService.getPaymentService() == null");
-            }
-
-            if (accountService.isEnabled()
-                    && accountService.getPaymentService() != null
-                    && (accountService.getLastBilled() == null
-                    || accountService.getLastBilled().isBefore(chargeDate.minusDays(1))
-                    || accountService.getLastBilled().isEqual(chargeDate.minusDays(1))))
-            {
-                BigDecimal cost;
-                switch (accountService.getPaymentService().getPaymentType()) {
-                    case MONTH:
-                        cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
-                        this.makeCharge(account, accountService, cost, chargeDate);
-                        dailyCost = dailyCost.add(cost);
-                        break;
-                    case DAY:
-                        cost = accountService.getCost();
-                        this.makeCharge(account, accountService, cost, chargeDate);
-                        dailyCost = dailyCost.add(cost);
-                        break;
+            for (AccountService accountService : accountServices) {
+                if (accountService.getPaymentService() == null) {
+                    logger.debug("accountService.getPaymentService() == null");
+    //                throw new ChargeException("accountService.getPaymentService() == null");
                 }
-            }
-        }
 
-        //После списаний баланс отрицательный
-        if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0) {
-            if (account.isCredit()) {
-                //Если у аккаунта подключен кредит
-
-                LocalDateTime creditActivationDate = account.getCreditActivationDate();
-
-                //Проверяем что дата активации выставлена
-                if (creditActivationDate == null) {
-                    // Далее дата активация выставляется в null, только при платеже, который вывел аккаунт из минуса
-                    account.setCreditActivationDate(LocalDateTime.now());
-                    personalAccountRepository.save(account);
-                } else {
-                    // Проверяем сколько он уже пользуется
-                    if ( creditActivationDate.isBefore(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {
-                        // Выклчаем аккаунт, если срок кредита истёк
-                        accountHelper.switchAccountResources(account, false);
-                        //TODO уведомление юзеру о выключении аккаунта
+                if (accountService.isEnabled()
+                        && accountService.getPaymentService() != null
+                        && (accountService.getLastBilled() == null
+                        || accountService.getLastBilled().isBefore(chargeDate.minusDays(1))
+                        || accountService.getLastBilled().isEqual(chargeDate.minusDays(1))))
+                {
+                    BigDecimal cost;
+                    switch (accountService.getPaymentService().getPaymentType()) {
+                        case MONTH:
+                            cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
+                            this.makeCharge(account, accountService, cost, chargeDate);
+                            dailyCost = dailyCost.add(cost);
+                            break;
+                        case DAY:
+                            cost = accountService.getCost();
+                            this.makeCharge(account, accountService, cost, chargeDate);
+                            dailyCost = dailyCost.add(cost);
+                            break;
                     }
                 }
-
-            } else {
-                accountHelper.switchAccountResources(account, false);
-                //TODO уведомление юзеру о выключении аккаунта
             }
-        }
+
+            publisher.publishEvent(new AccountDailyChargeEvent(account));
 
 
-        if (dailyCost.compareTo(BigDecimal.ZERO) > 0) {
-            Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue() - 1;
+            if (dailyCost.compareTo(BigDecimal.ZERO) > 0) {
+                Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue() - 1;
 
-            if (account.getNotifyDays() > 0 &&
-                    remainingDays > 0 &&
-                    remainingDays <= account.getNotifyDays() &&
-                    account.isActive() &&
-                    account.hasNotification(MailManagerMessageType.EMAIL_REMAINING_DAYS)
-                    ) {
-                //Уведомление об окончании средств
-                Map<String, Integer> params = new HashMap<>();
-                params.put("remainingDays", remainingDays);
+                if (account.getNotifyDays() > 0 &&
+                        remainingDays > 0 &&
+                        remainingDays <= account.getNotifyDays() &&
+                        account.isActive() &&
+                        account.hasNotification(MailManagerMessageType.EMAIL_REMAINING_DAYS)
+                        ) {
+                    //Уведомление об окончании средств
+                    Map<String, Integer> params = new HashMap<>();
+                    params.put("remainingDays", remainingDays);
 
-                publisher.publishEvent(new AccountNotifyRemainingDaysEvent(account, params));
+                    publisher.publishEvent(new AccountNotifyRemainingDaysEvent(account, params));
+                }
             }
-        }
 
         }
     }

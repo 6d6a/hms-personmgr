@@ -382,11 +382,11 @@ public class PersonalAccount extends BaseModel {
     }
 
     private void setLocalDateTimeSettingByName(AccountSetting name, LocalDateTime value) {
-        this.settings.put(name, value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+        this.settings.put(name, value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
     }
 
     private LocalDateTime getLocalDateTimeSettingByName(AccountSetting name) {
-        return this.settings.get(name) != null ? LocalDateTime.parse(this.settings.get(name), DateTimeFormatter.ofPattern("yyyy-MM-dd")) : null;
+        return this.settings.get(name) != null ? LocalDateTime.parse(this.settings.get(name), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : null;
     }
 
     public void setSettingByName(AccountSetting name, Object value) {
