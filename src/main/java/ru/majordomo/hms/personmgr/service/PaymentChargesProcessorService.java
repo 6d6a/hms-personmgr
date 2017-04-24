@@ -17,7 +17,6 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.account.AccountDailyChargeEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
@@ -102,7 +101,32 @@ public class PaymentChargesProcessorService {
                 }
             }
 
-            publisher.publishEvent(new AccountDailyChargeEvent(account));
+            //После списаний баланс отрицательный
+            if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0) {
+                if (account.isCredit()) {
+                    //Если у аккаунта подключен кредит
+
+                    LocalDateTime creditActivationDate = account.getCreditActivationDate();
+
+                    //Проверяем что дата активации выставлена
+                    if (creditActivationDate == null) {
+                        // Далее дата активация выставляется в null, только при платеже, который вывел аккаунт из минуса
+                        account.setCreditActivationDate(LocalDateTime.now());
+                        personalAccountRepository.save(account);
+                    } else {
+                        // Проверяем сколько он уже пользуется
+                        if ( creditActivationDate.isBefore(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {
+                            // Выклчаем аккаунт, если срок кредита истёк
+                            accountHelper.switchAccountResources(account, false);
+                            //TODO уведомление юзеру о выключении аккаунта
+                        }
+                    }
+
+                } else {
+                    accountHelper.switchAccountResources(account, false);
+                    //TODO уведомление юзеру о выключении аккаунта
+                }
+            }
 
 
             if (dailyCost.compareTo(BigDecimal.ZERO) > 0) {
