@@ -1,5 +1,8 @@
 package ru.majordomo.hms.personmgr.common;
 
+import com.google.i18n.phonenumbers.NumberParseException;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 
 import java.math.BigDecimal;
@@ -10,6 +13,9 @@ import java.util.List;
 import java.util.Locale;
 
 public class Utils {
+
+    private static PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
+
     public static String formatBigDecimal(BigDecimal value) {
         DecimalFormatSymbols russianDecimalSymbols = new DecimalFormatSymbols(Locale.forLanguageTag("ru"));
         russianDecimalSymbols.setDecimalSeparator(',');
@@ -58,4 +64,20 @@ public class Utils {
             return (x < y) ? -1 : ((x == y) ? 0 : 1);
         }
     }
+
+    private static Boolean phoneValid(String phone) throws NumberParseException {
+        Phonenumber.PhoneNumber phoneNumber;
+        phoneNumber = phoneNumberUtil.parse(phone, "RU");
+
+        return phoneNumberUtil.isValidNumber(phoneNumber);
+    }
+
+    public static boolean isPhoneValid(String phone) {
+        try {
+            return phoneValid(phone);
+        } catch (NumberParseException e) {
+            return false;
+        }
+    }
+
 }

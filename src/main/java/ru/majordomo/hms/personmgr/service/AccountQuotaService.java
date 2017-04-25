@@ -20,6 +20,7 @@ import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
+import static java.lang.Math.ceil;
 import static java.lang.Math.floor;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_CAPACITY;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_SERVICE_ID;
@@ -37,6 +38,7 @@ public class AccountQuotaService {
     private final PlanRepository planRepository;
     private final AccountServiceRepository accountServiceRepository;
     private final ApplicationEventPublisher publisher;
+    private final AccountHelper accountHelper;
 
     @Autowired
     public AccountQuotaService(
@@ -47,7 +49,8 @@ public class AccountQuotaService {
             AccountServiceHelper accountServiceHelper,
             PlanRepository planRepository,
             AccountServiceRepository accountServiceRepository,
-            ApplicationEventPublisher publisher
+            ApplicationEventPublisher publisher,
+            AccountHelper accountHelper
     ) {
         this.personalAccountRepository = personalAccountRepository;
         this.accountCountersService = accountCountersService;
@@ -57,6 +60,7 @@ public class AccountQuotaService {
         this.planRepository = planRepository;
         this.accountServiceRepository = accountServiceRepository;
         this.publisher = publisher;
+        this.accountHelper = accountHelper;
     }
 
     public void processQuotaCheck(PersonalAccount account) {
@@ -74,24 +78,27 @@ public class AccountQuotaService {
     public void processQuotaService(PersonalAccount account, Plan plan) {
         Long currentQuotaUsed = accountCountersService.getCurrentQuotaUsed(account.getId());
         Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
-        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), ADDITIONAL_QUOTA_100_SERVICE_ID);
+        String quotaServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
+        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), quotaServiceId);
         Long additionalServiceQuota = 0L;
         if (accountServices.size() > 0) {
             additionalServiceQuota = accountServices.get(0).getQuantity() * ADDITIONAL_QUOTA_100_CAPACITY;
         }
-        String quotaServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
 
         logger.debug("Processing processQuotaService for account: " + account.getAccountId()
                 + " currentQuotaUsed: " + currentQuotaUsed
                 + " planQuotaKBFreeLimit: " + planQuotaKBFreeLimit
                 + " additionalServiceQuota: " + additionalServiceQuota);
 
+        // Сравниваем текущее использование квоты c бесплатным лимитом
         if (currentQuotaUsed > planQuotaKBFreeLimit) {
+            // Если бесплатная квота превышена
             logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
                     + " account is overquoted");
 
             account.setOverquoted(true);
             if (account.isAddQuotaIfOverquoted()) {
+                // Если стоит флаг добавления дополнительнго места
                 logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
                         + " account isAddQuotaIfOverquoted == true");
 
@@ -106,33 +113,40 @@ public class AccountQuotaService {
                         Map<String, String> params = new HashMap<>();
                         params.put(SERVICE_NAME_KEY, plan.getName());
 
+                        // Письмо юзеру
                         publisher.publishEvent(new AccountQuotaAddedEvent(account, params));
                     }
+                    // Удаляем или добавляем сервисы
                     updateQuotaService(account, quotaServiceId, currentQuotaUsed, planQuotaKBFreeLimit, additionalServiceQuota, ADDITIONAL_QUOTA_100_CAPACITY);
                 }
             } else {
+                // Если НЕ стоит флаг добавления дополнительнго места
                 logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
                         + " account isAddQuotaIfOverquoted == false. " +
                         "Sending mail and setting writable to false to resources");
-
-                //TODO set writable to false to Quotable resources
+                // Устанавливаем writable false для ресурсов
+                accountHelper.setWritableForAccountQuotaServices(account, false);
 
                 Map<String, String> params = new HashMap<>();
                 params.put(SERVICE_NAME_KEY, plan.getName());
 
+                // Письмо юзеру
                 publisher.publishEvent(new AccountQuotaDiscardEvent(account, params));
             }
         } else {
+            // Превышения нет
             logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
                     + " account not overquoted");
 
+            // Если аккаунт был оверквотед
             if (account.isOverquoted()) {
                 logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
                         + " account isOverquoted == true. " +
                         "Setting Overquoted to false. Setting writable to false to resources");
 
                 account.setOverquoted(false);
-                //TODO set writable to true to Quotable resources
+                // Устанавливаем writable true для ресурсов
+                accountHelper.setWritableForAccountQuotaServices(account, true);
 
                 accountServiceHelper.deleteAccountServiceByServiceId(account, quotaServiceId);
             }
@@ -161,7 +175,7 @@ public class AccountQuotaService {
             Long oneServiceCapacity
     ) {
         if (currentQuotaUsed != planQuotaKBFreeLimit + additionalServiceQuota) {
-            int notFreeQuotaCount = (int) floor((currentQuotaUsed - planQuotaKBFreeLimit) / oneServiceCapacity);
+            int notFreeQuotaCount = (int) ceil((currentQuotaUsed - planQuotaKBFreeLimit) / oneServiceCapacity);
             accountServiceHelper.updateAccountService(account, serviceId, notFreeQuotaCount);
 
             logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
@@ -169,7 +183,8 @@ public class AccountQuotaService {
                     + " planQuotaKBFreeLimit: " + planQuotaKBFreeLimit
                     + " additionalServiceQuota: " + additionalServiceQuota);
 
-            //TODO set new quota to resources
+            //Обновить квоту только юникс-аккаунта
+            accountHelper.updateUnixAccountQuota(account, planQuotaKBFreeLimit + (ADDITIONAL_QUOTA_100_CAPACITY * notFreeQuotaCount));
         }
     }
 }

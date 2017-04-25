@@ -101,6 +101,8 @@ dependencies {
     }
     testCompile('com.github.fakemongo:fongo:2.0.9')
     compile("com.cronutils:cron-utils:5.0.1")
+
+    compile("com.googlecode.libphonenumber:libphonenumber:7.7.3")
 }
 
 dependencyManagement {
