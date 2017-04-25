@@ -26,6 +26,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
 import feign.FeignException;
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverConfirmedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverEvent;
@@ -53,6 +54,10 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_CHANGE;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_RECOVER;
+
+import com.google.i18n.phonenumbers.NumberParseException;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber;
 
 @RestController
 @Validated
@@ -312,34 +317,51 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/credit",
+    @RequestMapping(value = "/{accountId}/account/settings",
             method = RequestMethod.PATCH)
-    public ResponseEntity<Object> switchCredit(
+    public ResponseEntity<Object> setSettings(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Map<String, Object> requestBody
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
-        Boolean credit = (Boolean) requestBody.get("credit");
-
-        if (!credit) {
-            // Выключение кредита
-            if (!account.isCredit()) {
-                throw new ParameterValidationException("Credit already enabled.");
-            } else if (account.getCreditActivationDate() != null) {
-                // Кредит был активирован (Прошло первое списание)
-                throw new ParameterValidationException("Credit already activated. Credit disabling prohibited.");
+        if (requestBody.get("credit") != null) {
+            if (!(Boolean)requestBody.get("credit")) {
+                // Выключение кредита
+                if (account.isCredit() && account.getCreditActivationDate() != null) {
+                    // Кредит был активирован (Прошло первое списание)
+                    throw new ParameterValidationException("Credit already activated. Credit disabling prohibited.");
+                }
+            } else {
+                // Включение кредита
+                if (!account.isCredit() && !account.isActive()) {
+                    accountHelper.switchAccountResources(account, true);
+                }
             }
-        } else {
-            // Включение кредита
-            if (account.isCredit()) {
-                throw new ParameterValidationException("Credit already disabled.");
-            } else if (!account.isActive()) {
-                accountHelper.switchAccountResources(account, true);
+            account.setCredit((Boolean)requestBody.get("credit"));
+        }
+
+        if (requestBody.get("addQuotaIfOverquoted") != null) {
+            account.setAddQuotaIfOverquoted((Boolean) requestBody.get("addQuotaIfOverquoted"));
+        }
+
+        if (requestBody.get("autoBillSending") != null) {
+            account.setAutoBillSending((Boolean)requestBody.get("autoBillSending"));
+        }
+
+        if (requestBody.get("notifyDays") != null) {
+            account.setNotifyDays((Integer)requestBody.get("notifyDays"));
+        }
+
+        if (requestBody.get("SMSPhoneNumber") != null) {
+
+            if (Utils.isPhoneValid((String)requestBody.get("SMSPhoneNumber"))) {
+                account.setSmsPhoneNumber((String) requestBody.get("SMSPhoneNumber"));
+            } else {
+                throw new ParameterValidationException("SMSPhoneNumber is not valid.");
             }
         }
 
-        account.setCredit(credit);
         accountRepository.save(account);
 
         return new ResponseEntity<>(HttpStatus.OK);
