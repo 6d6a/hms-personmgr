@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
+import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
@@ -75,7 +77,7 @@ public class PaymentChargesProcessorService {
 
             for (AccountService accountService : accountServices) {
                 if (accountService.getPaymentService() == null) {
-                    logger.debug("accountService.getPaymentService() == null");
+                    logger.error("accountService.getPaymentService() == null");
     //                throw new ChargeException("accountService.getPaymentService() == null");
                 }
 
@@ -118,13 +120,13 @@ public class PaymentChargesProcessorService {
                         if ( creditActivationDate.isBefore(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {
                             // Выклчаем аккаунт, если срок кредита истёк
                             accountHelper.switchAccountResources(account, false);
-                            //TODO уведомление юзеру о выключении аккаунта
+                            this.sendDisableAccMail(account);
                         }
                     }
 
                 } else {
                     accountHelper.switchAccountResources(account, false);
-                    //TODO уведомление юзеру о выключении аккаунта
+                    this.sendDisableAccMail(account);
                 }
             }
 
@@ -147,6 +149,35 @@ public class PaymentChargesProcessorService {
             }
 
         }
+    }
+
+    private void sendDisableAccMail(PersonalAccount account) {
+        //Отправим письмо
+        String email = accountHelper.getEmail(account);
+
+        SimpleServiceMessage message = new SimpleServiceMessage();
+
+        message.setAccountId(account.getId());
+        message.setParams(new HashMap<>());
+        message.addParam("email", email);
+        message.addParam("api_name", "MajordomoVHMoneyDeactivateacc");
+        message.addParam("priority", 1);
+
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", message.getAccountId());
+        parameters.put("acc_id", account.getName());
+
+        List<Domain> domains = accountHelper.getDomains(account);
+        List<String> domainNames = new ArrayList<>();
+        for (Domain domain: domains) {
+            domainNames.add(domain.getName());
+        }
+
+        parameters.put("domains", String.join("<br>", domainNames));
+
+        message.addParam("parametrs", parameters);
+
+        publisher.publishEvent(new SendMailEvent(message));
     }
 
     private void makeCharge(PersonalAccount paymentAccount, AccountService accountService, BigDecimal cost, LocalDateTime chargeDate) {
