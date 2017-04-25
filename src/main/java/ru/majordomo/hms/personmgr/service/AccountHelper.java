@@ -285,7 +285,9 @@ public class AccountHelper {
 
         account.setActive(state);
         if (!state) {
-            account.setDeactivated(LocalDateTime.now());
+            if (account.getDeactivated() == null) {
+                account.setDeactivated(LocalDateTime.now());
+            }
         } else {
             account.setDeactivated(null);
         }
@@ -297,9 +299,9 @@ public class AccountHelper {
 
             for (WebSite webSite : webSites) {
                 SimpleServiceMessage message = new SimpleServiceMessage();
-                message.addParam("resourceId", webSite.getId());
-                message.setAccountId(account.getId());
                 message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", webSite.getId());
                 message.addParam("switchedOn", state);
 
                 businessActionBuilder.build(BusinessActionType.WEB_SITE_UPDATE_RC, message);
@@ -316,9 +318,9 @@ public class AccountHelper {
 
             for (DatabaseUser databaseUser : databaseUsers) {
                 SimpleServiceMessage message = new SimpleServiceMessage();
-                message.addParam("resourceId", databaseUser.getId());
-                message.setAccountId(account.getId());
                 message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", databaseUser.getId());
                 message.addParam("switchedOn", state);
 
                 businessActionBuilder.build(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
@@ -335,9 +337,9 @@ public class AccountHelper {
 
             for (Mailbox mailbox : mailboxes) {
                 SimpleServiceMessage message = new SimpleServiceMessage();
-                message.addParam("resourceId", mailbox.getId());
-                message.setAccountId(account.getId());
                 message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", mailbox.getId());
                 message.addParam("switchedOn", state);
 
                 businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
@@ -354,9 +356,9 @@ public class AccountHelper {
 
             for (Domain domain : domains) {
                 SimpleServiceMessage message = new SimpleServiceMessage();
-                message.addParam("resourceId", domain.getId());
-                message.setAccountId(account.getId());
                 message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", domain.getId());
                 message.addParam("switchedOn", state);
 
                 businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, message);
@@ -373,9 +375,9 @@ public class AccountHelper {
 
             for (FTPUser ftpUser : ftpUsers) {
                 SimpleServiceMessage message = new SimpleServiceMessage();
-                message.addParam("resourceId", ftpUser.getId());
-                message.setAccountId(account.getId());
                 message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", ftpUser.getId());
                 message.addParam("switchedOn", state);
 
                 businessActionBuilder.build(BusinessActionType.FTP_USER_UPDATE_RC, message);
@@ -392,9 +394,9 @@ public class AccountHelper {
 
             for (UnixAccount unixAccount : unixAccounts) {
                 SimpleServiceMessage message = new SimpleServiceMessage();
-                message.addParam("resourceId", unixAccount.getId());
-                message.setAccountId(account.getId());
                 message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", unixAccount.getId());;
                 message.addParam("switchedOn", state);
 
                 businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
