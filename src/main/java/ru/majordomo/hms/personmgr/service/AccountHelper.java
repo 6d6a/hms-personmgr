@@ -407,4 +407,86 @@ public class AccountHelper {
             e.printStackTrace();
         }
     }
+
+    public void setWritableForAccountQuotaServices(PersonalAccount account, Boolean state) {
+
+        try {
+
+            List<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
+
+            for (UnixAccount unixAccount : unixAccounts) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", unixAccount.getId());;
+                message.addParam("writable", state);
+
+                businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account UnixAccounts writable switch failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+
+        try {
+
+            List<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+            for (Mailbox mailbox : mailboxes) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", mailbox.getId());
+                message.addParam("writable", state);
+
+                businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account Mailbox writable switch failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+
+        try {
+
+            List<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+
+            for (Database database : databases) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", database.getId());
+                message.addParam("writable", state);
+
+                businessActionBuilder.build(BusinessActionType.DATABASE_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account Database writable switch failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+    }
+
+    public void updateUnixAccountQuota(PersonalAccount account, Long quota) {
+        try {
+
+            List<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
+
+            for (UnixAccount unixAccount : unixAccounts) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", unixAccount.getId());
+                message.addParam("quota", quota);
+
+                businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account UnixAccounts set quota failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+    }
+
 }
