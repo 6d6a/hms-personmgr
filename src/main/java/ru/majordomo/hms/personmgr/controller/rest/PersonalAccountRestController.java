@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -307,6 +308,39 @@ public class PersonalAccountRestController extends CommonRestController {
         publisher.publishEvent(new AccountPasswordRecoverConfirmedEvent(account, params));
 
         publisher.publishEvent(new TokenDeleteEvent(token));
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/{accountId}/credit",
+            method = RequestMethod.PATCH)
+    public ResponseEntity<Object> switchCredit(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody Map<String, Object> requestBody
+    ) {
+        PersonalAccount account = accountRepository.findOne(accountId);
+
+        Boolean credit = (Boolean) requestBody.get("credit");
+
+        if (!credit) {
+            // Выключение кредита
+            if (!account.isCredit()) {
+                throw new ParameterValidationException("Credit already enabled.");
+            } else if (account.getCreditActivationDate() != null) {
+                // Кредит был активирован (Прошло первое списание)
+                throw new ParameterValidationException("Credit already activated. Credit disabling prohibited.");
+            }
+        } else {
+            // Включение кредита
+            if (account.isCredit()) {
+                throw new ParameterValidationException("Credit already disabled.");
+            } else if (!account.isActive()) {
+                accountHelper.switchAccountResources(account, true);
+            }
+        }
+
+        account.setCredit(credit);
+        accountRepository.save(account);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

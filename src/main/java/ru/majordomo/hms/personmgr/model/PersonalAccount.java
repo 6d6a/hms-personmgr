@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -298,6 +299,22 @@ public class PersonalAccount extends BaseModel {
         setBooleanSettingByName(CREDIT, value);
     }
 
+    public String getCreditPeriod() {
+        return getStringSettingByName(CREDIT_PERIOD);
+    }
+
+    public void setCreditPeriod(String value) {
+        setStringSettingByName(CREDIT_PERIOD, value);
+    }
+
+    public LocalDateTime getCreditActivationDate() {
+        return getLocalDateTimeSettingByName(CREDIT_ACTIVATION_DATE);
+    }
+
+    public void setCreditActivationDate(LocalDateTime value) {
+        setLocalDateTimeSettingByName(CREDIT_ACTIVATION_DATE, value);
+    }
+
     public Boolean isAutoBillSending() {
         return getBooleanSettingByName(AUTO_BILL_SENDING);
     }
@@ -364,16 +381,32 @@ public class PersonalAccount extends BaseModel {
         this.settings.put(name, value);
     }
 
+    private void setLocalDateTimeSettingByName(AccountSetting name, LocalDateTime value) {
+        this.settings.put(name, value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+    }
+
+    private LocalDateTime getLocalDateTimeSettingByName(AccountSetting name) {
+        return this.settings.get(name) != null ? LocalDateTime.parse(this.settings.get(name), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : null;
+    }
+
     public void setSettingByName(AccountSetting name, Object value) {
-        if (value instanceof Integer) {
+        if (value == null) {
+            this.removeSettingByName(name);
+        } else if (value instanceof Integer) {
             setIntegerSettingByName(name, (Integer) value);
         } else if (value instanceof Boolean) {
             setBooleanSettingByName(name, (Boolean) value);
         } else if (value instanceof String) {
             setStringSettingByName(name, (String) value);
+        } else if (value instanceof LocalDateTime) {
+            setLocalDateTimeSettingByName(name, (LocalDateTime) value);
         } else {
             throw new IllegalArgumentException("AccountSetting value must be one of Integer, Boolean or String");
         }
+    }
+
+    public void removeSettingByName(AccountSetting name) {
+        this.settings.remove(name);
     }
 
     @Override

@@ -126,6 +126,8 @@ public class AccountResourceRestController extends CommonResourceRestController 
         personalAccount.setActive(true);
         personalAccount.setCreated(LocalDateTime.now());
         personalAccount.setAccountNew(true);
+        personalAccount.setCredit(false);
+        personalAccount.setCreditPeriod("P14D");
 
         personalAccountRepository.save(personalAccount);
         logger.debug("personalAccount saved: " + personalAccount.toString());

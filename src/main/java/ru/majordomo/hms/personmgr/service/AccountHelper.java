@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
@@ -10,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
@@ -19,29 +22,38 @@ import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
-import ru.majordomo.hms.rc.user.resources.Person;
-import ru.majordomo.hms.rc.user.resources.Domain;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
 
 @Service
 public class AccountHelper {
+
+    private final static Logger logger = LoggerFactory.getLogger(AccountHelper.class);
+
     private final RcUserFeignClient rcUserFeignClient;
     private final FinFeignClient finFeignClient;
     private final SiFeignClient siFeignClient;
     private final AccountPromotionRepository accountPromotionRepository;
+    private final BusinessActionBuilder businessActionBuilder;
+    private final PersonalAccountRepository personalAccountRepository;
 
     @Autowired
     public AccountHelper(
             RcUserFeignClient rcUserFeignClient,
             FinFeignClient finFeignClient,
             SiFeignClient siFeignClient,
-            AccountPromotionRepository accountPromotionRepository
+            AccountPromotionRepository accountPromotionRepository,
+            BusinessActionBuilder businessActionBuilder,
+            PersonalAccountRepository personalAccountRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
         this.siFeignClient = siFeignClient;
         this.accountPromotionRepository = accountPromotionRepository;
+        this.businessActionBuilder = businessActionBuilder;
+        this.personalAccountRepository = personalAccountRepository;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -180,14 +192,19 @@ public class AccountHelper {
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service) {
         BigDecimal amount = service.getCost();
 
-        return charge(account, service, amount);
+        return charge(account, service, amount, false);
+    }
+
+    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount) {
+        return charge(account, service, amount, false);
     }
 
     //TODO на самом деле сюда ещё должна быть возможность передать discountedService
-    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount) {
+    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount, Boolean forceCharge) {
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", service.getId());
         paymentOperation.put("amount", amount);
+        paymentOperation.put("forceCharge", true);
 
         SimpleServiceMessage response = null;
 
@@ -261,6 +278,133 @@ public class AccountHelper {
             accountPromotion.setActionsWithStatus(actionsWithStatus);
 
             accountPromotionRepository.save(accountPromotion);
+        }
+    }
+
+    public void switchAccountResources(PersonalAccount account, Boolean state) {
+
+        account.setActive(state);
+        if (!state) {
+            if (account.getDeactivated() == null) {
+                account.setDeactivated(LocalDateTime.now());
+            }
+        } else {
+            account.setDeactivated(null);
+        }
+        personalAccountRepository.save(account);
+
+        try {
+
+            List<WebSite> webSites = rcUserFeignClient.getWebSites(account.getId());
+
+            for (WebSite webSite : webSites) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", webSite.getId());
+                message.addParam("switchedOn", state);
+
+                businessActionBuilder.build(BusinessActionType.WEB_SITE_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account WebSite switch failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+
+        try {
+
+            List<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
+
+            for (DatabaseUser databaseUser : databaseUsers) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", databaseUser.getId());
+                message.addParam("switchedOn", state);
+
+                businessActionBuilder.build(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account DatabaseUsers switch failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+
+        try {
+
+            List<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+            for (Mailbox mailbox : mailboxes) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", mailbox.getId());
+                message.addParam("switchedOn", state);
+
+                businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account Mailboxes switch failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+
+        try {
+
+            List<Domain> domains = rcUserFeignClient.getDomains(account.getId());
+
+            for (Domain domain : domains) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", domain.getId());
+                message.addParam("switchedOn", state);
+
+                businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account Domains switch failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+
+        try {
+
+            List<FTPUser> ftpUsers = rcUserFeignClient.getFTPUsers(account.getId());
+
+            for (FTPUser ftpUser : ftpUsers) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", ftpUser.getId());
+                message.addParam("switchedOn", state);
+
+                businessActionBuilder.build(BusinessActionType.FTP_USER_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account FTPUsers switch failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+
+        try {
+
+            List<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
+
+            for (UnixAccount unixAccount : unixAccounts) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", unixAccount.getId());;
+                message.addParam("switchedOn", state);
+
+                businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
+            }
+
+        } catch (Exception e) {
+            logger.debug("account UnixAccounts switch failed for accountId: " + account.getId());
+            e.printStackTrace();
         }
     }
 }
