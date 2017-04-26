@@ -40,10 +40,14 @@ public class AccountCountersService {
 
         logger.info("fetching unixAccounts for ID: " + accountId);
 
-        Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
-        for (Quotable item : unixAccounts) {
-            Long itemQuota = item.getQuotaUsed() == null ? 0L : item.getQuotaUsed();
-            currentQuota += itemQuota;
+        try {
+            Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
+            for (Quotable item : unixAccounts) {
+                Long itemQuota = item.getQuotaUsed() == null ? 0L : item.getQuotaUsed();
+                currentQuota += itemQuota;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         Collection<Database> databases = rcUserFeignClient.getDatabases(accountId);
         for (Quotable item : databases) {
