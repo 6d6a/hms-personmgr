@@ -32,12 +32,12 @@ public class AccountCountersService {
     }
 
     public Long getCurrentQuotaUsed(String accountId) {
-        Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
+//        Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
         Long currentQuota = 0L;
-        for (Quotable item : unixAccounts) {
-            Long itemQuota = item.getQuotaUsed() == null ? 0L : item.getQuotaUsed();
-            currentQuota += itemQuota;
-        }
+//        for (Quotable item : unixAccounts) {
+//            Long itemQuota = item.getQuotaUsed() == null ? 0L : item.getQuotaUsed();
+//            currentQuota += itemQuota;
+//        }
         Collection<Database> databases = rcUserFeignClient.getDatabases(accountId);
         for (Quotable item : databases) {
             Long itemQuota = item.getQuotaUsed() == null ? 0L : item.getQuotaUsed();
