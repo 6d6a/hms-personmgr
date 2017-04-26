@@ -31,18 +31,18 @@ public class AccountCountersService {
     }
 
     public Long getCurrentQuotaUsed(String accountId) {
-        List<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
+        List<UnixAccount> unixAccounts = (List<UnixAccount>) rcUserFeignClient.getUnixAccounts(accountId);
         Long currentQuota = 0L;
         for (Quotable item : unixAccounts) {
             Long itemQuota = item.getQuotaUsed() == null ? 0L : item.getQuotaUsed();
             currentQuota += itemQuota;
         }
-        List<Database> databases = rcUserFeignClient.getDatabases(accountId);
+        List<Database> databases = (List<Database>) rcUserFeignClient.getDatabases(accountId);
         for (Quotable item : databases) {
             Long itemQuota = item.getQuotaUsed() == null ? 0L : item.getQuotaUsed();
             currentQuota += itemQuota;
         }
-        List<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(accountId);
+        List<Mailbox> mailboxes = (List<Mailbox>) rcUserFeignClient.getMailboxes(accountId);
         for (Quotable item : mailboxes) {
             Long itemQuota = item.getQuotaUsed() == null ? 0L : item.getQuotaUsed();
             currentQuota += itemQuota;

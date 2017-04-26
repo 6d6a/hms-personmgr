@@ -11,6 +11,7 @@ import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 @FeignClient(name = "rc-user", configuration = FeignConfig.class)
@@ -28,16 +29,16 @@ public interface RcUserFeignClient {
     Count getQuotaUsed(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/unix-account")
-    List<UnixAccount> getUnixAccounts(@PathVariable("accountId") String accountId);
+    Collection<UnixAccount> getUnixAccounts(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/database")
-    List<Database> getDatabases(@PathVariable("accountId") String accountId);
+    Collection<Database> getDatabases(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/database-user")
     List<DatabaseUser> getDatabaseUsers(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/mailbox")
-    List<Mailbox> getMailboxes(@PathVariable("accountId") String accountId);
+    Collection<Mailbox> getMailboxes(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/website/{webSiteId}", consumes = "application/json")
     WebSite getWebSite(@PathVariable("accountId") String accountId, @PathVariable("webSiteId") String webSiteId);
