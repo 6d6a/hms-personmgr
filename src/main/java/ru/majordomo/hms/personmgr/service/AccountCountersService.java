@@ -38,16 +38,10 @@ public class AccountCountersService {
     public Long getCurrentQuotaUsed(String accountId) {
         Long currentQuota = 0L;
 
-        logger.info("fetching unixAccounts for ID: " + accountId);
-
-        try {
-            Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
-            for (Quotable item : unixAccounts) {
-                Long itemQuota = item.getQuotaUsed() == null ? 0L : item.getQuotaUsed();
-                currentQuota += itemQuota;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
+        for (Quotable item : unixAccounts) {
+            Long itemQuota = item.getQuotaUsed() == null ? 0L : item.getQuotaUsed();
+            currentQuota += itemQuota;
         }
         Collection<Database> databases = rcUserFeignClient.getDatabases(accountId);
         for (Quotable item : databases) {
