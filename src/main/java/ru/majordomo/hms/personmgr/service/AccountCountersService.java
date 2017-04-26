@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.rc.user.resources.Database;
@@ -10,13 +8,10 @@ import ru.majordomo.hms.rc.user.resources.Quotable;
 import ru.majordomo.hms.rc.user.resources.UnixAccount;
 
 import java.util.Collection;
-import java.util.List;
 
 @Service
 public class AccountCountersService {
     private final RcUserFeignClient rcUserFeignClient;
-
-    private final static Logger logger = LoggerFactory.getLogger(AccountCountersService.class);
 
     @Autowired
     public AccountCountersService(RcUserFeignClient rcUserFeignClient) {
