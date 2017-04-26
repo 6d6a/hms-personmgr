@@ -56,7 +56,7 @@ configurations {
 }
 
 dependencies {
-    compile('ru.majordomo.hms.rc.user:resources:1.3.+')
+    compile('ru.majordomo.hms.rc.user:resources:1.3.12')
     compile('ru.majordomo.hms.rc.staff:resources:1+')
 
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
