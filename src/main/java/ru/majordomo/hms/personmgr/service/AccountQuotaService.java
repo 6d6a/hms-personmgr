@@ -76,13 +76,9 @@ public class AccountQuotaService {
      * @param plan     тариф
      */
     public void processQuotaService(PersonalAccount account, Plan plan) {
-        logger.debug("---> Getting currentQuotaUsed <---");
         Long currentQuotaUsed = accountCountersService.getCurrentQuotaUsed(account.getId());
-        logger.debug("---> currentQuotaUsed: " + currentQuotaUsed + ", getting planQuotaKBFreeLimit <---");
         Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
-        logger.debug("---> planQuotaKBFreeLimit: " + planQuotaKBFreeLimit + ", getting quotaServiceId <---");
         String quotaServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
-        logger.debug("---> quotaServiceId: " + quotaServiceId + ", getting accountServices <---");
         List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), quotaServiceId);
         logger.debug("---> got accountServices, size: " + accountServices.size() + " <---");
         Long additionalServiceQuota = 0L;
@@ -96,7 +92,7 @@ public class AccountQuotaService {
                 + " additionalServiceQuota: " + additionalServiceQuota);
 
         // Сравниваем текущее использование квоты c бесплатным лимитом
-        if (currentQuotaUsed > planQuotaKBFreeLimit) {
+        if (currentQuotaUsed > planQuotaKBFreeLimit * 1024) {
             // Если бесплатная квота превышена
             logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
                     + " account is overquoted");
