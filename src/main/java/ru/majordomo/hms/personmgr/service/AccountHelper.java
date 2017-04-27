@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -333,7 +334,7 @@ public class AccountHelper {
 
         try {
 
-            List<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+            Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
 
             for (Mailbox mailbox : mailboxes) {
                 SimpleServiceMessage message = new SimpleServiceMessage();
@@ -390,7 +391,7 @@ public class AccountHelper {
 
         try {
 
-            List<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
+            Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
 
             for (UnixAccount unixAccount : unixAccounts) {
                 SimpleServiceMessage message = new SimpleServiceMessage();
@@ -412,7 +413,7 @@ public class AccountHelper {
 
         try {
 
-            List<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
+            Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
 
             for (UnixAccount unixAccount : unixAccounts) {
                 SimpleServiceMessage message = new SimpleServiceMessage();
@@ -431,7 +432,7 @@ public class AccountHelper {
 
         try {
 
-            List<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+            Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
 
             for (Mailbox mailbox : mailboxes) {
                 SimpleServiceMessage message = new SimpleServiceMessage();
@@ -450,7 +451,7 @@ public class AccountHelper {
 
         try {
 
-            List<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+            Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
 
             for (Database database : databases) {
                 SimpleServiceMessage message = new SimpleServiceMessage();
@@ -471,7 +472,7 @@ public class AccountHelper {
     public void updateUnixAccountQuota(PersonalAccount account, Long quota) {
         try {
 
-            List<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
+            Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
 
             for (UnixAccount unixAccount : unixAccounts) {
                 SimpleServiceMessage message = new SimpleServiceMessage();

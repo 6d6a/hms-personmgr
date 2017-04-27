@@ -91,7 +91,7 @@ public class AccountQuotaService {
                 + " additionalServiceQuota: " + additionalServiceQuota);
 
         // Сравниваем текущее использование квоты c бесплатным лимитом
-        if (currentQuotaUsed > planQuotaKBFreeLimit) {
+        if (currentQuotaUsed > planQuotaKBFreeLimit * 1024) {
             // Если бесплатная квота превышена
             logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
                     + " account is overquoted");

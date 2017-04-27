@@ -13,6 +13,7 @@ public class MyAsyncUncaughtExceptionHandler implements AsyncUncaughtExceptionHa
 
     @Override
     public void handleUncaughtException(Throwable throwable, Method method, Object... obj) {
+        throwable.printStackTrace();
         String error = "";
         error += "Exception message - " + throwable.getMessage() + "\n";
         error += "Method name - " + method.getName() + "\n";

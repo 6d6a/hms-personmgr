@@ -7,7 +7,7 @@ import ru.majordomo.hms.rc.user.resources.Mailbox;
 import ru.majordomo.hms.rc.user.resources.Quotable;
 import ru.majordomo.hms.rc.user.resources.UnixAccount;
 
-import java.util.List;
+import java.util.Collection;
 
 @Service
 public class AccountCountersService {
@@ -31,18 +31,22 @@ public class AccountCountersService {
     }
 
     public Long getCurrentQuotaUsed(String accountId) {
-        List<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
         Long currentQuota = 0L;
+
+        Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
         for (Quotable item : unixAccounts) {
-            currentQuota += item.getQuotaUsed();
+            Long itemQuota = item.getQuotaUsed() == null ? 0L : item.getQuotaUsed();
+            currentQuota += itemQuota;
         }
-        List<Database> databases = rcUserFeignClient.getDatabases(accountId);
+        Collection<Database> databases = rcUserFeignClient.getDatabases(accountId);
         for (Quotable item : databases) {
-            currentQuota += item.getQuotaUsed();
+            Long itemQuota = item.getQuotaUsed() == null ? 0L : item.getQuotaUsed();
+            currentQuota += itemQuota;
         }
-        List<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(accountId);
+        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(accountId);
         for (Quotable item : mailboxes) {
-            currentQuota += item.getQuotaUsed();
+            Long itemQuota = item.getQuotaUsed() == null ? 0L : item.getQuotaUsed();
+            currentQuota += itemQuota;
         }
 
         return currentQuota;
