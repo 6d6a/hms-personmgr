@@ -80,7 +80,6 @@ public class AccountQuotaService {
         Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
         String quotaServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
         List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), quotaServiceId);
-        logger.debug("---> got accountServices, size: " + accountServices.size() + " <---");
         Long additionalServiceQuota = 0L;
         if (accountServices.size() > 0) {
             additionalServiceQuota = accountServices.get(0).getQuantity() * ADDITIONAL_QUOTA_100_CAPACITY;
