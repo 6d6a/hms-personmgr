@@ -24,6 +24,7 @@ import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.BlackListService;
 import ru.majordomo.hms.personmgr.service.DomainTldService;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
@@ -44,6 +45,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountPromotionRepository accountPromotionRepository;
     private final PromocodeActionRepository promocodeActionRepository;
+    private final BlackListService blackListService;
     private final static Logger logger = LoggerFactory.getLogger(DomainResourceRestController.class);
 
     @Autowired
@@ -53,7 +55,8 @@ public class DomainResourceRestController extends CommonResourceRestController {
             AccountHelper accountHelper,
             RcUserFeignClient rcUserFeignClient,
             AccountPromotionRepository accountPromotionRepository,
-            PromocodeActionRepository promocodeActionRepository
+            PromocodeActionRepository promocodeActionRepository,
+            BlackListService blackListService
     ) {
         this.domainTldService = domainTldService;
         this.accountRepository = accountRepository;
@@ -61,6 +64,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountPromotionRepository = accountPromotionRepository;
         this.promocodeActionRepository = promocodeActionRepository;
+        this.blackListService = blackListService;
     }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
@@ -78,6 +82,11 @@ public class DomainResourceRestController extends CommonResourceRestController {
         boolean isRegistration = message.getParam("register") != null && (boolean) message.getParam("register");
 
         String domainName = (String) message.getParam("name");
+
+        if (blackListService.domainExistsInControlBlackList(domainName)) {
+            logger.debug("domain: " + domainName + " exists in control BlackList");
+            return this.createErrorResponse("Домен: " + domainName + " уже присутствует в системе и не может быть добавлен.");
+        }
 
         DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
 
