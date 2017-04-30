@@ -186,19 +186,24 @@ public class PersonalAccountRestController extends CommonRestController {
             return new ResponseEntity(HttpStatus.NOT_FOUND);
         }
 
-        if (person != null) {
-            account.setOwnerPersonId(person.getId());
-            accountRepository.save(account);
+        if (person != null && currentPerson != null) {
 
-            //Запишем инфу о произведенном изменении владельца в историю клиента
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Произведена смена владельца аккаунта Предудущий владелец: " +
-                    currentPerson +
-                    " Новый владелец: " + person
-            );
-            params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.controller.rest.PersonalAccountRestController.changeOwner");
+            if (person.getLegalEntity() != null || currentPerson.getLegalEntity() != null) {
+                return new ResponseEntity(HttpStatus.BAD_REQUEST);
+            } else {
+                account.setOwnerPersonId(person.getId());
+                accountRepository.save(account);
 
-            publisher.publishEvent(new AccountHistoryEvent(account, params));
+                //Запишем инфу о произведенном изменении владельца в историю клиента
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Произведена смена владельца аккаунта Предудущий владелец: " +
+                        currentPerson +
+                        " Новый владелец: " + person
+                );
+                params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.controller.rest.PersonalAccountRestController.changeOwner");
+
+                publisher.publishEvent(new AccountHistoryEvent(account, params));
+            }
         }
 
         return new ResponseEntity(HttpStatus.OK);
