@@ -205,7 +205,7 @@ public class AccountHelper {
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", service.getId());
         paymentOperation.put("amount", amount);
-        paymentOperation.put("forceCharge", true);
+        paymentOperation.put("forceCharge", forceCharge);
 
         SimpleServiceMessage response = null;
 
