@@ -23,10 +23,7 @@ import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
-import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
-import ru.majordomo.hms.personmgr.service.PromocodeProcessor;
+import ru.majordomo.hms.personmgr.service.*;
 
 @EnableRabbit
 @Service
@@ -39,7 +36,7 @@ public class AccountAmqpController {
     private final PromocodeProcessor promocodeProcessor;
     private final PersonalAccountRepository accountRepository;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
-    private final AccountHelper accountHelper;
+    private final AbonementService abonementService;
 
     @Autowired
     public AccountAmqpController(
@@ -48,13 +45,13 @@ public class AccountAmqpController {
             PromocodeProcessor promocodeProcessor,
             PersonalAccountRepository accountRepository,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
-            AccountHelper accountHelper) {
+            AbonementService abonementService) {
         this.businessFlowDirector = businessFlowDirector;
         this.businessActionBuilder = businessActionBuilder;
         this.promocodeProcessor = promocodeProcessor;
         this.accountRepository = accountRepository;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
-        this.accountHelper = accountHelper;
+        this.abonementService = abonementService;
     }
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.account.create",
@@ -97,7 +94,7 @@ public class AccountAmqpController {
                             //Пробный период 14 дней - начисляем бонусный абонемент
                             PersonalAccount account = accountRepository.findOne(message.getAccountId());
                             if (account != null) {
-                                accountHelper.addFree14DaysAbonement(account);
+                                abonementService.addFree14DaysAbonement(account);
                             }
 
                             if (businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
