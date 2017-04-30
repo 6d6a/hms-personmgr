@@ -17,6 +17,7 @@ import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.promocode.UnknownPromocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
@@ -41,6 +42,7 @@ public class PromocodeProcessor {
     private final AccountPromotionRepository accountPromotionRepository;
     private final PromotionRepository promotionRepository;
     private final AccountHelper accountHelper;
+    private final UnknownPromocodeRepository unknownPromocodeRepository;
 
     @Autowired
     public PromocodeProcessor(
@@ -52,7 +54,8 @@ public class PromocodeProcessor {
             AbonementRepository abonementRepository,
             AccountPromotionRepository accountPromotionRepository,
             PromotionRepository promotionRepository,
-            AccountHelper accountHelper
+            AccountHelper accountHelper,
+            UnknownPromocodeRepository unknownPromocodeRepository
     ) {
         this.promocodeRepository = promocodeRepository;
         this.accountPromocodeRepository = accountPromocodeRepository;
@@ -63,6 +66,7 @@ public class PromocodeProcessor {
         this.accountPromotionRepository = accountPromotionRepository;
         this.promotionRepository = promotionRepository;
         this.accountHelper = accountHelper;
+        this.unknownPromocodeRepository = unknownPromocodeRepository;
     }
 
     public void processPromocode(PersonalAccount account, String promocodeString) {
@@ -70,6 +74,12 @@ public class PromocodeProcessor {
 
         if (promocode == null) {
             logger.debug("Not found promocode instance with code: " + promocodeString);
+            // Записываем в базу промокоды, которые не были найдены
+            UnknownPromocode unknownPromocode = new UnknownPromocode();
+            unknownPromocode.setCode(promocodeString);
+            unknownPromocode.setPersonalAccountId(account.getId());
+            unknownPromocode.setCreatedDate(LocalDate.now());
+            unknownPromocodeRepository.save(unknownPromocode);
             return;
         }
 
