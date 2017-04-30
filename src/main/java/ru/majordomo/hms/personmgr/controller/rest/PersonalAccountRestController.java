@@ -186,9 +186,9 @@ public class PersonalAccountRestController extends CommonRestController {
             return new ResponseEntity(HttpStatus.NOT_FOUND);
         }
 
-        if (person != null && currentPerson != null) {
+        if (person != null) {
 
-            if (person.getLegalEntity() != null || currentPerson.getLegalEntity() != null) {
+            if (currentPerson != null && (person.getLegalEntity() != null || currentPerson.getLegalEntity() != null)) {
                 return new ResponseEntity(HttpStatus.BAD_REQUEST);
             } else {
                 account.setOwnerPersonId(person.getId());
