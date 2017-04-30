@@ -73,13 +73,15 @@ public class PromocodeProcessor {
         Promocode promocode = promocodeRepository.findByCodeAndActive(promocodeString, true);
 
         if (promocode == null) {
-            logger.debug("Not found promocode instance with code: " + promocodeString);
-            // Записываем в базу промокоды, которые не были найдены
-            UnknownPromocode unknownPromocode = new UnknownPromocode();
-            unknownPromocode.setCode(promocodeString);
-            unknownPromocode.setPersonalAccountId(account.getId());
-            unknownPromocode.setCreatedDate(LocalDate.now());
-            unknownPromocodeRepository.save(unknownPromocode);
+            if (!promocodeString.equals("")) {
+                logger.debug("Not found promocode instance with code: " + promocodeString);
+                // Записываем в базу промокоды, которые не были найдены
+                UnknownPromocode unknownPromocode = new UnknownPromocode();
+                unknownPromocode.setCode(promocodeString);
+                unknownPromocode.setPersonalAccountId(account.getId());
+                unknownPromocode.setCreatedDate(LocalDate.now());
+                unknownPromocodeRepository.save(unknownPromocode);
+            }
             return;
         }
 

@@ -47,6 +47,7 @@ public class AbonementService {
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final ApplicationEventPublisher publisher;
+    private final AbonementRepository abonementRepository;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -56,13 +57,15 @@ public class AbonementService {
             AccountAbonementRepository accountAbonementRepository,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
-            ApplicationEventPublisher publisher
+            ApplicationEventPublisher publisher,
+            AbonementRepository abonementRepository
     ) {
         this.planRepository = planRepository;
         this.accountAbonementRepository = accountAbonementRepository;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
         this.publisher = publisher;
+        this.abonementRepository = abonementRepository;
     }
 
     /**
@@ -424,6 +427,25 @@ public class AbonementService {
 
         if (!accountServiceHelper.accountHasService(account, plan.getServiceId())) {
             accountServiceHelper.addAccountService(account, plan.getServiceId());
+        }
+    }
+
+    public void addFree14DaysAbonement(PersonalAccount account) {
+        Plan plan = planRepository.findOne(account.getPlanId());
+        List<String> abonementIds = plan.getAbonementIds();
+
+        String bonusAbonementId = null;
+
+        // Ищем соответствующий abonementId по периоду и плану
+        for (String abonementId : abonementIds) {
+            if ( (abonementRepository.findOne(abonementId).getPeriod()).equals("P14D") ) {
+                bonusAbonementId = abonementId;
+                break;
+            }
+        }
+
+        if (bonusAbonementId != null) {
+            this.addAbonement(account, bonusAbonementId, false, true, false);
         }
     }
 }
