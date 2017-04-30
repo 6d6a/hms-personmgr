@@ -19,11 +19,14 @@ import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
@@ -39,6 +42,9 @@ public class AccountHelper {
     private final AccountPromotionRepository accountPromotionRepository;
     private final BusinessActionBuilder businessActionBuilder;
     private final PersonalAccountRepository personalAccountRepository;
+    private final PlanRepository planRepository;
+    private final AbonementRepository abonementRepository;
+    private final AbonementService abonementService;
 
     @Autowired
     public AccountHelper(
@@ -47,7 +53,10 @@ public class AccountHelper {
             SiFeignClient siFeignClient,
             AccountPromotionRepository accountPromotionRepository,
             BusinessActionBuilder businessActionBuilder,
-            PersonalAccountRepository personalAccountRepository
+            PersonalAccountRepository personalAccountRepository,
+            PlanRepository planRepository,
+            AbonementRepository abonementRepository,
+            AbonementService abonementService
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -55,6 +64,9 @@ public class AccountHelper {
         this.accountPromotionRepository = accountPromotionRepository;
         this.businessActionBuilder = businessActionBuilder;
         this.personalAccountRepository = personalAccountRepository;
+        this.planRepository = planRepository;
+        this.abonementRepository = abonementRepository;
+        this.abonementService = abonementService;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -487,6 +499,25 @@ public class AccountHelper {
         } catch (Exception e) {
             logger.debug("account UnixAccounts set quota failed for accountId: " + account.getId());
             e.printStackTrace();
+        }
+    }
+
+    public void addFree14DaysAbonement(PersonalAccount account) {
+        Plan plan = planRepository.findOne(account.getPlanId());
+        List<String> abonementIds = plan.getAbonementIds();
+
+        String bonusAbonementId = null;
+
+        // Ищем соответствующий abonementId по периоду и плану
+        for (String abonementId : abonementIds) {
+            if ( (abonementRepository.findOne(abonementId).getPeriod()).equals("P14D") ) {
+                bonusAbonementId = abonementId;
+                break;
+            }
+        }
+
+        if (bonusAbonementId != null) {
+            abonementService.addAbonement(account, bonusAbonementId, false, true, false);
         }
     }
 

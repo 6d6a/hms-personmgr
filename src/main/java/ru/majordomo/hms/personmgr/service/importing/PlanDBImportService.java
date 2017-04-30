@@ -195,6 +195,8 @@ public class PlanDBImportService {
             abonement3m.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
             abonement3m.setInternal(true);
 
+            abonementRepository.save(abonement3m);
+
             PaymentService paymentService1m = new PaymentService();
             paymentService1m.setPaymentType(ServicePaymentType.ONE_TIME);
             paymentService1m.setAccountType(AccountType.VIRTUAL_HOSTING);
@@ -213,8 +215,39 @@ public class PlanDBImportService {
             abonement1m.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
             abonement1m.setInternal(true);
 
+            abonementRepository.save(abonement1m);
+
             addAbonementsIds.add(abonement3m.getId());
             addAbonementsIds.add(abonement1m.getId());
+        }
+
+        if (rs.getInt("Plan_ID") == PLAN_UNLIMITED_ID
+                || rs.getInt("Plan_ID") == PLAN_UNLIMITED_PLUS_ID
+                || rs.getInt("Plan_ID") == PLAN_START_ID
+                || rs.getInt("Plan_ID") == PLAN_BUSINESS_ID
+                || rs.getInt("Plan_ID") == PLAN_BUSINESS_PLUS_ID) {
+            //Бесплатный на 14 дней
+            PaymentService paymentService14d = new PaymentService();
+            paymentService14d.setPaymentType(ServicePaymentType.ONE_TIME);
+            paymentService14d.setAccountType(AccountType.VIRTUAL_HOSTING);
+            paymentService14d.setActive(rs.getBoolean("active"));
+            paymentService14d.setCost(BigDecimal.ZERO);
+            paymentService14d.setLimit(1);
+            paymentService14d.setOldId(PLAN_SERVICE_ABONEMENT_PREFIX + rs.getString("Plan_ID") + "_14D");
+            paymentService14d.setName(rs.getString("username") + " (абонемент на 14 дней)");
+
+            paymentServiceRepository.save(paymentService14d);
+
+            Abonement abonement14d = new Abonement();
+            abonement14d.setServiceId(paymentService14d.getId());
+            abonement14d.setName(rs.getString("username") + " (абонемент на 14 дней)");
+            abonement14d.setPeriod("P14D");
+            abonement14d.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+            abonement14d.setInternal(true);
+
+            abonementRepository.save(abonement14d);
+
+            addAbonementsIds.add(abonement14d.getId());
         }
 
         if (rs.getInt("Plan_ID") == PLAN_PARKING_DOMAINS_ID) {
@@ -236,6 +269,8 @@ public class PlanDBImportService {
             abonement3m.setPeriod("P3M");
             abonement3m.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
             abonement3m.setInternal(true);
+
+            abonementRepository.save(abonement3m);
 
             addAbonementsIds.add(abonement3m.getId());
         }
