@@ -95,13 +95,12 @@ public class AccountAmqpController {
                                 }
                             }
 
-                            // TODO проврка на наличии абонментов после обработки промокода
                             //Пробный период 14 дней - начисляем бонусный абонемент
                             PersonalAccount account = accountRepository.findOne(message.getAccountId());
                             if (account != null) {
                                 AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), false);
                                 if (accountAbonement == null) {
-                                    abonementService.addFree14DaysAbonement(account); 
+                                    abonementService.addFree14DaysAbonement(account);
                                 }
                             }
 
