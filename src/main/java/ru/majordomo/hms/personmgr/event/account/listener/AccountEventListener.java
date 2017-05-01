@@ -64,7 +64,7 @@ public class AccountEventListener {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setParams(new HashMap<>());
         message.addParam("email", emails);
-        message.addParam("api_name", "MajordomoVHClientCreatedConfirmation");
+        message.addParam("api_name", "MajordomoHMSClientCreatedConfirmation");
         message.addParam("priority", 10);
 
         HashMap<String, String> parameters = new HashMap<>();
