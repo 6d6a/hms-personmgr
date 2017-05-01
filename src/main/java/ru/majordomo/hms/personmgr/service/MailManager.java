@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -32,33 +33,78 @@ public class MailManager {
     private HttpHeaders headers;
     private String credentials;
     private String URL_ROOT;
+    private String token = "";
 
-    public MailManager(@Value("${mail_manager.url}") String url, @Value("${mail_manager.username}") String username, @Value("${mail_manager.password}") String password) {
+    public MailManager(
+            @Value("${mail_manager.url}") String url,
+            @Value("${mail_manager.username}") String username,
+            @Value("${mail_manager.password}") String password
+    ) {
         restTemplate = new RestTemplate();
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         credentials = "{\"_username\":\"" + username + "\",\"_password\":\"" + password + "\"}";
         URL_ROOT = url;
-        getToken();
     }
 
     private String getToken() {
         HttpEntity<String> entity = new HttpEntity<>(credentials, headers);
         HashMap someResponse = restTemplate.postForObject(URL_ROOT + URL_MAP.get("login"), entity, HashMap.class);
+        token = (String) someResponse.get("token");
         headers.set("Authorization", "Bearer " + someResponse.get("token"));
         logger.debug("Token for mailManager: " + someResponse.get("token"));
         return someResponse.get("token").toString();
     }
 
     public HashMap sendEmail(SimpleServiceMessage message) throws RestClientException {
+        setToken();
         HttpEntity entity = new HttpEntity<>(message.getParams(), headers);
         logger.debug("HttpEntity in mailManager sendEmail: " + entity.toString());
-        return restTemplate.postForObject(URL_ROOT + URL_MAP.get("sendEmail"), entity, HashMap.class);
+
+        HashMap<String, String> responseBody = new HashMap<>();
+
+        try {
+            ResponseEntity<HashMap> response = restTemplate.postForEntity(URL_ROOT + URL_MAP.get("sendEmail"), entity, HashMap.class);
+
+            if (response.getStatusCode().is4xxClientError()) {
+                token = "";
+                sendEmail(message);
+            }
+
+            return response.getBody();
+        } catch (RestClientException e) {
+            e.printStackTrace();
+            sendEmail(message);
+            return responseBody;
+        }
     }
 
     public HashMap sendSms(SimpleServiceMessage message) throws RestClientException {
+        setToken();
         HttpEntity entity = new HttpEntity<>(message.getParams(), headers);
         logger.debug("HttpEntity in mailManager sendSms: " + entity.toString());
-        return restTemplate.postForObject(URL_ROOT + URL_MAP.get("sendSms"), entity, HashMap.class);
+
+        HashMap<String, String> responseBody = new HashMap<>();
+
+        try {
+            ResponseEntity<HashMap> response = restTemplate.postForEntity(URL_ROOT + URL_MAP.get("sendSms"), entity, HashMap.class);
+
+            if (response.getStatusCode().is4xxClientError()) {
+                token = "";
+                sendSms(message);
+            }
+
+            return response.getBody();
+        } catch (RestClientException e) {
+            e.printStackTrace();
+            sendSms(message);
+            return responseBody;
+        }
+    }
+
+    private void setToken() {
+        if (token.equals("")) {
+            getToken();
+        }
     }
 }
