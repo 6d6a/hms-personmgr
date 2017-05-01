@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.event.seo.listener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -29,16 +30,19 @@ public class SeoEventListener {
     private final AccountHelper accountHelper;
     private final ApplicationEventPublisher publisher;
     private final RcUserFeignClient rcUserFeignClient;
+    private final String proEmail;
 
     @Autowired
     public SeoEventListener(
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher,
-            RcUserFeignClient rcUserFeignClient
+            RcUserFeignClient rcUserFeignClient,
+            @Value("${mail_manager.pro_email}") String proEmail
     ) {
         this.accountHelper = accountHelper;
         this.publisher = publisher;
         this.rcUserFeignClient = rcUserFeignClient;
+        this.proEmail = proEmail;
     }
 
     @EventListener
@@ -73,10 +77,8 @@ public class SeoEventListener {
         //Письмо в  СЕО
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(account.getId());
-        //TODO Поставить pro@
-        String email = "web-script@majordomo.ru";
         message.setParams(new HashMap<>());
-        message.addParam("email", email);
+        message.addParam("email", proEmail);
         message.addParam("api_name", "MajordomoServiceMessage");
         message.addParam("priority", 10);
 
