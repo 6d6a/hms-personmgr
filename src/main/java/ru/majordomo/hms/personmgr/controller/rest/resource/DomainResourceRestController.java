@@ -85,6 +85,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
         if (blackListService.domainExistsInControlBlackList(domainName)) {
             logger.debug("domain: " + domainName + " exists in control BlackList");
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return this.createErrorResponse("Домен: " + domainName + " уже присутствует в системе и не может быть добавлен.");
         }
 
