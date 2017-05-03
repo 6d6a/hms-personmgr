@@ -103,6 +103,9 @@ dependencies {
     compile("com.cronutils:cron-utils:5.0.1")
 
     compile("com.googlecode.libphonenumber:libphonenumber:7.7.3")
+
+    compile("net.javacrumbs.shedlock:shedlock-spring:0.10.0")
+    compile("net.javacrumbs.shedlock:shedlock-provider-mongo:0.8.0")
 }
 
 dependencyManagement {

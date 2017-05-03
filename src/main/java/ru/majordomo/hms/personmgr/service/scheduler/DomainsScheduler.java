@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service.scheduler;
 
+import net.javacrumbs.shedlock.core.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,7 @@ public class DomainsScheduler {
 
     //Выполняем обработку доменов с истекающим сроком действия в 03:36:00 каждый день
     @Scheduled(cron = "0 36 3 * * *")
+    @SchedulerLock(name = "processExpriringDomains")
     public void processExpiringDomains() {
         logger.debug("Started processExpiringDomains");
         try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findAllStream()) {
@@ -39,6 +41,7 @@ public class DomainsScheduler {
 
     //Выполняем автопродление доменов в 02:22:00 каждый день
     @Scheduled(cron = "0 22 2 * * *")
+    @SchedulerLock(name = "processDomainAutoRenew")
     public void processDomainsAutoRenew() {
         logger.debug("Started processDomainsAutoRenew");
         try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findAllStream()) {
