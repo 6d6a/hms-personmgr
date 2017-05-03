@@ -1,9 +1,11 @@
 package ru.majordomo.hms.personmgr;
 
+import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
 import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.provider.mongo.MongoLockProvider;
 import net.javacrumbs.shedlock.spring.SpringLockableTaskSchedulerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
@@ -19,6 +21,8 @@ import java.util.concurrent.ScheduledExecutorService;
 @Configuration
 @EnableScheduling
 public class SchedulingConfig implements SchedulingConfigurer {
+    @Autowired MongoClient mongoClient;
+
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
         taskRegistrar.setScheduler(taskExecutor());
@@ -30,7 +34,7 @@ public class SchedulingConfig implements SchedulingConfigurer {
     }
 
     @Bean
-    public LockProvider lockProvider(MongoClient mongoClient) {
+    public LockProvider lockProvider() throws Exception {
         return new MongoLockProvider(mongoClient, "synchronized");
     }
 
