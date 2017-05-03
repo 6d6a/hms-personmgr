@@ -21,7 +21,7 @@ import java.util.concurrent.ScheduledExecutorService;
 @Configuration
 @EnableScheduling
 public class SchedulingConfig implements SchedulingConfigurer {
-    @Autowired MongoClient mongoClient;
+    @Autowired MongoConfig mongoConfig;
 
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
@@ -35,7 +35,7 @@ public class SchedulingConfig implements SchedulingConfigurer {
 
     @Bean
     public LockProvider lockProvider() throws Exception {
-        return new MongoLockProvider(mongoClient, "synchronized");
+        return new MongoLockProvider(mongoConfig.mongo(), "synchronized");
     }
 
     @Bean
