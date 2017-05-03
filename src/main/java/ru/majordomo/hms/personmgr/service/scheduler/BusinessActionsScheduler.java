@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service.scheduler;
 
+import net.javacrumbs.shedlock.core.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,7 @@ public class BusinessActionsScheduler {
     }
 
     @Scheduled(cron = "0 10 * * * *")
+    @SchedulerLock(name = "cleanBusinessActions")
     public void cleanBusinessActions() {
         logger.debug("Started cleanBusinessActions");
         try (Stream<ProcessingBusinessAction> businessActionStream = processingBusinessActionRepository.findByCreatedDateBeforeOrderByCreatedDateAsc(

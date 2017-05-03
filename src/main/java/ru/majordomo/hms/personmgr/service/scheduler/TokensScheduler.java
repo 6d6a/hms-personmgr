@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service.scheduler;
 
+import net.javacrumbs.shedlock.core.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,7 @@ public class TokensScheduler {
     }
 
     @Scheduled(cron = "0 20 * * * *")
+    @SchedulerLock(name = "cleanTokens")
     public void cleanTokens() {
         logger.debug("Started cleanTokens");
         try (Stream<Token> tokenStream = tokenRepository.findByCreatedBeforeOrderByCreatedDateAsc(

@@ -33,7 +33,7 @@ public class MongoConfig extends AbstractMongoConfiguration {
     }
 
     @Override
-    public Mongo mongo() throws Exception {
+    public MongoClient mongo() throws Exception {
         return new MongoClient(new MongoClientURI(mongodbUri));
     }
 

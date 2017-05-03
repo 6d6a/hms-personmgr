@@ -86,7 +86,7 @@ public class PersonAmqpController {
 
             ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
             if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
-                message.addParam("quota", businessOperation.getParams().get("quota"));
+                message.addParam("quota", (Long) businessOperation.getParams().get("quota") * 1024);
                 businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
             }
         }
