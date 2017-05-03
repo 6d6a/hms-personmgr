@@ -56,7 +56,7 @@ public class ServiceDBImportService {
             PaymentService newService = new PaymentService();
 
             newService.setPaymentType(ServicePaymentType.MONTH);
-            newService.setCost(rs.getBigDecimal("service_cost"));
+            newService.setCost(rs.getString("id").equals("15") ? BigDecimal.valueOf(29L) : rs.getBigDecimal("service_cost"));
             newService.setLimit(0);
             newService.setName(rs.getString("usluga"));
             newService.setAccountType(AccountType.VIRTUAL_HOSTING);

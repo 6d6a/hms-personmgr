@@ -35,18 +35,26 @@ public class BonusPromocodeDBImportService {
     private List<Promocode> promocodesList = new ArrayList<>();
 
     @Autowired
-    public BonusPromocodeDBImportService(@Qualifier("namedParameterJdbcTemplate") NamedParameterJdbcTemplate namedParameterJdbcTemplate, PromocodeRepository promocodeRepository) {
+    public BonusPromocodeDBImportService(
+            @Qualifier("namedParameterJdbcTemplate") NamedParameterJdbcTemplate namedParameterJdbcTemplate,
+            PromocodeRepository promocodeRepository
+    ) {
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
         this.promocodeRepository = promocodeRepository;
     }
 
     private void pull() {
-        String query = "SELECT p.promo_code, p.is_used, p.date_created, p.date_used, p.free_months, p.free_domain, p.type FROM promocodes_mj p";
+        String query = "SELECT p.promo_code, p.is_used, p.date_created, p.date_used, p.free_months, " +
+                "p.free_domain, p.type " +
+                "FROM promocodes_mj p";
         promocodesList = namedParameterJdbcTemplate.query(query, this::rowMap);
     }
 
     private void pull(String promoCode) {
-        String query = "SELECT p.promo_code, p.is_used, p.date_created, p.date_used, p.free_months, p.free_domain, p.type FROM promocodes_mj p WHERE promo_code = :promo_code";
+        String query = "SELECT p.promo_code, p.is_used, p.date_created, p.date_used, p.free_months, " +
+                "p.free_domain, p.type " +
+                "FROM promocodes_mj p " +
+                "WHERE promo_code = :promo_code";
 
         SqlParameterSource namedParametersE = new MapSqlParameterSource("promo_code", promoCode);
 

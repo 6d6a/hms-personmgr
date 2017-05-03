@@ -21,8 +21,8 @@ import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PARKING_3_M_PROM
 import static ru.majordomo.hms.personmgr.common.Constants.BONUS_UNLIMITED_1_M_PROMOCODE_ACTION_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.BONUS_UNLIMITED_3_M_PROMOCODE_ACTION_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PROMOCODE_ACTION_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.PLAN_PARKING_DOMAINS_SERVICE_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.PLAN_UNLIMITED_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_PARKING_DOMAINS_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_UNLIMITED_ID;
 
 
 /**
@@ -84,7 +84,7 @@ public class PromocodeActionDBSeedService {
         promocodeAction.setActionType(PromocodeActionType.SERVICE_ABONEMENT);
 
         //Безлимитный план
-        Plan plan = planRepository.findByOldId(PLAN_UNLIMITED_SERVICE_ID);
+        Plan plan = planRepository.findByOldId(String.valueOf(PLAN_UNLIMITED_ID));
 
         properties = new HashMap<>();
         properties.put("serviceId", plan.getServiceId());
@@ -117,7 +117,7 @@ public class PromocodeActionDBSeedService {
         promocodeAction.setActionType(PromocodeActionType.SERVICE_ABONEMENT);
 
         //ПарковкаДоменов план
-        plan = planRepository.findByOldId(PLAN_PARKING_DOMAINS_SERVICE_ID);
+        plan = planRepository.findByOldId(String.valueOf(PLAN_PARKING_DOMAINS_ID));
 
         properties = new HashMap<>();
         properties.put("serviceId", plan.getServiceId());
@@ -139,6 +139,8 @@ public class PromocodeActionDBSeedService {
         tlds.add("ru");
         tlds.add("xn--p1ai");
         properties.put("tlds", tlds);
+
+        promocodeAction.setProperties(properties);
 
         promocodeAction.setId(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
 

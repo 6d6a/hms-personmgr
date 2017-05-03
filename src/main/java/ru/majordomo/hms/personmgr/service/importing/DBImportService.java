@@ -75,24 +75,21 @@ public class DBImportService {
     public boolean seedDB() {
         boolean seeded;
 
-//        seeded = businessActionDBSeedService.seedDB();
-//        logger.debug(seeded ? "businessFlow db_seeded" : "businessFlow db_not_seeded");
-//
-//        seeded = promocodeActionDBSeedService.seedDB();
-//        logger.debug(seeded ? "promocodeAction db_seeded" : "promocodeAction db_not_seeded");
-//
-//        seeded = seoServiceDBSeedService.seedDB();
-//        logger.debug(seeded ? "seo db_seeded" : "seo db_not_seeded");
-
-//        seeded = presentDBSeedService.seedDB();
-//        logger.debug(seeded ? "promotion db_seeded" : "promotion db_not_seeded");
-
         return true;
     }
 
     public boolean importToMongo() {
         boolean imported;
 
+//        imported = businessActionDBSeedService.seedDB();
+//        logger.debug(imported ? "businessFlow db_seeded" : "businessFlow db_not_seeded");
+//
+//        imported = promocodeActionDBSeedService.seedDB();
+//        logger.debug(imported ? "promocodeAction db_seeded" : "promocodeAction db_not_seeded");
+//
+//        imported = promotionDBSeedService.seedDB();
+//        logger.debug(imported ? "promotion db_seeded" : "promotion db_not_seeded");
+//
 //        imported = accountHistoryDBImportService.importToMongo();
 //        logger.debug(imported ? "accountHistory db_imported" : "accountHistory db_not_imported");
 //
@@ -102,8 +99,11 @@ public class DBImportService {
 //        imported = accountNotificationDBImportService.importToMongo();
 //        logger.debug(imported ? "accountNotification db_imported" : "accountNotification db_not_imported");
 //
-//        imported = serviceDBImportService.importToMongoFix();
+//        imported = serviceDBImportService.importToMongo(); //#1
 //        logger.debug(imported ? "service db_imported" : "service db_not_imported");
+//
+//        imported = seoServiceDBSeedService.seedDB();
+//        logger.debug(imported ? "seo db_seeded" : "seo db_not_seeded");
 //
 //        imported = planDBImportService.importToMongo();
 //        logger.debug(imported ? "plan db_imported" : "plan db_not_imported");
