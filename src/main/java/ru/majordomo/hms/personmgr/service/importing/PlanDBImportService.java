@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +57,6 @@ public class PlanDBImportService {
     private AbonementRepository abonementRepository;
     private PaymentServiceRepository paymentServiceRepository;
     private List<Plan> plans = new ArrayList<>();
-    private List<Abonement> abonements = new ArrayList<>();
 
     @Autowired
     public PlanDBImportService(
@@ -73,15 +73,21 @@ public class PlanDBImportService {
 
     public void pull() {
         String query = "SELECT p.Plan_ID, p.name, p.cost, p.cost_disc, p.QuotaKB, p.db, p.apache, " +
-                "p.active, p.username, p.sites, p.web_cpu_limit, p.db_cpu_limit FROM plan p " +
-                "LEFT JOIN account a ON p.Plan_ID=a.plan_id WHERE a.id IS NOT NULL GROUP BY p.Plan_ID";
+                "p.active, p.username, p.sites, p.web_cpu_limit, p.db_cpu_limit, p.sms_cost " +
+                "FROM plan p " +
+                "LEFT JOIN account a ON p.Plan_ID=a.plan_id " +
+                "WHERE a.id IS NOT NULL " +
+                "GROUP BY p.Plan_ID";
         plans = jdbcTemplate.query(query, this::rowMap);
     }
 
     public void pull(String planId) {
         String query = "SELECT p.Plan_ID, p.name, p.cost, p.cost_disc, p.QuotaKB, p.db, p.apache, " +
-                "p.active, p.username, p.sites, p.web_cpu_limit, p.db_cpu_limit FROM plan p " +
-                "LEFT JOIN account a ON p.Plan_ID=a.plan_id WHERE p.Plan_ID = ? AND a.id IS NOT NULL GROUP BY p.Plan_ID";
+                "p.active, p.username, p.sites, p.web_cpu_limit, p.db_cpu_limit, p.sms_cost " +
+                "FROM plan p " +
+                "LEFT JOIN account a ON p.Plan_ID=a.plan_id " +
+                "WHERE p.Plan_ID = ? AND a.id IS NOT NULL " +
+                "GROUP BY p.Plan_ID";
         plans = jdbcTemplate.query(query,
                 new Object[]{planId},
                 this::rowMap);
@@ -172,7 +178,8 @@ public class PlanDBImportService {
 
         abonementRepository.save(abonement);
 
-        List<String> addAbonementsIds = Collections.singletonList(abonement.getId());
+        List<String> addAbonementsIds = new ArrayList<>();
+        addAbonementsIds.add(abonement.getId());
 
         //Бонусные абонементы (internal)
         if (rs.getInt("Plan_ID") == PLAN_UNLIMITED_ID) {
@@ -336,8 +343,8 @@ public class PlanDBImportService {
         Plan plan = planRepository.findOne(planId);
 
         if (plan != null) {
-            for (Abonement abonement : plan.getAbonements()) {
-                abonementRepository.delete(abonement);
+            if (plan.getAbonements() != null && !plan.getAbonements().isEmpty()) {
+                abonementRepository.delete(plan.getAbonements());
             }
             planRepository.delete(plan);
         }

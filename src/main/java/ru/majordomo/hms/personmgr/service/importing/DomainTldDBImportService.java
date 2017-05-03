@@ -43,19 +43,28 @@ public class DomainTldDBImportService {
     private List<DomainTld> domainTlds = new ArrayList<>();
 
     @Autowired
-    public DomainTldDBImportService(@Qualifier("billing2NamedParameterJdbcTemplate") NamedParameterJdbcTemplate billing2NamedParameterJdbcTemplate, DomainTldRepository domainTldRepository, PaymentServiceRepository paymentServiceRepository) {
+    public DomainTldDBImportService(
+            @Qualifier("billing2NamedParameterJdbcTemplate") NamedParameterJdbcTemplate billing2NamedParameterJdbcTemplate,
+            DomainTldRepository domainTldRepository,
+            PaymentServiceRepository paymentServiceRepository
+    ) {
         this.jdbcTemplate = billing2NamedParameterJdbcTemplate;
         this.domainTldRepository = domainTldRepository;
         this.paymentServiceRepository = paymentServiceRepository;
     }
 
     public void pull() {
-        String query = "SELECT domain_tld, parking_registrator_id, registration_cost, renew_cost, registration_time, renew_time, renew_due_days, renew_after_days, priority, available, permanent, category FROM parking_domains_cost";
+        String query = "SELECT domain_tld, parking_registrator_id, registration_cost, renew_cost, " +
+                "registration_time, renew_time, renew_due_days, renew_after_days, priority, " +
+                "available, permanent, category " +
+                "FROM parking_domains_cost";
 
         domainTlds.addAll(jdbcTemplate.query(query, (rs, rowNum) -> {
             DomainTld domainTld = new DomainTld();
 
-            logger.debug("domain_tld " + rs.getString("domain_tld") + " parking_registrator_id " + rs.getString("parking_registrator_id"));
+            logger.debug("domain_tld " + rs.getString("domain_tld") +
+                    " parking_registrator_id " + rs.getString("parking_registrator_id")
+            );
 
             domainTld.setActive(rs.getBoolean("available"));
             domainTld.setDomainCategory(DOMAIN_CATEGORY_MAP.get(rs.getString("category")));
@@ -78,8 +87,12 @@ public class DomainTldDBImportService {
             paymentService.setActive(domainTld.isActive());
             paymentService.setCost(rs.getBigDecimal("registration_cost"));
             paymentService.setLimit(-1);
-            paymentService.setOldId(REGISTRATION_COST_SERVICE_PREFIX +  domainTld.getTld() + "_" + DOMAIN_REGISTRAR_MAP.get(rs.getInt("parking_registrator_id")));
-            paymentService.setName("Регистрация домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
+            paymentService.setOldId(REGISTRATION_COST_SERVICE_PREFIX +  domainTld.getTld() + "_" +
+                    DOMAIN_REGISTRAR_MAP.get(rs.getInt("parking_registrator_id"))
+            );
+            paymentService.setName("Регистрация домена в зоне " + domainTld.getEncodedTld() + " (" +
+                    DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")"
+            );
 
             paymentServiceRepository.save(paymentService);
             logger.debug(paymentService.toString());
@@ -92,8 +105,12 @@ public class DomainTldDBImportService {
             paymentService.setActive(domainTld.isActive());
             paymentService.setCost(rs.getBigDecimal("renew_cost"));
             paymentService.setLimit(-1);
-            paymentService.setOldId(RENEW_COST_SERVICE_PREFIX +  domainTld.getTld() + "_" + DOMAIN_REGISTRAR_MAP.get(rs.getInt("parking_registrator_id")));
-            paymentService.setName("Продление домена в зоне " + domainTld.getEncodedTld() + " (" +  DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")");
+            paymentService.setOldId(RENEW_COST_SERVICE_PREFIX +  domainTld.getTld() + "_" +
+                    DOMAIN_REGISTRAR_MAP.get(rs.getInt("parking_registrator_id"))
+            );
+            paymentService.setName("Продление домена в зоне " + domainTld.getEncodedTld() + " (" +
+                    DOMAIN_REGISTRATOR_NAME_MAP.get(rs.getInt("parking_registrator_id")) + ")"
+            );
 
             paymentServiceRepository.save(paymentService);
             logger.debug(paymentService.toString());
@@ -123,7 +140,11 @@ public class DomainTldDBImportService {
         try {
             domainTldRepository.save(domainTlds);
         } catch (ConstraintViolationException e) {
-            logger.debug(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
+            logger.debug(e.getMessage() + " with errors: " + e.getConstraintViolations()
+                    .stream()
+                    .map(ConstraintViolation::getMessage)
+                    .collect(Collectors.joining())
+            );
         }
     }
 }
