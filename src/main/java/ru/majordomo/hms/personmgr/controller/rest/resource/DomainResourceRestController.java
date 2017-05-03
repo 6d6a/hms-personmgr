@@ -105,13 +105,13 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
                     if (availableTlds.contains(domainTld.getTld())) {
                         map.put(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID, false);
+                        // Сохраняем с отметкой, что action использован
+                        accountPromotion.setActionsWithStatus(map);
+                        accountPromotionRepository.save(accountPromotion);
                         domainRegistrationByPromotion = true;
                         break;
                     }
                 }
-                // Сохраняем с отметкой, что action использован
-                accountPromotion.setActionsWithStatus(map);
-                accountPromotionRepository.save(accountPromotion);
             }
 
             if (!domainRegistrationByPromotion) {
