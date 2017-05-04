@@ -11,8 +11,15 @@ import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
+
+import java.util.Map;
+
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
 
 @Service
 public class BusinessFlowDirector {
@@ -21,18 +28,21 @@ public class BusinessFlowDirector {
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final BusinessActionProcessor businessActionProcessor;
     private final FinFeignClient finFeignClient;
+    private final AccountPromotionRepository accountPromotionRepository;
 
     @Autowired
     public BusinessFlowDirector(
             ProcessingBusinessActionRepository processingBusinessActionRepository,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
             BusinessActionProcessor businessActionProcessor,
-            FinFeignClient finFeignClient
+            FinFeignClient finFeignClient,
+            AccountPromotionRepository accountPromotionRepository
     ) {
         this.processingBusinessActionRepository = processingBusinessActionRepository;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
         this.businessActionProcessor = businessActionProcessor;
         this.finFeignClient = finFeignClient;
+        this.accountPromotionRepository = accountPromotionRepository;
     }
 
     public void processClean(ProcessingBusinessAction businessAction) {
@@ -104,10 +114,30 @@ public class BusinessFlowDirector {
                 }
             }
 
+            if (businessAction.getState() == State.ERROR) {
+                if (businessAction.getMessage().getParam("freeDomainPromotionId") != null) {
+                    this.reactivateAccountPromotionByIdAndActionType((String) businessAction.getMessage().getParam("freeDomainPromotionId"), BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
+                }
+
+                if (businessAction.getMessage().getParam("domainDiscountPromotionId") != null) {
+                    this.reactivateAccountPromotionByIdAndActionType((String) businessAction.getMessage().getParam("domainDiscountPromotionId"), DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
+                }
+            }
+
             return businessAction.getState();
         } else {
             logger.debug("ProcessingBusinessAction with id: " + message.getActionIdentity() + " not found");
             return State.ERROR;
+        }
+    }
+
+    private void reactivateAccountPromotionByIdAndActionType(String accountPromotionId, String actionId) {
+        AccountPromotion accountPromotion = accountPromotionRepository.findOne(accountPromotionId);
+        Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
+        if (map.get(actionId) != null && map.get(actionId) == false) {
+            map.put(actionId, true);
+            accountPromotion.setActionsWithStatus(map);
+            accountPromotionRepository.save(accountPromotion);
         }
     }
 
