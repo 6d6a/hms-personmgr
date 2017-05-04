@@ -23,12 +23,13 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountDomainAutoRenewCompletedEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
-import static ru.majordomo.hms.personmgr.common.Constants.AUTO_RENEW_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @EnableRabbit
 @Service
@@ -40,17 +41,20 @@ public class DomainAmqpController {
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
     private final PersonalAccountRepository personalAccountRepository;
     private final ApplicationEventPublisher publisher;
+    private final AccountPromotionRepository accountPromotionRepository;
 
     @Autowired
     public DomainAmqpController(
             BusinessFlowDirector businessFlowDirector,
             ProcessingBusinessActionRepository processingBusinessActionRepository,
             PersonalAccountRepository personalAccountRepository,
-            ApplicationEventPublisher publisher) {
+            ApplicationEventPublisher publisher,
+            AccountPromotionRepository accountPromotionRepository) {
         this.businessFlowDirector = businessFlowDirector;
         this.processingBusinessActionRepository = processingBusinessActionRepository;
         this.personalAccountRepository = personalAccountRepository;
         this.publisher = publisher;
+        this.accountPromotionRepository = accountPromotionRepository;
     }
 
     @RabbitListener(
@@ -81,6 +85,26 @@ public class DomainAmqpController {
                 account.setAccountNew(false);
                 personalAccountRepository.save(account);
             }
+        }
+
+        if (state == State.ERROR) {
+            if (message.getParam("freeDomainPromotionId") != null) {
+                this.reactivateAccountPromotionByIdAndActionType((String) message.getParam("freeDomainPromotionId"), BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
+            }
+
+            if (message.getParam("domainDiscountPromotionId") != null) {
+                this.reactivateAccountPromotionByIdAndActionType((String) message.getParam("domainDiscountPromotionId"), DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
+            }
+        }
+    }
+
+    private void reactivateAccountPromotionByIdAndActionType(String accountPromotionId, String actionId) {
+        AccountPromotion accountPromotion = accountPromotionRepository.findOne(accountPromotionId);
+        Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
+        if (map.get(actionId) != null && map.get(actionId) == false) {
+            map.put(actionId, true);
+            accountPromotion.setActionsWithStatus(map);
+            accountPromotionRepository.save(accountPromotion);
         }
     }
 

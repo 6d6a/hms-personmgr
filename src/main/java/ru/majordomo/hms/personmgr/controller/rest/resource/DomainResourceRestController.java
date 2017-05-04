@@ -112,6 +112,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
                         accountPromotion.setActionsWithStatus(map);
                         accountPromotionRepository.save(accountPromotion);
                         domainRegistrationByPromotion = true;
+                        message.addParam("freeDomainPromotionId", accountPromotion.getId());
                         break;
                     }
                 }
@@ -134,7 +135,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
                         // Устанавливает цену со скидкой
                         paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
-
+                        message.addParam("domainDiscountPromotionId", accountPromotion.getId());
                         break;
                     }
                 }
