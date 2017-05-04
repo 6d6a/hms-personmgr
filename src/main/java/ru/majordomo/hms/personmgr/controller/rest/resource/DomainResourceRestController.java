@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_DOMAIN_DISCOUNT_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
 
 @RestController
 @RequestMapping("/{accountId}/domain")
@@ -122,19 +122,18 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
             for (AccountPromotion accountPromotion : accountPromotions) {
                 Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-                if (map.get(SERVICE_DOMAIN_DISCOUNT_ACTION_ID) != null && map.get(SERVICE_DOMAIN_DISCOUNT_ACTION_ID) == true) {
-                    PromocodeAction promocodeAction = promocodeActionRepository.findOne(SERVICE_DOMAIN_DISCOUNT_ACTION_ID);
+                if (map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) != null && map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) == true) {
+                    PromocodeAction promocodeAction = promocodeActionRepository.findOne(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
                     List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
 
                     if (availableTlds.contains(domainTld.getTld())) {
-                        map.put(SERVICE_DOMAIN_DISCOUNT_ACTION_ID, false);
+                        map.put(DOMAIN_DISCOUNT_RU_RF_ACTION_ID, false);
                         // Сохраняем с отметкой, что action использован
                         accountPromotion.setActionsWithStatus(map);
                         accountPromotionRepository.save(accountPromotion);
 
-                        Integer discountedCost = (Integer) promocodeAction.getProperties().get("cost");
                         // Устанавливает цену со скидкой
-                        paymentService.setCost(BigDecimal.valueOf(discountedCost));
+                        paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
 
                         break;
                     }

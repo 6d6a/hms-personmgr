@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +20,7 @@ import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 
-import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_DOMAIN_DISCOUNT_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
 
 @RestController
 @RequestMapping({"/{accountId}/domain-tlds", "/domain-tlds"})
@@ -46,22 +45,24 @@ public class DomainTldRestController extends CommonRestController {
         List<DomainTld> domainTlds = repository.findAllByActive(true);
 
         List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountId(accountId);
-        Map<String, Integer> discountedCosts = new HashMap<>();
+        Map<String, BigDecimal> discountedCosts = new HashMap<>();
         for (AccountPromotion accountPromotion : accountPromotions) {
             Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-            if (map.get(SERVICE_DOMAIN_DISCOUNT_ACTION_ID) != null && map.get(SERVICE_DOMAIN_DISCOUNT_ACTION_ID) == true) {
-                PromocodeAction promocodeAction = promocodeActionRepository.findOne(SERVICE_DOMAIN_DISCOUNT_ACTION_ID);
+            if (map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) != null && map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) == true) {
+                PromocodeAction promocodeAction = promocodeActionRepository.findOne(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
                 List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
                 for (String tld : availableTlds) {
-                    discountedCosts.put(tld, (Integer) promocodeAction.getProperties().get("cost"));
+                    discountedCosts.put(tld, BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
                 }
                 break;
             }
         }
 
-        for (DomainTld domainTld : domainTlds) {
-            if (discountedCosts.containsKey(domainTld.getTld())) {
-                domainTld.getRegistrationService().setCost(BigDecimal.valueOf(discountedCosts.get(domainTld.getTld())));
+        if (!discountedCosts.isEmpty()) {
+            for (DomainTld domainTld : domainTlds) {
+                if (discountedCosts.containsKey(domainTld.getTld())) {
+                    domainTld.getRegistrationService().setCost(discountedCosts.get(domainTld.getTld()));
+                }
             }
         }
 
