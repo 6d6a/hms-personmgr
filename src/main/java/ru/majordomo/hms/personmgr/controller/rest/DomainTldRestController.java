@@ -8,25 +8,63 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
+import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
+
+import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_DOMAIN_DISCOUNT_ACTION_ID;
 
 @RestController
 @RequestMapping({"/{accountId}/domain-tlds", "/domain-tlds"})
 public class DomainTldRestController extends CommonRestController {
 
     private final DomainTldRepository repository;
+    private final AccountPromotionRepository accountPromotionRepository;
+    private final PromocodeActionRepository promocodeActionRepository;
 
     @Autowired
-    public DomainTldRestController(DomainTldRepository repository) {
+    public DomainTldRestController(DomainTldRepository repository,
+                                   AccountPromotionRepository accountPromotionRepository,
+                                   PromocodeActionRepository promocodeActionRepository)
+    {
         this.repository = repository;
+        this.accountPromotionRepository = accountPromotionRepository;
+        this.promocodeActionRepository = promocodeActionRepository;
     }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<List<DomainTld>> listAll(@PathVariable(value = "accountId", required = false) String accountId) {
         List<DomainTld> domainTlds = repository.findAllByActive(true);
+
+        List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountId(accountId);
+        Map<String, Integer> discountedCosts = new HashMap<>();
+        for (AccountPromotion accountPromotion : accountPromotions) {
+            Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
+            if (map.get(SERVICE_DOMAIN_DISCOUNT_ACTION_ID) != null && map.get(SERVICE_DOMAIN_DISCOUNT_ACTION_ID) == true) {
+                PromocodeAction promocodeAction = promocodeActionRepository.findOne(SERVICE_DOMAIN_DISCOUNT_ACTION_ID);
+                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
+                for (String tld : availableTlds) {
+                    discountedCosts.put(tld, (Integer) promocodeAction.getProperties().get("cost"));
+                }
+                break;
+            }
+        }
+
+        for (DomainTld domainTld : domainTlds) {
+            if (discountedCosts.containsKey(domainTld.getTld())) {
+                domainTld.getRegistrationService().setCost(BigDecimal.valueOf(discountedCosts.get(domainTld.getTld())));
+            }
+        }
+
         if(domainTlds.isEmpty()){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }

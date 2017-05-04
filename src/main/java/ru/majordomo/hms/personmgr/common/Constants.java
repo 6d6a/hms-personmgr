@@ -49,7 +49,9 @@ public class Constants {
     public static final String AUTO_RENEW_KEY = "autoRenew";
     public static final String ENABLED_KEY = "enabled";
     public static final String FREE_DOMAIN_PROMOTION = "free_domain";
+    public static final String DOMAIN_DISCOUNT_RU_RF = "domain_discount_ru_rf";
 
+    public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;
     public static final int PLAN_PARKING_PLUS_ID = 124;
     public static final int PLAN_UNLIMITED_ID = 9802;
@@ -108,6 +110,7 @@ public class Constants {
     public static final String BONUS_UNLIMITED_3_M_PROMOCODE_ACTION_ID = "57f3c4b8038d8a6054409855";
     public static final String BONUS_UNLIMITED_1_M_PROMOCODE_ACTION_ID = "57f3c4b8038d8a6054409856";
     public static final String BONUS_PARKING_3_M_PROMOCODE_ACTION_ID = "57f3c4b8038d8a6054409857";
+    public static final String SERVICE_DOMAIN_DISCOUNT_ACTION_ID = "57f3c4b8038d8a6054409858";
 
     public static final Map<Integer, MailManagerMessageType> MANAGER_MESSAGE_TYPE_MAP = new HashMap<>();
 
