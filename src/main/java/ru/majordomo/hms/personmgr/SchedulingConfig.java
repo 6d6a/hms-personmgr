@@ -35,7 +35,7 @@ public class SchedulingConfig implements SchedulingConfigurer {
 
     @Bean
     public LockProvider lockProvider() throws Exception {
-        return new MongoLockProvider(mongoConfig.mongo(), "synchronized");
+        return new MongoLockProvider(mongoConfig.mongo(), mongoConfig.getDatabaseName());
     }
 
     @Bean
