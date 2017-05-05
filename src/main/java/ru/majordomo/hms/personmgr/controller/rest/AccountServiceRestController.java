@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,10 +15,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -33,6 +36,8 @@ import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.ANTI_SPAM_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.ENABLED_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SERVICE_CREATE;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SERVICE_ENABLE;
@@ -100,7 +105,8 @@ public class AccountServiceRestController extends CommonRestController {
                     method = RequestMethod.POST)
     public ResponseEntity<SimpleServiceMessage> addService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, Object> requestBody
+            @RequestBody Map<String, Object> requestBody,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
@@ -121,6 +127,14 @@ public class AccountServiceRestController extends CommonRestController {
         accountHelper.charge(account, paymentService);
 
         accountServiceHelper.addAccountService(account, paymentServiceId);
+
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Произведен заказ услуги " + paymentService.getName());
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
         return new ResponseEntity<>(this.createSuccessResponse("accountService created with id " + paymentServiceId), HttpStatus.OK);
     }
@@ -149,7 +163,8 @@ public class AccountServiceRestController extends CommonRestController {
                     method = RequestMethod.POST)
     public ResponseEntity<SimpleServiceMessage> addSmsService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, Object> requestBody
+            @RequestBody Map<String, Object> requestBody,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
@@ -160,6 +175,14 @@ public class AccountServiceRestController extends CommonRestController {
         PaymentService paymentService = getSmsPaymentServiceByPlanId(account.getPlanId());
 
         processCustomService(account, paymentService, enabled);
+
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Произведено " + (enabled ? "включение" : "отключение") + " услуги " + paymentService.getName());
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
         return new ResponseEntity<>(this.createSuccessResponse("accountService " + (enabled ? "enabled" : "disabled") + " for sms-notification"), HttpStatus.OK);
     }
@@ -188,7 +211,8 @@ public class AccountServiceRestController extends CommonRestController {
                     method = RequestMethod.POST)
     public ResponseEntity<SimpleServiceMessage> addAntiSpamService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, Object> requestBody
+            @RequestBody Map<String, Object> requestBody,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
@@ -200,6 +224,14 @@ public class AccountServiceRestController extends CommonRestController {
 
         processCustomService(account, paymentService, enabled);
 
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Произведено " + (enabled ? "включение" : "отключение") + " услуги " + paymentService.getName());
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
         return new ResponseEntity<>(this.createSuccessResponse("accountService " + (enabled ? "enabled" : "disabled") + " for anti-spam"), HttpStatus.OK);
     }
 
@@ -207,11 +239,30 @@ public class AccountServiceRestController extends CommonRestController {
                     method = RequestMethod.DELETE)
     public ResponseEntity<Object> delete(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @ObjectId(AccountService.class) @PathVariable(value = "accountServiceId") String accountServiceId
+            @ObjectId(AccountService.class) @PathVariable(value = "accountServiceId") String accountServiceId,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
+        AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndId(account.getId(), accountServiceId);
+
+        String serviceName = null;
+
+        if (accountService != null) {
+            serviceName = accountService.getName();
+        }
+
         accountServiceHelper.deleteAccountServiceById(account, accountServiceId);
+
+        if (serviceName != null) {
+            //Save history
+            String operator = request.getUserPrincipal().getName();
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Произведено удаление услуги " + serviceName);
+            params.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+        }
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

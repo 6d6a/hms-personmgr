@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -9,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -58,8 +56,6 @@ import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_R
 @RestController
 @Validated
 public class PersonalAccountRestController extends CommonRestController {
-    private final static Logger logger = LoggerFactory.getLogger(PersonalAccountRestController.class);
-
     private final PersonalAccountRepository accountRepository;
     private final PlanRepository planRepository;
     private final PlanChangeService planChangeService;
@@ -202,7 +198,7 @@ public class PersonalAccountRestController extends CommonRestController {
                 );
                 params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.controller.rest.PersonalAccountRestController.changeOwner");
 
-                publisher.publishEvent(new AccountHistoryEvent(account, params));
+                publisher.publishEvent(new AccountHistoryEvent(accountId, params));
             }
         }
 
@@ -322,12 +318,14 @@ public class PersonalAccountRestController extends CommonRestController {
             method = RequestMethod.PATCH)
     public ResponseEntity<Object> setSettings(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, Object> requestBody
+            @RequestBody Map<String, Object> requestBody,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
         if (requestBody.get("credit") != null) {
-            if (!(Boolean)requestBody.get("credit")) {
+            Boolean credit = (Boolean)requestBody.get("credit");
+            if (!credit) {
                 // Выключение кредита
                 if (account.isCredit() && account.getCreditActivationDate() != null) {
                     // Кредит был активирован (Прошло первое списание)
@@ -339,25 +337,68 @@ public class PersonalAccountRestController extends CommonRestController {
                     accountHelper.switchAccountResources(account, true);
                 }
             }
-            account.setCredit((Boolean)requestBody.get("credit"));
+            account.setCredit(credit);
+
+            //Save history
+            String operator = request.getUserPrincipal().getName();
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, (credit ? "Включен": "Выключен") + " кредит");
+            params.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
         if (requestBody.get("addQuotaIfOverquoted") != null) {
-            account.setAddQuotaIfOverquoted((Boolean) requestBody.get("addQuotaIfOverquoted"));
+            Boolean addQuotaIfOverquoted = (Boolean) requestBody.get("addQuotaIfOverquoted");
+            account.setAddQuotaIfOverquoted(addQuotaIfOverquoted);
+
+            //Save history
+            String operator = request.getUserPrincipal().getName();
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, (addQuotaIfOverquoted ? "Включено": "Выключено") + " добавление квоты при превышении доступной по тарифу");
+            params.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
         if (requestBody.get("autoBillSending") != null) {
-            account.setAutoBillSending((Boolean)requestBody.get("autoBillSending"));
+            Boolean autoBillSending = (Boolean) requestBody.get("autoBillSending");
+            account.setAutoBillSending(autoBillSending);
+
+            //Save history
+            String operator = request.getUserPrincipal().getName();
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, (autoBillSending ? "Включена": "Выключена") + " автоматическая отправка бухгалтерских документов");
+            params.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
         if (requestBody.get("notifyDays") != null) {
-            account.setNotifyDays((Integer)requestBody.get("notifyDays"));
+            Integer notifyDays = (Integer) requestBody.get("notifyDays");
+            account.setNotifyDays(notifyDays);
+
+            //Save history
+            String operator = request.getUserPrincipal().getName();
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Установлен срок отправки уведомлений об окончании оплаченного периода хостинга на '" + notifyDays + "' дней");
+            params.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
         if (requestBody.get("SMSPhoneNumber") != null) {
+            String smsPhoneNumber = (String)requestBody.get("SMSPhoneNumber");
+            if (Utils.isPhoneValid(smsPhoneNumber)) {
+                account.setSmsPhoneNumber(smsPhoneNumber);
 
-            if (Utils.isPhoneValid((String)requestBody.get("SMSPhoneNumber"))) {
-                account.setSmsPhoneNumber((String) requestBody.get("SMSPhoneNumber"));
+                //Save history
+                String operator = request.getUserPrincipal().getName();
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Установлен телефон для СМС-уведомлений на '" + smsPhoneNumber + "'");
+                params.put(OPERATOR_KEY, operator);
+
+                publisher.publishEvent(new AccountHistoryEvent(accountId, params));
             } else {
                 throw new ParameterValidationException("SMSPhoneNumber is not valid.");
             }

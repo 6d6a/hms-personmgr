@@ -1,8 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
@@ -32,11 +32,14 @@ import ru.majordomo.hms.personmgr.validators.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @RestController
 @RequestMapping("/{accountId}/domain")
@@ -49,7 +52,6 @@ public class DomainResourceRestController extends CommonResourceRestController {
     private final AccountPromotionRepository accountPromotionRepository;
     private final PromocodeActionRepository promocodeActionRepository;
     private final BlackListService blackListService;
-    private final static Logger logger = LoggerFactory.getLogger(DomainResourceRestController.class);
 
     @Autowired
     public DomainResourceRestController(
@@ -74,7 +76,8 @@ public class DomainResourceRestController extends CommonResourceRestController {
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         message.setAccountId(accountId);
 
@@ -83,6 +86,8 @@ public class DomainResourceRestController extends CommonResourceRestController {
         PersonalAccount account = accountRepository.findOne(accountId);
 
         boolean isRegistration = message.getParam("register") != null && (boolean) message.getParam("register");
+        boolean isFreeDomain = false;
+        boolean isDiscountedDomain = false;
 
         String domainName = (String) message.getParam("name");
 
@@ -95,9 +100,6 @@ public class DomainResourceRestController extends CommonResourceRestController {
         DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
 
         if (isRegistration) {
-
-            boolean domainRegistrationByPromotion = false;
-
             List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountId(account.getId());
             for (AccountPromotion accountPromotion : accountPromotions) {
                 Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
@@ -110,7 +112,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
                         map.put(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID, false);
                         // Сохраняем с отметкой, что action использован
                         accountPromotion.setActionsWithStatus(map);
-                        domainRegistrationByPromotion = true;
+                        isFreeDomain = true;
                         message.addParam("freeDomainPromotionId", accountPromotion.getId());
                         break;
                     }
@@ -134,12 +136,13 @@ public class DomainResourceRestController extends CommonResourceRestController {
                         // Устанавливает цену со скидкой
                         paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
                         message.addParam("domainDiscountPromotionId", accountPromotion.getId());
+                        isDiscountedDomain = true;
                         break;
                     }
                 }
             }
 
-            if (!domainRegistrationByPromotion) {
+            if (!isFreeDomain) {
                 accountHelper.checkBalance(account, paymentService);
                 SimpleServiceMessage blockResult = accountHelper.block(account, paymentService);
                 String documentNumber = (String) blockResult.getParam("documentNumber");
@@ -153,6 +156,21 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
+        String actionText = isRegistration ?
+                (isFreeDomain ?
+                        "бесплатную регистрацию" :
+                        (isDiscountedDomain ?
+                                "регистрацию со скидкой" :
+                                "регистрацию")) :
+                "добавление";
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на " + actionText +" домена (имя: " + message.getParam("name") + ")");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
         return this.createSuccessResponse(businessAction);
     }
 
@@ -161,7 +179,8 @@ public class DomainResourceRestController extends CommonResourceRestController {
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
@@ -189,6 +208,14 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на " + (isRenew ? "продление" : "обновление") + " домена (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
         return this.createSuccessResponse(businessAction);
     }
 
@@ -196,7 +223,8 @@ public class DomainResourceRestController extends CommonResourceRestController {
     public SimpleServiceMessage delete(
             @PathVariable String resourceId,
             HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.addParam("resourceId", resourceId);
@@ -207,6 +235,14 @@ public class DomainResourceRestController extends CommonResourceRestController {
         ProcessingBusinessAction businessAction = process(BusinessOperationType.DOMAIN_DELETE, BusinessActionType.DOMAIN_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
+
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на удаление домена (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
         return this.createSuccessResponse(businessAction);
     }

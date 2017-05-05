@@ -12,21 +12,24 @@ import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountHistoryRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
-/**
- * AccountHistoryService
- */
 @Service
 public class AccountHistoryService {
     private final static Logger logger = LoggerFactory.getLogger(AccountHistoryService.class);
 
-    @Autowired
-    private AccountHistoryRepository accountHistoryRepository;
+    private final AccountHistoryRepository accountHistoryRepository;
+    private final PersonalAccountRepository personalAccountRepository;
 
     @Autowired
-    private PersonalAccountRepository personalAccountRepository;
+    public AccountHistoryService(
+            AccountHistoryRepository accountHistoryRepository,
+            PersonalAccountRepository personalAccountRepository
+    ) {
+        this.accountHistoryRepository = accountHistoryRepository;
+        this.personalAccountRepository = personalAccountRepository;
+    }
 
     public void addMessage(String accountId, String message, String operator, LocalDateTime dateTime) {
-        PersonalAccount account = personalAccountRepository.findByAccountId(accountId);
+        PersonalAccount account = personalAccountRepository.findOne(accountId);
 
         if (account != null) {
             AccountHistory accountHistory = new AccountHistory();
@@ -36,7 +39,9 @@ public class AccountHistoryService {
             accountHistory.setCreated(dateTime);
 
             accountHistoryRepository.save(accountHistory);
-            logger.debug("saved AccountHistory: " + accountHistory.toString());
+            logger.debug("[AccountHistoryService] saved AccountHistory: " + accountHistory.toString());
+        } else {
+            logger.error("[AccountHistoryService] account '" + accountId + "' not found. AccountHistory message '" + message + "' not saved");
         }
     }
 

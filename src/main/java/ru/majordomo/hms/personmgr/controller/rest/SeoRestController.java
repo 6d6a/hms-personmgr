@@ -1,11 +1,10 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +20,7 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.SeoType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.seo.SeoOrderedEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.seo.AccountSeoOrder;
@@ -33,6 +33,8 @@ import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SEO_ORDER_CREATE;
@@ -41,8 +43,6 @@ import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SEO_ORDER_
 @RequestMapping("/{accountId}/seo")
 @Validated
 public class SeoRestController extends CommonRestController {
-    private final static Logger logger = LoggerFactory.getLogger(SeoRestController.class);
-
     private final PersonalAccountRepository accountRepository;
     private final AccountSeoOrderRepository accountSeoOrderRepository;
     private final SeoRepository seoRepository;
@@ -93,7 +93,8 @@ public class SeoRestController extends CommonRestController {
     @RequestMapping(value = "/order", method = RequestMethod.POST)
     public ResponseEntity<SimpleServiceMessage> makeSeoOrder(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, Object> requestBody
+            @RequestBody Map<String, Object> requestBody,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
@@ -167,6 +168,14 @@ public class SeoRestController extends CommonRestController {
         logger.debug("Trying to publish SeoOrderedEvent publisher: " + publisher.toString() + " " + publisher.getClass());
         publisher.publishEvent(new SeoOrderedEvent(account, params));
         logger.debug("Published SeoOrderedEvent");
+
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> paramsHistory = new HashMap<>();
+        paramsHistory.put(HISTORY_MESSAGE_KEY, "Произведен заказ услуги '" + seo.getName() + "' для сайта '" + webSite.getName() + "'");
+        paramsHistory.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, paramsHistory));
 
         return new ResponseEntity<>(
                 this.createSuccessResponse("AccountSeoOrder created for websiteId " + webSiteId),

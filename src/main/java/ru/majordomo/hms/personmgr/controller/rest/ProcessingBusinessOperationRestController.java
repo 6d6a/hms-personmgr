@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -53,6 +54,7 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
         return new ResponseEntity<>(operation, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @RequestMapping(value = "/{accountId}/processing-operations/{id}", method = RequestMethod.DELETE)
     public ResponseEntity<Void> delete(
             @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
@@ -65,6 +67,7 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @JsonView(Views.Internal.class)
     @RequestMapping(value = "/processing-operations", method = RequestMethod.GET)
     public ResponseEntity<Page<ProcessingBusinessOperation>> listAll(
@@ -75,6 +78,7 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
         return new ResponseEntity<>(operations, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @JsonView(Views.Internal.class)
     @RequestMapping(value = "/processing-operations/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ProcessingBusinessOperation> get(
@@ -85,6 +89,7 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
         return new ResponseEntity<>(operation, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @RequestMapping(value = "/processing-operations/{id}", method = RequestMethod.DELETE)
     public ResponseEntity<Void> delete(
             @ObjectId(ProcessingBusinessOperation.class) @PathVariable("id") String id

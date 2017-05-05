@@ -1,8 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.apache.commons.validator.routines.EmailValidator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,8 +41,6 @@ import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_CREATE;
 @RestController
 @RequestMapping("/register")
 public class AccountResourceRestController extends CommonResourceRestController {
-    private final static Logger logger = LoggerFactory.getLogger(AccountResourceRestController.class);
-
     private final SequenceCounterService sequenceCounterService;
     private final PersonalAccountRepository personalAccountRepository;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
