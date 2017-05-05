@@ -10,9 +10,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.stream.Stream;
 
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessChargesEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.service.MailManager;
 
 @Component
 public class ChargesScheduler {
@@ -20,6 +22,12 @@ public class ChargesScheduler {
 
     private final PersonalAccountRepository personalAccountRepository;
     private final ApplicationEventPublisher publisher;
+    private MailManager mailManager;
+
+    @Autowired
+    public void setMailManager(MailManager mailManager) {
+        this.mailManager = mailManager;
+    }
 
     @Autowired
     public ChargesScheduler(
@@ -39,5 +47,14 @@ public class ChargesScheduler {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessChargesEvent(account)));
         }
         logger.debug("Ended processCharges");
+    }
+
+    @Scheduled(cron = "*/5 * * * * *")
+    @SchedulerLock(name = "testLock")
+    public void testLock() {
+        logger.debug("Started testLock");
+        PersonalAccount account = personalAccountRepository.findByAccountId("200284");
+        publisher.publishEvent(new AccountProcessChargesEvent(account));
+        logger.debug("Ended testLock");
     }
 }
