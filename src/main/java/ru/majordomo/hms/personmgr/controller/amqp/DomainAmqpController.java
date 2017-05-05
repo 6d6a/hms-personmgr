@@ -79,6 +79,7 @@ public class DomainAmqpController {
             if (businessAction != null && businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_CREATE_RC)) {
                 PersonalAccount account = personalAccountRepository.findOne(businessAction.getPersonalAccountId());
                 account.setAccountNew(false);
+                personalAccountRepository.save(account);
             }
         }
     }

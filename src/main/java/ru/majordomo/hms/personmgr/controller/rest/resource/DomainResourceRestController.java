@@ -20,6 +20,7 @@ import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
@@ -30,10 +31,12 @@ import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
 import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
 
 @RestController
 @RequestMapping("/{accountId}/domain")
@@ -107,19 +110,43 @@ public class DomainResourceRestController extends CommonResourceRestController {
                         map.put(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID, false);
                         // Сохраняем с отметкой, что action использован
                         accountPromotion.setActionsWithStatus(map);
-                        accountPromotionRepository.save(accountPromotion);
                         domainRegistrationByPromotion = true;
+                        message.addParam("freeDomainPromotionId", accountPromotion.getId());
+                        break;
+                    }
+                }
+            }
+
+
+            PaymentService paymentService = domainTld.getRegistrationService();
+
+            for (AccountPromotion accountPromotion : accountPromotions) {
+                Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
+                if (map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) != null && map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) == true) {
+                    PromocodeAction promocodeAction = promocodeActionRepository.findOne(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
+                    List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
+
+                    if (availableTlds.contains(domainTld.getTld())) {
+                        map.put(DOMAIN_DISCOUNT_RU_RF_ACTION_ID, false);
+                        // Сохраняем с отметкой, что action использован
+                        accountPromotion.setActionsWithStatus(map);
+
+                        // Устанавливает цену со скидкой
+                        paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
+                        message.addParam("domainDiscountPromotionId", accountPromotion.getId());
                         break;
                     }
                 }
             }
 
             if (!domainRegistrationByPromotion) {
-                accountHelper.checkBalance(account, domainTld.getRegistrationService());
-                SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRegistrationService());
+                accountHelper.checkBalance(account, paymentService);
+                SimpleServiceMessage blockResult = accountHelper.block(account, paymentService);
                 String documentNumber = (String) blockResult.getParam("documentNumber");
                 message.addParam("documentNumber", documentNumber);
             }
+
+            accountPromotionRepository.save(accountPromotions);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message);

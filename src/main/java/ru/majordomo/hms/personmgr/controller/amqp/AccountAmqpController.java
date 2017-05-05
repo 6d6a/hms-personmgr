@@ -22,10 +22,15 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
+import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.service.*;
+
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT;
 
 @EnableRabbit
 @Service
@@ -40,6 +45,8 @@ public class AccountAmqpController {
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final AbonementService abonementService;
     private final AccountAbonementRepository accountAbonementRepository;
+    private final PromotionRepository promotionRepository;
+    private final AccountHelper accountHelper;
 
     @Autowired
     public AccountAmqpController(
@@ -49,7 +56,9 @@ public class AccountAmqpController {
             PersonalAccountRepository accountRepository,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
             AbonementService abonementService,
-            AccountAbonementRepository accountAbonementRepository) {
+            AccountAbonementRepository accountAbonementRepository,
+            PromotionRepository promotionRepository,
+            AccountHelper accountHelper) {
         this.businessFlowDirector = businessFlowDirector;
         this.businessActionBuilder = businessActionBuilder;
         this.promocodeProcessor = promocodeProcessor;
@@ -57,6 +66,8 @@ public class AccountAmqpController {
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
         this.abonementService = abonementService;
         this.accountAbonementRepository = accountAbonementRepository;
+        this.promotionRepository = promotionRepository;
+        this.accountHelper = accountHelper;
     }
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.account.create",
@@ -95,13 +106,21 @@ public class AccountAmqpController {
                                 }
                             }
 
-                            //Пробный период 14 дней - начисляем бонусный абонемент
                             PersonalAccount account = accountRepository.findOne(message.getAccountId());
                             if (account != null) {
+
+                                //Пробный период 14 дней - начисляем бонусный абонемент
                                 AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), false);
                                 if (accountAbonement == null) {
                                     abonementService.addFree14DaysAbonement(account);
                                 }
+
+                                //Три домена RU и РФ по 49 рублей
+                                Promotion promotion = promotionRepository.findByName(DOMAIN_DISCOUNT_RU_RF);
+                                for (int i = 1; i <= DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT; i++) {
+                                    accountHelper.giveGift(account, promotion);
+                                }
+
                             }
 
                             if (businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
