@@ -110,7 +110,6 @@ public class DomainResourceRestController extends CommonResourceRestController {
                         map.put(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID, false);
                         // Сохраняем с отметкой, что action использован
                         accountPromotion.setActionsWithStatus(map);
-                        accountPromotionRepository.save(accountPromotion);
                         domainRegistrationByPromotion = true;
                         message.addParam("freeDomainPromotionId", accountPromotion.getId());
                         break;
@@ -131,7 +130,6 @@ public class DomainResourceRestController extends CommonResourceRestController {
                         map.put(DOMAIN_DISCOUNT_RU_RF_ACTION_ID, false);
                         // Сохраняем с отметкой, что action использован
                         accountPromotion.setActionsWithStatus(map);
-                        accountPromotionRepository.save(accountPromotion);
 
                         // Устанавливает цену со скидкой
                         paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
@@ -147,6 +145,8 @@ public class DomainResourceRestController extends CommonResourceRestController {
                 String documentNumber = (String) blockResult.getParam("documentNumber");
                 message.addParam("documentNumber", documentNumber);
             }
+
+            accountPromotionRepository.save(accountPromotions);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message);
