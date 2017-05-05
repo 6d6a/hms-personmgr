@@ -181,7 +181,7 @@ public class DomainService {
                 //Запишем попытку в историю клиента
                 Map<String, String> params = new HashMap<>();
                 params.put(HISTORY_MESSAGE_KEY, "Автоматическое продление " + domain.getName() + " невозможно, на счету " + balance + " руб.");
-                params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.DomainService.processDomainsAutoRenewByAccount");
+                params.put(OPERATOR_KEY, "service");
 
                 publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
 

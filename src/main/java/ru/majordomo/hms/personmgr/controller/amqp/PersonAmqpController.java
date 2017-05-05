@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -13,39 +11,33 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
-import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
+
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @EnableRabbit
 @Service
-public class PersonAmqpController {
-
-    private final static Logger logger = LoggerFactory.getLogger(PersonAmqpController.class);
-
-    private final BusinessFlowDirector businessFlowDirector;
-    private final PersonalAccountRepository accountRepository;
+public class PersonAmqpController extends CommonAmqpController {
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final BusinessActionBuilder businessActionBuilder;
 
     @Autowired
     public PersonAmqpController(
-            BusinessFlowDirector businessFlowDirector,
-            PersonalAccountRepository accountRepository,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
             BusinessActionBuilder businessActionBuilder
     ) {
-        this.businessFlowDirector = businessFlowDirector;
-        this.accountRepository = accountRepository;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
         this.businessActionBuilder = businessActionBuilder;
     }
@@ -71,6 +63,13 @@ public class PersonAmqpController {
         State state = businessFlowDirector.processMessage(message);
 
         if (state == State.PROCESSED) {
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Заявка на создание персоны выполнена успешно (имя: " + message.getParam("name") + ")");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+
             PersonalAccount account = accountRepository.findOne(message.getAccountId());
 
             if (account != null && account.getOwnerPersonId() == null) {
@@ -81,6 +80,13 @@ public class PersonAmqpController {
                 } else {
                     account.setOwnerPersonId(personId);
                     accountRepository.save(account);
+
+                    //Save history
+                    params = new HashMap<>();
+                    params.put(HISTORY_MESSAGE_KEY, "Созданная персона установлена владельцем аккаунта (имя: " + message.getParam("name") + ")");
+                    params.put(OPERATOR_KEY, "service");
+
+                    publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
                 }
             }
 
@@ -88,6 +94,13 @@ public class PersonAmqpController {
             if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
                 message.addParam("quota", (Long) businessOperation.getParams().get("quota") * 1024);
                 businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
+
+                //Save history
+                params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Заявка на первичное создание UNIX-аккаунта отправлена (имя: " + message.getParam("name") + ")");
+                params.put(OPERATOR_KEY, "service");
+
+                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
             }
         }
     }
@@ -111,6 +124,15 @@ public class PersonAmqpController {
         logger.debug("Received update message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
+
+        if (state.equals(State.PROCESSED)) {
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление персоны выполнена успешно (имя: " + message.getParam("name") + ")");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+        }
     }
 
     @RabbitListener(
@@ -132,5 +154,14 @@ public class PersonAmqpController {
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
+
+        if (state.equals(State.PROCESSED)) {
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление персоны выполнена успешно (имя: " + message.getParam("name") + ")");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+        }
     }
 }

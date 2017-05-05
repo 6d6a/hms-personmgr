@@ -1,37 +1,28 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @EnableRabbit
 @Service
-public class MailboxAmqpController {
-
-    private final static Logger logger = LoggerFactory.getLogger(MailboxAmqpController.class);
-
-    private final BusinessFlowDirector businessFlowDirector;
-
-    @Autowired
-    public MailboxAmqpController(BusinessFlowDirector businessFlowDirector) {
-        this.businessFlowDirector = businessFlowDirector;
-    }
-
+public class MailboxAmqpController extends CommonAmqpController {
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.mailbox.create",
                                                             durable = "true",
                                                             autoDelete = "false"),
@@ -42,7 +33,16 @@ public class MailboxAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
 
-        businessFlowDirector.processMessage(message);
+        State state = businessFlowDirector.processMessage(message);
+
+        if (state.equals(State.PROCESSED)) {
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Заявка на создание почтового ящика выполнена успешно (имя: " + message.getParam("name") + ")");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+        }
     }
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.mailbox.update",
@@ -56,6 +56,15 @@ public class MailboxAmqpController {
         logger.debug("Received update message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
+
+        if (state.equals(State.PROCESSED)) {
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление почтового ящика выполнена успешно (имя: " + message.getParam("name") + ")");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+        }
     }
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.mailbox.delete",
@@ -69,5 +78,14 @@ public class MailboxAmqpController {
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
+
+        if (state.equals(State.PROCESSED)) {
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление почтового ящика выполнена успешно (имя: " + message.getParam("name") + ")");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+        }
     }
 }

@@ -85,7 +85,7 @@ public class AccountDomainsEventListener {
         //Запишем попытку в историю клиента
         Map<String, String> historyParams = new HashMap<>();
         historyParams.put(HISTORY_MESSAGE_KEY, "Произведено автоматическое продление " + domain.getName());
-        historyParams.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.event.account.listener.AccountDomainsEventListener.onAccountDomainAutoRenewCompletedEvent");
+        historyParams.put(OPERATOR_KEY, "service");
 
         publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
     }

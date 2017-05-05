@@ -1,9 +1,38 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
+
 public class CommonAmqpController {
+    protected Logger logger = LoggerFactory.getLogger(getClass());
+
+    protected BusinessFlowDirector businessFlowDirector;
+    protected PersonalAccountRepository accountRepository;
+    protected ApplicationEventPublisher publisher;
+
+    @Autowired
+    public void setBusinessFlowDirector(BusinessFlowDirector businessFlowDirector) {
+        this.businessFlowDirector = businessFlowDirector;
+    }
+
+    @Autowired
+    public void setAccountRepository(PersonalAccountRepository accountRepository) {
+        this.accountRepository = accountRepository;
+    }
+
+    @Autowired
+    public void setPublisher(ApplicationEventPublisher publisher) {
+        this.publisher = publisher;
+    }
+
     protected String getResourceIdByObjRef(String url) {
         try {
             URL processingUrl = new URL(url);
