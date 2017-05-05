@@ -113,13 +113,11 @@ public class AccountHistoryRestController extends CommonRestController {
             @RequestBody Map<String, String> requestBody,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
-
         String historyMessage = requestBody.get("historyMessage");
         String operator = request.getUserPrincipal().getName();
 
         if (historyMessage != null && operator != null) {
-            accountHistoryService.addMessage(account.getAccountId(), historyMessage, operator);
+            accountHistoryService.addMessage(accountId, historyMessage, operator);
         }
 
         return new ResponseEntity<>(HttpStatus.OK);

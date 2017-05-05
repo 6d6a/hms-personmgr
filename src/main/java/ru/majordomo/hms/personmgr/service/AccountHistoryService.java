@@ -29,7 +29,7 @@ public class AccountHistoryService {
     }
 
     public void addMessage(String accountId, String message, String operator, LocalDateTime dateTime) {
-        PersonalAccount account = personalAccountRepository.findByAccountId(accountId);
+        PersonalAccount account = personalAccountRepository.findOne(accountId);
 
         if (account != null) {
             AccountHistory accountHistory = new AccountHistory();

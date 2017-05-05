@@ -183,7 +183,7 @@ public class DomainService {
                 params.put(HISTORY_MESSAGE_KEY, "Автоматическое продление " + domain.getName() + " невозможно, на счету " + balance + " руб.");
                 params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.DomainService.processDomainsAutoRenewByAccount");
 
-                publisher.publishEvent(new AccountHistoryEvent(account, params));
+                publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
 
                 //Отправим письмо
                 String email = accountHelper.getEmail(account);

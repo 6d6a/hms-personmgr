@@ -250,7 +250,7 @@ public class AbonementService {
                     );
                     params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account, params));
+                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                 } else {
                     logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
 
@@ -266,7 +266,7 @@ public class AbonementService {
                     );
                     params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account, params));
+                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
 
                     //Сохраним "на будущее" установку автопокупки абонемента
                     publisher.publishEvent(new AccountSetSettingEvent(account, AccountSetting.ABONEMENT_AUTO_RENEW, true));
@@ -283,7 +283,7 @@ public class AbonementService {
                 );
                 params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
 
-                publisher.publishEvent(new AccountHistoryEvent(account, params));
+                publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
             }
             } else {
                 // Если абонемент бонусный (internal)
@@ -311,7 +311,7 @@ public class AbonementService {
                         );
                         params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
 
-                        publisher.publishEvent(new AccountHistoryEvent(account, params));
+                        publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
 
                     } else {
                         logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + preorderAccountAbonementCost);
@@ -328,7 +328,7 @@ public class AbonementService {
                         );
                         params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
 
-                        publisher.publishEvent(new AccountHistoryEvent(account, params));
+                        publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                     }
 
                 } else {
@@ -341,7 +341,7 @@ public class AbonementService {
                     );
                     params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account, params));
+                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                 }
             }
         });

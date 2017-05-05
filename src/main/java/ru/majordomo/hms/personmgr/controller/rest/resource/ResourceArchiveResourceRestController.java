@@ -1,29 +1,35 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 import javax.servlet.http.HttpServletResponse;
 
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
+
 @RestController
 @RequestMapping("/{accountId}/resource-archive")
 @Validated
 public class ResourceArchiveResourceRestController extends CommonResourceRestController {
-    private final static Logger logger = LoggerFactory.getLogger(ResourceArchiveResourceRestController.class);
-
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         message.setAccountId(accountId);
 
@@ -33,6 +39,14 @@ public class ResourceArchiveResourceRestController extends CommonResourceRestCon
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на создание архива (имя: " + message.getParam("name") + ")");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
         return this.createSuccessResponse(businessAction);
     }
 
@@ -41,7 +55,8 @@ public class ResourceArchiveResourceRestController extends CommonResourceRestCon
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         message.setAccountId(accountId);
         message.getParams().put("resourceId", resourceId);
@@ -52,6 +67,14 @@ public class ResourceArchiveResourceRestController extends CommonResourceRestCon
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на обновление архива (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
         return this.createSuccessResponse(businessAction);
     }
 
@@ -59,7 +82,8 @@ public class ResourceArchiveResourceRestController extends CommonResourceRestCon
     public SimpleServiceMessage delete(
             @PathVariable String resourceId,
             HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.addParam("resourceId", resourceId);
@@ -70,6 +94,14 @@ public class ResourceArchiveResourceRestController extends CommonResourceRestCon
         ProcessingBusinessAction businessAction = process(BusinessOperationType.RESOURCE_ARCHIVE_DELETE, BusinessActionType.RESOURCE_ARCHIVE_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
+
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на удаление архива (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
         return this.createSuccessResponse(businessAction);
     }

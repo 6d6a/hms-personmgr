@@ -265,7 +265,7 @@ public class PlanChangeService {
      * @param newPlan     новый тариф
      */
     private void saveHistory(PersonalAccount account, Plan currentPlan, Plan newPlan) {
-        accountHistoryService.addMessage(account.getAccountId(), "Произведена смена тарифа с " + currentPlan.getName() + " на " + newPlan.getName(), "operator");
+        accountHistoryService.addMessage(account.getId(), "Произведена смена тарифа с " + currentPlan.getName() + " на " + newPlan.getName(), "operator");
     }
 
 

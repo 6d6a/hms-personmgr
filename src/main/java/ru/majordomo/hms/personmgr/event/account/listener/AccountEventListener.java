@@ -238,7 +238,7 @@ public class AccountEventListener {
         historyParams.put(HISTORY_MESSAGE_KEY, "Получена заявка на смену пароля к панели управления с IP: " + ip);
         historyParams.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.event.account.listener.AccountEventListener.onAccountPasswordRecover");
 
-        publisher.publishEvent(new AccountHistoryEvent(account, historyParams));
+        publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
     }
 
     @EventListener
@@ -273,7 +273,7 @@ public class AccountEventListener {
         historyParams.put(HISTORY_MESSAGE_KEY, "Произведена смена пароля к панели управления с IP: " + ip);
         historyParams.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.event.account.listener.AccountEventListener.onAccountPasswordRecoverConfirmed");
 
-        publisher.publishEvent(new AccountHistoryEvent(account, historyParams));
+        publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
     }
 
     @EventListener
@@ -291,7 +291,7 @@ public class AccountEventListener {
         historyParams.put(HISTORY_MESSAGE_KEY, "Произведена смена пароля к панели управления с IP: " + ip);
         historyParams.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.event.account.listener.AccountEventListener.onAccountPasswordChangedEvent");
 
-        publisher.publishEvent(new AccountHistoryEvent(account, historyParams));
+        publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
 
         if (account.hasNotification(MailManagerMessageType.EMAIL_CHANGE_ACCOUNT_PASSWORD)) {
             String emails = accountHelper.getEmail(account);

@@ -87,6 +87,6 @@ public class AccountDomainsEventListener {
         historyParams.put(HISTORY_MESSAGE_KEY, "Произведено автоматическое продление " + domain.getName());
         historyParams.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.event.account.listener.AccountDomainsEventListener.onAccountDomainAutoRenewCompletedEvent");
 
-        publisher.publishEvent(new AccountHistoryEvent(account, historyParams));
+        publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
     }
 }

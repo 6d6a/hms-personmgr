@@ -2,6 +2,8 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 
 import java.util.Map;
@@ -13,7 +15,14 @@ import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 
 public class CommonRestController {
-    private final static Logger logger = LoggerFactory.getLogger(CommonRestController.class);
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
+
+    protected ApplicationEventPublisher publisher;
+
+    @Autowired
+    public void setPublisher(ApplicationEventPublisher publisher) {
+        this.publisher = publisher;
+    }
 
     private SimpleServiceMessage createResponse() {
         return new SimpleServiceMessage();

@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,28 +8,33 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.*;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.FieldRoles.WEB_SITE_PATCH;
 
 @RestController
 @RequestMapping("/{accountId}/website")
 @Validated
 public class WebSiteResourceRestController extends CommonResourceRestController {
-    private final static Logger logger = LoggerFactory.getLogger(WebSiteResourceRestController.class);
-
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         message.setAccountId(accountId);
 
@@ -46,6 +49,14 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.WEB_SITE_CREATE, BusinessActionType.WEB_SITE_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
+
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на создание сайта (имя: " + message.getParam("name") + ")");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
         return this.createSuccessResponse(businessAction);
     }
@@ -69,6 +80,14 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на обновление сайта (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
         return this.createSuccessResponse(businessAction);
     }
 
@@ -76,7 +95,8 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
     public SimpleServiceMessage delete(
             @PathVariable String resourceId,
             HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.addParam("resourceId", resourceId);
@@ -87,6 +107,14 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.WEB_SITE_DELETE, BusinessActionType.WEB_SITE_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
+
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на удаление сайта (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
         return this.createSuccessResponse(businessAction);
     }

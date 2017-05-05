@@ -32,7 +32,7 @@ public class AccountHistoryEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onAccountHistoryEvent(AccountHistoryEvent event) {
-        PersonalAccount account = event.getSource();
+        String accountId = event.getSource();
 
         Map<String, ?> params = event.getParams();
 
@@ -42,7 +42,7 @@ public class AccountHistoryEventListener {
         logger.debug("We got AccountHistoryEvent");
 
         try {
-            accountHistoryService.addMessage(account.getAccountId(), historyMessage, operator);
+            accountHistoryService.addMessage(accountId, historyMessage, operator);
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("[AccountHistoryEventListener] accountHistoryService.addMessage Exception: " + e.getMessage());
