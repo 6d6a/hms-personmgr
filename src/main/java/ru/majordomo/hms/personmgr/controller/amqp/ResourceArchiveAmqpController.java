@@ -1,31 +1,24 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
-import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
+import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+
+import java.util.HashMap;
 import java.util.Map;
+
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @EnableRabbit
 @Service
-public class ResourceArchiveAmqpController {
-
-    private final static Logger logger = LoggerFactory.getLogger(ResourceArchiveAmqpController.class);
-
-    private final BusinessFlowDirector businessFlowDirector;
-
-    @Autowired
-    public ResourceArchiveAmqpController(BusinessFlowDirector businessFlowDirector) {
-        this.businessFlowDirector = businessFlowDirector;
-    }
-
+public class ResourceArchiveAmqpController extends CommonAmqpController {
     @RabbitListener(
             bindings = @QueueBinding(
                     value = @Queue(
@@ -43,7 +36,16 @@ public class ResourceArchiveAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
 
-        businessFlowDirector.processMessage(message);
+        State state = businessFlowDirector.processMessage(message);
+
+        if (state.equals(State.PROCESSED)) {
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Заявка на создание архива выполнена успешно (имя: " + message.getParam("name") + ")");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+        }
     }
 
     @RabbitListener(
@@ -64,7 +66,16 @@ public class ResourceArchiveAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received update message from " + provider + ": " + message.toString());
 
-        businessFlowDirector.processMessage(message);
+        State state = businessFlowDirector.processMessage(message);
+
+        if (state.equals(State.PROCESSED)) {
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление архива выполнена успешно (имя: " + message.getParam("name") + ")");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+        }
     }
 
     @RabbitListener(
@@ -85,6 +96,15 @@ public class ResourceArchiveAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
-        businessFlowDirector.processMessage(message);
+        State state = businessFlowDirector.processMessage(message);
+
+        if (state.equals(State.PROCESSED)) {
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление архива выполнена успешно (имя: " + message.getParam("name") + ")");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+        }
     }
 }

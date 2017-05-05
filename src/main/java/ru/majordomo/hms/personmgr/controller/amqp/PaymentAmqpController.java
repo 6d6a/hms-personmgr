@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +8,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
@@ -34,10 +33,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.*;
 @EnableRabbit
 @Service
 public class PaymentAmqpController extends CommonAmqpController  {
-
-    private final static Logger logger = LoggerFactory.getLogger(PaymentAmqpController.class);
-
-    private final PersonalAccountRepository accountRepository;
     private final AccountPromocodeRepository accountPromocodeRepository;
     private final FinFeignClient finFeignClient;
     private final AccountStatRepository accountStatRepository;
@@ -45,21 +40,17 @@ public class PaymentAmqpController extends CommonAmqpController  {
     private final AccountPromotionRepository accountPromotionRepository;
     private final PromotionRepository promotionRepository;
     private final AccountHelper accountHelper;
-    private final AccountDomainRepository accountDomainRepository;
 
     @Autowired
     public PaymentAmqpController(
-            PersonalAccountRepository accountRepository,
             AccountPromocodeRepository accountPromocodeRepository,
             FinFeignClient finFeignClient,
             AccountStatRepository accountStatRepository,
             PlanRepository planRepository,
             AccountPromotionRepository accountPromotionRepository,
             PromotionRepository promotionRepository,
-            AccountHelper accountHelper,
-            AccountDomainRepository accountDomainRepository
+            AccountHelper accountHelper
     ) {
-        this.accountRepository = accountRepository;
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.finFeignClient = finFeignClient;
         this.accountStatRepository = accountStatRepository;
@@ -67,7 +58,6 @@ public class PaymentAmqpController extends CommonAmqpController  {
         this.accountPromotionRepository = accountPromotionRepository;
         this.promotionRepository = promotionRepository;
         this.accountHelper = accountHelper;
-        this.accountDomainRepository = accountDomainRepository;
     }
 
     @RabbitListener(
@@ -132,7 +122,8 @@ public class PaymentAmqpController extends CommonAmqpController  {
                 }
 
                 if (accountPromocodeRepository.countByPersonalAccountIdAndOwnedByAccount(account.getId(), false) > 1) {
-                    throw new ParameterValidationException("Account has more than one AccountPromocodes with OwnedByAccount == false. Id: " + account.getId());
+                    logger.error("Account has more than one AccountPromocodes with OwnedByAccount == false. Id: " + account.getId());
+                    return;
                 }
 
                 // Проверка на то что аккаунт создан по партнерскому промокоду
@@ -144,7 +135,8 @@ public class PaymentAmqpController extends CommonAmqpController  {
                     PersonalAccount accountForPartnerBonus = accountRepository.findByAccountId(accountPromocode.getOwnerPersonalAccountId());
 
                     if (accountForPartnerBonus == null) {
-                        throw new ParameterValidationException("PersonalAccount with ID: " + accountPromocode.getOwnerPersonalAccountId() + " not found.");
+                        logger.error("PersonalAccount with ID: " + accountPromocode.getOwnerPersonalAccountId() + " not found.");
+                        return;
                     }
 
                     // Проверка даты создания аккаунта
@@ -159,11 +151,18 @@ public class PaymentAmqpController extends CommonAmqpController  {
                         payment.put("accountId", accountForPartnerBonus.getName());
                         payment.put("paymentTypeId", BONUS_PARTNER_TYPE_ID);
                         payment.put("amount", promocodeBonus);
-                        payment.put("message", "Бонусный платеж за использование промокода " + accountPromocode.getPromocode().getCode() + " на аккаунте: " + accountForPartnerBonus.getName());
+                        payment.put("message", "Бонусный платеж за использование промокода " + accountPromocode.getPromocode().getCode() + " на аккаунте: " + account.getName());
 
                         try {
                             String responseMessage = finFeignClient.addPayment(payment);
                             logger.debug("Processed promocode addPayment: " + responseMessage);
+
+                            //Save history
+                            Map<String, String> params = new HashMap<>();
+                            params.put(HISTORY_MESSAGE_KEY, "Произведено начисление процента от пополнения (" + promocodeBonus.toString() + " руб. от " + amount.toString() + " руб.) владельцу партнерского промокода" + accountPromocode.getPromocode().getCode() + " - " + accountForPartnerBonus.getName());
+                            params.put(OPERATOR_KEY, "service");
+
+                            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
 
                             //Статистика
                             AccountStat accountStat = new AccountStat();
@@ -182,14 +181,11 @@ public class PaymentAmqpController extends CommonAmqpController  {
 
                         } catch (Exception e) {
                             e.printStackTrace();
+                            logger.error("Exception in pm.payment.create AMQP listener: " + e.getMessage());
                         }
                     }
-
                 }
-
-
             }
         }
-
     }
 }

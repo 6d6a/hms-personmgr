@@ -236,7 +236,7 @@ public class AccountEventListener {
         //Запишем в историю клиента
         Map<String, String> historyParams = new HashMap<>();
         historyParams.put(HISTORY_MESSAGE_KEY, "Получена заявка на смену пароля к панели управления с IP: " + ip);
-        historyParams.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.event.account.listener.AccountEventListener.onAccountPasswordRecover");
+        historyParams.put(OPERATOR_KEY, "service");
 
         publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
     }
@@ -271,7 +271,7 @@ public class AccountEventListener {
         //Запишем в историю клиента
         Map<String, String> historyParams = new HashMap<>();
         historyParams.put(HISTORY_MESSAGE_KEY, "Произведена смена пароля к панели управления с IP: " + ip);
-        historyParams.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.event.account.listener.AccountEventListener.onAccountPasswordRecoverConfirmed");
+        historyParams.put(OPERATOR_KEY, "service");
 
         publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
     }
@@ -289,7 +289,7 @@ public class AccountEventListener {
         //Запишем в историю клиента
         Map<String, String> historyParams = new HashMap<>();
         historyParams.put(HISTORY_MESSAGE_KEY, "Произведена смена пароля к панели управления с IP: " + ip);
-        historyParams.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.event.account.listener.AccountEventListener.onAccountPasswordChangedEvent");
+        historyParams.put(OPERATOR_KEY, "service");
 
         publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
 

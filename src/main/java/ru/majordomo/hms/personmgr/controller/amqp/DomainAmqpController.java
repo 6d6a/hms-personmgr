@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -9,7 +7,6 @@ import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
@@ -21,36 +18,26 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountDomainAutoRenewCompletedEvent;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
-import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
 import static ru.majordomo.hms.personmgr.common.Constants.AUTO_RENEW_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 
 @EnableRabbit
 @Service
-public class DomainAmqpController {
-
-    private final static Logger logger = LoggerFactory.getLogger(DomainAmqpController.class);
-
-    private final BusinessFlowDirector businessFlowDirector;
+public class DomainAmqpController extends CommonAmqpController {
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
-    private final PersonalAccountRepository personalAccountRepository;
-    private final ApplicationEventPublisher publisher;
 
     @Autowired
     public DomainAmqpController(
-            BusinessFlowDirector businessFlowDirector,
-            ProcessingBusinessActionRepository processingBusinessActionRepository,
-            PersonalAccountRepository personalAccountRepository,
-            ApplicationEventPublisher publisher) {
-        this.businessFlowDirector = businessFlowDirector;
+            ProcessingBusinessActionRepository processingBusinessActionRepository
+    ) {
         this.processingBusinessActionRepository = processingBusinessActionRepository;
-        this.personalAccountRepository = personalAccountRepository;
-        this.publisher = publisher;
     }
 
     @RabbitListener(
@@ -77,10 +64,19 @@ public class DomainAmqpController {
             ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
             if (businessAction != null && businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_CREATE_RC)) {
-                PersonalAccount account = personalAccountRepository.findOne(businessAction.getPersonalAccountId());
-                account.setAccountNew(false);
-                personalAccountRepository.save(account);
+                PersonalAccount account = accountRepository.findOne(businessAction.getPersonalAccountId());
+                if (account.isAccountNew()) {
+                    account.setAccountNew(false);
+                    accountRepository.save(account);
+                }
             }
+
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Заявка на создание домена выполнена успешно (имя: " + message.getParam("name") + ")");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
         }
     }
 
@@ -107,15 +103,30 @@ public class DomainAmqpController {
         if (state == State.PROCESSED) {
             ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
+            Map<String, String> paramsHistory;
             if (businessAction != null
                     && businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_UPDATE_RC)
                     && (Boolean) businessAction.getParam(AUTO_RENEW_KEY)) {
-                PersonalAccount account = personalAccountRepository.findOne(businessAction.getPersonalAccountId());
+                PersonalAccount account = accountRepository.findOne(businessAction.getPersonalAccountId());
 
                 Map<String, String> params = new HashMap<>();
                 params.put(RESOURCE_ID_KEY, (String) businessAction.getParam(RESOURCE_ID_KEY));
 
                 publisher.publishEvent(new AccountDomainAutoRenewCompletedEvent(account, params));
+
+                //Save history
+                paramsHistory = new HashMap<>();
+                paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на продление домена выполнена успешно (имя: " + message.getParam("name") + ")");
+                paramsHistory.put(OPERATOR_KEY, "service");
+
+                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), paramsHistory));
+            } else {
+                //Save history
+                paramsHistory = new HashMap<>();
+                paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на обновление домена выполнена успешно (имя: " + message.getParam("name") + ")");
+                paramsHistory.put(OPERATOR_KEY, "service");
+
+                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), paramsHistory));
             }
         }
     }
@@ -139,5 +150,14 @@ public class DomainAmqpController {
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
+
+        if (state.equals(State.PROCESSED)) {
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление домена выполнена успешно (имя: " + message.getParam("name") + ")");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+        }
     }
 }

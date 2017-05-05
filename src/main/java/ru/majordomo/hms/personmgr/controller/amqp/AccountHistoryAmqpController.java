@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -23,10 +21,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @EnableRabbit
 @Service
-public class AccountHistoryAmqpController {
-
-    private final static Logger logger = LoggerFactory.getLogger(AccountHistoryAmqpController.class);
-
+public class AccountHistoryAmqpController extends CommonAmqpController {
     private final AccountHistoryService accountHistoryService;
 
     @Autowired

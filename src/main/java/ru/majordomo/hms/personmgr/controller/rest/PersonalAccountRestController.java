@@ -196,7 +196,7 @@ public class PersonalAccountRestController extends CommonRestController {
                         currentPerson +
                         " Новый владелец: " + person
                 );
-                params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.controller.rest.PersonalAccountRestController.changeOwner");
+                params.put(OPERATOR_KEY, "service");
 
                 publisher.publishEvent(new AccountHistoryEvent(accountId, params));
             }

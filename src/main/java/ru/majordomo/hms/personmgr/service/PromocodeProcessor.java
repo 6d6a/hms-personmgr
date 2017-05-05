@@ -4,6 +4,7 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -26,6 +28,8 @@ import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.repository.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.FREE_DOMAIN_PROMOTION;
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PROMOCODE_ACTION_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PAYMENT_TYPE_ID;
 
@@ -43,6 +47,7 @@ public class PromocodeProcessor {
     private final PromotionRepository promotionRepository;
     private final AccountHelper accountHelper;
     private final UnknownPromocodeRepository unknownPromocodeRepository;
+    protected final ApplicationEventPublisher publisher;
 
     @Autowired
     public PromocodeProcessor(
@@ -55,7 +60,8 @@ public class PromocodeProcessor {
             AccountPromotionRepository accountPromotionRepository,
             PromotionRepository promotionRepository,
             AccountHelper accountHelper,
-            UnknownPromocodeRepository unknownPromocodeRepository
+            UnknownPromocodeRepository unknownPromocodeRepository,
+            ApplicationEventPublisher publisher
     ) {
         this.promocodeRepository = promocodeRepository;
         this.accountPromocodeRepository = accountPromocodeRepository;
@@ -67,6 +73,7 @@ public class PromocodeProcessor {
         this.promotionRepository = promotionRepository;
         this.accountHelper = accountHelper;
         this.unknownPromocodeRepository = unknownPromocodeRepository;
+        this.publisher = publisher;
     }
 
     public void processPromocode(PersonalAccount account, String promocodeString) {
@@ -86,6 +93,8 @@ public class PromocodeProcessor {
         }
 
         AccountPromocode accountPromocode;
+
+        Map<String, String> paramsHistory;
 
         switch (promocode.getType()) {
             case PARTNER:
@@ -109,6 +118,13 @@ public class PromocodeProcessor {
 
                 accountPromocodeRepository.save(accountPromocode);
 
+                //Save history
+                paramsHistory = new HashMap<>();
+                paramsHistory.put(HISTORY_MESSAGE_KEY, "Клиент зарегистрирован с использованием партнресвкого промокода '" + promocodeString + "'");
+                paramsHistory.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.PromocodeProcessor.processPromocode");
+
+                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+
                 processPartnerPromocodeActions(account, accountPromocode);
 
                 break;
@@ -131,6 +147,13 @@ public class PromocodeProcessor {
                 accountPromocode.setPromocode(promocode);
 
                 accountPromocodeRepository.save(accountPromocode);
+
+                //Save history
+                paramsHistory = new HashMap<>();
+                paramsHistory.put(HISTORY_MESSAGE_KEY, "Клиент зарегистрирован с использованием бонусного промокода '" + promocodeString + "'");
+                paramsHistory.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.PromocodeProcessor.processPromocode");
+
+                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
 
                 processBonusPromocodeActions(account, accountPromocode);
 
@@ -202,8 +225,16 @@ public class PromocodeProcessor {
                         logger.debug("Processed promocode addPayment: " + responseMessage);
 
                     } catch (Exception e) {
+                        logger.error("");
                         e.printStackTrace();
                     }
+
+                    //Save history
+                    Map<String, String> params = new HashMap<>();
+                    params.put(HISTORY_MESSAGE_KEY, "Зачислен бонусный платеж при использовании промокода " + accountPromocode.getPromocode().getCode());
+                    params.put(OPERATOR_KEY, "service");
+
+                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
 
                     break;
             }
@@ -237,6 +268,13 @@ public class PromocodeProcessor {
 
                         if (bonusAbonementId != null) {
                             abonementService.addAbonement(account, bonusAbonementId, false, true, false);
+
+                            //Save history
+                            Map<String, String> params = new HashMap<>();
+                            params.put(HISTORY_MESSAGE_KEY, "Добавлен абонемент при использовании промокода " + accountPromocode.getPromocode().getCode());
+                            params.put(OPERATOR_KEY, "service");
+
+                            publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                         } else {
                             throw new ParameterValidationException("abonementId with period: " + action.getProperties().get("period") + " not found for planName: " + plan.getName());
                         }
@@ -250,6 +288,13 @@ public class PromocodeProcessor {
                     List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
                     if (accountPromotions == null || accountPromotions.isEmpty()) {
                         accountHelper.giveGift(account, promotion);
+
+                        //Save history
+                        Map<String, String> params = new HashMap<>();
+                        params.put(HISTORY_MESSAGE_KEY, "Добавлен бонус на регистрацию бесплатного домена RU, РФ при использовании промокода " + accountPromocode.getPromocode().getCode());
+                        params.put(OPERATOR_KEY, "service");
+
+                        publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                     }
                     break;
             }

@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -24,7 +22,6 @@ import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.service.*;
@@ -34,14 +31,9 @@ import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_
 
 @EnableRabbit
 @Service
-public class AccountAmqpController {
-
-    private final static Logger logger = LoggerFactory.getLogger(AccountAmqpController.class);
-
-    private final BusinessFlowDirector businessFlowDirector;
+public class AccountAmqpController extends CommonAmqpController {
     private final BusinessActionBuilder businessActionBuilder;
     private final PromocodeProcessor promocodeProcessor;
-    private final PersonalAccountRepository accountRepository;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final AbonementService abonementService;
     private final AccountAbonementRepository accountAbonementRepository;
@@ -50,19 +42,15 @@ public class AccountAmqpController {
 
     @Autowired
     public AccountAmqpController(
-            BusinessFlowDirector businessFlowDirector,
             BusinessActionBuilder businessActionBuilder,
             PromocodeProcessor promocodeProcessor,
-            PersonalAccountRepository accountRepository,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
             AbonementService abonementService,
             AccountAbonementRepository accountAbonementRepository,
             PromotionRepository promotionRepository,
             AccountHelper accountHelper) {
-        this.businessFlowDirector = businessFlowDirector;
         this.businessActionBuilder = businessActionBuilder;
         this.promocodeProcessor = promocodeProcessor;
-        this.accountRepository = accountRepository;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
         this.abonementService = abonementService;
         this.accountAbonementRepository = accountAbonementRepository;

@@ -1,15 +1,11 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
@@ -19,33 +15,17 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.webSite.WebSiteCreatedEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
-import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 
 @EnableRabbit
 @Service
 public class WebSiteAmqpController extends CommonAmqpController  {
-
-    private final static Logger logger = LoggerFactory.getLogger(WebSiteAmqpController.class);
-
-    private final BusinessFlowDirector businessFlowDirector;
-    private final PersonalAccountRepository accountRepository;
-    private final ApplicationEventPublisher publisher;
-
-    @Autowired
-    public WebSiteAmqpController(
-            BusinessFlowDirector businessFlowDirector,
-            PersonalAccountRepository accountRepository,
-            ApplicationEventPublisher publisher) {
-        this.businessFlowDirector = businessFlowDirector;
-        this.accountRepository = accountRepository;
-        this.publisher = publisher;
-    }
-
     @RabbitListener(
             bindings = @QueueBinding(
                     value = @Queue(
@@ -78,6 +58,13 @@ public class WebSiteAmqpController extends CommonAmqpController  {
             params.put(RESOURCE_ID_KEY, resourceId);
 
             publisher.publishEvent(new WebSiteCreatedEvent(account, params));
+
+            //Save history
+            Map<String, String> paramsHistory = new HashMap<>();
+            paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на создание сайта выполнена успешно (имя: " + message.getParam("name") + ")");
+            paramsHistory.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), paramsHistory));
         }
     }
 
@@ -100,6 +87,15 @@ public class WebSiteAmqpController extends CommonAmqpController  {
         logger.debug("Received update message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
+
+        if (state.equals(State.PROCESSED)) {
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление сайта выполнена успешно (имя: " + message.getParam("name") + ")");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+        }
     }
 
     @RabbitListener(
@@ -121,5 +117,14 @@ public class WebSiteAmqpController extends CommonAmqpController  {
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
+        if (state.equals(State.PROCESSED)) {
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление сайта выполнена успешно (имя: " + message.getParam("name") + ")");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+        }
+
     }
 }

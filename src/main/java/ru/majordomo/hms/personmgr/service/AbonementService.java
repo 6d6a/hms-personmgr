@@ -248,7 +248,7 @@ public class AbonementService {
                             formatBigDecimalWithCurrency(abonementCost) +
                             " Новый срок окончания: " + accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
                     );
-                    params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
+                    params.put(OPERATOR_KEY, "service");
 
                     publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                 } else {
@@ -264,7 +264,7 @@ public class AbonementService {
                             " Баланс: " + formatBigDecimalWithCurrency(balance) +
                             " Дата окончания: " + currentExpired
                     );
-                    params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
+                    params.put(OPERATOR_KEY, "service");
 
                     publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
 
@@ -281,7 +281,7 @@ public class AbonementService {
                         formatBigDecimalWithCurrency(abonementCost) +
                         " Дата окончания: " + currentExpired
                 );
-                params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
+                params.put(OPERATOR_KEY, "service");
 
                 publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
             }
@@ -309,7 +309,7 @@ public class AbonementService {
                         params.put(HISTORY_MESSAGE_KEY, "Автоматическая покупка предзаказанного абонемента. Со счета аккаунта списано " +
                                 formatBigDecimalWithCurrency(preorderAccountAbonementCost)
                         );
-                        params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
+                        params.put(OPERATOR_KEY, "service");
 
                         publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
 
@@ -326,7 +326,7 @@ public class AbonementService {
                         params.put(HISTORY_MESSAGE_KEY, "Автоматическая покупка предзаказанного абонемента невозможна из-за нехватки средств. Стоимость абонемента: " +
                                 formatBigDecimalWithCurrency(preorderAccountAbonementCost)
                         );
-                        params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
+                        params.put(OPERATOR_KEY, "service");
 
                         publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                     }
@@ -339,7 +339,7 @@ public class AbonementService {
                     Map<String, String> params = new HashMap<>();
                     params.put(HISTORY_MESSAGE_KEY, "Бонусный абонемент удален. Обычный абонемент не был предзаказн. Дата окончания: " + currentExpired
                     );
-                    params.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.AbonementService.processAbonementsAutoRenewByAccount");
+                    params.put(OPERATOR_KEY, "service");
 
                     publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                 }
@@ -445,7 +445,14 @@ public class AbonementService {
         }
 
         if (bonusAbonementId != null) {
-            this.addAbonement(account, bonusAbonementId, false, true, false);
+            addAbonement(account, bonusAbonementId, false, true, false);
+
+            //Save history
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Добавлен абонемент на тестовый период (14 дней)");
+            params.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
         }
     }
 }
