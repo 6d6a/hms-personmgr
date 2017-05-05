@@ -42,9 +42,10 @@ public class AccountHistoryEventListener {
         logger.debug("We got AccountHistoryEvent");
 
         try {
-            accountHistoryService.addMessage(account.getId(), historyMessage, operator);
+            accountHistoryService.addMessage(account.getAccountId(), historyMessage, operator);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("[AccountHistoryEventListener] accountHistoryService.addMessage Exception: " + e.getMessage());
         }
     }
 }
