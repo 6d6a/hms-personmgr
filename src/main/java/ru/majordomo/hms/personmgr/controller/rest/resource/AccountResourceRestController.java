@@ -119,6 +119,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
         personalAccount.setAccountId(accountId);
         personalAccount.setClientId(accountId);
         personalAccount.setName(VH_ACCOUNT_PREFIX + accountId);
+        //TODO Для аккаунтов с тарифом abonementOnly создавать аккаунт неактивным
         personalAccount.setActive(true);
         personalAccount.setCreated(LocalDateTime.now());
         personalAccount.setAccountNew(true);
