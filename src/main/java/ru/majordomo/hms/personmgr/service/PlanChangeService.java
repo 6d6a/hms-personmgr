@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
@@ -35,6 +37,8 @@ import static ru.majordomo.hms.personmgr.common.Utils.planChangeComparator;
 
 @Service
 public class PlanChangeService {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
     private final FinFeignClient finFeignClient;
     private final PlanRepository planRepository;
     private final AccountAbonementRepository accountAbonementRepository;
@@ -359,6 +363,7 @@ public class PlanChangeService {
                     finFeignClient.addPayment(payment);
                 } catch (Exception e) {
                     e.printStackTrace();
+                    logger.error("Exception in ru.majordomo.hms.personmgr.service.PlanChangeService.processNotAbonementOnlyPlans #1 " + e.getMessage());
                 }
             }
 
@@ -368,6 +373,7 @@ public class PlanChangeService {
                     accountHelper.charge(account, currentPlan.getService(), planChangeAgreement.getDelta().abs());
                 } catch (Exception e) {
                     e.printStackTrace();
+                    logger.error("Exception in ru.majordomo.hms.personmgr.service.PlanChangeService.processNotAbonementOnlyPlans #2 " + e.getMessage());
                 }
             }
 
@@ -426,6 +432,7 @@ public class PlanChangeService {
                     finFeignClient.addPayment(payment);
                 } catch (Exception e) {
                     e.printStackTrace();
+                    logger.error("Exception in ru.majordomo.hms.personmgr.service.PlanChangeService.addRemainingAccountAbonementCost " + e.getMessage());
                 }
             }
         }

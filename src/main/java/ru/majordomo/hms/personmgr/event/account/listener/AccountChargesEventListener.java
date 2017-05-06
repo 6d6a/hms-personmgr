@@ -35,6 +35,7 @@ public class AccountChargesEventListener {
             paymentChargesProcessorService.processCharge(account);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.event.account.listener.AccountChargesEventListener.onAccountProcessCharges " + e.getMessage());
         }
     }
 }

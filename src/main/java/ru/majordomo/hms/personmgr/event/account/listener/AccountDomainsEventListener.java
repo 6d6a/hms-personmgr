@@ -54,6 +54,7 @@ public class AccountDomainsEventListener {
             domainService.processExpiringDomainsByAccount(account);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.event.account.listener.AccountDomainsEventListener.onAccountProcessExpiringDomainsEvent " + e.getMessage());
         }
     }
 
@@ -68,6 +69,7 @@ public class AccountDomainsEventListener {
             domainService.processDomainsAutoRenewByAccount(account);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.event.account.listener.AccountDomainsEventListener.onAccountProcessDomainsAutoRenewEvent " + e.getMessage());
         }
     }
 

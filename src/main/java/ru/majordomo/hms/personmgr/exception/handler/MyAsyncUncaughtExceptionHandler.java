@@ -25,6 +25,6 @@ public class MyAsyncUncaughtExceptionHandler implements AsyncUncaughtExceptionHa
                 error += "Parameter value - " + param  + "\n";
             }
         }
-        logger.error(error);
+        logger.error("ru.majordomo.hms.personmgr.exception.handler.MyAsyncUncaughtExceptionHandler.handleUncaughtException " + error);
     }
 }

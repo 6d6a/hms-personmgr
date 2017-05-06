@@ -73,6 +73,7 @@ public class AccountHelper {
                 person = rcUserFeignClient.getPerson(account.getId(), account.getOwnerPersonId());
             } catch (Exception e) {
                 e.printStackTrace();
+                logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.getEmail " + e.getMessage());
             }
         }
 
@@ -95,6 +96,7 @@ public class AccountHelper {
             balance = finFeignClient.getBalance(account.getId());
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.getBalance #1 " + e.getMessage());
         }
 
         if (balance == null) {
@@ -113,6 +115,7 @@ public class AccountHelper {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.getBalance #2 " + e.getMessage());
             available = BigDecimal.ZERO;
         }
 
@@ -131,6 +134,7 @@ public class AccountHelper {
             domains = rcUserFeignClient.getDomains(account.getId());
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.getDomains " + e.getMessage());
         }
 
         return domains;
@@ -220,6 +224,7 @@ public class AccountHelper {
             response = finFeignClient.charge(account.getId(), paymentOperation);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.charge " + e.getMessage());
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
@@ -241,6 +246,7 @@ public class AccountHelper {
             response = finFeignClient.block(account.getId(), paymentOperation);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.block " + e.getMessage());
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
@@ -261,6 +267,7 @@ public class AccountHelper {
             response = siFeignClient.changePassword(account.getId(), params);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.changePassword " + e.getMessage());
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {

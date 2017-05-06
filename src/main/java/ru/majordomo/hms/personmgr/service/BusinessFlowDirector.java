@@ -148,6 +148,7 @@ public class BusinessFlowDirector {
                 finFeignClient.chargeBlocked(businessAction.getMessage().getAccountId(), (String) businessAction.getMessage().getParam("documentNumber"));
             } catch (Exception e) {
                 e.printStackTrace();
+                logger.error("Exception in ru.majordomo.hms.personmgr.service.BusinessFlowDirector.processBlockedPayment #1 " + e.getMessage());
             }
         } else if (businessAction.getState() == State.ERROR && businessAction.getMessage().getParam("documentNumber") != null) {
             //Разблокируем средства
@@ -155,6 +156,7 @@ public class BusinessFlowDirector {
                 finFeignClient.unblock(businessAction.getMessage().getAccountId(), (String) businessAction.getMessage().getParam("documentNumber"));
             } catch (Exception e) {
                 e.printStackTrace();
+                logger.error("Exception in ru.majordomo.hms.personmgr.service.BusinessFlowDirector.processBlockedPayment #2 " + e.getMessage());
             }
         }
     }

@@ -36,6 +36,7 @@ public class AccountAbonementsEventListener {
             abonementService.processExpiringAbonementsByAccount(account);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.event.account.listener.AccountAbonementsEventListener.onAccountProcessExpiringAbonementsEvent " + e.getMessage());
         }
     }
 
@@ -50,6 +51,7 @@ public class AccountAbonementsEventListener {
             abonementService.processAbonementsAutoRenewByAccount(account);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.event.account.listener.AccountAbonementsEventListener.onAccountProcessExpiringAbonementsEvent " + e.getMessage());
         }
     }
 }
