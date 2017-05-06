@@ -39,6 +39,7 @@ public class AccountServiceEventListener {
             accountServiceRepository.insert(accountService);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.event.accountService.listener.AccountServiceEventListener.onAccountServiceCreateEvent " + e.getMessage());
         }
     }
 
@@ -53,6 +54,7 @@ public class AccountServiceEventListener {
             accountServicesDBImportService.pull(accountId);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.event.accountService.listener.AccountServiceEventListener.onAccountServiceImportEvent " + e.getMessage());
         }
     }
 }

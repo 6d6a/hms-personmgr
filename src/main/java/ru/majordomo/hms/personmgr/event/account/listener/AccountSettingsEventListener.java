@@ -42,6 +42,7 @@ public class AccountSettingsEventListener {
             accountRepository.save(account);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.event.account.listener.AccountSettingsEventListener.onAccountSetSettingEvent " + e.getMessage());
         }
     }
 }

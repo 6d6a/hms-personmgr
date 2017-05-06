@@ -225,7 +225,7 @@ public class PromocodeProcessor {
                         logger.debug("Processed promocode addPayment: " + responseMessage);
 
                     } catch (Exception e) {
-                        logger.error("");
+                        logger.error("Exception in ru.majordomo.hms.personmgr.service.PromocodeProcessor.processPartnerPromocodeActions " + e.getMessage());
                         e.printStackTrace();
                     }
 

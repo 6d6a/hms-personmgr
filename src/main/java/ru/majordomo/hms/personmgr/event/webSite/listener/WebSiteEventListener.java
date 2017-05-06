@@ -56,10 +56,11 @@ public class WebSiteEventListener {
             webSite = rcUserFeignClient.getWebSite(account.getId(), webSiteId);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("ru.majordomo.hms.personmgr.event.webSite.listener.WebSiteEventListener.onWebSiteCreated SeoOrderedEvent getWebSite Exception");
         }
 
         if (webSite == null) {
-            logger.debug("WebSite with id " + webSiteId + " not found");
+            logger.error("ru.majordomo.hms.personmgr.event.webSite.listener.WebSiteEventListener.onWebSiteCreated WebSite with id " + webSiteId + " not found");
 
             return;
         }

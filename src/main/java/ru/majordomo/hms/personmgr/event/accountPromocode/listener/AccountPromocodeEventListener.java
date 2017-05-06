@@ -40,6 +40,7 @@ public class AccountPromocodeEventListener {
             accountPromocodeRepository.insert(accountPromocode);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.event.accountPromocode.listener.AccountPromocodeEventListener.onAccountPromocodeCreateEvent " + e.getMessage());
         }
     }
 
@@ -54,6 +55,7 @@ public class AccountPromocodeEventListener {
             accountPromocodeDBImportService.pull(accountId);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.event.accountPromocode.listener.AccountPromocodeEventListener.onAccountPromocodeImportEvent " + e.getMessage());
         }
     }
 }

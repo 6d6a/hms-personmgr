@@ -142,6 +142,7 @@ public class SeoRestController extends CommonRestController {
             webSite = rcUserFeignClient.getWebSite(account.getId(), webSiteId);
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.controller.rest.SeoRestController.makeSeoOrder " + e.getMessage());
         }
 
         if (webSite == null) {

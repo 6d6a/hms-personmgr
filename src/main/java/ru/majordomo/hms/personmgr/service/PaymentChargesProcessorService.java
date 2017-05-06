@@ -188,6 +188,7 @@ public class PaymentChargesProcessorService {
                 response = accountHelper.charge(paymentAccount, accountService.getPaymentService(), cost, true);
             } catch (Exception e) {
                 e.printStackTrace();
+                logger.error("Exception in ru.majordomo.hms.personmgr.service.PaymentChargesProcessorService.makeCharge " + e.getMessage());
             }
 
             if (response != null && response.getParam("success") != null && !((boolean) response.getParam("success"))) {

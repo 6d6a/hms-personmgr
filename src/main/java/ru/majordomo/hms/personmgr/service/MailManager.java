@@ -56,6 +56,7 @@ public class MailManager {
             credentialsJson.put("_password", password);
         } catch (JSONException e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.service.MailManager.MailManager " + e.getMessage());
         }
 
         credentials = credentialsJson.toString();
@@ -104,9 +105,11 @@ public class MailManager {
                 send(message, urlKey);
             } else {
                 e.printStackTrace();
+                logger.error("Exception in ru.majordomo.hms.personmgr.service.MailManager.send #1 " + e.getMessage());
             }
         } catch (RestClientException e) {
             e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.service.MailManager.send #2 " + e.getMessage());
         }
 
         return responseBody;
