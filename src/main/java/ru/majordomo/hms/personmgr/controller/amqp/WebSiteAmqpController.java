@@ -44,27 +44,32 @@ public class WebSiteAmqpController extends CommonAmqpController  {
         String provider = headers.get("provider");
         logger.debug("Received create message from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        try {
+            State state = businessFlowDirector.processMessage(message);
 
-        if (state == State.PROCESSED && message.getAccountId() != null) {
-            PersonalAccount account = accountRepository.findOne(message.getAccountId());
+            if (state == State.PROCESSED && message.getAccountId() != null) {
+                PersonalAccount account = accountRepository.findOne(message.getAccountId());
 
-            SimpleServiceMessage mailMessage = new SimpleServiceMessage();
-            mailMessage.setAccountId(account.getId());
+                SimpleServiceMessage mailMessage = new SimpleServiceMessage();
+                mailMessage.setAccountId(account.getId());
 
-            String resourceId = getResourceIdByObjRef(message.getObjRef());
+                String resourceId = getResourceIdByObjRef(message.getObjRef());
 
-            Map<String, String> params = new HashMap<>();
-            params.put(RESOURCE_ID_KEY, resourceId);
+                Map<String, String> params = new HashMap<>();
+                params.put(RESOURCE_ID_KEY, resourceId);
 
-            publisher.publishEvent(new WebSiteCreatedEvent(account, params));
+                publisher.publishEvent(new WebSiteCreatedEvent(account, params));
 
-            //Save history
-            Map<String, String> paramsHistory = new HashMap<>();
-            paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на создание сайта выполнена успешно (имя: " + message.getParam("name") + ")");
-            paramsHistory.put(OPERATOR_KEY, "service");
+                //Save history
+                Map<String, String> paramsHistory = new HashMap<>();
+                paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на создание сайта выполнена успешно (имя: " + message.getParam("name") + ")");
+                paramsHistory.put(OPERATOR_KEY, "service");
 
-            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), paramsHistory));
+                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.WebSiteAmqpController.create " + e.getMessage());
         }
     }
 
@@ -86,15 +91,20 @@ public class WebSiteAmqpController extends CommonAmqpController  {
         String provider = headers.get("provider");
         logger.debug("Received update message from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        try {
+            State state = businessFlowDirector.processMessage(message);
 
-        if (state.equals(State.PROCESSED)) {
-            //Save history
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление сайта выполнена успешно (имя: " + message.getParam("name") + ")");
-            params.put(OPERATOR_KEY, "service");
+            if (state.equals(State.PROCESSED)) {
+                //Save history
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление сайта выполнена успешно (имя: " + message.getParam("name") + ")");
+                params.put(OPERATOR_KEY, "service");
 
-            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.WebSiteAmqpController.update " + e.getMessage());
         }
     }
 
@@ -116,15 +126,20 @@ public class WebSiteAmqpController extends CommonAmqpController  {
         String provider = headers.get("provider");
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
-        if (state.equals(State.PROCESSED)) {
-            //Save history
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление сайта выполнена успешно (имя: " + message.getParam("name") + ")");
-            params.put(OPERATOR_KEY, "service");
+        try {
+            State state = businessFlowDirector.processMessage(message);
 
-            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+            if (state.equals(State.PROCESSED)) {
+                //Save history
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление сайта выполнена успешно (имя: " + message.getParam("name") + ")");
+                params.put(OPERATOR_KEY, "service");
+
+                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.WebSiteAmqpController.delete " + e.getMessage());
         }
-
     }
 }

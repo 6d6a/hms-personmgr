@@ -124,6 +124,7 @@ public class AccountAmqpController extends CommonAmqpController {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.AccountAmqpController.create " + e.getMessage());
         }
     }
 

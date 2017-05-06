@@ -36,15 +36,20 @@ public class ResourceArchiveAmqpController extends CommonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        try {
+            State state = businessFlowDirector.processMessage(message);
 
-        if (state.equals(State.PROCESSED)) {
-            //Save history
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Заявка на создание архива выполнена успешно (имя: " + message.getParam("name") + ")");
-            params.put(OPERATOR_KEY, "service");
+            if (state.equals(State.PROCESSED)) {
+                //Save history
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Заявка на создание архива выполнена успешно (имя: " + message.getParam("name") + ")");
+                params.put(OPERATOR_KEY, "service");
 
-            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.ResourceArchiveAmqpController.create " + e.getMessage());
         }
     }
 
@@ -66,15 +71,20 @@ public class ResourceArchiveAmqpController extends CommonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received update message from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        try {
+            State state = businessFlowDirector.processMessage(message);
 
-        if (state.equals(State.PROCESSED)) {
-            //Save history
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление архива выполнена успешно (имя: " + message.getParam("name") + ")");
-            params.put(OPERATOR_KEY, "service");
+            if (state.equals(State.PROCESSED)) {
+                //Save history
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление архива выполнена успешно (имя: " + message.getParam("name") + ")");
+                params.put(OPERATOR_KEY, "service");
 
-            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.ResourceArchiveAmqpController.update " + e.getMessage());
         }
     }
 
@@ -96,15 +106,20 @@ public class ResourceArchiveAmqpController extends CommonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        try {
+            State state = businessFlowDirector.processMessage(message);
 
-        if (state.equals(State.PROCESSED)) {
-            //Save history
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление архива выполнена успешно (имя: " + message.getParam("name") + ")");
-            params.put(OPERATOR_KEY, "service");
+            if (state.equals(State.PROCESSED)) {
+                //Save history
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление архива выполнена успешно (имя: " + message.getParam("name") + ")");
+                params.put(OPERATOR_KEY, "service");
 
-            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.ResourceArchiveAmqpController.delete " + e.getMessage());
         }
     }
 }

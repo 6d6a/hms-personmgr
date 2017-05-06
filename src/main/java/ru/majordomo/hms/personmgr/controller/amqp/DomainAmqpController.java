@@ -58,25 +58,30 @@ public class DomainAmqpController extends CommonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        try {
+            State state = businessFlowDirector.processMessage(message);
 
-        if (state == State.PROCESSED) {
-            ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+            if (state == State.PROCESSED) {
+                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
-            if (businessAction != null && businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_CREATE_RC)) {
-                PersonalAccount account = accountRepository.findOne(businessAction.getPersonalAccountId());
-                if (account.isAccountNew()) {
-                    account.setAccountNew(false);
-                    accountRepository.save(account);
+                if (businessAction != null && businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_CREATE_RC)) {
+                    PersonalAccount account = accountRepository.findOne(businessAction.getPersonalAccountId());
+                    if (account.isAccountNew()) {
+                        account.setAccountNew(false);
+                        accountRepository.save(account);
+                    }
                 }
+
+                //Save history
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Заявка на создание домена выполнена успешно (имя: " + message.getParam("name") + ")");
+                params.put(OPERATOR_KEY, "service");
+
+                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
             }
-
-            //Save history
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Заявка на создание домена выполнена успешно (имя: " + message.getParam("name") + ")");
-            params.put(OPERATOR_KEY, "service");
-
-            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.DomainAmqpController.create " + e.getMessage());
         }
     }
 
@@ -98,36 +103,41 @@ public class DomainAmqpController extends CommonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received update message from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        try {
+            State state = businessFlowDirector.processMessage(message);
 
-        if (state == State.PROCESSED) {
-            ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+            if (state == State.PROCESSED) {
+                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
-            Map<String, String> paramsHistory;
-            if (businessAction != null
-                    && businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_UPDATE_RC)
-                    && (Boolean) businessAction.getParam(AUTO_RENEW_KEY)) {
-                PersonalAccount account = accountRepository.findOne(businessAction.getPersonalAccountId());
+                Map<String, String> paramsHistory;
+                if (businessAction != null
+                        && businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_UPDATE_RC)
+                        && (Boolean) businessAction.getParam(AUTO_RENEW_KEY)) {
+                    PersonalAccount account = accountRepository.findOne(businessAction.getPersonalAccountId());
 
-                Map<String, String> params = new HashMap<>();
-                params.put(RESOURCE_ID_KEY, (String) businessAction.getParam(RESOURCE_ID_KEY));
+                    Map<String, String> params = new HashMap<>();
+                    params.put(RESOURCE_ID_KEY, (String) businessAction.getParam(RESOURCE_ID_KEY));
 
-                publisher.publishEvent(new AccountDomainAutoRenewCompletedEvent(account, params));
+                    publisher.publishEvent(new AccountDomainAutoRenewCompletedEvent(account, params));
 
-                //Save history
-                paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на продление домена выполнена успешно (имя: " + message.getParam("name") + ")");
-                paramsHistory.put(OPERATOR_KEY, "service");
+                    //Save history
+                    paramsHistory = new HashMap<>();
+                    paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на продление домена выполнена успешно (имя: " + message.getParam("name") + ")");
+                    paramsHistory.put(OPERATOR_KEY, "service");
 
-                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), paramsHistory));
-            } else {
-                //Save history
-                paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на обновление домена выполнена успешно (имя: " + message.getParam("name") + ")");
-                paramsHistory.put(OPERATOR_KEY, "service");
+                    publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), paramsHistory));
+                } else {
+                    //Save history
+                    paramsHistory = new HashMap<>();
+                    paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на обновление домена выполнена успешно (имя: " + message.getParam("name") + ")");
+                    paramsHistory.put(OPERATOR_KEY, "service");
 
-                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), paramsHistory));
+                    publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), paramsHistory));
+                }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.DomainAmqpController.update " + e.getMessage());
         }
     }
 
@@ -149,15 +159,20 @@ public class DomainAmqpController extends CommonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        try {
+            State state = businessFlowDirector.processMessage(message);
 
-        if (state.equals(State.PROCESSED)) {
-            //Save history
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление домена выполнена успешно (имя: " + message.getParam("name") + ")");
-            params.put(OPERATOR_KEY, "service");
+            if (state.equals(State.PROCESSED)) {
+                //Save history
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление домена выполнена успешно (имя: " + message.getParam("name") + ")");
+                params.put(OPERATOR_KEY, "service");
 
-            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.DomainAmqpController.delete " + e.getMessage());
         }
     }
 }
