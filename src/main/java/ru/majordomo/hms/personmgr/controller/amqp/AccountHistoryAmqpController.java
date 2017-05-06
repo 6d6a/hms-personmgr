@@ -39,11 +39,16 @@ public class AccountHistoryAmqpController extends CommonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
 
-        String historyMessage = (String) message.getParam(HISTORY_MESSAGE_KEY);
-        String operator = (String) message.getParam(OPERATOR_KEY);
+        try {
+            String historyMessage = (String) message.getParam(HISTORY_MESSAGE_KEY);
+            String operator = (String) message.getParam(OPERATOR_KEY);
 
-        if (historyMessage != null && operator != null) {
-            accountHistoryService.addMessage(message.getAccountId(), historyMessage, operator);
+            if (historyMessage != null && operator != null) {
+                accountHistoryService.addMessage(message.getAccountId(), historyMessage, operator);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.AccountHistoryAmqpController.create " + e.getMessage());
         }
     }
 }

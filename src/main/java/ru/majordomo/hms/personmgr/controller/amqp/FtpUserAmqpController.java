@@ -33,15 +33,20 @@ public class FtpUserAmqpController extends CommonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        try {
+            State state = businessFlowDirector.processMessage(message);
 
-        if (state.equals(State.PROCESSED)) {
-            //Save history
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Заявка на создание FTP-пользователя выполнена успешно (имя: " + message.getParam("name") + ")");
-            params.put(OPERATOR_KEY, "service");
+            if (state.equals(State.PROCESSED)) {
+                //Save history
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Заявка на создание FTP-пользователя выполнена успешно (имя: " + message.getParam("name") + ")");
+                params.put(OPERATOR_KEY, "service");
 
-            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.FtpUserAmqpController.create " + e.getMessage());
         }
     }
 
@@ -55,15 +60,20 @@ public class FtpUserAmqpController extends CommonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received update message from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        try {
+            State state = businessFlowDirector.processMessage(message);
 
-        if (state.equals(State.PROCESSED)) {
-            //Save history
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление FTP-пользователя выполнена успешно (имя: " + message.getParam("name") + ")");
-            params.put(OPERATOR_KEY, "service");
+            if (state.equals(State.PROCESSED)) {
+                //Save history
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление FTP-пользователя выполнена успешно (имя: " + message.getParam("name") + ")");
+                params.put(OPERATOR_KEY, "service");
 
-            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.FtpUserAmqpController.update " + e.getMessage());
         }
     }
 
@@ -77,15 +87,20 @@ public class FtpUserAmqpController extends CommonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        try {
+            State state = businessFlowDirector.processMessage(message);
 
-        if (state.equals(State.PROCESSED)) {
-            //Save history
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление FTP-пользователя выполнена успешно (имя: " + message.getParam("name") + ")");
-            params.put(OPERATOR_KEY, "service");
+            if (state.equals(State.PROCESSED)) {
+                //Save history
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление FTP-пользователя выполнена успешно (имя: " + message.getParam("name") + ")");
+                params.put(OPERATOR_KEY, "service");
 
-            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.FtpUserAmqpController.delete " + e.getMessage());
         }
     }
 }

@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -162,7 +161,7 @@ public class PaymentAmqpController extends CommonAmqpController  {
                             params.put(HISTORY_MESSAGE_KEY, "Произведено начисление процента от пополнения (" + promocodeBonus.toString() + " руб. от " + amount.toString() + " руб.) владельцу партнерского промокода" + accountPromocode.getPromocode().getCode() + " - " + accountForPartnerBonus.getName());
                             params.put(OPERATOR_KEY, "service");
 
-                            publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                            publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
 
                             //Статистика
                             AccountStat accountStat = new AccountStat();

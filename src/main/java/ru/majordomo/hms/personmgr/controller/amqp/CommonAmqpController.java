@@ -42,6 +42,7 @@ public class CommonAmqpController {
             return pathParts[2];
         } catch (MalformedURLException e) {
             e.printStackTrace();
+            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.CommonAmqpController.getResourceIdByObjRef " + e.getMessage());
             return null;
         }
     }
