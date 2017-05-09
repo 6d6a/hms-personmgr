@@ -225,6 +225,8 @@ public class AccountHelper {
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.charge " + e.getMessage());
+            throw new ChargeException("ChargeException. Error when charging money." +
+                    " Service cost is: " + service.getCost());
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
@@ -247,6 +249,8 @@ public class AccountHelper {
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.block " + e.getMessage());
+            throw new ChargeException("ChargeException. Error when blocking money." +
+                    " Service cost is: " + service.getCost());
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
