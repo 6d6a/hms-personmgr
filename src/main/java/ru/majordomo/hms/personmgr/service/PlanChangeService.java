@@ -423,17 +423,19 @@ public class PlanChangeService {
                 long remainingDays = DAYS.between(accountAbonement.getExpired(), LocalDateTime.now());
                 BigDecimal remainedServiceCost = (BigDecimal.valueOf(remainingDays)).multiply(abonement.getService().getCost().divide(BigDecimal.valueOf(365L), 2, BigDecimal.ROUND_DOWN));
 
-                Map<String, Object> payment = new HashMap<>();
-                payment.put("accountId", account.getName());
-                payment.put("paymentTypeId", BONUS_PAYMENT_TYPE_ID);
-                payment.put("amount", remainedServiceCost);
-                payment.put("message", "Возврат неиспользованных средств при отказе от абонемента");
+                if (remainedServiceCost.compareTo(BigDecimal.ZERO) > 0) {
+                    Map<String, Object> payment = new HashMap<>();
+                    payment.put("accountId", account.getName());
+                    payment.put("paymentTypeId", BONUS_PAYMENT_TYPE_ID);
+                    payment.put("amount", remainedServiceCost);
+                    payment.put("message", "Возврат неиспользованных средств при отказе от абонемента");
 
-                try {
-                    finFeignClient.addPayment(payment);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    logger.error("Exception in ru.majordomo.hms.personmgr.service.PlanChangeService.addRemainingAccountAbonementCost " + e.getMessage());
+                    try {
+                        finFeignClient.addPayment(payment);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        logger.error("Exception in ru.majordomo.hms.personmgr.service.PlanChangeService.addRemainingAccountAbonementCost " + e.getMessage());
+                    }
                 }
             }
         }
