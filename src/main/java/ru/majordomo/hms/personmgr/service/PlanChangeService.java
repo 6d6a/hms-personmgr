@@ -325,7 +325,8 @@ public class PlanChangeService {
         List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
         for (AccountAbonement accountAbonement :accountAbonements) {
             if (accountAbonement.getAbonement().isInternal()) {
-                throw new ParameterValidationException("Для смены тарифного плана вам необходимо купить абонемент или дождаться окончания бесплатного абонемента");
+                throw new ParameterValidationException("Для смены тарифного плана вам необходимо приобрести абонемент на " +
+                        "текущий тарифный план сроком на 1 год или дождаться окончания бесплатного абонемента");
             }
         }
     }
