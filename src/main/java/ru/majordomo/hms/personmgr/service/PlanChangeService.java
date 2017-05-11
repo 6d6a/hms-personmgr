@@ -129,7 +129,7 @@ public class PlanChangeService {
             if (!currentPlan.isAbonementOnly()) {
 
                 if (newPlan.getService().getCost().compareTo(currentPlan.getService().getCost()) < 0) {
-                    throw new ParameterValidationException("Попытка перейти на тарифный план с меньшей стоимостью при активном абонементе.");
+                    throw new ParameterValidationException("Переход на тарифный план с меньшей стоимостью при активном абонементе невозможен");
                 }
 
                 //Только перерасчёт и валидация без сохранения
@@ -151,7 +151,7 @@ public class PlanChangeService {
         if (requestAgreement != null) {
 
             if (!planChangeAgreement.equals(requestAgreement)) {
-                throw new ParameterValidationException("Произошла ошибка.");
+                throw new ParameterValidationException("Произошла ошибка");
             }
 
             if (preorderdAccountAbonement != null) {
@@ -234,7 +234,7 @@ public class PlanChangeService {
 
         if (accountStats != null && !accountStats.isEmpty()) {
             if (currentPlan.getService().getCost().compareTo(newPlan.getService().getCost()) > 0) {
-                throw new ParameterValidationException("Смена тарифного плана на меньший по стоимости возможна не чаще раз в месяц.");
+                throw new ParameterValidationException("Смена тарифного плана на меньший по стоимости возможна не чаще 1 раза в месяц");
             }
 
         }
@@ -294,7 +294,7 @@ public class PlanChangeService {
     private void canChangePlan(PersonalAccount account, Plan currentPlan, Plan newPlan) {
 
         if (!newPlan.isActive()) {
-            throw new ParameterValidationException("Переход на данный тарифный план невозможен.");
+            throw new ParameterValidationException("Переход на данный тарифный план невозможен");
         }
 
         //Проверим не менялся ли тариф в последний месяц
@@ -325,7 +325,7 @@ public class PlanChangeService {
         List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
         for (AccountAbonement accountAbonement :accountAbonements) {
             if (accountAbonement.getAbonement().isInternal()) {
-                throw new ParameterValidationException("На аккаунте присутствует бонусный абонемент. Смена тарифа невозможна.");
+                throw new ParameterValidationException("Для смены тарифного плана вам необходимо купить абонемент или дождаться окончания бесплатного абонемента");
             }
         }
     }
@@ -520,7 +520,7 @@ public class PlanChangeService {
         VirtualHostingPlanProperties currentPlanProperties = (VirtualHostingPlanProperties) currentPlan.getPlanProperties();
         VirtualHostingPlanProperties newPlanProperties = (VirtualHostingPlanProperties) newPlan.getPlanProperties();
         if (currentPlanProperties.isBusinessServices() && !newPlanProperties.isBusinessServices()) {
-            throw new ParameterValidationException("Вы можете выбрать только другой корпоративный тарифный план.");
+            throw new ParameterValidationException("Вы можете выбрать только другой корпоративный тарифный план");
         }
     }
 
@@ -623,7 +623,7 @@ public class PlanChangeService {
         Long count = accountCountersService.getCurrentQuotaUsed(account.getId());
         Long freeLimit = planLimitsService.getQuotaKBFreeLimit(newPlan);
         if (planChangeComparator(count, freeLimit) > 0) {
-            throw new ParameterValidationException("Использованная квота текущего тарифного плана больше, чем лимит на новом тарифном плане. "  +
+            throw new ParameterValidationException("Использованная квота превышает лимит на новом тарифном плане. "  +
                     "Текущая квота: " + count + " Лимит: " + freeLimit);
         }
     }
