@@ -149,7 +149,7 @@ public class AccountHelper {
         BigDecimal available = getBalance(account);
 
         if (available.compareTo(BigDecimal.ZERO) < 0) {
-            throw new LowBalanceException("Account balance is lower than zero. balance is: "
+            throw new LowBalanceException("Баланс аккаунта отрицательный: "
                     + available.toPlainString());
         }
     }

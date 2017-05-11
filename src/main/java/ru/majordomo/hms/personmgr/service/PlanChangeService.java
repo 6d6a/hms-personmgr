@@ -105,17 +105,17 @@ public class PlanChangeService {
         Plan currentPlan = planRepository.findOne(currentPlanId);
 
         if (currentPlan == null) {
-            throw new ResourceNotFoundException("Account plan not found");
+            throw new ResourceNotFoundException("Текущий тарифный план не найден");
         }
 
         Plan newPlan = planRepository.findOne(newPlanId);
 
         if (newPlan == null) {
-            throw new ParameterValidationException("New plan with specified planId not found");
+            throw new ParameterValidationException("Новый тарифный план не найден");
         }
 
         if (currentPlanId.equals(newPlanId)) {
-            throw new ParameterValidationException("New plan is the same as old plan");
+            throw new ParameterValidationException("Текущий тарифный план совпадает с выбранным");
         }
 
         //Проверим, можно ли менять тариф
@@ -129,7 +129,7 @@ public class PlanChangeService {
             if (!currentPlan.isAbonementOnly()) {
 
                 if (newPlan.getService().getCost().compareTo(currentPlan.getService().getCost()) < 0) {
-                    throw new ParameterValidationException("New plan cost is lower than current plan cost. Abonement recalculate prohibited.");
+                    throw new ParameterValidationException("Переход на тарифный план с меньшей стоимостью при активном абонементе невозможен");
                 }
 
                 //Только перерасчёт и валидация без сохранения
@@ -140,7 +140,7 @@ public class PlanChangeService {
                     planChangeAgreement.setNeedToFeelBalance(newPlan.getNotInternalAbonement().getService().getCost().subtract(newBalanceAfterDecline));
 
                     if (requestAgreement != null) {
-                        throw new ParameterValidationException("Balance too low to change plan by abonement recalculate");
+                        throw new ParameterValidationException("Недостаточно средств для смены тарифного плана при активном абонементе");
                     }
                 }
 
@@ -151,7 +151,7 @@ public class PlanChangeService {
         if (requestAgreement != null) {
 
             if (!planChangeAgreement.equals(requestAgreement)) {
-                throw new ParameterValidationException("Oops. Something wrong.");
+                throw new ParameterValidationException("Произошла ошибка");
             }
 
             if (preorderdAccountAbonement != null) {
@@ -193,7 +193,7 @@ public class PlanChangeService {
         AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), false);
 
         if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
-            throw new ParameterValidationException("Account plan is abonement only");
+            throw new ParameterValidationException("Смена тарифного плана невозможна");
         }
 
         BigDecimal total = BigDecimal.ZERO;
@@ -209,7 +209,7 @@ public class PlanChangeService {
                 nextDate = nextDate.plusDays(1L);
             }
         } else {
-            throw new ParameterValidationException("Abonement is not activated");
+            throw new ParameterValidationException("Абонемент не активирован");
         }
 
         delta = (accountAbonement.getAbonement().getService().getCost()).subtract(total);
@@ -234,7 +234,7 @@ public class PlanChangeService {
 
         if (accountStats != null && !accountStats.isEmpty()) {
             if (currentPlan.getService().getCost().compareTo(newPlan.getService().getCost()) > 0) {
-                throw new ParameterValidationException("Account plan already changed in last month. You can not switch to plan witch lower cost.");
+                throw new ParameterValidationException("Смена тарифного плана на меньший по стоимости возможна не чаще 1 раза в месяц");
             }
 
         }
@@ -294,7 +294,7 @@ public class PlanChangeService {
     private void canChangePlan(PersonalAccount account, Plan currentPlan, Plan newPlan) {
 
         if (!newPlan.isActive()) {
-            throw new ParameterValidationException("New plan is not active");
+            throw new ParameterValidationException("Переход на данный тарифный план невозможен");
         }
 
         //Проверим не менялся ли тариф в последний месяц
@@ -325,7 +325,8 @@ public class PlanChangeService {
         List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
         for (AccountAbonement accountAbonement :accountAbonements) {
             if (accountAbonement.getAbonement().isInternal()) {
-                throw new ParameterValidationException("Account is on bonus abonement. Change is not allowed.");
+                throw new ParameterValidationException("Для смены тарифного плана вам необходимо приобрести абонемент на " +
+                        "текущий тарифный план сроком на 1 год или дождаться окончания бесплатного абонемента");
             }
         }
     }
@@ -520,7 +521,7 @@ public class PlanChangeService {
         VirtualHostingPlanProperties currentPlanProperties = (VirtualHostingPlanProperties) currentPlan.getPlanProperties();
         VirtualHostingPlanProperties newPlanProperties = (VirtualHostingPlanProperties) newPlan.getPlanProperties();
         if (currentPlanProperties.isBusinessServices() && !newPlanProperties.isBusinessServices()) {
-            throw new ParameterValidationException("Account is on business plan. Change allowed only to business plans.");
+            throw new ParameterValidationException("Вы можете выбрать только другой корпоративный тарифный план");
         }
     }
 
@@ -578,8 +579,8 @@ public class PlanChangeService {
         Long count = accountCountersService.getCurrentDatabaseCount(account.getId());
         Long freeLimit = planLimitsService.getDatabaseFreeLimit(newPlan);
         if (planChangeComparator(count, freeLimit) > 0) {
-            throw new ParameterValidationException("Account current DB count is more than plan freeLimit. " +
-                    "Current: " + count + " FreeLimit: " + freeLimit);
+            throw new ParameterValidationException("Текущее количество баз данных больше, чем лимит на новом тарифном плане. " +
+                    "Текущее количество: " + count + " Лимит: " + freeLimit);
         }
     }
 
@@ -593,8 +594,8 @@ public class PlanChangeService {
         Long count = accountCountersService.getCurrentFtpUserCount(account.getId());
         Long freeLimit = planLimitsService.getFtpUserFreeLimit(newPlan);
         if (planChangeComparator(count, freeLimit) > 0) {
-            throw new ParameterValidationException("Account current FtpUser count is more than plan freeLimit. "  +
-                    "Current: " + count + " FreeLimit: " + freeLimit);
+            throw new ParameterValidationException("Текущее количество FTP-пользователей больше, чем лимит на новом тарифном плане. "  +
+                    "Текущее количество: " + count + " Лимит: " + freeLimit);
         }
     }
 
@@ -608,8 +609,8 @@ public class PlanChangeService {
         Long count = accountCountersService.getCurrentWebSiteCount(account.getId());
         Long freeLimit = planLimitsService.getWebsiteFreeLimit(newPlan);
         if (planChangeComparator(count, freeLimit) > 0) {
-            throw new ParameterValidationException("Account current WebSite count is more than plan limit. "  +
-                    "Current: " + count + " FreeLimit: " + freeLimit);
+            throw new ParameterValidationException("Текущее количество сайтов больше, чем лимит на новом тарифном плане. "  +
+                    "Текущее количество: " + count + " Лимит: " + freeLimit);
         }
     }
 
@@ -623,8 +624,8 @@ public class PlanChangeService {
         Long count = accountCountersService.getCurrentQuotaUsed(account.getId());
         Long freeLimit = planLimitsService.getQuotaKBFreeLimit(newPlan);
         if (planChangeComparator(count, freeLimit) > 0) {
-            throw new ParameterValidationException("Account current Quota is more than plan limit. "  +
-                    "Current: " + count + " FreeLimit: " + freeLimit);
+            throw new ParameterValidationException("Использованная квота превышает лимит на новом тарифном плане. "  +
+                    "Текущая квота: " + count + " Лимит: " + freeLimit);
         }
     }
 
