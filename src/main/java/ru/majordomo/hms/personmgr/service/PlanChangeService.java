@@ -624,7 +624,7 @@ public class PlanChangeService {
         Long freeLimit = planLimitsService.getQuotaKBFreeLimit(newPlan);
         if (planChangeComparator(count, freeLimit) > 0) {
             throw new ParameterValidationException("Использованная квота текущего тарифного плана больше, чем лимит на новом тарифном плане. "  +
-                    "Текущяя квота: " + count + " Лимит: " + freeLimit);
+                    "Текущая квота: " + count + " Лимит: " + freeLimit);
         }
     }
 
