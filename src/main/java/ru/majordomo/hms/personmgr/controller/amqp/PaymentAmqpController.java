@@ -16,6 +16,7 @@ import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.repository.*;
+import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.FinFeignClient;
 import ru.majordomo.hms.rc.user.resources.Domain;
@@ -39,6 +40,8 @@ public class PaymentAmqpController extends CommonAmqpController  {
     private final AccountPromotionRepository accountPromotionRepository;
     private final PromotionRepository promotionRepository;
     private final AccountHelper accountHelper;
+    private final AbonementService abonementService;
+    private final AbonementRepository abonementRepository;
 
     @Autowired
     public PaymentAmqpController(
@@ -48,7 +51,9 @@ public class PaymentAmqpController extends CommonAmqpController  {
             PlanRepository planRepository,
             AccountPromotionRepository accountPromotionRepository,
             PromotionRepository promotionRepository,
-            AccountHelper accountHelper
+            AccountHelper accountHelper,
+            AbonementService abonementService,
+            AbonementRepository abonementRepository
     ) {
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.finFeignClient = finFeignClient;
@@ -57,6 +62,8 @@ public class PaymentAmqpController extends CommonAmqpController  {
         this.accountPromotionRepository = accountPromotionRepository;
         this.promotionRepository = promotionRepository;
         this.accountHelper = accountHelper;
+        this.abonementService = abonementService;
+        this.abonementRepository = abonementRepository;
     }
 
     @RabbitListener(
@@ -79,21 +86,51 @@ public class PaymentAmqpController extends CommonAmqpController  {
 
         PersonalAccount account = accountRepository.findOne(message.getAccountId());
 
-        if (account != null) {
-            // Если баланс после пополнения положительный
-            BigDecimal balance = accountHelper.getBalance(account);
-            if (balance.compareTo(BigDecimal.ZERO) > 0) {
-                // Обнуляем дату активации кредита
-                if (account.getCreditActivationDate() != null) {
-                    account.removeSettingByName(CREDIT_ACTIVATION_DATE);
-                    accountRepository.save(account);
-                }
+        if (!message.getParam("paymentTypeKind").equals(CREDIT_PAYMENT_TYPE_KIND)) {
 
-                // Включаем аккаунт, если был выключен
-                if (!account.isActive()) {
-                    accountHelper.switchAccountResources(account, true);
+            if (account != null) {
+
+                // Если баланс после пополнения положительный
+                BigDecimal balance = accountHelper.getBalance(account);
+                Plan plan = planRepository.findOne(account.getPlanId());
+                if (!plan.isAbonementOnly()) {
+                    if (balance.compareTo(BigDecimal.ZERO) > 0) {
+                        // Обнуляем дату активации кредита
+                        if (account.getCreditActivationDate() != null) {
+                            account.removeSettingByName(CREDIT_ACTIVATION_DATE);
+                            accountRepository.save(account);
+                        }
+
+                        // Включаем аккаунт, если был выключен
+                        if (!account.isActive()) {
+                            accountHelper.switchAccountResources(account, true);
+                        }
+                    }
+                } else {
+
+                    List<String> abonementIds = plan.getAbonementIds();
+
+                    String addAbonementId = null;
+
+                    // Ищем соответствующий abonementId по периоду и плану
+                    for (String abonementId : abonementIds) {
+                        if ( (abonementRepository.findOne(abonementId).getPeriod()).equals("P1Y") ) {
+                            addAbonementId = abonementId;
+                            break;
+                        }
+                    }
+
+                    try {
+                        abonementService.addAbonement(account, addAbonementId, true, false, false);
+                        accountHelper.switchAccountResources(account, true);
+                    } catch (Exception e) {
+                        logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
+                        e.printStackTrace();
+                    }
+
                 }
             }
+
         }
 
         // Пополнение баланса партнера при поступлении средств клиенту, если этот клиент регистрировался по промокоду

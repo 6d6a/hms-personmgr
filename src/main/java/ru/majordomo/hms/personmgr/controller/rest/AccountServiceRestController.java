@@ -326,7 +326,7 @@ public class AccountServiceRestController extends CommonRestController {
 
                 AccountService currentService = accountServices.get(0);
 
-                if (currentService.getLastBilled() == null || currentService.getLastBilled().compareTo(LocalDateTime.now().minusDays(1)) <= 0) {
+                if (currentService.getLastBilled() == null || currentService.getLastBilled().compareTo(LocalDateTime.now()) <= 0) {
                     accountHelper.checkBalance(account, paymentService, true);
 
                     BigDecimal dayCost = accountHelper.getDayCostByService(paymentService);

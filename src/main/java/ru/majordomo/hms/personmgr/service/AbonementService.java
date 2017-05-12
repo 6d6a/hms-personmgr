@@ -415,6 +415,10 @@ public class AbonementService {
 
         //Создаем AccountService с выбранным тарифом
         addPlanServicesAfterAbonementExpire(account);
+
+        if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
+            accountHelper.switchAccountResources(account, false);
+        }
     }
 
     /**

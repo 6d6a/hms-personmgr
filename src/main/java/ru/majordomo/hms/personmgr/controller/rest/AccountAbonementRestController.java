@@ -24,6 +24,7 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
@@ -39,17 +40,20 @@ public class AccountAbonementRestController extends CommonRestController {
     private final AccountAbonementRepository accountAbonementRepository;
     private final AbonementRepository abonementRepository;
     private final AbonementService abonementService;
+    private final PlanRepository planRepository;
 
     @Autowired
     public AccountAbonementRestController(
             PersonalAccountRepository accountRepository,
             AccountAbonementRepository accountAbonementRepository,
             AbonementService abonementService,
-            AbonementRepository abonementRepository) {
+            AbonementRepository abonementRepository,
+            PlanRepository planRepository) {
         this.accountRepository = accountRepository;
         this.accountAbonementRepository = accountAbonementRepository;
         this.abonementService = abonementService;
         this.abonementRepository = abonementRepository;
+        this.planRepository = planRepository;
     }
 
     @RequestMapping(value = "/{accountAbonementId}", method = RequestMethod.GET)
@@ -104,6 +108,11 @@ public class AccountAbonementRestController extends CommonRestController {
 
         AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
         if (!accountAbonement.getAbonement().isInternal()) {
+
+            if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
+                throw new ParameterValidationException("Удаление абонемента невозможно на вашем тарифном плане");
+            }
+
             abonementService.deleteAbonement(account, accountAbonementId);
 
             //Save history
