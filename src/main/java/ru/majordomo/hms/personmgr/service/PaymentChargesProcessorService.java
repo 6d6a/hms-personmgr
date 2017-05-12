@@ -97,8 +97,6 @@ public class PaymentChargesProcessorService {
                         //Проверяем что дата активации выставлена
                         if (creditActivationDate == null) {
                             // Далее дата активация выставляется в null, только при платеже, который вывел аккаунт из минуса
-                            account.setCreditActivationDate(LocalDateTime.now());
-                            personalAccountRepository.save(account);
                             forceCharge = true;
                         } else {
                             // Проверяем сколько он уже пользуется
@@ -127,10 +125,15 @@ public class PaymentChargesProcessorService {
                 }
             }
 
-            //Если баланса не хватило для списания
-            if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0 && !account.isCredit()) {
-                accountHelper.switchAccountResources(account, false);
-                this.sendDisableAccMail(account);
+            //Если изначального баланса не хватило для списания
+            if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0) {
+                if (!account.isCredit()) {
+                    accountHelper.switchAccountResources(account, false);
+                    this.sendDisableAccMail(account);
+                } else if (account.getCreditActivationDate() == null) {
+                    account.setCreditActivationDate(LocalDateTime.now());
+                    personalAccountRepository.save(account);
+                }
             }
 
 
