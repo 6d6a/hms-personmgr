@@ -175,17 +175,17 @@ public class PlanChangeService {
             account.setPlanId(newPlan.getId());
 
             if (newPlan.isAbonementOnly()) {
-                if (!account.isCredit()) {
+                if (account.isCredit()) {
                     account.setCreditActivationDate(null);
                     account.setCredit(false);
+
+                    //Запишем в историю клиента
+                    Map<String, String> historyParams = new HashMap<>();
+                    historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отключен кредит в связи с переходом на тариф с обязательным абонементом");
+                    historyParams.put(OPERATOR_KEY, "service");
+
+                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
                 }
-
-                //Запишем в историю клиента
-                Map<String, String> historyParams = new HashMap<>();
-                historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отключен кредит в связи с переходом на тариф с обязательным абонементом");
-                historyParams.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
             }
 
             personalAccountRepository.save(account);
