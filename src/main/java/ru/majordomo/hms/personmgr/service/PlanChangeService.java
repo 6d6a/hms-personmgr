@@ -16,6 +16,7 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
@@ -172,6 +173,21 @@ public class PlanChangeService {
 
             //Укажем новый тариф
             account.setPlanId(newPlan.getId());
+
+            if (newPlan.isAbonementOnly()) {
+                if (!account.isCredit()) {
+                    account.setCreditActivationDate(null);
+                    account.setCredit(false);
+                }
+
+                //Запишем в историю клиента
+                Map<String, String> historyParams = new HashMap<>();
+                historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отключен кредит в связи с переходом на тариф с обязательным абонементом");
+                historyParams.put(OPERATOR_KEY, "service");
+
+                publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+            }
+
             personalAccountRepository.save(account);
 
             if (isFromRegularToBusiness(currentPlan, newPlan)) {
