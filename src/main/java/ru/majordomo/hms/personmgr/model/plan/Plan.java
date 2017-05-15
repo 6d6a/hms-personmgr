@@ -19,7 +19,7 @@ import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.validators.ObjectIdList;
 
-import static ru.majordomo.hms.personmgr.common.PlanSetting.SSL_CERTIFICATE;
+import static ru.majordomo.hms.personmgr.common.PlanSetting.SSL_CERTIFICATE_PROHIBITED;
 
 @Document
 public class Plan extends BaseModel {
@@ -214,7 +214,7 @@ public class Plan extends BaseModel {
     }
 
     public Boolean isSslCertificateAllowed() {
-        return getBooleanSettingByName(SSL_CERTIFICATE);
+        return !getBooleanSettingByName(SSL_CERTIFICATE_PROHIBITED);
     }
 
     public String getNotInternalAbonementId() {
