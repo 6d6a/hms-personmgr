@@ -75,40 +75,6 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
         return this.createSuccessResponse(businessAction);
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.PATCH)
-    public SimpleServiceMessage update(
-            @PathVariable String resourceId,
-            @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
-    ) {
-        message.setAccountId(accountId);
-        message.addParam("resourceId", resourceId);
-
-        logger.debug("Updating sslcertificate with id " + resourceId + " " + message.toString());
-
-        Plan plan = planRepository.findOne(personalAccountRepository.findOne(accountId).getPlanId());
-
-        if (!plan.isSslCertificateAllowed()) {
-            throw new ParameterValidationException("На вашем тарифном плане заказ SSL сертификатов недоступен");
-        }
-
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.SSL_CERTIFICATE_UPDATE, BusinessActionType.SSL_CERTIFICATE_UPDATE_RC, message);
-
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
-        //Save history
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на обновление SSL-сертификата (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
-        params.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-
-        return this.createSuccessResponse(businessAction);
-    }
-
     @RequestMapping(value = "/{resourceId}", method = RequestMethod.DELETE)
     public SimpleServiceMessage delete(
             @PathVariable String resourceId,
@@ -121,12 +87,6 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
         message.setAccountId(accountId);
 
         logger.debug("Deleting sslcertificate with id " + resourceId + " " + message.toString());
-
-        Plan plan = planRepository.findOne(personalAccountRepository.findOne(accountId).getPlanId());
-
-        if (!plan.isSslCertificateAllowed()) {
-            throw new ParameterValidationException("На вашем тарифном плане заказ SSL сертификатов недоступен");
-        }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.SSL_CERTIFICATE_DELETE, BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
 
