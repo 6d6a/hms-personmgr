@@ -372,7 +372,9 @@ public class PlanChangeService {
         if (currentPlan.isAbonementOnly()) {
             //Если старый тариф был только абонементным, то нужно удалить абонемент и вернуть неизрасходованные средства
             processCurrentAccountAbonement(account, currentPlan);
+        }
 
+        if (newPlan.isAbonementOnly()) {
             //Если новый тариф только абонементный, то нужно сразу купить абонемент и списать средства
             processNewAccountAbonement(account, newPlan);
         }
