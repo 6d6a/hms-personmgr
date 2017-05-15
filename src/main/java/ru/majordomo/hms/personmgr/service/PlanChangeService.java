@@ -189,6 +189,18 @@ public class PlanChangeService {
                 }
             }
 
+            if (!newPlan.isSslCertificateAllowed()) {
+
+                accountHelper.disableAllSslCertificates(account);
+
+                //Запишем в историю клиента
+                Map<String, String> historyParams = new HashMap<>();
+                historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отключны SSL сертификаты в соответствии с тарифным планом");
+                historyParams.put(OPERATOR_KEY, "service");
+
+                publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+            }
+
             personalAccountRepository.save(account);
 
             if (isFromRegularToBusiness(currentPlan, newPlan)) {
@@ -360,7 +372,9 @@ public class PlanChangeService {
         if (currentPlan.isAbonementOnly()) {
             //Если старый тариф был только абонементным, то нужно удалить абонемент и вернуть неизрасходованные средства
             processCurrentAccountAbonement(account, currentPlan);
+        }
 
+        if (newPlan.isAbonementOnly()) {
             //Если новый тариф только абонементный, то нужно сразу купить абонемент и списать средства
             processNewAccountAbonement(account, newPlan);
         }
@@ -437,7 +451,7 @@ public class PlanChangeService {
             Abonement abonement = accountAbonement.getAbonement();
 
             if (accountAbonement.getExpired().isAfter(LocalDateTime.now())) {
-                long remainingDays = DAYS.between(accountAbonement.getExpired(), LocalDateTime.now());
+                long remainingDays = DAYS.between(LocalDateTime.now(), accountAbonement.getExpired());
                 BigDecimal remainedServiceCost = (BigDecimal.valueOf(remainingDays)).multiply(abonement.getService().getCost().divide(BigDecimal.valueOf(365L), 2, BigDecimal.ROUND_DOWN));
 
                 if (remainedServiceCost.compareTo(BigDecimal.ZERO) > 0) {

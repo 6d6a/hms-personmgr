@@ -596,4 +596,26 @@ public class AccountHelper {
             e.printStackTrace();
         }
     }
+
+    public void disableAllSslCertificates(PersonalAccount account) {
+
+        Collection<SSLCertificate> sslCertificates = rcUserFeignClient.getSSLCertificates(account.getId());
+
+        for (SSLCertificate sslCertificate : sslCertificates) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", sslCertificate.getId());
+
+            businessActionBuilder.build(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
+
+            //Save history
+            Map<String, String> paramsHistory = new HashMap<>();
+            paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на выключение SSL сертификата '" + sslCertificate.getName() + "'");
+            paramsHistory.put(OPERATOR_KEY, "service");
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+        }
+
+    }
 }
