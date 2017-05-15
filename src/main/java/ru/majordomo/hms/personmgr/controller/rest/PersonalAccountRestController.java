@@ -332,6 +332,9 @@ public class PersonalAccountRestController extends CommonRestController {
                     throw new ParameterValidationException("Credit already activated. Credit disabling prohibited.");
                 }
             } else {
+                if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
+                    throw new ParameterValidationException("Включение кредита невозможно на вашем тарифном плане");
+                }
                 // Включение кредита
                 if (!account.isCredit() && !account.isActive()) {
                     accountHelper.switchAccountResources(account, true);

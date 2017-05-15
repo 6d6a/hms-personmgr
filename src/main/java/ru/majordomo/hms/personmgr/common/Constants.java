@@ -28,6 +28,7 @@ public class Constants {
     public static final String BONUS_PAYMENT_TYPE_ID = "31";
     public static final String BONUS_PARTNER_TYPE_ID = "35";
     public static final String REAL_PAYMENT_TYPE_KIND = "REAL";
+    public static final String CREDIT_PAYMENT_TYPE_KIND = "CREDIT";
     public static final String BONUS_PARTNER_PERCENT = "0.25";
     public static final String FREE_SERVICE_POSTFIX = "_free";
     public static final String FREE_SERVICE_NAME_POSTFIX = " (бесплатно)";
