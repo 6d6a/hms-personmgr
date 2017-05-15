@@ -451,7 +451,7 @@ public class PlanChangeService {
             Abonement abonement = accountAbonement.getAbonement();
 
             if (accountAbonement.getExpired().isAfter(LocalDateTime.now())) {
-                long remainingDays = DAYS.between(accountAbonement.getExpired(), LocalDateTime.now());
+                long remainingDays = DAYS.between(LocalDateTime.now(), accountAbonement.getExpired());
                 BigDecimal remainedServiceCost = (BigDecimal.valueOf(remainingDays)).multiply(abonement.getService().getCost().divide(BigDecimal.valueOf(365L), 2, BigDecimal.ROUND_DOWN));
 
                 if (remainedServiceCost.compareTo(BigDecimal.ZERO) > 0) {
