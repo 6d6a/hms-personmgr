@@ -189,6 +189,18 @@ public class PlanChangeService {
                 }
             }
 
+            if (!newPlan.isSslCertificateAllowed()) {
+
+                accountHelper.disableAllSslCertificates(account);
+
+                //Запишем в историю клиента
+                Map<String, String> historyParams = new HashMap<>();
+                historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отключны SSL сертификаты в соответствии с тарифным планом");
+                historyParams.put(OPERATOR_KEY, "service");
+
+                publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+            }
+
             personalAccountRepository.save(account);
 
             if (isFromRegularToBusiness(currentPlan, newPlan)) {

@@ -6,15 +6,20 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.validation.constraints.NotNull;
 
+import ru.majordomo.hms.personmgr.common.PlanSetting;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.validators.ObjectIdList;
+
+import static ru.majordomo.hms.personmgr.common.PlanSetting.SSL_CERTIFICATE;
 
 @Document
 public class Plan extends BaseModel {
@@ -44,6 +49,8 @@ public class Plan extends BaseModel {
 
     @NotNull
     private PlanProperties planProperties;
+
+    private Map<PlanSetting, String> settings = new HashMap<>();
 
     @ObjectIdList(value = Abonement.class)
     private List<String> abonementIds = new ArrayList<>();
@@ -182,6 +189,34 @@ public class Plan extends BaseModel {
         this.smsService = smsService;
     }
 
+    public Map<PlanSetting, String> getSettings() {
+        return settings;
+    }
+
+    public void setSettings(Map<PlanSetting, String> settings) {
+        this.settings = settings;
+    }
+
+    public void setSetting(PlanSetting name, String setting) {
+        this.settings.put(name, setting);
+    }
+
+    public void getSetting(String name) {
+        this.settings.get(name);
+    }
+
+    private boolean getBooleanSettingByName(PlanSetting name) {
+        return this.settings.get(name) != null ? Boolean.valueOf(this.settings.get(name)) : false;
+    }
+
+    private void setBooleanSettingByName(PlanSetting name, boolean value) {
+        this.settings.put(name, String.valueOf(value));
+    }
+
+    public Boolean isSslCertificateAllowed() {
+        return getBooleanSettingByName(SSL_CERTIFICATE);
+    }
+
     public String getNotInternalAbonementId() {
         Abonement abonement = getNotInternalAbonement();
         return abonement != null ? abonement.getId() : null;
@@ -207,6 +242,7 @@ public class Plan extends BaseModel {
                 ", abonementOnly=" + abonementOnly +
                 ", active=" + active +
                 ", planProperties=" + planProperties +
+                ", settings=" + settings +
                 ", abonementIds=" + abonementIds +
                 ", smsServiceId='" + smsServiceId + '\'' +
                 ", service=" + service +
