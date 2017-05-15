@@ -33,6 +33,7 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 import static java.lang.Math.floor;
 import static java.time.temporal.ChronoUnit.DAYS;
+import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.Utils.planChangeComparator;
 
@@ -176,7 +177,7 @@ public class PlanChangeService {
 
             if (newPlan.isAbonementOnly()) {
                 if (account.isCredit()) {
-                    account.setCreditActivationDate(null);
+                    account.removeSettingByName(CREDIT_ACTIVATION_DATE);
                     account.setCredit(false);
 
                     //Запишем в историю клиента
