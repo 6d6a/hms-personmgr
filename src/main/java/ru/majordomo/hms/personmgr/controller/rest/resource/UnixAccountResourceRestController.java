@@ -57,7 +57,7 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
         Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
 
         if (!accountRepository.findOne(accountId).isActive() && (unixAccounts != null && !unixAccounts.isEmpty())) {
-            throw new ParameterValidationException("Аккаунт выключен");
+            throw new ParameterValidationException("Аккаунт неактивен. Создание Unix аккаунта невозможно.");
         }
 
         logger.debug("Creating unix account " + message.toString());
@@ -89,7 +89,7 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
         message.addParam("resourceId", resourceId);
 
         if (!accountRepository.findOne(accountId).isActive()) {
-            throw new ParameterValidationException("Аккаунт выключен");
+            throw new ParameterValidationException("Аккаунт неактивен. Обновление Unix аккаунта невозможно.");
         }
 
         logger.debug("Updating unix account with id " + resourceId + " " + message.toString());

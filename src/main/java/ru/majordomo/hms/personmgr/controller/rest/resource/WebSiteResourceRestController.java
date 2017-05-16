@@ -52,7 +52,7 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
         logger.debug("Creating website: " + message.toString());
 
         if (!accountRepository.findOne(accountId).isActive()) {
-            throw new ParameterValidationException("Аккаунт выключен");
+            throw new ParameterValidationException("Аккаунт неактивен. Создание сайта невозможно.");
         }
 
         if (!planCheckerService.canAddWebSite(accountId)) {
@@ -90,7 +90,7 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
         logger.debug("Updating website with id " + resourceId + " " + message.toString());
 
         if (!accountRepository.findOne(accountId).isActive()) {
-            throw new ParameterValidationException("Аккаунт выключен");
+            throw new ParameterValidationException("Аккаунт неактивен. Создание сайта невозможно.");
         }
 
         checkParamsWithRoles(message.getParams(), WEB_SITE_PATCH, request);

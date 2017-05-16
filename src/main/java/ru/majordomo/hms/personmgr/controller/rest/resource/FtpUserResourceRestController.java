@@ -51,7 +51,7 @@ public class FtpUserResourceRestController extends CommonResourceRestController 
         logger.debug("Creating ftpuser " + message.toString());
 
         if (!accountRepository.findOne(accountId).isActive()) {
-            throw new ParameterValidationException("Аккаунт выключен");
+            throw new ParameterValidationException("Аккаунт неактивен. Создание FTP пользователя невозможно.");
         }
 
         if (!planCheckerService.canAddFtpUser(accountId)) {
@@ -89,7 +89,7 @@ public class FtpUserResourceRestController extends CommonResourceRestController 
         logger.debug("Updating ftpuser with id " + resourceId + " " + message.toString());
 
         if (!accountRepository.findOne(accountId).isActive()) {
-            throw new ParameterValidationException("Аккаунт выключен");
+            throw new ParameterValidationException("Аккаунт неактивен. Обновление FTP пользователя невозможно.");
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.FTP_USER_UPDATE, BusinessActionType.FTP_USER_UPDATE_RC, message);

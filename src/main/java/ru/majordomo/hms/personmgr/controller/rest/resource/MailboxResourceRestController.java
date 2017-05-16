@@ -52,7 +52,7 @@ public class MailboxResourceRestController extends CommonResourceRestController 
         logger.debug("Creating mailbox: " + message.toString());
 
         if (!accountRepository.findOne(accountId).isActive()) {
-            throw new ParameterValidationException("Аккаунт выключен");
+            throw new ParameterValidationException("Аккаунт неактивен. Создание почтового ящика невозможно.");
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_CREATE, BusinessActionType.MAILBOX_CREATE_RC, message);
@@ -84,7 +84,7 @@ public class MailboxResourceRestController extends CommonResourceRestController 
         logger.debug("Updating mailbox with id " + resourceId + " " + message.toString());
 
         if (!accountRepository.findOne(accountId).isActive()) {
-            throw new ParameterValidationException("Аккаунт выключен");
+            throw new ParameterValidationException("Аккаунт неактивен. Обновление почтового ящика невозможно.");
         }
 
         checkParamsWithRoles(message.getParams(), MAILBOX_PATCH, request);

@@ -52,7 +52,7 @@ public class DnsRecordResourceRestController extends CommonResourceRestControlle
         logger.debug("Creating DnsRecord. Message: " + message.toString());
 
         if (!accountRepository.findOne(accountId).isActive()) {
-            throw new ParameterValidationException("Аккаунт выключен");
+            throw new ParameterValidationException("Аккаунт неактивен. Создание DNS-записи невозможно.");
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.DNS_RECORD_CREATE, BusinessActionType.DNS_RECORD_CREATE_RC, message);
@@ -84,7 +84,7 @@ public class DnsRecordResourceRestController extends CommonResourceRestControlle
         logger.debug("Updating DnsRecord with id " + resourceId + " " + message.toString());
 
         if (!accountRepository.findOne(accountId).isActive()) {
-            throw new ParameterValidationException("Аккаунт выключен");
+            throw new ParameterValidationException("Аккаунт неактивен. Обновление DNS-записи невозможно.");
         }
 
         checkParamsWithRoles(message.getParams(), DNS_RECORD_PATCH, request);

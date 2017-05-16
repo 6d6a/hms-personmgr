@@ -57,7 +57,7 @@ public class DatabaseResourceRestController extends CommonResourceRestController
         }
 
         if (!accountRepository.findOne(accountId).isActive()) {
-            throw new ParameterValidationException("Аккаунт выключен");
+            throw new ParameterValidationException("Аккаунт неактивен. Создание базы данных невозможно.");
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_CREATE, BusinessActionType.DATABASE_CREATE_RC, message);
@@ -89,7 +89,7 @@ public class DatabaseResourceRestController extends CommonResourceRestController
         logger.debug("Updating database with id " + resourceId + " " + message.toString());
 
         if (!accountRepository.findOne(accountId).isActive()) {
-            throw new ParameterValidationException("Аккаунт выключен");
+            throw new ParameterValidationException("Аккаунт неактивен. Обновление базы данных невозможно.");
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_UPDATE, BusinessActionType.DATABASE_UPDATE_RC, message);

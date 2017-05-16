@@ -83,7 +83,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
         message.setAccountId(accountId);
 
         if (!accountRepository.findOne(accountId).isActive()) {
-            throw new ParameterValidationException("Аккаунт выключен");
+            throw new ParameterValidationException("Аккаунт неактивен. Добавление домена невозможно.");
         }
 
         logger.debug("Creating domain " + message.toString());
@@ -193,6 +193,10 @@ public class DomainResourceRestController extends CommonResourceRestController {
         message.getParams().put("resourceId", resourceId);
 
         logger.debug("Updating domain with id " + resourceId + " " + message.toString());
+
+        if (!accountRepository.findOne(accountId).isActive()) {
+            throw new ParameterValidationException("Аккаунт неактивен. Обновление домена невозможно.");
+        }
 
         boolean isRenew = message.getParam("renew") != null && (boolean) message.getParam("renew");
 
