@@ -54,6 +54,10 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
 
         logger.debug("Creating sslcertificate " + message.toString());
 
+        if (!personalAccountRepository.findOne(accountId).isActive()) {
+            throw new ParameterValidationException("Аккаунт неактивен. Заказ SSL-сертификата невозможен.");
+        }
+
         Plan plan = planRepository.findOne(personalAccountRepository.findOne(accountId).getPlanId());
 
         if (!plan.isSslCertificateAllowed()) {

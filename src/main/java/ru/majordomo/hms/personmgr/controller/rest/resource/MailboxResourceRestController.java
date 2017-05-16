@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,8 +18,10 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -29,6 +32,14 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.MAILBOX_PATCH;
 @RequestMapping("/{accountId}/mailbox")
 @Validated
 public class MailboxResourceRestController extends CommonResourceRestController {
+
+    private final PersonalAccountRepository accountRepository;
+
+    @Autowired
+    public MailboxResourceRestController(PersonalAccountRepository accountRepository) {
+        this.accountRepository = accountRepository;
+    }
+
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -39,6 +50,10 @@ public class MailboxResourceRestController extends CommonResourceRestController 
         message.setAccountId(accountId);
 
         logger.debug("Creating mailbox: " + message.toString());
+
+        if (!accountRepository.findOne(accountId).isActive()) {
+            throw new ParameterValidationException("Аккаунт неактивен. Создание почтового ящика невозможно.");
+        }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_CREATE, BusinessActionType.MAILBOX_CREATE_RC, message);
 
@@ -67,6 +82,10 @@ public class MailboxResourceRestController extends CommonResourceRestController 
         message.getParams().put("resourceId", resourceId);
 
         logger.debug("Updating mailbox with id " + resourceId + " " + message.toString());
+
+        if (!accountRepository.findOne(accountId).isActive()) {
+            throw new ParameterValidationException("Аккаунт неактивен. Обновление почтового ящика невозможно.");
+        }
 
         checkParamsWithRoles(message.getParams(), MAILBOX_PATCH, request);
 

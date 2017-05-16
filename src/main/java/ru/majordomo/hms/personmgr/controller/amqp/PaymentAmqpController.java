@@ -8,6 +8,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountProcessChargesEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
@@ -104,6 +105,8 @@ public class PaymentAmqpController extends CommonAmqpController  {
                         // Включаем аккаунт, если был выключен
                         if (!account.isActive()) {
                             accountHelper.switchAccountResources(account, true);
+                            // сразу списываем за текущий день после включения (если не хватает - аккаунт снова выключится)
+                            publisher.publishEvent(new AccountProcessChargesEvent(account));
                         }
                     }
                 } else {

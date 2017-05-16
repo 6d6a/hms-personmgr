@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,8 +18,10 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -29,6 +32,14 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.DNS_RECORD_PATCH;
 @RequestMapping("/{accountId}/dns-record")
 @Validated
 public class DnsRecordResourceRestController extends CommonResourceRestController {
+
+    private final PersonalAccountRepository accountRepository;
+
+    @Autowired
+    public DnsRecordResourceRestController(PersonalAccountRepository accountRepository) {
+        this.accountRepository = accountRepository;
+    }
+
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -39,6 +50,10 @@ public class DnsRecordResourceRestController extends CommonResourceRestControlle
         message.setAccountId(accountId);
 
         logger.debug("Creating DnsRecord. Message: " + message.toString());
+
+        if (!accountRepository.findOne(accountId).isActive()) {
+            throw new ParameterValidationException("Аккаунт неактивен. Создание DNS-записи невозможно.");
+        }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.DNS_RECORD_CREATE, BusinessActionType.DNS_RECORD_CREATE_RC, message);
 
@@ -67,6 +82,10 @@ public class DnsRecordResourceRestController extends CommonResourceRestControlle
         message.getParams().put("resourceId", resourceId);
 
         logger.debug("Updating DnsRecord with id " + resourceId + " " + message.toString());
+
+        if (!accountRepository.findOne(accountId).isActive()) {
+            throw new ParameterValidationException("Аккаунт неактивен. Обновление DNS-записи невозможно.");
+        }
 
         checkParamsWithRoles(message.getParams(), DNS_RECORD_PATCH, request);
 
