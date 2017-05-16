@@ -15,6 +15,7 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
@@ -80,6 +81,10 @@ public class DomainResourceRestController extends CommonResourceRestController {
             SecurityContextHolderAwareRequestWrapper request
     ) {
         message.setAccountId(accountId);
+
+        if (!accountRepository.findOne(accountId).isActive()) {
+            throw new ParameterValidationException("Аккаунт выключен");
+        }
 
         logger.debug("Creating domain " + message.toString());
 

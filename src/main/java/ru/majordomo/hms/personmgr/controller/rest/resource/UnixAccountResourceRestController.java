@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,9 +19,13 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.rc.user.resources.UnixAccount;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
@@ -29,6 +35,16 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.UNIX_ACCOUNT_PATCH;
 @RequestMapping("/{accountId}/unix-account")
 @Validated
 public class UnixAccountResourceRestController extends CommonResourceRestController {
+
+    private final PersonalAccountRepository accountRepository;
+    private final RcUserFeignClient rcUserFeignClient;
+
+    @Autowired
+    public UnixAccountResourceRestController(PersonalAccountRepository accountRepository, RcUserFeignClient rcUserFeignClient) {
+        this.accountRepository = accountRepository;
+        this.rcUserFeignClient = rcUserFeignClient;
+    }
+
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -37,6 +53,12 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
             SecurityContextHolderAwareRequestWrapper request
     ) {
         message.setAccountId(accountId);
+
+        Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
+
+        if (!accountRepository.findOne(accountId).isActive() && (unixAccounts != null && !unixAccounts.isEmpty())) {
+            throw new ParameterValidationException("Аккаунт выключен");
+        }
 
         logger.debug("Creating unix account " + message.toString());
 
@@ -65,6 +87,10 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
     ) {
         message.setAccountId(accountId);
         message.addParam("resourceId", resourceId);
+
+        if (!accountRepository.findOne(accountId).isActive()) {
+            throw new ParameterValidationException("Аккаунт выключен");
+        }
 
         logger.debug("Updating unix account with id " + resourceId + " " + message.toString());
 
