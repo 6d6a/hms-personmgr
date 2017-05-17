@@ -436,20 +436,10 @@ public class AbonementService {
 
     public void addFree14DaysAbonement(PersonalAccount account) {
         Plan plan = planRepository.findOne(account.getPlanId());
-        List<String> abonementIds = plan.getAbonementIds();
+        Abonement abonement = plan.getFree14DaysAbonement();
 
-        String bonusAbonementId = null;
-
-        // Ищем соответствующий abonementId по периоду и плану
-        for (String abonementId : abonementIds) {
-            if ( (abonementRepository.findOne(abonementId).getPeriod()).equals("P14D") ) {
-                bonusAbonementId = abonementId;
-                break;
-            }
-        }
-
-        if (bonusAbonementId != null) {
-            addAbonement(account, bonusAbonementId, false, true, false);
+        if (abonement != null) {
+            addAbonement(account, abonement.getId(), false, true, false);
 
             //Save history
             Map<String, String> params = new HashMap<>();

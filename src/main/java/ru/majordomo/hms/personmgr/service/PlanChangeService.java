@@ -130,22 +130,23 @@ public class PlanChangeService {
             //Если тариф не isAbonementOnly (например "Парковка") и имеет абонемент - необходимо сменить тариф с пересчётом баланса
             if (!currentPlan.isAbonementOnly()) {
 
-                if (newPlan.getService().getCost().compareTo(currentPlan.getService().getCost()) < 0) {
-                    throw new ParameterValidationException("Переход на тарифный план с меньшей стоимостью при активном абонементе невозможен");
-                }
+                if (!accountAbonement.getAbonement().getPeriod().equals("P14D")) {
+                    if (newPlan.getService().getCost().compareTo(currentPlan.getService().getCost()) < 0) {
+                        throw new ParameterValidationException("Переход на тарифный план с меньшей стоимостью при активном абонементе невозможен");
+                    }
 
-                //Только перерасчёт и валидация без сохранения
-                planChangeAgreement = this.calculateDeclineAbonementValues(account, planChangeAgreement);
-                BigDecimal newBalanceAfterDecline = accountHelper.getBalance(account).add(planChangeAgreement.getDelta());
+                    //Только перерасчёт и валидация без сохранения
+                    planChangeAgreement = this.calculateDeclineAbonementValues(account, planChangeAgreement);
+                    BigDecimal newBalanceAfterDecline = accountHelper.getBalance(account).add(planChangeAgreement.getDelta());
 
-                if (newBalanceAfterDecline.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) { // Денег на новый абонемент не хватает
-                    planChangeAgreement.setNeedToFeelBalance(newPlan.getNotInternalAbonement().getService().getCost().subtract(newBalanceAfterDecline));
+                    if (newBalanceAfterDecline.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) { // Денег на новый абонемент не хватает
+                        planChangeAgreement.setNeedToFeelBalance(newPlan.getNotInternalAbonement().getService().getCost().subtract(newBalanceAfterDecline));
 
-                    if (requestAgreement != null) {
-                        throw new ParameterValidationException("Недостаточно средств для смены тарифного плана при активном абонементе");
+                        if (requestAgreement != null) {
+                            throw new ParameterValidationException("Недостаточно средств для смены тарифного плана при активном абонементе");
+                        }
                     }
                 }
-
             }
 
         }
@@ -162,15 +163,24 @@ public class PlanChangeService {
 
             if (accountAbonement != null) {
                 //Произведем нужные действия с абонементами
-                if (currentPlan.isAbonementOnly()) {
-                    processAbonementOnlyPlans(account, currentPlan, newPlan);
+                if (accountAbonement.getAbonement().getPeriod().equals("P14D")) {
+                    //Если аккаунт на бесплатном абонементе
+                    deleteAccountAbonement(account, currentPlan);
+                    Abonement abonement = newPlan.getFree14DaysAbonement();
+                    if (abonement != null) {
+                        addAccountAbonement(account, abonement);
+                    }
                 } else {
-                    processNotAbonementOnlyPlans(account, currentPlan, newPlan, planChangeAgreement);
+                    if (currentPlan.isAbonementOnly()) {
+                        processAbonementOnlyPlans(account, currentPlan, newPlan);
+                    } else {
+                        processNotAbonementOnlyPlans(account, currentPlan, newPlan, planChangeAgreement);
+                    }
                 }
             }
 
             //Произведем нужные действия со всеми услугами
-            processServices(account, currentPlan, newPlan);
+            processServices(account, currentPlan, newPlan, accountAbonement);
 
             //Укажем новый тариф
             account.setPlanId(newPlan.getId());
@@ -353,7 +363,7 @@ public class PlanChangeService {
     private void checkBonusAbonements(PersonalAccount account) {
         List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
         for (AccountAbonement accountAbonement :accountAbonements) {
-            if (accountAbonement.getAbonement().isInternal()) {
+            if (accountAbonement.getAbonement().isInternal() && !accountAbonement.getAbonement().getPeriod().equals("P14D")) {
                 throw new ParameterValidationException("Для смены тарифного плана вам необходимо приобрести абонемент на " +
                         "текущий тарифный план сроком на 1 год или дождаться окончания бесплатного абонемента");
             }
@@ -527,9 +537,13 @@ public class PlanChangeService {
      * @param currentPlan текущий тариф
      * @param newPlan     новый тариф
      */
-    private void processServices(PersonalAccount account, Plan currentPlan, Plan newPlan) {
-        //Удалим старую услугу тарифа и добавим новую
-        replacePlanService(account, currentPlan, newPlan);
+    private void processServices(PersonalAccount account, Plan currentPlan, Plan newPlan, AccountAbonement accountAbonement) {
+
+        //Если нет абонемента
+        if (accountAbonement == null) {
+            //Удалим старую услугу тарифа и добавим новую
+            replacePlanService(account, currentPlan, newPlan);
+        }
 
         //Удалим старую услугу смс-уведомлений и добавим новую
         replaceSmsNotificationsService(account, currentPlan, newPlan);
