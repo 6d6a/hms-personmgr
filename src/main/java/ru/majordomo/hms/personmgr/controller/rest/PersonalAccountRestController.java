@@ -20,11 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
 import feign.FeignException;
 import ru.majordomo.hms.personmgr.common.Utils;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverConfirmedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverEvent;
@@ -42,6 +45,7 @@ import ru.majordomo.hms.personmgr.service.PlanChangeService;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.service.TokenHelper;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.rc.user.resources.Domain;
 import ru.majordomo.hms.rc.user.resources.Person;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
@@ -52,6 +56,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_CHANGE;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_RECOVER;
+import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
 
 @RestController
 @Validated
@@ -242,7 +247,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         accountHelper.changePassword(account, password);
 
-        String ip = request.getRemoteAddr();
+        String ip = getClientIP(request);
 
         Map<String, String> params = new HashMap<>();
         params.put(IP_KEY, ip);
@@ -265,16 +270,47 @@ public class PersonalAccountRestController extends CommonRestController {
 
         String accountId = (String) requestBody.get(ACCOUNT_ID_KEY);
 
-        PersonalAccount account = accountRepository.findByAccountId(accountId);
+        PersonalAccount account = null;
 
-        String ip = request.getRemoteAddr();
+        Pattern p = Pattern.compile("(?ui)(^ac_|^ас_)(\\d*)");
+        Matcher m = p.matcher(accountId);
 
-        Map<String, String> params = new HashMap<>();
-        params.put(IP_KEY, ip);
+        if (m.matches() && m.groupCount() == 2) {
+            accountId = m.group(2);
 
-        publisher.publishEvent(new AccountPasswordRecoverEvent(account, params));
+            if (accountId.length() > 0) {
+                account = accountRepository.findByAccountId(accountId);
+            }
+        } else {
+            Domain domain = null;
 
-        return new ResponseEntity<>(HttpStatus.OK);
+            try {
+                domain = rcUserFeignClient.findDomain(accountId);
+
+                if (domain != null) {
+                    accountId = domain.getAccountId();
+                    account = accountRepository.findOne(accountId);
+                } else {
+                    return new ResponseEntity<>(createErrorResponse("Домен не найден."), HttpStatus.NOT_FOUND);
+                }
+            } catch (Exception e) {
+                logger.error("[requestPasswordRecovery] exception :" + e.getMessage());
+                return new ResponseEntity<>(createErrorResponse("Домен не найден."), HttpStatus.NOT_FOUND);
+            }
+        }
+
+        if (account != null) {
+            String ip = getClientIP(request);
+
+            Map<String, String> params = new HashMap<>();
+            params.put(IP_KEY, ip);
+
+            publisher.publishEvent(new AccountPasswordRecoverEvent(account, params));
+
+            return new ResponseEntity<>(createSuccessResponse("Произведен запрос на восстановление пароля."), HttpStatus.OK);
+        }
+
+        return new ResponseEntity<>(createErrorResponse("Аккаунт/домен не найден."), HttpStatus.NOT_FOUND);
     }
     @RequestMapping(value = "/password-recovery",
                     method = RequestMethod.GET)
@@ -288,16 +324,26 @@ public class PersonalAccountRestController extends CommonRestController {
         Token token = tokenHelper.getToken(tokenId);
 
         if (token == null) {
-            throw new ParameterValidationException("Token not found (or already used)");
+            return new ResponseEntity<>(
+                    createErrorResponse(
+                    "Запрос на восстановление пароля не найден или уже выполнен ранее."
+                    ),
+                    HttpStatus.BAD_REQUEST
+            );
         }
 
         PersonalAccount account = accountRepository.findOne(token.getPersonalAccountId());
 
         if (account == null) {
-            throw new ParameterValidationException("Account not found");
+            return new ResponseEntity<>(
+                    createErrorResponse(
+                            "Аккаунт не найден."
+                    ),
+                    HttpStatus.BAD_REQUEST
+            );
         }
 
-        String ip = request.getRemoteAddr();
+        String ip = getClientIP(request);
 
         String password = randomAlphabetic(8);
 
@@ -311,7 +357,15 @@ public class PersonalAccountRestController extends CommonRestController {
 
         publisher.publishEvent(new TokenDeleteEvent(token));
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        SimpleServiceMessage message = createSuccessResponse("Пароль успешно восстановлен. " +
+                "Новый пароль отправлен на контактный e-mail владельца аккаунта.");
+        message.addParam("password", password);
+        message.addParam("login", account.getName());
+
+        return new ResponseEntity<>(
+                message,
+                HttpStatus.OK
+        );
     }
 
     @RequestMapping(value = "/{accountId}/account/settings",
