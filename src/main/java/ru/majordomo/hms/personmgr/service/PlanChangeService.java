@@ -165,7 +165,7 @@ public class PlanChangeService {
                 //Произведем нужные действия с абонементами
                 if (accountAbonement.getAbonement().getPeriod().equals("P14D")) {
                     //Если аккаунт на бесплатном абонементе
-                    deleteAccountAbonement(account, currentPlan);
+                    deleteAccount14DaysFreeAbonement(account, currentPlan);
                     Abonement abonement = newPlan.getFree14DaysAbonement();
                     if (abonement != null) {
                         addAccountAbonement(account, abonement);
@@ -492,6 +492,17 @@ public class PlanChangeService {
         List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(
                 account.getId(),
                 currentPlan.getNotInternalAbonementId()
+        );
+
+        if (accountAbonements != null && !accountAbonements.isEmpty()) {
+            accountAbonementRepository.delete(accountAbonements);
+        }
+    }
+
+    private void deleteAccount14DaysFreeAbonement(PersonalAccount account, Plan currentPlan) {
+        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(
+                account.getId(),
+                currentPlan.getFree14DaysAbonement().getId()
         );
 
         if (accountAbonements != null && !accountAbonements.isEmpty()) {
