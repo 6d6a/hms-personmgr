@@ -430,7 +430,7 @@ public class PlanChangeService {
             deleteAccountAbonement(account, currentPlan);
         }
 
-        if (!newPlan.isAbonementOnly()) {
+        if (!currentPlan.isAbonementOnly() && !newPlan.isAbonementOnly()) {
             processNewAccountAbonement(account, newPlan);
         }
     }
