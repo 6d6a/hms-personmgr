@@ -155,6 +155,7 @@ public class PlanChangeService {
         } else if (newPlan.isAbonementOnly()) {
             //Необходимо проверить что чуваку хватает денег на покупку абонемента нового тарифа
             //Только перерасчёт и валидация без сохранения
+            planChangeAgreement.setDelta(newPlan.getNotInternalAbonement().getService().getCost().negate());
             if (balance.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) {
                 planChangeAgreement.setNeedToFeelBalance(newPlan.getNotInternalAbonement().getService().getCost().subtract(balance));
 
