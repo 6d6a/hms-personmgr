@@ -12,6 +12,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 
+import javax.servlet.http.HttpServletRequest;
+
 public class Utils {
 
     private static PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
@@ -80,4 +82,42 @@ public class Utils {
         }
     }
 
+    /**
+     * Get the IP address of client making the request.
+     *
+     * Uses the "x-forwarded-for" HTTP header if available, otherwise uses the remote
+     * IP of requester.
+     *
+     * @param request <code>HttpServletRequest</code>
+     * @return <code>String</code> IP address
+     */
+    public static String getClientIP(HttpServletRequest request) {
+        final String xForwardedFor = request.getHeader("x-forwarded-for");
+        String clientIP = null;
+        if (xForwardedFor == null) {
+            clientIP = request.getRemoteAddr();
+        } else {
+            clientIP = extractClientIpFromXForwardedFor(xForwardedFor);
+        }
+        return clientIP;
+    }
+
+    /**
+     * Extract the client IP address from an x-forwarded-for header. Returns null if there is no x-forwarded-for header
+     *
+     * @param xForwardedFor a <code>String</code> value
+     * @return a <code>String</code> value
+     */
+    public static String extractClientIpFromXForwardedFor(String xForwardedFor) {
+        if (xForwardedFor == null) {
+            return null;
+        }
+        xForwardedFor = xForwardedFor.trim();
+        String tokenized[] = xForwardedFor.split(",");
+        if (tokenized.length == 0) {
+            return null;
+        } else {
+            return tokenized[0].trim();
+        }
+    }
 }

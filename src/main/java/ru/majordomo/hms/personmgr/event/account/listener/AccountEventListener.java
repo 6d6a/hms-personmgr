@@ -215,7 +215,7 @@ public class AccountEventListener {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setParams(new HashMap<>());
         message.addParam("email", emails);
-        message.addParam("api_name", "MajordomoVHPasswordChange");
+        message.addParam("api_name", "MajordomoHMSPasswordChangeRequest");
         message.addParam("priority", 10);
 
         String token = tokenHelper.generateToken(account, TokenType.PASSWORD_RECOVERY_REQUEST);
@@ -227,7 +227,7 @@ public class AccountEventListener {
         parameters.put("acc_id", account.getAccountId());
         parameters.put("account", account.getName());
         parameters.put("ip", ip);
-        parameters.put("key", token);
+        parameters.put("token", token);
 
         message.addParam("parametrs", parameters);
 
@@ -259,7 +259,7 @@ public class AccountEventListener {
 
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
-        parameters.put("acc_id", account.getAccountId());
+        parameters.put("acc_id", account.getName());
         parameters.put("pass", (String) params.get(PASSWORD_KEY));
 
         message.addParam("parametrs", parameters);

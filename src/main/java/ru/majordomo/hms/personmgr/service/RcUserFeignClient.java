@@ -73,4 +73,7 @@ public interface RcUserFeignClient {
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/ssl-certificate", consumes = "application/json")
     Collection<SSLCertificate> getSSLCertificates(@PathVariable("accountId") String accountId);
+
+    @RequestMapping(method = RequestMethod.GET, value = "/domain/find", consumes = "application/json")
+    Domain findDomain(@RequestParam("name") String name);
 }
