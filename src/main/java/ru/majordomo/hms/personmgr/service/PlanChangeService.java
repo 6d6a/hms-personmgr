@@ -101,6 +101,7 @@ public class PlanChangeService {
         planChangeAgreement.setBalance(accountHelper.getBalance(account));
         planChangeAgreement.setDelta(BigDecimal.ZERO);
         planChangeAgreement.setNeedToFeelBalance(BigDecimal.ZERO);
+        planChangeAgreement.setBalanceChanges(false);
 
         String currentPlanId = account.getPlanId();
 
@@ -155,7 +156,7 @@ public class PlanChangeService {
         } else if (newPlan.isAbonementOnly()) {
             //Необходимо проверить что чуваку хватает денег на покупку абонемента нового тарифа
             //Только перерасчёт и валидация без сохранения
-            planChangeAgreement.setDelta(newPlan.getNotInternalAbonement().getService().getCost().negate());
+            planChangeAgreement.setBalanceChanges(true);
             if (balance.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) {
                 planChangeAgreement.setNeedToFeelBalance(newPlan.getNotInternalAbonement().getService().getCost().subtract(balance));
 
@@ -261,6 +262,7 @@ public class PlanChangeService {
 
         // delta может быть как отрицательной (будет списано), так и положительной (будет начислено)
         planChangeAgreement.setDelta(delta);
+        planChangeAgreement.setBalanceChanges(true);
         
         return planChangeAgreement;
     }
