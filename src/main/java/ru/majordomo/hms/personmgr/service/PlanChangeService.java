@@ -174,16 +174,15 @@ public class PlanChangeService {
                 accountAbonementRepository.delete(preorderdAccountAbonement.getId());
             }
 
-            // Процессим абонементы (списываем деньги\начисляем деньги\покупаем абонементы)
+            // Процессим абонементы (списываем деньги\начисляем деньги\покупаем абонементы\удаляем абонементы)
             if (accountAbonement != null) {
                 if (!accountHasFree14DaysAbonement) {
                     processNotAbonementOnlyPlans(account, currentPlan, newPlan, planChangeAgreement);
                 } else {
                     replaceFree14DaysAbonement(account, currentPlan, newPlan);
                 }
-            } else {
-                processAbonementOnlyPlans(account, currentPlan, newPlan);
             }
+            processAbonementOnlyPlans(account, currentPlan, newPlan);
 
             //Произведем нужные действия со всеми услугами
             processServices(account, currentPlan, newPlan);
@@ -426,16 +425,18 @@ public class PlanChangeService {
             }
 
             deleteAccountAbonement(account, currentPlan);
+        }
 
+        if (!newPlan.isAbonementOnly()) {
             processNewAccountAbonement(account, newPlan);
         }
     }
 
     private void replaceFree14DaysAbonement(PersonalAccount account, Plan currentPlan, Plan newPlan) {
 
-        if (!currentPlan.isAbonementOnly()) {
-            deleteAccount14DaysFreeAbonement(account, currentPlan);
+        deleteAccount14DaysFreeAbonement(account, currentPlan);
 
+        if (!newPlan.isAbonementOnly()) {
             Abonement abonement = newPlan.getFree14DaysAbonement();
             if (abonement != null) {
                 addAccountAbonement(account, abonement);
