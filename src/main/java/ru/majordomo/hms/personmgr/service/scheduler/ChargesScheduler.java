@@ -43,13 +43,4 @@ public class ChargesScheduler {
         }
         logger.debug("Ended processCharges");
     }
-
-    @Scheduled(cron = "*/5 * * * * *")
-    @SchedulerLock(name = "testLock")
-    public void testLock() {
-        logger.debug("Started testLock");
-        PersonalAccount account = personalAccountRepository.findByAccountId("200284");
-        publisher.publishEvent(new AccountProcessChargesEvent(account));
-        logger.debug("Ended testLock");
-    }
 }
