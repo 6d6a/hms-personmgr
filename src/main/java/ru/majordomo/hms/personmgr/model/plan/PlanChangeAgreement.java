@@ -57,9 +57,9 @@ public class PlanChangeAgreement {
 
         PlanChangeAgreement that = (PlanChangeAgreement) o;
 
-        if (getBalance() != null ? !getBalance().equals(that.getBalance()) : that.getBalance() != null) return false;
-        if (getDelta() != null ? !getDelta().equals(that.getDelta()) : that.getDelta() != null) return false;
-        if (getNeedToFeelBalance() != null ? !getNeedToFeelBalance().equals(that.getNeedToFeelBalance()) : that.getNeedToFeelBalance() != null)
+        if (getBalance() != null ? !(getBalance().compareTo(that.getBalance()) == 0) : that.getBalance() != null) return false;
+        if (getDelta() != null ? !(getDelta().compareTo(that.getDelta()) == 0) : that.getDelta() != null) return false;
+        if (getNeedToFeelBalance() != null ? !(getNeedToFeelBalance().compareTo(that.getNeedToFeelBalance()) == 0) : that.getNeedToFeelBalance() != null)
             return false;
         return getBalanceChanges() != null ? getBalanceChanges().equals(that.getBalanceChanges()) : that.getBalanceChanges() == null;
     }
