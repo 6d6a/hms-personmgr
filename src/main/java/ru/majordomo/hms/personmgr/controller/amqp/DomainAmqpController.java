@@ -109,30 +109,40 @@ public class DomainAmqpController extends CommonAmqpController {
             if (state == State.PROCESSED) {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
-                Map<String, String> paramsHistory;
-                if (businessAction != null
-                        && businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_UPDATE_RC)
-                        && (Boolean) businessAction.getParam(AUTO_RENEW_KEY)) {
+                if (businessAction != null) {
                     PersonalAccount account = accountRepository.findOne(businessAction.getPersonalAccountId());
 
-                    Map<String, String> params = new HashMap<>();
-                    params.put(RESOURCE_ID_KEY, (String) businessAction.getParam(RESOURCE_ID_KEY));
+                    Map<String, String> paramsHistory;
+                    if (businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_UPDATE_RC)
+                            && businessAction.getParam("renew") != null
+                            && (Boolean) businessAction.getParam("renew")
+                            ) {
+                        String renewAction = "продление";
 
-                    publisher.publishEvent(new AccountDomainAutoRenewCompletedEvent(account, params));
+                        if (businessAction.getParam(AUTO_RENEW_KEY) != null &&
+                                (Boolean) businessAction.getParam(AUTO_RENEW_KEY)
+                                ) {
+                            Map<String, String> params = new HashMap<>();
+                            params.put(RESOURCE_ID_KEY, (String) businessAction.getParam(RESOURCE_ID_KEY));
 
-                    //Save history
-                    paramsHistory = new HashMap<>();
-                    paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на продление домена выполнена успешно (имя: " + message.getParam("name") + ")");
-                    paramsHistory.put(OPERATOR_KEY, "service");
+                            publisher.publishEvent(new AccountDomainAutoRenewCompletedEvent(account, params));
+                            renewAction = "автопродление";
+                        }
 
-                    publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), paramsHistory));
-                } else {
-                    //Save history
-                    paramsHistory = new HashMap<>();
-                    paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на обновление домена выполнена успешно (имя: " + message.getParam("name") + ")");
-                    paramsHistory.put(OPERATOR_KEY, "service");
+                        //Save history
+                        paramsHistory = new HashMap<>();
+                        paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на " + renewAction + " домена выполнена успешно (имя: " + message.getParam("name") + ")");
+                        paramsHistory.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), paramsHistory));
+                        publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                    } else {
+                        //Save history
+                        paramsHistory = new HashMap<>();
+                        paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на обновление домена выполнена успешно (имя: " + message.getParam("name") + ")");
+                        paramsHistory.put(OPERATOR_KEY, "service");
+
+                        publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                    }
                 }
             }
         } catch (Exception e) {
