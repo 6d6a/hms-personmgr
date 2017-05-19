@@ -23,6 +23,7 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
@@ -54,6 +55,7 @@ public class AccountEventListener {
     private final PromotionRepository promotionRepository;
     private final AbonementService abonementService;
     private final PersonalAccountRepository accountRepository;
+    private final AccountAbonementRepository accountAbonementRepository;
 
     @Autowired
     public AccountEventListener(
@@ -67,7 +69,8 @@ public class AccountEventListener {
             AccountPromotionRepository accountPromotionRepository,
             PromotionRepository promotionRepository,
             AbonementService abonementService,
-            PersonalAccountRepository accountRepository
+            PersonalAccountRepository accountRepository,
+            AccountAbonementRepository accountAbonementRepository
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -80,6 +83,7 @@ public class AccountEventListener {
         this.promotionRepository = promotionRepository;
         this.abonementService = abonementService;
         this.accountRepository = accountRepository;
+        this.accountAbonementRepository = accountAbonementRepository;
     }
 
     @EventListener
@@ -358,6 +362,9 @@ public class AccountEventListener {
         }
 
         PersonalAccount account = event.getSource();
+        // При задержке аккаунт мог мутировать
+        account = accountRepository.findOne(account.getId());
+
         Map<String, ?> paramsForPublisher = event.getParams();
 
         logger.debug("We got AccountPromotionProcessByPaymentCreatedEvent");
@@ -462,6 +469,8 @@ public class AccountEventListener {
         }
 
         PersonalAccount account = event.getSource();
+        // При задержке аккаунт мог мутировать
+        account = accountRepository.findOne(account.getId());
 
         logger.debug("We got AccountSwitchByPaymentCreatedEvent");
 
@@ -491,12 +500,15 @@ public class AccountEventListener {
             String addAbonementId = plan.getNotInternalAbonementId();
 
             if (addAbonementId != null) {
-                try {
-                    abonementService.addAbonement(account, addAbonementId, true, false, false);
-                    accountHelper.switchAccountResources(account, true);
-                } catch (Exception e) {
-                    logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
-                    e.printStackTrace();
+                List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
+                if (accountAbonements == null || accountAbonements.isEmpty()) {
+                    try {
+                        abonementService.addAbonement(account, addAbonementId, true, false, false);
+                        accountHelper.switchAccountResources(account, true);
+                    } catch (Exception e) {
+                        logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
+                        e.printStackTrace();
+                    }
                 }
             }
         }
