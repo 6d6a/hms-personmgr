@@ -68,7 +68,8 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
 
         String domainName = (String) message.getParam("name");
 
-        Boolean canOrderSSL = true;
+        Boolean canOrderSSL = false;
+        Boolean hasAlienNS = false;
 
         try {
             Lookup lookup = new Lookup(domainName, Type.NS);
@@ -79,10 +80,12 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
             if (records != null) {
                 for (Record record : records) {
                     NSRecord nsRecord = (NSRecord) record;
-                    if (!nsRecord.getTarget().equals(Name.fromString("ns.majordomo.ru.")) &&
-                            !nsRecord.getTarget().equals(Name.fromString("ns2.majordomo.ru.")) &&
-                            !nsRecord.getTarget().equals(Name.fromString("ns3.majordomo.ru.")) ) {
-                        canOrderSSL = false;
+                    if (nsRecord.getTarget().equals(Name.fromString("ns.majordomo.ru.")) ||
+                            nsRecord.getTarget().equals(Name.fromString("ns2.majordomo.ru.")) ||
+                            nsRecord.getTarget().equals(Name.fromString("ns3.majordomo.ru.")) ) {
+                        canOrderSSL = true;
+                    } else {
+                        hasAlienNS = true;
                     }
                 }
             }
@@ -91,7 +94,7 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
             e.printStackTrace();
         }
 
-        if (!canOrderSSL) {
+        if (!canOrderSSL || hasAlienNS) {
             throw new ParameterValidationException("Домен должен быть делегирован на наши DNS-сервера");
         }
 
