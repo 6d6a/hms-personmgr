@@ -169,6 +169,7 @@ public class PlanChangeService {
         if (requestAgreement != null) {
 
             if (!planChangeAgreement.equals(requestAgreement)) {
+                logger.error("planChangeAgreements are not equals. What we got: " + requestAgreement.toString() + " What we expected (newly calculated): " + planChangeAgreement.toString());
                 throw new ParameterValidationException("Произошла ошибка");
             }
 
