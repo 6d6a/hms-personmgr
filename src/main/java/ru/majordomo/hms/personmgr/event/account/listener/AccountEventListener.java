@@ -401,7 +401,7 @@ public class AccountEventListener {
         if (accountPromocode != null) {
 
             // Аккаунт которому необходимо начислить средства
-            PersonalAccount accountForPartnerBonus = accountRepository.findByAccountId(accountPromocode.getOwnerPersonalAccountId());
+            PersonalAccount accountForPartnerBonus = accountRepository.findOne(accountPromocode.getOwnerPersonalAccountId());
 
             if (accountForPartnerBonus == null) {
                 logger.error("PersonalAccount with ID: " + accountPromocode.getOwnerPersonalAccountId() + " not found.");
