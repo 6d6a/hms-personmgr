@@ -59,6 +59,8 @@ public class PlanChangeAgreement {
 
         if (getBalance() != null ? !getBalance().equals(that.getBalance()) : that.getBalance() != null) return false;
         if (getDelta() != null ? !getDelta().equals(that.getDelta()) : that.getDelta() != null) return false;
-        return getNeedToFeelBalance() != null ? getNeedToFeelBalance().equals(that.getNeedToFeelBalance()) : that.getNeedToFeelBalance() == null;
+        if (getNeedToFeelBalance() != null ? !getNeedToFeelBalance().equals(that.getNeedToFeelBalance()) : that.getNeedToFeelBalance() != null)
+            return false;
+        return getBalanceChanges() != null ? getBalanceChanges().equals(that.getBalanceChanges()) : that.getBalanceChanges() == null;
     }
 }
