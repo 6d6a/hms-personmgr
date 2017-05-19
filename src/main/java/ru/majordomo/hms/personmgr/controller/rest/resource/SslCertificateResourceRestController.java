@@ -9,11 +9,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.xbill.DNS.*;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -62,6 +64,38 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
 
         if (!plan.isSslCertificateAllowed()) {
             throw new ParameterValidationException("На вашем тарифном плане заказ SSL сертификатов недоступен");
+        }
+
+        String domainName = (String) message.getParam("name");
+
+        Boolean canOrderSSL = false;
+        Boolean hasAlienNS = false;
+
+        try {
+            Lookup lookup = new Lookup(domainName, Type.NS);
+            lookup.setResolver(new SimpleResolver("8.8.8.8"));
+
+            Record[] records = lookup.run();
+
+            if (records != null) {
+                for (Record record : records) {
+                    NSRecord nsRecord = (NSRecord) record;
+                    if (nsRecord.getTarget().equals(Name.fromString("ns.majordomo.ru.")) ||
+                            nsRecord.getTarget().equals(Name.fromString("ns2.majordomo.ru.")) ||
+                            nsRecord.getTarget().equals(Name.fromString("ns3.majordomo.ru.")) ) {
+                        canOrderSSL = true;
+                    } else {
+                        hasAlienNS = true;
+                    }
+                }
+            }
+        } catch (UnknownHostException | TextParseException e) {
+            logger.error("Ошибка при получении NS-записей: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        if (!canOrderSSL || hasAlienNS) {
+            throw new ParameterValidationException("Домен должен быть делегирован на наши DNS-сервера");
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.SSL_CERTIFICATE_CREATE, BusinessActionType.SSL_CERTIFICATE_CREATE_RC, message);
