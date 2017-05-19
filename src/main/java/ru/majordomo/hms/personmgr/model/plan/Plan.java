@@ -231,6 +231,15 @@ public class Plan extends BaseModel {
         return null;
     }
 
+    public Abonement getFree14DaysAbonement() {
+        for (Abonement abonement : this.getAbonements()) {
+            if (abonement.isInternal() && abonement.getPeriod().equals("P14D")) {
+                return abonement;
+            }
+        }
+        return null;
+    }
+
     @Override
     public String toString() {
         return "Plan{" +

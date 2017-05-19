@@ -6,6 +6,7 @@ public class PlanChangeAgreement {
     private BigDecimal balance;
     private BigDecimal delta;
     private BigDecimal needToFeelBalance;
+    private Boolean balanceChanges;
 
     public BigDecimal getBalance() {
         return balance;
@@ -31,12 +32,21 @@ public class PlanChangeAgreement {
         this.needToFeelBalance = needToFeelBalance;
     }
 
+    public Boolean getBalanceChanges() {
+        return balanceChanges;
+    }
+
+    public void setBalanceChanges(Boolean balanceChanges) {
+        this.balanceChanges = balanceChanges;
+    }
+
     @Override
     public String toString() {
         return "PlanChangeAgreement{" +
                 "balance=" + balance +
                 "delta=" + delta +
                 "needToFeelBalance=" + needToFeelBalance +
+                "balanceChanges=" + balanceChanges +
                 "} " + super.toString();
     }
 

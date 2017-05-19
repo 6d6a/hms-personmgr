@@ -77,7 +77,7 @@ public class AccountServiceRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountService.class) @PathVariable(value = "accountServiceId") String accountServiceId
     ) {
-        PersonalAccount account = accountRepository.findByAccountId(accountId);
+        PersonalAccount account = accountRepository.findOne(accountId);
 
         AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndId(account.getId(), accountServiceId);
 
@@ -94,7 +94,7 @@ public class AccountServiceRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             Pageable pageable
     ) {
-        PersonalAccount account = accountRepository.findByAccountId(accountId);
+        PersonalAccount account = accountRepository.findOne(accountId);
 
         Page<AccountService> accountServices = accountServiceRepository.findByPersonalAccountId(account.getId(), pageable);
 
