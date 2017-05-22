@@ -92,8 +92,6 @@ public class AccountAbonementDBImportService {
 
                 accountAbonement.setAbonementId(plan.getNotInternalAbonementId());
 
-                accountAbonement.setPreordered(false);
-
                 logger.debug("Found accountAbonement for account: " + rs.getString("acc_id") + " accountAbonement: " + accountAbonement);
 
                 accountAbonements.add(accountAbonement);
@@ -117,12 +115,10 @@ public class AccountAbonementDBImportService {
         PersonalAccount account = personalAccountRepository.findByAccountId(accountId);
 
         if (account != null) {
-            List<AccountAbonement> foundAccountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
+            AccountAbonement foundAccountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
 
-            if (foundAccountAbonements != null) {
-                for (AccountAbonement accountAbonement : foundAccountAbonements) {
-                    accountAbonementRepository.delete(accountAbonement);
-                }
+            if (foundAccountAbonement != null) {
+                accountAbonementRepository.delete(foundAccountAbonement);
             }
         }
 

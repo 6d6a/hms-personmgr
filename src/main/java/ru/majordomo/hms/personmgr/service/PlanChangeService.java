@@ -121,8 +121,7 @@ public class PlanChangeService {
             throw new ParameterValidationException("Текущий тарифный план совпадает с выбранным");
         }
 
-        AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), false);
-        AccountAbonement preorderdAccountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), true);
+        AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
 
         Boolean accountHasFree14DaysAbonement = false;
 
@@ -173,16 +172,12 @@ public class PlanChangeService {
                 throw new ParameterValidationException("Произошла ошибка");
             }
 
-            if (preorderdAccountAbonement != null) {
-                accountAbonementRepository.delete(preorderdAccountAbonement.getId());
-            }
-
             // Процессим абонементы (списываем деньги\начисляем деньги\покупаем абонементы\удаляем абонементы)
             if (accountAbonement != null) {
                 if (!accountHasFree14DaysAbonement) {
                     processNotAbonementOnlyPlans(account, currentPlan, newPlan, planChangeAgreement);
                 } else {
-                    replaceFree14DaysAbonement(account, currentPlan, newPlan);
+                    replaceFree14DaysAbonement(account, currentPlan, newPlan, accountAbonement.getExpired());
                 }
             }
             processAbonementOnlyPlans(account, currentPlan, newPlan);
@@ -237,7 +232,7 @@ public class PlanChangeService {
 
     // Для тарифов, которые НЕ isAbonementOnly
     private PlanChangeAgreement calculateDeclineAbonementValues(PersonalAccount account, PlanChangeAgreement planChangeAgreement) {
-        AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), false);
+        AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
 
         if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
             throw new ParameterValidationException("Смена тарифного плана невозможна");
@@ -247,16 +242,13 @@ public class PlanChangeService {
         BigDecimal delta;
         BigDecimal currentPlanCost = planRepository.findOne(account.getPlanId()).getService().getCost();
 
-        if (accountAbonement.getExpired() != null) {
-            LocalDateTime nextDate = accountAbonement.getExpired().minus(Period.parse(accountAbonement.getAbonement().getPeriod())); // первая дата для начала пересчета АБ
-            LocalDateTime stopDate = LocalDateTime.now(); // дата окончания пересчета абонемента
-            while (stopDate.isAfter(nextDate)) {
-                Integer daysInMonth = nextDate.toLocalDate().lengthOfMonth();
-                total = total.add(currentPlanCost.divide(BigDecimal.valueOf(daysInMonth), 4, BigDecimal.ROUND_HALF_UP));
-                nextDate = nextDate.plusDays(1L);
-            }
-        } else {
-            throw new ParameterValidationException("Абонемент не активирован");
+
+        LocalDateTime nextDate = accountAbonement.getCreated(); // первая дата для начала пересчета АБ
+        LocalDateTime stopDate = LocalDateTime.now(); // дата окончания пересчета абонемента
+        while (stopDate.isAfter(nextDate)) {
+            Integer daysInMonth = nextDate.toLocalDate().lengthOfMonth();
+            total = total.add(currentPlanCost.divide(BigDecimal.valueOf(daysInMonth), 4, BigDecimal.ROUND_HALF_UP));
+            nextDate = nextDate.plusDays(1L);
         }
 
         delta = (accountAbonement.getAbonement().getService().getCost()).subtract(total);
@@ -264,7 +256,7 @@ public class PlanChangeService {
         // delta может быть как отрицательной (будет списано), так и положительной (будет начислено)
         planChangeAgreement.setDelta(delta);
         planChangeAgreement.setBalanceChanges(true);
-        
+
         return planChangeAgreement;
     }
 
@@ -375,12 +367,10 @@ public class PlanChangeService {
      * @param account Аккаунт
      */
     private void checkBonusAbonements(PersonalAccount account) {
-        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
-        for (AccountAbonement accountAbonement :accountAbonements) {
-            if (accountAbonement.getAbonement().isInternal()) {
-                throw new ParameterValidationException("Для смены тарифного плана вам необходимо приобрести абонемент на " +
-                        "текущий тарифный план сроком на 1 год или дождаться окончания бесплатного абонемента");
-            }
+        AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
+        if (accountAbonement.getAbonement().isInternal()) {
+            throw new ParameterValidationException("Для смены тарифного плана вам необходимо приобрести абонемент на " +
+                    "текущий тарифный план сроком на 1 год или дождаться окончания бесплатного абонемента");
         }
     }
 
@@ -436,14 +426,16 @@ public class PlanChangeService {
         }
     }
 
-    private void replaceFree14DaysAbonement(PersonalAccount account, Plan currentPlan, Plan newPlan) {
+    private void replaceFree14DaysAbonement(PersonalAccount account, Plan currentPlan, Plan newPlan, LocalDateTime expiredFree14DaysAbonementDate) {
 
         deleteAccount14DaysFreeAbonement(account, currentPlan);
 
-        if (!newPlan.isAbonementOnly()) {
+        if (!newPlan.isAbonementOnly() && expiredFree14DaysAbonementDate.isAfter(LocalDateTime.now())) {
             Abonement abonement = newPlan.getFree14DaysAbonement();
             if (abonement != null) {
-                addAccountAbonement(account, abonement);
+                AccountAbonement newFree14DaysAbonement = addAccountAbonement(account, abonement);
+                newFree14DaysAbonement.setExpired(expiredFree14DaysAbonementDate);
+                accountAbonementRepository.save(newFree14DaysAbonement);
             }
         }
 
@@ -553,16 +545,17 @@ public class PlanChangeService {
      * @param account   Аккаунт
      * @param abonement новый абонемент
      */
-    private void addAccountAbonement(PersonalAccount account, Abonement abonement) {
+    private AccountAbonement addAccountAbonement(PersonalAccount account, Abonement abonement) {
         AccountAbonement accountAbonement = new AccountAbonement();
         accountAbonement.setAbonementId(abonement.getId());
         accountAbonement.setPersonalAccountId(account.getId());
         accountAbonement.setCreated(LocalDateTime.now());
         accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
         accountAbonement.setAutorenew(false);
-        accountAbonement.setPreordered(false);
 
         accountAbonementRepository.save(accountAbonement);
+
+        return accountAbonement;
     }
 
     /**
@@ -574,7 +567,7 @@ public class PlanChangeService {
      */
     private void processServices(PersonalAccount account, Plan currentPlan, Plan newPlan) {
 
-        AccountAbonement accountAbonementAfterProcessing = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), false);
+        AccountAbonement accountAbonementAfterProcessing = accountAbonementRepository.findByPersonalAccountId(account.getId());
 
         //Если нет абонемента
         if (accountAbonementAfterProcessing == null) {
