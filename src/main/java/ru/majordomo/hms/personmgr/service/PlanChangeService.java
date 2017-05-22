@@ -182,7 +182,7 @@ public class PlanChangeService {
                 if (!accountHasFree14DaysAbonement) {
                     processNotAbonementOnlyPlans(account, currentPlan, newPlan, planChangeAgreement);
                 } else {
-                    replaceFree14DaysAbonement(account, currentPlan, newPlan);
+                    replaceFree14DaysAbonement(account, currentPlan, newPlan, accountAbonement.getExpired());
                 }
             }
             processAbonementOnlyPlans(account, currentPlan, newPlan);
@@ -436,14 +436,16 @@ public class PlanChangeService {
         }
     }
 
-    private void replaceFree14DaysAbonement(PersonalAccount account, Plan currentPlan, Plan newPlan) {
+    private void replaceFree14DaysAbonement(PersonalAccount account, Plan currentPlan, Plan newPlan, LocalDateTime expiredFree14DaysAbonementDate) {
 
         deleteAccount14DaysFreeAbonement(account, currentPlan);
 
-        if (!newPlan.isAbonementOnly()) {
+        if (!newPlan.isAbonementOnly() && expiredFree14DaysAbonementDate.isAfter(LocalDateTime.now())) {
             Abonement abonement = newPlan.getFree14DaysAbonement();
             if (abonement != null) {
-                addAccountAbonement(account, abonement);
+                AccountAbonement newFree14DaysAbonement = addAccountAbonement(account, abonement);
+                newFree14DaysAbonement.setExpired(expiredFree14DaysAbonementDate);
+                accountAbonementRepository.save(newFree14DaysAbonement);
             }
         }
 
@@ -553,7 +555,7 @@ public class PlanChangeService {
      * @param account   Аккаунт
      * @param abonement новый абонемент
      */
-    private void addAccountAbonement(PersonalAccount account, Abonement abonement) {
+    private AccountAbonement addAccountAbonement(PersonalAccount account, Abonement abonement) {
         AccountAbonement accountAbonement = new AccountAbonement();
         accountAbonement.setAbonementId(abonement.getId());
         accountAbonement.setPersonalAccountId(account.getId());
@@ -563,6 +565,8 @@ public class PlanChangeService {
         accountAbonement.setPreordered(false);
 
         accountAbonementRepository.save(accountAbonement);
+
+        return accountAbonement;
     }
 
     /**
