@@ -243,12 +243,16 @@ public class PlanChangeService {
         BigDecimal currentPlanCost = planRepository.findOne(account.getPlanId()).getService().getCost();
 
 
-        LocalDateTime nextDate = accountAbonement.getCreated(); // первая дата для начала пересчета АБ
-        LocalDateTime stopDate = LocalDateTime.now(); // дата окончания пересчета абонемента
-        while (stopDate.isAfter(nextDate)) {
-            Integer daysInMonth = nextDate.toLocalDate().lengthOfMonth();
-            total = total.add(currentPlanCost.divide(BigDecimal.valueOf(daysInMonth), 4, BigDecimal.ROUND_HALF_UP));
-            nextDate = nextDate.plusDays(1L);
+        if (accountAbonement.getExpired() != null) {
+            LocalDateTime nextDate = accountAbonement.getExpired().minus(Period.parse(accountAbonement.getAbonement().getPeriod())); // первая дата для начала пересчета АБ
+            LocalDateTime stopDate = LocalDateTime.now(); // дата окончания пересчета абонемента
+            while (stopDate.isAfter(nextDate)) {
+                Integer daysInMonth = nextDate.toLocalDate().lengthOfMonth();
+                total = total.add(currentPlanCost.divide(BigDecimal.valueOf(daysInMonth), 4, BigDecimal.ROUND_HALF_UP));
+                nextDate = nextDate.plusDays(1L);
+            }
+        } else {
+            throw new ParameterValidationException("Абонемент не активирован");
         }
 
         delta = (accountAbonement.getAbonement().getService().getCost()).subtract(total);
