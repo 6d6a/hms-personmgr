@@ -30,6 +30,7 @@ import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
 
 import static java.lang.Math.floor;
 import static java.time.temporal.ChronoUnit.DAYS;
@@ -220,6 +221,8 @@ public class PlanChangeService {
             }
 
             personalAccountRepository.save(account);
+
+            accountHelper.updateUnixAccountQuota(account, planLimitsService.getQuotaKBFreeLimit(newPlan));
 
             if (isFromRegularToBusiness(currentPlan, newPlan)) {
                 publisher.publishEvent(new AccountNotifySupportOnChangePlanEvent(account));
