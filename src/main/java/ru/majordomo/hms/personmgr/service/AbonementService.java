@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Arrays;
 
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -36,6 +37,7 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.time.temporal.ChronoUnit.DAYS;
+import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_MESSAGE_SEND;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
@@ -182,7 +184,9 @@ public class AbonementService {
                 sendMessage = true;
             }
 
-            if (sendMessage) {
+            long daysToExpired = DAYS.between(LocalDateTime.now(), accountAbonement.getExpired());
+
+            if (sendMessage && Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_MESSAGE_SEND).contains(daysToExpired)) {
                 logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
 
                 List<Domain> domains = accountHelper.getDomains(account);

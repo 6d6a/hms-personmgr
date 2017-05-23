@@ -106,6 +106,8 @@ public class Constants {
     //Услуги которые могут быть бесплатными
     public static final Set<Integer> OPTIONALLY_FREE_SERVICE_IDS = new HashSet<>();
 
+    public static final Long[] DAYS_FOR_ABONEMENT_EXPIRED_MESSAGE_SEND = {13L, 7L, 3L, 2L, 1L};
+
     public static final String PARTNER_PROMOCODE_ACTION_ID = "57f3c4b8038d8a6054409853";
     public static final String BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID = "57f3c4b8038d8a6054409854";
     public static final String BONUS_UNLIMITED_3_M_PROMOCODE_ACTION_ID = "57f3c4b8038d8a6054409855";
