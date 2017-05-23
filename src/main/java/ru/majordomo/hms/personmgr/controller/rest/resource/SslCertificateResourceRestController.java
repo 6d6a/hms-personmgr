@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import com.google.common.net.InternetDomainName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
@@ -72,7 +73,7 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
         Boolean hasAlienNS = false;
 
         try {
-            Lookup lookup = new Lookup(domainName, Type.NS);
+            Lookup lookup = new Lookup(InternetDomainName.from(domainName).topPrivateDomain().toString(), Type.NS);
             lookup.setResolver(new SimpleResolver("8.8.8.8"));
 
             Record[] records = lookup.run();
