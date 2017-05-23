@@ -176,15 +176,10 @@ public class AccountAbonementRestController extends CommonRestController {
         // Internal абонементы юзер не может заказывать
         if (!abonement.isInternal() && (currentAccountAbonement == null || currentAccountAbonement.getAbonement().getPeriod().equals("P14D"))) {
 
-            try {
-                abonementService.addAbonement(account, abonementId, autorenew);
-                if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
-                    accountHelper.switchAccountResources(account, true);
-                }
-            } catch (Exception e) {
-                logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
-                e.printStackTrace();
-                throw new ParameterValidationException("Ошибка при покупке абонемента");
+            abonementService.addAbonement(account, abonementId, autorenew);
+
+            if (accountAbonementRepository.findByPersonalAccountId(account.getId()) != null && planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
+                accountHelper.switchAccountResources(account, true);
             }
 
             //Save history
