@@ -99,7 +99,11 @@ public class AbonementService {
         if (accountHasFree14DaysAbonement) {
             long remainingFreeDays = DAYS.between(LocalDateTime.now(), currentAccountAbonement.getExpired());
             accountAbonementRepository.delete(currentAccountAbonement);
-            accountAbonement.setExpired((LocalDateTime.now().plus(Period.parse(abonement.getPeriod()))).plusDays(remainingFreeDays));
+            if (remainingFreeDays > 0) {
+                accountAbonement.setExpired((LocalDateTime.now().plus(Period.parse(abonement.getPeriod()))).plusDays(remainingFreeDays));
+            } else {
+                accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
+            }
         } else {
             accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
         }
