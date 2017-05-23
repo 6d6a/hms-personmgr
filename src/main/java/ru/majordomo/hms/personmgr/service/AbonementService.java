@@ -31,6 +31,8 @@ import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
@@ -175,12 +177,37 @@ public class AbonementService {
 
             Boolean sendMessage = false;
 
-            // Автопроделния у абонементов с internal == true не должно быть
-            if (accountAbonement.isAutorenew()) {
-                if (balance.compareTo(abonementCost) < 0) {
+            // Высчитываем предполагаемую месячную стоимость аккаунта
+            Integer daysInCurrentMonth =  LocalDateTime.now().toLocalDate().lengthOfMonth();
+            Plan plan = planRepository.findOne(account.getPlanId());
+            PaymentService planAccountService = plan.getService();
+            BigDecimal monthCost = planAccountService.getCost();
+
+            List<AccountService> accountServices = account.getServices();
+            for (AccountService accountService : accountServices) {
+                if (accountService.isEnabled() && accountService.getPaymentService() != null
+                        && !accountService.getPaymentService().getId().equals(planAccountService.getId())) {
+                    switch (accountService.getPaymentService().getPaymentType()) {
+                        case MONTH:
+                            monthCost = monthCost.add(accountService.getCost());
+                            break;
+                        case DAY:
+                            monthCost = monthCost.add(accountService.getCost().multiply(BigDecimal.valueOf(daysInCurrentMonth)));
+                            break;
+                    }
+                }
+            }
+
+            if (!plan.isAbonementOnly() && balance.compareTo(monthCost) < 0) {
+                // Автопроделния у абонементов с internal == true не должно быть
+                if (accountAbonement.isAutorenew()) {
+                    if (balance.compareTo(abonementCost) < 0) {
+                        sendMessage = true;
+                    }
+                } else {
                     sendMessage = true;
                 }
-            } else {
+            } else if (plan.isAbonementOnly() && balance.compareTo(abonementCost) < 0) {
                 sendMessage = true;
             }
 
