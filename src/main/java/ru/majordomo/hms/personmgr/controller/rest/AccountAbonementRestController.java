@@ -26,6 +26,7 @@ import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -41,6 +42,7 @@ public class AccountAbonementRestController extends CommonRestController {
     private final AbonementRepository abonementRepository;
     private final AbonementService abonementService;
     private final PlanRepository planRepository;
+    private final AccountHelper accountHelper;
 
     @Autowired
     public AccountAbonementRestController(
@@ -48,12 +50,14 @@ public class AccountAbonementRestController extends CommonRestController {
             AccountAbonementRepository accountAbonementRepository,
             AbonementService abonementService,
             AbonementRepository abonementRepository,
-            PlanRepository planRepository) {
+            PlanRepository planRepository,
+            AccountHelper accountHelper) {
         this.accountRepository = accountRepository;
         this.accountAbonementRepository = accountAbonementRepository;
         this.abonementService = abonementService;
         this.abonementRepository = abonementRepository;
         this.planRepository = planRepository;
+        this.accountHelper = accountHelper;
     }
 
     @RequestMapping(value = "/{accountAbonementId}", method = RequestMethod.GET)
@@ -161,17 +165,22 @@ public class AccountAbonementRestController extends CommonRestController {
 
         Boolean autorenew = requestBody.get("autorenew") != null ? Boolean.valueOf(requestBody.get("autorenew")) : false;
 
-        Boolean preorder = requestBody.get("preorder") != null ? Boolean.valueOf(requestBody.get("preorder")) : false;
-
         Abonement abonement = abonementRepository.findOne(abonementId);
 
         if (abonement == null) {
             throw new ParameterValidationException("Abonement with abonementId: " + abonementId + " not found");
         }
 
+        AccountAbonement currentAccountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
+
         // Internal абонементы юзер не может заказывать
-        if (!(abonement.isInternal())) {
-            abonementService.addAbonement(account, abonementId, autorenew, false, preorder);
+        if (!abonement.isInternal() && (currentAccountAbonement == null || currentAccountAbonement.getAbonement().getPeriod().equals("P14D"))) {
+
+            abonementService.addAbonement(account, abonementId, autorenew);
+
+            if (accountAbonementRepository.findByPersonalAccountId(account.getId()) != null && planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
+                accountHelper.switchAccountResources(account, true);
+            }
 
             //Save history
             String operator = request.getUserPrincipal().getName();
@@ -181,7 +190,7 @@ public class AccountAbonementRestController extends CommonRestController {
 
             publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         } else {
-            throw new ParameterValidationException("Interal abonement is not allowed for adding");
+            throw new ParameterValidationException("Ошибка при заказе абонемента");
         }
 
         return new ResponseEntity<>(HttpStatus.OK);

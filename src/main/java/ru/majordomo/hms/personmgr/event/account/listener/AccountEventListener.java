@@ -500,10 +500,10 @@ public class AccountEventListener {
             String addAbonementId = plan.getNotInternalAbonementId();
 
             if (addAbonementId != null) {
-                List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId());
-                if (accountAbonements == null || accountAbonements.isEmpty()) {
+                AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
+                if (accountAbonement == null) {
                     try {
-                        abonementService.addAbonement(account, addAbonementId, true, false, false);
+                        abonementService.addAbonement(account, addAbonementId, true);
                         accountHelper.switchAccountResources(account, true);
                     } catch (Exception e) {
                         logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
