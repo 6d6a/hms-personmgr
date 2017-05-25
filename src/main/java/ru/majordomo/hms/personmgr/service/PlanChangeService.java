@@ -188,13 +188,13 @@ public class PlanChangeService {
             }
             processAbonementOnlyPlans(account, currentPlan, newPlan);
 
-            //Укажем новый тариф
-            account.setPlanId(newPlan.getId());
-
             accountHelper.updateUnixAccountQuota(account, (planLimitsService.getQuotaKBFreeLimit(newPlan) * 1024));
 
             //Произведем нужные действия со всеми услугами
             processServices(account, currentPlan, newPlan);
+
+            //Укажем новый тариф
+            account.setPlanId(newPlan.getId());
 
             if (newPlan.isAbonementOnly()) {
                 if (account.isCredit()) {
