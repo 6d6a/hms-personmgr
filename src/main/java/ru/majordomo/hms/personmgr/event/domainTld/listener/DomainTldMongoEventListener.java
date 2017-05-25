@@ -10,7 +10,16 @@ import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+
 import static org.springframework.data.mongodb.core.query.Criteria.where;
+import static ru.majordomo.hms.personmgr.common.Constants.ACTION_DOMAINS;
+import static ru.majordomo.hms.personmgr.common.Constants.ACTION_DOMAIN_END_DATE;
+import static ru.majordomo.hms.personmgr.common.Constants.ACTION_DOMAIN_START_DATE;
+import static ru.majordomo.hms.personmgr.common.DomainCategory.GEO;
 
 @Component
 public class DomainTldMongoEventListener extends AbstractMongoEventListener<DomainTld> {
@@ -31,5 +40,16 @@ public class DomainTldMongoEventListener extends AbstractMongoEventListener<Doma
         } catch (RuntimeException e) {
             e.printStackTrace();
         }
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        LocalDateTime startDate = LocalDateTime.parse(ACTION_DOMAIN_START_DATE, formatter);
+        LocalDateTime endDate = LocalDateTime.parse(ACTION_DOMAIN_END_DATE, formatter);
+
+        if (LocalDateTime.now().isAfter(startDate) && LocalDateTime.now().isBefore(endDate)) {
+            if (Arrays.asList(ACTION_DOMAINS).contains(domainTld.getTld()) || domainTld.getDomainCategory() == GEO) {
+                domainTld.getRegistrationService().setCost(BigDecimal.valueOf(49L));
+            }
+        }
+
     }
 }
