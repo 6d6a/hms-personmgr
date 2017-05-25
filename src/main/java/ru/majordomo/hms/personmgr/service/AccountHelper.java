@@ -20,12 +20,12 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -40,7 +40,7 @@ public class AccountHelper {
     private final RcUserFeignClient rcUserFeignClient;
     private final FinFeignClient finFeignClient;
     private final SiFeignClient siFeignClient;
-    private final AccountPromotionRepository accountPromotionRepository;
+    private final AccountPromotionManager accountPromotionManager;
     private final BusinessActionBuilder businessActionBuilder;
     private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
@@ -50,7 +50,7 @@ public class AccountHelper {
             RcUserFeignClient rcUserFeignClient,
             FinFeignClient finFeignClient,
             SiFeignClient siFeignClient,
-            AccountPromotionRepository accountPromotionRepository,
+            AccountPromotionManager accountPromotionManager,
             BusinessActionBuilder businessActionBuilder,
             PersonalAccountManager accountManager,
             ApplicationEventPublisher publisher
@@ -58,7 +58,7 @@ public class AccountHelper {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
         this.siFeignClient = siFeignClient;
-        this.accountPromotionRepository = accountPromotionRepository;
+        this.accountPromotionManager = accountPromotionManager;
         this.businessActionBuilder = businessActionBuilder;
         this.accountManager = accountManager;
         this.publisher = publisher;
@@ -282,7 +282,7 @@ public class AccountHelper {
     }
 
     public void giveGift(PersonalAccount account, Promotion promotion) {
-        Long currentCount = accountPromotionRepository.countByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
+        Long currentCount = accountPromotionManager.countByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
         if (currentCount < promotion.getLimitPerAccount() || promotion.getLimitPerAccount() == -1) {
             AccountPromotion accountPromotion = new AccountPromotion();
             accountPromotion.setPersonalAccountId(account.getId());
@@ -296,7 +296,7 @@ public class AccountHelper {
             }
             accountPromotion.setActionsWithStatus(actionsWithStatus);
 
-            accountPromotionRepository.save(accountPromotion);
+            accountPromotionManager.insert(accountPromotion);
 
             //Save history
             Map<String, String> params = new HashMap<>();

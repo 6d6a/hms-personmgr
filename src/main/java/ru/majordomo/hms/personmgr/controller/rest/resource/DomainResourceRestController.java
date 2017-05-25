@@ -16,13 +16,13 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.BlackListService;
@@ -48,7 +48,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
     private final DomainTldService domainTldService;
     private final AccountHelper accountHelper;
     private final RcUserFeignClient rcUserFeignClient;
-    private final AccountPromotionRepository accountPromotionRepository;
+    private final AccountPromotionManager accountPromotionManager;
     private final PromocodeActionRepository promocodeActionRepository;
     private final BlackListService blackListService;
 
@@ -57,14 +57,14 @@ public class DomainResourceRestController extends CommonResourceRestController {
             DomainTldService domainTldService,
             AccountHelper accountHelper,
             RcUserFeignClient rcUserFeignClient,
-            AccountPromotionRepository accountPromotionRepository,
+            AccountPromotionManager accountPromotionManager,
             PromocodeActionRepository promocodeActionRepository,
             BlackListService blackListService
     ) {
         this.domainTldService = domainTldService;
         this.accountHelper = accountHelper;
         this.rcUserFeignClient = rcUserFeignClient;
-        this.accountPromotionRepository = accountPromotionRepository;
+        this.accountPromotionManager = accountPromotionManager;
         this.promocodeActionRepository = promocodeActionRepository;
         this.blackListService = blackListService;
     }
@@ -103,7 +103,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
         DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
 
         if (isRegistration) {
-            List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountId(account.getId());
+            List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountId(account.getId());
             for (AccountPromotion accountPromotion : accountPromotions) {
                 Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
                 if (map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) != null && map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID)) {
@@ -113,15 +113,18 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
                     if (availableTlds.contains(domainTld.getTld())) {
                         map.put(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID, false);
-                        // Сохраняем с отметкой, что action использован
                         accountPromotion.setActionsWithStatus(map);
+                        // Сохраняем с отметкой, что action использован
+                        accountPromotionManager.deactivateAccountPromotionByIdAndActionId(
+                                accountPromotion.getId(),
+                                BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID
+                        );
                         isFreeDomain = true;
                         message.addParam("freeDomainPromotionId", accountPromotion.getId());
                         break;
                     }
                 }
             }
-
 
             PaymentService paymentService = domainTld.getRegistrationService();
 
@@ -133,8 +136,12 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
                     if (availableTlds.contains(domainTld.getTld())) {
                         map.put(DOMAIN_DISCOUNT_RU_RF_ACTION_ID, false);
-                        // Сохраняем с отметкой, что action использован
                         accountPromotion.setActionsWithStatus(map);
+                        // Сохраняем с отметкой, что action использован
+                        accountPromotionManager.deactivateAccountPromotionByIdAndActionId(
+                                accountPromotion.getId(),
+                                DOMAIN_DISCOUNT_RU_RF_ACTION_ID
+                        );
 
                         // Устанавливает цену со скидкой
                         paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
@@ -151,8 +158,6 @@ public class DomainResourceRestController extends CommonResourceRestController {
                 String documentNumber = (String) blockResult.getParam("documentNumber");
                 message.addParam("documentNumber", documentNumber);
             }
-
-            accountPromotionRepository.save(accountPromotions);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message);

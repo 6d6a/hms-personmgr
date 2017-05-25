@@ -21,6 +21,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
@@ -52,7 +53,7 @@ public class AccountEventListener {
     private final FinFeignClient finFeignClient;
     private final AccountStatRepository accountStatRepository;
     private final PlanRepository planRepository;
-    private final AccountPromotionRepository accountPromotionRepository;
+    private final AccountPromotionManager accountPromotionManager;
     private final PromotionRepository promotionRepository;
     private final AbonementService abonementService;
     private final PersonalAccountManager accountManager;
@@ -67,7 +68,7 @@ public class AccountEventListener {
             FinFeignClient finFeignClient,
             AccountStatRepository accountStatRepository,
             PlanRepository planRepository,
-            AccountPromotionRepository accountPromotionRepository,
+            AccountPromotionManager accountPromotionManager,
             PromotionRepository promotionRepository,
             AbonementService abonementService,
             PersonalAccountManager accountManager,
@@ -80,7 +81,7 @@ public class AccountEventListener {
         this.finFeignClient = finFeignClient;
         this.accountStatRepository = accountStatRepository;
         this.planRepository = planRepository;
-        this.accountPromotionRepository = accountPromotionRepository;
+        this.accountPromotionManager = accountPromotionManager;
         this.promotionRepository = promotionRepository;
         this.abonementService = abonementService;
         this.accountManager = accountManager;
@@ -383,7 +384,7 @@ public class AccountEventListener {
                 List<Domain> domains = accountHelper.getDomains(account);
                 if (!plan.isAbonementOnly() && plan.isActive() && (domains == null || domains.size() == 0)) {
                     Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
-                    List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
+                    List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
                     if (accountPromotions == null || accountPromotions.isEmpty()) {
                         accountHelper.giveGift(account, promotion);
                     }

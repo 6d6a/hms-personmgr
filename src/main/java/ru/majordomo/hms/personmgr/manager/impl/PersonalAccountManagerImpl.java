@@ -97,35 +97,23 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
 
     @Override
     public PersonalAccount findOne(String id) {
-        PersonalAccount account = repository.findOne(id);
+        checkById(id);
 
-        if (account == null) {
-            throw new ResourceNotFoundException("Аккаунт с id: " + id + " не найден");
-        }
-
-        return account;
+        return repository.findOne(id);
     }
 
     @Override
     public PersonalAccount findOneByIdIncludeIdAndActiveAndDeactivated(String id) {
-        PersonalAccount account = repository.findOneByIdIncludeIdAndActiveAndDeactivated(id);
+        checkById(id);
 
-        if (account == null) {
-            throw new ResourceNotFoundException("Аккаунт с id: " + id + " не найден");
-        }
-
-        return account;
+        return repository.findOneByIdIncludeIdAndActiveAndDeactivated(id);
     }
 
     @Override
     public PersonalAccount findOneByIdIncludeId(String id) {
-        PersonalAccount account = repository.findOneByIdIncludeId(id);
+        checkById(id);
 
-        if (account == null) {
-            throw new ResourceNotFoundException("Аккаунт с id: " + id + " не найден");
-        }
-
-        return account;
+        return repository.findOneByIdIncludeId(id);
     }
 
     @Override
@@ -208,10 +196,10 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
-    public void setActive(String accountId, Boolean active) {
-        PersonalAccount account = findOneByIdIncludeIdAndActiveAndDeactivated(accountId);
+    public void setActive(String id, Boolean active) {
+        PersonalAccount account = findOneByIdIncludeIdAndActiveAndDeactivated(id);
 
-        Query query = new Query(new Criteria("_id").is(accountId));
+        Query query = new Query(new Criteria("_id").is(id));
         Update update = new Update().set("active", active);
 
         if (!active) {
@@ -226,74 +214,74 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
-    public void setOwnerPersonId(String accountId, String personId) {
-        findOneByIdIncludeId(accountId);
+    public void setOwnerPersonId(String id, String personId) {
+        checkById(id);
 
-        Query query = new Query(new Criteria("_id").is(accountId));
+        Query query = new Query(new Criteria("_id").is(id));
         Update update = new Update().set("ownerPersonId", personId);
 
         mongoOperations.updateFirst(query, update, PersonalAccount.class);
     }
 
     @Override
-    public void setPlanId(String accountId, String planId) {
-        findOneByIdIncludeId(accountId);
+    public void setPlanId(String id, String planId) {
+        checkById(id);
 
-        Query query = new Query(new Criteria("_id").is(accountId));
+        Query query = new Query(new Criteria("_id").is(id));
         Update update = new Update().set("planId", planId);
 
         mongoOperations.updateFirst(query, update, PersonalAccount.class);
     }
 
     @Override
-    public void setAccountNew(String accountId, Boolean accountNew) {
-        setSettingByName(accountId, NEW_ACCOUNT, accountNew);
+    public void setAccountNew(String id, Boolean accountNew) {
+        setSettingByName(id, NEW_ACCOUNT, accountNew);
     }
 
     @Override
-    public void setCredit(String accountId, Boolean credit) {
-        setSettingByName(accountId, CREDIT, credit);
+    public void setCredit(String id, Boolean credit) {
+        setSettingByName(id, CREDIT, credit);
     }
 
     @Override
-    public void setAddQuotaIfOverquoted(String accountId, Boolean addQuotaIfOverquoted) {
-        setSettingByName(accountId, ADD_QUOTA_IF_OVERQUOTED, addQuotaIfOverquoted);
+    public void setAddQuotaIfOverquoted(String id, Boolean addQuotaIfOverquoted) {
+        setSettingByName(id, ADD_QUOTA_IF_OVERQUOTED, addQuotaIfOverquoted);
     }
 
     @Override
-    public void setOverquoted(String accountId, Boolean overquoted) {
-        setSettingByName(accountId, OVERQUOTED, overquoted);
+    public void setOverquoted(String id, Boolean overquoted) {
+        setSettingByName(id, OVERQUOTED, overquoted);
     }
 
     @Override
-    public void setAutoBillSending(String accountId, Boolean autoBillSending) {
-        setSettingByName(accountId, AUTO_BILL_SENDING, autoBillSending);
+    public void setAutoBillSending(String id, Boolean autoBillSending) {
+        setSettingByName(id, AUTO_BILL_SENDING, autoBillSending);
     }
 
     @Override
-    public void setNotifyDays(String accountId, Integer notifyDays) {
-        setSettingByName(accountId, NOTIFY_DAYS, notifyDays);
+    public void setNotifyDays(String id, Integer notifyDays) {
+        setSettingByName(id, NOTIFY_DAYS, notifyDays);
     }
 
     @Override
-    public void setSmsPhoneNumber(String accountId, String smsPhoneNumber) {
-        setSettingByName(accountId, SMS_PHONE_NUMBER, smsPhoneNumber);
+    public void setSmsPhoneNumber(String id, String smsPhoneNumber) {
+        setSettingByName(id, SMS_PHONE_NUMBER, smsPhoneNumber);
     }
 
     @Override
-    public void setCreditActivationDate(String accountId, LocalDateTime creditActivationDate) {
-        setSettingByName(accountId, CREDIT_ACTIVATION_DATE, creditActivationDate);
+    public void setCreditActivationDate(String id, LocalDateTime creditActivationDate) {
+        setSettingByName(id, CREDIT_ACTIVATION_DATE, creditActivationDate);
     }
 
     @Override
-    public void setSettingByName(String accountId, AccountSetting name, Object value) {
-        findOneByIdIncludeId(accountId);
+    public void setSettingByName(String id, AccountSetting name, Object value) {
+        checkById(id);
 
-        Query query = new Query(new Criteria("_id").is(accountId));
+        Query query = new Query(new Criteria("_id").is(id));
         Update update;
 
         if (value == null) {
-            removeSettingByName(accountId, name);
+            removeSettingByName(id, name);
 
             return;
         } else if (value instanceof Integer || value instanceof Boolean) {
@@ -310,12 +298,18 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
-    public void removeSettingByName(String accountId, AccountSetting name) {
-        findOneByIdIncludeId(accountId);
+    public void removeSettingByName(String id, AccountSetting name) {
+        checkById(id);
 
-        Query query = new Query(new Criteria("_id").is(accountId));
+        Query query = new Query(new Criteria("_id").is(id));
         Update update = new Update().unset("settings." + name);
 
         mongoOperations.updateFirst(query, update, PersonalAccount.class);
+    }
+
+    private void checkById(String id) {
+        if (!exists(id)) {
+            throw new ResourceNotFoundException("Аккаунт с id: " + id + " не найден");
+        }
     }
 }

@@ -14,7 +14,7 @@ import ru.majordomo.hms.personmgr.validators.validator.ObjectIdValidator;
 
 @Documented
 @Constraint(validatedBy = ObjectIdValidator.class)
-@Target({ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER})
+@Target({ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER, ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ObjectId {
     String message() default "{ru.majordomo.hms.personmgr.validators.ObjectId.message}";

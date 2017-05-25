@@ -10,10 +10,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
 
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
-import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 
@@ -29,7 +29,7 @@ public class AccountPromotionDBImportService {
     private final AccountHelper accountHelper;
     private final PromotionRepository promotionRepository;
     private final PersonalAccountManager accountManager;
-    private final AccountPromotionRepository accountPromotionRepository;
+    private final AccountPromotionManager accountPromotionManager;
 
     private final static Logger logger = LoggerFactory.getLogger(PlanDBImportService.class);
 
@@ -39,20 +39,20 @@ public class AccountPromotionDBImportService {
             AccountHelper accountHelper,
             PromotionRepository promotionRepository,
             PersonalAccountManager accountManager,
-            AccountPromotionRepository accountPromotionRepository
+            AccountPromotionManager accountPromotionManager
     ) {
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
         this.accountHelper = accountHelper;
         this.promotionRepository = promotionRepository;
         this.accountManager = accountManager;
-        this.accountPromotionRepository = accountPromotionRepository;
+        this.accountPromotionManager = accountPromotionManager;
     }
 
     public boolean importToMongo() {
 
         logger.debug("Start AccountPromotion importing");
 
-        accountPromotionRepository.deleteAll();
+        accountPromotionManager.deleteAll();
 
         String query = "SELECT account.id, account.plan_id, account.acc_create_date, count(domain.Domain_ID) as domain_count " +
                 "FROM account LEFT JOIN domain ON account.uid = domain.UID " +

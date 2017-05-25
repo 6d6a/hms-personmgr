@@ -13,10 +13,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
-import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 
@@ -27,16 +27,18 @@ import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_
 public class DomainTldRestController extends CommonRestController {
 
     private final DomainTldRepository repository;
-    private final AccountPromotionRepository accountPromotionRepository;
+    private final AccountPromotionManager accountPromotionManager;
     private final PromocodeActionRepository promocodeActionRepository;
 
     @Autowired
-    public DomainTldRestController(DomainTldRepository repository,
-                                   AccountPromotionRepository accountPromotionRepository,
-                                   PromocodeActionRepository promocodeActionRepository)
+    public DomainTldRestController(
+            DomainTldRepository repository,
+            AccountPromotionManager accountPromotionManager,
+            PromocodeActionRepository promocodeActionRepository
+    )
     {
         this.repository = repository;
-        this.accountPromotionRepository = accountPromotionRepository;
+        this.accountPromotionManager = accountPromotionManager;
         this.promocodeActionRepository = promocodeActionRepository;
     }
 
@@ -44,7 +46,7 @@ public class DomainTldRestController extends CommonRestController {
     public ResponseEntity<List<DomainTld>> listAll(@PathVariable(value = "accountId", required = false) String accountId) {
         List<DomainTld> domainTlds = repository.findAllByActive(true);
 
-        List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountId(accountId);
+        List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountId(accountId);
         Map<String, BigDecimal> discountedCosts = new HashMap<>();
         for (AccountPromotion accountPromotion : accountPromotions) {
             Map<String, Boolean> map = accountPromotion.getActionsWithStatus();

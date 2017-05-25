@@ -102,7 +102,7 @@ public class PersonalAccountManagerImplTest {
         PersonalAccount account = accountManager.findOne("1");
 
         Assert.assertNotNull(account);
-        Assert.assertEquals(account.getId(), "1");
+        Assert.assertEquals("1", account.getId());
     }
 
     @Test(expected = ResourceNotFoundException.class)
@@ -115,7 +115,7 @@ public class PersonalAccountManagerImplTest {
         accountManager.setOwnerPersonId("1", "2");
 
         PersonalAccount account = accountManager.findOne("1");
-        Assert.assertEquals(account.getOwnerPersonId(), "2");
+        Assert.assertEquals("2", account.getOwnerPersonId());
     }
 
     private PersonalAccount generateActivePersonalAccount() {
