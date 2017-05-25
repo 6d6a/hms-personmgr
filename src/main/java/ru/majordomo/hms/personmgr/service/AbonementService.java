@@ -25,12 +25,11 @@ import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.repository.AbonementRepository;
-import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -44,29 +43,26 @@ public class AbonementService {
     private final static Logger logger = LoggerFactory.getLogger(AbonementService.class);
 
     private final PlanRepository planRepository;
-    private final AccountAbonementRepository accountAbonementRepository;
+    private final AccountAbonementManager accountAbonementManager;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final ApplicationEventPublisher publisher;
-    private final AbonementRepository abonementRepository;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
     @Autowired
     public AbonementService(
             PlanRepository planRepository,
-            AccountAbonementRepository accountAbonementRepository,
+            AccountAbonementManager accountAbonementManager,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
-            ApplicationEventPublisher publisher,
-            AbonementRepository abonementRepository
+            ApplicationEventPublisher publisher
     ) {
         this.planRepository = planRepository;
-        this.accountAbonementRepository = accountAbonementRepository;
+        this.accountAbonementManager = accountAbonementManager;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
         this.publisher = publisher;
-        this.abonementRepository = abonementRepository;
     }
 
     /**
@@ -81,7 +77,7 @@ public class AbonementService {
 
         Boolean accountHasFree14DaysAbonement = false;
 
-        AccountAbonement currentAccountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
+        AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
 
         if (currentAccountAbonement != null) {
             accountHasFree14DaysAbonement = currentAccountAbonement.getAbonement().getPeriod().equals("P14D");
@@ -97,7 +93,7 @@ public class AbonementService {
         accountAbonement.setCreated(LocalDateTime.now());
         if (accountHasFree14DaysAbonement) {
             long remainingFreeDays = DAYS.between(LocalDateTime.now(), currentAccountAbonement.getExpired());
-            accountAbonementRepository.delete(currentAccountAbonement);
+            accountAbonementManager.delete(currentAccountAbonement);
             if (remainingFreeDays > 0) {
                 accountAbonement.setExpired((LocalDateTime.now().plus(Period.parse(abonement.getPeriod()))).plusDays(remainingFreeDays));
             } else {
@@ -108,7 +104,7 @@ public class AbonementService {
         }
         accountAbonement.setAutorenew(autorenew);
 
-        accountAbonementRepository.save(accountAbonement);
+        accountAbonementManager.insert(accountAbonement);
 
         if (accountServiceHelper.accountHasService(account, plan.getServiceId())) {
             accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
@@ -126,9 +122,11 @@ public class AbonementService {
 
         accountHelper.charge(account, accountAbonement.getAbonement().getService());
 
-        accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(accountAbonement.getAbonement().getPeriod())));
-
-        accountAbonementRepository.save(accountAbonement);
+        accountAbonementManager.setExpired(
+                accountAbonement.getId(),
+                LocalDateTime.now()
+                        .plus(Period.parse(accountAbonement.getAbonement().getPeriod()))
+        );
 
         if (accountServiceHelper.accountHasService(account, plan.getServiceId())) {
             accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
@@ -142,7 +140,7 @@ public class AbonementService {
      * @param accountAbonementId id абонемента на аккаунте
      */
     public void deleteAbonement(PersonalAccount account, String accountAbonementId) {
-        AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
+        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
 
         processAccountAbonementDelete(account, accountAbonement);
     }
@@ -155,7 +153,7 @@ public class AbonementService {
                 + expireEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         );
 
-        List<AccountAbonement> accountAbonements  = accountAbonementRepository.findByPersonalAccountIdAndExpiredBefore(account.getId(), expireEnd);
+        List<AccountAbonement> accountAbonements  = accountAbonementManager.findByPersonalAccountIdAndExpiredBefore(account.getId(), expireEnd);
 
         //Ну вообще-то должен быть только один Абонемент)
         accountAbonements.forEach(accountAbonement -> {
@@ -226,7 +224,7 @@ public class AbonementService {
                 + expireEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         );
 
-        List<AccountAbonement> accountAbonements  = accountAbonementRepository.findByPersonalAccountIdAndExpiredBefore(account.getId(), expireEnd);
+        List<AccountAbonement> accountAbonements  = accountAbonementManager.findByPersonalAccountIdAndExpiredBefore(account.getId(), expireEnd);
 
         if (accountAbonements.isEmpty()) {
             logger.debug("Not found expired abonements for accountId: " + account.getId());
@@ -335,7 +333,7 @@ public class AbonementService {
 
         Abonement abonement = newAbonement.get();
 
-        AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
+        AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
 
         if (accountAbonement != null && !accountHasFree14DaysAbonement) {
             throw new ParameterValidationException("Account already has abonement");
@@ -351,7 +349,7 @@ public class AbonementService {
      * @param accountAbonement абонемента на аккаунте
      */
     private void processAccountAbonementDelete(PersonalAccount account, AccountAbonement accountAbonement) {
-        accountAbonementRepository.delete(accountAbonement);
+        accountAbonementManager.delete(accountAbonement);
 
         //Создаем AccountService с выбранным тарифом
         addPlanServicesAfterAbonementExpire(account);

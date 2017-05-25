@@ -40,6 +40,7 @@ public class AccountPromotionManagerImplTest {
     @Before
     public void setUp() throws Exception {
         accountPromotionManager.insert(generateAccountPromotionWithActiveAction());
+        accountPromotionManager.insert(generateAccountPromotionWithActiveAction2());
         accountPromotionManager.insert(generateAccountPromotionWithInActiveAction());
     }
 
@@ -55,7 +56,7 @@ public class AccountPromotionManagerImplTest {
 
     @Test
     public void count() throws Exception {
-        Assert.assertEquals(2, accountPromotionManager.count());
+        Assert.assertEquals(3, accountPromotionManager.count());
     }
 
     @Test(expected = OptimisticLockingFailureException.class)
@@ -82,36 +83,63 @@ public class AccountPromotionManagerImplTest {
 
     @Test(expected = ResourceNotFoundException.class)
     public void findOneNotFound() {
-        accountPromotionManager.findOne("3");
+        accountPromotionManager.findOne("4");
     }
 
     @Test
     public void findAll() throws Exception {
-        Assert.assertEquals(2, accountPromotionManager.findAll().size());
+        Assert.assertEquals(3, accountPromotionManager.findAll().size());
     }
 
     @Test
     public void findByPersonalAccountId() throws Exception {
         String personalAccountId = "1";
         List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountId(personalAccountId);
-        Assert.assertEquals(1, accountPromotions.size());
+        Assert.assertEquals(2, accountPromotions.size());
         Assert.assertEquals(accountPromotions.get(0).getPersonalAccountId(), personalAccountId);
     }
 
     @Test
     public void findByPersonalAccountIdAndPromotionId() throws Exception {
+        String personalAccountId = "1";
+        String promotionId = "2";
+        List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountIdAndPromotionId(
+                personalAccountId,
+                promotionId
+        );
+        Assert.assertEquals(1, accountPromotions.size());
+        Assert.assertEquals(accountPromotions.get(0).getPersonalAccountId(), personalAccountId);
+        Assert.assertEquals(accountPromotions.get(0).getPromotionId(), promotionId);
     }
 
     @Test
     public void countByPersonalAccountIdAndPromotionId() throws Exception {
+        String personalAccountId = "1";
+        String promotionId = "2";
+        Assert.assertTrue(accountPromotionManager.countByPersonalAccountIdAndPromotionId(
+                personalAccountId,
+                promotionId
+        ) == 1);
     }
 
     @Test
     public void activateAccountPromotionByIdAndActionId() throws Exception {
+        String promotionId = "2";
+        String actionId = "3";
+
+        accountPromotionManager.activateAccountPromotionByIdAndActionId(promotionId, actionId);
+
+        Assert.assertTrue(accountPromotionManager.findOne(promotionId).getActionsWithStatus().get(actionId));
     }
 
     @Test
     public void deactivateAccountPromotionByIdAndActionId() throws Exception {
+        String promotionId = "1";
+        String actionId = "3";
+
+        accountPromotionManager.deactivateAccountPromotionByIdAndActionId(promotionId, actionId);
+
+        Assert.assertFalse(accountPromotionManager.findOne(promotionId).getActionsWithStatus().get(actionId));
     }
 
     private AccountPromotion generateAccountPromotionWithActiveAction() {
@@ -119,6 +147,21 @@ public class AccountPromotionManagerImplTest {
         accountPromotion.setId("1");
         accountPromotion.setPersonalAccountId("1");
         accountPromotion.setPromotionId("2");
+        accountPromotion.setCreated(LocalDateTime.now());
+
+        Map<String, Boolean> actionsWithStatus = new HashMap<>();
+        actionsWithStatus.put("3", true);
+
+        accountPromotion.setActionsWithStatus(actionsWithStatus);
+
+        return accountPromotion;
+    }
+
+    private AccountPromotion generateAccountPromotionWithActiveAction2() {
+        AccountPromotion accountPromotion = new AccountPromotion();
+        accountPromotion.setId("3");
+        accountPromotion.setPersonalAccountId("1");
+        accountPromotion.setPromotionId("4");
         accountPromotion.setCreated(LocalDateTime.now());
 
         Map<String, Boolean> actionsWithStatus = new HashMap<>();

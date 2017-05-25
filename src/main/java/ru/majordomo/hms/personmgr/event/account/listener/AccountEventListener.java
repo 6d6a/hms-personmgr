@@ -21,6 +21,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
+import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.AccountStat;
@@ -57,7 +58,7 @@ public class AccountEventListener {
     private final PromotionRepository promotionRepository;
     private final AbonementService abonementService;
     private final PersonalAccountManager accountManager;
-    private final AccountAbonementRepository accountAbonementRepository;
+    private final AccountAbonementManager accountAbonementManager;
 
     @Autowired
     public AccountEventListener(
@@ -72,7 +73,7 @@ public class AccountEventListener {
             PromotionRepository promotionRepository,
             AbonementService abonementService,
             PersonalAccountManager accountManager,
-            AccountAbonementRepository accountAbonementRepository
+            AccountAbonementManager accountAbonementManager
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -85,7 +86,7 @@ public class AccountEventListener {
         this.promotionRepository = promotionRepository;
         this.abonementService = abonementService;
         this.accountManager = accountManager;
-        this.accountAbonementRepository = accountAbonementRepository;
+        this.accountAbonementManager = accountAbonementManager;
     }
 
     @EventListener
@@ -501,7 +502,7 @@ public class AccountEventListener {
             String addAbonementId = plan.getNotInternalAbonementId();
 
             if (addAbonementId != null) {
-                AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
+                AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
                 if (accountAbonement == null) {
                     try {
                         abonementService.addAbonement(account, addAbonementId, true);

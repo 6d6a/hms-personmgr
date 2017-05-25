@@ -18,11 +18,11 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
-import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
@@ -36,7 +36,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 @Validated
 public class AccountAbonementRestController extends CommonRestController {
 
-    private final AccountAbonementRepository accountAbonementRepository;
+    private final AccountAbonementManager accountAbonementManager;
     private final AbonementRepository abonementRepository;
     private final AbonementService abonementService;
     private final PlanRepository planRepository;
@@ -44,12 +44,12 @@ public class AccountAbonementRestController extends CommonRestController {
 
     @Autowired
     public AccountAbonementRestController(
-            AccountAbonementRepository accountAbonementRepository,
+            AccountAbonementManager accountAbonementManager,
             AbonementService abonementService,
             AbonementRepository abonementRepository,
             PlanRepository planRepository,
             AccountHelper accountHelper) {
-        this.accountAbonementRepository = accountAbonementRepository;
+        this.accountAbonementManager = accountAbonementManager;
         this.abonementService = abonementService;
         this.abonementRepository = abonementRepository;
         this.planRepository = planRepository;
@@ -63,7 +63,7 @@ public class AccountAbonementRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
+        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
 
         return new ResponseEntity<>(accountAbonement, HttpStatus.OK);
     }
@@ -77,12 +77,11 @@ public class AccountAbonementRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
+        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
 
         if (!accountAbonement.getAbonement().isInternal()) {
             Boolean autorenew = requestBody.get("autorenew") != null ? Boolean.valueOf(requestBody.get("autorenew")) : false;
-            accountAbonement.setAutorenew(autorenew);
-            accountAbonementRepository.save(accountAbonement);
+            accountAbonementManager.setAutorenew(accountAbonement.getId(), autorenew);
 
             //Save history
             String operator = request.getUserPrincipal().getName();
@@ -106,7 +105,7 @@ public class AccountAbonementRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
+        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
         if (!accountAbonement.getAbonement().isInternal()) {
 
             if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
@@ -136,7 +135,7 @@ public class AccountAbonementRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        Page<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId(), pageable);
+        Page<AccountAbonement> accountAbonements = accountAbonementManager.findByPersonalAccountId(account.getId(), pageable);
 
         if(accountAbonements == null || !accountAbonements.hasContent()){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -167,14 +166,14 @@ public class AccountAbonementRestController extends CommonRestController {
             throw new ParameterValidationException("Abonement with abonementId: " + abonementId + " not found");
         }
 
-        AccountAbonement currentAccountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
+        AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
 
         // Internal абонементы юзер не может заказывать
         if (!abonement.isInternal() && (currentAccountAbonement == null || currentAccountAbonement.getAbonement().getPeriod().equals("P14D"))) {
 
             abonementService.addAbonement(account, abonementId, autorenew);
 
-            if (accountAbonementRepository.findByPersonalAccountId(account.getId()) != null && planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
+            if (accountAbonementManager.findByPersonalAccountId(account.getId()) != null && planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
                 accountHelper.switchAccountResources(account, true);
             }
 

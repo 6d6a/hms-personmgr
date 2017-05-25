@@ -18,6 +18,7 @@ import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
@@ -26,7 +27,6 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
-import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
@@ -43,7 +43,7 @@ public class PlanChangeService {
 
     private final FinFeignClient finFeignClient;
     private final PlanRepository planRepository;
-    private final AccountAbonementRepository accountAbonementRepository;
+    private final AccountAbonementManager accountAbonementManager;
     private final AccountStatRepository accountStatRepository;
     private final AccountHistoryService accountHistoryService;
     private final PersonalAccountManager accountManager;
@@ -54,13 +54,12 @@ public class PlanChangeService {
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHelper accountHelper;
     private final ApplicationEventPublisher publisher;
-    private final AbonementService abonementService;
 
     @Autowired
     public PlanChangeService(
             FinFeignClient finFeignClient,
             PlanRepository planRepository,
-            AccountAbonementRepository accountAbonementRepository,
+            AccountAbonementManager accountAbonementManager,
             AccountStatRepository accountStatRepository,
             AccountHistoryService accountHistoryService,
             PersonalAccountManager accountManager,
@@ -70,12 +69,11 @@ public class PlanChangeService {
             AccountQuotaService accountQuotaService,
             AccountServiceHelper accountServiceHelper,
             AccountHelper accountHelper,
-            ApplicationEventPublisher publisher,
-            AbonementService abonementService
+            ApplicationEventPublisher publisher
     ) {
         this.finFeignClient = finFeignClient;
         this.planRepository = planRepository;
-        this.accountAbonementRepository = accountAbonementRepository;
+        this.accountAbonementManager = accountAbonementManager;
         this.accountStatRepository = accountStatRepository;
         this.accountHistoryService = accountHistoryService;
         this.accountManager = accountManager;
@@ -86,7 +84,6 @@ public class PlanChangeService {
         this.accountServiceHelper = accountServiceHelper;
         this.accountHelper = accountHelper;
         this.publisher = publisher;
-        this.abonementService = abonementService;
     }
 
     /**
@@ -121,7 +118,7 @@ public class PlanChangeService {
             throw new ParameterValidationException("Текущий тарифный план совпадает с выбранным");
         }
 
-        AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
+        AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
 
         Boolean accountHasFree14DaysAbonement = false;
 
@@ -134,19 +131,24 @@ public class PlanChangeService {
         //Проверим, можно ли менять тариф
         canChangePlan(account, currentPlan, newPlan, accountHasFree14DaysAbonement);
 
-        // Если текущий тариф НЕ isAbonementOnly (например "Парковка") и имеет абонемент - необходимо сменить тариф с пересчётом баланса
+        // Если текущий тариф НЕ isAbonementOnly (например "Парковка") и имеет абонемент -
+        // необходимо сменить тариф с пересчётом баланса
         // И абонемент не бесплатный на 14 дней
         if (accountAbonement != null && !currentPlan.isAbonementOnly() && !accountHasFree14DaysAbonement) {
             if (newPlan.getService().getCost().compareTo(currentPlan.getService().getCost()) < 0) {
-                throw new ParameterValidationException("Переход на тарифный план с меньшей стоимостью при активном абонементе невозможен");
+                throw new ParameterValidationException("Переход на тарифный план с меньшей " +
+                        "стоимостью при активном абонементе невозможен");
             }
 
             //Только перерасчёт и валидация без сохранения
             planChangeAgreement = this.calculateDeclineAbonementValues(account, planChangeAgreement);
             BigDecimal newBalanceAfterDecline = balance.add(planChangeAgreement.getDelta());
 
-            if (newBalanceAfterDecline.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) { // Денег на новый абонемент не хватает
-                planChangeAgreement.setNeedToFeelBalance(newPlan.getNotInternalAbonement().getService().getCost().subtract(newBalanceAfterDecline));
+            if (newBalanceAfterDecline.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) {
+                // Денег на новый абонемент не хватает
+                planChangeAgreement.setNeedToFeelBalance(
+                        newPlan.getNotInternalAbonement().getService().getCost().subtract(newBalanceAfterDecline)
+                );
 
                 if (requestAgreement != null) {
                     throw new ParameterValidationException("Недостаточно средств для смены тарифного плана при активном абонементе");
@@ -168,7 +170,8 @@ public class PlanChangeService {
         if (requestAgreement != null) {
 
             if (!planChangeAgreement.equals(requestAgreement)) {
-                logger.error("planChangeAgreements are not equals. What we got: " + requestAgreement.toString() + " What we expected (newly calculated): " + planChangeAgreement.toString());
+                logger.error("planChangeAgreements are not equals. What we got: " +
+                        requestAgreement.toString() + " What we expected (newly calculated): " + planChangeAgreement.toString());
                 throw new ParameterValidationException("Произошла ошибка");
             }
 
@@ -195,7 +198,8 @@ public class PlanChangeService {
 
                     //Запишем в историю клиента
                     Map<String, String> historyParams = new HashMap<>();
-                    historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отключен кредит в связи с переходом на тариф с обязательным абонементом");
+                    historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отключен кредит в связи " +
+                            "с переходом на тариф с обязательным абонементом");
                     historyParams.put(OPERATOR_KEY, "service");
 
                     publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
@@ -230,7 +234,7 @@ public class PlanChangeService {
 
     // Для тарифов, которые НЕ isAbonementOnly
     private PlanChangeAgreement calculateDeclineAbonementValues(PersonalAccount account, PlanChangeAgreement planChangeAgreement) {
-        AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
+        AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
 
         if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
             throw new ParameterValidationException("Смена тарифного плана невозможна");
@@ -242,7 +246,8 @@ public class PlanChangeService {
 
 
         if (accountAbonement.getExpired() != null) {
-            LocalDateTime nextDate = accountAbonement.getExpired().minus(Period.parse(accountAbonement.getAbonement().getPeriod())); // первая дата для начала пересчета АБ
+            LocalDateTime nextDate = accountAbonement.getExpired()
+                    .minus(Period.parse(accountAbonement.getAbonement().getPeriod())); // первая дата для начала пересчета АБ
             LocalDateTime stopDate = LocalDateTime.now(); // дата окончания пересчета абонемента
             while (stopDate.isAfter(nextDate)) {
                 Integer daysInMonth = nextDate.toLocalDate().lengthOfMonth();
@@ -276,7 +281,8 @@ public class PlanChangeService {
 
         if (accountStats != null && !accountStats.isEmpty()) {
             if (currentPlan.getService().getCost().compareTo(newPlan.getService().getCost()) > 0) {
-                throw new ParameterValidationException("Смена тарифного плана на меньший по стоимости возможна не чаще 1 раза в месяц");
+                throw new ParameterValidationException("Смена тарифного плана на меньший " +
+                        "по стоимости возможна не чаще 1 раза в месяц");
             }
 
         }
@@ -311,7 +317,8 @@ public class PlanChangeService {
      * @param newPlan     новый тариф
      */
     private void saveHistory(PersonalAccount account, Plan currentPlan, Plan newPlan) {
-        accountHistoryService.addMessage(account.getId(), "Произведена смена тарифа с " + currentPlan.getName() + " на " + newPlan.getName(), "operator");
+        accountHistoryService.addMessage(account.getId(), "Произведена смена тарифа с " +
+                currentPlan.getName() + " на " + newPlan.getName(), "operator");
     }
 
 
@@ -369,7 +376,7 @@ public class PlanChangeService {
      * @param account Аккаунт
      */
     private void checkBonusAbonements(PersonalAccount account) {
-        AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
+        AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
         if (accountAbonement.getAbonement().isInternal()) {
             throw new ParameterValidationException("Для смены тарифного плана вам необходимо приобрести абонемент на " +
                     "текущий тарифный план сроком на 1 год или дождаться окончания бесплатного абонемента");
@@ -396,8 +403,12 @@ public class PlanChangeService {
         }
     }
 
-    private void processNotAbonementOnlyPlans(PersonalAccount account, Plan currentPlan, Plan newPlan, PlanChangeAgreement planChangeAgreement) {
-
+    private void processNotAbonementOnlyPlans(
+            PersonalAccount account,
+            Plan currentPlan,
+            Plan newPlan,
+            PlanChangeAgreement planChangeAgreement
+    ) {
         if (!currentPlan.isAbonementOnly()) {
             //Начислить деньги
             if (planChangeAgreement.getDelta().compareTo(BigDecimal.ZERO) > 0) {
@@ -411,7 +422,8 @@ public class PlanChangeService {
                     finFeignClient.addPayment(payment);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    logger.error("Exception in ru.majordomo.hms.personmgr.service.PlanChangeService.processNotAbonementOnlyPlans #1 " + e.getMessage());
+                    logger.error("Exception in ru.majordomo.hms.personmgr.service." +
+                            "PlanChangeService.processNotAbonementOnlyPlans #1 " + e.getMessage());
                 }
             }
 
@@ -428,16 +440,19 @@ public class PlanChangeService {
         }
     }
 
-    private void replaceFree14DaysAbonement(PersonalAccount account, Plan currentPlan, Plan newPlan, LocalDateTime expiredFree14DaysAbonementDate) {
-
+    private void replaceFree14DaysAbonement(
+            PersonalAccount account,
+            Plan currentPlan,
+            Plan newPlan,
+            LocalDateTime expiredFree14DaysAbonementDate
+    ) {
         deleteAccount14DaysFreeAbonement(account, currentPlan);
 
         if (!newPlan.isAbonementOnly() && expiredFree14DaysAbonementDate.isAfter(LocalDateTime.now())) {
             Abonement abonement = newPlan.getFree14DaysAbonement();
             if (abonement != null) {
                 AccountAbonement newFree14DaysAbonement = addAccountAbonement(account, abonement);
-                newFree14DaysAbonement.setExpired(expiredFree14DaysAbonementDate);
-                accountAbonementRepository.save(newFree14DaysAbonement);
+                accountAbonementManager.setExpired(newFree14DaysAbonement.getId(), expiredFree14DaysAbonementDate);
             }
         }
 
@@ -465,7 +480,7 @@ public class PlanChangeService {
      * @param currentPlan текущий тариф
      */
     private void addRemainingAccountAbonementCost(PersonalAccount account, Plan currentPlan) {
-        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(
+        List<AccountAbonement> accountAbonements = accountAbonementManager.findByPersonalAccountIdAndAbonementId(
                 account.getId(),
                 currentPlan.getNotInternalAbonementId()
         );
@@ -480,7 +495,11 @@ public class PlanChangeService {
 
             if (accountAbonement.getExpired().isAfter(LocalDateTime.now())) {
                 long remainingDays = DAYS.between(LocalDateTime.now(), accountAbonement.getExpired());
-                BigDecimal remainedServiceCost = (BigDecimal.valueOf(remainingDays)).multiply(abonement.getService().getCost().divide(BigDecimal.valueOf(365L), 2, BigDecimal.ROUND_DOWN));
+                BigDecimal remainedServiceCost = (BigDecimal.valueOf(remainingDays))
+                        .multiply(
+                                abonement.getService().getCost()
+                                        .divide(BigDecimal.valueOf(365L), 2, BigDecimal.ROUND_DOWN)
+                        );
 
                 if (remainedServiceCost.compareTo(BigDecimal.ZERO) > 0) {
                     Map<String, Object> payment = new HashMap<>();
@@ -493,7 +512,8 @@ public class PlanChangeService {
                         finFeignClient.addPayment(payment);
                     } catch (Exception e) {
                         e.printStackTrace();
-                        logger.error("Exception in ru.majordomo.hms.personmgr.service.PlanChangeService.addRemainingAccountAbonementCost " + e.getMessage());
+                        logger.error("Exception in ru.majordomo.hms.personmgr.service." +
+                                "PlanChangeService.addRemainingAccountAbonementCost " + e.getMessage());
                     }
                 }
             }
@@ -507,24 +527,24 @@ public class PlanChangeService {
      * @param currentPlan текущий тариф
      */
     private void deleteAccountAbonement(PersonalAccount account, Plan currentPlan) {
-        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(
+        List<AccountAbonement> accountAbonements = accountAbonementManager.findByPersonalAccountIdAndAbonementId(
                 account.getId(),
                 currentPlan.getNotInternalAbonementId()
         );
 
         if (accountAbonements != null && !accountAbonements.isEmpty()) {
-            accountAbonementRepository.delete(accountAbonements);
+            accountAbonementManager.delete(accountAbonements);
         }
     }
 
     private void deleteAccount14DaysFreeAbonement(PersonalAccount account, Plan currentPlan) {
-        List<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountIdAndAbonementId(
+        List<AccountAbonement> accountAbonements = accountAbonementManager.findByPersonalAccountIdAndAbonementId(
                 account.getId(),
                 currentPlan.getFree14DaysAbonement().getId()
         );
 
         if (accountAbonements != null && !accountAbonements.isEmpty()) {
-            accountAbonementRepository.delete(accountAbonements);
+            accountAbonementManager.delete(accountAbonements);
         }
     }
 
@@ -555,7 +575,7 @@ public class PlanChangeService {
         accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
         accountAbonement.setAutorenew(false);
 
-        accountAbonementRepository.save(accountAbonement);
+        accountAbonementManager.insert(accountAbonement);
 
         return accountAbonement;
     }
@@ -569,7 +589,7 @@ public class PlanChangeService {
      */
     private void processServices(PersonalAccount account, Plan currentPlan, Plan newPlan) {
 
-        AccountAbonement accountAbonementAfterProcessing = accountAbonementRepository.findByPersonalAccountId(account.getId());
+        AccountAbonement accountAbonementAfterProcessing = accountAbonementManager.findByPersonalAccountId(account.getId());
 
         //Если нет абонемента
         if (accountAbonementAfterProcessing == null) {

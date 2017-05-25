@@ -10,11 +10,11 @@ import java.time.LocalDateTime;
 
 import javax.validation.constraints.NotNull;
 
-import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 @Document
-public class AccountAbonement extends ModelBelongsToPersonalAccount {
+public class AccountAbonement extends VersionedModelBelongsToPersonalAccount {
     @NotNull
     @ObjectId(Abonement.class)
     private String abonementId;

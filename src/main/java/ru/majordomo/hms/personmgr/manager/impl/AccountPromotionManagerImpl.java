@@ -120,7 +120,7 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
 
         AccountPromotion accountPromotion = findOne(id);
         Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-        if (map.get(actionId) != null && !map.get(actionId)) {
+        if (map.get(actionId) != null) {
             Query query = new Query(new Criteria("_id").is(id));
             Update update = new Update().set("actionsWithStatus." + actionId, status);
 
