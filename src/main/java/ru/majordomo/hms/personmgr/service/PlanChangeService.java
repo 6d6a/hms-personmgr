@@ -191,7 +191,7 @@ public class PlanChangeService {
             //Укажем новый тариф
             account.setPlanId(newPlan.getId());
 
-            accountHelper.updateUnixAccountQuota(account, planLimitsService.getQuotaKBFreeLimit(newPlan));
+            accountHelper.updateUnixAccountQuota(account, (planLimitsService.getQuotaKBFreeLimit(newPlan) * 1024));
 
             //Произведем нужные действия со всеми услугами
             processServices(account, currentPlan, newPlan);
