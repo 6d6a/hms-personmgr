@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr;
+package ru.majordomo.hms.personmgr.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

@@ -87,14 +87,14 @@ public class AccountAmqpController extends CommonAmqpController {
                         if (businessOperation != null) {
                             //надо обработать промокод
                             if (businessOperation.getParam("promocode") != null) {
-                                PersonalAccount account = accountRepository.findOne(message.getAccountId());
+                                PersonalAccount account = accountManager.findOne(message.getAccountId());
                                 if (account != null) {
                                     logger.debug("We got promocode " + businessOperation.getParam("promocode") + ". Try to process it");
                                     promocodeProcessor.processPromocode(account, (String) businessOperation.getParam("promocode"));
                                 }
                             }
 
-                            PersonalAccount account = accountRepository.findOne(message.getAccountId());
+                            PersonalAccount account = accountManager.findOne(message.getAccountId());
                             if (account != null) {
 
                                 //Пробный период 14 дней - начисляем бонусный абонемент

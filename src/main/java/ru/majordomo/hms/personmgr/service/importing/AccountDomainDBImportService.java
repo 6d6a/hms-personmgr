@@ -14,10 +14,10 @@ import java.util.stream.StreamSupport;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.domain.AccountDomain;
 import ru.majordomo.hms.personmgr.repository.AccountDomainRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_REGISTRAR_STRING_MAP;
 
@@ -29,15 +29,19 @@ public class AccountDomainDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountDomainDBImportService.class);
 
     private AccountDomainRepository accountDomainRepository;
-    private PersonalAccountRepository personalAccountRepository;
+    private PersonalAccountManager accountManager;
     private NamedParameterJdbcTemplate jdbcTemplate;
     private List<AccountDomain> accountDomains = new ArrayList<>();
 
     @Autowired
-    public AccountDomainDBImportService(NamedParameterJdbcTemplate jdbcTemplate, AccountDomainRepository accountDomainRepository, PersonalAccountRepository personalAccountRepository) {
+    public AccountDomainDBImportService(
+            NamedParameterJdbcTemplate jdbcTemplate,
+            AccountDomainRepository accountDomainRepository,
+            PersonalAccountManager accountManager
+    ) {
         this.jdbcTemplate = jdbcTemplate;
         this.accountDomainRepository = accountDomainRepository;
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
     }
 
     public void pull() {
@@ -48,7 +52,7 @@ public class AccountDomainDBImportService {
         jdbcTemplate.query(query, (rs, rowNum) -> {
             AccountDomain accountDomain = new AccountDomain();
 
-            PersonalAccount account = personalAccountRepository.findByAccountId(rs.getString("acc_id"));
+            PersonalAccount account = accountManager.findByAccountId(rs.getString("acc_id"));
 
             logger.debug("rs.getString(\"acc_id\") " + rs.getString("acc_id") + " rs.getString(\"source\") " + rs.getString("source") + " rs.getString(\"Domain_name\") " + rs.getString("Domain_name"));
 

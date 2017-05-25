@@ -6,11 +6,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import ru.majordomo.hms.personmgr.FeignConfig;
+import ru.majordomo.hms.personmgr.config.FeignConfig;
 import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.rc.user.resources.*;
 
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 

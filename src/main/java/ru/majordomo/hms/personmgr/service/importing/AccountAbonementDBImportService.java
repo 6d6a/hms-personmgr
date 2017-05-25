@@ -20,11 +20,11 @@ import java.util.stream.StreamSupport;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 
@@ -37,24 +37,33 @@ public class AccountAbonementDBImportService {
 
     private AccountAbonementRepository accountAbonementRepository;
     private PlanRepository planRepository;
-    private PersonalAccountRepository personalAccountRepository;
+    private PersonalAccountManager accountManager;
     private NamedParameterJdbcTemplate jdbcTemplate;
     private List<AccountAbonement> accountAbonements = new ArrayList<>();
     private AbonementService abonementService;
 
     @Autowired
-    public AccountAbonementDBImportService(NamedParameterJdbcTemplate jdbcTemplate, AccountAbonementRepository accountAbonementRepository, PlanRepository planRepository, PersonalAccountRepository personalAccountRepository, AbonementService abonementService) {
+    public AccountAbonementDBImportService(
+            NamedParameterJdbcTemplate jdbcTemplate,
+            AccountAbonementRepository accountAbonementRepository,
+            PlanRepository planRepository,
+            PersonalAccountManager accountManager,
+            AbonementService abonementService
+    ) {
         this.jdbcTemplate = jdbcTemplate;
         this.accountAbonementRepository = accountAbonementRepository;
         this.planRepository = planRepository;
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
         this.abonementService = abonementService;
     }
 
     public void pull() {
         accountAbonementRepository.deleteAll();
 
-        String query = "SELECT a.acc_id, a.day_buy, a.date_end, aa.auto FROM abonement a LEFT JOIN abt_auto_buy aa USING(acc_id) WHERE 1 ORDER BY a.acc_id ASC";
+        String query = "SELECT a.acc_id, a.day_buy, a.date_end, aa.auto " +
+                "FROM abonement a " +
+                "LEFT JOIN abt_auto_buy aa USING(acc_id) " +
+                "WHERE 1 ORDER BY a.acc_id ASC";
 
         jdbcTemplate.query(query, this::rowMap);
     }
@@ -71,7 +80,7 @@ public class AccountAbonementDBImportService {
     private AccountAbonement rowMap(ResultSet rs, int rowNum) throws SQLException {
         AccountAbonement accountAbonement = new AccountAbonement();
 
-        PersonalAccount account = personalAccountRepository.findByAccountId(rs.getString("acc_id"));
+        PersonalAccount account = accountManager.findByAccountId(rs.getString("acc_id"));
 
         if (account != null) {
             logger.debug("Found account: " + rs.getString("acc_id"));
@@ -112,7 +121,7 @@ public class AccountAbonementDBImportService {
     }
 
     public boolean importToMongo(String accountId) {
-        PersonalAccount account = personalAccountRepository.findByAccountId(accountId);
+        PersonalAccount account = accountManager.findByAccountId(accountId);
 
         if (account != null) {
             AccountAbonement foundAccountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());

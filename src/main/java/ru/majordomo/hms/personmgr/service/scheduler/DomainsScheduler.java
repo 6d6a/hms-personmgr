@@ -12,19 +12,22 @@ import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.event.account.AccountProcessDomainsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringDomainsEvent;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 @Component
 public class DomainsScheduler {
     private final static Logger logger = LoggerFactory.getLogger(DomainsScheduler.class);
 
-    private final PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
 
     @Autowired
-    public DomainsScheduler(PersonalAccountRepository personalAccountRepository, ApplicationEventPublisher publisher) {
-        this.personalAccountRepository = personalAccountRepository;
+    public DomainsScheduler(
+            PersonalAccountManager accountManager,
+            ApplicationEventPublisher publisher
+    ) {
+        this.accountManager = accountManager;
         this.publisher = publisher;
     }
 
@@ -33,7 +36,7 @@ public class DomainsScheduler {
     @SchedulerLock(name = "processExpriringDomains")
     public void processExpiringDomains() {
         logger.debug("Started processExpiringDomains");
-        try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findAllStream()) {
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessExpiringDomainsEvent(account)));
         }
         logger.debug("Ended processExpiringDomains");
@@ -44,7 +47,7 @@ public class DomainsScheduler {
     @SchedulerLock(name = "processDomainAutoRenew")
     public void processDomainsAutoRenew() {
         logger.debug("Started processDomainsAutoRenew");
-        try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findAllStream()) {
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessDomainsAutoRenewEvent(account)));
         }
         logger.debug("Ended processDomainsAutoRenew");

@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr;
+package ru.majordomo.hms.personmgr.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +14,7 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
  * RepositoryRestConfiguration
  */
 @Configuration
-public class RepositoryRestConfiguration extends RepositoryRestConfigurerAdapter {
+public class RepositoryRestConfig extends RepositoryRestConfigurerAdapter {
     @Bean
     @Primary
     Validator validator() {

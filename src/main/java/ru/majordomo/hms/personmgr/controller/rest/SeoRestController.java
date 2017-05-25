@@ -26,7 +26,6 @@ import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.seo.AccountSeoOrder;
 import ru.majordomo.hms.personmgr.model.seo.Seo;
 import ru.majordomo.hms.personmgr.repository.AccountSeoOrderRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.SeoRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
@@ -43,7 +42,6 @@ import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SEO_ORDER_
 @RequestMapping("/{accountId}/seo")
 @Validated
 public class SeoRestController extends CommonRestController {
-    private final PersonalAccountRepository accountRepository;
     private final AccountSeoOrderRepository accountSeoOrderRepository;
     private final SeoRepository seoRepository;
     private final RcUserFeignClient rcUserFeignClient;
@@ -52,13 +50,11 @@ public class SeoRestController extends CommonRestController {
 
     @Autowired
     public SeoRestController(
-            PersonalAccountRepository accountRepository,
             AccountSeoOrderRepository accountSeoOrderRepository,
             SeoRepository seoRepository,
             RcUserFeignClient rcUserFeignClient,
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher) {
-        this.accountRepository = accountRepository;
         this.accountSeoOrderRepository = accountSeoOrderRepository;
         this.seoRepository = seoRepository;
         this.rcUserFeignClient = rcUserFeignClient;
@@ -79,7 +75,7 @@ public class SeoRestController extends CommonRestController {
     public ResponseEntity<List<AccountSeoOrder>> getSeoOrder(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         List<AccountSeoOrder> orders = accountSeoOrderRepository.findByPersonalAccountId(account.getId());
 
@@ -96,7 +92,7 @@ public class SeoRestController extends CommonRestController {
             @RequestBody Map<String, Object> requestBody,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         checkRequiredParams(requestBody, ACCOUNT_SEO_ORDER_CREATE);
 

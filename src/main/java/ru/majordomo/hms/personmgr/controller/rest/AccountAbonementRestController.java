@@ -23,7 +23,6 @@ import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
@@ -37,7 +36,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 @Validated
 public class AccountAbonementRestController extends CommonRestController {
 
-    private final PersonalAccountRepository accountRepository;
     private final AccountAbonementRepository accountAbonementRepository;
     private final AbonementRepository abonementRepository;
     private final AbonementService abonementService;
@@ -46,13 +44,11 @@ public class AccountAbonementRestController extends CommonRestController {
 
     @Autowired
     public AccountAbonementRestController(
-            PersonalAccountRepository accountRepository,
             AccountAbonementRepository accountAbonementRepository,
             AbonementService abonementService,
             AbonementRepository abonementRepository,
             PlanRepository planRepository,
             AccountHelper accountHelper) {
-        this.accountRepository = accountRepository;
         this.accountAbonementRepository = accountAbonementRepository;
         this.abonementService = abonementService;
         this.abonementRepository = abonementRepository;
@@ -65,7 +61,7 @@ public class AccountAbonementRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountAbonement.class) @PathVariable(value = "accountAbonementId") String accountAbonementId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
 
@@ -79,7 +75,7 @@ public class AccountAbonementRestController extends CommonRestController {
             @RequestBody Map<String, String> requestBody,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
 
@@ -108,7 +104,7 @@ public class AccountAbonementRestController extends CommonRestController {
             @ObjectId(AccountAbonement.class) @PathVariable(value = "accountAbonementId") String accountAbonementId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         AccountAbonement accountAbonement = accountAbonementRepository.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
         if (!accountAbonement.getAbonement().isInternal()) {
@@ -138,7 +134,7 @@ public class AccountAbonementRestController extends CommonRestController {
             @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId,
             Pageable pageable
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         Page<AccountAbonement> accountAbonements = accountAbonementRepository.findByPersonalAccountId(account.getId(), pageable);
 
@@ -155,7 +151,7 @@ public class AccountAbonementRestController extends CommonRestController {
             @RequestBody Map<String, String> requestBody,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         String abonementId = requestBody.get("abonementId");
 

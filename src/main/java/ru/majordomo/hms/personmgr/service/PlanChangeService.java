@@ -18,6 +18,7 @@ import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
@@ -28,7 +29,6 @@ import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 import static java.lang.Math.floor;
@@ -46,7 +46,7 @@ public class PlanChangeService {
     private final AccountAbonementRepository accountAbonementRepository;
     private final AccountStatRepository accountStatRepository;
     private final AccountHistoryService accountHistoryService;
-    private final PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountManager accountManager;
     private final PaymentServiceRepository paymentServiceRepository;
     private final AccountCountersService accountCountersService;
     private final PlanLimitsService planLimitsService;
@@ -63,7 +63,7 @@ public class PlanChangeService {
             AccountAbonementRepository accountAbonementRepository,
             AccountStatRepository accountStatRepository,
             AccountHistoryService accountHistoryService,
-            PersonalAccountRepository personalAccountRepository,
+            PersonalAccountManager accountManager,
             PaymentServiceRepository paymentServiceRepository,
             AccountCountersService accountCountersService,
             PlanLimitsService planLimitsService,
@@ -78,7 +78,7 @@ public class PlanChangeService {
         this.accountAbonementRepository = accountAbonementRepository;
         this.accountStatRepository = accountStatRepository;
         this.accountHistoryService = accountHistoryService;
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
         this.paymentServiceRepository = paymentServiceRepository;
         this.accountCountersService = accountCountersService;
         this.planLimitsService = planLimitsService;
@@ -186,12 +186,12 @@ public class PlanChangeService {
             processServices(account, currentPlan, newPlan);
 
             //Укажем новый тариф
-            account.setPlanId(newPlan.getId());
+            accountManager.setPlanId(account.getId(), newPlan.getId());
 
             if (newPlan.isAbonementOnly()) {
                 if (account.isCredit()) {
-                    account.removeSettingByName(CREDIT_ACTIVATION_DATE);
-                    account.setCredit(false);
+                    accountManager.removeSettingByName(account.getId(), CREDIT_ACTIVATION_DATE);
+                    accountManager.setCredit(account.getId(), false);
 
                     //Запишем в историю клиента
                     Map<String, String> historyParams = new HashMap<>();
@@ -214,14 +214,12 @@ public class PlanChangeService {
                 publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
             }
 
-            personalAccountRepository.save(account);
-
             if (isFromRegularToBusiness(currentPlan, newPlan)) {
                 publisher.publishEvent(new AccountNotifySupportOnChangePlanEvent(account));
             }
 
             //Сохраним статистику смены тарифа
-            saveStat(account, newPlanId);
+            saveStat(account, currentPlanId, newPlanId);
 
             //Сохраним историю аккаунта
             saveHistory(account, currentPlan, newPlan);
@@ -286,18 +284,18 @@ public class PlanChangeService {
 
     /**
      * Сохраним в статистику об изменении тарифного плана
-     *
      * @param account   Аккаунт
+     * @param currentPlan
      * @param newPlanId ID нового тарифа
      */
-    private void saveStat(PersonalAccount account, String newPlanId) {
+    private void saveStat(PersonalAccount account, String currentPlan, String newPlanId) {
         AccountStat accountStat = new AccountStat();
         accountStat.setPersonalAccountId(account.getId());
         accountStat.setCreated(LocalDateTime.now());
         accountStat.setType(AccountStatType.VIRTUAL_HOSTING_PLAN_CHANGE);
 
         Map<String, String> data = new HashMap<>();
-        data.put("oldPlanId", account.getPlanId());
+        data.put("oldPlanId", currentPlan);
         data.put("newPlanId", newPlanId);
 
         accountStat.setData(data);

@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr;
+package ru.majordomo.hms.personmgr.config;
 
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Bean;

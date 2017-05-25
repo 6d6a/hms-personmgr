@@ -23,7 +23,6 @@ import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.BlackListService;
@@ -47,7 +46,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 @Validated
 public class DomainResourceRestController extends CommonResourceRestController {
     private final DomainTldService domainTldService;
-    private final PersonalAccountRepository accountRepository;
     private final AccountHelper accountHelper;
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountPromotionRepository accountPromotionRepository;
@@ -57,7 +55,6 @@ public class DomainResourceRestController extends CommonResourceRestController {
     @Autowired
     public DomainResourceRestController(
             DomainTldService domainTldService,
-            PersonalAccountRepository accountRepository,
             AccountHelper accountHelper,
             RcUserFeignClient rcUserFeignClient,
             AccountPromotionRepository accountPromotionRepository,
@@ -65,7 +62,6 @@ public class DomainResourceRestController extends CommonResourceRestController {
             BlackListService blackListService
     ) {
         this.domainTldService = domainTldService;
-        this.accountRepository = accountRepository;
         this.accountHelper = accountHelper;
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountPromotionRepository = accountPromotionRepository;
@@ -82,13 +78,13 @@ public class DomainResourceRestController extends CommonResourceRestController {
     ) {
         message.setAccountId(accountId);
 
-        if (!accountRepository.findOne(accountId).isActive()) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Добавление домена невозможно.");
         }
 
         logger.debug("Creating domain " + message.toString());
-
-        PersonalAccount account = accountRepository.findOne(accountId);
 
         boolean isRegistration = message.getParam("register") != null && (boolean) message.getParam("register");
         boolean isFreeDomain = false;
@@ -189,14 +185,14 @@ public class DomainResourceRestController extends CommonResourceRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         message.setAccountId(accountId);
         message.getParams().put("resourceId", resourceId);
 
         logger.debug("Updating domain with id " + resourceId + " " + message.toString());
 
-        if (!accountRepository.findOne(accountId).isActive()) {
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление домена невозможно.");
         }
 

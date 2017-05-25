@@ -12,8 +12,8 @@ import java.util.Collections;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.TECHNICAL_ACCOUNT_ID;
 
@@ -21,12 +21,15 @@ import static ru.majordomo.hms.personmgr.common.Constants.TECHNICAL_ACCOUNT_ID;
 public class QuotaScheduler {
     private final static Logger logger = LoggerFactory.getLogger(QuotaScheduler.class);
 
-    private final PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
 
     @Autowired
-    public QuotaScheduler(PersonalAccountRepository personalAccountRepository, ApplicationEventPublisher publisher) {
-        this.personalAccountRepository = personalAccountRepository;
+    public QuotaScheduler(
+            PersonalAccountManager accountManager,
+            ApplicationEventPublisher publisher
+    ) {
+        this.accountManager = accountManager;
         this.publisher = publisher;
     }
 
@@ -35,7 +38,7 @@ public class QuotaScheduler {
     @SchedulerLock(name = "processQuotaChecks")
     public void processQuotaChecks() {
         logger.debug("Started processQuotaChecks");
-        try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findByIdNotIn(Collections.singletonList(TECHNICAL_ACCOUNT_ID))) {
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findByIdNotIn(Collections.singletonList(TECHNICAL_ACCOUNT_ID))) {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountCheckQuotaEvent(account)));
         }
         logger.debug("Ended processQuotaChecks");

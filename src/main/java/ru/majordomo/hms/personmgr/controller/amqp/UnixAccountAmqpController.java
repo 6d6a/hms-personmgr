@@ -69,7 +69,7 @@ public class UnixAccountAmqpController extends CommonAmqpController {
                     businessOperation.setState(State.PROCESSED);
                     processingBusinessOperationRepository.save(businessOperation);
 
-                    PersonalAccount account = accountRepository.findOne(businessOperation.getPersonalAccountId());
+                    PersonalAccount account = accountManager.findOne(businessOperation.getPersonalAccountId());
                     Map<String, String> params = new HashMap<>();
                     params.put(PASSWORD_KEY, (String) businessOperation.getParam(PASSWORD_KEY));
 

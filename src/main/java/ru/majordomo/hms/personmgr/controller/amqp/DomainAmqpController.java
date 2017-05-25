@@ -65,10 +65,9 @@ public class DomainAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null && businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_CREATE_RC)) {
-                    PersonalAccount account = accountRepository.findOne(businessAction.getPersonalAccountId());
+                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                     if (account.isAccountNew()) {
-                        account.setAccountNew(false);
-                        accountRepository.save(account);
+                        accountManager.setAccountNew(account.getAccountId(), false);
                     }
                 }
 
@@ -110,7 +109,7 @@ public class DomainAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    PersonalAccount account = accountRepository.findOne(businessAction.getPersonalAccountId());
+                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
 
                     Map<String, String> paramsHistory;
                     if (businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_UPDATE_RC)

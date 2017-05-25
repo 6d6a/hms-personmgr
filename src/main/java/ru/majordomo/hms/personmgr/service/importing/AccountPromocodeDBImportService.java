@@ -13,17 +13,12 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeCreateEvent;
 import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeImportEvent;
-import ru.majordomo.hms.personmgr.event.accountService.AccountServiceCreateEvent;
-import ru.majordomo.hms.personmgr.event.accountService.AccountServiceImportEvent;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PROMOCODE_ACTION_ID;

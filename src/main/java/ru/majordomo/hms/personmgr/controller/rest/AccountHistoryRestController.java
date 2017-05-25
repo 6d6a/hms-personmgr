@@ -26,7 +26,6 @@ import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.QAccountHistory;
 import ru.majordomo.hms.personmgr.querydsl.AccountHistoryQuerydslBinderCustomizer;
 import ru.majordomo.hms.personmgr.repository.AccountHistoryRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
@@ -34,17 +33,14 @@ import ru.majordomo.hms.personmgr.validators.ObjectId;
 @Validated
 public class AccountHistoryRestController extends CommonRestController {
 
-    private final PersonalAccountRepository accountRepository;
     private final AccountHistoryRepository accountHistoryRepository;
     private final AccountHistoryService accountHistoryService;
 
     @Autowired
     public AccountHistoryRestController(
-            PersonalAccountRepository accountRepository,
             AccountHistoryRepository accountHistoryRepository,
             AccountHistoryService accountHistoryService
     ) {
-        this.accountRepository = accountRepository;
         this.accountHistoryRepository = accountHistoryRepository;
         this.accountHistoryService = accountHistoryService;
     }
@@ -55,7 +51,7 @@ public class AccountHistoryRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountHistory.class) @PathVariable(value = "accountHistoryId") String accountHistoryId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         AccountHistory accountHistory = accountHistoryRepository.findByIdAndPersonalAccountId(accountHistoryId, account.getId());
 

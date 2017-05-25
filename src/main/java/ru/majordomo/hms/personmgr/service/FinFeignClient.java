@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.FeignConfig;
+import ru.majordomo.hms.personmgr.config.FeignConfig;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 @FeignClient(name = "fin", fallback = FinFeignClientFallback.class, configuration = FeignConfig.class)

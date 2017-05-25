@@ -73,7 +73,7 @@ public class PersonAmqpController extends CommonAmqpController {
 
                 publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
 
-                account = accountRepository.findOne(message.getAccountId());
+                account = accountManager.findOne(message.getAccountId());
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.PersonAmqpController.create #1 " + e.getMessage());
@@ -85,8 +85,7 @@ public class PersonAmqpController extends CommonAmqpController {
                 if (objRef.equals(personId)) {
                     logger.error("Не удалось получить personId из objRef: " + objRef);
                 } else {
-                    account.setOwnerPersonId(personId);
-                    accountRepository.save(account);
+                    accountManager.setOwnerPersonId(account.getId(), personId);
 
                     try {
                         //Save history

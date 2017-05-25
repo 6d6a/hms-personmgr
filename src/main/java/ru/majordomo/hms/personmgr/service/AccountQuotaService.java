@@ -12,16 +12,15 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaAddedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaDiscardEvent;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 import static java.lang.Math.ceil;
-import static java.lang.Math.floor;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_CAPACITY;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
@@ -30,7 +29,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
 public class AccountQuotaService {
     private final static Logger logger = LoggerFactory.getLogger(AccountQuotaService.class);
 
-    private final PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountManager accountManager;
     private final AccountCountersService accountCountersService;
     private final PlanLimitsService planLimitsService;
     private final PaymentServiceRepository paymentServiceRepository;
@@ -42,7 +41,7 @@ public class AccountQuotaService {
 
     @Autowired
     public AccountQuotaService(
-            PersonalAccountRepository personalAccountRepository,
+            PersonalAccountManager accountManager,
             AccountCountersService accountCountersService,
             PlanLimitsService planLimitsService,
             PaymentServiceRepository paymentServiceRepository,
@@ -52,7 +51,7 @@ public class AccountQuotaService {
             ApplicationEventPublisher publisher,
             AccountHelper accountHelper
     ) {
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
         this.accountCountersService = accountCountersService;
         this.planLimitsService = planLimitsService;
         this.paymentServiceRepository = paymentServiceRepository;
@@ -96,7 +95,7 @@ public class AccountQuotaService {
             logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
                     + " account is overquoted");
 
-            account.setOverquoted(true);
+            accountManager.setOverquoted(account.getId(), true);
             if (account.isAddQuotaIfOverquoted()) {
                 // Если стоит флаг добавления дополнительнго места
                 logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
@@ -144,15 +143,13 @@ public class AccountQuotaService {
                         + " account isOverquoted == true. " +
                         "Setting Overquoted to false. Setting writable to false to resources");
 
-                account.setOverquoted(false);
+                accountManager.setOverquoted(account.getId(),false);
                 // Устанавливаем writable true для ресурсов
                 accountHelper.setWritableForAccountQuotaServices(account, true);
 
                 accountServiceHelper.deleteAccountServiceByServiceId(account, quotaServiceId);
             }
         }
-
-        personalAccountRepository.save(account);
     }
 
     /**

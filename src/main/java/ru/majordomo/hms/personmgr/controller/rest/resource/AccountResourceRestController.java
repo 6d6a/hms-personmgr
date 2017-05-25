@@ -24,7 +24,6 @@ import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.service.BusinessOperationBuilder;
@@ -42,7 +41,6 @@ import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_CREATE;
 @RequestMapping("/register")
 public class AccountResourceRestController extends CommonResourceRestController {
     private final SequenceCounterService sequenceCounterService;
-    private final PersonalAccountRepository personalAccountRepository;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final PlanRepository planRepository;
     private final PromocodeProcessor promocodeProcessor;
@@ -54,7 +52,6 @@ public class AccountResourceRestController extends CommonResourceRestController 
     @Autowired
     public AccountResourceRestController(
             SequenceCounterService sequenceCounterService,
-            PersonalAccountRepository personalAccountRepository,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
             PlanRepository planRepository,
             PromocodeProcessor promocodeProcessor,
@@ -64,7 +61,6 @@ public class AccountResourceRestController extends CommonResourceRestController 
             BusinessOperationBuilder businessOperationBuilder
     ) {
         this.sequenceCounterService = sequenceCounterService;
-        this.personalAccountRepository = personalAccountRepository;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
         this.planRepository = planRepository;
         this.promocodeProcessor = promocodeProcessor;
@@ -125,7 +121,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
         personalAccount.setCredit(false);
         personalAccount.setCreditPeriod("P14D");
 
-        personalAccountRepository.save(personalAccount);
+        accountManager.insert(personalAccount);
         logger.debug("personalAccount saved: " + personalAccount.toString());
 
         //Создаем AccountService с выбранным тарифом

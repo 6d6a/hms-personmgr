@@ -1,57 +1,104 @@
-package ru.majordomo.hms.personmgr.test.controller.rest;
+package ru.majordomo.hms.personmgr.controller.rest;
 
 import com.google.common.collect.ImmutableMap;
 
 import org.bson.types.ObjectId;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
+import ru.majordomo.hms.personmgr.config.AppConfigTest;
+import ru.majordomo.hms.personmgr.config.MongoConfigTest;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.impl.PersonalAccountManagerImpl;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanPropertyLimit;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.personmgr.test.config.ConfigPlanRestController;
+import ru.majordomo.hms.personmgr.service.PlanBuilder;
 
-import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
+import static org.mockito.AdditionalAnswers.returnsFirstArg;
+import static org.mockito.Matchers.any;
 import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static ru.majordomo.hms.personmgr.common.DBType.MYSQL;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = ConfigPlanRestController.class, webEnvironment = RANDOM_PORT)
+@WebMvcTest(controllers = PlanRestController.class, secure = false)
 public class PlanRestControllerTest {
-
     private List<Plan> batchOfPlans = new ArrayList<>();
+
+    @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private WebApplicationContext ctx;
-
-    @Autowired
+    @MockBean(name="planRepository")
     private PlanRepository planRepository;
 
+    @MockBean(name="planBuilder")
+    private PlanBuilder planBuilder;
+
+    @MockBean(name="accountManager")
+    private PersonalAccountManager accountManager;
+
     @Before
-    public void setUp() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(ctx).build();
+    public void setUp() throws Exception {
         generateBatchOfPlan();
-        planRepository.save(batchOfPlans);
     }
 
-    public void generateBatchOfPlan() {
+    @After
+    public void tearDown() throws Exception {
+    }
+
+    @Test
+    public void listAllForAccount() throws Exception {
+        Mockito
+                .when(this.planRepository.findByActive(true))
+                .thenReturn(this.batchOfPlans.stream().filter(Plan::isActive).collect(Collectors.toList()));
+
+        Mockito
+                .when(this.planBuilder.build(any(Plan.class)))
+                .then(returnsFirstArg());
+
+        RequestBuilder requestBuilder = MockMvcRequestBuilders
+                .get("/" + ObjectId.get().toString() + "/plans")
+                .accept(MediaType.APPLICATION_JSON);
+
+        MvcResult result = mockMvc.perform(requestBuilder)
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
+                .andReturn();
+
+        System.out.println("[listAll] result.getResponse().getContentAsString() "
+                + result.getResponse().getContentAsString());
+    }
+
+    @Test
+    public void listAll() throws Exception {
+    }
+
+    @Test
+    public void get() throws Exception {
+    }
+
+    private void generateBatchOfPlan() {
         Plan plan = new Plan();
         for (int i = 0; i < 9; i++) {
             plan.setName("План " + i);
@@ -76,14 +123,4 @@ public class PlanRestControllerTest {
             this.batchOfPlans.add(plan);
         }
     }
-
-    @Test
-    public void listAll() throws Exception {
-        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.get("/" + ObjectId.get().toString() + "/plans").accept(APPLICATION_JSON_UTF8);
-        mockMvc.perform(request)
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON_UTF8));
-
-    }
-
 }

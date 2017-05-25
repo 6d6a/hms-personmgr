@@ -8,14 +8,14 @@ import org.springframework.context.ApplicationEventPublisher;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
 public class CommonAmqpController {
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
     protected BusinessFlowDirector businessFlowDirector;
-    protected PersonalAccountRepository accountRepository;
+    protected PersonalAccountManager accountManager;
     protected ApplicationEventPublisher publisher;
 
     @Autowired
@@ -24,8 +24,8 @@ public class CommonAmqpController {
     }
 
     @Autowired
-    public void setAccountRepository(PersonalAccountRepository accountRepository) {
-        this.accountRepository = accountRepository;
+    public void setAccountManager(PersonalAccountManager accountManager) {
+        this.accountManager = accountManager;
     }
 
     @Autowired

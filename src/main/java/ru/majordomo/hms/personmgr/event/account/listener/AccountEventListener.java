@@ -21,6 +21,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -54,7 +55,7 @@ public class AccountEventListener {
     private final AccountPromotionRepository accountPromotionRepository;
     private final PromotionRepository promotionRepository;
     private final AbonementService abonementService;
-    private final PersonalAccountRepository accountRepository;
+    private final PersonalAccountManager accountManager;
     private final AccountAbonementRepository accountAbonementRepository;
 
     @Autowired
@@ -69,7 +70,7 @@ public class AccountEventListener {
             AccountPromotionRepository accountPromotionRepository,
             PromotionRepository promotionRepository,
             AbonementService abonementService,
-            PersonalAccountRepository accountRepository,
+            PersonalAccountManager accountManager,
             AccountAbonementRepository accountAbonementRepository
     ) {
         this.accountHelper = accountHelper;
@@ -82,7 +83,7 @@ public class AccountEventListener {
         this.accountPromotionRepository = accountPromotionRepository;
         this.promotionRepository = promotionRepository;
         this.abonementService = abonementService;
-        this.accountRepository = accountRepository;
+        this.accountManager = accountManager;
         this.accountAbonementRepository = accountAbonementRepository;
     }
 
@@ -363,7 +364,7 @@ public class AccountEventListener {
 
         PersonalAccount account = event.getSource();
         // При задержке аккаунт мог мутировать
-        account = accountRepository.findOne(account.getId());
+        account = accountManager.findOne(account.getId());
 
         Map<String, ?> paramsForPublisher = event.getParams();
 
@@ -401,7 +402,7 @@ public class AccountEventListener {
         if (accountPromocode != null) {
 
             // Аккаунт которому необходимо начислить средства
-            PersonalAccount accountForPartnerBonus = accountRepository.findOne(accountPromocode.getOwnerPersonalAccountId());
+            PersonalAccount accountForPartnerBonus = accountManager.findOne(accountPromocode.getOwnerPersonalAccountId());
 
             if (accountForPartnerBonus == null) {
                 logger.error("PersonalAccount with ID: " + accountPromocode.getOwnerPersonalAccountId() + " not found.");
@@ -464,13 +465,13 @@ public class AccountEventListener {
         try {
             Thread.sleep(20000);
         } catch (Exception e) {
-            logger.debug("Exeption in AccountEventListener on sleep");
+            logger.debug("Exception in AccountEventListener on sleep");
             e.printStackTrace();
         }
 
         PersonalAccount account = event.getSource();
         // При задержке аккаунт мог мутировать
-        account = accountRepository.findOne(account.getId());
+        account = accountManager.findOne(account.getId());
 
         logger.debug("We got AccountSwitchByPaymentCreatedEvent");
 
@@ -483,8 +484,7 @@ public class AccountEventListener {
             if (balance.compareTo(BigDecimal.ZERO) > 0) {
                 // Обнуляем дату активации кредита
                 if (account.getCreditActivationDate() != null) {
-                    account.removeSettingByName(CREDIT_ACTIVATION_DATE);
-                    accountRepository.save(account);
+                    accountManager.removeSettingByName(account.getId(), CREDIT_ACTIVATION_DATE);
                 }
 
                 // Включаем аккаунт, если был выключен

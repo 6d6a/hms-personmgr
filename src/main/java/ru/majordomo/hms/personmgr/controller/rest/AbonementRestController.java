@@ -10,27 +10,23 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 @RestController
 @RequestMapping("/{accountId}/abonements")
 public class AbonementRestController extends CommonRestController {
-
-    private final PersonalAccountRepository accountRepository;
     private final AbonementRepository abonementRepository;
     private final PlanRepository planRepository;
 
     @Autowired
     public AbonementRestController(
-            PersonalAccountRepository accountRepository,
             AbonementRepository abonementRepository,
             PlanRepository planRepository) {
-        this.accountRepository = accountRepository;
         this.abonementRepository = abonementRepository;
         this.planRepository = planRepository;
     }
@@ -40,7 +36,7 @@ public class AbonementRestController extends CommonRestController {
             @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "abonementId") String abonementId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
         if(account == null){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
@@ -58,7 +54,7 @@ public class AbonementRestController extends CommonRestController {
     public ResponseEntity<List<Abonement>> getAbonements(
             @PathVariable(value = "accountId") String accountId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
         if(account == null){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }

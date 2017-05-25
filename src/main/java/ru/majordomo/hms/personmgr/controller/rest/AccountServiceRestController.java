@@ -28,7 +28,6 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
@@ -49,7 +48,6 @@ public class AccountServiceRestController extends CommonRestController {
 
     private final AccountServiceRepository accountServiceRepository;
     private final PaymentServiceRepository serviceRepository;
-    private final PersonalAccountRepository accountRepository;
     private final PlanRepository planRepository;
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHelper accountHelper;
@@ -58,14 +56,12 @@ public class AccountServiceRestController extends CommonRestController {
     public AccountServiceRestController(
             AccountServiceRepository accountServiceRepository,
             PaymentServiceRepository serviceRepository,
-            PersonalAccountRepository accountRepository,
             PlanRepository planRepository,
             AccountServiceHelper accountServiceHelper,
             AccountHelper accountHelper
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.serviceRepository = serviceRepository;
-        this.accountRepository = accountRepository;
         this.planRepository = planRepository;
         this.accountServiceHelper = accountServiceHelper;
         this.accountHelper = accountHelper;
@@ -77,7 +73,7 @@ public class AccountServiceRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountService.class) @PathVariable(value = "accountServiceId") String accountServiceId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndId(account.getId(), accountServiceId);
 
@@ -94,7 +90,7 @@ public class AccountServiceRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             Pageable pageable
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         Page<AccountService> accountServices = accountServiceRepository.findByPersonalAccountId(account.getId(), pageable);
 
@@ -108,7 +104,7 @@ public class AccountServiceRestController extends CommonRestController {
             @RequestBody Map<String, Object> requestBody,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         checkRequiredParams(requestBody, ACCOUNT_SERVICE_CREATE);
 
@@ -144,7 +140,7 @@ public class AccountServiceRestController extends CommonRestController {
     public ResponseEntity<AccountService> getSmsService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         PaymentService paymentService = getSmsPaymentServiceByPlanId(account.getPlanId());
 
@@ -166,7 +162,7 @@ public class AccountServiceRestController extends CommonRestController {
             @RequestBody Map<String, Object> requestBody,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         checkRequiredParams(requestBody, ACCOUNT_SERVICE_ENABLE);
 
@@ -192,7 +188,7 @@ public class AccountServiceRestController extends CommonRestController {
     public ResponseEntity<AccountService> getAntiSpamService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         PaymentService paymentService = getPaymentServiceByOldId(ANTI_SPAM_SERVICE_ID);
 
@@ -214,7 +210,7 @@ public class AccountServiceRestController extends CommonRestController {
             @RequestBody Map<String, Object> requestBody,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         checkRequiredParams(requestBody, ACCOUNT_SERVICE_ENABLE);
 
@@ -242,7 +238,7 @@ public class AccountServiceRestController extends CommonRestController {
             @ObjectId(AccountService.class) @PathVariable(value = "accountServiceId") String accountServiceId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndId(account.getId(), accountServiceId);
 

@@ -15,41 +15,40 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
 @Service
 public class PaymentChargesProcessorService {
     private final static Logger logger = LoggerFactory.getLogger(PaymentChargesProcessorService.class);
 
-    private final PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountManager accountManager;
     private final AccountServiceRepository accountServiceRepository;
     private final AccountHelper accountHelper;
     private final ApplicationEventPublisher publisher;
 
     @Autowired
     public PaymentChargesProcessorService(
-            PersonalAccountRepository personalAccountRepository,
+            PersonalAccountManager accountManager,
             AccountServiceRepository accountServiceRepository,
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher
     ) {
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
         this.accountServiceRepository = accountServiceRepository;
         this.accountHelper = accountHelper;
         this.publisher = publisher;
     }
 
     public void processCharge(String paymentAccountName) {
-        PersonalAccount account = personalAccountRepository.findByName(paymentAccountName);
+        PersonalAccount account = accountManager.findByName(paymentAccountName);
         this.processCharge(account);
     }
 
@@ -131,8 +130,7 @@ public class PaymentChargesProcessorService {
                     accountHelper.switchAccountResources(account, false);
                     this.sendDisableAccMail(account);
                 } else if (account.getCreditActivationDate() == null) {
-                    account.setCreditActivationDate(LocalDateTime.now());
-                    personalAccountRepository.save(account);
+                    accountManager.setCreditActivationDate(account.getId(), LocalDateTime.now());
                 }
             }
 

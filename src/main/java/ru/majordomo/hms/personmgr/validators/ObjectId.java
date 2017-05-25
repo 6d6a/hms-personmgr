@@ -10,6 +10,7 @@ import javax.validation.Constraint;
 import javax.validation.Payload;
 
 import ru.majordomo.hms.personmgr.model.BaseModel;
+import ru.majordomo.hms.personmgr.validators.validator.ObjectIdValidator;
 
 @Documented
 @Constraint(validatedBy = ObjectIdValidator.class)

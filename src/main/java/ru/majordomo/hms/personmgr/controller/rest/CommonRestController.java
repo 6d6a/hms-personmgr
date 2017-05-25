@@ -12,12 +12,19 @@ import java.util.Set;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 
 public class CommonRestController {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+    protected PersonalAccountManager accountManager;
     protected ApplicationEventPublisher publisher;
+
+    @Autowired
+    public void setAccountManager(PersonalAccountManager accountManager) {
+        this.accountManager = accountManager;
+    }
 
     @Autowired
     public void setPublisher(ApplicationEventPublisher publisher) {

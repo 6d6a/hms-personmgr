@@ -48,7 +48,7 @@ public class WebSiteAmqpController extends CommonAmqpController  {
             State state = businessFlowDirector.processMessage(message);
 
             if (state == State.PROCESSED && message.getAccountId() != null) {
-                PersonalAccount account = accountRepository.findOne(message.getAccountId());
+                PersonalAccount account = accountManager.findOne(message.getAccountId());
 
                 SimpleServiceMessage mailMessage = new SimpleServiceMessage();
                 mailMessage.setAccountId(account.getId());

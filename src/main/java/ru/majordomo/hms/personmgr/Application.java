@@ -32,10 +32,10 @@ import ru.majordomo.hms.personmgr.service.importing.DBImportService;
 public class Application implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
-    private final DBImportService dbImportService;
+    private DBImportService dbImportService;
 
-    @Autowired
-    public Application(DBImportService dbImportService) {
+    @Autowired(required = false)
+    public void setDbImportService(DBImportService dbImportService) {
         this.dbImportService = dbImportService;
     }
 
@@ -44,38 +44,42 @@ public class Application implements CommandLineRunner {
     }
 
     public void run(String... args) {
-        String dbSeedOption = "--db_seed";
-        String dbImportOption = "--db_import";
-        String dbImportOneAccountOption = "--db_import_one_account";
-        String processOption = "--process";
-        StringBuilder sb = new StringBuilder();
-        for (String option : args) {
-            sb.append(" ").append(option);
+        if (dbImportService != null) {
+            String dbSeedOption = "--db_seed";
+            String dbImportOption = "--db_import";
+            String dbImportOneAccountOption = "--db_import_one_account";
+            String processOption = "--process";
+            StringBuilder sb = new StringBuilder();
+            for (String option : args) {
+                sb.append(" ").append(option);
 
-            if (option.equals(dbSeedOption)) {
-                boolean seeded;
+                if (option.equals(dbSeedOption)) {
+                    boolean seeded;
 
-                seeded = dbImportService.seedDB();
-                sb.append(" ").append(seeded ? "dbImportService db_seeded" : "dbImportService db_not_seeded");
-            } else if (option.equals(dbImportOption)) {
-                boolean imported;
+                    seeded = dbImportService.seedDB();
+                    sb.append(" ").append(seeded ? "dbImportService db_seeded" : "dbImportService db_not_seeded");
+                } else if (option.equals(dbImportOption)) {
+                    boolean imported;
 
-                imported = dbImportService.importToMongo();
-                sb.append(" ").append(imported ? "dbImportService db_imported" : "dbImportService db_not_imported");
-            } else if (option.equals(dbImportOneAccountOption)) {
-                boolean imported;
+                    imported = dbImportService.importToMongo();
+                    sb.append(" ").append(imported ? "dbImportService db_imported" : "dbImportService db_not_imported");
+                } else if (option.equals(dbImportOneAccountOption)) {
+                    boolean imported;
 
-                imported = dbImportService.importToMongo("100800");
-                sb.append(" ").append(imported ? "dbImportService db_imported" : "dbImportService db_not_imported");
-            } else if (option.equals(processOption)) {
-//                PersonalAccount account = personalAccountRepository.findByAccountId("100800");
-//                domainService.processDomainsAutoRenewByAccount(account);
-//                paymentChargesProcessorService.processCharges("ac_100800");
-//                monthlyBillService.processMonthlyBill("ac_179219", LocalDate.of(2016, 11, 17));
+                    imported = dbImportService.importToMongo("100800");
+                    sb.append(" ").append(imported ? "dbImportService db_imported" : "dbImportService db_not_imported");
+                } else if (option.equals(processOption)) {
+                    //                PersonalAccount account = personalAccountRepository.findByAccountId("100800");
+                    //                domainService.processDomainsAutoRenewByAccount(account);
+                    //                paymentChargesProcessorService.processCharges("ac_100800");
+                    //                monthlyBillService.processMonthlyBill("ac_179219", LocalDate.of(2016, 11, 17));
+                }
             }
+            sb = sb.length() == 0 ? sb.append("No Options Specified") : sb;
+            logger.info(String.format("Launched personal manager with following options: %s", sb.toString()));
+        } else {
+            logger.info("Launched personal manager without dbImportService Autowired");
         }
-        sb = sb.length() == 0 ? sb.append("No Options Specified") : sb;
-        logger.info(String.format("Launched personal manager with following options: %s", sb.toString()));
     }
 
     @Bean

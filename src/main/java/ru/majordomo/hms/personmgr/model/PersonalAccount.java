@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.annotation.Transient;
@@ -32,25 +33,22 @@ import ru.majordomo.hms.personmgr.validators.ObjectId;
 import static ru.majordomo.hms.personmgr.common.AccountSetting.*;
 import static ru.majordomo.hms.personmgr.common.Constants.DEFAULT_NOTIFY_DAYS;
 
-/**
- * PaymentAccount
- */
 @Document
-public class PersonalAccount extends BaseModel {
-    @NotNull
+public class PersonalAccount extends VersionedModel {
+    @NotBlank
     @Indexed(unique = true)
     private String accountId;
 
-    @NotNull
+    @NotBlank
     @Indexed
     private String clientId;
 
-    @NotNull
+    @NotBlank
     @Indexed
     @ObjectId(Plan.class)
     private String planId;
 
-    @NotNull
+    @NotBlank
     @Indexed(unique = true)
     private String name;
 
@@ -118,7 +116,17 @@ public class PersonalAccount extends BaseModel {
         this.deactivated = deactivated;
     }
 
-    public PersonalAccount(String accountId, String clientId, String planId, String name, AccountType accountType, List<AccountDiscount> discounts, boolean active, LocalDateTime created, LocalDateTime deactivated) {
+    public PersonalAccount(
+            String accountId,
+            String clientId,
+            String planId,
+            String name,
+            AccountType accountType,
+            List<AccountDiscount> discounts,
+            boolean active,
+            LocalDateTime created,
+            LocalDateTime deactivated
+    ) {
         super();
         this.accountId = accountId;
         this.clientId = clientId;
@@ -223,7 +231,7 @@ public class PersonalAccount extends BaseModel {
         this.settings.put(name, setting);
     }
 
-    public void getSetting(String name) {
+    public void getSetting(AccountSetting name) {
         this.settings.get(name);
     }
 

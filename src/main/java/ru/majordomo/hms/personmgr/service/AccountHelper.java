@@ -20,12 +20,12 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -42,7 +42,7 @@ public class AccountHelper {
     private final SiFeignClient siFeignClient;
     private final AccountPromotionRepository accountPromotionRepository;
     private final BusinessActionBuilder businessActionBuilder;
-    private final PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
 
     @Autowired
@@ -52,7 +52,7 @@ public class AccountHelper {
             SiFeignClient siFeignClient,
             AccountPromotionRepository accountPromotionRepository,
             BusinessActionBuilder businessActionBuilder,
-            PersonalAccountRepository personalAccountRepository,
+            PersonalAccountManager accountManager,
             ApplicationEventPublisher publisher
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
@@ -60,7 +60,7 @@ public class AccountHelper {
         this.siFeignClient = siFeignClient;
         this.accountPromotionRepository = accountPromotionRepository;
         this.businessActionBuilder = businessActionBuilder;
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
         this.publisher = publisher;
     }
 
@@ -308,9 +308,6 @@ public class AccountHelper {
     }
 
     public void switchAccountResources(PersonalAccount account, Boolean state) {
-
-        account.setActive(state);
-
         //Save history
         Map<String, String> paramsHistory = new HashMap<>();
         paramsHistory.put(HISTORY_MESSAGE_KEY, "Аккаунт " + (state ? "включен" : "выключен"));
@@ -318,14 +315,7 @@ public class AccountHelper {
 
         publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
 
-        if (!state) {
-            if (account.getDeactivated() == null) {
-                account.setDeactivated(LocalDateTime.now());
-            }
-        } else {
-            account.setDeactivated(null);
-        }
-        personalAccountRepository.save(account);
+        accountManager.setActive(account.getId(), state);
 
         try {
 

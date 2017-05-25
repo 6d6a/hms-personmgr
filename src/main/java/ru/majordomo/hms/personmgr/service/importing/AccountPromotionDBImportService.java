@@ -9,21 +9,16 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
-import ru.majordomo.hms.personmgr.common.PromocodeType;
+
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 
@@ -33,7 +28,7 @@ public class AccountPromotionDBImportService {
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     private final AccountHelper accountHelper;
     private final PromotionRepository promotionRepository;
-    private final PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountManager accountManager;
     private final AccountPromotionRepository accountPromotionRepository;
 
     private final static Logger logger = LoggerFactory.getLogger(PlanDBImportService.class);
@@ -43,13 +38,13 @@ public class AccountPromotionDBImportService {
             @Qualifier("namedParameterJdbcTemplate") NamedParameterJdbcTemplate namedParameterJdbcTemplate,
             AccountHelper accountHelper,
             PromotionRepository promotionRepository,
-            PersonalAccountRepository personalAccountRepository,
+            PersonalAccountManager accountManager,
             AccountPromotionRepository accountPromotionRepository
     ) {
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
         this.accountHelper = accountHelper;
         this.promotionRepository = promotionRepository;
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
         this.accountPromotionRepository = accountPromotionRepository;
     }
 
@@ -89,7 +84,7 @@ public class AccountPromotionDBImportService {
                         // Промокод найден
                         if (count_free_domain != null && count_free_domain == 1) {
                             Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
-                            PersonalAccount account = personalAccountRepository.findByAccountId(resultSet.getString("id"));
+                            PersonalAccount account = accountManager.findByAccountId(resultSet.getString("id"));
                             accountHelper.giveGift(account, promotion);
                         }
                     } catch (EmptyResultDataAccessException e) {
@@ -116,7 +111,7 @@ public class AccountPromotionDBImportService {
 
                                 if ((billing_balance >= 3 * billing_plan_cost) || (billing_count_abonement > 0)) {
                                     Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
-                                    PersonalAccount account = personalAccountRepository.findByAccountId(resultSet.getString("id"));
+                                    PersonalAccount account = accountManager.findByAccountId(resultSet.getString("id"));
                                     if (account != null) {
                                         accountHelper.giveGift(account, promotion);
                                     } else {

@@ -25,7 +25,6 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
@@ -38,12 +37,12 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 public class SslCertificateResourceRestController extends CommonResourceRestController {
 
     private final PlanRepository planRepository;
-    private final PersonalAccountRepository personalAccountRepository;
 
     @Autowired
-    public SslCertificateResourceRestController(PlanRepository planRepository, PersonalAccountRepository personalAccountRepository) {
+    public SslCertificateResourceRestController(
+            PlanRepository planRepository
+    ) {
         this.planRepository = planRepository;
-        this.personalAccountRepository = personalAccountRepository;
     }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
@@ -57,11 +56,13 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
 
         logger.debug("Creating sslcertificate " + message.toString());
 
-        if (!personalAccountRepository.findOne(accountId).isActive()) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Заказ SSL-сертификата невозможен.");
         }
 
-        Plan plan = planRepository.findOne(personalAccountRepository.findOne(accountId).getPlanId());
+        Plan plan = planRepository.findOne(account.getPlanId());
 
         if (!plan.isSslCertificateAllowed()) {
             throw new ParameterValidationException("На вашем тарифном плане заказ SSL сертификатов недоступен");

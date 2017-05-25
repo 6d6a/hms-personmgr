@@ -12,22 +12,22 @@ import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 @Component
 public class AbonementsScheduler {
     private final static Logger logger = LoggerFactory.getLogger(AbonementsScheduler.class);
 
-    private final PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
 
     @Autowired
     public AbonementsScheduler(
-            PersonalAccountRepository personalAccountRepository,
+            PersonalAccountManager accountManager,
             ApplicationEventPublisher publisher
     ) {
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
         this.publisher = publisher;
     }
 
@@ -36,7 +36,7 @@ public class AbonementsScheduler {
     @SchedulerLock(name = "processExpiringAbonements")
     public void processExpiringAbonements() {
         logger.debug("Started processExpiringAbonements");
-        try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findAllStream()) {
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessExpiringAbonementsEvent(account)));
         }
         logger.debug("Ended processExpiringAbonements");
@@ -47,7 +47,7 @@ public class AbonementsScheduler {
     @SchedulerLock(name = "processAbonementAutoRenew")
     public void processAbonementsAutoRenew() {
         logger.debug("Started processAbonementsAutoRenew");
-        try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findAllStream()) {
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessAbonementsAutoRenewEvent(account)));
         }
         logger.debug("Ended processAbonementsAutoRenew");
