@@ -188,11 +188,13 @@ public class PlanChangeService {
             }
             processAbonementOnlyPlans(account, currentPlan, newPlan);
 
-            //Произведем нужные действия со всеми услугами
-            processServices(account, currentPlan, newPlan);
-
             //Укажем новый тариф
             account.setPlanId(newPlan.getId());
+
+            accountHelper.updateUnixAccountQuota(account, planLimitsService.getQuotaKBFreeLimit(newPlan));
+
+            //Произведем нужные действия со всеми услугами
+            processServices(account, currentPlan, newPlan);
 
             if (newPlan.isAbonementOnly()) {
                 if (account.isCredit()) {
@@ -221,8 +223,6 @@ public class PlanChangeService {
             }
 
             personalAccountRepository.save(account);
-
-            accountHelper.updateUnixAccountQuota(account, planLimitsService.getQuotaKBFreeLimit(newPlan));
 
             if (isFromRegularToBusiness(currentPlan, newPlan)) {
                 publisher.publishEvent(new AccountNotifySupportOnChangePlanEvent(account));
