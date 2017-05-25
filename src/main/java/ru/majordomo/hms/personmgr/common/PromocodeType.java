@@ -5,5 +5,6 @@ package ru.majordomo.hms.personmgr.common;
  */
 public enum PromocodeType {
     PARTNER,
-    BONUS
+    BONUS,
+    GOOGLE,
 }

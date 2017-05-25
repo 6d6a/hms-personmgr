@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.FeignConfig;
@@ -14,6 +16,9 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 public interface FinFeignClient {
     @RequestMapping(method = RequestMethod.POST, value = "/payment_integration/add_payment", consumes = "application/json")
     String addPayment(Map<String, Object> payment);
+
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/payment_operations/overall-payment-amount", consumes = "application/json")
+    BigDecimal getOverallPaymentAmount(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/payment_operations/charge", consumes = "application/json")
     SimpleServiceMessage charge(@PathVariable("accountId") String accountId, Map<String, Object> paymentOperation);

@@ -158,6 +158,8 @@ public class PromocodeProcessor {
                 processBonusPromocodeActions(account, accountPromocode);
 
                 break;
+            case GOOGLE:
+                break;
         }
     }
 
