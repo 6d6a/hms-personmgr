@@ -98,7 +98,7 @@ public class AccountAmqpController extends CommonAmqpController {
                             if (account != null) {
 
                                 //Пробный период 14 дней - начисляем бонусный абонемент
-                                AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountIdAndPreordered(account.getId(), false);
+                                AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
                                 if (accountAbonement == null) {
                                     abonementService.addFree14DaysAbonement(account);
                                 }

@@ -95,6 +95,8 @@ public class DomainResourceRestController extends CommonResourceRestController {
         boolean isDiscountedDomain = false;
 
         String domainName = (String) message.getParam("name");
+        domainName = domainName.toLowerCase();
+        message.addParam("name", domainName);
 
         if (blackListService.domainExistsInControlBlackList(domainName)) {
             logger.debug("domain: " + domainName + " exists in control BlackList");
