@@ -277,7 +277,7 @@ public class PersonalAccountRestController extends CommonRestController {
                 account = accountManager.findByAccountId(accountId);
             }
         } else {
-            Domain domain = null;
+            Domain domain;
 
             try {
                 domain = rcUserFeignClient.findDomain(accountId);

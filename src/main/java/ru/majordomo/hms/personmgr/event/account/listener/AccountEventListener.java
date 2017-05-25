@@ -197,7 +197,7 @@ public class AccountEventListener {
         message.addParam("priority", 1);
 
         HashMap<String, String> parameters = new HashMap<>();
-        parameters.put("client_id", message.getAccountId());;
+        parameters.put("client_id", message.getAccountId());
 
         message.addParam("parametrs", parameters);
 

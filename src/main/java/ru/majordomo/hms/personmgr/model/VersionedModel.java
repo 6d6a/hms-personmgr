@@ -6,7 +6,7 @@ public class VersionedModel extends BaseModel {
     @Version
     private Long version;
 
-    public VersionedModel() {
+    VersionedModel() {
         super();
     }
 

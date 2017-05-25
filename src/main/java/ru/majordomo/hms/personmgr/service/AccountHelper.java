@@ -218,7 +218,7 @@ public class AccountHelper {
         paymentOperation.put("amount", amount);
         paymentOperation.put("forceCharge", forceCharge);
 
-        SimpleServiceMessage response = null;
+        SimpleServiceMessage response;
 
         try {
             response = finFeignClient.charge(account.getId(), paymentOperation);
@@ -243,7 +243,7 @@ public class AccountHelper {
         paymentOperation.put("serviceId", service.getId());
         paymentOperation.put("amount", service.getCost());
 
-        SimpleServiceMessage response = null;
+        SimpleServiceMessage response;
         try {
             response = finFeignClient.block(account.getId(), paymentOperation);
         } catch (Exception e) {
@@ -455,7 +455,7 @@ public class AccountHelper {
                 SimpleServiceMessage message = new SimpleServiceMessage();
                 message.setParams(new HashMap<>());
                 message.setAccountId(account.getId());
-                message.addParam("resourceId", unixAccount.getId());;
+                message.addParam("resourceId", unixAccount.getId());
                 message.addParam("switchedOn", state);
 
                 businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
@@ -484,7 +484,7 @@ public class AccountHelper {
                 SimpleServiceMessage message = new SimpleServiceMessage();
                 message.setParams(new HashMap<>());
                 message.setAccountId(account.getId());
-                message.addParam("resourceId", unixAccount.getId());;
+                message.addParam("resourceId", unixAccount.getId());
                 message.addParam("writable", state);
 
                 businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);

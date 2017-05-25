@@ -78,7 +78,7 @@ public class AccountPromotionDBImportService {
                 if (count == 0) {
                     // Проверка на наличие промокода с free_domain
                     String sql2 = "SELECT free_domain FROM promocodes_mj WHERE acc_id_used = :account";
-                    Integer count_free_domain = null;
+                    Integer count_free_domain;
                     try {
                         count_free_domain = namedParameterJdbcTemplate.queryForObject(sql2, parameters, Integer.class);
                         // Промокод найден

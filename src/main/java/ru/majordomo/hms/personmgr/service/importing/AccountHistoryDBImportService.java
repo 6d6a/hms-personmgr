@@ -91,7 +91,12 @@ public class AccountHistoryDBImportService {
         try {
             accountHistoryRepository.save(accountHistoryList);
         } catch (ConstraintViolationException e) {
-            logger.debug(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
+            logger.debug(e.getMessage() + " with errors: "
+                    + e.getConstraintViolations()
+                    .stream()
+                    .map(ConstraintViolation::getMessage)
+                    .collect(Collectors.joining())
+            );
         }
     }
 }

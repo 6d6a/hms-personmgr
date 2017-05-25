@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -18,7 +17,6 @@ import org.springframework.validation.beanvalidation.MethodValidationPostProcess
 
 import ru.majordomo.hms.personmgr.serializer.PageSerializer;
 
-//@SpringBootApplication
 @Configuration
 public class AppConfigTest {
     @Profile("mongo_validation")

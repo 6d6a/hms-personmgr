@@ -106,7 +106,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
             List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountId(account.getId());
             for (AccountPromotion accountPromotion : accountPromotions) {
                 Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-                if (map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) != null && map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) == true) {
+                if (map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) != null && map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID)) {
 
                     PromocodeAction promocodeAction = promocodeActionRepository.findOne(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
                     List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
@@ -127,7 +127,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
             for (AccountPromotion accountPromotion : accountPromotions) {
                 Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-                if (map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) != null && map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) == true) {
+                if (map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) != null && map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID)) {
                     PromocodeAction promocodeAction = promocodeActionRepository.findOne(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
                     List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
 

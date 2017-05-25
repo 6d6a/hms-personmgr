@@ -113,7 +113,7 @@ public class PersonalAccountDBImportService {
     }
 
     public boolean importToMongo(String accountId) {
-        PersonalAccount account = null;
+        PersonalAccount account;
         try {
             account = accountManager.findByAccountId(accountId);
 

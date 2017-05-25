@@ -285,17 +285,17 @@ public class PlanChangeService {
     /**
      * Сохраним в статистику об изменении тарифного плана
      * @param account   Аккаунт
-     * @param currentPlan
+     * @param oldPlanId ID старого тарифа
      * @param newPlanId ID нового тарифа
      */
-    private void saveStat(PersonalAccount account, String currentPlan, String newPlanId) {
+    private void saveStat(PersonalAccount account, String oldPlanId, String newPlanId) {
         AccountStat accountStat = new AccountStat();
         accountStat.setPersonalAccountId(account.getId());
         accountStat.setCreated(LocalDateTime.now());
         accountStat.setType(AccountStatType.VIRTUAL_HOSTING_PLAN_CHANGE);
 
         Map<String, String> data = new HashMap<>();
-        data.put("oldPlanId", currentPlan);
+        data.put("oldPlanId", oldPlanId);
         data.put("newPlanId", newPlanId);
 
         accountStat.setData(data);

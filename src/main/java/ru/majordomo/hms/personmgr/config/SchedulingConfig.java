@@ -12,7 +12,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Configuration
 @EnableScheduling
 public class SchedulingConfig {
-    @Autowired MongoConfig mongoConfig;
+    private final MongoConfig mongoConfig;
+
+    @Autowired
+    public SchedulingConfig(MongoConfig mongoConfig) {
+        this.mongoConfig = mongoConfig;
+    }
 
     @Bean
     public LockProvider lockProvider() throws Exception {
