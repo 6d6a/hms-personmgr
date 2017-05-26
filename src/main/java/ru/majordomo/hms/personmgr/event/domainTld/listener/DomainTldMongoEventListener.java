@@ -41,6 +41,8 @@ public class DomainTldMongoEventListener extends AbstractMongoEventListener<Doma
             e.printStackTrace();
         }
 
+        // Заплатка для акциий
+        // TODO включение\выключений акций через биллинг?
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         LocalDateTime startDate = LocalDateTime.parse(ACTION_DOMAIN_START_DATE, formatter);
         LocalDateTime endDate = LocalDateTime.parse(ACTION_DOMAIN_END_DATE, formatter);
