@@ -193,4 +193,18 @@ public class Constants {
         //СМС-уведомления
         OPTIONALLY_FREE_SERVICE_IDS.add(18);
     }
+
+    public static final String[] ACTION_DOMAINS = new String[] {
+            "spb.ru",
+            "spb.su",
+            "nov.ru",
+            "nov.su",
+            "msk.ru",
+            "msk.su",
+            "ru.net",
+            "com.ru"
+    };
+
+    public static final String ACTION_DOMAIN_START_DATE = "2017-05-25 00:00:00";
+    public static final String ACTION_DOMAIN_END_DATE = "2017-05-29 23:59:59";
 }
