@@ -15,22 +15,29 @@ import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
+import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.PromocodeType.GOOGLE;
 
 @Service
 public class AccountHelper {
@@ -44,6 +51,8 @@ public class AccountHelper {
     private final BusinessActionBuilder businessActionBuilder;
     private final PersonalAccountRepository personalAccountRepository;
     private final ApplicationEventPublisher publisher;
+    private final AccountPromocodeRepository accountPromocodeRepository;
+    private final PromocodeRepository promocodeRepository;
 
     @Autowired
     public AccountHelper(
@@ -53,7 +62,9 @@ public class AccountHelper {
             AccountPromotionRepository accountPromotionRepository,
             BusinessActionBuilder businessActionBuilder,
             PersonalAccountRepository personalAccountRepository,
-            ApplicationEventPublisher publisher
+            ApplicationEventPublisher publisher,
+            AccountPromocodeRepository accountPromocodeRepository,
+            PromocodeRepository promocodeRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -62,6 +73,8 @@ public class AccountHelper {
         this.businessActionBuilder = businessActionBuilder;
         this.personalAccountRepository = personalAccountRepository;
         this.publisher = publisher;
+        this.accountPromocodeRepository = accountPromocodeRepository;
+        this.promocodeRepository = promocodeRepository;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -304,6 +317,67 @@ public class AccountHelper {
             params.put(OPERATOR_KEY, "service");
 
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+        }
+    }
+
+    public String getGooglePromocode(PersonalAccount account) {
+
+        List<AccountPromocode> accountPromocodes = accountPromocodeRepository.findByPersonalAccountId(account.getId());
+
+        AccountPromocode googleAccountPromocode;
+
+        for (AccountPromocode accountPromocode : accountPromocodes) {
+            if (accountPromocode.getPromocode().getType().equals(GOOGLE)) {
+                googleAccountPromocode = accountPromocode;
+                return googleAccountPromocode.getPromocode().getCode();
+            }
+        }
+
+        return null;
+    }
+
+    public Boolean isGooglePromocodeAllowed(PersonalAccount account) {
+
+        if (this.getGooglePromocode(account) != null) {
+            return false;
+        } else {
+            try {
+                BigDecimal overallPaymentAmount = finFeignClient.getOverallPaymentAmount(account.getId());
+                return overallPaymentAmount.compareTo(BigDecimal.valueOf(500L)) >= 0;
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new ParameterValidationException("Ошибка при получении промокода");
+            }
+        }
+    }
+
+    public String giveGooglePromocode(PersonalAccount account) {
+
+        if (this.isGooglePromocodeAllowed(account)) {
+
+            Promocode promocode = promocodeRepository.findByTypeAndActive(GOOGLE.toString(), true);
+
+            if (promocode != null) {
+
+                promocode.setActive(false);
+
+                AccountPromocode accountPromocode = new AccountPromocode();
+                accountPromocode.setOwnedByAccount(true);
+                accountPromocode.setPersonalAccountId(account.getId());
+                accountPromocode.setOwnerPersonalAccountId(account.getId());
+                accountPromocode.setPromocodeId(promocode.getId());
+                accountPromocode.setPromocode(promocode);
+
+                promocodeRepository.save(promocode);
+                accountPromocodeRepository.save(accountPromocode);
+
+                return promocode.getCode();
+            } else {
+                throw new ParameterValidationException("Ошибка при получнеии промокода Google");
+            }
+
+        } else {
+            throw new ParameterValidationException("Ошибка при получнеии промокода Google");
         }
     }
 

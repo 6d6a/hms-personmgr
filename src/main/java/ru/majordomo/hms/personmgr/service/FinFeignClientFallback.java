@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -35,6 +36,11 @@ public class FinFeignClientFallback implements FinFeignClient {
 
     @Override
     public SimpleServiceMessage chargeBlocked(String accountId, String documentNumber) {
+        return null;
+    }
+
+    @Override
+    public BigDecimal getOverallPaymentAmount(String accountId)  {
         return null;
     }
 }
