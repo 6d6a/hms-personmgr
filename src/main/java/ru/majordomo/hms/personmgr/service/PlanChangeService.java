@@ -372,7 +372,7 @@ public class PlanChangeService {
      */
     private void checkBonusAbonements(PersonalAccount account) {
         AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
-        if (accountAbonement.getAbonement().isInternal()) {
+        if (accountAbonement != null && accountAbonement.getAbonement().isInternal()) {
             throw new ParameterValidationException("Для смены тарифного плана вам необходимо приобрести абонемент на " +
                     "текущий тарифный план сроком на 1 год или дождаться окончания бесплатного абонемента");
         }
