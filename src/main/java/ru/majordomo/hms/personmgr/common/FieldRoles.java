@@ -3,12 +3,7 @@ package ru.majordomo.hms.personmgr.common;
 import java.util.HashMap;
 import java.util.Map;
 
-import static ru.majordomo.hms.personmgr.common.SecurityConstants.MAILBOX_MAIL_SPOOL_EDIT;
-import static ru.majordomo.hms.personmgr.common.SecurityConstants.WEBSITE_DDOS_PROTECTION_EDIT;
-import static ru.majordomo.hms.personmgr.common.SecurityConstants.MAILBOX_MAIL_FROM_ALLOWED_EDIT;
-import static ru.majordomo.hms.personmgr.common.SecurityConstants.RESOURCE_SWITCHED_ON_EDIT;
-import static ru.majordomo.hms.personmgr.common.SecurityConstants.UNIX_ACCOUNT_SENDMAIL_ALLOWED_EDIT;
-import static ru.majordomo.hms.personmgr.common.SecurityConstants.RESOURCE_WRITABLE_EDIT;
+import static ru.majordomo.hms.personmgr.common.SecurityConstants.*;
 
 public class FieldRoles {
     public static final Map<String, String> RESOURCE_SWITCHED_ON = new HashMap<>();
@@ -29,6 +24,7 @@ public class FieldRoles {
         WEB_SITE_PATCH.putAll(RESOURCE_SWITCHED_ON);
 
         UNIX_ACCOUNT_PATCH.put("sendmailAllowed", UNIX_ACCOUNT_SENDMAIL_ALLOWED_EDIT);
+        UNIX_ACCOUNT_PATCH.put("quota", UNIX_ACCOUNT_QUOTA_EDIT);
         UNIX_ACCOUNT_PATCH.putAll(RESOURCE_SWITCHED_ON);
         UNIX_ACCOUNT_PATCH.putAll(RESOURCE_WRITABLE);
 

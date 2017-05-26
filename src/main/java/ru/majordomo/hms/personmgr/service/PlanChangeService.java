@@ -183,7 +183,7 @@ public class PlanChangeService {
             }
             processAbonementOnlyPlans(account, currentPlan, newPlan);
 
-            accountHelper.updateUnixAccountQuota(account, (planLimitsService.getQuotaKBFreeLimit(newPlan) * 1024));
+
 
             //Произведем нужные действия со всеми услугами
             processServices(account, currentPlan, newPlan);
