@@ -37,8 +37,7 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
-import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PARTNER_PERCENT;
-import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PARTNER_TYPE_ID;
+import static ru.majordomo.hms.personmgr.common.Utils.getBigDecimalFormUnexpectedInput;
 
 @Component
 public class AccountEventListener {
@@ -371,7 +370,7 @@ public class AccountEventListener {
 
         // Пополнение баланса партнера при поступлении средств клиенту, если этот клиент регистрировался по промокоду
 
-        BigDecimal amount = new BigDecimal((Integer) paramsForPublisher.get("amount"));
+        BigDecimal amount = getBigDecimalFormUnexpectedInput(paramsForPublisher.get("amount"));
         Plan plan = planRepository.findOne(account.getPlanId());
         // При открытии нового аккаунта виртуального хостинга по тарифным планам «Безлимитный», «Безлимитный+», «Бизнес», «Бизнес+»
         // мы бесплатно зарегистрируем на Вас 1 домен в зоне .ru или .рф при единовременной оплате за
