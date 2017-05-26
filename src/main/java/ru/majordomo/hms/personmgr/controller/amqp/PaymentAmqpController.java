@@ -53,8 +53,8 @@ public class PaymentAmqpController extends CommonAmqpController  {
         if (message.getParam("paymentTypeKind").equals(REAL_PAYMENT_TYPE_KIND)) {
 
             if (account != null) {
-                Map<String, Integer> paramsForPublisher = new HashMap<>();
-                paramsForPublisher.put("amount", (Integer) message.getParam("amount"));
+                Map<String, Object> paramsForPublisher = new HashMap<>();
+                paramsForPublisher.put("amount", message.getParam("amount"));
 
                 // P.S. У этого эвента делэй в 10 секунд
                 publisher.publishEvent(new AccountPromotionProcessByPaymentCreatedEvent(account, paramsForPublisher));

@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ChargeException;
@@ -38,6 +37,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.PromocodeType.GOOGLE;
+import static ru.majordomo.hms.personmgr.common.Utils.getBigDecimalFromUnexpectedInput;
 
 @Service
 public class AccountHelper {
@@ -119,13 +119,7 @@ public class AccountHelper {
         BigDecimal available;
 
         try {
-            if (balance.get("available") instanceof Integer) {
-                available = BigDecimal.valueOf((Integer) balance.get("available"));
-            } else if (balance.get("available") instanceof Double) {
-                available = BigDecimal.valueOf((Double) balance.get("available"));
-            } else {
-                available = (BigDecimal) balance.get("available");
-            }
+            available = getBigDecimalFromUnexpectedInput(balance.get("available"));
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.getBalance #2 " + e.getMessage());
