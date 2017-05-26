@@ -121,7 +121,7 @@ public class Utils {
         }
     }
 
-    public static BigDecimal getBigDecimalFormUnexpectedInput(Object input) {
+    public static BigDecimal getBigDecimalFromUnexpectedInput(Object input) {
 
         BigDecimal bigDecimal;
 
