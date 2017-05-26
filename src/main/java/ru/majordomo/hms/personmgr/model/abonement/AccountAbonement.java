@@ -12,8 +12,10 @@ import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.personmgr.validators.UniquePersonalAccountIdModel;
 
 @Document
+@UniquePersonalAccountIdModel(AccountAbonement.class)
 public class AccountAbonement extends VersionedModelBelongsToPersonalAccount {
     @NotNull
     @ObjectId(Abonement.class)

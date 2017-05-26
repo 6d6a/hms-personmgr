@@ -15,6 +15,7 @@ public interface PromocodeRepository extends MongoRepository<Promocode, String> 
     @Cacheable("promocodes")
     Promocode findByCode(@Param("code") String code);
     Promocode findByCodeAndActive(@Param("code") String code, @Param("active") boolean active);
+    Promocode findByTypeAndActive(@Param("type") String type, @Param("active") boolean active);
     List<Promocode> findAll();
     List<Promocode> findByType(@Param("type") PromocodeType type);
     List<Promocode> findByActive(@Param("active") boolean active);

@@ -363,6 +363,49 @@ public class PersonalAccountRestController extends CommonRestController {
         );
     }
 
+    @RequestMapping(value = "/{accountId}/google-adwords-promocode", method = RequestMethod.GET)
+    public ResponseEntity<Object> getGooglePromocode(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Map<String, Object> message = new HashMap<>();
+
+        String code = accountHelper.getGooglePromocode(account);
+        if (code != null) {
+            message.put("promocode", code);
+        } else {
+            message.put("promocode", null);
+            message.put("canGetPromocode", accountHelper.isGooglePromocodeAllowed(account));
+        }
+
+        return new ResponseEntity<>(
+                message,
+                HttpStatus.OK
+        );
+    }
+
+    @RequestMapping(value = "/{accountId}/google-adwords-promocode", method = RequestMethod.POST)
+    public ResponseEntity<Object> generateGooglePromocode(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Map<String, Object> message = new HashMap<>();
+
+        String code = accountHelper.getGooglePromocode(account);
+        if (code != null) {
+            message.put("promocode", code);
+        } else {
+            message.put("promocode", accountHelper.giveGooglePromocode(account));
+        }
+
+        return new ResponseEntity<>(
+                message,
+                HttpStatus.OK
+        );
+    }
+
     @RequestMapping(value = "/{accountId}/account/settings",
             method = RequestMethod.PATCH)
     public ResponseEntity<Object> setSettings(
