@@ -19,6 +19,10 @@ public class ModelBelongsToPersonalAccount extends BaseModel {
     @Transient
     private String personalAccountName;
 
+    public ModelBelongsToPersonalAccount() {
+        super();
+    }
+
     public String getPersonalAccountId() {
         return personalAccountId;
     }

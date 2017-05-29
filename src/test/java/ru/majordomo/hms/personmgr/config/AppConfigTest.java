@@ -18,6 +18,7 @@ import org.springframework.validation.beanvalidation.MethodValidationPostProcess
 import ru.majordomo.hms.personmgr.serializer.PageSerializer;
 
 @Configuration
+@Profile("test")
 public class AppConfigTest {
     @Profile("mongo_validation")
     @Bean

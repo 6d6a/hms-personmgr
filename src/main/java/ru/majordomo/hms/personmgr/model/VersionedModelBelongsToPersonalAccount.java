@@ -9,6 +9,10 @@ public class VersionedModelBelongsToPersonalAccount extends ModelBelongsToPerson
     @Version
     private Long version;
 
+    public VersionedModelBelongsToPersonalAccount() {
+        super();
+    }
+
     public Long getVersion() {
         return version;
     }

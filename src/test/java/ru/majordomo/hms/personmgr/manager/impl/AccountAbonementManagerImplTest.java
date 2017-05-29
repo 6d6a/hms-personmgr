@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import ru.majordomo.hms.personmgr.config.AppConfigTest;
 import ru.majordomo.hms.personmgr.config.MongoConfigTest;
@@ -28,6 +29,7 @@ import java.util.List;
                 AccountAbonementManagerImpl.class
         }
 )
+@ActiveProfiles("test")
 public class AccountAbonementManagerImplTest {
     @Autowired
     private AccountAbonementManager accountAbonementManager;

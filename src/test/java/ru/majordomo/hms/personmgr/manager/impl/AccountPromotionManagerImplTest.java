@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDateTime;
@@ -30,6 +31,7 @@ import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
                 AccountPromotionManagerImpl.class
         }
 )
+@ActiveProfiles("test")
 public class AccountPromotionManagerImplTest {
     @Autowired
     private AccountPromotionManager accountPromotionManager;
