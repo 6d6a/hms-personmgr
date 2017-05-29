@@ -392,7 +392,8 @@ public class PersonalAccountRestController extends CommonRestController {
 
     @RequestMapping(value = "/{accountId}/google-adwords-promocode", method = RequestMethod.POST)
     public ResponseEntity<Object> generateGooglePromocode(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountRepository.findOne(accountId);
 
@@ -402,7 +403,16 @@ public class PersonalAccountRestController extends CommonRestController {
         if (code != null) {
             message.put("promocode", code);
         } else {
-            message.put("promocode", accountHelper.giveGooglePromocode(account));
+            code = accountHelper.giveGooglePromocode(account);
+            message.put("promocode", code);
+
+            //Save history
+            String operator = request.getUserPrincipal().getName();
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Пользователю выдан промокод google adwords (" + code + ")");
+            params.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
         }
 
         return new ResponseEntity<>(
