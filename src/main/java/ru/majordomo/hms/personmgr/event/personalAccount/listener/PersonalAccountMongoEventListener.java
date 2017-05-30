@@ -34,28 +34,32 @@ public class PersonalAccountMongoEventListener extends AbstractMongoEventListene
 
         personalAccount.setServices(mongoOperations.find(new Query(where("personalAccountId").is(personalAccount.getId())), AccountService.class));
 
-        for (AccountDiscount accountDiscount : personalAccount.getDiscounts()) {
-            accountDiscount.setDiscount(mongoOperations.findById(accountDiscount.getDiscountId(), Discount.class, "discount"));
+        if (personalAccount.getDiscounts() != null) {
+            for (AccountDiscount accountDiscount : personalAccount.getDiscounts()) {
+                accountDiscount.setDiscount(mongoOperations.findById(accountDiscount.getDiscountId(), Discount.class, "discount"));
+            }
         }
 
         List<AccountService> accountServiceList = personalAccount.getServices();
 
-        for (AccountService accountService : personalAccount.getServices()) {
-            PaymentService service = mongoOperations.findById(accountService.getServiceId(), PaymentService.class);
-            accountService.setPaymentService(service);
+        if (personalAccount.getServices() != null && personalAccount.getDiscounts() != null) {
+            for (AccountService accountService : personalAccount.getServices()) {
+                PaymentService service = mongoOperations.findById(accountService.getServiceId(), PaymentService.class);
+                accountService.setPaymentService(service);
 
-            for (AccountDiscount accountDiscount : personalAccount.getDiscounts()) {
-                Discount discount = accountDiscount.getDiscount();
-                for (String serviceId : discount.getServiceIds()) {
-                    if (accountService.getServiceId().equals(serviceId)) {
-                        accountServiceList.remove(accountService);
-                        accountServiceList.add(new DiscountedService(service, discount));
+                for (AccountDiscount accountDiscount : personalAccount.getDiscounts()) {
+                    Discount discount = accountDiscount.getDiscount();
+                    for (String serviceId : discount.getServiceIds()) {
+                        if (accountService.getServiceId().equals(serviceId)) {
+                            accountServiceList.remove(accountService);
+                            accountServiceList.add(new DiscountedService(service, discount));
 
-                        break;
+                            break;
+                        }
                     }
                 }
             }
+            personalAccount.setServices(accountServiceList);
         }
-        personalAccount.setServices(accountServiceList);
     }
 }
