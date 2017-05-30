@@ -17,6 +17,7 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promocode.UnknownPromocode;
@@ -43,7 +44,7 @@ public class PromocodeProcessor {
     private final AbonementService abonementService;
     private final PlanRepository planRepository;
     private final AbonementRepository abonementRepository;
-    private final AccountPromotionRepository accountPromotionRepository;
+    private final AccountPromotionManager accountPromotionManager;
     private final PromotionRepository promotionRepository;
     private final AccountHelper accountHelper;
     private final UnknownPromocodeRepository unknownPromocodeRepository;
@@ -57,7 +58,7 @@ public class PromocodeProcessor {
             AbonementService abonementService,
             PlanRepository planRepository,
             AbonementRepository abonementRepository,
-            AccountPromotionRepository accountPromotionRepository,
+            AccountPromotionManager accountPromotionManager,
             PromotionRepository promotionRepository,
             AccountHelper accountHelper,
             UnknownPromocodeRepository unknownPromocodeRepository,
@@ -69,7 +70,7 @@ public class PromocodeProcessor {
         this.abonementService = abonementService;
         this.planRepository = planRepository;
         this.abonementRepository = abonementRepository;
-        this.accountPromotionRepository = accountPromotionRepository;
+        this.accountPromotionManager = accountPromotionManager;
         this.promotionRepository = promotionRepository;
         this.accountHelper = accountHelper;
         this.unknownPromocodeRepository = unknownPromocodeRepository;
@@ -287,7 +288,7 @@ public class PromocodeProcessor {
                 case SERVICE_FREE_DOMAIN:
                     logger.debug("Processing promocode SERVICE_FREE_DOMAIN codeAction: " + action.toString());
                     Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
-                    List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
+                    List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
                     if (accountPromotions == null || accountPromotions.isEmpty()) {
                         accountHelper.giveGift(account, promotion);
 

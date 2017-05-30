@@ -22,7 +22,6 @@ import ru.majordomo.hms.personmgr.service.PlanBuilder;
 
 @RestController
 public class PlanRestController extends CommonRestController {
-
     private final PlanRepository repository;
     private final PlanBuilder planBuilder;
 

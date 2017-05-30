@@ -16,17 +16,30 @@ import ru.majordomo.hms.personmgr.model.PersonalAccount;
 
 public interface PersonalAccountRepository extends MongoRepository<PersonalAccount, String> {
     PersonalAccount findOne(String id);
+
+    @Query(value="{'_id' : ?0}", fields="{active : 1, deactivated : 1}")
+    PersonalAccount findOneByIdIncludeIdAndActiveAndDeactivated(String id);
+
+    @Query(value="{'_id' : ?0}", fields="{_id : 1}")
+    PersonalAccount findOneByIdIncludeId(String id);
+
     List<PersonalAccount> findAll();
+
     PersonalAccount findByName(@Param("name") String name);
+
     PersonalAccount findByClientId(@Param("clientId") String clientId);
+
     PersonalAccount findByAccountId(@Param("accountId") String accountId);
+
     List<PersonalAccount> findByAccountType(@Param("accountType") AccountType accountType);
 
     @RestResource(path = "findListByActive", rel = "findListByActive")
     List<PersonalAccount> findByActive(@Param("active") boolean active);
     Page<PersonalAccount> findByActive(@Param("active") boolean active, Pageable pageable);
+
     @Query("{}")
     Stream<PersonalAccount> findAllStream();
+
     Stream<PersonalAccount> findByIdNotIn(@Param("ids") List<String> ids);
 
     @RestResource(path = "findListByAccountIdContaining", rel = "findListByAccountIdContaining")

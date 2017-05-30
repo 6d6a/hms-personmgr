@@ -9,14 +9,11 @@ import ru.majordomo.hms.personmgr.Application;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
-import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
-import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
-
-import java.util.Map;
 
 import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
@@ -28,7 +25,7 @@ public class BusinessFlowDirector {
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final BusinessActionProcessor businessActionProcessor;
     private final FinFeignClient finFeignClient;
-    private final AccountPromotionRepository accountPromotionRepository;
+    private final AccountPromotionManager accountPromotionManager;
 
     @Autowired
     public BusinessFlowDirector(
@@ -36,13 +33,13 @@ public class BusinessFlowDirector {
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
             BusinessActionProcessor businessActionProcessor,
             FinFeignClient finFeignClient,
-            AccountPromotionRepository accountPromotionRepository
+            AccountPromotionManager accountPromotionManager
     ) {
         this.processingBusinessActionRepository = processingBusinessActionRepository;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
         this.businessActionProcessor = businessActionProcessor;
         this.finFeignClient = finFeignClient;
-        this.accountPromotionRepository = accountPromotionRepository;
+        this.accountPromotionManager = accountPromotionManager;
     }
 
     public void processClean(ProcessingBusinessAction businessAction) {
@@ -116,11 +113,17 @@ public class BusinessFlowDirector {
 
             if (businessAction.getState() == State.ERROR) {
                 if (businessAction.getMessage().getParam("freeDomainPromotionId") != null) {
-                    this.reactivateAccountPromotionByIdAndActionType((String) businessAction.getMessage().getParam("freeDomainPromotionId"), BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
+                    accountPromotionManager.activateAccountPromotionByIdAndActionId(
+                            (String) businessAction.getMessage().getParam("freeDomainPromotionId"),
+                            BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID
+                    );
                 }
 
                 if (businessAction.getMessage().getParam("domainDiscountPromotionId") != null) {
-                    this.reactivateAccountPromotionByIdAndActionType((String) businessAction.getMessage().getParam("domainDiscountPromotionId"), DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
+                    accountPromotionManager.activateAccountPromotionByIdAndActionId(
+                            (String) businessAction.getMessage().getParam("domainDiscountPromotionId"),
+                            DOMAIN_DISCOUNT_RU_RF_ACTION_ID
+                    );
                 }
             }
 
@@ -128,16 +131,6 @@ public class BusinessFlowDirector {
         } else {
             logger.debug("ProcessingBusinessAction with id: " + message.getActionIdentity() + " not found");
             return State.ERROR;
-        }
-    }
-
-    private void reactivateAccountPromotionByIdAndActionType(String accountPromotionId, String actionId) {
-        AccountPromotion accountPromotion = accountPromotionRepository.findOne(accountPromotionId);
-        Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-        if (map.get(actionId) != null && map.get(actionId) == false) {
-            map.put(actionId, true);
-            accountPromotion.setActionsWithStatus(map);
-            accountPromotionRepository.save(accountPromotion);
         }
     }
 

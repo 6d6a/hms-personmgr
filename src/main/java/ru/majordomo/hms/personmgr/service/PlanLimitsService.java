@@ -5,23 +5,26 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.common.DBType;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanProperties;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 @Service
 public class PlanLimitsService {
 
-    private final PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountManager accountManager;
 
     private final PlanRepository planRepository;
 
     @Autowired
-    public PlanLimitsService(PersonalAccountRepository personalAccountRepository, PlanRepository planRepository) {
-        this.personalAccountRepository = personalAccountRepository;
+    public PlanLimitsService(
+            PersonalAccountManager accountManager,
+            PlanRepository planRepository
+    ) {
+        this.accountManager = accountManager;
         this.planRepository = planRepository;
     }
 
@@ -74,7 +77,7 @@ public class PlanLimitsService {
     }
 
     private PlanProperties getPlanProperties(String accountId) {
-        PersonalAccount personalAccount = personalAccountRepository.findOne(accountId);
+        PersonalAccount personalAccount = accountManager.findOne(accountId);
 
         if (personalAccount == null) {
             throw new ResourceNotFoundException("personalAccount not found");

@@ -38,7 +38,6 @@ import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.Token;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.PlanChangeService;
@@ -61,7 +60,6 @@ import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
 @RestController
 @Validated
 public class PersonalAccountRestController extends CommonRestController {
-    private final PersonalAccountRepository accountRepository;
     private final PlanRepository planRepository;
     private final PlanChangeService planChangeService;
     private final RcUserFeignClient rcUserFeignClient;
@@ -71,7 +69,6 @@ public class PersonalAccountRestController extends CommonRestController {
 
     @Autowired
     public PersonalAccountRestController(
-            PersonalAccountRepository accountRepository,
             PlanRepository planRepository,
             PlanChangeService planChangeService,
             RcUserFeignClient rcUserFeignClient,
@@ -79,7 +76,6 @@ public class PersonalAccountRestController extends CommonRestController {
             AccountHelper accountHelper,
             TokenHelper tokenHelper
     ) {
-        this.accountRepository = accountRepository;
         this.planRepository = planRepository;
         this.planChangeService = planChangeService;
         this.rcUserFeignClient = rcUserFeignClient;
@@ -91,7 +87,7 @@ public class PersonalAccountRestController extends CommonRestController {
     @RequestMapping(value = "/accounts",
                     method = RequestMethod.GET)
     public ResponseEntity<Page<PersonalAccount>> getAccounts(@RequestParam("accountId") String accountId, Pageable pageable) {
-        Page<PersonalAccount> accounts = accountRepository.findByAccountIdContaining(accountId, pageable);
+        Page<PersonalAccount> accounts = accountManager.findByAccountIdContaining(accountId, pageable);
 
         if (accounts == null || !accounts.hasContent()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -105,7 +101,7 @@ public class PersonalAccountRestController extends CommonRestController {
     public ResponseEntity<PersonalAccount> getAccount(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         return new ResponseEntity<>(account, HttpStatus.OK);
     }
@@ -115,7 +111,7 @@ public class PersonalAccountRestController extends CommonRestController {
     public ResponseEntity<Plan> getAccountPlan(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         Plan plan = planRepository.findOne(account.getPlanId());
 
@@ -133,7 +129,7 @@ public class PersonalAccountRestController extends CommonRestController {
             @PathVariable(value = "planId") String planId,
             @RequestBody PlanChangeAgreement planChangeAgreement
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         planChangeService.changePlan(account, planId, planChangeAgreement);
 
@@ -146,7 +142,7 @@ public class PersonalAccountRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "planId") String planId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         PlanChangeAgreement planChangeAgreement = planChangeService.changePlan(account, planId, null);
 
@@ -163,7 +159,7 @@ public class PersonalAccountRestController extends CommonRestController {
             @PathVariable(value = "accountId") String accountId,
             @RequestBody Map<String, String> owner
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         if (owner.get("personId") == null) {
             return new ResponseEntity(HttpStatus.BAD_REQUEST);
@@ -192,8 +188,7 @@ public class PersonalAccountRestController extends CommonRestController {
             if (currentPerson != null && (person.getLegalEntity() != null || currentPerson.getLegalEntity() != null)) {
                 return new ResponseEntity(HttpStatus.BAD_REQUEST);
             } else {
-                account.setOwnerPersonId(person.getId());
-                accountRepository.save(account);
+                accountManager.setOwnerPersonId(account.getId(), person.getId());
 
                 //Запишем инфу о произведенном изменении владельца в историю клиента
                 Map<String, String> params = new HashMap<>();
@@ -215,7 +210,7 @@ public class PersonalAccountRestController extends CommonRestController {
     public ResponseEntity<Person> getOwner(
             @PathVariable(value = "accountId") String accountId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         if (account.getOwnerPersonId() == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -239,7 +234,7 @@ public class PersonalAccountRestController extends CommonRestController {
             @RequestBody Map<String, Object> requestBody,
             HttpServletRequest request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         checkRequiredParams(requestBody, ACCOUNT_PASSWORD_CHANGE);
 
@@ -279,17 +274,17 @@ public class PersonalAccountRestController extends CommonRestController {
             accountId = m.group(2);
 
             if (accountId.length() > 0) {
-                account = accountRepository.findByAccountId(accountId);
+                account = accountManager.findByAccountId(accountId);
             }
         } else {
-            Domain domain = null;
+            Domain domain;
 
             try {
                 domain = rcUserFeignClient.findDomain(accountId);
 
                 if (domain != null) {
                     accountId = domain.getAccountId();
-                    account = accountRepository.findOne(accountId);
+                    account = accountManager.findOne(accountId);
                 } else {
                     return new ResponseEntity<>(createErrorResponse("Домен не найден."), HttpStatus.NOT_FOUND);
                 }
@@ -332,7 +327,7 @@ public class PersonalAccountRestController extends CommonRestController {
             );
         }
 
-        PersonalAccount account = accountRepository.findOne(token.getPersonalAccountId());
+        PersonalAccount account = accountManager.findOne(token.getPersonalAccountId());
 
         if (account == null) {
             return new ResponseEntity<>(
@@ -372,7 +367,7 @@ public class PersonalAccountRestController extends CommonRestController {
     public ResponseEntity<Object> getGooglePromocode(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         Map<String, Object> message = new HashMap<>();
 
@@ -395,7 +390,7 @@ public class PersonalAccountRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         Map<String, Object> message = new HashMap<>();
 
@@ -428,7 +423,7 @@ public class PersonalAccountRestController extends CommonRestController {
             @RequestBody Map<String, Object> requestBody,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         if (requestBody.get("credit") != null) {
             Boolean credit = (Boolean)requestBody.get("credit");
@@ -447,7 +442,7 @@ public class PersonalAccountRestController extends CommonRestController {
                     accountHelper.switchAccountResources(account, true);
                 }
             }
-            account.setCredit(credit);
+            accountManager.setCredit(accountId, credit);
 
             //Save history
             String operator = request.getUserPrincipal().getName();
@@ -460,7 +455,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         if (requestBody.get("addQuotaIfOverquoted") != null) {
             Boolean addQuotaIfOverquoted = (Boolean) requestBody.get("addQuotaIfOverquoted");
-            account.setAddQuotaIfOverquoted(addQuotaIfOverquoted);
+            accountManager.setAddQuotaIfOverquoted(accountId, addQuotaIfOverquoted);
 
             //Save history
             String operator = request.getUserPrincipal().getName();
@@ -473,7 +468,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         if (requestBody.get("autoBillSending") != null) {
             Boolean autoBillSending = (Boolean) requestBody.get("autoBillSending");
-            account.setAutoBillSending(autoBillSending);
+            accountManager.setAutoBillSending(accountId, autoBillSending);
 
             //Save history
             String operator = request.getUserPrincipal().getName();
@@ -486,7 +481,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         if (requestBody.get("notifyDays") != null) {
             Integer notifyDays = (Integer) requestBody.get("notifyDays");
-            account.setNotifyDays(notifyDays);
+            accountManager.setNotifyDays(accountId, notifyDays);
 
             //Save history
             String operator = request.getUserPrincipal().getName();
@@ -500,7 +495,7 @@ public class PersonalAccountRestController extends CommonRestController {
         if (requestBody.get("SMSPhoneNumber") != null) {
             String smsPhoneNumber = (String)requestBody.get("SMSPhoneNumber");
             if (Utils.isPhoneValid(smsPhoneNumber)) {
-                account.setSmsPhoneNumber(smsPhoneNumber);
+                accountManager.setSmsPhoneNumber(accountId, smsPhoneNumber);
 
                 //Save history
                 String operator = request.getUserPrincipal().getName();
@@ -513,8 +508,6 @@ public class PersonalAccountRestController extends CommonRestController {
                 throw new ParameterValidationException("SMSPhoneNumber is not valid.");
             }
         }
-
-        accountRepository.save(account);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

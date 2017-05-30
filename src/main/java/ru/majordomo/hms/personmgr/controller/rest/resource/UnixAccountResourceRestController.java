@@ -22,7 +22,6 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 import ru.majordomo.hms.rc.user.resources.UnixAccount;
@@ -35,13 +34,12 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.UNIX_ACCOUNT_PATCH;
 @RequestMapping("/{accountId}/unix-account")
 @Validated
 public class UnixAccountResourceRestController extends CommonResourceRestController {
-
-    private final PersonalAccountRepository accountRepository;
     private final RcUserFeignClient rcUserFeignClient;
 
     @Autowired
-    public UnixAccountResourceRestController(PersonalAccountRepository accountRepository, RcUserFeignClient rcUserFeignClient) {
-        this.accountRepository = accountRepository;
+    public UnixAccountResourceRestController(
+            RcUserFeignClient rcUserFeignClient
+    ) {
         this.rcUserFeignClient = rcUserFeignClient;
     }
 
@@ -56,7 +54,7 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
 
         Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
 
-        if (!accountRepository.findOne(accountId).isActive() && (unixAccounts != null && !unixAccounts.isEmpty())) {
+        if (!accountManager.findOne(accountId).isActive() && (unixAccounts != null && !unixAccounts.isEmpty())) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание Unix аккаунта невозможно.");
         }
 
@@ -88,7 +86,7 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
         message.setAccountId(accountId);
         message.addParam("resourceId", resourceId);
 
-        if (!accountRepository.findOne(accountId).isActive()) {
+        if (!accountManager.findOne(accountId).isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление Unix аккаунта невозможно.");
         }
 

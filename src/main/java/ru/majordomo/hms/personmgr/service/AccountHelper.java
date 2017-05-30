@@ -20,6 +20,8 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
@@ -28,8 +30,6 @@ import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
-import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
@@ -47,9 +47,9 @@ public class AccountHelper {
     private final RcUserFeignClient rcUserFeignClient;
     private final FinFeignClient finFeignClient;
     private final SiFeignClient siFeignClient;
-    private final AccountPromotionRepository accountPromotionRepository;
+    private final AccountPromotionManager accountPromotionManager;
     private final BusinessActionBuilder businessActionBuilder;
-    private final PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
     private final AccountPromocodeRepository accountPromocodeRepository;
     private final PromocodeRepository promocodeRepository;
@@ -59,9 +59,9 @@ public class AccountHelper {
             RcUserFeignClient rcUserFeignClient,
             FinFeignClient finFeignClient,
             SiFeignClient siFeignClient,
-            AccountPromotionRepository accountPromotionRepository,
+            AccountPromotionManager accountPromotionManager,
             BusinessActionBuilder businessActionBuilder,
-            PersonalAccountRepository personalAccountRepository,
+            PersonalAccountManager accountManager,
             ApplicationEventPublisher publisher,
             AccountPromocodeRepository accountPromocodeRepository,
             PromocodeRepository promocodeRepository
@@ -69,9 +69,9 @@ public class AccountHelper {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
         this.siFeignClient = siFeignClient;
-        this.accountPromotionRepository = accountPromotionRepository;
+        this.accountPromotionManager = accountPromotionManager;
         this.businessActionBuilder = businessActionBuilder;
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
         this.publisher = publisher;
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.promocodeRepository = promocodeRepository;
@@ -225,7 +225,7 @@ public class AccountHelper {
         paymentOperation.put("amount", amount);
         paymentOperation.put("forceCharge", forceCharge);
 
-        SimpleServiceMessage response = null;
+        SimpleServiceMessage response;
 
         try {
             response = finFeignClient.charge(account.getId(), paymentOperation);
@@ -250,7 +250,7 @@ public class AccountHelper {
         paymentOperation.put("serviceId", service.getId());
         paymentOperation.put("amount", service.getCost());
 
-        SimpleServiceMessage response = null;
+        SimpleServiceMessage response;
         try {
             response = finFeignClient.block(account.getId(), paymentOperation);
         } catch (Exception e) {
@@ -289,7 +289,7 @@ public class AccountHelper {
     }
 
     public void giveGift(PersonalAccount account, Promotion promotion) {
-        Long currentCount = accountPromotionRepository.countByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
+        Long currentCount = accountPromotionManager.countByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
         if (currentCount < promotion.getLimitPerAccount() || promotion.getLimitPerAccount() == -1) {
             AccountPromotion accountPromotion = new AccountPromotion();
             accountPromotion.setPersonalAccountId(account.getId());
@@ -303,7 +303,7 @@ public class AccountHelper {
             }
             accountPromotion.setActionsWithStatus(actionsWithStatus);
 
-            accountPromotionRepository.save(accountPromotion);
+            accountPromotionManager.insert(accountPromotion);
 
             //Save history
             Map<String, String> params = new HashMap<>();
@@ -376,9 +376,6 @@ public class AccountHelper {
     }
 
     public void switchAccountResources(PersonalAccount account, Boolean state) {
-
-        account.setActive(state);
-
         //Save history
         Map<String, String> paramsHistory = new HashMap<>();
         paramsHistory.put(HISTORY_MESSAGE_KEY, "Аккаунт " + (state ? "включен" : "выключен"));
@@ -386,14 +383,7 @@ public class AccountHelper {
 
         publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
 
-        if (!state) {
-            if (account.getDeactivated() == null) {
-                account.setDeactivated(LocalDateTime.now());
-            }
-        } else {
-            account.setDeactivated(null);
-        }
-        personalAccountRepository.save(account);
+        accountManager.setActive(account.getId(), state);
 
         try {
 
@@ -533,7 +523,7 @@ public class AccountHelper {
                 SimpleServiceMessage message = new SimpleServiceMessage();
                 message.setParams(new HashMap<>());
                 message.setAccountId(account.getId());
-                message.addParam("resourceId", unixAccount.getId());;
+                message.addParam("resourceId", unixAccount.getId());
                 message.addParam("switchedOn", state);
 
                 businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
@@ -562,7 +552,7 @@ public class AccountHelper {
                 SimpleServiceMessage message = new SimpleServiceMessage();
                 message.setParams(new HashMap<>());
                 message.setAccountId(account.getId());
-                message.addParam("resourceId", unixAccount.getId());;
+                message.addParam("resourceId", unixAccount.getId());
                 message.addParam("writable", state);
 
                 businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);

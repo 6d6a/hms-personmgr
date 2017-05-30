@@ -7,29 +7,30 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
+
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.AccountHistory;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountHistoryRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 @Service
 public class AccountHistoryService {
     private final static Logger logger = LoggerFactory.getLogger(AccountHistoryService.class);
 
     private final AccountHistoryRepository accountHistoryRepository;
-    private final PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountManager accountManager;
 
     @Autowired
     public AccountHistoryService(
             AccountHistoryRepository accountHistoryRepository,
-            PersonalAccountRepository personalAccountRepository
+            PersonalAccountManager accountManager
     ) {
         this.accountHistoryRepository = accountHistoryRepository;
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
     }
 
     public void addMessage(String accountId, String message, String operator, LocalDateTime dateTime) {
-        PersonalAccount account = personalAccountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         if (account != null) {
             AccountHistory accountHistory = new AccountHistory();

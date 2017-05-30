@@ -17,11 +17,11 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
-import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.service.*;
@@ -36,7 +36,7 @@ public class AccountAmqpController extends CommonAmqpController {
     private final PromocodeProcessor promocodeProcessor;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final AbonementService abonementService;
-    private final AccountAbonementRepository accountAbonementRepository;
+    private final AccountAbonementManager accountAbonementManager;
     private final PromotionRepository promotionRepository;
     private final AccountHelper accountHelper;
 
@@ -46,14 +46,14 @@ public class AccountAmqpController extends CommonAmqpController {
             PromocodeProcessor promocodeProcessor,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
             AbonementService abonementService,
-            AccountAbonementRepository accountAbonementRepository,
+            AccountAbonementManager accountAbonementManager,
             PromotionRepository promotionRepository,
             AccountHelper accountHelper) {
         this.businessActionBuilder = businessActionBuilder;
         this.promocodeProcessor = promocodeProcessor;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
         this.abonementService = abonementService;
-        this.accountAbonementRepository = accountAbonementRepository;
+        this.accountAbonementManager = accountAbonementManager;
         this.promotionRepository = promotionRepository;
         this.accountHelper = accountHelper;
     }
@@ -87,18 +87,18 @@ public class AccountAmqpController extends CommonAmqpController {
                         if (businessOperation != null) {
                             //надо обработать промокод
                             if (businessOperation.getParam("promocode") != null) {
-                                PersonalAccount account = accountRepository.findOne(message.getAccountId());
+                                PersonalAccount account = accountManager.findOne(message.getAccountId());
                                 if (account != null) {
                                     logger.debug("We got promocode " + businessOperation.getParam("promocode") + ". Try to process it");
                                     promocodeProcessor.processPromocode(account, (String) businessOperation.getParam("promocode"));
                                 }
                             }
 
-                            PersonalAccount account = accountRepository.findOne(message.getAccountId());
+                            PersonalAccount account = accountManager.findOne(message.getAccountId());
                             if (account != null) {
 
                                 //Пробный период 14 дней - начисляем бонусный абонемент
-                                AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
+                                AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
                                 if (accountAbonement == null) {
                                     abonementService.addFree14DaysAbonement(account);
                                 }

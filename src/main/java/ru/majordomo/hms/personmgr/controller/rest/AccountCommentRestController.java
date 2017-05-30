@@ -19,7 +19,6 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.model.AccountComment;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountCommentRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 @RestController
@@ -27,15 +26,12 @@ import ru.majordomo.hms.personmgr.validators.ObjectId;
 @Validated
 public class AccountCommentRestController extends CommonRestController {
 
-    private final PersonalAccountRepository accountRepository;
     private final AccountCommentRepository accountCommentRepository;
 
     @Autowired
     public AccountCommentRestController(
-            PersonalAccountRepository accountRepository,
             AccountCommentRepository accountCommentRepository
     ) {
-        this.accountRepository = accountRepository;
         this.accountCommentRepository = accountCommentRepository;
     }
 
@@ -45,7 +41,7 @@ public class AccountCommentRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountComment.class) @PathVariable(value = "accountCommentId") String accountCommentId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         AccountComment accountComment = accountCommentRepository.findByIdAndPersonalAccountId(accountCommentId, account.getId());
 
@@ -58,7 +54,7 @@ public class AccountCommentRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             Pageable pageable
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         Page<AccountComment> accountComments = accountCommentRepository.findByPersonalAccountId(account.getId(), pageable);
 
@@ -76,7 +72,7 @@ public class AccountCommentRestController extends CommonRestController {
             @RequestBody Map<String, String> requestBody,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
         if(account == null){
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -98,7 +94,7 @@ public class AccountCommentRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountComment.class) @PathVariable(value = "accountCommentId") String accountCommentId
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         AccountComment accountComment = accountCommentRepository.findByIdAndPersonalAccountId(accountCommentId, account.getId());
 

@@ -4,7 +4,8 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
-import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 import javax.validation.constraints.NotNull;
@@ -13,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Document
-public class AccountPromotion extends ModelBelongsToPersonalAccount {
+public class AccountPromotion extends VersionedModelBelongsToPersonalAccount {
     @NotNull
     @ObjectId(Promotion.class)
     private String promotionId;
@@ -24,7 +25,7 @@ public class AccountPromotion extends ModelBelongsToPersonalAccount {
     @CreatedDate
     private LocalDateTime created;
 
-    private Map<String, Boolean> actionsWithStatus = new HashMap<>();
+    private Map<@ObjectId(PromocodeAction.class) String, Boolean> actionsWithStatus = new HashMap<>();
 
     @PersistenceConstructor
     public AccountPromotion(String promotionId, LocalDateTime created) {

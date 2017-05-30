@@ -38,7 +38,7 @@ public class PaymentAmqpController extends CommonAmqpController  {
         String provider = headers.get("provider");
         logger.debug("Received payment create message from " + provider + ": " + message.toString());
 
-        PersonalAccount account = accountRepository.findOne(message.getAccountId());
+        PersonalAccount account = accountManager.findOne(message.getAccountId());
 
         if (!message.getParam("paymentTypeKind").equals(CREDIT_PAYMENT_TYPE_KIND)) {
 

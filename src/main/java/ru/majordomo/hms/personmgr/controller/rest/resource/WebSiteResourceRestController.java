@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,7 +20,6 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -32,14 +30,6 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.WEB_SITE_PATCH;
 @RequestMapping("/{accountId}/website")
 @Validated
 public class WebSiteResourceRestController extends CommonResourceRestController {
-
-    private final PersonalAccountRepository accountRepository;
-
-    @Autowired
-    public WebSiteResourceRestController(PersonalAccountRepository accountRepository) {
-        this.accountRepository = accountRepository;
-    }
-
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -51,7 +41,7 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
 
         logger.debug("Creating website: " + message.toString());
 
-        if (!accountRepository.findOne(accountId).isActive()) {
+        if (!accountManager.findOne(accountId).isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание сайта невозможно.");
         }
 
@@ -89,7 +79,7 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
 
         logger.debug("Updating website with id " + resourceId + " " + message.toString());
 
-        if (!accountRepository.findOne(accountId).isActive()) {
+        if (!accountManager.findOne(accountId).isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание сайта невозможно.");
         }
 

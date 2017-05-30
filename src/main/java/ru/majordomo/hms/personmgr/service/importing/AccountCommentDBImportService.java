@@ -18,10 +18,10 @@ import java.util.stream.Collectors;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.AccountComment;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountCommentRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 /**
  * Сервис для загрузки первичных данных в БД
@@ -31,7 +31,7 @@ public class AccountCommentDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountCommentDBImportService.class);
 
     private AccountCommentRepository accountCommentRepository;
-    private PersonalAccountRepository personalAccountRepository;
+    private PersonalAccountManager accountManager;
     private NamedParameterJdbcTemplate jdbcTemplate;
     private List<AccountComment> accountComments = new ArrayList<>();
 
@@ -39,11 +39,11 @@ public class AccountCommentDBImportService {
     public AccountCommentDBImportService(
             NamedParameterJdbcTemplate jdbcTemplate,
             AccountCommentRepository accountCommentRepository,
-            PersonalAccountRepository personalAccountRepository
+            PersonalAccountManager accountManager
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.accountCommentRepository = accountCommentRepository;
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
     }
 
     public void pull() {
@@ -70,7 +70,7 @@ public class AccountCommentDBImportService {
     private AccountComment rowMap(ResultSet rs, int rowNum) throws SQLException {
         AccountComment accountComment = new AccountComment();
 
-        PersonalAccount account = personalAccountRepository.findByAccountId(rs.getString("account_id"));
+        PersonalAccount account = accountManager.findByAccountId(rs.getString("account_id"));
 
         logger.debug("rs.getString(\"account_id\") " + rs.getString("account_id"));
 

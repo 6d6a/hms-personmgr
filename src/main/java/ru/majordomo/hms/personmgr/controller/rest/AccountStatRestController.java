@@ -9,7 +9,6 @@ import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,12 +18,12 @@ import java.util.List;
 public class AccountStatRestController extends CommonRestController {
 
     private final AccountStatRepository accountStatRepository;
-    private final PersonalAccountRepository personalAccountRepository;
 
     @Autowired
-    public AccountStatRestController(AccountStatRepository accountStatRepository, PersonalAccountRepository personalAccountRepository) {
+    public AccountStatRestController(
+            AccountStatRepository accountStatRepository
+    ) {
         this.accountStatRepository = accountStatRepository;
-        this.personalAccountRepository = personalAccountRepository;
     }
 
     @RequestMapping(value = "/{statId}", method = RequestMethod.GET)
@@ -32,7 +31,7 @@ public class AccountStatRestController extends CommonRestController {
             @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "statId") String statId
     ) {
-        PersonalAccount account = personalAccountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
         if(account == null){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
@@ -51,7 +50,7 @@ public class AccountStatRestController extends CommonRestController {
             @PathVariable(value = "accountId") String accountId,
             @RequestParam(value = "type", required = false) String type
     ) {
-        PersonalAccount account = personalAccountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
         if(account == null){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }

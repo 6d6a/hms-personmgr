@@ -13,9 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 @Service
@@ -23,14 +23,18 @@ public class PersonalAccountDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(PersonalAccountDBImportService.class);
 
     private JdbcTemplate jdbcTemplate;
-    private PersonalAccountRepository personalAccountRepository;
+    private PersonalAccountManager accountManager;
     private PlanRepository planRepository;
     private List<PersonalAccount> personalAccounts = new ArrayList<>();
 
     @Autowired
-    public PersonalAccountDBImportService(JdbcTemplate jdbcTemplate, PersonalAccountRepository personalAccountRepository, PlanRepository planRepository) {
+    public PersonalAccountDBImportService(
+            JdbcTemplate jdbcTemplate,
+            PersonalAccountManager accountManager,
+            PlanRepository planRepository
+    ) {
         this.jdbcTemplate = jdbcTemplate;
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
         this.planRepository = planRepository;
     }
 
@@ -102,19 +106,19 @@ public class PersonalAccountDBImportService {
     }
 
     public boolean importToMongo() {
-        personalAccountRepository.deleteAll();
+        accountManager.deleteAll();
         pull();
         pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
-        PersonalAccount account = null;
+        PersonalAccount account;
         try {
-            account = personalAccountRepository.findByAccountId(accountId);
+            account = accountManager.findByAccountId(accountId);
 
             if (account != null) {
-                personalAccountRepository.delete(account);
+                accountManager.delete(account);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -128,6 +132,6 @@ public class PersonalAccountDBImportService {
     private void pushToMongo() {
         logger.debug("pushToMongo personalAccounts");
 
-        personalAccountRepository.save(personalAccounts);
+        accountManager.save(personalAccounts);
     }
 }

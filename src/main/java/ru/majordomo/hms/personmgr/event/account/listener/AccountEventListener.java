@@ -21,6 +21,9 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
+import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.AccountStat;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -50,11 +53,11 @@ public class AccountEventListener {
     private final FinFeignClient finFeignClient;
     private final AccountStatRepository accountStatRepository;
     private final PlanRepository planRepository;
-    private final AccountPromotionRepository accountPromotionRepository;
+    private final AccountPromotionManager accountPromotionManager;
     private final PromotionRepository promotionRepository;
     private final AbonementService abonementService;
-    private final PersonalAccountRepository accountRepository;
-    private final AccountAbonementRepository accountAbonementRepository;
+    private final PersonalAccountManager accountManager;
+    private final AccountAbonementManager accountAbonementManager;
 
     @Autowired
     public AccountEventListener(
@@ -65,11 +68,11 @@ public class AccountEventListener {
             FinFeignClient finFeignClient,
             AccountStatRepository accountStatRepository,
             PlanRepository planRepository,
-            AccountPromotionRepository accountPromotionRepository,
+            AccountPromotionManager accountPromotionManager,
             PromotionRepository promotionRepository,
             AbonementService abonementService,
-            PersonalAccountRepository accountRepository,
-            AccountAbonementRepository accountAbonementRepository
+            PersonalAccountManager accountManager,
+            AccountAbonementManager accountAbonementManager
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -78,11 +81,11 @@ public class AccountEventListener {
         this.finFeignClient = finFeignClient;
         this.accountStatRepository = accountStatRepository;
         this.planRepository = planRepository;
-        this.accountPromotionRepository = accountPromotionRepository;
+        this.accountPromotionManager = accountPromotionManager;
         this.promotionRepository = promotionRepository;
         this.abonementService = abonementService;
-        this.accountRepository = accountRepository;
-        this.accountAbonementRepository = accountAbonementRepository;
+        this.accountManager = accountManager;
+        this.accountAbonementManager = accountAbonementManager;
     }
 
     @EventListener
@@ -195,7 +198,7 @@ public class AccountEventListener {
         message.addParam("priority", 1);
 
         HashMap<String, String> parameters = new HashMap<>();
-        parameters.put("client_id", message.getAccountId());;
+        parameters.put("client_id", message.getAccountId());
 
         message.addParam("parametrs", parameters);
 
@@ -362,7 +365,7 @@ public class AccountEventListener {
 
         PersonalAccount account = event.getSource();
         // При задержке аккаунт мог мутировать
-        account = accountRepository.findOne(account.getId());
+        account = accountManager.findOne(account.getId());
 
         Map<String, ?> paramsForPublisher = event.getParams();
 
@@ -381,7 +384,7 @@ public class AccountEventListener {
                 List<Domain> domains = accountHelper.getDomains(account);
                 if (!plan.isAbonementOnly() && plan.isActive() && (domains == null || domains.size() == 0)) {
                     Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
-                    List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
+                    List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
                     if (accountPromotions == null || accountPromotions.isEmpty()) {
                         accountHelper.giveGift(account, promotion);
                     }
@@ -400,7 +403,7 @@ public class AccountEventListener {
         if (accountPromocode != null) {
 
             // Аккаунт которому необходимо начислить средства
-            PersonalAccount accountForPartnerBonus = accountRepository.findOne(accountPromocode.getOwnerPersonalAccountId());
+            PersonalAccount accountForPartnerBonus = accountManager.findOne(accountPromocode.getOwnerPersonalAccountId());
 
             if (accountForPartnerBonus == null) {
                 logger.error("PersonalAccount with ID: " + accountPromocode.getOwnerPersonalAccountId() + " not found.");
@@ -463,13 +466,13 @@ public class AccountEventListener {
         try {
             Thread.sleep(20000);
         } catch (Exception e) {
-            logger.debug("Exeption in AccountEventListener on sleep");
+            logger.debug("Exception in AccountEventListener on sleep");
             e.printStackTrace();
         }
 
         PersonalAccount account = event.getSource();
         // При задержке аккаунт мог мутировать
-        account = accountRepository.findOne(account.getId());
+        account = accountManager.findOne(account.getId());
 
         logger.debug("We got AccountSwitchByPaymentCreatedEvent");
 
@@ -482,8 +485,7 @@ public class AccountEventListener {
             if (balance.compareTo(BigDecimal.ZERO) > 0) {
                 // Обнуляем дату активации кредита
                 if (account.getCreditActivationDate() != null) {
-                    account.removeSettingByName(CREDIT_ACTIVATION_DATE);
-                    accountRepository.save(account);
+                    accountManager.removeSettingByName(account.getId(), CREDIT_ACTIVATION_DATE);
                 }
 
                 // Включаем аккаунт, если был выключен
@@ -499,7 +501,7 @@ public class AccountEventListener {
             String addAbonementId = plan.getNotInternalAbonementId();
 
             if (addAbonementId != null) {
-                AccountAbonement accountAbonement = accountAbonementRepository.findByPersonalAccountId(account.getId());
+                AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
                 if (accountAbonement == null) {
                     try {
                         abonementService.addAbonement(account, addAbonementId, true);

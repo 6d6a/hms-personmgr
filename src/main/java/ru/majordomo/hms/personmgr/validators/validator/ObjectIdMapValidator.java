@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.validators;
+package ru.majordomo.hms.personmgr.validators.validator;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
@@ -13,11 +13,12 @@ import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
 import ru.majordomo.hms.personmgr.model.BaseModel;
+import ru.majordomo.hms.personmgr.validators.ObjectIdMap;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 @Component
-class ObjectIdMapValidator implements ConstraintValidator<ObjectIdMap, Map<String, Integer>> {
+public class ObjectIdMapValidator implements ConstraintValidator<ObjectIdMap, Map<String, Integer>> {
     private final MongoTemplate mongoTemplate;
     private Class<? extends BaseModel> objectModel;
     private String collection;

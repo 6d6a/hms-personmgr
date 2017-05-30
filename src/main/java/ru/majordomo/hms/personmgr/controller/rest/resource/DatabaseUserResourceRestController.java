@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,7 +20,6 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -31,14 +29,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 @RequestMapping("/{accountId}/database-user")
 @Validated
 public class DatabaseUserResourceRestController extends CommonResourceRestController {
-
-    private final PersonalAccountRepository accountRepository;
-
-    @Autowired
-    public DatabaseUserResourceRestController(PersonalAccountRepository accountRepository) {
-        this.accountRepository = accountRepository;
-    }
-
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -50,7 +40,7 @@ public class DatabaseUserResourceRestController extends CommonResourceRestContro
 
         logger.debug("Creating database user " + message.toString());
 
-        if (!accountRepository.findOne(accountId).isActive()) {
+        if (!accountManager.findOne(accountId).isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание пользователя базы данных невозможно.");
         }
 
@@ -81,7 +71,7 @@ public class DatabaseUserResourceRestController extends CommonResourceRestContro
 
         logger.debug("Updating database user with id " + resourceId + " " + message.toString());
 
-        if (!accountRepository.findOne(accountId).isActive()) {
+        if (!accountManager.findOne(accountId).isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление пользователя базы данных невозможно.");
         }
 

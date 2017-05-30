@@ -9,21 +9,16 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
-import ru.majordomo.hms.personmgr.common.PromocodeType;
+
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
-import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 
@@ -33,8 +28,8 @@ public class AccountPromotionDBImportService {
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     private final AccountHelper accountHelper;
     private final PromotionRepository promotionRepository;
-    private final PersonalAccountRepository personalAccountRepository;
-    private final AccountPromotionRepository accountPromotionRepository;
+    private final PersonalAccountManager accountManager;
+    private final AccountPromotionManager accountPromotionManager;
 
     private final static Logger logger = LoggerFactory.getLogger(PlanDBImportService.class);
 
@@ -43,21 +38,21 @@ public class AccountPromotionDBImportService {
             @Qualifier("namedParameterJdbcTemplate") NamedParameterJdbcTemplate namedParameterJdbcTemplate,
             AccountHelper accountHelper,
             PromotionRepository promotionRepository,
-            PersonalAccountRepository personalAccountRepository,
-            AccountPromotionRepository accountPromotionRepository
+            PersonalAccountManager accountManager,
+            AccountPromotionManager accountPromotionManager
     ) {
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
         this.accountHelper = accountHelper;
         this.promotionRepository = promotionRepository;
-        this.personalAccountRepository = personalAccountRepository;
-        this.accountPromotionRepository = accountPromotionRepository;
+        this.accountManager = accountManager;
+        this.accountPromotionManager = accountPromotionManager;
     }
 
     public boolean importToMongo() {
 
         logger.debug("Start AccountPromotion importing");
 
-        accountPromotionRepository.deleteAll();
+        accountPromotionManager.deleteAll();
 
         String query = "SELECT account.id, account.plan_id, account.acc_create_date, count(domain.Domain_ID) as domain_count " +
                 "FROM account LEFT JOIN domain ON account.uid = domain.UID " +
@@ -83,13 +78,13 @@ public class AccountPromotionDBImportService {
                 if (count == 0) {
                     // Проверка на наличие промокода с free_domain
                     String sql2 = "SELECT free_domain FROM promocodes_mj WHERE acc_id_used = :account";
-                    Integer count_free_domain = null;
+                    Integer count_free_domain;
                     try {
                         count_free_domain = namedParameterJdbcTemplate.queryForObject(sql2, parameters, Integer.class);
                         // Промокод найден
                         if (count_free_domain != null && count_free_domain == 1) {
                             Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
-                            PersonalAccount account = personalAccountRepository.findByAccountId(resultSet.getString("id"));
+                            PersonalAccount account = accountManager.findByAccountId(resultSet.getString("id"));
                             accountHelper.giveGift(account, promotion);
                         }
                     } catch (EmptyResultDataAccessException e) {
@@ -116,7 +111,7 @@ public class AccountPromotionDBImportService {
 
                                 if ((billing_balance >= 3 * billing_plan_cost) || (billing_count_abonement > 0)) {
                                     Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
-                                    PersonalAccount account = personalAccountRepository.findByAccountId(resultSet.getString("id"));
+                                    PersonalAccount account = accountManager.findByAccountId(resultSet.getString("id"));
                                     if (account != null) {
                                         accountHelper.giveGift(account, promotion);
                                     } else {

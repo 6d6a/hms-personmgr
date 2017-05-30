@@ -4,32 +4,29 @@ import net.javacrumbs.shedlock.core.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.stream.Stream;
 
-import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessChargesEvent;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
-import ru.majordomo.hms.personmgr.service.MailManager;
 
 @Component
 public class ChargesScheduler {
     private final static Logger logger = LoggerFactory.getLogger(ChargesScheduler.class);
 
-    private final PersonalAccountRepository personalAccountRepository;
+    private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
 
     @Autowired
     public ChargesScheduler(
-            PersonalAccountRepository personalAccountRepository,
+            PersonalAccountManager accountManager,
             ApplicationEventPublisher publisher
     ) {
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
         this.publisher = publisher;
     }
 
@@ -38,7 +35,7 @@ public class ChargesScheduler {
     @SchedulerLock(name="processCharges")
     public void processCharges() {
         logger.debug("Started processCharges");
-        try (Stream<PersonalAccount> personalAccountStream = personalAccountRepository.findAllStream()) {
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessChargesEvent(account)));
         }
         logger.debug("Ended processCharges");

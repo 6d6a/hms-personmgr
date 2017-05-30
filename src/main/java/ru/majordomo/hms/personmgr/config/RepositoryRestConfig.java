@@ -1,8 +1,9 @@
-package ru.majordomo.hms.personmgr;
+package ru.majordomo.hms.personmgr.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.rest.core.config.RepositoryRestConfiguration;
 import org.springframework.data.rest.core.event.ValidatingRepositoryEventListener;
 import org.springframework.data.rest.webmvc.config.RepositoryRestConfigurerAdapter;
 import org.springframework.validation.Validator;
@@ -14,7 +15,7 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
  * RepositoryRestConfiguration
  */
 @Configuration
-public class RepositoryRestConfiguration extends RepositoryRestConfigurerAdapter {
+public class RepositoryRestConfig extends RepositoryRestConfigurerAdapter {
     @Bean
     @Primary
     Validator validator() {
@@ -30,7 +31,7 @@ public class RepositoryRestConfiguration extends RepositoryRestConfigurerAdapter
     }
 
     @Override
-    public void configureRepositoryRestConfiguration(org.springframework.data.rest.core.config.RepositoryRestConfiguration config) {
+    public void configureRepositoryRestConfiguration(RepositoryRestConfiguration config) {
         config.exposeIdsFor(PaymentService.class);
         super.configureRepositoryRestConfiguration(config);
     }

@@ -6,10 +6,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.FeignConfig;
+import ru.majordomo.hms.personmgr.config.FeignConfig;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 @FeignClient(name = "fin", fallback = FinFeignClientFallback.class, configuration = FeignConfig.class)

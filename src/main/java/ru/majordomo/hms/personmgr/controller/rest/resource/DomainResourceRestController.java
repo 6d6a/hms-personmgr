@@ -16,14 +16,13 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.BlackListService;
@@ -47,28 +46,25 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 @Validated
 public class DomainResourceRestController extends CommonResourceRestController {
     private final DomainTldService domainTldService;
-    private final PersonalAccountRepository accountRepository;
     private final AccountHelper accountHelper;
     private final RcUserFeignClient rcUserFeignClient;
-    private final AccountPromotionRepository accountPromotionRepository;
+    private final AccountPromotionManager accountPromotionManager;
     private final PromocodeActionRepository promocodeActionRepository;
     private final BlackListService blackListService;
 
     @Autowired
     public DomainResourceRestController(
             DomainTldService domainTldService,
-            PersonalAccountRepository accountRepository,
             AccountHelper accountHelper,
             RcUserFeignClient rcUserFeignClient,
-            AccountPromotionRepository accountPromotionRepository,
+            AccountPromotionManager accountPromotionManager,
             PromocodeActionRepository promocodeActionRepository,
             BlackListService blackListService
     ) {
         this.domainTldService = domainTldService;
-        this.accountRepository = accountRepository;
         this.accountHelper = accountHelper;
         this.rcUserFeignClient = rcUserFeignClient;
-        this.accountPromotionRepository = accountPromotionRepository;
+        this.accountPromotionManager = accountPromotionManager;
         this.promocodeActionRepository = promocodeActionRepository;
         this.blackListService = blackListService;
     }
@@ -82,13 +78,13 @@ public class DomainResourceRestController extends CommonResourceRestController {
     ) {
         message.setAccountId(accountId);
 
-        if (!accountRepository.findOne(accountId).isActive()) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Добавление домена невозможно.");
         }
 
         logger.debug("Creating domain " + message.toString());
-
-        PersonalAccount account = accountRepository.findOne(accountId);
 
         boolean isRegistration = message.getParam("register") != null && (boolean) message.getParam("register");
         boolean isFreeDomain = false;
@@ -107,18 +103,22 @@ public class DomainResourceRestController extends CommonResourceRestController {
         DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
 
         if (isRegistration) {
-            List<AccountPromotion> accountPromotions = accountPromotionRepository.findByPersonalAccountId(account.getId());
+            List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountId(account.getId());
             for (AccountPromotion accountPromotion : accountPromotions) {
                 Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-                if (map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) != null && map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) == true) {
+                if (map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) != null && map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID)) {
 
                     PromocodeAction promocodeAction = promocodeActionRepository.findOne(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
                     List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
 
                     if (availableTlds.contains(domainTld.getTld())) {
                         map.put(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID, false);
-                        // Сохраняем с отметкой, что action использован
                         accountPromotion.setActionsWithStatus(map);
+                        // Сохраняем с отметкой, что action использован
+                        accountPromotionManager.deactivateAccountPromotionByIdAndActionId(
+                                accountPromotion.getId(),
+                                BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID
+                        );
                         isFreeDomain = true;
                         message.addParam("freeDomainPromotionId", accountPromotion.getId());
                         break;
@@ -126,19 +126,22 @@ public class DomainResourceRestController extends CommonResourceRestController {
                 }
             }
 
-
             PaymentService paymentService = domainTld.getRegistrationService();
 
             for (AccountPromotion accountPromotion : accountPromotions) {
                 Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-                if (map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) != null && map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) == true) {
+                if (map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) != null && map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID)) {
                     PromocodeAction promocodeAction = promocodeActionRepository.findOne(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
                     List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
 
                     if (availableTlds.contains(domainTld.getTld())) {
                         map.put(DOMAIN_DISCOUNT_RU_RF_ACTION_ID, false);
-                        // Сохраняем с отметкой, что action использован
                         accountPromotion.setActionsWithStatus(map);
+                        // Сохраняем с отметкой, что action использован
+                        accountPromotionManager.deactivateAccountPromotionByIdAndActionId(
+                                accountPromotion.getId(),
+                                DOMAIN_DISCOUNT_RU_RF_ACTION_ID
+                        );
 
                         // Устанавливает цену со скидкой
                         paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
@@ -155,8 +158,6 @@ public class DomainResourceRestController extends CommonResourceRestController {
                 String documentNumber = (String) blockResult.getParam("documentNumber");
                 message.addParam("documentNumber", documentNumber);
             }
-
-            accountPromotionRepository.save(accountPromotions);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message);
@@ -189,14 +190,14 @@ public class DomainResourceRestController extends CommonResourceRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         message.setAccountId(accountId);
         message.getParams().put("resourceId", resourceId);
 
         logger.debug("Updating domain with id " + resourceId + " " + message.toString());
 
-        if (!accountRepository.findOne(accountId).isActive()) {
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление домена невозможно.");
         }
 

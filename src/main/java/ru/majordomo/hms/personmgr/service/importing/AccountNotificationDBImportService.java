@@ -11,15 +11,14 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
 import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 /**
  * Сервис для загрузки первичных данных в БД
@@ -28,18 +27,21 @@ import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 public class AccountNotificationDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountNotificationDBImportService.class);
 
-    private PersonalAccountRepository personalAccountRepository;
+    private PersonalAccountManager accountManager;
     private NamedParameterJdbcTemplate jdbcTemplate;
     private List<PersonalAccount> personalAccountList = new ArrayList<>();
 
     @Autowired
-    public AccountNotificationDBImportService(NamedParameterJdbcTemplate jdbcTemplate, PersonalAccountRepository personalAccountRepository) {
+    public AccountNotificationDBImportService(
+            NamedParameterJdbcTemplate jdbcTemplate,
+            PersonalAccountManager accountManager
+    ) {
         this.jdbcTemplate = jdbcTemplate;
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
     }
 
     public void pull() {
-        List<PersonalAccount> personalAccounts = personalAccountRepository.findAll();
+        List<PersonalAccount> personalAccounts = accountManager.findAll();
 
         for (PersonalAccount personalAccount : personalAccounts) {
             this.pull(personalAccount.getName());
@@ -47,7 +49,7 @@ public class AccountNotificationDBImportService {
     }
 
     private void pull(String accountId) {
-        PersonalAccount personalAccount = personalAccountRepository.findByAccountId(accountId);
+        PersonalAccount personalAccount = accountManager.findByAccountId(accountId);
         logger.debug("Start pull for " + accountId);
 
         if (personalAccount != null) {
@@ -125,7 +127,7 @@ public class AccountNotificationDBImportService {
 
     private void pushToMongo() {
         try {
-            personalAccountRepository.save(personalAccountList);
+            accountManager.save(personalAccountList);
         } catch (ConstraintViolationException e) {
             logger.debug(e.getMessage() +
                     " with errors: " +

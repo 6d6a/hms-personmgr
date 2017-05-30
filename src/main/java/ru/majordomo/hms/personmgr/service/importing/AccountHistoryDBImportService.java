@@ -17,10 +17,10 @@ import java.util.stream.StreamSupport;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.AccountHistory;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountHistoryRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 /**
  * Сервис для загрузки первичных данных в БД
@@ -30,15 +30,19 @@ public class AccountHistoryDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountHistoryDBImportService.class);
 
     private AccountHistoryRepository accountHistoryRepository;
-    private PersonalAccountRepository personalAccountRepository;
+    private PersonalAccountManager accountManager;
     private NamedParameterJdbcTemplate jdbcTemplate;
     private List<AccountHistory> accountHistoryList = new ArrayList<>();
 
     @Autowired
-    public AccountHistoryDBImportService(NamedParameterJdbcTemplate jdbcTemplate, AccountHistoryRepository accountHistoryRepository, PersonalAccountRepository personalAccountRepository) {
+    public AccountHistoryDBImportService(
+            NamedParameterJdbcTemplate jdbcTemplate,
+            AccountHistoryRepository accountHistoryRepository,
+            PersonalAccountManager accountManager
+    ) {
         this.jdbcTemplate = jdbcTemplate;
         this.accountHistoryRepository = accountHistoryRepository;
-        this.personalAccountRepository = personalAccountRepository;
+        this.accountManager = accountManager;
     }
 
     public void pull() {
@@ -49,7 +53,7 @@ public class AccountHistoryDBImportService {
         jdbcTemplate.query(query, (rs, rowNum) -> {
             AccountHistory accountHistory = new AccountHistory();
 
-            PersonalAccount account = personalAccountRepository.findByAccountId(rs.getString("account"));
+            PersonalAccount account = accountManager.findByAccountId(rs.getString("account"));
 
             logger.debug("rs.getString(\"account\") " + rs.getString("account"));
 
@@ -87,7 +91,12 @@ public class AccountHistoryDBImportService {
         try {
             accountHistoryRepository.save(accountHistoryList);
         } catch (ConstraintViolationException e) {
-            logger.debug(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
+            logger.debug(e.getMessage() + " with errors: "
+                    + e.getConstraintViolations()
+                    .stream()
+                    .map(ConstraintViolation::getMessage)
+                    .collect(Collectors.joining())
+            );
         }
     }
 }

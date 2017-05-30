@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr;
 
-import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.WriteConcern;
@@ -33,6 +32,7 @@ public class MongoConfig extends AbstractMongoConfiguration {
     }
 
     @Override
+    @Bean
     public MongoClient mongo() throws Exception {
         return new MongoClient(new MongoClientURI(mongodbUri));
     }

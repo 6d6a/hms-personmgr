@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,7 +19,6 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -31,13 +29,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 @RequestMapping("/{accountId}/person")
 @Validated
 public class PersonResourceRestController extends CommonResourceRestController {
-    private final PersonalAccountRepository accountRepository;
-
-    @Autowired
-    public PersonResourceRestController(PersonalAccountRepository accountRepository) {
-        this.accountRepository = accountRepository;
-    }
-
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -105,7 +96,7 @@ public class PersonResourceRestController extends CommonResourceRestController {
 
         logger.debug("Deleting person with id " + resourceId + " " + message.toString());
 
-        PersonalAccount account = accountRepository.findOne(message.getAccountId());
+        PersonalAccount account = accountManager.findOne(message.getAccountId());
 
         //Если пытаемся удалить персону "владельца аккаунта"
         if (account != null && account.getOwnerPersonId() != null && account.getOwnerPersonId().equals(resourceId)) {

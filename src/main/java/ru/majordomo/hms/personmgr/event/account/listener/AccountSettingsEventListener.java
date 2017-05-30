@@ -9,20 +9,20 @@ import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 @Component
 public class AccountSettingsEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountSettingsEventListener.class);
 
-    private final PersonalAccountRepository accountRepository;
+    private final PersonalAccountManager accountManager;
 
     @Autowired
     public AccountSettingsEventListener(
-            PersonalAccountRepository accountRepository
+            PersonalAccountManager accountManager
     ) {
-        this.accountRepository = accountRepository;
+        this.accountManager = accountManager;
     }
 
     @EventListener
@@ -37,9 +37,7 @@ public class AccountSettingsEventListener {
         logger.debug("We got AccountSetSettingEvent");
 
         try {
-            account.setSettingByName(setting, value);
-
-            accountRepository.save(account);
+            accountManager.setSettingByName(account.getId(), setting, value);
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in ru.majordomo.hms.personmgr.event.account.listener.AccountSettingsEventListener.onAccountSetSettingEvent " + e.getMessage());

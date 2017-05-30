@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr;
+package ru.majordomo.hms.personmgr.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
