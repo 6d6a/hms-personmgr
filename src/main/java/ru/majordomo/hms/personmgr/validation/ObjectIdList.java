@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.validators;
+package ru.majordomo.hms.personmgr.validation;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -10,14 +10,14 @@ import javax.validation.Constraint;
 import javax.validation.Payload;
 
 import ru.majordomo.hms.personmgr.model.BaseModel;
-import ru.majordomo.hms.personmgr.validators.validator.ObjectIdMapValidator;
+import ru.majordomo.hms.personmgr.validation.validator.ObjectIdListValidator;
 
 @Documented
-@Constraint(validatedBy = ObjectIdMapValidator.class)
+@Constraint(validatedBy = ObjectIdListValidator.class)
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ObjectIdMap {
-    String message() default "{ru.majordomo.hms.personmgr.validators.ObjectIdMap.message}";
+public @interface ObjectIdList {
+    String message() default "{ru.majordomo.hms.personmgr.validation.ObjectIdList.message}";
 
     Class<?>[] groups() default {};
 

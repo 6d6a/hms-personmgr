@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.validators.validator;
+package ru.majordomo.hms.personmgr.validation.validator;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -9,7 +9,7 @@ import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
 import ru.majordomo.hms.personmgr.model.BaseModel;
-import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
