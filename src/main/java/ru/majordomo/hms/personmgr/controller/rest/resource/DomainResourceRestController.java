@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletResponse;
 
+import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -24,10 +25,7 @@ import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.BlackListService;
-import ru.majordomo.hms.personmgr.service.DomainTldService;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.validators.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -51,6 +49,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
     private final AccountPromotionManager accountPromotionManager;
     private final PromocodeActionRepository promocodeActionRepository;
     private final BlackListService blackListService;
+    private final DomainRegistrarFeignClient domainRegistrarFeignClient;
 
     @Autowired
     public DomainResourceRestController(
@@ -59,7 +58,8 @@ public class DomainResourceRestController extends CommonResourceRestController {
             RcUserFeignClient rcUserFeignClient,
             AccountPromotionManager accountPromotionManager,
             PromocodeActionRepository promocodeActionRepository,
-            BlackListService blackListService
+            BlackListService blackListService,
+            DomainRegistrarFeignClient domainRegistrarFeignClient
     ) {
         this.domainTldService = domainTldService;
         this.accountHelper = accountHelper;
@@ -67,6 +67,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
         this.accountPromotionManager = accountPromotionManager;
         this.promocodeActionRepository = promocodeActionRepository;
         this.blackListService = blackListService;
+        this.domainRegistrarFeignClient = domainRegistrarFeignClient;
     }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
@@ -150,6 +151,14 @@ public class DomainResourceRestController extends CommonResourceRestController {
                         break;
                     }
                 }
+            }
+
+            //Проверить домен на премиальность, если да - установить новую цену
+            AvailabilityInfo availabilityInfo = domainRegistrarFeignClient.getAvailabilityInfo(domainName);
+            if (availabilityInfo.getPremiumPrice() != null && (availabilityInfo.getPremiumPrice().compareTo(BigDecimal.ZERO) > 0)) {
+                paymentService.setCost(availabilityInfo.getPremiumPrice());
+                isFreeDomain = false;
+                isDiscountedDomain = false;
             }
 
             if (!isFreeDomain) {
