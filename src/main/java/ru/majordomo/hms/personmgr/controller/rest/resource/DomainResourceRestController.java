@@ -104,6 +104,13 @@ public class DomainResourceRestController extends CommonResourceRestController {
         DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
 
         if (isRegistration) {
+
+            //Проверить домен на премиальность
+            AvailabilityInfo availabilityInfo = domainRegistrarFeignClient.getAvailabilityInfo(domainName);
+            if (!availabilityInfo.getFree()) {
+                return this.createErrorResponse("Домен: " + domainName + " по данным whois занят.");
+            }
+
             List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountId(account.getId());
             for (AccountPromotion accountPromotion : accountPromotions) {
                 Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
@@ -154,7 +161,6 @@ public class DomainResourceRestController extends CommonResourceRestController {
             }
 
             //Проверить домен на премиальность, если да - установить новую цену
-            AvailabilityInfo availabilityInfo = domainRegistrarFeignClient.getAvailabilityInfo(domainName);
             if (availabilityInfo.getPremiumPrice() != null && (availabilityInfo.getPremiumPrice().compareTo(BigDecimal.ZERO) > 0)) {
                 paymentService.setCost(availabilityInfo.getPremiumPrice());
                 isFreeDomain = false;
