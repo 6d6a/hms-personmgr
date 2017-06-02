@@ -6,7 +6,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.validation.UniquePersonalAccountIdModel;
-import ru.majordomo.hms.rc.user.resources.Person;
 import ru.majordomo.hms.rc.user.resources.validation.ValidEmail;
 import ru.majordomo.hms.rc.user.resources.validation.ValidPhone;
 
@@ -113,29 +112,5 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
                 ", passport=" + passport +
                 ", legalEntity=" + legalEntity +
                 "} " + super.toString();
-    }
-
-    public static AccountOwner fromPerson(Person person) {
-        AccountOwner accountOwner = new AccountOwner();
-        accountOwner.setName(person.getName());
-        accountOwner.setEmailAddresses(person.getEmailAddresses());
-        accountOwner.setPhoneNumbers(person.getPhoneNumbers());
-
-        Address address = Address.fromString(person.getPostalAddressAsString());
-        address.setCountry(person.getCountry());
-
-        accountOwner.setPostalAddress(address);
-
-        accountOwner.setPersonalAccountId(person.getAccountId());
-        accountOwner.setLegalEntity(LegalEntity.fromRcLegalEntity(person.getLegalEntity()));
-        accountOwner.setPassport(Passport.fromRcPassport(person.getPassport()));
-
-        if (person.getPassport() != null && person.getLegalEntity() != null) {
-            accountOwner.setType(Type.COMPANY);
-        } else if (person.getPassport() != null && person.getLegalEntity() == null) {
-            accountOwner.setType(Type.INDIVIDUAL);
-        }
-
-        return accountOwner;
     }
 }

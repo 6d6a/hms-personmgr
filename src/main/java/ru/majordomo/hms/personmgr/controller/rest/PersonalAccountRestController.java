@@ -26,7 +26,6 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
-import feign.FeignException;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -44,12 +43,12 @@ import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
 import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountOwnerHelper;
 import ru.majordomo.hms.personmgr.service.PlanChangeService;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.service.TokenHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
-import ru.majordomo.hms.rc.user.resources.Person;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
@@ -70,6 +69,7 @@ public class PersonalAccountRestController extends CommonRestController {
     private final RcUserFeignClient rcUserFeignClient;
     private final ApplicationEventPublisher publisher;
     private final AccountHelper accountHelper;
+    private final AccountOwnerHelper accountOwnerHelper;
     private final TokenHelper tokenHelper;
 
     @Autowired
@@ -80,6 +80,7 @@ public class PersonalAccountRestController extends CommonRestController {
             RcUserFeignClient rcUserFeignClient,
             ApplicationEventPublisher publisher,
             AccountHelper accountHelper,
+            AccountOwnerHelper accountOwnerHelper,
             TokenHelper tokenHelper
     ) {
         this.planRepository = planRepository;
@@ -88,6 +89,7 @@ public class PersonalAccountRestController extends CommonRestController {
         this.rcUserFeignClient = rcUserFeignClient;
         this.publisher = publisher;
         this.accountHelper = accountHelper;
+        this.accountOwnerHelper = accountOwnerHelper;
         this.tokenHelper = tokenHelper;
     }
 
@@ -161,41 +163,39 @@ public class PersonalAccountRestController extends CommonRestController {
     }
 
     @RequestMapping(value = "/{accountId}/owner",
-                    method = RequestMethod.POST)
+                    method = RequestMethod.PATCH)
     public ResponseEntity changeOwner(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody AccountOwner owner,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
         AccountOwner currentOwner = accountOwnerRepository.findOneByPersonalAccountId(accountId);
 
-        if (currentOwner != null &&
-                (currentOwner.getType() == AccountOwner.Type.COMPANY
-                        || currentOwner.getType() == AccountOwner.Type.BUDGET_COMPANY
-                )) {
-            return new ResponseEntity(HttpStatus.BAD_REQUEST);
-        } else {
-            if (currentOwner != null) {
-                owner.setId(currentOwner.getId());
+        if (currentOwner != null) {
+            if (!request.isUserInRole("ADMIN")) {
+                accountOwnerHelper.checkNotEmptyFields(currentOwner, owner);
+                accountOwnerHelper.setEmptyAndAllowedToEditFields(currentOwner, owner);
+            } else {
+                accountOwnerHelper.setFields(currentOwner, owner);
             }
 
-            owner.setPersonalAccountId(accountId);
-
-            accountOwnerRepository.save(owner);
-
-            //Запишем инфу о произведенном изменении владельца в историю клиента
-            String operator = request.getUserPrincipal().getName();
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Произведена смена владельца аккаунта Предыдущий владелец: " +
-                    currentOwner +
-                    " Новый владелец: " + owner
-            );
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+            owner.setId(currentOwner.getId());
         }
+
+        owner.setPersonalAccountId(accountId);
+
+        accountOwnerRepository.save(owner);
+
+        //Запишем инфу о произведенном изменении владельца в историю клиента
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Произведена смена владельца аккаунта Предыдущий владелец: " +
+                currentOwner +
+                " Новый владелец: " + owner
+        );
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
         return new ResponseEntity(HttpStatus.OK);
     }
@@ -210,23 +210,7 @@ public class PersonalAccountRestController extends CommonRestController {
         AccountOwner accountOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
 
         if (accountOwner == null) {
-            if (account.getOwnerPersonId() == null) {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-
-            Person person;
-
-            try {
-                person = rcUserFeignClient.getPerson(accountId, account.getOwnerPersonId());
-            } catch (Exception e) {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-
-            if (person !=null) {
-                accountOwner = AccountOwner.fromPerson(person);
-            } else {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
         return new ResponseEntity<>(accountOwner, HttpStatus.OK);

@@ -53,18 +53,4 @@ public class Passport {
                 ", address=" + address +
                 '}';
     }
-
-    public static Passport fromRcPassport(ru.majordomo.hms.rc.user.resources.Passport rcPassport) {
-        if (rcPassport == null) {
-            return null;
-        }
-
-        Passport passport = new Passport();
-        passport.setNumber(rcPassport.getNumber());
-        passport.setIssuedDate(rcPassport.getIssuedDate());
-        passport.setIssuedOrg(rcPassport.getIssuedOrg());
-        passport.setAddress(Address.fromString(rcPassport.getAddress()));
-
-        return passport;
-    }
 }

@@ -108,24 +108,4 @@ public class LegalEntity {
                 ", address='" + address + '\'' +
                 '}';
     }
-
-    public static LegalEntity fromRcLegalEntity(ru.majordomo.hms.rc.user.resources.LegalEntity rcLegalEntity) {
-        if (rcLegalEntity == null) {
-            return null;
-        }
-
-        LegalEntity legalEntity = new LegalEntity();
-        legalEntity.setInn(rcLegalEntity.getInn());
-        legalEntity.setOgrn(rcLegalEntity.getOgrn());
-        legalEntity.setKpp(rcLegalEntity.getKpp());
-        legalEntity.setOkpo(rcLegalEntity.getOkpo());
-        legalEntity.setOkvedCodes(rcLegalEntity.getOkvedCodes());
-        legalEntity.setBankAccount(rcLegalEntity.getBankAccount());
-        legalEntity.setBankName(rcLegalEntity.getBankName());
-        legalEntity.setCorrespondentAccount(rcLegalEntity.getCorrespondentAccount());
-        legalEntity.setBik(rcLegalEntity.getBik());
-        legalEntity.setAddress(Address.fromString(rcLegalEntity.getAddress()));
-
-        return legalEntity;
-    }
 }
