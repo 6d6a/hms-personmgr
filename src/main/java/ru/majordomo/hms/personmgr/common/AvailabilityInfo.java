@@ -3,9 +3,11 @@ package ru.majordomo.hms.personmgr.common;
 import java.math.BigDecimal;
 
 public class AvailabilityInfo {
-    private String domainName;
+    private String domainName = null;
     private Boolean free = false;
     private BigDecimal premiumPrice = null;
+
+    public AvailabilityInfo(){}
 
     public AvailabilityInfo(String domainName, Boolean free) {
         this.domainName = domainName;
