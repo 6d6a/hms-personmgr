@@ -6,8 +6,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.validation.UniquePersonalAccountIdModel;
+import ru.majordomo.hms.personmgr.validation.ValidPhone;
 import ru.majordomo.hms.rc.user.resources.validation.ValidEmail;
-import ru.majordomo.hms.rc.user.resources.validation.ValidPhone;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;

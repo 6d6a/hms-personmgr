@@ -33,7 +33,7 @@ security:
         client:
             clientId: service
             clientSecret: service_secret
-            accessTokenUri: http://localhost:8080/oauth/token
+            accessTokenUri: http://api-dev.intr/oauth/token
             grant-type: password
             scope: service
     sessions: STATELESS
@@ -44,7 +44,8 @@ spring:
         name: pm
     data:
         mongodb:
-            uri: mongodb://personmgr:***REMOVED***@hms01.intr:27017,hms02.intr:27017,hms03.intr:27017/personmgr?replicaSet=hms-rs0
+#            uri: mongodb://personmgr:***REMOVED***@hms01.intr:27017,hms02.intr:27017,hms03.intr:27017/personmgr?replicaSet=hms-rs0
+            uri: mongodb://ci.intr:27017/personmgr
             database: personmgr
 #            uri: mongodb://localhost:27017/personmgr
     rabbitmq:
@@ -56,7 +57,7 @@ spring:
         date-format: yyyy-MM-dd HH:mm:ss
 
 management:
-  port: 18080
+  port: 18083
   security:
     enabled: false
 
@@ -82,6 +83,7 @@ datasource:
 
 mail_manager:
     dev_email: web-script@majordomo.ru
+    pro_email: web-script@majordomo.ru
     password: ***REMOVED***
     service_message_api_name: RegistrantServiceMessage
     url: http://mailing_manager.dolnigin.dev.majordomo.ru/app_dev.php/api/
@@ -89,4 +91,4 @@ mail_manager:
 
 si_oauth:
     serviceUsername: service
-    servicePassword: service
+    servicePassword: ***REMOVED***

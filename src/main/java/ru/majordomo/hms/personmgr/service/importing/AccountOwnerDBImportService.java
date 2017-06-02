@@ -61,7 +61,8 @@ public class AccountOwnerDBImportService {
         try {
             person = rcUserFeignClient.getPerson(account.getId(), account.getOwnerPersonId());
         } catch (Exception e) {
-            logger.error("rcUserFeignClient.getPerson got Exception for " + account.getId() + " " + account.getOwnerPersonId());
+            e.printStackTrace();
+            logger.error("rcUserFeignClient.getPerson got Exception for " + account.getId() + " " + account.getOwnerPersonId() + " exception: " + e.getMessage());
             return;
         }
 

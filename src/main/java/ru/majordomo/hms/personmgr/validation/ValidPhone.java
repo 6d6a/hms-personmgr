@@ -9,19 +9,18 @@ import java.lang.annotation.Target;
 import javax.validation.Constraint;
 import javax.validation.Payload;
 
-import ru.majordomo.hms.personmgr.model.BaseModel;
-import ru.majordomo.hms.personmgr.validation.validator.UniquePersonalAccountIdValidator;
+import ru.majordomo.hms.personmgr.validation.validator.PhoneValidator;
 
 @Documented
-@Constraint(validatedBy = UniquePersonalAccountIdValidator.class)
-@Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
+@Constraint(validatedBy = PhoneValidator.class)
+@Target({ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER, ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface UniquePersonalAccountIdModel {
-    String message() default "{ru.majordomo.hms.personmgr.validation.UniquePersonalAccountIdModel.message}";
+public @interface ValidPhone {
+    String message() default "{ru.majordomo.hms.personmgr.validation.ValidPhone.message}";
 
     Class<?>[] groups() default {};
 
     Class<? extends Payload>[] payload() default {};
 
-    Class<? extends BaseModel> value();
+    String value() default "";
 }
