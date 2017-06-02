@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.model;
+package ru.majordomo.hms.personmgr.model.business;
 
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.index.Indexed;

@@ -6,7 +6,7 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
-import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;

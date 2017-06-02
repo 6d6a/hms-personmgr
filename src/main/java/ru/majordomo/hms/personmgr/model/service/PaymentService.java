@@ -13,7 +13,7 @@ import javax.validation.constraints.NotNull;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.model.BaseModel;
-import ru.majordomo.hms.personmgr.validators.ObjectIdMap;
+import ru.majordomo.hms.personmgr.validation.ObjectIdMap;
 
 @Document
 public class PaymentService extends BaseModel {

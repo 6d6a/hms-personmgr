@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.model;
+package ru.majordomo.hms.personmgr.model.business;
 
 import com.fasterxml.jackson.annotation.JsonView;
 
@@ -8,6 +8,7 @@ import java.util.Objects;
 
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.Views;
+import ru.majordomo.hms.personmgr.model.BaseModel;
 
 /**
  * Step

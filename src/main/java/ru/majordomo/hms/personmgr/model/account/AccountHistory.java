@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.model;
+package ru.majordomo.hms.personmgr.model.account;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -9,6 +9,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
+
+import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 
 @Document
 public class AccountHistory extends ModelBelongsToPersonalAccount {

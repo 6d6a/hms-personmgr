@@ -1,7 +1,6 @@
-package ru.majordomo.hms.personmgr.model;
+package ru.majordomo.hms.personmgr.model.business;
 
 import com.fasterxml.jackson.annotation.JsonView;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -18,7 +17,7 @@ import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.Views;
 
 @Document
-public class ProcessingBusinessOperation extends Step  {
+public class ProcessingBusinessOperation extends Step {
     @JsonView(Views.Public.class)
     @Indexed
     private BusinessOperationType type = BusinessOperationType.COMMON_OPERATION;

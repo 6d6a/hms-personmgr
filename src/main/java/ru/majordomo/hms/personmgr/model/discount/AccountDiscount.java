@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 import javax.validation.constraints.NotNull;
 
-import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 
 /**

@@ -17,7 +17,7 @@ import java.util.List;
 import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.event.accountService.AccountServiceCreateEvent;
 import ru.majordomo.hms.personmgr.event.accountService.AccountServiceImportEvent;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;

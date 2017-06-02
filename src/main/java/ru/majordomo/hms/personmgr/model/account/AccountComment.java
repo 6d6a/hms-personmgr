@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.model;
+package ru.majordomo.hms.personmgr.model.account;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -6,6 +6,8 @@ import org.springframework.data.mongodb.core.index.TextIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+
+import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 
 @Document
 public class AccountComment extends ModelBelongsToPersonalAccount {

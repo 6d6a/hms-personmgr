@@ -14,8 +14,8 @@ import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 @Document
 public class AccountPromocode extends ModelBelongsToPersonalAccount {

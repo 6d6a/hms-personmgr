@@ -20,12 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
 import feign.FeignException;
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
@@ -34,16 +36,18 @@ import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.Token;
+import ru.majordomo.hms.personmgr.model.account.AccountOwner;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
+import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.PlanChangeService;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.service.TokenHelper;
-import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 import ru.majordomo.hms.rc.user.resources.Person;
 
@@ -61,6 +65,7 @@ import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
 @Validated
 public class PersonalAccountRestController extends CommonRestController {
     private final PlanRepository planRepository;
+    private final AccountOwnerRepository accountOwnerRepository;
     private final PlanChangeService planChangeService;
     private final RcUserFeignClient rcUserFeignClient;
     private final ApplicationEventPublisher publisher;
@@ -70,6 +75,7 @@ public class PersonalAccountRestController extends CommonRestController {
     @Autowired
     public PersonalAccountRestController(
             PlanRepository planRepository,
+            AccountOwnerRepository accountOwnerRepository,
             PlanChangeService planChangeService,
             RcUserFeignClient rcUserFeignClient,
             ApplicationEventPublisher publisher,
@@ -77,6 +83,7 @@ public class PersonalAccountRestController extends CommonRestController {
             TokenHelper tokenHelper
     ) {
         this.planRepository = planRepository;
+        this.accountOwnerRepository = accountOwnerRepository;
         this.planChangeService = planChangeService;
         this.rcUserFeignClient = rcUserFeignClient;
         this.publisher = publisher;
@@ -156,50 +163,38 @@ public class PersonalAccountRestController extends CommonRestController {
     @RequestMapping(value = "/{accountId}/owner",
                     method = RequestMethod.POST)
     public ResponseEntity changeOwner(
-            @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, String> owner
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody AccountOwner owner,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        if (owner.get("personId") == null) {
+        AccountOwner currentOwner = accountOwnerRepository.findOneByPersonalAccountId(accountId);
+
+        if (currentOwner != null &&
+                (currentOwner.getType() == AccountOwner.Type.COMPANY
+                        || currentOwner.getType() == AccountOwner.Type.BUDGET_COMPANY
+                )) {
             return new ResponseEntity(HttpStatus.BAD_REQUEST);
-        }
-
-        Person currentPerson = null;
-
-        if (account.getOwnerPersonId() != null) {
-            try {
-                currentPerson = rcUserFeignClient.getPerson(accountId, account.getOwnerPersonId());
-            } catch (FeignException e) {
-                return new ResponseEntity(HttpStatus.NOT_FOUND);
+        } else {
+            if (currentOwner != null) {
+                owner.setId(currentOwner.getId());
             }
-        }
 
-        Person person;
+            owner.setPersonalAccountId(accountId);
 
-        try {
-            person = rcUserFeignClient.getPerson(accountId, owner.get("personId"));
-        } catch (FeignException e) {
-            return new ResponseEntity(HttpStatus.NOT_FOUND);
-        }
+            accountOwnerRepository.save(owner);
 
-        if (person != null) {
+            //Запишем инфу о произведенном изменении владельца в историю клиента
+            String operator = request.getUserPrincipal().getName();
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Произведена смена владельца аккаунта Предыдущий владелец: " +
+                    currentOwner +
+                    " Новый владелец: " + owner
+            );
+            params.put(OPERATOR_KEY, operator);
 
-            if (currentPerson != null && (person.getLegalEntity() != null || currentPerson.getLegalEntity() != null)) {
-                return new ResponseEntity(HttpStatus.BAD_REQUEST);
-            } else {
-                accountManager.setOwnerPersonId(account.getId(), person.getId());
-
-                //Запишем инфу о произведенном изменении владельца в историю клиента
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Произведена смена владельца аккаунта Предудущий владелец: " +
-                        currentPerson +
-                        " Новый владелец: " + person
-                );
-                params.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-            }
+            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
         return new ResponseEntity(HttpStatus.OK);
@@ -207,24 +202,34 @@ public class PersonalAccountRestController extends CommonRestController {
 
     @RequestMapping(value = "/{accountId}/owner",
                     method = RequestMethod.GET)
-    public ResponseEntity<Person> getOwner(
-            @PathVariable(value = "accountId") String accountId
+    public ResponseEntity<AccountOwner> getOwner(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        if (account.getOwnerPersonId() == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        AccountOwner accountOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
+
+        if (accountOwner == null) {
+            if (account.getOwnerPersonId() == null) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+
+            Person person;
+
+            try {
+                person = rcUserFeignClient.getPerson(accountId, account.getOwnerPersonId());
+            } catch (Exception e) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+
+            if (person !=null) {
+                accountOwner = AccountOwner.fromPerson(person);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
         }
 
-        Person person;
-
-        try {
-            person = rcUserFeignClient.getPerson(accountId, account.getOwnerPersonId());
-        } catch (FeignException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-
-        return new ResponseEntity<>(person, HttpStatus.OK);
+        return new ResponseEntity<>(accountOwner, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{accountId}/password",
@@ -512,4 +517,27 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @RequestMapping(value = "/{accountId}/account/notifications",
+                    method = RequestMethod.PATCH)
+    public ResponseEntity<Object> setNotifications(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody Set<MailManagerMessageType> notifications,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Set<MailManagerMessageType> oldNotifications = account.getNotifications();
+
+        accountManager.setNotifications(accountId, notifications);
+
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + notifications + "]");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
 }

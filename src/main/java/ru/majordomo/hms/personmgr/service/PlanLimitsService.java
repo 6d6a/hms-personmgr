@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.common.DBType;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanProperties;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;

@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.repository;
 
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -12,18 +11,14 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 public interface PersonalAccountRepository extends MongoRepository<PersonalAccount, String> {
-    PersonalAccount findOne(String id);
-
     @Query(value="{'_id' : ?0}", fields="{active : 1, deactivated : 1}")
     PersonalAccount findOneByIdIncludeIdAndActiveAndDeactivated(String id);
 
     @Query(value="{'_id' : ?0}", fields="{_id : 1}")
     PersonalAccount findOneByIdIncludeId(String id);
-
-    List<PersonalAccount> findAll();
 
     PersonalAccount findByName(@Param("name") String name);
 

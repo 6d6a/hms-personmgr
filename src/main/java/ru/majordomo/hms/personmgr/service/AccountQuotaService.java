@@ -13,7 +13,7 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaAddedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaDiscardEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;

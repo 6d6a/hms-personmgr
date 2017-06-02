@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.model;
+package ru.majordomo.hms.personmgr.model.account;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -25,10 +25,11 @@ import javax.validation.constraints.NotNull;
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.model.VersionedModel;
 import ru.majordomo.hms.personmgr.model.discount.AccountDiscount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
-import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.AccountSetting.*;
 import static ru.majordomo.hms.personmgr.common.Constants.DEFAULT_NOTIFY_DAYS;

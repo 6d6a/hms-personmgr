@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
 import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
-import ru.majordomo.hms.personmgr.validators.ObjectId;
-import ru.majordomo.hms.personmgr.validators.UniquePersonalAccountIdModel;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
+import ru.majordomo.hms.personmgr.validation.UniquePersonalAccountIdModel;
 
 @Document
 @UniquePersonalAccountIdModel(AccountAbonement.class)

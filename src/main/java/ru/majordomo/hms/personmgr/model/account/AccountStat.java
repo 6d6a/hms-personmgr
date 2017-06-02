@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.model;
+package ru.majordomo.hms.personmgr.model.account;
 
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 
 @Document
 public class AccountStat extends ModelBelongsToPersonalAccount {

@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.model;
+package ru.majordomo.hms.personmgr.model.business;
 
 import com.fasterxml.jackson.annotation.JsonView;
 

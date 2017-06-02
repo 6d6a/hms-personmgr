@@ -11,7 +11,7 @@ import javax.validation.constraints.NotNull;
 import ru.majordomo.hms.personmgr.common.AbonementType;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 @Document
 public class Abonement extends BaseModel {

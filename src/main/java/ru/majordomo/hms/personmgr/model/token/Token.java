@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.model;
+package ru.majordomo.hms.personmgr.model.token;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -11,6 +11,7 @@ import java.util.Map;
 import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.TokenType;
+import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 
 @Document
 public class Token extends ModelBelongsToPersonalAccount {

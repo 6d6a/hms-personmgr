@@ -19,8 +19,8 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
 
@@ -98,24 +98,6 @@ public class PersonAmqpController extends CommonAmqpController {
                         e.printStackTrace();
                         logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.PersonAmqpController.create #2 " + e.getMessage());
                     }
-                }
-            }
-
-            ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-            if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
-                message.addParam("quota", (Long) businessOperation.getParams().get("quota") * 1024);
-                businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
-
-                try {
-                    //Save history
-                    params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Заявка на первичное создание UNIX-аккаунта отправлена (имя: " + message.getParam("name") + ")");
-                    params.put(OPERATOR_KEY, "service");
-
-                    publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.PersonAmqpController.create #3 " + e.getMessage());
                 }
             }
         }

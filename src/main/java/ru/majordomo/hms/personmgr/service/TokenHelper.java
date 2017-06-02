@@ -6,8 +6,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 
 import ru.majordomo.hms.personmgr.common.TokenType;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.Token;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.repository.TokenRepository;
 
 @Service

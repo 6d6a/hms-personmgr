@@ -18,7 +18,7 @@ import javax.validation.ConstraintViolationException;
 import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 /**
  * Сервис для загрузки первичных данных в БД

@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessDomainsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringDomainsEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 @Component
 public class DomainsScheduler {

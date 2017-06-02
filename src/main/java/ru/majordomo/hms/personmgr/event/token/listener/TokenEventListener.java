@@ -8,7 +8,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
-import ru.majordomo.hms.personmgr.model.Token;
+import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.service.TokenHelper;
 
 @Component
