@@ -180,6 +180,7 @@ public class PersonalAccountRestController extends CommonRestController {
             }
 
             owner.setId(currentOwner.getId());
+            owner.setVersion(currentOwner.getVersion());
         }
 
         owner.setPersonalAccountId(accountId);
