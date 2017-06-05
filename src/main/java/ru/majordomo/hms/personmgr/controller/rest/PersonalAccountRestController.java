@@ -163,7 +163,7 @@ public class PersonalAccountRestController extends CommonRestController {
     }
 
     @RequestMapping(value = "/{accountId}/owner",
-                    method = RequestMethod.PATCH)
+                    method = RequestMethod.PUT)
     public ResponseEntity changeOwner(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody AccountOwner owner,
@@ -178,14 +178,9 @@ public class PersonalAccountRestController extends CommonRestController {
             } else {
                 accountOwnerHelper.setFields(currentOwner, owner);
             }
-
-            owner.setId(currentOwner.getId());
-            owner.setVersion(currentOwner.getVersion());
         }
 
-        owner.setPersonalAccountId(accountId);
-
-        accountOwnerRepository.save(owner);
+        accountOwnerRepository.save(currentOwner);
 
         //Запишем инфу о произведенном изменении владельца в историю клиента
         String operator = request.getUserPrincipal().getName();
