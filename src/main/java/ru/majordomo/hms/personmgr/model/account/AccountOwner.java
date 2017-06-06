@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.model.account;
 import org.hibernate.validator.constraints.NotBlank;
 import org.hibernate.validator.group.GroupSequenceProvider;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.validation.annotation.Validated;
 
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.validation.UniquePersonalAccountIdModel;
@@ -14,6 +15,7 @@ import javax.validation.constraints.NotNull;
 @Document
 @UniquePersonalAccountIdModel(AccountOwner.class)
 @GroupSequenceProvider(value = AccountOwnerGroupSequenceProvider.class)
+@Validated
 public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
     public enum Type {
         INDIVIDUAL,

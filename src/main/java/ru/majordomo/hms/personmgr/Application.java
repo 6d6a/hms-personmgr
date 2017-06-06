@@ -14,13 +14,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.netflix.feign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.support.MessageSourceAccessor;
-import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
-import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventListener;
-import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
-import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 
 import ru.majordomo.hms.personmgr.serializer.PageSerializer;
 import ru.majordomo.hms.personmgr.service.importing.DBImportService;
@@ -80,42 +74,6 @@ public class Application implements CommandLineRunner {
         } else {
             logger.info("Launched personal manager without dbImportService Autowired");
         }
-    }
-
-    @Bean
-    public ValidatingMongoEventListener validatingMongoEventListener() {
-        return new ValidatingMongoEventListener(validator());
-    }
-
-    @Bean
-    public LocalValidatorFactoryBean validator() {
-        LocalValidatorFactoryBean validatorFactoryBean = new LocalValidatorFactoryBean();
-        validatorFactoryBean.setValidationMessageSource(messageSource());
-        return validatorFactoryBean;
-    }
-
-    @Bean
-    public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
-        return new PropertySourcesPlaceholderConfigurer();
-    }
-
-    @Bean
-    public ReloadableResourceBundleMessageSource messageSource() {
-        ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();
-        messageSource.setBasename("classpath:messages/messages");
-        return messageSource;
-    }
-
-    @Bean
-    public MethodValidationPostProcessor methodValidationPostProcessor() {
-        MethodValidationPostProcessor methodValidationPostProcessor = new MethodValidationPostProcessor();
-        methodValidationPostProcessor.setValidator(validator());
-        return methodValidationPostProcessor;
-    }
-
-    @Bean
-    public MessageSourceAccessor messageSourceAccessor() {
-        return new MessageSourceAccessor(messageSource());
     }
 
     @Bean
