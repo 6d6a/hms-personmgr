@@ -23,72 +23,67 @@ public class AccountOwnerHelper {
             throw new ParameterWithRoleSecurityException("Изменение поля 'имя/наименование' запрещено");
         }
 
-        if (currentAccountOwner.getPassport() != null &&
-                accountOwner.getPassport() != null
+        if (currentAccountOwner.getPersonalInfo() != null &&
+                accountOwner.getPersonalInfo() != null
                 ) {
-            if (currentAccountOwner.getPassport().getNumber() != null &&
-                    accountOwner.getPassport().getNumber() != null &&
-                    !currentAccountOwner.getPassport().getNumber().equals(accountOwner.getPassport().getNumber())) {
+            if (currentAccountOwner.getPersonalInfo().getNumber() != null &&
+                    accountOwner.getPersonalInfo().getNumber() != null &&
+                    !currentAccountOwner.getPersonalInfo().getNumber().equals(accountOwner.getPersonalInfo().getNumber())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'серия и номера паспорта' запрещено");
             }
 
-            if (currentAccountOwner.getPassport().getIssuedDate() != null &&
-                    accountOwner.getPassport().getIssuedDate() != null &&
-                    !currentAccountOwner.getPassport().getIssuedDate().equals(accountOwner.getPassport().getIssuedDate())) {
+            if (currentAccountOwner.getPersonalInfo().getIssuedDate() != null &&
+                    accountOwner.getPersonalInfo().getIssuedDate() != null &&
+                    !currentAccountOwner.getPersonalInfo().getIssuedDate().equals(accountOwner.getPersonalInfo().getIssuedDate())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'дата выдачи паспорта' запрещено");
             }
 
-            if (currentAccountOwner.getPassport().getIssuedOrg() != null &&
-                    accountOwner.getPassport().getIssuedOrg() != null &&
-                    !currentAccountOwner.getPassport().getIssuedOrg().equals(accountOwner.getPassport().getIssuedOrg())) {
+            if (currentAccountOwner.getPersonalInfo().getIssuedOrg() != null &&
+                    accountOwner.getPersonalInfo().getIssuedOrg() != null &&
+                    !currentAccountOwner.getPersonalInfo().getIssuedOrg().equals(accountOwner.getPersonalInfo().getIssuedOrg())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'дата выдачи паспорта' запрещено");
             }
 
-            if (currentAccountOwner.getPassport().getAddress() != null &&
-                    accountOwner.getPassport().getAddress() != null &&
-                    !currentAccountOwner.getPassport().getAddress().equals(accountOwner.getPassport().getAddress())
+            if (currentAccountOwner.getPersonalInfo().getAddress() != null &&
+                    accountOwner.getPersonalInfo().getAddress() != null &&
+                    !currentAccountOwner.getPersonalInfo().getAddress().equals(accountOwner.getPersonalInfo().getAddress())
                     ) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'адрес регистрации' запрещено");
             }
-        }
 
-        if (currentAccountOwner.getLegalEntity() != null &&
-                accountOwner.getLegalEntity() != null &&
-                !currentAccountOwner.getLegalEntity().equals(accountOwner.getLegalEntity())
-                ) {
-            if (currentAccountOwner.getLegalEntity().getInn() != null &&
-                    accountOwner.getLegalEntity().getInn() != null &&
-                    !currentAccountOwner.getLegalEntity().getInn().equals(accountOwner.getLegalEntity().getInn())) {
+            if (currentAccountOwner.getPersonalInfo().getInn() != null &&
+                    accountOwner.getPersonalInfo().getInn() != null &&
+                    !currentAccountOwner.getPersonalInfo().getInn().equals(accountOwner.getPersonalInfo().getInn())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'ИНН' запрещено");
             }
 
-            if (currentAccountOwner.getLegalEntity().getKpp() != null &&
-                    accountOwner.getLegalEntity().getKpp() != null &&
-                    !currentAccountOwner.getLegalEntity().getKpp().equals(accountOwner.getLegalEntity().getKpp())) {
+            if (currentAccountOwner.getPersonalInfo().getKpp() != null &&
+                    accountOwner.getPersonalInfo().getKpp() != null &&
+                    !currentAccountOwner.getPersonalInfo().getKpp().equals(accountOwner.getPersonalInfo().getKpp())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'КПП' запрещено");
             }
 
-            if (currentAccountOwner.getLegalEntity().getOgrn() != null &&
-                    accountOwner.getLegalEntity().getOgrn() != null &&
-                    !currentAccountOwner.getLegalEntity().getOgrn().equals(accountOwner.getLegalEntity().getOgrn())) {
+            if (currentAccountOwner.getPersonalInfo().getOgrn() != null &&
+                    accountOwner.getPersonalInfo().getOgrn() != null &&
+                    !currentAccountOwner.getPersonalInfo().getOgrn().equals(accountOwner.getPersonalInfo().getOgrn())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'ОГРН' запрещено");
             }
 
-            if (currentAccountOwner.getLegalEntity().getOkpo() != null &&
-                    accountOwner.getLegalEntity().getOkpo() != null &&
-                    !currentAccountOwner.getLegalEntity().getOkpo().equals(accountOwner.getLegalEntity().getOkpo())) {
+            if (currentAccountOwner.getPersonalInfo().getOkpo() != null &&
+                    accountOwner.getPersonalInfo().getOkpo() != null &&
+                    !currentAccountOwner.getPersonalInfo().getOkpo().equals(accountOwner.getPersonalInfo().getOkpo())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'ОКПО' запрещено");
             }
 
-            if (currentAccountOwner.getLegalEntity().getOkvedCodes() != null &&
-                    accountOwner.getLegalEntity().getOkvedCodes() != null &&
-                    !currentAccountOwner.getLegalEntity().getOkvedCodes().equals(accountOwner.getLegalEntity().getOkvedCodes())) {
+            if (currentAccountOwner.getPersonalInfo().getOkvedCodes() != null &&
+                    accountOwner.getPersonalInfo().getOkvedCodes() != null &&
+                    !currentAccountOwner.getPersonalInfo().getOkvedCodes().equals(accountOwner.getPersonalInfo().getOkvedCodes())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'ОКВЭД' запрещено");
             }
 
-            if (currentAccountOwner.getLegalEntity().getAddress() != null &&
-                    accountOwner.getLegalEntity().getAddress() != null &&
-                    !currentAccountOwner.getLegalEntity().getAddress().equals(accountOwner.getLegalEntity().getAddress())
+            if (currentAccountOwner.getPersonalInfo().getAddress() != null &&
+                    accountOwner.getPersonalInfo().getAddress() != null &&
+                    !currentAccountOwner.getPersonalInfo().getAddress().equals(accountOwner.getPersonalInfo().getAddress())
                     ) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'юридический адрес' запрещено");
             }
@@ -108,16 +103,10 @@ public class AccountOwnerHelper {
             currentAccountOwner.setName(accountOwner.getName());
         }
 
-        if (currentAccountOwner.getPassport() == null &&
-                accountOwner.getPassport() != null
+        if (currentAccountOwner.getPersonalInfo() == null &&
+                accountOwner.getPersonalInfo() != null
                 ) {
-            currentAccountOwner.setPassport(accountOwner.getPassport());
-        }
-
-        if (currentAccountOwner.getLegalEntity() == null &&
-                accountOwner.getLegalEntity() != null
-                ) {
-            currentAccountOwner.setLegalEntity(accountOwner.getLegalEntity());
+            currentAccountOwner.setPersonalInfo(accountOwner.getPersonalInfo());
         }
 
         setAllowedFields(currentAccountOwner, accountOwner);
@@ -126,15 +115,12 @@ public class AccountOwnerHelper {
     public void setFields(AccountOwner currentAccountOwner, AccountOwner accountOwner) {
         currentAccountOwner.setType(accountOwner.getType());
         currentAccountOwner.setName(accountOwner.getName());
-        currentAccountOwner.setPassport(accountOwner.getPassport());
-        currentAccountOwner.setLegalEntity(accountOwner.getLegalEntity());
+        currentAccountOwner.setPersonalInfo(accountOwner.getPersonalInfo());
 
         setAllowedFields(currentAccountOwner, accountOwner);
     }
 
     private void setAllowedFields(AccountOwner currentAccountOwner, AccountOwner accountOwner) {
-        currentAccountOwner.setPostalAddress(accountOwner.getPostalAddress());
-        currentAccountOwner.setPhoneNumbers(accountOwner.getPhoneNumbers());
-        currentAccountOwner.setEmailAddresses(accountOwner.getEmailAddresses());
+        currentAccountOwner.setContactInfo(accountOwner.getContactInfo());
     }
 }

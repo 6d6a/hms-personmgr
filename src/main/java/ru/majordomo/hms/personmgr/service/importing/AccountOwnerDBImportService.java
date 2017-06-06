@@ -9,9 +9,11 @@ import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
+import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.LegalEntity;
 import ru.majordomo.hms.personmgr.model.account.Passport;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalInfo;
 import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.rc.user.resources.Person;
@@ -65,6 +67,7 @@ public class AccountOwnerDBImportService {
 
         if (person != null) {
             accountOwner = AccountOwnerFromPerson(person);
+            logger.info("[pullOwner] person: " + person + " accountOwner: " + accountOwner);
         } else {
             logger.error("rcUserFeignClient.getPerson person == null");
             return;
@@ -77,12 +80,9 @@ public class AccountOwnerDBImportService {
     private AccountOwner AccountOwnerFromPerson(Person person) {
         AccountOwner accountOwner = new AccountOwner();
         accountOwner.setName(person.getName());
-        accountOwner.setEmailAddresses(person.getEmailAddresses());
-        accountOwner.setPhoneNumbers(person.getPhoneNumbers());
-        accountOwner.setPostalAddress(person.getPostalAddressAsString());
+        accountOwner.setContactInfo(contactInfoFromPerson(person));
         accountOwner.setPersonalAccountId(person.getAccountId());
-        accountOwner.setLegalEntity(LegalEntityFromRcLegalEntity(person.getLegalEntity()));
-        accountOwner.setPassport(PassportFromRcPassport(person.getPassport()));
+        accountOwner.setPersonalInfo(personalInfoFromPerson(person));
 
         if (person.getLegalEntity() != null) {
             accountOwner.setType(AccountOwner.Type.COMPANY);
@@ -93,38 +93,41 @@ public class AccountOwnerDBImportService {
         return accountOwner;
     }
 
-    private LegalEntity LegalEntityFromRcLegalEntity(ru.majordomo.hms.rc.user.resources.LegalEntity rcLegalEntity) {
-        if (rcLegalEntity == null) {
-            return null;
+    private PersonalInfo personalInfoFromPerson(Person person) {
+        PersonalInfo personalInfo = new PersonalInfo();
+
+        if (person.getLegalEntity() != null) {
+            personalInfo.setInn(person.getLegalEntity().getInn());
+            personalInfo.setOgrn(person.getLegalEntity().getOgrn());
+            personalInfo.setKpp(person.getLegalEntity().getKpp());
+            personalInfo.setOkpo(person.getLegalEntity().getOkpo());
+            personalInfo.setOkvedCodes(person.getLegalEntity().getOkvedCodes());
+            personalInfo.setAddress(person.getLegalEntity().getAddress());
         }
 
-        LegalEntity legalEntity = new LegalEntity();
-        legalEntity.setInn(rcLegalEntity.getInn());
-        legalEntity.setOgrn(rcLegalEntity.getOgrn());
-        legalEntity.setKpp(rcLegalEntity.getKpp());
-        legalEntity.setOkpo(rcLegalEntity.getOkpo());
-        legalEntity.setOkvedCodes(rcLegalEntity.getOkvedCodes());
-        legalEntity.setBankAccount(rcLegalEntity.getBankAccount());
-        legalEntity.setBankName(rcLegalEntity.getBankName());
-        legalEntity.setCorrespondentAccount(rcLegalEntity.getCorrespondentAccount());
-        legalEntity.setBik(rcLegalEntity.getBik());
-        legalEntity.setAddress(rcLegalEntity.getAddress());
+        if (person.getPassport() != null) {
+            personalInfo.setNumber(person.getPassport().getNumber());
+            personalInfo.setIssuedDate(person.getPassport().getIssuedDate());
+            personalInfo.setIssuedOrg(person.getPassport().getIssuedOrg());
+            personalInfo.setAddress(person.getPassport().getAddress());
+        }
 
-        return legalEntity;
+        return personalInfo;
     }
 
+    private ContactInfo contactInfoFromPerson(Person person) {
+        ContactInfo contactInfo = new ContactInfo();
+        contactInfo.setEmailAddresses(person.getEmailAddresses());
+        contactInfo.setPhoneNumbers(person.getPhoneNumbers());
+        contactInfo.setPostalAddress(person.getPostalAddressAsString());
 
-    private Passport PassportFromRcPassport(ru.majordomo.hms.rc.user.resources.Passport rcPassport) {
-        if (rcPassport == null) {
-            return null;
+        if (person.getLegalEntity() != null) {
+            contactInfo.setBankAccount(person.getLegalEntity().getBankAccount());
+            contactInfo.setBankName(person.getLegalEntity().getBankName());
+            contactInfo.setCorrespondentAccount(person.getLegalEntity().getCorrespondentAccount());
+            contactInfo.setBik(person.getLegalEntity().getBik());
         }
 
-        Passport passport = new Passport();
-        passport.setNumber(rcPassport.getNumber());
-        passport.setIssuedDate(rcPassport.getIssuedDate());
-        passport.setIssuedOrg(rcPassport.getIssuedOrg());
-        passport.setAddress(rcPassport.getAddress());
-
-        return passport;
+        return contactInfo;
     }
 }

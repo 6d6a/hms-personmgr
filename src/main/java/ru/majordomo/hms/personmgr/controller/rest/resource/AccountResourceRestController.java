@@ -19,6 +19,7 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
+import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
@@ -90,7 +91,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
 
         if (!agreement) {
             logger.debug("Agreement not accepted");
-            return this.createErrorResponse("Agreement not accepted");
+            return this.createErrorResponse("Необходимо согласится с условиями оферты");
         }
 
         //Create pm, si and fin account
@@ -101,7 +102,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
 
         if (plan == null) {
             logger.debug("No plan found with OldId: " + message.getParam("plan"));
-            return this.createErrorResponse("No plan found with OldId: " + message.getParam("plan"));
+            return this.createErrorResponse("Не найден тарифный план с id: " + message.getParam("plan"));
         }
 
         EmailValidator validator = EmailValidator.getInstance(true, true);
@@ -111,6 +112,15 @@ public class AccountResourceRestController extends CommonResourceRestController 
             if (!validator.isValid(emailAddress)) {
                 return this.createErrorResponse("Адрес " + emailAddress + " некорректен");
             }
+        }
+
+        AccountOwner.Type accountOwnerType;
+        try {
+            accountOwnerType = AccountOwner.Type.valueOf((String) message.getParam("type"));
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+            logger.debug("No or wrong type of accountOwner: " + message.getParam("type"));
+            return this.createErrorResponse("Не указан, либо неверно указан тип владельца аккаунта");
         }
 
         //Создаем PersonalAccount
@@ -130,11 +140,14 @@ public class AccountResourceRestController extends CommonResourceRestController 
         logger.debug("personalAccount saved: " + personalAccount.toString());
 
         //Сохраняем данные о владельце аккаунта
+        ContactInfo contactInfo = new ContactInfo();
+        contactInfo.setEmailAddresses(emails);
+
         AccountOwner accountOwner = new AccountOwner();
         accountOwner.setPersonalAccountId(personalAccount.getId());
-        accountOwner.setEmailAddresses(emails);
+        accountOwner.setContactInfo(contactInfo);
         accountOwner.setName((String) message.getParam("name"));
-        accountOwner.setType(AccountOwner.Type.valueOf((String) message.getParam("type")));
+        accountOwner.setType(accountOwnerType);
 
         accountOwnerRepository.insert(accountOwner);
         logger.debug("accountOwner saved: " + accountOwner.toString());

@@ -1,21 +1,19 @@
 package ru.majordomo.hms.personmgr.model.account;
 
 import org.hibernate.validator.constraints.NotBlank;
-import org.hibernate.validator.constraints.NotEmpty;
+import org.hibernate.validator.group.GroupSequenceProvider;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.validation.UniquePersonalAccountIdModel;
-import ru.majordomo.hms.personmgr.validation.ValidPhone;
-import ru.majordomo.hms.rc.user.resources.validation.ValidEmail;
+import ru.majordomo.hms.personmgr.validation.groupSequenceProvider.AccountOwnerGroupSequenceProvider;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
-import java.util.ArrayList;
-import java.util.List;
 
 @Document
 @UniquePersonalAccountIdModel(AccountOwner.class)
+@GroupSequenceProvider(value = AccountOwnerGroupSequenceProvider.class)
 public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
     public enum Type {
         INDIVIDUAL,
@@ -23,26 +21,18 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
         BUDGET_COMPANY
     }
 
-    @NotBlank
+    @NotBlank(message = "ФИО/Наименование организации владельца аккаунта должно быть указано")
     private String name;
 
-    @NotNull
+    @NotNull(message = "Должен быть указан тип владельца аккаунта")
     private Type type;
 
     @Valid
-    private List<@ValidPhone String> phoneNumbers = new ArrayList<>();
-
-    @NotEmpty(message = "Должен быть указан хотя бы 1 email адрес")
-    @Valid
-    private List<@ValidEmail String> emailAddresses = new ArrayList<>();
-
-    private String postalAddress;
+    @NotNull(message = "Контактные данные должны быть заполнены")
+    private ContactInfo contactInfo;
 
     @Valid
-    private Passport passport;
-
-    @Valid
-    private LegalEntity legalEntity;
+    private PersonalInfo personalInfo;
 
     public String getName() {
         return name;
@@ -60,44 +50,20 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
         this.type = type;
     }
 
-    public List<String> getPhoneNumbers() {
-        return phoneNumbers;
+    public ContactInfo getContactInfo() {
+        return contactInfo;
     }
 
-    public void setPhoneNumbers(List<String> phoneNumbers) {
-        this.phoneNumbers = phoneNumbers;
+    public void setContactInfo(ContactInfo contactInfo) {
+        this.contactInfo = contactInfo;
     }
 
-    public List<String> getEmailAddresses() {
-        return emailAddresses;
+    public PersonalInfo getPersonalInfo() {
+        return personalInfo;
     }
 
-    public void setEmailAddresses(List<String> emailAddresses) {
-        this.emailAddresses = emailAddresses;
-    }
-
-    public String getPostalAddress() {
-        return postalAddress;
-    }
-
-    public void setPostalAddress(String postalAddress) {
-        this.postalAddress = postalAddress;
-    }
-
-    public Passport getPassport() {
-        return passport;
-    }
-
-    public void setPassport(Passport passport) {
-        this.passport = passport;
-    }
-
-    public LegalEntity getLegalEntity() {
-        return legalEntity;
-    }
-
-    public void setLegalEntity(LegalEntity legalEntity) {
-        this.legalEntity = legalEntity;
+    public void setPersonalInfo(PersonalInfo personalInfo) {
+        this.personalInfo = personalInfo;
     }
 
     @Override
@@ -105,11 +71,8 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
         return "AccountOwner{" +
                 "name='" + name + '\'' +
                 ", type=" + type +
-                ", phoneNumbers=" + phoneNumbers +
-                ", emailAddresses=" + emailAddresses +
-                ", postalAddress=" + postalAddress +
-                ", passport=" + passport +
-                ", legalEntity=" + legalEntity +
+                ", contactInfo=" + contactInfo +
+                ", personalInfo=" + personalInfo +
                 "} " + super.toString();
     }
 }
