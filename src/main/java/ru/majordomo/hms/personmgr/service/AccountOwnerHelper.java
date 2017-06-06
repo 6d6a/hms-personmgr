@@ -45,31 +45,10 @@ public class AccountOwnerHelper {
             }
 
             if (currentAccountOwner.getPassport().getAddress() != null &&
-                    accountOwner.getPassport().getAddress() != null
+                    accountOwner.getPassport().getAddress() != null &&
+                    !currentAccountOwner.getPassport().getAddress().equals(accountOwner.getPassport().getAddress())
                     ) {
-                if (currentAccountOwner.getPassport().getAddress().getStreet() != null &&
-                        accountOwner.getPassport().getAddress().getStreet() != null &&
-                        !currentAccountOwner.getPassport().getAddress().getStreet().equals(accountOwner.getPassport().getAddress().getStreet())) {
-                    throw new ParameterWithRoleSecurityException("Изменение поля 'улица адреса регистрации' запрещено");
-                }
-
-                if (currentAccountOwner.getPassport().getAddress().getZip() != null &&
-                        accountOwner.getPassport().getAddress().getZip() != null &&
-                        !currentAccountOwner.getPassport().getAddress().getZip().equals(accountOwner.getPassport().getAddress().getZip())) {
-                    throw new ParameterWithRoleSecurityException("Изменение поля 'индекс адреса регистрации' запрещено");
-                }
-
-                if (currentAccountOwner.getPassport().getAddress().getCity() != null &&
-                        accountOwner.getPassport().getAddress().getCity() != null &&
-                        !currentAccountOwner.getPassport().getAddress().getCity().equals(accountOwner.getPassport().getAddress().getCity())) {
-                    throw new ParameterWithRoleSecurityException("Изменение поля 'город адреса регистрации' запрещено");
-                }
-
-                if (currentAccountOwner.getPassport().getAddress().getCountry() != null &&
-                        accountOwner.getPassport().getAddress().getCountry() != null &&
-                        !currentAccountOwner.getPassport().getAddress().getCountry().equals(accountOwner.getPassport().getAddress().getCountry())) {
-                    throw new ParameterWithRoleSecurityException("Изменение поля 'страна адреса регистрации' запрещено");
-                }
+                throw new ParameterWithRoleSecurityException("Изменение поля 'адрес регистрации' запрещено");
             }
         }
 
@@ -108,31 +87,10 @@ public class AccountOwnerHelper {
             }
 
             if (currentAccountOwner.getLegalEntity().getAddress() != null &&
-                    accountOwner.getLegalEntity().getAddress() != null
+                    accountOwner.getLegalEntity().getAddress() != null &&
+                    !currentAccountOwner.getLegalEntity().getAddress().equals(accountOwner.getLegalEntity().getAddress())
                     ) {
-                if (currentAccountOwner.getLegalEntity().getAddress().getStreet() != null &&
-                        accountOwner.getLegalEntity().getAddress().getStreet() != null &&
-                        !currentAccountOwner.getLegalEntity().getAddress().getStreet().equals(accountOwner.getLegalEntity().getAddress().getStreet())) {
-                    throw new ParameterWithRoleSecurityException("Изменение поля 'улица юридического адреса' запрещено");
-                }
-
-                if (currentAccountOwner.getLegalEntity().getAddress().getZip() != null &&
-                        accountOwner.getLegalEntity().getAddress().getZip() != null &&
-                        !currentAccountOwner.getLegalEntity().getAddress().getZip().equals(accountOwner.getLegalEntity().getAddress().getZip())) {
-                    throw new ParameterWithRoleSecurityException("Изменение поля 'индекс юридического адреса' запрещено");
-                }
-
-                if (currentAccountOwner.getLegalEntity().getAddress().getCity() != null &&
-                        accountOwner.getLegalEntity().getAddress().getCity() != null &&
-                        !currentAccountOwner.getLegalEntity().getAddress().getCity().equals(accountOwner.getLegalEntity().getAddress().getCity())) {
-                    throw new ParameterWithRoleSecurityException("Изменение поля 'город юридического адреса' запрещено");
-                }
-
-                if (currentAccountOwner.getLegalEntity().getAddress().getCountry() != null &&
-                        accountOwner.getLegalEntity().getAddress().getCountry() != null &&
-                        !currentAccountOwner.getLegalEntity().getAddress().getCountry().equals(accountOwner.getLegalEntity().getAddress().getCountry())) {
-                    throw new ParameterWithRoleSecurityException("Изменение поля 'страна юридического адреса' запрещено");
-                }
+                throw new ParameterWithRoleSecurityException("Изменение поля 'юридический адрес' запрещено");
             }
         }
     }

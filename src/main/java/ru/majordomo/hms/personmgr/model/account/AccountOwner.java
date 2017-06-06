@@ -36,8 +36,7 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
     @Valid
     private List<@ValidEmail String> emailAddresses = new ArrayList<>();
 
-    @Valid
-    private Address postalAddress;
+    private String postalAddress;
 
     @Valid
     private Passport passport;
@@ -77,11 +76,11 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
         this.emailAddresses = emailAddresses;
     }
 
-    public Address getPostalAddress() {
+    public String getPostalAddress() {
         return postalAddress;
     }
 
-    public void setPostalAddress(Address postalAddress) {
+    public void setPostalAddress(String postalAddress) {
         this.postalAddress = postalAddress;
     }
 

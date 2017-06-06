@@ -2,15 +2,12 @@ package ru.majordomo.hms.personmgr.model.account;
 
 import java.time.LocalDate;
 
-import javax.validation.Valid;
-
 public class Passport {
     private String number;
     private String issuedOrg;
     private LocalDate issuedDate;
 
-    @Valid
-    private Address address;
+    private String address;
 
     public String getNumber() {
         return number;
@@ -36,11 +33,11 @@ public class Passport {
         this.issuedDate = issuedDate;
     }
 
-    public Address getAddress() {
+    public String getAddress() {
         return address;
     }
 
-    public void setAddress(Address address) {
+    public void setAddress(String address) {
         this.address = address;
     }
 

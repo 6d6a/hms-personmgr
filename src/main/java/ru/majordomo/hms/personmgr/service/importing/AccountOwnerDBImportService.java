@@ -5,13 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
-import ru.majordomo.hms.personmgr.model.account.Address;
 import ru.majordomo.hms.personmgr.model.account.LegalEntity;
 import ru.majordomo.hms.personmgr.model.account.Passport;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -82,12 +79,7 @@ public class AccountOwnerDBImportService {
         accountOwner.setName(person.getName());
         accountOwner.setEmailAddresses(person.getEmailAddresses());
         accountOwner.setPhoneNumbers(person.getPhoneNumbers());
-
-        Address address = AddressFromString(person.getPostalAddressAsString());
-        address.setCountry(person.getCountry());
-
-        accountOwner.setPostalAddress(address);
-
+        accountOwner.setPostalAddress(person.getPostalAddressAsString());
         accountOwner.setPersonalAccountId(person.getAccountId());
         accountOwner.setLegalEntity(LegalEntityFromRcLegalEntity(person.getLegalEntity()));
         accountOwner.setPassport(PassportFromRcPassport(person.getPassport()));
@@ -116,7 +108,7 @@ public class AccountOwnerDBImportService {
         legalEntity.setBankName(rcLegalEntity.getBankName());
         legalEntity.setCorrespondentAccount(rcLegalEntity.getCorrespondentAccount());
         legalEntity.setBik(rcLegalEntity.getBik());
-        legalEntity.setAddress(AddressFromString(rcLegalEntity.getAddress()));
+        legalEntity.setAddress(rcLegalEntity.getAddress());
 
         return legalEntity;
     }
@@ -131,53 +123,8 @@ public class AccountOwnerDBImportService {
         passport.setNumber(rcPassport.getNumber());
         passport.setIssuedDate(rcPassport.getIssuedDate());
         passport.setIssuedOrg(rcPassport.getIssuedOrg());
-        passport.setAddress(AddressFromString(rcPassport.getAddress()));
+        passport.setAddress(rcPassport.getAddress());
 
         return passport;
-    }
-
-    private Address AddressFromString(String address) {
-        Address newAddress = new Address();
-
-        if (address != null && !address.isEmpty()) {
-
-            newAddress.setZip(findPostalIndexInAddressString(address));
-            if (newAddress.getZip() != null) {
-                address = address.replaceAll(newAddress.getZip() + "\\s?,?\\s?", "");
-            }
-
-            String[] addressParts = address.split(",");
-            if (addressParts.length < 2) {
-                addressParts = address.split(" ");
-            }
-
-            if (addressParts.length >= 2) {
-                StringBuilder streetBuilder = new StringBuilder();
-
-                newAddress.setCity(addressParts[0].trim());
-
-                for (int i = 1; i < addressParts.length; i++) {
-                    streetBuilder.append(addressParts[i].trim());
-                    streetBuilder.append(", ");
-                }
-
-                newAddress.setStreet(streetBuilder.toString().trim());
-                if (!newAddress.getStreet().isEmpty() && newAddress.getStreet().charAt(newAddress.getStreet().length() - 1) == ',') {
-                    newAddress.setStreet(newAddress.getStreet().substring(0, newAddress.getStreet().length() - 1));
-                }
-            } else {
-                newAddress.setStreet(address);
-            }
-        }
-
-        return newAddress;
-    }
-
-    private String findPostalIndexInAddressString(String address) {
-        String postalIndexPattern = "\\d{4,}";
-        Pattern pattern = Pattern.compile(postalIndexPattern);
-        Matcher matcher = pattern.matcher(address);
-
-        return matcher.find() ? matcher.group() : null;
     }
 }

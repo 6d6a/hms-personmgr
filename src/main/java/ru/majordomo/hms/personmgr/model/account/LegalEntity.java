@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.model.account;
 
-import javax.validation.Valid;
-
 public class LegalEntity {
     private String inn;
     private String okpo;
@@ -9,19 +7,18 @@ public class LegalEntity {
     private String ogrn;
     private String okvedCodes;
 
-    @Valid
-    private Address address;
+    private String address;
 
     private String bankName;
     private String bik;
     private String correspondentAccount;
     private String bankAccount;
 
-    public Address getAddress() {
+    public String getAddress() {
         return address;
     }
 
-    public void setAddress(Address address) {
+    public void setAddress(String address) {
         this.address = address;
     }
 
