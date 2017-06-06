@@ -21,6 +21,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalInfo;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -148,6 +149,14 @@ public class AccountResourceRestController extends CommonResourceRestController 
         accountOwner.setContactInfo(contactInfo);
         accountOwner.setName((String) message.getParam("name"));
         accountOwner.setType(accountOwnerType);
+
+        String inn = (String) message.getParam("inn");
+        if (inn != null) {
+            PersonalInfo personalInfo = new PersonalInfo();
+            personalInfo.setInn(inn);
+
+            accountOwner.setPersonalInfo(personalInfo);
+        }
 
         accountOwnerRepository.insert(accountOwner);
         logger.debug("accountOwner saved: " + accountOwner.toString());
