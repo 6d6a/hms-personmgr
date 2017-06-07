@@ -33,56 +33,55 @@ public class AccountOwnerHelper {
                 personalInfo != null
                 ) {
             if (currentPersonalInfo.getNumber() != null &&
-                    personalInfo.getNumber() != null &&
+                    !currentPersonalInfo.getNumber().equals("") &&
                     !currentPersonalInfo.getNumber().equals(personalInfo.getNumber())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'серия и номера паспорта' запрещено");
             }
 
             if (currentPersonalInfo.getIssuedDate() != null &&
-                    personalInfo.getIssuedDate() != null &&
                     !currentPersonalInfo.getIssuedDate().equals(personalInfo.getIssuedDate())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'дата выдачи паспорта' запрещено");
             }
 
             if (currentPersonalInfo.getIssuedOrg() != null &&
-                    personalInfo.getIssuedOrg() != null &&
+                    !currentPersonalInfo.getIssuedOrg().equals("") &&
                     !currentPersonalInfo.getIssuedOrg().equals(personalInfo.getIssuedOrg())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'дата выдачи паспорта' запрещено");
             }
 
             if (currentPersonalInfo.getAddress() != null &&
-                    personalInfo.getAddress() != null &&
+                    !currentPersonalInfo.getAddress().equals("") &&
                     !currentPersonalInfo.getAddress().equals(personalInfo.getAddress())
                     ) {
                 throw new ParameterWithRoleSecurityException("Изменение поля '" + addressLabel + "' запрещено");
             }
 
             if (currentPersonalInfo.getInn() != null &&
-                    personalInfo.getInn() != null &&
+                    !currentPersonalInfo.getInn().equals("") &&
                     !currentPersonalInfo.getInn().equals(personalInfo.getInn())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'ИНН' запрещено");
             }
 
             if (currentPersonalInfo.getKpp() != null &&
-                    personalInfo.getKpp() != null &&
+                    !currentPersonalInfo.getKpp().equals("") &&
                     !currentPersonalInfo.getKpp().equals(personalInfo.getKpp())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'КПП' запрещено");
             }
 
             if (currentPersonalInfo.getOgrn() != null &&
-                    personalInfo.getOgrn() != null &&
+                    !currentPersonalInfo.getOgrn().equals("") &&
                     !currentPersonalInfo.getOgrn().equals(personalInfo.getOgrn())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'ОГРН' запрещено");
             }
 
             if (currentPersonalInfo.getOkpo() != null &&
-                    personalInfo.getOkpo() != null &&
+                    !currentPersonalInfo.getOkpo().equals("") &&
                     !currentPersonalInfo.getOkpo().equals(personalInfo.getOkpo())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'ОКПО' запрещено");
             }
 
             if (currentPersonalInfo.getOkvedCodes() != null &&
-                    personalInfo.getOkvedCodes() != null &&
+                    !currentPersonalInfo.getOkvedCodes().equals("") &&
                     !currentPersonalInfo.getOkvedCodes().equals(personalInfo.getOkvedCodes())) {
                 throw new ParameterWithRoleSecurityException("Изменение поля 'ОКВЭД' запрещено");
             }
@@ -94,7 +93,9 @@ public class AccountOwnerHelper {
             currentAccountOwner.setType(accountOwner.getType());
         }
 
-        if (currentAccountOwner.getName() == null && accountOwner.getName() != null) {
+        if ((currentAccountOwner.getName() == null || currentAccountOwner.getName().equals(""))
+                && (accountOwner.getName() != null && accountOwner.getName().equals("")))
+        {
             currentAccountOwner.setName(accountOwner.getName());
         }
 
@@ -104,8 +105,8 @@ public class AccountOwnerHelper {
         if (currentPersonalInfo == null && personalInfo != null) {
             currentPersonalInfo = personalInfo;
         } else if (currentPersonalInfo != null && personalInfo != null) {
-            if (currentPersonalInfo.getNumber() == null &&
-                    personalInfo.getNumber() != null) {
+            if ((currentPersonalInfo.getNumber() == null || currentPersonalInfo.getNumber().equals("")) &&
+                    (personalInfo.getNumber() != null && !personalInfo.getNumber().equals(""))) {
                 currentPersonalInfo.setNumber(personalInfo.getNumber());
             }
 
@@ -114,38 +115,38 @@ public class AccountOwnerHelper {
                 currentPersonalInfo.setIssuedDate(personalInfo.getIssuedDate());
             }
 
-            if (currentPersonalInfo.getIssuedOrg() == null &&
-                    personalInfo.getIssuedOrg() != null) {
+            if ((currentPersonalInfo.getIssuedOrg() == null || currentPersonalInfo.getIssuedOrg().equals("")) &&
+                    (personalInfo.getIssuedOrg() != null && !personalInfo.getIssuedOrg().equals(""))) {
                 currentPersonalInfo.setIssuedOrg(personalInfo.getIssuedOrg());
             }
 
-            if (currentPersonalInfo.getAddress() == null &&
-                    personalInfo.getAddress() != null) {
+            if ((currentPersonalInfo.getAddress() == null || currentPersonalInfo.getAddress().equals("")) &&
+                    (personalInfo.getAddress() != null && !personalInfo.getAddress().equals(""))) {
                 currentPersonalInfo.setAddress(personalInfo.getAddress());
             }
 
-            if (currentPersonalInfo.getInn() == null &&
-                    personalInfo.getInn() != null) {
+            if ((currentPersonalInfo.getInn() == null || currentPersonalInfo.getInn().equals("")) &&
+                    (personalInfo.getInn() != null && !personalInfo.getInn().equals(""))) {
                 currentPersonalInfo.setInn(personalInfo.getInn());
             }
 
-            if (currentPersonalInfo.getKpp() == null &&
-                    personalInfo.getKpp() != null) {
+            if ((currentPersonalInfo.getKpp() == null || currentPersonalInfo.getKpp().equals("")) &&
+                    (personalInfo.getKpp() != null && !personalInfo.getKpp().equals(""))) {
                 currentPersonalInfo.setKpp(personalInfo.getKpp());
             }
 
-            if (currentPersonalInfo.getOgrn() == null &&
-                    personalInfo.getOgrn() != null) {
+            if ((currentPersonalInfo.getOgrn() == null || currentPersonalInfo.getOgrn().equals("")) &&
+                    (personalInfo.getOgrn() != null && !personalInfo.getOgrn().equals(""))) {
                 currentPersonalInfo.setOgrn(personalInfo.getOgrn());
             }
 
-            if (currentPersonalInfo.getOkpo() == null &&
-                    personalInfo.getOkpo() != null) {
+            if ((currentPersonalInfo.getOkpo() == null || currentPersonalInfo.getOkpo().equals("")) &&
+                    (personalInfo.getOkpo() != null && !personalInfo.getOkpo().equals(""))) {
                 currentPersonalInfo.setOkpo(personalInfo.getOkpo());
             }
 
-            if (currentPersonalInfo.getOkvedCodes() == null &&
-                    personalInfo.getOkvedCodes() != null) {
+            if ((currentPersonalInfo.getOkvedCodes() == null || currentPersonalInfo.getOkvedCodes().equals("")) &&
+                    (personalInfo.getOkvedCodes() != null && !personalInfo.getOkvedCodes().equals(""))) {
                 currentPersonalInfo.setOkvedCodes(personalInfo.getOkvedCodes());
             }
         }
