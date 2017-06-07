@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
+import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -410,8 +411,8 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        if (requestBody.get("credit") != null) {
-            Boolean credit = (Boolean)requestBody.get("credit");
+        if (requestBody.get(AccountSetting.CREDIT.name()) != null) {
+            Boolean credit = (Boolean)requestBody.get(AccountSetting.CREDIT.name());
             if (!credit) {
                 // Выключение кредита
                 if (account.isCredit() && account.getCreditActivationDate() != null) {
@@ -438,8 +439,8 @@ public class PersonalAccountRestController extends CommonRestController {
             publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
-        if (requestBody.get("addQuotaIfOverquoted") != null) {
-            Boolean addQuotaIfOverquoted = (Boolean) requestBody.get("addQuotaIfOverquoted");
+        if (requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED.name()) != null) {
+            Boolean addQuotaIfOverquoted = (Boolean) requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED.name());
             accountManager.setAddQuotaIfOverquoted(accountId, addQuotaIfOverquoted);
 
             //Save history
@@ -451,8 +452,8 @@ public class PersonalAccountRestController extends CommonRestController {
             publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
-        if (requestBody.get("autoBillSending") != null) {
-            Boolean autoBillSending = (Boolean) requestBody.get("autoBillSending");
+        if (requestBody.get(AccountSetting.AUTO_BILL_SENDING.name()) != null) {
+            Boolean autoBillSending = (Boolean) requestBody.get(AccountSetting.AUTO_BILL_SENDING.name());
             accountManager.setAutoBillSending(accountId, autoBillSending);
 
             //Save history
@@ -464,8 +465,8 @@ public class PersonalAccountRestController extends CommonRestController {
             publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
-        if (requestBody.get("notifyDays") != null) {
-            Integer notifyDays = (Integer) requestBody.get("notifyDays");
+        if (requestBody.get(AccountSetting.NOTIFY_DAYS.name()) != null) {
+            Integer notifyDays = (Integer) requestBody.get(AccountSetting.NOTIFY_DAYS.name());
             accountManager.setNotifyDays(accountId, notifyDays);
 
             //Save history
@@ -477,8 +478,8 @@ public class PersonalAccountRestController extends CommonRestController {
             publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
-        if (requestBody.get("SMSPhoneNumber") != null) {
-            String smsPhoneNumber = (String)requestBody.get("SMSPhoneNumber");
+        if (requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name()) != null) {
+            String smsPhoneNumber = (String)requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name());
             if (Utils.isPhoneValid(smsPhoneNumber)) {
                 accountManager.setSmsPhoneNumber(accountId, smsPhoneNumber);
 

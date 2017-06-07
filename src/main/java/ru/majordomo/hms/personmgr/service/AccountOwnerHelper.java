@@ -46,7 +46,7 @@ public class AccountOwnerHelper {
             if (currentPersonalInfo.getIssuedOrg() != null &&
                     !currentPersonalInfo.getIssuedOrg().equals("") &&
                     !currentPersonalInfo.getIssuedOrg().equals(personalInfo.getIssuedOrg())) {
-                throw new ParameterWithRoleSecurityException("Изменение поля 'дата выдачи паспорта' запрещено");
+                throw new ParameterWithRoleSecurityException("Изменение поля 'паспорт выдан' запрещено");
             }
 
             if (currentPersonalInfo.getAddress() != null &&
