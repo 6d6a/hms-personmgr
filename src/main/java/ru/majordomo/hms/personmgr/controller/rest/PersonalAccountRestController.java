@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -467,6 +469,12 @@ public class PersonalAccountRestController extends CommonRestController {
 
         if (requestBody.get(AccountSetting.NOTIFY_DAYS.name()) != null) {
             Integer notifyDays = (Integer) requestBody.get(AccountSetting.NOTIFY_DAYS.name());
+
+            Set<Integer> notifyDaysVariants = ImmutableSet.of(7, 14, 30);
+            if (!notifyDaysVariants.contains(notifyDays)) {
+                throw new ParameterValidationException("Установить срок отправки уведомлений возможно только на " + notifyDaysVariants + " дней");
+            }
+
             accountManager.setNotifyDays(accountId, notifyDays);
 
             //Save history
