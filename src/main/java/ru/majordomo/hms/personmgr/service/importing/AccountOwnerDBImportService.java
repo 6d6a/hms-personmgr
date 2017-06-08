@@ -10,8 +10,6 @@ import java.util.stream.Stream;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
-import ru.majordomo.hms.personmgr.model.account.LegalEntity;
-import ru.majordomo.hms.personmgr.model.account.Passport;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.PersonalInfo;
 import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
