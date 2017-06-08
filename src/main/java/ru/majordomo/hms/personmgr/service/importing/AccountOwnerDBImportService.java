@@ -39,7 +39,7 @@ public class AccountOwnerDBImportService {
     }
 
     public boolean importToMongo() {
-        accountOwnerRepository.deleteAll();
+//        accountOwnerRepository.deleteAll();
 
         try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
             personalAccountStream.forEach(this::pullOwner);
@@ -50,6 +50,11 @@ public class AccountOwnerDBImportService {
     private void pullOwner(PersonalAccount account) {
         if (account.getOwnerPersonId() == null) {
             return;
+        } else {
+            AccountOwner accountOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
+            if (accountOwner != null) {
+                accountOwnerRepository.delete(accountOwner);
+            }
         }
 
         AccountOwner accountOwner;
@@ -65,13 +70,17 @@ public class AccountOwnerDBImportService {
 
         if (person != null) {
             accountOwner = AccountOwnerFromPerson(person);
-            logger.info("[pullOwner] person: " + person + " accountOwner: " + accountOwner);
         } else {
             logger.error("rcUserFeignClient.getPerson person == null");
             return;
         }
 
-        accountOwnerRepository.insert(accountOwner);
+        try {
+            accountOwnerRepository.insert(accountOwner);
+        } catch (Exception e) {
+            logger.error("[pullOwner][Exception] person: " + person + " accountOwner: " + accountOwner + " exc: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
 
@@ -103,7 +112,7 @@ public class AccountOwnerDBImportService {
             personalInfo.setAddress(person.getLegalEntity().getAddress());
         }
 
-        if (person.getPassport() != null) {
+        if (person.getLegalEntity() == null && person.getPassport() != null) {
             personalInfo.setNumber(person.getPassport().getNumber());
             personalInfo.setIssuedDate(person.getPassport().getIssuedDate());
             personalInfo.setIssuedOrg(person.getPassport().getIssuedOrg());
