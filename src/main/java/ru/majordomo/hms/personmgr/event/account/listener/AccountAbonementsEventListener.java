@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 
 @Component

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.discount.AccountDiscount;
 import ru.majordomo.hms.personmgr.model.discount.Discount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;

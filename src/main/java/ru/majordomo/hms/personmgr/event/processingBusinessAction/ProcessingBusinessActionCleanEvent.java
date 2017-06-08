@@ -5,7 +5,7 @@ import org.springframework.context.ApplicationEvent;
 
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 
 public class ProcessingBusinessActionCleanEvent extends ApplicationEvent {
     private Map<String, ?> params;

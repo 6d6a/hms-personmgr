@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -20,12 +22,14 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
-import feign.FeignException;
+import ru.majordomo.hms.personmgr.common.AccountSetting;
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
@@ -34,18 +38,20 @@ import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.Token;
+import ru.majordomo.hms.personmgr.model.account.AccountOwner;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
+import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountOwnerHelper;
 import ru.majordomo.hms.personmgr.service.PlanChangeService;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.service.TokenHelper;
-import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
-import ru.majordomo.hms.rc.user.resources.Person;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
@@ -61,26 +67,32 @@ import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
 @Validated
 public class PersonalAccountRestController extends CommonRestController {
     private final PlanRepository planRepository;
+    private final AccountOwnerRepository accountOwnerRepository;
     private final PlanChangeService planChangeService;
     private final RcUserFeignClient rcUserFeignClient;
     private final ApplicationEventPublisher publisher;
     private final AccountHelper accountHelper;
+    private final AccountOwnerHelper accountOwnerHelper;
     private final TokenHelper tokenHelper;
 
     @Autowired
     public PersonalAccountRestController(
             PlanRepository planRepository,
+            AccountOwnerRepository accountOwnerRepository,
             PlanChangeService planChangeService,
             RcUserFeignClient rcUserFeignClient,
             ApplicationEventPublisher publisher,
             AccountHelper accountHelper,
+            AccountOwnerHelper accountOwnerHelper,
             TokenHelper tokenHelper
     ) {
         this.planRepository = planRepository;
+        this.accountOwnerRepository = accountOwnerRepository;
         this.planChangeService = planChangeService;
         this.rcUserFeignClient = rcUserFeignClient;
         this.publisher = publisher;
         this.accountHelper = accountHelper;
+        this.accountOwnerHelper = accountOwnerHelper;
         this.tokenHelper = tokenHelper;
     }
 
@@ -154,77 +166,53 @@ public class PersonalAccountRestController extends CommonRestController {
     }
 
     @RequestMapping(value = "/{accountId}/owner",
-                    method = RequestMethod.POST)
+                    method = RequestMethod.PUT)
     public ResponseEntity changeOwner(
-            @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, String> owner
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody AccountOwner owner,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
+        AccountOwner currentOwner = accountOwnerRepository.findOneByPersonalAccountId(accountId);
 
-        if (owner.get("personId") == null) {
-            return new ResponseEntity(HttpStatus.BAD_REQUEST);
-        }
-
-        Person currentPerson = null;
-
-        if (account.getOwnerPersonId() != null) {
-            try {
-                currentPerson = rcUserFeignClient.getPerson(accountId, account.getOwnerPersonId());
-            } catch (FeignException e) {
-                return new ResponseEntity(HttpStatus.NOT_FOUND);
-            }
-        }
-
-        Person person;
-
-        try {
-            person = rcUserFeignClient.getPerson(accountId, owner.get("personId"));
-        } catch (FeignException e) {
-            return new ResponseEntity(HttpStatus.NOT_FOUND);
-        }
-
-        if (person != null) {
-
-            if (currentPerson != null && (person.getLegalEntity() != null || currentPerson.getLegalEntity() != null)) {
-                return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        if (currentOwner != null) {
+            if (!request.isUserInRole("ADMIN")) {
+                accountOwnerHelper.checkNotEmptyFields(currentOwner, owner);
+                accountOwnerHelper.setEmptyAndAllowedToEditFields(currentOwner, owner);
             } else {
-                accountManager.setOwnerPersonId(account.getId(), person.getId());
-
-                //Запишем инфу о произведенном изменении владельца в историю клиента
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Произведена смена владельца аккаунта Предудущий владелец: " +
-                        currentPerson +
-                        " Новый владелец: " + person
-                );
-                params.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+                accountOwnerHelper.setFields(currentOwner, owner);
             }
         }
+
+        accountOwnerRepository.save(currentOwner);
+
+        //Запишем инфу о произведенном изменении владельца в историю клиента
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Произведена смена владельца аккаунта Предыдущий владелец: " +
+                currentOwner +
+                " Новый владелец: " + owner
+        );
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
         return new ResponseEntity(HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{accountId}/owner",
                     method = RequestMethod.GET)
-    public ResponseEntity<Person> getOwner(
-            @PathVariable(value = "accountId") String accountId
+    public ResponseEntity<AccountOwner> getOwner(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        if (account.getOwnerPersonId() == null) {
+        AccountOwner accountOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
+
+        if (accountOwner == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        Person person;
-
-        try {
-            person = rcUserFeignClient.getPerson(accountId, account.getOwnerPersonId());
-        } catch (FeignException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-
-        return new ResponseEntity<>(person, HttpStatus.OK);
+        return new ResponseEntity<>(accountOwner, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{accountId}/password",
@@ -425,8 +413,8 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        if (requestBody.get("credit") != null) {
-            Boolean credit = (Boolean)requestBody.get("credit");
+        if (requestBody.get(AccountSetting.CREDIT.name()) != null) {
+            Boolean credit = (Boolean)requestBody.get(AccountSetting.CREDIT.name());
             if (!credit) {
                 // Выключение кредита
                 if (account.isCredit() && account.getCreditActivationDate() != null) {
@@ -453,8 +441,8 @@ public class PersonalAccountRestController extends CommonRestController {
             publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
-        if (requestBody.get("addQuotaIfOverquoted") != null) {
-            Boolean addQuotaIfOverquoted = (Boolean) requestBody.get("addQuotaIfOverquoted");
+        if (requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED.name()) != null) {
+            Boolean addQuotaIfOverquoted = (Boolean) requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED.name());
             accountManager.setAddQuotaIfOverquoted(accountId, addQuotaIfOverquoted);
 
             //Save history
@@ -466,8 +454,8 @@ public class PersonalAccountRestController extends CommonRestController {
             publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
-        if (requestBody.get("autoBillSending") != null) {
-            Boolean autoBillSending = (Boolean) requestBody.get("autoBillSending");
+        if (requestBody.get(AccountSetting.AUTO_BILL_SENDING.name()) != null) {
+            Boolean autoBillSending = (Boolean) requestBody.get(AccountSetting.AUTO_BILL_SENDING.name());
             accountManager.setAutoBillSending(accountId, autoBillSending);
 
             //Save history
@@ -479,8 +467,14 @@ public class PersonalAccountRestController extends CommonRestController {
             publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
-        if (requestBody.get("notifyDays") != null) {
-            Integer notifyDays = (Integer) requestBody.get("notifyDays");
+        if (requestBody.get(AccountSetting.NOTIFY_DAYS.name()) != null) {
+            Integer notifyDays = (Integer) requestBody.get(AccountSetting.NOTIFY_DAYS.name());
+
+            Set<Integer> notifyDaysVariants = ImmutableSet.of(7, 14, 30);
+            if (!notifyDaysVariants.contains(notifyDays)) {
+                throw new ParameterValidationException("Установить срок отправки уведомлений возможно только на " + notifyDaysVariants + " дней");
+            }
+
             accountManager.setNotifyDays(accountId, notifyDays);
 
             //Save history
@@ -492,8 +486,8 @@ public class PersonalAccountRestController extends CommonRestController {
             publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
-        if (requestBody.get("SMSPhoneNumber") != null) {
-            String smsPhoneNumber = (String)requestBody.get("SMSPhoneNumber");
+        if (requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name()) != null) {
+            String smsPhoneNumber = (String)requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name());
             if (Utils.isPhoneValid(smsPhoneNumber)) {
                 accountManager.setSmsPhoneNumber(accountId, smsPhoneNumber);
 
@@ -512,4 +506,27 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @RequestMapping(value = "/{accountId}/account/notifications",
+                    method = RequestMethod.PATCH)
+    public ResponseEntity<Object> setNotifications(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody Set<MailManagerMessageType> notifications,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Set<MailManagerMessageType> oldNotifications = account.getNotifications();
+
+        accountManager.setNotifications(accountId, notifications);
+
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + notifications + "]");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
 }

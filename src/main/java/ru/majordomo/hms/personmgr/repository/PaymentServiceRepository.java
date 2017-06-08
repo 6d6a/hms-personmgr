@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.repository;
 
-
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -12,7 +11,6 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
-import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 
 public interface PaymentServiceRepository extends MongoRepository<PaymentService, String>,

@@ -9,9 +9,9 @@ import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.processingBusinessAction.ProcessingBusinessActionNewEvent;
 import ru.majordomo.hms.personmgr.exception.BusinessActionNotFoundException;
-import ru.majordomo.hms.personmgr.model.BusinessAction;
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
+import ru.majordomo.hms.personmgr.model.business.BusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 

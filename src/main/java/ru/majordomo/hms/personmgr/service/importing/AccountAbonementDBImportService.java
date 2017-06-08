@@ -21,11 +21,10 @@ import javax.validation.ConstraintViolationException;
 
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.personmgr.service.AbonementService;
 
 /**
  * Сервис для загрузки первичных данных в БД

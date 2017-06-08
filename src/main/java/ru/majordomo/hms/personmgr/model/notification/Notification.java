@@ -1,31 +1,31 @@
 package ru.majordomo.hms.personmgr.model.notification;
 
-import org.springframework.data.annotation.Id;
+import com.fasterxml.jackson.annotation.JsonView;
+
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.common.Views;
+import ru.majordomo.hms.personmgr.model.BaseModel;
 
-/**
- * Notification
- */
 @Document
-public class Notification {
-    @Id
-    private String id;
-
+public class Notification extends BaseModel {
     @Indexed(unique = true)
+    @JsonView(Views.Public.class)
     private MailManagerMessageType type;
 
+    @JsonView(Views.Public.class)
     private String name;
 
+    @JsonView(Views.Internal.class)
     private String apiName;
 
     public Notification() {
     }
 
     public Notification(String id, MailManagerMessageType type, String name, String apiName) {
-        this.id = id;
+        this.setId(id);
         this.type = type;
         this.name = name;
         this.apiName = apiName;
@@ -35,14 +35,6 @@ public class Notification {
         this.type = type;
         this.name = name;
         this.apiName = apiName;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
     }
 
     public MailManagerMessageType getType() {
@@ -72,10 +64,9 @@ public class Notification {
     @Override
     public String toString() {
         return "Notification{" +
-                "id='" + id + '\'' +
-                ", type=" + type +
+                "type=" + type +
                 ", name='" + name + '\'' +
                 ", apiName='" + apiName + '\'' +
-                '}';
+                "} " + super.toString();
     }
 }

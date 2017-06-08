@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.repository;
 
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -12,8 +11,6 @@ import java.util.List;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 
 public interface AccountServiceRepository extends MongoRepository<AccountService,String> {
-    AccountService findOne(String id);
-    List<AccountService> findAll();
     AccountService findByPersonalAccountIdAndId(@Param("personalAccountId") String personalAccountId, @Param("id") String id);
     @RestResource(path = "findListByPersonalAccountId", rel = "findListByPersonalAccountId")
     List<AccountService> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId);

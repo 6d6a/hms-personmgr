@@ -1,7 +1,6 @@
 package ru.majordomo.hms.personmgr.querydsl;
 
 import com.querydsl.core.types.dsl.StringExpression;
-import com.querydsl.core.types.dsl.StringPath;
 
 import org.springframework.data.querydsl.binding.QuerydslBinderCustomizer;
 import org.springframework.data.querydsl.binding.QuerydslBindings;
@@ -9,7 +8,7 @@ import org.springframework.data.querydsl.binding.QuerydslBindings;
 import java.time.LocalDateTime;
 import java.util.Iterator;
 
-import ru.majordomo.hms.personmgr.model.QAccountHistory;
+import ru.majordomo.hms.personmgr.model.account.QAccountHistory;
 
 public class AccountHistoryQuerydslBinderCustomizer implements QuerydslBinderCustomizer<QAccountHistory> {
     @Override

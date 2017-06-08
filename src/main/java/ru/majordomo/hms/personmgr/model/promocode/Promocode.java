@@ -13,7 +13,7 @@ import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.model.BaseModel;
-import ru.majordomo.hms.personmgr.validators.ObjectIdList;
+import ru.majordomo.hms.personmgr.validation.ObjectIdList;
 
 /**
  * Promocode

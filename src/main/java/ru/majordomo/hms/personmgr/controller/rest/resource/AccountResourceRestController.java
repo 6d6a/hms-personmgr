@@ -18,11 +18,15 @@ import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
+import ru.majordomo.hms.personmgr.model.account.AccountOwner;
+import ru.majordomo.hms.personmgr.model.account.ContactInfo;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalInfo;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
@@ -45,6 +49,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
     private final PlanRepository planRepository;
     private final PromocodeProcessor promocodeProcessor;
     private final AccountServiceRepository accountServiceRepository;
+    private final AccountOwnerRepository accountOwnerRepository;
     private final PlanLimitsService planLimitsService;
     private final SiFeignClient siFeignClient;
     private final BusinessOperationBuilder businessOperationBuilder;
@@ -56,6 +61,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
             PlanRepository planRepository,
             PromocodeProcessor promocodeProcessor,
             AccountServiceRepository accountServiceRepository,
+            AccountOwnerRepository accountOwnerRepository,
             PlanLimitsService planLimitsService,
             SiFeignClient siFeignClient,
             BusinessOperationBuilder businessOperationBuilder
@@ -65,6 +71,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
         this.planRepository = planRepository;
         this.promocodeProcessor = promocodeProcessor;
         this.accountServiceRepository = accountServiceRepository;
+        this.accountOwnerRepository = accountOwnerRepository;
         this.planLimitsService = planLimitsService;
         this.siFeignClient = siFeignClient;
         this.businessOperationBuilder = businessOperationBuilder;
@@ -85,7 +92,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
 
         if (!agreement) {
             logger.debug("Agreement not accepted");
-            return this.createErrorResponse("Agreement not accepted");
+            return this.createErrorResponse("Необходимо согласится с условиями оферты");
         }
 
         //Create pm, si and fin account
@@ -96,7 +103,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
 
         if (plan == null) {
             logger.debug("No plan found with OldId: " + message.getParam("plan"));
-            return this.createErrorResponse("No plan found with OldId: " + message.getParam("plan"));
+            return this.createErrorResponse("Не найден тарифный план с id: " + message.getParam("plan"));
         }
 
         EmailValidator validator = EmailValidator.getInstance(true, true);
@@ -106,6 +113,15 @@ public class AccountResourceRestController extends CommonResourceRestController 
             if (!validator.isValid(emailAddress)) {
                 return this.createErrorResponse("Адрес " + emailAddress + " некорректен");
             }
+        }
+
+        AccountOwner.Type accountOwnerType;
+        try {
+            accountOwnerType = AccountOwner.Type.valueOf((String) message.getParam("type"));
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+            logger.debug("No or wrong type of accountOwner: " + message.getParam("type"));
+            return this.createErrorResponse("Не указан, либо неверно указан тип владельца аккаунта");
         }
 
         //Создаем PersonalAccount
@@ -123,6 +139,27 @@ public class AccountResourceRestController extends CommonResourceRestController 
 
         accountManager.insert(personalAccount);
         logger.debug("personalAccount saved: " + personalAccount.toString());
+
+        //Сохраняем данные о владельце аккаунта
+        ContactInfo contactInfo = new ContactInfo();
+        contactInfo.setEmailAddresses(emails);
+
+        AccountOwner accountOwner = new AccountOwner();
+        accountOwner.setPersonalAccountId(personalAccount.getId());
+        accountOwner.setContactInfo(contactInfo);
+        accountOwner.setName((String) message.getParam("name"));
+        accountOwner.setType(accountOwnerType);
+
+        String inn = (String) message.getParam("inn");
+        if (inn != null) {
+            PersonalInfo personalInfo = new PersonalInfo();
+            personalInfo.setInn(inn);
+
+            accountOwner.setPersonalInfo(personalInfo);
+        }
+
+        accountOwnerRepository.insert(accountOwner);
+        logger.debug("accountOwner saved: " + accountOwner.toString());
 
         //Создаем AccountService с выбранным тарифом
         AccountService service = new AccountService();

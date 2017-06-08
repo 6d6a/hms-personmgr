@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 import static ru.majordomo.hms.personmgr.common.Constants.TECHNICAL_ACCOUNT_ID;
 

@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestination;
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 
 @Service
 public class BusinessActionProcessor {

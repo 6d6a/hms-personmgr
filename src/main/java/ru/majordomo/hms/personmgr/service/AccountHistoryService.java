@@ -9,8 +9,8 @@ import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.AccountHistory;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.AccountHistory;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountHistoryRepository;
 
 @Service

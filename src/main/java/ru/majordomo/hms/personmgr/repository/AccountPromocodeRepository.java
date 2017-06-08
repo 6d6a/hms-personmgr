@@ -13,8 +13,6 @@ import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 
 public interface AccountPromocodeRepository extends MongoRepository<AccountPromocode, String>,
         QueryDslPredicateExecutor<AccountPromocode> {
-    AccountPromocode findOne(String id);
-    List<AccountPromocode> findAll();
     List<AccountPromocode> findByPromocodeId(@Param("promocodeId") String promocodeId);
     AccountPromocode findOneByPromocodeId(@Param("promocodeId") String promocodeId);
     AccountPromocode findByPromocodeIdAndOwnedByAccount(@Param("promocodeId") String promocodeId, @Param("ownedByAccount") boolean ownedByAccount);

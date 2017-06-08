@@ -21,13 +21,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.model.AccountHistory;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.QAccountHistory;
+import ru.majordomo.hms.personmgr.model.account.AccountHistory;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.QAccountHistory;
 import ru.majordomo.hms.personmgr.querydsl.AccountHistoryQuerydslBinderCustomizer;
 import ru.majordomo.hms.personmgr.repository.AccountHistoryRepository;
 import ru.majordomo.hms.personmgr.service.AccountHistoryService;
-import ru.majordomo.hms.personmgr.validators.ObjectId;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 @RestController
 @Validated

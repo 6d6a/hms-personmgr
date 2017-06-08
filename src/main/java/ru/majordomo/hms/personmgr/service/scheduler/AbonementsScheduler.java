@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 @Component
 public class AbonementsScheduler {

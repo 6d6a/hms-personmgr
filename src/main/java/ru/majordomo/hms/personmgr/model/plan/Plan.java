@@ -17,7 +17,7 @@ import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.validators.ObjectIdList;
+import ru.majordomo.hms.personmgr.validation.ObjectIdList;
 
 import static ru.majordomo.hms.personmgr.common.PlanSetting.SSL_CERTIFICATE_PROHIBITED;
 

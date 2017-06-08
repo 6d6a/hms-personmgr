@@ -11,7 +11,7 @@ import java.util.List;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.destination.MailManagerMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestination;
-import ru.majordomo.hms.personmgr.model.BusinessAction;
+import ru.majordomo.hms.personmgr.model.business.BusinessAction;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
 
 /**

@@ -2,9 +2,7 @@ package ru.majordomo.hms.personmgr.event.account;
 
 import org.springframework.context.ApplicationEvent;
 
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
-
-import java.util.Map;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 public class AccountNotifySupportOnChangePlanEvent extends ApplicationEvent {
 

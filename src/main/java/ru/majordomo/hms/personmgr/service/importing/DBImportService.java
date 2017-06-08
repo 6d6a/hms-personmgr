@@ -20,7 +20,6 @@ public class DBImportService {
     private final AccountPromocodeDBImportService accountPromocodeDBImportService;
     private final BonusPromocodeDBImportService bonusPromocodeDBImportService;
     private final DomainTldDBImportService domainTldDBImportService;
-    private final AccountDomainDBImportService accountDomainDBImportService;
     private final SeoServiceDBSeedService seoServiceDBSeedService;
     private final AccountAbonementDBImportService accountAbonementDBImportService;
     private final ServiceDBImportService serviceDBImportService;
@@ -28,6 +27,7 @@ public class DBImportService {
     private final AccountCommentDBImportService accountCommentDBImportService;
     private final PromotionDBSeedService promotionDBSeedService;
     private final AccountPromotionDBImportService accountPromotionDBImportService;
+    private final AccountOwnerDBImportService accountOwnerDBImportService;
 
     @Autowired
     public DBImportService(
@@ -35,7 +35,6 @@ public class DBImportService {
             BusinessActionDBSeedService businessActionDBSeedService,
             AccountHistoryDBImportService accountHistoryDBImportService,
             AccountServicesDBImportService accountServicesDBImportService,
-            AccountDomainDBImportService accountDomainDBImportService,
             AccountAbonementDBImportService accountAbonementDBImportService,
             ServiceDBImportService serviceDBImportService,
             NotificationDBImportService notificationDBImportService,
@@ -49,13 +48,13 @@ public class DBImportService {
             DomainTldDBImportService domainTldDBImportService,
             AccountCommentDBImportService accountCommentDBImportService,
             PromotionDBSeedService promotionDBSeedService,
-            AccountPromotionDBImportService accountPromotionDBImportService
+            AccountPromotionDBImportService accountPromotionDBImportService,
+            AccountOwnerDBImportService accountOwnerDBImportService
     ) {
         this.accountNotificationDBImportService = accountNotificationDBImportService;
         this.businessActionDBSeedService = businessActionDBSeedService;
         this.accountHistoryDBImportService = accountHistoryDBImportService;
         this.accountServicesDBImportService = accountServicesDBImportService;
-        this.accountDomainDBImportService = accountDomainDBImportService;
         this.accountAbonementDBImportService = accountAbonementDBImportService;
         this.serviceDBImportService = serviceDBImportService;
         this.notificationDBImportService = notificationDBImportService;
@@ -70,6 +69,7 @@ public class DBImportService {
         this.accountCommentDBImportService = accountCommentDBImportService;
         this.promotionDBSeedService = promotionDBSeedService;
         this.accountPromotionDBImportService = accountPromotionDBImportService;
+        this.accountOwnerDBImportService = accountOwnerDBImportService;
     }
 
     public boolean seedDB() {
@@ -137,6 +137,9 @@ public class DBImportService {
 //
 //        imported = accountPromotionDBImportService.importToMongo();
 //        logger.debug(imported ? "accountPromotion db_imported" : "accountPromotion db_not_imported");
+
+        imported = accountOwnerDBImportService.importToMongo();
+        logger.debug(imported ? "accountOwner db_imported" : "accountOwner db_not_imported");
 
         return true;
     }

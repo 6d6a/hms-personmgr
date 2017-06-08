@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.repository;
 
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -13,9 +12,7 @@ import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.rc.user.resources.DomainRegistrar;
 
 public interface DomainTldRepository extends MongoRepository<DomainTld, String> {
-    DomainTld findOne(String id);
     Page<DomainTld> findByRegistrar(@Param("registrar") DomainRegistrar registrar, Pageable pageable);
-    List<DomainTld> findAll();
     DomainTld findByTldAndRegistrar(@Param("tld") String tld, @Param("registrar") DomainRegistrar registrar);
     DomainTld findByTldAndActive(@Param("tld") String tld, @Param("active") boolean active);
     Page<DomainTld> findByTld(@Param("tld") String tld, Pageable pageable);

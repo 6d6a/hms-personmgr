@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
-import ru.majordomo.hms.personmgr.model.Token;
+import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.repository.TokenRepository;
 
 @Component

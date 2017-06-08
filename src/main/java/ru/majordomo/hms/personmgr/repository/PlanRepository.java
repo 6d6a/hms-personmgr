@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.repository;
 
-
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;

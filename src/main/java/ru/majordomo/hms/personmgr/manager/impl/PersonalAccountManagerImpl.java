@@ -14,12 +14,14 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountType;
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
 import static ru.majordomo.hms.personmgr.common.AccountSetting.ADD_QUOTA_IF_OVERQUOTED;
@@ -303,6 +305,16 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
 
         Query query = new Query(new Criteria("_id").is(id));
         Update update = new Update().unset("settings." + name);
+
+        mongoOperations.updateFirst(query, update, PersonalAccount.class);
+    }
+
+    @Override
+    public void setNotifications(String id, Set<MailManagerMessageType> notifications) {
+        checkById(id);
+
+        Query query = new Query(new Criteria("_id").is(id));
+        Update update = new Update().set("notifications", notifications);
 
         mongoOperations.updateFirst(query, update, PersonalAccount.class);
     }

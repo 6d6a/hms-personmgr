@@ -5,11 +5,13 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountType;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 public interface PersonalAccountManager {
     boolean exists(String id);
@@ -85,4 +87,6 @@ public interface PersonalAccountManager {
     void setSettingByName(String accountId, AccountSetting name, Object value);
 
     void removeSettingByName(String accountId, AccountSetting name);
+
+    void setNotifications(String id, Set<MailManagerMessageType> notifications);
 }

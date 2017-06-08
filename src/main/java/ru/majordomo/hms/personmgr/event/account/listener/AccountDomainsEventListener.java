@@ -15,7 +15,7 @@ import ru.majordomo.hms.personmgr.event.account.AccountDomainAutoRenewCompletedE
 import ru.majordomo.hms.personmgr.event.account.AccountProcessDomainsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringDomainsEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.DomainService;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.rc.user.resources.Domain;

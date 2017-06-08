@@ -27,6 +27,7 @@ import javax.validation.ConstraintViolationException;
 import ru.majordomo.hms.personmgr.common.message.ErrorMessage;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 
 @ControllerAdvice
 public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionHandler {
@@ -50,7 +51,13 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
 
-    @ExceptionHandler({ ParameterValidationException.class, DataIntegrityViolationException.class, LowBalanceException.class })
+    @ExceptionHandler(
+            {
+                    ParameterValidationException.class,
+                    DataIntegrityViolationException.class,
+                    LowBalanceException.class
+            }
+    )
     public ResponseEntity<Object> handleBadRequest(
             final RuntimeException ex,
             final WebRequest request
@@ -61,6 +68,19 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
                 new HashMap<>()
         );
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler({ParameterWithRoleSecurityException.class})
+    public ResponseEntity<Object> handleSecurityException(
+            final ParameterWithRoleSecurityException ex,
+            final WebRequest request
+    ) {
+        final ErrorMessage bodyOfResponse = new ErrorMessage(
+                HttpStatus.FORBIDDEN.value(),
+                ex.getMessage(),
+                new HashMap<>()
+        );
+        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.FORBIDDEN, request);
     }
 
     @ExceptionHandler({ DecodeException.class})

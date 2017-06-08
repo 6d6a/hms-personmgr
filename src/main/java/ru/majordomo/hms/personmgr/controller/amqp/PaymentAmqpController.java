@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountPromotionProcessByPaymentCreatedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSwitchByPaymentCreatedEvent;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -6,7 +6,7 @@ import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventLis
 import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
 import org.springframework.stereotype.Component;
 
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 
 @Component
 public class ProcessingBusinessActionMongoEventListener extends AbstractMongoEventListener<ProcessingBusinessAction> {

@@ -11,15 +11,17 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
-import ru.majordomo.hms.personmgr.model.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.ProcessingBusinessOperation;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
@@ -28,6 +30,8 @@ import ru.majordomo.hms.personmgr.service.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF;
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT;
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @EnableRabbit
 @Service
@@ -113,8 +117,20 @@ public class AccountAmqpController extends CommonAmqpController {
 
                             if (businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
                                 message.setParams(businessOperation.getParams());
-                                //Создадим персону
-                                businessActionBuilder.build(BusinessActionType.PERSON_CREATE_RC, message);
+                                message.addParam("quota", (Long) businessOperation.getParams().get("quota") * 1024);
+                                businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
+
+                                try {
+                                    //Save history
+                                    Map<String, String> params = new HashMap<>();
+                                    params.put(HISTORY_MESSAGE_KEY, "Заявка на первичное создание UNIX-аккаунта отправлена (имя: " + message.getParam("name") + ")");
+                                    params.put(OPERATOR_KEY, "service");
+
+                                    publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.AccountAmqpController.create " + e.getMessage());
+                                }
                             }
                         }
                     } else {
