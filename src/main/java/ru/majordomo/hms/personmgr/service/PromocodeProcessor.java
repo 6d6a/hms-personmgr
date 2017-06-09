@@ -272,6 +272,8 @@ public class PromocodeProcessor {
                         if (bonusAbonementId != null) {
                             abonementService.addAbonement(account, bonusAbonementId, false);
 
+                            accountHelper.switchAccountResources(account, true);
+
                             //Save history
                             Map<String, String> params = new HashMap<>();
                             params.put(HISTORY_MESSAGE_KEY, "Добавлен абонемент при использовании промокода " + accountPromocode.getPromocode().getCode());
