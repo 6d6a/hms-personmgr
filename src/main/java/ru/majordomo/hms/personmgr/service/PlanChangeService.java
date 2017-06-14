@@ -30,6 +30,7 @@ import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
 
 import static java.lang.Math.floor;
 import static java.time.temporal.ChronoUnit.DAYS;
@@ -184,6 +185,8 @@ public class PlanChangeService {
                 }
             }
             processAbonementOnlyPlans(account, currentPlan, newPlan);
+
+
 
             //Произведем нужные действия со всеми услугами
             processServices(account, currentPlan, newPlan);
@@ -715,7 +718,7 @@ public class PlanChangeService {
         Long freeLimit = planLimitsService.getQuotaKBFreeLimit(newPlan);
         if (planChangeComparator(count, freeLimit * 1024) > 0) {
             throw new ParameterValidationException("Использованная квота превышает лимит на новом тарифном плане. "  +
-                    "Текущая квота: " + count + " Лимит: " + freeLimit);
+                    "Текущая квота: " + (count / 1048576) + " MB Лимит: " + (freeLimit / 1024) + " MB");
         }
     }
 

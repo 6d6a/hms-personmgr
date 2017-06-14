@@ -623,6 +623,7 @@ public class AccountHelper {
         }
     }
 
+    //quota должна передаваться в байтах, как она будет записана в rc-user
     public void updateUnixAccountQuota(PersonalAccount account, Long quota) {
         try {
 

@@ -101,11 +101,11 @@ public class AccountQuotaService {
                 logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
                         + " account isAddQuotaIfOverquoted == true");
 
-                if (currentQuotaUsed != planQuotaKBFreeLimit + additionalServiceQuota) {
+                if (currentQuotaUsed != ((planQuotaKBFreeLimit + additionalServiceQuota) * 1024)) {
                     logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
                             + " account quota is changed");
 
-                    if (currentQuotaUsed > planQuotaKBFreeLimit + additionalServiceQuota) {
+                    if (currentQuotaUsed > (planQuotaKBFreeLimit + additionalServiceQuota) * 1024) {
                         logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
                                 + " account quota is increased");
 
@@ -149,6 +149,10 @@ public class AccountQuotaService {
 
                 accountServiceHelper.deleteAccountServiceByServiceId(account, quotaServiceId);
             }
+
+            if (currentQuotaUsed != (planQuotaKBFreeLimit * 1024)) {
+                accountHelper.updateUnixAccountQuota(account, (planQuotaKBFreeLimit * 1024));
+            }
         }
     }
 
@@ -171,8 +175,8 @@ public class AccountQuotaService {
             Long additionalServiceQuota,
             Long oneServiceCapacity
     ) {
-        if (currentQuotaUsed != planQuotaKBFreeLimit + additionalServiceQuota) {
-            int notFreeQuotaCount = (int) ceil((currentQuotaUsed - planQuotaKBFreeLimit) / oneServiceCapacity);
+        if (currentQuotaUsed != (planQuotaKBFreeLimit + additionalServiceQuota) * 1024) {
+            int notFreeQuotaCount = (int) ceil((currentQuotaUsed - (planQuotaKBFreeLimit * 1024)) / (oneServiceCapacity  * 1024));
             accountServiceHelper.updateAccountService(account, serviceId, notFreeQuotaCount);
 
             logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
@@ -181,7 +185,7 @@ public class AccountQuotaService {
                     + " additionalServiceQuota: " + additionalServiceQuota);
 
             //Обновить квоту только юникс-аккаунта
-            accountHelper.updateUnixAccountQuota(account, planQuotaKBFreeLimit + (ADDITIONAL_QUOTA_100_CAPACITY * notFreeQuotaCount));
+            accountHelper.updateUnixAccountQuota(account, (planQuotaKBFreeLimit + (ADDITIONAL_QUOTA_100_CAPACITY * notFreeQuotaCount)) * 1024);
         }
     }
 }
