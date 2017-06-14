@@ -23,12 +23,14 @@ import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 import ru.majordomo.hms.rc.user.resources.*;
@@ -53,6 +55,7 @@ public class AccountHelper {
     private final ApplicationEventPublisher publisher;
     private final AccountPromocodeRepository accountPromocodeRepository;
     private final PromocodeRepository promocodeRepository;
+    private final AccountOwnerRepository accountOwnerRepository;
 
     @Autowired
     public AccountHelper(
@@ -64,7 +67,8 @@ public class AccountHelper {
             PersonalAccountManager accountManager,
             ApplicationEventPublisher publisher,
             AccountPromocodeRepository accountPromocodeRepository,
-            PromocodeRepository promocodeRepository
+            PromocodeRepository promocodeRepository,
+            AccountOwnerRepository accountOwnerRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -75,23 +79,16 @@ public class AccountHelper {
         this.publisher = publisher;
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.promocodeRepository = promocodeRepository;
+        this.accountOwnerRepository = accountOwnerRepository;
     }
 
     public String getEmail(PersonalAccount account) {
         String clientEmails = "";
 
-        Person person = null;
-        if (account.getOwnerPersonId() != null) {
-            try {
-                person = rcUserFeignClient.getPerson(account.getId(), account.getOwnerPersonId());
-            } catch (Exception e) {
-                e.printStackTrace();
-                logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.getEmail " + e.getMessage());
-            }
-        }
+        AccountOwner currentOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
 
-        if (person != null) {
-            clientEmails = String.join(", ", person.getEmailAddresses());
+        if (currentOwner != null) {
+            clientEmails = String.join(", ", currentOwner.getContactInfo().getEmailAddresses());
         }
 
         return clientEmails;
