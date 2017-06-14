@@ -107,16 +107,13 @@ public class AccountOwnerDBImportService {
             personalInfo.setInn(person.getLegalEntity().getInn());
             personalInfo.setOgrn(person.getLegalEntity().getOgrn());
             personalInfo.setKpp(person.getLegalEntity().getKpp());
-            personalInfo.setOkpo(person.getLegalEntity().getOkpo());
-            personalInfo.setOkvedCodes(person.getLegalEntity().getOkvedCodes());
-            personalInfo.setAddress(person.getLegalEntity().getAddress());
+            personalInfo.setAddress(person.getLegalEntity().getAddress().toString());
         }
 
         if (person.getLegalEntity() == null && person.getPassport() != null) {
             personalInfo.setNumber(person.getPassport().getNumber());
             personalInfo.setIssuedDate(person.getPassport().getIssuedDate());
             personalInfo.setIssuedOrg(person.getPassport().getIssuedOrg());
-            personalInfo.setAddress(person.getPassport().getAddress());
         }
 
         return personalInfo;
