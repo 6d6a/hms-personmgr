@@ -624,7 +624,7 @@ public class AccountHelper {
     }
 
     //quota должна передаваться в байтах, как она будет записана в rc-user
-    public void updateUnixAccountQuota(PersonalAccount account, Long quota) {
+    public void updateUnixAccountQuota(PersonalAccount account, Long quotaInKB) {
         try {
 
             Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
@@ -634,13 +634,13 @@ public class AccountHelper {
                 message.setParams(new HashMap<>());
                 message.setAccountId(account.getId());
                 message.addParam("resourceId", unixAccount.getId());
-                message.addParam("quota", quota);
+                message.addParam("quota", quotaInKB);
 
                 businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
                 //Save history
                 Map<String, String> paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на установку новой квоты в значение '" + quota +
+                paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на установку новой квоты в значение '" + quotaInKB +
                         " байт' для UNIX-аккаунта '" + unixAccount.getName() + "'");
                 paramsHistory.put(OPERATOR_KEY, "service");
 
