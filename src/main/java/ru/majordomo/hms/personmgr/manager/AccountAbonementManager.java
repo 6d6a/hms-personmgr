@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 public interface AccountAbonementManager {
@@ -59,6 +60,8 @@ public interface AccountAbonementManager {
     List<AccountAbonement> findByPersonalAccountIdAndExpiredBeforeAndAutorenew(String personalAccountId, LocalDateTime expired, String autorenew);
 
     List<AccountAbonement> findByPersonalAccountIdAndAbonementId(String personalAccountId, String abonementId);
+
+    List<AccountAbonement> findByExpiredBetween(LocalDateTime d1, LocalDateTime d2);
 
     void setExpired(String id, LocalDateTime expired);
 
