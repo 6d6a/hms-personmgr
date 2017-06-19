@@ -8,6 +8,7 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.HashMap;
@@ -498,11 +499,11 @@ public class PlanChangeService {
 
             if (accountAbonement.getExpired().isAfter(LocalDateTime.now())) {
                 long remainingDays = DAYS.between(LocalDateTime.now(), accountAbonement.getExpired());
-                BigDecimal remainedServiceCost = (BigDecimal.valueOf(remainingDays))
-                        .multiply(
-                                abonement.getService().getCost()
-                                        .divide(BigDecimal.valueOf(365L), 2, BigDecimal.ROUND_DOWN)
-                        );
+                //Получим стоимость тарифа в день с точностью до семи знаков, округляя в меньшую сторону
+                BigDecimal dayCost = abonement.getService().getCost().divide(BigDecimal.valueOf(365L), 7, RoundingMode.DOWN);
+                BigDecimal remainedServiceCost = (BigDecimal.valueOf(remainingDays)).multiply(dayCost);
+                //Округлим до двух знаков в большую сторону
+                remainedServiceCost = remainedServiceCost.setScale(2, RoundingMode.HALF_UP);
 
                 if (remainedServiceCost.compareTo(BigDecimal.ZERO) > 0) {
                     Map<String, Object> payment = new HashMap<>();
