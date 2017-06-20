@@ -150,7 +150,7 @@ public class AccountQuotaService {
                 accountServiceHelper.deleteAccountServiceByServiceId(account, quotaServiceId);
             }
 
-            if (currentQuotaUsed != (planQuotaKBFreeLimit * 1024)) {
+            if (accountCountersService.getCurrentQuota(account.getId()) != (planQuotaKBFreeLimit * 1024)) {
                 accountHelper.updateUnixAccountQuota(account, (planQuotaKBFreeLimit * 1024));
             }
         }

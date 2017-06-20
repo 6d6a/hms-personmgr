@@ -24,9 +24,6 @@ public interface RcUserFeignClient {
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/ftp-user/count", consumes = "application/json")
     Count getFtpUserCount(@PathVariable("accountId") String accountId);
 
-    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/quota", consumes = "application/json")
-    Count getQuotaUsed(@PathVariable("accountId") String accountId);
-
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/unix-account")
     Collection<UnixAccount> getUnixAccounts(@PathVariable("accountId") String accountId);
 
