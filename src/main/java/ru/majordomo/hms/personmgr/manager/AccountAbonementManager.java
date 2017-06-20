@@ -61,8 +61,6 @@ public interface AccountAbonementManager {
 
     List<AccountAbonement> findByPersonalAccountIdAndAbonementId(String personalAccountId, String abonementId);
 
-    List<AccountAbonement> findByExpiredBetween(LocalDateTime d1, LocalDateTime d2);
-
     void setExpired(String id, LocalDateTime expired);
 
     void setAutorenew(String id, boolean autorenew);
