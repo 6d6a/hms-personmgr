@@ -54,8 +54,9 @@ public class AbonementsScheduler {
         logger.debug("Ended processAbonementsAutoRenew");
     }
 
-    //Выполняем отправку писем истекшим абонементам в 01:32:00 каждый день
-    @Scheduled(cron = "0 32 1 * * *")
+    //Выполняем отправку писем истекшим абонементом каждый день
+    //Настройки для ci.intr : проверка каждые 10 минут
+    @Scheduled(cron = "0 */10 * * * *")
     @SchedulerLock(name = "processNotifyExpiredAbonements")
     public void processNotifyExpiredAbonements() {
         logger.debug("Started processNotifyExpiredAbonements");
