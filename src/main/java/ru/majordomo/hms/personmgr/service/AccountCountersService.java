@@ -51,4 +51,16 @@ public class AccountCountersService {
 
         return currentQuota;
     }
+
+    public Long getCurrentQuota(String accountId) {
+        Long currentQuota = 0L;
+
+        Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
+        for (Quotable item : unixAccounts) {
+            Long itemQuota = item.getQuota() == null ? 0L : item.getQuota();
+            currentQuota += itemQuota;
+        }
+
+        return currentQuota;
+    }
 }
