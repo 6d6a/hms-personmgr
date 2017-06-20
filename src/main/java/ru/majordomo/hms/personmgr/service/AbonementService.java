@@ -21,18 +21,21 @@ import java.util.Optional;
 import java.util.Arrays;
 
 import ru.majordomo.hms.personmgr.common.AccountSetting;
+import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -48,6 +51,7 @@ public class AbonementService {
 
     private final PlanRepository planRepository;
     private final AccountAbonementManager accountAbonementManager;
+    private final AccountStatRepository accountStatRepository;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final ApplicationEventPublisher publisher;
@@ -58,12 +62,14 @@ public class AbonementService {
     public AbonementService(
             PlanRepository planRepository,
             AccountAbonementManager accountAbonementManager,
+            AccountStatRepository accountStatRepository,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
             ApplicationEventPublisher publisher
     ) {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
+        this.accountStatRepository = accountStatRepository;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
         this.publisher = publisher;
@@ -374,6 +380,18 @@ public class AbonementService {
      */
     private void processAccountAbonementDelete(PersonalAccount account, AccountAbonement accountAbonement) {
         accountAbonementManager.delete(accountAbonement);
+        AccountStat accountStat = new AccountStat();
+        accountStat.setPersonalAccountId(account.getId());
+        accountStat.setCreated(LocalDateTime.now());
+        accountStat.setType(AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE);
+
+        Map<String, String> data = new HashMap<>();
+        data.put("expireEnd", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        data.put("abonementId", accountAbonement.getAbonementId());
+
+        accountStat.setData(data);
+
+        accountStatRepository.save(accountStat);
 
         //Создаем AccountService с выбранным тарифом
         addPlanServicesAfterAbonementExpire(account);
