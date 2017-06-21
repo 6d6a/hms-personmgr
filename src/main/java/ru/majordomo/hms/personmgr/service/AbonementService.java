@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
@@ -379,6 +380,36 @@ public class AbonementService {
      * @param accountAbonement абонемента на аккаунте
      */
     private void processAccountAbonementDelete(PersonalAccount account, AccountAbonement accountAbonement) {
+
+        String emails = accountHelper.getEmail(account);
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setParams(new HashMap<>());
+        message.addParam("email", emails);
+        message.addParam("api_name", "MajordomoHmsAbonementEnd");
+        message.addParam("priority", 5);
+
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("acc_id", account.getName());
+
+        String doms = "";
+        List<Domain> domains = accountHelper.getDomains(account);
+        List<String> domainNames = new ArrayList<>();
+        if (!(domains.isEmpty())) {
+            for (Domain domain : domains) {
+                domainNames.add(domain.getName());
+            }
+            doms = "<br>" + String.join("<br>", domainNames);
+        }
+        parameters.put("domains", doms);
+        BigDecimal balance = accountHelper.getBalance(account).setScale(2, BigDecimal.ROUND_DOWN);
+        parameters.put("balance", balance.toString() + " рублей");
+        BigDecimal costAbonement = accountAbonement.getAbonement().getService().getCost().setScale(2, BigDecimal.ROUND_DOWN);
+        parameters.put("cost_per_year", costAbonement.toString());
+
+        message.addParam("parametrs", parameters);
+
+        publisher.publishEvent(new SendMailEvent(message));
+
         accountAbonementManager.delete(accountAbonement);
         AccountStat accountStat = new AccountStat();
         accountStat.setPersonalAccountId(account.getId());

@@ -145,13 +145,16 @@ public class AccountAbonementsEventListener {
                         HashMap<String, String> parameters = new HashMap<>();
                         parameters.put("acc_id", account.getName());
 
+                        String doms = "";
                         List<Domain> domains = accountHelper.getDomains(account);
                         List<String> domainNames = new ArrayList<>();
-                        for (Domain domain : domains) {
-                            domainNames.add(domain.getName());
+                        if (!(domains.isEmpty())) {
+                            for (Domain domain : domains) {
+                                domainNames.add(domain.getName());
+                            }
+                            doms = "<br>" + String.join("<br>", domainNames);
                         }
-
-                        parameters.put("domains", "<br>" + String.join("<br>", domainNames));
+                        parameters.put("domains", doms);
                         parameters.put("balance", balance.toString() + " рублей");
 
                         //так как активного абонемента уже нет, получаем стоимость абонемента через активный план
