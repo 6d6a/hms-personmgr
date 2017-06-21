@@ -5,7 +5,6 @@ import org.springframework.data.domain.Pageable;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 
 public interface AccountAbonementManager {
