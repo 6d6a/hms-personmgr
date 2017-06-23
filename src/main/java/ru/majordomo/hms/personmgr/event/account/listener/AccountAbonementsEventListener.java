@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountNotifyExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessNotifyExpiredAbonementsEvent;
@@ -99,14 +100,14 @@ public class AccountAbonementsEventListener {
         logger.debug("We got AccountProcessNotifyExpiredAbonementsEvent");
 
         //границы поиска за каждый из дней - полночь
-        LocalDateTime expireEnd = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime midnightToday = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
 
-        int[] days = {1, 3, 5, 10, 15, 20};
+        int[] daysAgo = {1, 3, 5, 10, 15, 20};
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+        DateTimeFormatter formatterDateTime = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         logger.debug("Trying to find all expired abonements for the last month on the date: "
-                + expireEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                + midnightToday.format(formatterDateTime)
         );
 
         List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
@@ -117,61 +118,77 @@ public class AccountAbonementsEventListener {
 
         if (accountStats.isEmpty()) {
             logger.debug("Not found expired abonements for accountId: " + account.getId() +
-                    "for the last month on date " + expireEnd.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-        } else {
-            for (int day : days) {
+                    "for the last month on date " + midnightToday.format(formatterDateTime));
+            return;}
+
+        //Не отправляем письма при активном абонементе
+        if (accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getAccountId(), LocalDateTime.now()).isEmpty()) {
+
+            LocalDateTime abonementExpiredDateTime = LocalDateTime.parse(accountStats.get(0).getData().get("expireEnd"), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+
+            for (int dayAgo : daysAgo) {
                 //Срок действия абонемента закончился. - через 1, 3, 5, 10, 15, 20 дней после окончания
-                if (LocalDateTime.parse(accountStats.get(0).getData().get("expireEnd"), formatter).isBefore(expireEnd.minusDays(day - 1)) &&
-                        LocalDateTime.parse(accountStats.get(0).getData().get("expireEnd"), formatter).isAfter(expireEnd.minusDays(day)))
+                if (abonementExpiredDateTime.isBefore(midnightToday.minusDays(dayAgo - 1)) &&
+                        abonementExpiredDateTime.isAfter(midnightToday.minusDays(dayAgo)))
                 {
                     BigDecimal balance = accountHelper.getBalance(account).setScale(2, BigDecimal.ROUND_DOWN);
                     Plan plan = planRepository.findOne(account.getPlanId());
-
-                    //не отправляется, если абонемент продлился автоматически
-                    //не отправляется, если хватает на 1 месяц хостинга по выбранному тарифу
-
+                    //не отправляется, если хватает на 1 месяц хостинга по выбранному тарифу после окончания абонемента
                     //берем текущий баланс и сравниваем его с
                     //стоимостью тарифа за месяц, деленной на 30 дней и умноженная на количество оставшихся дней с окончания абонемента
-                    if ((balance.compareTo((plan.getService().getCost().divide(new BigDecimal(30), BigDecimal.ROUND_FLOOR).multiply(new BigDecimal(30 - day)))) != 1)
-                            && accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getAccountId(), expireEnd).isEmpty()
-                            ) {
-                        String emails = accountHelper.getEmail(account);
-                        SimpleServiceMessage message = new SimpleServiceMessage();
-                        message.setParams(new HashMap<>());
-                        message.addParam("email", emails);
-                        message.addParam("api_name", "MajordomoHmsAbonementEnd");
-                        message.addParam("priority", 5);
+                    int balanceEnoughForOneMonth = balance.compareTo(
+                            (plan.getService().getCost().
+                                            divide(new BigDecimal(30), BigDecimal.ROUND_FLOOR).
+                                            multiply(new BigDecimal(30 - dayAgo))));
 
-                        HashMap<String, String> parameters = new HashMap<>();
-                        parameters.put("acc_id", account.getName());
-
-                        String doms = "";
-                        List<Domain> domains = accountHelper.getDomains(account);
-                        List<String> domainNames = new ArrayList<>();
-                        if (!(domains.isEmpty())) {
-                            for (Domain domain : domains) {
-                                domainNames.add(domain.getName());
-                            }
-                            doms = "<br>" + String.join("<br>", domainNames);
-                        }
-                        parameters.put("domains", doms);
-                        parameters.put("balance", balance.toString() + " рублей");
-
-                        //так как активного абонемента уже нет, получаем стоимость абонемента через активный план
-                        List<Abonement> abonements = plan.getAbonements()
-                                .stream().filter(
-                                        abonement -> abonement.getPeriod().equals("P1Y")
-                                ).collect(Collectors.toList());
-                        BigDecimal costAbonement = abonements.get(0).getService().getCost().setScale(2, BigDecimal.ROUND_DOWN);
-                        parameters.put("cost_per_year", costAbonement.toString());
-
-                        message.addParam("parametrs", parameters);
-
-                        publisher.publishEvent(new SendMailEvent(message));
+                    if (balanceEnoughForOneMonth != 1) {
+                        publisher.publishEvent(new AccountNotifyExpiredAbonementEvent(account));
+                        //Отправляем только одно письмо
                         break;
                     }
                 }
             }
         }
+    }
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountNotifyExpiredAbonementEvent(AccountNotifyExpiredAbonementEvent event) {
+        PersonalAccount account = event.getSource();
+
+        logger.debug("We got AccountNotifyExpiredAbonementEvent");
+
+        BigDecimal balance = accountHelper.getBalance(account).setScale(2, BigDecimal.ROUND_DOWN);
+        Plan plan = planRepository.findOne(account.getPlanId());
+
+        String emails = accountHelper.getEmail(account);
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setParams(new HashMap<>());
+        message.addParam("email", emails);
+        message.addParam("api_name", "MajordomoHmsAbonementEnd");
+        message.addParam("priority", 5);
+
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("acc_id", account.getName());
+
+        String domainsForEmail = "";
+        List<Domain> domains = accountHelper.getDomains(account);
+        if (!(domains.isEmpty())) {
+            domainsForEmail = domains.stream().map(Domain::getName).collect(Collectors.joining("<br>"));
+        }
+        parameters.put("domains", domainsForEmail);
+
+        parameters.put("balance", balance.toString() + " рублей");
+
+        //так как активного абонемента уже нет или он мог быть бесплатным тестовым, получаем стоимость абонемента через активный план
+        List<Abonement> abonements = plan.getAbonements()
+                .stream().filter(
+                        abonement -> abonement.getPeriod().equals("P1Y")
+                ).collect(Collectors.toList());
+        BigDecimal costAbonement = abonements.get(0).getService().getCost().setScale(2, BigDecimal.ROUND_DOWN);
+        parameters.put("cost_per_year", costAbonement.toString());
+
+        message.addParam("parametrs", parameters);
+
+        publisher.publishEvent(new SendMailEvent(message));
     }
 }
