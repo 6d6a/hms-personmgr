@@ -105,9 +105,9 @@ public class AccountAbonementsEventListener {
         int[] daysAgo = {1, 3, 5, 10, 15, 20};
 
 
-        DateTimeFormatter formatterDateTime = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         logger.debug("Trying to find all expired abonements for the last month on the date: "
-                + midnightToday.format(formatterDateTime)
+                + midnightToday.format(formatterDate)
         );
 
         List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
@@ -118,7 +118,7 @@ public class AccountAbonementsEventListener {
 
         if (accountStats.isEmpty()) {
             logger.debug("Not found expired abonements for accountId: " + account.getId() +
-                    "for the last month on date " + midnightToday.format(formatterDateTime));
+                    "for the last month on date " + midnightToday.format(formatterDate));
             return;}
 
         //Не отправляем письма при активном абонементе
@@ -136,12 +136,12 @@ public class AccountAbonementsEventListener {
                     //не отправляется, если хватает на 1 месяц хостинга по выбранному тарифу после окончания абонемента
                     //берем текущий баланс и сравниваем его с
                     //стоимостью тарифа за месяц, деленной на 30 дней и умноженная на количество оставшихся дней с окончания абонемента
-                    int balanceEnoughForOneMonth = balance.compareTo(
+                    boolean balanceEnoughForOneMonth = balance.compareTo(
                             (plan.getService().getCost().
                                             divide(new BigDecimal(30), BigDecimal.ROUND_FLOOR).
-                                            multiply(new BigDecimal(30 - dayAgo))));
+                                            multiply(new BigDecimal(30 - dayAgo)))) != 1;
 
-                    if (balanceEnoughForOneMonth != 1) {
+                    if (balanceEnoughForOneMonth) {
                         publisher.publishEvent(new AccountNotifyExpiredAbonementEvent(account));
                         //Отправляем только одно письмо
                         break;
