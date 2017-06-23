@@ -5,9 +5,9 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 import java.util.Map;
 
-public class AccountNotifyExpiredAbonementEvent extends ApplicationEvent {
+public class SendEmailWithExpiredAbonementEvent extends ApplicationEvent {
 
-    public AccountNotifyExpiredAbonementEvent(PersonalAccount source) {
+    public SendEmailWithExpiredAbonementEvent(PersonalAccount source) {
         super(source);
     }
 
