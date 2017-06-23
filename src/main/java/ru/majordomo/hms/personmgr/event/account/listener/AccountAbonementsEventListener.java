@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.account.SendEmailWithExpiredAbonementEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessNotifyExpiredAbonementsEvent;
@@ -142,7 +142,7 @@ public class AccountAbonementsEventListener {
                                             multiply(new BigDecimal(30 - dayAgo)))) != 1;
 
                     if (balanceEnoughForOneMonth) {
-                        publisher.publishEvent(new SendEmailWithExpiredAbonementEvent(account));
+                        publisher.publishEvent(new AccountSendEmailWithExpiredAbonementEvent(account));
                         //Отправляем только одно письмо
                         break;
                     }
@@ -152,10 +152,10 @@ public class AccountAbonementsEventListener {
     }
     @EventListener
     @Async("threadPoolTaskExecutor")
-    public void onSendEmailWithExpiredAbonementEvent(SendEmailWithExpiredAbonementEvent event) {
+    public void onAccountSendEmailWithExpiredAbonementEvent(AccountSendEmailWithExpiredAbonementEvent event) {
         PersonalAccount account = event.getSource();
 
-        logger.debug("We got AccountNotifyExpiredAbonementEvent");
+        logger.debug("We got AccountSendEmailWithExpiredAbonementEvent");
 
         BigDecimal balance = accountHelper.getBalance(account).setScale(2, BigDecimal.ROUND_DOWN);
         Plan plan = planRepository.findOne(account.getPlanId());

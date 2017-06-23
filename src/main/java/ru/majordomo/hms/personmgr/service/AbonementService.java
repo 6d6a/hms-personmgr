@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.account.SendEmailWithExpiredAbonementEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
@@ -383,7 +383,7 @@ public class AbonementService {
     private void processAccountAbonementDelete(PersonalAccount account, AccountAbonement accountAbonement) {
 
         accountAbonementManager.delete(accountAbonement);
-        publisher.publishEvent(new SendEmailWithExpiredAbonementEvent(account));
+        publisher.publishEvent(new AccountSendEmailWithExpiredAbonementEvent(account));
 
         AccountStat accountStat = new AccountStat();
         accountStat.setPersonalAccountId(account.getId());
