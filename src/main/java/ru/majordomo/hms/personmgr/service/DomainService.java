@@ -15,18 +15,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
+import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static ru.majordomo.hms.personmgr.common.Constants.AUTO_RENEW_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
@@ -47,6 +53,7 @@ public class DomainService {
     private final DomainTldService domainTldService;
     private final BusinessActionBuilder businessActionBuilder;
     private final ApplicationEventPublisher publisher;
+    private final DomainRegistrarFeignClient domainRegistrarFeignClient;
 
     @Autowired
     public DomainService(
@@ -54,13 +61,15 @@ public class DomainService {
             AccountHelper accountHelper,
             DomainTldService domainTldService,
             BusinessActionBuilder businessActionBuilder,
-            ApplicationEventPublisher publisher
+            ApplicationEventPublisher publisher,
+            DomainRegistrarFeignClient domainRegistrarFeignClient
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
         this.domainTldService = domainTldService;
         this.businessActionBuilder = businessActionBuilder;
         this.publisher = publisher;
+        this.domainRegistrarFeignClient = domainRegistrarFeignClient;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -244,5 +253,68 @@ public class DomainService {
 
             businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, domainRenewMessage);
         }
+    }
+
+    public BigDecimal getPrice(String domainName, List<AccountPromotion> accountPromotions) {
+        DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
+
+        if (domainTld == null) {
+            logger.error("Домен: " + domainName + " недоступен. Зона домена отсутствует в системе");
+            return null;
+        }
+
+        //Проверить домен на доступность/премиальность
+        AvailabilityInfo availabilityInfo = null;
+
+        try {
+            availabilityInfo = domainRegistrarFeignClient.getAvailabilityInfo(domainName);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (availabilityInfo == null) {
+            logger.error("Домен: " + domainName + ". Сервис регистрации недоступен.");
+            return null;
+        }
+
+        if (!availabilityInfo.getFree()) {
+            logger.error("Домен: " + domainName + " по данным whois занят.");
+            return null;
+        }
+
+        for (AccountPromotion accountPromotion : accountPromotions) {
+            Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
+            if (map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) != null && map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID)) {
+
+                PromocodeAction promocodeAction = accountPromotion.getActions().get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
+                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
+
+                if (availableTlds.contains(domainTld.getTld())) {
+                    map.put(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID, false);
+                    return BigDecimal.ZERO;
+                }
+            }
+        }
+
+        for (AccountPromotion accountPromotion : accountPromotions) {
+            Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
+            if (map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) != null && map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID)) {
+                PromocodeAction promocodeAction = accountPromotion.getActions().get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
+                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
+
+                if (availableTlds.contains(domainTld.getTld())) {
+                    map.put(DOMAIN_DISCOUNT_RU_RF_ACTION_ID, false);
+                    // Устанавливает цену со скидкой
+                    return BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost"));
+                }
+            }
+        }
+
+        //Проверить домен на премиальность, если да - установить новую цену
+        if (availabilityInfo.getPremiumPrice() != null && (availabilityInfo.getPremiumPrice().compareTo(BigDecimal.ZERO) > 0)) {
+            return availabilityInfo.getPremiumPrice();
+        }
+
+        return domainTld.getRegistrationService().getCost();
     }
 }
