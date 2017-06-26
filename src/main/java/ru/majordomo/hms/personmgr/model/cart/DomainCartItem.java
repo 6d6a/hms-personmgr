@@ -4,16 +4,18 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.data.annotation.Transient;
-import org.springframework.data.annotation.TypeAlias;
 
 import java.math.BigDecimal;
 
-import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.strategy.CartItemStrategy;
 import ru.majordomo.hms.personmgr.strategy.DomainCartItemStrategy;
 
-//@TypeAlias("DomainCartItem")
 public class DomainCartItem implements CartItem {
+    @Transient
+    @JsonIgnore
+    private final String TYPE = "Домен";
+
     @NotBlank
     private String name;
 
@@ -22,9 +24,17 @@ public class DomainCartItem implements CartItem {
 
     private Boolean autoRenew = false;
 
+    private Boolean processing = false;
+
     @Transient
     @JsonIgnore
     private DomainCartItemStrategy strategy;
+
+    @Transient
+    private BigDecimal price;
+
+    @Transient
+    private PromocodeAction promocodeAction;
 
     @Override
     public String getName() {
@@ -51,6 +61,16 @@ public class DomainCartItem implements CartItem {
         this.autoRenew = autoRenew;
     }
 
+    @Override
+    public Boolean getProcessing() {
+        return processing;
+    }
+
+    @Override
+    public void setProcessing(Boolean processing) {
+        this.processing = processing;
+    }
+
     public CartItemStrategy getStrategy() {
         return strategy;
     }
@@ -69,11 +89,26 @@ public class DomainCartItem implements CartItem {
     @Override
     public BigDecimal getPrice() {
         if (strategy != null) {
-            return strategy.getPrice(this);
-        } else {
-            return null;
-//            throw new DomainNotAvailableException("No strategy specified for domainCartItem");
+            if (price == null) {
+                price = strategy.getPrice(this);
+            }
         }
+
+        return price;
+    }
+
+    @Override
+    public String getType() {
+        return TYPE;
+    }
+
+    @Override
+    public PromocodeAction getPromocodeAction() {
+        return promocodeAction;
+    }
+
+    public void setPromocodeAction(PromocodeAction promocodeAction) {
+        this.promocodeAction = promocodeAction;
     }
 
     @Override

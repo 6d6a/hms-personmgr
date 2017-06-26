@@ -6,12 +6,14 @@ import java.util.List;
 
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.cart.CartItem;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.service.DomainService;
 
 public class DomainCartItemStrategy implements CartItemStrategy {
     private final String accountId;
     private List<AccountPromotion> accountPromotions = new ArrayList<>();
+    private List<AccountPromotion> originalAccountPromotions = new ArrayList<>();
 
     private final DomainService domainService;
     private final AccountPromotionManager accountPromotionManager;
@@ -28,16 +30,29 @@ public class DomainCartItemStrategy implements CartItemStrategy {
 
     @Override
     public void buy(CartItem domain) {
-
+        domainService.check(domain.getName());
+        domainService.buy(accountId, domain.getName(), originalAccountPromotions, domain.getPromocodeAction());
     }
 
     @Override
     public BigDecimal getPrice(CartItem domain) {
-        return domainService.getPrice(domain.getName(), accountPromotions);
+        domain.setPromocodeAction(usePromotion(domain));
+        return domainService.getPrice(domain.getName(), domain.getPromocodeAction());
+    }
+
+    @Override
+    public void check(CartItem domain) {
+        domainService.check(domain.getName());
     }
 
     public void reloadAccountPromotions() {
         accountPromotions = accountPromotionManager.findByPersonalAccountId(accountId);
+        originalAccountPromotions = new ArrayList<>(accountPromotions);
+    }
+
+    @Override
+    public PromocodeAction usePromotion(CartItem domain) {
+        return domainService.usePromotion(domain.getName(), accountPromotions);
     }
 
     @Override

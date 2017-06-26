@@ -14,9 +14,11 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
@@ -24,7 +26,11 @@ import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
 import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
@@ -54,6 +60,10 @@ public class DomainService {
     private final BusinessActionBuilder businessActionBuilder;
     private final ApplicationEventPublisher publisher;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
+    private final BlackListService blackListService;
+    private final PersonalAccountManager accountManager;
+    private final AccountPromotionManager accountPromotionManager;
+    private final BusinessOperationBuilder businessOperationBuilder;
 
     @Autowired
     public DomainService(
@@ -62,7 +72,11 @@ public class DomainService {
             DomainTldService domainTldService,
             BusinessActionBuilder businessActionBuilder,
             ApplicationEventPublisher publisher,
-            DomainRegistrarFeignClient domainRegistrarFeignClient
+            DomainRegistrarFeignClient domainRegistrarFeignClient,
+            BlackListService blackListService,
+            PersonalAccountManager accountManager,
+            AccountPromotionManager accountPromotionManager,
+            BusinessOperationBuilder businessOperationBuilder
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
@@ -70,6 +84,10 @@ public class DomainService {
         this.businessActionBuilder = businessActionBuilder;
         this.publisher = publisher;
         this.domainRegistrarFeignClient = domainRegistrarFeignClient;
+        this.blackListService = blackListService;
+        this.accountManager = accountManager;
+        this.accountPromotionManager = accountPromotionManager;
+        this.businessOperationBuilder = businessOperationBuilder;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -255,14 +273,227 @@ public class DomainService {
         }
     }
 
-    public BigDecimal getPrice(String domainName, List<AccountPromotion> accountPromotions) {
-        DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
+    public void check(String domainName) {
+        if (blackListService.domainExistsInControlBlackList(domainName)) {
+            logger.debug("domain: " + domainName + " exists in control BlackList");
+            throw new DomainNotAvailableException("Домен: " + domainName + " уже присутствует в системе и не может быть добавлен.");
+        }
 
-        if (domainTld == null) {
+        getDomainTld(domainName);
+
+        getAvailabilityInfo(domainName);
+    }
+
+    public PromocodeAction usePromotion(String domainName, List<AccountPromotion> accountPromotions) {
+        DomainTld domainTld = getDomainTld(domainName);
+
+        Optional<PromocodeAction> foundPromocodeAction = Optional.empty();
+
+        for (AccountPromotion accountPromotion : accountPromotions) {
+            Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
+            foundPromocodeAction = map
+                    .entrySet()
+                    .stream()
+                    .filter(Map.Entry::getValue)
+                    .filter(stringBooleanEntry -> {
+                        PromocodeAction promocodeAction = accountPromotion.getActions().get(stringBooleanEntry.getKey());
+                        List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
+
+                        return availableTlds.contains(domainTld.getTld());
+                    }).map(stringBooleanEntry -> accountPromotion.getActions().get(stringBooleanEntry.getKey())).findFirst();
+
+            if (foundPromocodeAction.isPresent()) {
+                map.put(foundPromocodeAction.get().getId(), false);
+
+                break;
+            }
+        }
+
+        return foundPromocodeAction.orElse(null);
+    }
+
+    public BigDecimal getPrice(String domainName, PromocodeAction promocodeAction) {
+        DomainTld domainTld;
+
+        try {
+            domainTld = getDomainTld(domainName);
+        } catch (Exception e) {
+            e.printStackTrace();
             logger.error("Домен: " + domainName + " недоступен. Зона домена отсутствует в системе");
             return null;
         }
 
+        //Проверить домен на доступность/премиальность
+        AvailabilityInfo availabilityInfo;
+
+        try {
+            availabilityInfo = getAvailabilityInfo(domainName);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Домен: " + domainName + ". Сервис регистрации недоступен. Ошибка: " + e.getMessage());
+            return null;
+        }
+
+        if (promocodeAction != null) {
+            if (promocodeAction.getId().equals(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID)) {
+                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
+
+                if (availableTlds.contains(domainTld.getTld())) {
+                    return BigDecimal.ZERO;
+                }
+            } else if (promocodeAction.getId().equals(DOMAIN_DISCOUNT_RU_RF_ACTION_ID)) {
+                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
+
+                if (availableTlds.contains(domainTld.getTld())) {
+                    // Устанавливает цену со скидкой
+                    return BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost"));
+                }
+            }
+        }
+
+//        for (AccountPromotion accountPromotion : accountPromotions) {
+//            Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
+//            if (map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) != null && map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID)) {
+//
+//                PromocodeAction promocodeAction = accountPromotion.getActions().get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
+//                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
+//
+//                if (availableTlds.contains(domainTld.getTld())) {
+//                    map.put(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID, false);
+//                    return BigDecimal.ZERO;
+//                }
+//            }
+//        }
+//
+//        for (AccountPromotion accountPromotion : accountPromotions) {
+//            Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
+//            if (map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) != null && map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID)) {
+//                PromocodeAction promocodeAction = accountPromotion.getActions().get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
+//                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
+//
+//                if (availableTlds.contains(domainTld.getTld())) {
+//                    map.put(DOMAIN_DISCOUNT_RU_RF_ACTION_ID, false);
+//                    // Устанавливает цену со скидкой
+//                    return BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost"));
+//                }
+//            }
+//        }
+
+        //Проверить домен на премиальность, если да - установить новую цену
+        if (availabilityInfo.getPremiumPrice() != null && (availabilityInfo.getPremiumPrice().compareTo(BigDecimal.ZERO) > 0)) {
+            return availabilityInfo.getPremiumPrice();
+        }
+
+        return domainTld.getRegistrationService().getCost();
+    }
+
+    public void buy(String accountId, String domainName, List<AccountPromotion> accountPromotions, PromocodeAction promocodeAction) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(accountId);
+        message.addParam("name", domainName.toLowerCase());
+
+        logger.debug("Buying domain " + domainName.toLowerCase());
+
+        boolean isFreeDomain = false;
+        boolean isDiscountedDomain = false;
+
+        DomainTld domainTld = getDomainTld(domainName);
+
+
+        if (promocodeAction != null) {
+            if (promocodeAction.getId().equals(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID)) {
+                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
+
+                if (availableTlds.contains(domainTld.getTld())) {
+                    Optional<AccountPromotion> foundAccountPromotion = accountPromotions
+                            .stream()
+                            .filter(accountPromotion -> accountPromotion.getActionsWithStatus().get(promocodeAction.getId()))
+                            .findFirst();
+
+                    if (foundAccountPromotion.isPresent()) {
+                        String foundAccountPromotionId = foundAccountPromotion.get().getId();
+                        accountPromotionManager.deactivateAccountPromotionByIdAndActionId(
+                                foundAccountPromotionId,
+                                BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID
+                        );
+                        isFreeDomain = true;
+                        message.addParam("freeDomainPromotionId", foundAccountPromotionId);
+                    }
+                }
+            } else if (promocodeAction.getId().equals(DOMAIN_DISCOUNT_RU_RF_ACTION_ID)) {
+                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
+
+                if (availableTlds.contains(domainTld.getTld())) {
+                    Optional<AccountPromotion> foundAccountPromotion = accountPromotions
+                            .stream()
+                            .filter(accountPromotion -> accountPromotion.getActionsWithStatus().get(promocodeAction.getId()))
+                            .findFirst();
+
+                    if (foundAccountPromotion.isPresent()) {
+                        String foundAccountPromotionId = foundAccountPromotion.get().getId();
+                        accountPromotionManager.deactivateAccountPromotionByIdAndActionId(
+                                foundAccountPromotionId,
+                                BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID
+                        );
+
+                        // Устанавливает цену со скидкой
+                        domainTld.getRegistrationService().setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
+                        message.addParam("domainDiscountPromotionId", foundAccountPromotionId);
+                        isDiscountedDomain = true;
+                    }
+                }
+            }
+        }
+
+        //Проверить домен на премиальность
+        AvailabilityInfo availabilityInfo = getAvailabilityInfo(domainName);
+
+        //Проверить домен на премиальность, если да - установить новую цену
+        if (availabilityInfo.getPremiumPrice() != null && (availabilityInfo.getPremiumPrice().compareTo(BigDecimal.ZERO) > 0)) {
+            domainTld.getRegistrationService().setCost(availabilityInfo.getPremiumPrice());
+            isFreeDomain = false;
+            isDiscountedDomain = false;
+        }
+
+        if (!isFreeDomain) {
+            accountHelper.checkBalance(account, domainTld.getRegistrationService());
+            SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRegistrationService());
+            String documentNumber = (String) blockResult.getParam("documentNumber");
+            message.addParam("documentNumber", documentNumber);
+        }
+
+        ProcessingBusinessOperation processingBusinessOperation = businessOperationBuilder.build(BusinessOperationType.DOMAIN_CREATE, message);
+
+        businessActionBuilder.build(BusinessActionType.DOMAIN_CREATE_RC, message, processingBusinessOperation);
+
+        String actionText = isFreeDomain ?
+                "бесплатную регистрацию" :
+                (isDiscountedDomain ?
+                        "регистрацию со скидкой" :
+                        "регистрацию");
+        //Save history
+        String operator = account.getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на " + actionText +" домена (имя: " + message.getParam("name") + ")");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+    }
+
+    private DomainTld getDomainTld(String domainName) {
+        DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
+
+        if (domainTld == null) {
+            logger.error("Домен: " + domainName + " недоступен. Зона домена отсутствует в системе");
+            throw new DomainNotAvailableException("Домен: " + domainName + " недоступен. Зона домена отсутствует в системе");
+        }
+
+        return domainTld;
+    }
+
+    private AvailabilityInfo getAvailabilityInfo(String domainName) {
         //Проверить домен на доступность/премиальность
         AvailabilityInfo availabilityInfo = null;
 
@@ -274,47 +505,14 @@ public class DomainService {
 
         if (availabilityInfo == null) {
             logger.error("Домен: " + domainName + ". Сервис регистрации недоступен.");
-            return null;
+            throw new DomainNotAvailableException("Домен: " + domainName + ". Сервис регистрации недоступен.");
         }
 
         if (!availabilityInfo.getFree()) {
             logger.error("Домен: " + domainName + " по данным whois занят.");
-            return null;
+            throw new DomainNotAvailableException("Домен: " + domainName + " по данным whois занят.");
         }
 
-        for (AccountPromotion accountPromotion : accountPromotions) {
-            Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-            if (map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) != null && map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID)) {
-
-                PromocodeAction promocodeAction = accountPromotion.getActions().get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
-                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
-
-                if (availableTlds.contains(domainTld.getTld())) {
-                    map.put(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID, false);
-                    return BigDecimal.ZERO;
-                }
-            }
-        }
-
-        for (AccountPromotion accountPromotion : accountPromotions) {
-            Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-            if (map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) != null && map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID)) {
-                PromocodeAction promocodeAction = accountPromotion.getActions().get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
-                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
-
-                if (availableTlds.contains(domainTld.getTld())) {
-                    map.put(DOMAIN_DISCOUNT_RU_RF_ACTION_ID, false);
-                    // Устанавливает цену со скидкой
-                    return BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost"));
-                }
-            }
-        }
-
-        //Проверить домен на премиальность, если да - установить новую цену
-        if (availabilityInfo.getPremiumPrice() != null && (availabilityInfo.getPremiumPrice().compareTo(BigDecimal.ZERO) > 0)) {
-            return availabilityInfo.getPremiumPrice();
-        }
-
-        return domainTld.getRegistrationService().getCost();
+        return availabilityInfo;
     }
 }

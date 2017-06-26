@@ -2,15 +2,22 @@ package ru.majordomo.hms.personmgr.manager.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.model.cart.Cart;
+import ru.majordomo.hms.personmgr.model.cart.CartItem;
+import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.repository.CartRepository;
 import ru.majordomo.hms.personmgr.service.DomainService;
 import ru.majordomo.hms.personmgr.strategy.DomainCartItemStrategy;
@@ -109,9 +116,73 @@ public class CartManagerImpl implements CartManager {
     @Override
     public Cart findByPersonalAccountId(String personalAccountId) {
         Cart cart = repository.findByPersonalAccountId(personalAccountId);
+
+        if (cart == null) {
+            cart = new Cart();
+            cart.setPersonalAccountId(personalAccountId);
+            insert(cart);
+        }
+
         setDomainCartItemStrategy(cart);
 
         return cart;
+    }
+
+    @Override
+    public Cart addCartItem(String accountId, CartItem cartItem) {
+        Cart cart = findByPersonalAccountId(accountId);
+
+        checkCartItem(cart, cartItem);
+
+        if (cart.hasItem(cartItem)) {
+            throw new ParameterValidationException(cartItem.getType() + " " + cartItem.getName() + " уже присутствует в корзине");
+        }
+
+        cart.addItem(cartItem);
+
+        save(cart);
+
+        return cart;
+    }
+
+    @Override
+    public Cart setCartItems(String accountId, Set<CartItem> cartItems) {
+        Cart cart = findByPersonalAccountId(accountId);
+
+        cartItems.forEach(item -> checkCartItem(cart, item));
+
+        cart.setItems(cartItems);
+
+        save(cart);
+
+        return cart;
+    }
+
+    @Override
+    public void setProcessing(String accountId, boolean status) {
+        Cart cart = findByPersonalAccountId(accountId);
+
+        Query query = new Query(new Criteria("_id").is(cart.getId()));
+        Update update = new Update().set("items.*.processing", status).set("processing", status);
+
+        mongoOperations.updateFirst(query, update, Cart.class);
+    }
+
+    @Override
+    public void setProcessingByName(String accountId, String name, boolean status) {
+        Cart cart = findByPersonalAccountId(accountId);
+
+        cart.setProcessing(status);
+
+        cart.getItems().stream().filter(item -> item.getName().equals(name)).forEach(item -> item.setProcessing(status));
+
+        save(cart);
+    }
+
+    private void checkCartItem(Cart cart, CartItem cartItem) {
+        if (cartItem instanceof DomainCartItem) {
+            cart.getDomainCartItemStrategy().check(cartItem);
+        }
     }
 
     private void checkById(String id) {

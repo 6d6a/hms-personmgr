@@ -1,8 +1,10 @@
 package ru.majordomo.hms.personmgr.manager;
 
 import java.util.List;
+import java.util.Set;
 
 import ru.majordomo.hms.personmgr.model.cart.Cart;
+import ru.majordomo.hms.personmgr.model.cart.CartItem;
 
 public interface CartManager {
     boolean exists(String id);
@@ -30,4 +32,12 @@ public interface CartManager {
     List<Cart> findAll();
 
     Cart findByPersonalAccountId(String personalAccountId);
+
+    Cart addCartItem(String accountId, CartItem cartItem);
+
+    Cart setCartItems(String accountId, Set<CartItem> cartItems);
+
+    void setProcessing(String accountId, boolean status);
+
+    void setProcessingByName(String accountId, String name, boolean status);
 }

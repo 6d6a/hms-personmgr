@@ -1,34 +1,33 @@
 package ru.majordomo.hms.personmgr.model.cart;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonView;
 
-import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
-import org.springframework.data.annotation.TypeAlias;
-import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.validation.constraints.NotNull;
-
-import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.strategy.DomainCartItemStrategy;
-import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 @Document
-//@TypeAlias("Cart")
 public class Cart extends ModelBelongsToPersonalAccount implements CartItem {
+    @Transient
+    @JsonIgnore
+    private final String TYPE = "Корзина";
+
     private Set<CartItem> items = new HashSet<>();
+
+    private Boolean processing = false;
 
     @Transient
     @JsonIgnore
     private DomainCartItemStrategy domainCartItemStrategy;
+
+    @Transient
+    private BigDecimal price;
 
     public Cart() {
         recalculate();
@@ -60,9 +59,28 @@ public class Cart extends ModelBelongsToPersonalAccount implements CartItem {
         recalculate();
     }
 
+    public boolean hasItem(CartItem item) {
+        return items.contains(item);
+    }
+
+    @Override
+    public Boolean getProcessing() {
+        return processing;
+    }
+
+    @Override
+    public void setProcessing(Boolean processing) {
+        this.processing = processing;
+    }
+
     @Override
     public String getName() {
-        return "Корзина";
+        return TYPE;
+    }
+
+    @Override
+    public String getType() {
+        return TYPE;
     }
 
     @Override
@@ -72,13 +90,14 @@ public class Cart extends ModelBelongsToPersonalAccount implements CartItem {
 
     @Override
     public BigDecimal getPrice() {
-        return items.stream().filter(item -> item.getPrice() != null).map(CartItem::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (price == null) {
+            price = items.stream().filter(item -> item.getPrice() != null).map(CartItem::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+
+        return price;
     }
 
     private void recalculate() {
-//        DomainCartItemStrategy domainCartItemStrategy = new DomainCartItemStrategy();
-//        domainCartItemStrategy.setAccountId(getPersonalAccountId());
-
         if (domainCartItemStrategy != null) {
             items
                     .stream()
