@@ -19,7 +19,7 @@ public interface AccountStatRepository extends MongoRepository<AccountStat, Stri
     Page<AccountStat> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId, Pageable pageable);
     AccountStat findByIdAndPersonalAccountId(@Param("id") String id, @Param("personalAccountId") String personalAccountId);
     List<AccountStat> findByType(@Param("type") AccountStatType type);
-    List<AccountStat> findByPersonalAccountIdAndTypeAndCreatedAfter(
+    List<AccountStat> findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
             @Param("personalAccountId") String personalAccountId,
             @Param("type") AccountStatType type,
             @Param("created") LocalDateTime created

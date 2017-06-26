@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountProcessNotifyExpiredAbonementsEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
@@ -51,5 +52,16 @@ public class AbonementsScheduler {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessAbonementsAutoRenewEvent(account)));
         }
         logger.debug("Ended processAbonementsAutoRenew");
+    }
+
+    //Выполняем отправку писем истекшим абонементом в 02:42:00 каждый день
+    @Scheduled(cron = "0 42 2 * * *")
+    @SchedulerLock(name = "processNotifyExpiredAbonements")
+    public void processNotifyExpiredAbonements() {
+        logger.debug("Started processNotifyExpiredAbonements");
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
+            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessNotifyExpiredAbonementsEvent(account)));
+        }
+        logger.debug("Ended processNotifyExpiredAbonements");
     }
 }

@@ -31,7 +31,6 @@ import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
 
 import static java.lang.Math.floor;
 import static java.time.temporal.ChronoUnit.DAYS;
@@ -277,7 +276,7 @@ public class PlanChangeService {
      * @param account Аккаунт
      */
     private void checkLastMonthPlanChange(PersonalAccount account, Plan currentPlan, Plan newPlan) {
-        List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfter(
+        List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
                 account.getId(),
                 AccountStatType.VIRTUAL_HOSTING_PLAN_CHANGE,
                 LocalDateTime.now().minusMonths(1)
