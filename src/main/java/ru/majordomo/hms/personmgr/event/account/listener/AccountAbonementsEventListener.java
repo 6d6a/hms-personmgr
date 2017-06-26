@@ -139,9 +139,9 @@ public class AccountAbonementsEventListener {
                     boolean balanceEnoughForOneMonth = balance.compareTo(
                             (plan.getService().getCost().
                                             divide(new BigDecimal(30), BigDecimal.ROUND_FLOOR).
-                                            multiply(new BigDecimal(30 - dayAgo)))) != 1;
+                                            multiply(new BigDecimal(30 - dayAgo)))) >= 1;
 
-                    if (balanceEnoughForOneMonth) {
+                    if (!balanceEnoughForOneMonth) {
                         publisher.publishEvent(new AccountSendEmailWithExpiredAbonementEvent(account));
                         //Отправляем только одно письмо
                         break;
