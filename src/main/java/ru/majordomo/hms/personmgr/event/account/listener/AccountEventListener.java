@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -514,4 +515,49 @@ public class AccountEventListener {
             }
         }
     }
+
+    //Отправка писем в случае выключенного аккаунта из-за нехватки средств
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountDeactivatedSendMailEvent(AccountDeactivatedSendMailEvent event) {
+        PersonalAccount account = event.getSource();
+
+        logger.debug("We got AccountDeactivatedSendMailEvent\n");
+
+        if (account.isActive()) { return;}
+
+        LocalDate now = LocalDate.now();
+
+        List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
+                account.getId(),
+                AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY,
+                LocalDateTime.now().minusDays(21)
+        );
+
+        if (accountStats.isEmpty()) {return;}
+
+        int[] daysAgo = {1, 3, 5, 10, 15, 20};
+        LocalDateTime dateFinish = accountStats.get(0).getCreated();
+
+        for (int days : daysAgo) {
+            if (dateFinish.toLocalDate().isEqual(now.minusDays(days))) {
+
+                Plan plan = planRepository.findOne(account.getPlanId());
+                BigDecimal costAbonement = accountHelper.getCostAbonement(plan).setScale(2, BigDecimal.ROUND_DOWN);
+                BigDecimal costPerMonth = plan.getService().getCost().setScale(2, BigDecimal.ROUND_DOWN);
+                HashMap<String, String> parameters = new HashMap<>();
+
+                parameters.put("acc_id", account.getName());
+                parameters.put("date_finish", dateFinish.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+                parameters.put("balance", accountHelper.getBalance(account).setScale(2, BigDecimal.ROUND_DOWN).toString());
+                parameters.put("cost_per_month", costPerMonth.toString());
+                parameters.put("cost_abonement", costAbonement.toString());
+                parameters.put("domains", accountHelper.getDomainForEmail(account));
+                accountHelper.sendEmail(account, "MajordomoHmsMoneyEnd", parameters);
+                //отправляем только одно письмо
+                break;
+            }
+        }
+    }
+
 }

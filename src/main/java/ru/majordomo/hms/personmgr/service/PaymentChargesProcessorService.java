@@ -14,16 +14,25 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountDeactivatedSendMailEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.model.abonement.Abonement;
+import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
+import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.*;
+import ru.majordomo.hms.personmgr.service.AccountStatHelper;
 
 @Service
 public class PaymentChargesProcessorService {
@@ -31,20 +40,29 @@ public class PaymentChargesProcessorService {
 
     private final PersonalAccountManager accountManager;
     private final AccountServiceRepository accountServiceRepository;
+    private final AccountStatRepository accountStatRepository;
     private final AccountHelper accountHelper;
     private final ApplicationEventPublisher publisher;
+    private final PlanRepository planRepository;
+    private final AccountStatHelper accountStatHelper;
 
     @Autowired
     public PaymentChargesProcessorService(
             PersonalAccountManager accountManager,
             AccountServiceRepository accountServiceRepository,
+            AccountStatRepository accountStatRepository,
             AccountHelper accountHelper,
-            ApplicationEventPublisher publisher
+            ApplicationEventPublisher publisher,
+            PlanRepository planRepository,
+            AccountStatHelper accountStatHelper
     ) {
         this.accountManager = accountManager;
         this.accountServiceRepository = accountServiceRepository;
         this.accountHelper = accountHelper;
+        this.accountStatRepository = accountStatRepository;
         this.publisher = publisher;
+        this.planRepository = planRepository;
+        this.accountStatHelper = accountStatHelper;
     }
 
     public void processCharge(String paymentAccountName) {
@@ -102,7 +120,13 @@ public class PaymentChargesProcessorService {
                             if ( creditActivationDate.isBefore(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {
                                 // Выключаем аккаунт, если срок кредита истёк
                                 accountHelper.switchAccountResources(account, false);
-                                this.sendDisableAccMail(account);
+
+                                Map<String, String> data = new HashMap<>();
+                                data.put("reason", "NOT_ENOUGH_MONEY");
+                                data.put("operator", "service");
+                                accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY, data);
+
+                                publisher.publishEvent(new AccountDeactivatedSendMailEvent(account));
                             } else {
                                 forceCharge = true;
                             }
@@ -128,7 +152,13 @@ public class PaymentChargesProcessorService {
             if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0) {
                 if (!account.isCredit()) {
                     accountHelper.switchAccountResources(account, false);
-                    this.sendDisableAccMail(account);
+
+                    Map<String, String> data = new HashMap<>();
+                    data.put("reason", "NOT_ENOUGH_MONEY");
+                    data.put("operator", "service");
+                    accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY, data);
+
+                    publisher.publishEvent(new AccountDeactivatedSendMailEvent(account));
                 } else if (account.getCreditActivationDate() == null) {
                     accountManager.setCreditActivationDate(account.getId(), LocalDateTime.now());
                 }
@@ -153,35 +183,6 @@ public class PaymentChargesProcessorService {
             }
 
         }
-    }
-
-    private void sendDisableAccMail(PersonalAccount account) {
-        //Отправим письмо
-        String email = accountHelper.getEmail(account);
-
-        SimpleServiceMessage message = new SimpleServiceMessage();
-
-        message.setAccountId(account.getId());
-        message.setParams(new HashMap<>());
-        message.addParam("email", email);
-        message.addParam("api_name", "MajordomoVHMoneyDeactivateacc");
-        message.addParam("priority", 1);
-
-        HashMap<String, String> parameters = new HashMap<>();
-        parameters.put("client_id", message.getAccountId());
-        parameters.put("acc_id", account.getName());
-
-        List<Domain> domains = accountHelper.getDomains(account);
-        List<String> domainNames = new ArrayList<>();
-        for (Domain domain: domains) {
-            domainNames.add(domain.getName());
-        }
-
-        parameters.put("domains", String.join("<br>", domainNames));
-
-        message.addParam("parametrs", parameters);
-
-        publisher.publishEvent(new SendMailEvent(message));
     }
 
     private void makeCharge(PersonalAccount paymentAccount, AccountService accountService, BigDecimal cost, LocalDateTime chargeDate, Boolean forceCharge) {

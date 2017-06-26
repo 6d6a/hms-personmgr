@@ -157,38 +157,13 @@ public class AccountAbonementsEventListener {
 
         logger.debug("We got AccountSendEmailWithExpiredAbonementEvent");
 
+        BigDecimal costAbonement = accountHelper.getCostAbonement(account).setScale(2, BigDecimal.ROUND_DOWN);
         BigDecimal balance = accountHelper.getBalance(account).setScale(2, BigDecimal.ROUND_DOWN);
-        Plan plan = planRepository.findOne(account.getPlanId());
-
-        String emails = accountHelper.getEmail(account);
-        SimpleServiceMessage message = new SimpleServiceMessage();
-        message.setParams(new HashMap<>());
-        message.addParam("email", emails);
-        message.addParam("api_name", "MajordomoHmsAbonementEnd");
-        message.addParam("priority", 5);
-
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("acc_id", account.getName());
-
-        String domainsForEmail = "";
-        List<Domain> domains = accountHelper.getDomains(account);
-        if (!(domains.isEmpty())) {
-            domainsForEmail = domains.stream().map(Domain::getName).collect(Collectors.joining("<br>"));
-        }
-        parameters.put("domains", domainsForEmail);
-
+        parameters.put("domains", accountHelper.getDomainForEmail(account));
         parameters.put("balance", balance.toString() + " рублей");
-
-        //так как активного абонемента уже нет или он мог быть бесплатным тестовым, получаем стоимость абонемента через активный план
-        List<Abonement> abonements = plan.getAbonements()
-                .stream().filter(
-                        abonement -> abonement.getPeriod().equals("P1Y")
-                ).collect(Collectors.toList());
-        BigDecimal costAbonement = abonements.get(0).getService().getCost().setScale(2, BigDecimal.ROUND_DOWN);
         parameters.put("cost_per_year", costAbonement.toString());
-
-        message.addParam("parametrs", parameters);
-
-        publisher.publishEvent(new SendMailEvent(message));
+        accountHelper.sendEmail(account,"MajordomoHmsAbonementEnd", parameters);
     }
 }
