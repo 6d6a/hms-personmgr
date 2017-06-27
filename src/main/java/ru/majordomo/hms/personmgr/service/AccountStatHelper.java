@@ -23,6 +23,10 @@ public class AccountStatHelper {
         this.accountStatRepository = accountStatRepository;
     }
 
+    public void add(PersonalAccount account, AccountStatType type) {
+        this.add(account, type, null);
+    }
+
     public void add(PersonalAccount account, AccountStatType type, Map<String, String> data) {
 
         AccountStat accountStat = new AccountStat();

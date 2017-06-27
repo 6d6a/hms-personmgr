@@ -120,12 +120,7 @@ public class PaymentChargesProcessorService {
                             if ( creditActivationDate.isBefore(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {
                                 // Выключаем аккаунт, если срок кредита истёк
                                 accountHelper.switchAccountResources(account, false);
-
-                                Map<String, String> data = new HashMap<>();
-                                data.put("reason", "NOT_ENOUGH_MONEY");
-                                data.put("operator", "service");
-                                accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY, data);
-
+                                accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
                                 publisher.publishEvent(new AccountDeactivatedSendMailEvent(account));
                             } else {
                                 forceCharge = true;
@@ -152,12 +147,7 @@ public class PaymentChargesProcessorService {
             if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0) {
                 if (!account.isCredit()) {
                     accountHelper.switchAccountResources(account, false);
-
-                    Map<String, String> data = new HashMap<>();
-                    data.put("reason", "NOT_ENOUGH_MONEY");
-                    data.put("operator", "service");
-                    accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY, data);
-
+                    accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
                     publisher.publishEvent(new AccountDeactivatedSendMailEvent(account));
                 } else if (account.getCreditActivationDate() == null) {
                     accountManager.setCreditActivationDate(account.getId(), LocalDateTime.now());
