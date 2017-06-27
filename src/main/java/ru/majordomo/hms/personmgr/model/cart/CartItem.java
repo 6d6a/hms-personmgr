@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.math.BigDecimal;
 
-import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
               include = JsonTypeInfo.As.PROPERTY,
@@ -31,9 +31,17 @@ public interface CartItem {
 
     default void check() {}
 
-    default PromocodeAction getPromocodeAction() {
+    default AccountPromotion getAccountPromotion() {
         return null;
     }
 
-    default void setPromocodeAction(PromocodeAction promocodeAction) {}
+    default void setAccountPromotion(AccountPromotion accountPromotion) {}
+
+    default String getAccountPromotionName() {
+        return null;
+    }
+
+    default String getAccountPromotionId() {
+        return null;
+    }
 }

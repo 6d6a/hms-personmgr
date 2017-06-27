@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.strategy.DomainCartItemStrategy;
 
 @Document
@@ -19,8 +20,6 @@ public class Cart extends ModelBelongsToPersonalAccount implements CartItem {
     private final String TYPE = "Корзина";
 
     private Set<CartItem> items = new HashSet<>();
-
-    private Boolean processing = false;
 
     @Transient
     @JsonIgnore
@@ -65,20 +64,20 @@ public class Cart extends ModelBelongsToPersonalAccount implements CartItem {
 
     @Override
     public Boolean getProcessing() {
-        return processing;
+        return items.size() != 0 && items.stream().allMatch(CartItem::getProcessing);
     }
 
     @Override
-    public void setProcessing(Boolean processing) {
-        this.processing = processing;
-    }
+    public void setProcessing(Boolean processing) {}
 
     @Override
+    @JsonIgnore
     public String getName() {
         return TYPE;
     }
 
     @Override
+    @JsonIgnore
     public String getType() {
         return TYPE;
     }
@@ -114,6 +113,24 @@ public class Cart extends ModelBelongsToPersonalAccount implements CartItem {
     public void setDomainCartItemStrategy(DomainCartItemStrategy domainCartItemStrategy) {
         this.domainCartItemStrategy = domainCartItemStrategy;
         recalculate();
+    }
+
+    @Override
+    @JsonIgnore
+    public AccountPromotion getAccountPromotion() {
+        return null;
+    }
+
+    @Override
+    @JsonIgnore
+    public String getAccountPromotionName() {
+        return null;
+    }
+
+    @Override
+    @JsonIgnore
+    public String getAccountPromotionId() {
+        return null;
     }
 
     @Override

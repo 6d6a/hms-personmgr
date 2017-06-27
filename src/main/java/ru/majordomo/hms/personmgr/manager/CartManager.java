@@ -35,6 +35,8 @@ public interface CartManager {
 
     Cart addCartItem(String accountId, CartItem cartItem);
 
+    Cart deleteCartItemByName(String accountId, String cartItemName);
+
     Cart setCartItems(String accountId, Set<CartItem> cartItems);
 
     void setProcessing(String accountId, boolean status);

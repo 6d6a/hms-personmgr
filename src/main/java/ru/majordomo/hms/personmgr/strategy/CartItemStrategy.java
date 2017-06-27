@@ -3,7 +3,7 @@ package ru.majordomo.hms.personmgr.strategy;
 import java.math.BigDecimal;
 
 import ru.majordomo.hms.personmgr.model.cart.CartItem;
-import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 
 public interface CartItemStrategy {
     void buy(CartItem item);
@@ -13,5 +13,5 @@ public interface CartItemStrategy {
     default void check(CartItem domain) {
     }
 
-    PromocodeAction usePromotion(CartItem domain);
+    AccountPromotion usePromotion(CartItem domain);
 }

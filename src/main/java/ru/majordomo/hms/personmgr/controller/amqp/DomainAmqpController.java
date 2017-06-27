@@ -19,8 +19,10 @@ import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountDomainAutoRenewCompletedEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.cart.Cart;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.AUTO_RENEW_KEY;
@@ -32,12 +34,15 @@ import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 @Service
 public class DomainAmqpController extends CommonAmqpController {
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
+    private final CartManager cartManager;
 
     @Autowired
     public DomainAmqpController(
-            ProcessingBusinessActionRepository processingBusinessActionRepository
+            ProcessingBusinessActionRepository processingBusinessActionRepository,
+            CartManager cartManager
     ) {
         this.processingBusinessActionRepository = processingBusinessActionRepository;
+        this.cartManager = cartManager;
     }
 
     @RabbitListener(
@@ -64,19 +69,25 @@ public class DomainAmqpController extends CommonAmqpController {
             if (state == State.PROCESSED) {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
-                if (businessAction != null && businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_CREATE_RC)) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
-                    if (account.isAccountNew()) {
-                        accountManager.setAccountNew(account.getAccountId(), false);
+                if (businessAction != null) {
+                    String domainName = (String) businessAction.getParam("name");
+
+                    if (businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_CREATE_RC)) {
+                        PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
+                        if (account.isAccountNew()) {
+                            accountManager.setAccountNew(account.getAccountId(), false);
+                        }
                     }
+
+                    cartManager.deleteCartItemByName(businessAction.getPersonalAccountId(), domainName);
+
+                    //Save history
+                    Map<String, String> params = new HashMap<>();
+                    params.put(HISTORY_MESSAGE_KEY, "Заявка на создание домена выполнена успешно (имя: " + domainName + ")");
+                    params.put(OPERATOR_KEY, "service");
+
+                    publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
                 }
-
-                //Save history
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Заявка на создание домена выполнена успешно (имя: " + message.getParam("name") + ")");
-                params.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -109,6 +120,8 @@ public class DomainAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
+                    String domainName = (String) businessAction.getParam("name");
+
                     PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
 
                     Map<String, String> paramsHistory;
@@ -130,14 +143,14 @@ public class DomainAmqpController extends CommonAmqpController {
 
                         //Save history
                         paramsHistory = new HashMap<>();
-                        paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на " + renewAction + " домена выполнена успешно (имя: " + message.getParam("name") + ")");
+                        paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на " + renewAction + " домена выполнена успешно (имя: " + domainName + ")");
                         paramsHistory.put(OPERATOR_KEY, "service");
 
                         publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
                     } else {
                         //Save history
                         paramsHistory = new HashMap<>();
-                        paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на обновление домена выполнена успешно (имя: " + message.getParam("name") + ")");
+                        paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на обновление домена выполнена успешно (имя: " + domainName + ")");
                         paramsHistory.put(OPERATOR_KEY, "service");
 
                         publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));

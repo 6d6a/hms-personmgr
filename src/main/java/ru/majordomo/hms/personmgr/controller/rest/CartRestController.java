@@ -8,10 +8,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.Set;
 
 import javax.validation.Valid;
@@ -50,7 +50,13 @@ public class CartRestController extends CommonRestController {
             @Valid @RequestBody CartItem cartItem,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        Cart cart = manager.addCartItem(accountId, cartItem);
+        Cart cart = manager.findByPersonalAccountId(accountId);
+
+        if (cart.getProcessing()) {
+            throw new ParameterValidationException("Корзина находится в процессе покупки. Дождитесь окончания обработки.");
+        }
+
+        cart = manager.addCartItem(accountId, cartItem);
 
         return new ResponseEntity<>(cart.getItems(), HttpStatus.OK);
     }
@@ -61,7 +67,17 @@ public class CartRestController extends CommonRestController {
             @Valid @RequestBody Set<CartItem> cartItems,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        Cart cart = manager.setCartItems(accountId, cartItems);
+        Cart cart = manager.findByPersonalAccountId(accountId);
+
+        if (cart.getProcessing() && cartItems.size() != 0) {
+            throw new ParameterValidationException("Корзина находится в процессе покупки. Дождитесь окончания обработки.");
+        }
+
+        cart = manager.setCartItems(accountId, cartItems);
+
+//        if (cartItems.size() == 0) {
+//            manager.setProcessing(accountId, false);
+//        }
 
         return new ResponseEntity<>(cart.getItems(), HttpStatus.OK);
     }
@@ -69,7 +85,7 @@ public class CartRestController extends CommonRestController {
     @RequestMapping(value = "/buy", method = RequestMethod.POST)
     public ResponseEntity<Void> buy(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestParam(value = "price") BigDecimal cartPrice
+            @RequestBody Map<String, BigDecimal> requestBody
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
@@ -79,7 +95,13 @@ public class CartRestController extends CommonRestController {
 
         Cart cart = manager.findByPersonalAccountId(accountId);
 
-        if (!cart.getPrice().equals(cartPrice)) {
+        if (cart.getProcessing()) {
+            throw new ParameterValidationException("Корзина находится в процессе покупки. Дождитесь окончания обработки.");
+        }
+
+        BigDecimal cartPrice = requestBody.getOrDefault("price", BigDecimal.ZERO);
+
+        if (cart.getPrice().compareTo(cartPrice) != 0) {
             throw new ParameterValidationException("Переданная стоимость корзины не совпадает с её текущей стоимостью. " +
                     "Передано: " + formatBigDecimalWithCurrency(cartPrice) +
                     " Текущая: " + formatBigDecimalWithCurrency(cart.getPrice())

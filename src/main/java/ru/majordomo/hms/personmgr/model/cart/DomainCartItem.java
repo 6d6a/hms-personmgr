@@ -7,7 +7,7 @@ import org.springframework.data.annotation.Transient;
 
 import java.math.BigDecimal;
 
-import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.strategy.CartItemStrategy;
 import ru.majordomo.hms.personmgr.strategy.DomainCartItemStrategy;
 
@@ -34,7 +34,8 @@ public class DomainCartItem implements CartItem {
     private BigDecimal price;
 
     @Transient
-    private PromocodeAction promocodeAction;
+    @JsonIgnore
+    private AccountPromotion accountPromotion;
 
     @Override
     public String getName() {
@@ -103,12 +104,23 @@ public class DomainCartItem implements CartItem {
     }
 
     @Override
-    public PromocodeAction getPromocodeAction() {
-        return promocodeAction;
+    public AccountPromotion getAccountPromotion() {
+        return accountPromotion;
     }
 
-    public void setPromocodeAction(PromocodeAction promocodeAction) {
-        this.promocodeAction = promocodeAction;
+    @Override
+    public void setAccountPromotion(AccountPromotion accountPromotion) {
+        this.accountPromotion = accountPromotion;
+    }
+
+    @Override
+    public String getAccountPromotionName() {
+        return accountPromotion != null && accountPromotion.getPromotion() != null ? accountPromotion.getPromotion().getName() : null;
+    }
+
+    @Override
+    public String getAccountPromotionId() {
+        return accountPromotion != null ? accountPromotion.getId() : null;
     }
 
     @Override

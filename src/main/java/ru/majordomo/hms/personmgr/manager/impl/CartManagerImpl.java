@@ -146,6 +146,24 @@ public class CartManagerImpl implements CartManager {
     }
 
     @Override
+    public Cart deleteCartItemByName(String accountId, String cartItemName) {
+        Cart cart = findByPersonalAccountId(accountId);
+
+        Query query;
+        Update update;
+
+        for (int i = 0; i < cart.getItems().size(); i++) {
+            query = new Query(new Criteria("_id").is(cart.getId()).and("items." + i + ".name").is(cartItemName));
+            update = new Update().unset("items." + i);
+            //TODO pull сделать вместо unset
+
+            mongoOperations.updateFirst(query, update, Cart.class);
+        }
+
+        return cart;
+    }
+
+    @Override
     public Cart setCartItems(String accountId, Set<CartItem> cartItems) {
         Cart cart = findByPersonalAccountId(accountId);
 
@@ -162,21 +180,52 @@ public class CartManagerImpl implements CartManager {
     public void setProcessing(String accountId, boolean status) {
         Cart cart = findByPersonalAccountId(accountId);
 
-        Query query = new Query(new Criteria("_id").is(cart.getId()));
-        Update update = new Update().set("items.*.processing", status).set("processing", status);
+        Query query;
+        Update update;
 
-        mongoOperations.updateFirst(query, update, Cart.class);
+        for (int i = 0; i < cart.getItems().size(); i++) {
+            query = new Query(new Criteria("_id").is(cart.getId()));
+            update = new Update().set("items." + i + ".processing", status);
+
+            mongoOperations.updateFirst(query, update, Cart.class);
+        }
+
+//        cart.getItems().forEach(item -> item.setProcessing(status));
+//
+//        save(cart);
     }
 
     @Override
     public void setProcessingByName(String accountId, String name, boolean status) {
         Cart cart = findByPersonalAccountId(accountId);
 
-        cart.setProcessing(status);
+        Query query;
+        Update update;
 
-        cart.getItems().stream().filter(item -> item.getName().equals(name)).forEach(item -> item.setProcessing(status));
+        for (int i = 0; i < cart.getItems().size(); i++) {
+            query = new Query(new Criteria("_id").is(cart.getId()).and("items." + i + ".name").is(name));
+            update = new Update().set("items." + i + ".processing", status);
 
-        save(cart);
+            mongoOperations.updateFirst(query, update, Cart.class);
+        }
+
+//        cart.getItems()
+//                .stream()
+//                .filter(item -> item.getName().equals(name))
+//                .forEach(item -> item.setProcessing(status));
+
+//        cart = findByPersonalAccountId(accountId);
+
+//        if (cart.getItems().size() == cart.getItems().stream().filter(item -> !item.getProcessing()).count()) {
+//            cart.setProcessing(false);
+//            query = new Query(new Criteria("_id").is(cart.getId()));
+
+//            update = new Update().set("processing", false);
+
+//            mongoOperations.updateFirst(query, update, Cart.class);
+//        }
+
+//        save(cart);
     }
 
     private void checkCartItem(Cart cart, CartItem cartItem) {

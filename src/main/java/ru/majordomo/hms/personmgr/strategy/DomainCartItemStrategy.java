@@ -6,7 +6,6 @@ import java.util.List;
 
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.cart.CartItem;
-import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.service.DomainService;
 
@@ -31,13 +30,13 @@ public class DomainCartItemStrategy implements CartItemStrategy {
     @Override
     public void buy(CartItem domain) {
         domainService.check(domain.getName());
-        domainService.buy(accountId, domain.getName(), originalAccountPromotions, domain.getPromocodeAction());
+        domainService.buy(accountId, domain.getName(), originalAccountPromotions, domain.getAccountPromotion());
     }
 
     @Override
     public BigDecimal getPrice(CartItem domain) {
-        domain.setPromocodeAction(usePromotion(domain));
-        return domainService.getPrice(domain.getName(), domain.getPromocodeAction());
+        domain.setAccountPromotion(usePromotion(domain));
+        return domainService.getPrice(domain.getName(), domain.getAccountPromotion());
     }
 
     @Override
@@ -51,7 +50,7 @@ public class DomainCartItemStrategy implements CartItemStrategy {
     }
 
     @Override
-    public PromocodeAction usePromotion(CartItem domain) {
+    public AccountPromotion usePromotion(CartItem domain) {
         return domainService.usePromotion(domain.getName(), accountPromotions);
     }
 
