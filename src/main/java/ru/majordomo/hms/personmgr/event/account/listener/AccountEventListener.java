@@ -33,10 +33,7 @@ import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.*;
-import ru.majordomo.hms.personmgr.service.AbonementService;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
-import ru.majordomo.hms.personmgr.service.TokenHelper;
+import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
@@ -59,6 +56,7 @@ public class AccountEventListener {
     private final AbonementService abonementService;
     private final PersonalAccountManager accountManager;
     private final AccountAbonementManager accountAbonementManager;
+    private final AccountNotificationHelper accountNotificationHelper;
 
     @Autowired
     public AccountEventListener(
@@ -73,7 +71,8 @@ public class AccountEventListener {
             PromotionRepository promotionRepository,
             AbonementService abonementService,
             PersonalAccountManager accountManager,
-            AccountAbonementManager accountAbonementManager
+            AccountAbonementManager accountAbonementManager,
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -87,6 +86,7 @@ public class AccountEventListener {
         this.abonementService = abonementService;
         this.accountManager = accountManager;
         this.accountAbonementManager = accountAbonementManager;
+        this.accountNotificationHelper = accountNotificationHelper;
     }
 
     @EventListener
@@ -541,19 +541,7 @@ public class AccountEventListener {
 
         for (int days : daysAgo) {
             if (dateFinish.toLocalDate().isEqual(now.minusDays(days))) {
-
-                Plan plan = planRepository.findOne(account.getPlanId());
-                BigDecimal costAbonement = accountHelper.getCostAbonement(plan).setScale(2, BigDecimal.ROUND_DOWN);
-                BigDecimal costPerMonth = plan.getService().getCost().setScale(2, BigDecimal.ROUND_DOWN);
-                HashMap<String, String> parameters = new HashMap<>();
-
-                parameters.put("acc_id", account.getName());
-                parameters.put("date_finish", dateFinish.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-                parameters.put("balance", accountHelper.getBalance(account).setScale(2, BigDecimal.ROUND_DOWN).toString());
-                parameters.put("cost_per_month", costPerMonth.toString());
-                parameters.put("cost_abonement", costAbonement.toString());
-                parameters.put("domains", accountHelper.getDomainForEmail(account));
-                accountHelper.sendEmail(account, "MajordomoHmsMoneyEnd", parameters);
+                accountNotificationHelper.sendMailForDeactivatedAccount(account, dateFinish);
                 //отправляем только одно письмо
                 break;
             }

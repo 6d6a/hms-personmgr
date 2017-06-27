@@ -680,32 +680,6 @@ public class AccountHelper {
     }
 
     /*
-     * отправим письмо на все ящики аккаунта
-     * по умолчанию приоритет 5
-     */
-
-    public void sendEmail(PersonalAccount account, String apiName, HashMap<String, String> parameters) {
-        sendEmail(account, apiName, 5, parameters);
-    }
-
-    public void sendEmail(PersonalAccount account, String apiName, int priority, HashMap<String, String> parameters) {
-
-        String email = this.getEmail(account);
-        SimpleServiceMessage message = new SimpleServiceMessage();
-
-        message.setAccountId(account.getId());
-        message.setParams(new HashMap<>());
-        message.addParam("email", email);
-        message.addParam("api_name", apiName);
-        message.addParam("priority", priority);
-        if (parameters != null) {
-            message.addParam("parametrs", parameters);
-        }
-
-        publisher.publishEvent(new SendMailEvent(message));
-    }
-
-    /*
      * получим стоимость абонемента на период через Plan, PlanId или PersonalAccount
      * @period - период действия абонемента, "P1Y" - на год
      */
@@ -738,6 +712,7 @@ public class AccountHelper {
                 ).collect(Collectors.toList()).get(0).getService().getCost();
     }
 
+    public String getCostAbonementForEmail(Plan plan) {return getCostAbonement(plan).setScale(2, BigDecimal.ROUND_DOWN).toString();}
 
     public String getDomainForEmail(PersonalAccount account) {
 
@@ -747,4 +722,6 @@ public class AccountHelper {
         }
         return "";
     }
+
+    public String getBalanceForEmail(PersonalAccount account) {return getBalance(account).setScale(2, BigDecimal.ROUND_DOWN).toString();}
 }

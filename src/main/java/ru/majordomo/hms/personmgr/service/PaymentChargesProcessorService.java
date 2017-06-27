@@ -45,6 +45,7 @@ public class PaymentChargesProcessorService {
     private final ApplicationEventPublisher publisher;
     private final PlanRepository planRepository;
     private final AccountStatHelper accountStatHelper;
+    private final AccountNotificationHelper accountNotificationHelper;
 
     @Autowired
     public PaymentChargesProcessorService(
@@ -54,7 +55,8 @@ public class PaymentChargesProcessorService {
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher,
             PlanRepository planRepository,
-            AccountStatHelper accountStatHelper
+            AccountStatHelper accountStatHelper,
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.accountManager = accountManager;
         this.accountServiceRepository = accountServiceRepository;
@@ -63,6 +65,7 @@ public class PaymentChargesProcessorService {
         this.publisher = publisher;
         this.planRepository = planRepository;
         this.accountStatHelper = accountStatHelper;
+        this.accountNotificationHelper = accountNotificationHelper;
     }
 
     public void processCharge(String paymentAccountName) {
@@ -121,7 +124,8 @@ public class PaymentChargesProcessorService {
                                 // Выключаем аккаунт, если срок кредита истёк
                                 accountHelper.switchAccountResources(account, false);
                                 accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
-                                publisher.publishEvent(new AccountDeactivatedSendMailEvent(account));
+                                accountNotificationHelper.sendMailForDeactivatedAccount(account);
+
                             } else {
                                 forceCharge = true;
                             }
@@ -148,7 +152,7 @@ public class PaymentChargesProcessorService {
                 if (!account.isCredit()) {
                     accountHelper.switchAccountResources(account, false);
                     accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
-                    publisher.publishEvent(new AccountDeactivatedSendMailEvent(account));
+                    accountNotificationHelper.sendMailForDeactivatedAccount(account);
                 } else if (account.getCreditActivationDate() == null) {
                     accountManager.setCreditActivationDate(account.getId(), LocalDateTime.now());
                 }
