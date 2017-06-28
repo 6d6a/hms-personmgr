@@ -4,26 +4,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
-import ru.majordomo.hms.personmgr.exception.ChargeException;
-import ru.majordomo.hms.personmgr.exception.InternalApiException;
-import ru.majordomo.hms.personmgr.exception.LowBalanceException;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
-import ru.majordomo.hms.personmgr.model.promocode.Promocode;
-import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
-import ru.majordomo.hms.personmgr.model.promotion.Promotion;
-import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
@@ -31,62 +18,28 @@ import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
-
-import static ru.majordomo.hms.personmgr.common.Constants.*;
-import static ru.majordomo.hms.personmgr.common.PromocodeType.GOOGLE;
-import static ru.majordomo.hms.personmgr.common.Utils.getBigDecimalFromUnexpectedInput;
 
 @Service
 public class AccountNotificationHelper {
 
     private final static Logger logger = LoggerFactory.getLogger(AccountNotificationHelper.class);
 
-    private final RcUserFeignClient rcUserFeignClient;
-    private final FinFeignClient finFeignClient;
-    private final SiFeignClient siFeignClient;
-    private final AccountPromotionManager accountPromotionManager;
-    private final BusinessActionBuilder businessActionBuilder;
-    private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
-    private final AccountPromocodeRepository accountPromocodeRepository;
-    private final PromocodeRepository promocodeRepository;
-    private final AccountOwnerRepository accountOwnerRepository;
     private final PlanRepository planRepository;
     private final AccountHelper accountHelper;
 
     @Autowired
     public AccountNotificationHelper(
-            RcUserFeignClient rcUserFeignClient,
-            FinFeignClient finFeignClient,
-            SiFeignClient siFeignClient,
-            AccountPromotionManager accountPromotionManager,
-            BusinessActionBuilder businessActionBuilder,
-            PersonalAccountManager accountManager,
             ApplicationEventPublisher publisher,
-            AccountPromocodeRepository accountPromocodeRepository,
-            PromocodeRepository promocodeRepository,
-            AccountOwnerRepository accountOwnerRepository,
             PlanRepository planRepository,
             AccountHelper accountHelper
     ) {
-        this.rcUserFeignClient = rcUserFeignClient;
-        this.finFeignClient = finFeignClient;
-        this.siFeignClient = siFeignClient;
-        this.accountPromotionManager = accountPromotionManager;
-        this.businessActionBuilder = businessActionBuilder;
-        this.accountManager = accountManager;
         this.publisher = publisher;
-        this.accountPromocodeRepository = accountPromocodeRepository;
-        this.promocodeRepository = promocodeRepository;
-        this.accountOwnerRepository = accountOwnerRepository;
         this.planRepository = planRepository;
         this.accountHelper = accountHelper;
     }
@@ -146,5 +99,11 @@ public class AccountNotificationHelper {
         parameters.put("cost_abonement", this.getCostAbonementForEmail(plan));
         parameters.put("domains", this.getDomainForEmail(account));
         this.sendMail(account, "MajordomoHmsMoneyEnd", parameters);
+    }
+
+    public void sendInfoMail(PersonalAccount account, String apiName) {
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        this.sendMail(account, apiName, 1, parameters);
     }
 }

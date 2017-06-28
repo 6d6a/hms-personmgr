@@ -24,6 +24,7 @@ import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
@@ -44,6 +45,7 @@ public class AccountAbonementsEventListener {
     private final ApplicationEventPublisher publisher;
     private final AccountAbonementManager accountAbonementManager;
     private final PlanRepository planRepository;
+    private final AccountNotificationHelper accountNotificationHelper;
 
     @Autowired
     public AccountAbonementsEventListener(
@@ -52,7 +54,8 @@ public class AccountAbonementsEventListener {
             AbonementService abonementService,
             ApplicationEventPublisher publisher,
             AccountAbonementManager accountAbonementManager,
-            PlanRepository planRepository
+            PlanRepository planRepository,
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.abonementService = abonementService;
         this.accountHelper = accountHelper;
@@ -60,6 +63,7 @@ public class AccountAbonementsEventListener {
         this.publisher = publisher;
         this.accountAbonementManager = accountAbonementManager;
         this.planRepository = planRepository;
+        this.accountNotificationHelper = accountNotificationHelper;
     }
 
     @EventListener
@@ -161,9 +165,9 @@ public class AccountAbonementsEventListener {
         BigDecimal balance = accountHelper.getBalance(account).setScale(2, BigDecimal.ROUND_DOWN);
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("acc_id", account.getName());
-        parameters.put("domains", accountHelper.getDomainForEmail(account));
+        parameters.put("domains", accountNotificationHelper.getDomainForEmail(account));
         parameters.put("balance", balance.toString() + " рублей");
         parameters.put("cost_per_year", costAbonement.toString());
-        accountHelper.sendEmail(account,"MajordomoHmsAbonementEnd", parameters);
+        accountNotificationHelper.sendMail(account,"MajordomoHmsAbonementEnd", parameters);
     }
 }

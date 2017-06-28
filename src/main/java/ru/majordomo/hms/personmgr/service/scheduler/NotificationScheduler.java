@@ -8,6 +8,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.event.account.AccountDeactivatedSendMailEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountNotifyInactiveLongTimeEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
@@ -31,12 +32,23 @@ public class NotificationScheduler {
 
     //Выполняем отправку писем отключенным аккаунтам в 03:00:00 каждый день
     @Scheduled(cron = "0 0 3 * * *")
-    @SchedulerLock(name = "processAccountDeactivatedSendMailEvent")
-    public void processAccountDeactivatedSendMailEvent() {
+    @SchedulerLock(name = "processAccountDeactivatedSendMail")
+    public void processAccountDeactivatedSendMail() {
         logger.debug("Started processNotifyExpiredAbonements");
         try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountDeactivatedSendMailEvent(account)));
         }
         logger.debug("Ended processNotifyExpiredAbonements");
+    }
+
+    //Для неактивных аккаунтов отправляем письма для возврата клиентов
+    @Scheduled(cron = "0 0 3 * * *")
+    @SchedulerLock(name = "processNotifyInactiveLongTime")
+    public  void processNotifyInactiveLongTime() {
+        logger.debug("Started processNotifyInactiveLongTime");
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
+            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountNotifyInactiveLongTimeEvent(account)));
+        }
+        logger.debug("Ended processNotifyInactiveLongTime");
     }
 }

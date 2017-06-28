@@ -57,6 +57,7 @@ public class AccountEventListener {
     private final PersonalAccountManager accountManager;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountNotificationHelper accountNotificationHelper;
+    private final PersonalAccountRepository personalAccountRepository;
 
     @Autowired
     public AccountEventListener(
@@ -72,7 +73,8 @@ public class AccountEventListener {
             AbonementService abonementService,
             PersonalAccountManager accountManager,
             AccountAbonementManager accountAbonementManager,
-            AccountNotificationHelper accountNotificationHelper
+            AccountNotificationHelper accountNotificationHelper,
+            PersonalAccountRepository personalAccountRepository
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -87,6 +89,7 @@ public class AccountEventListener {
         this.accountManager = accountManager;
         this.accountAbonementManager = accountAbonementManager;
         this.accountNotificationHelper = accountNotificationHelper;
+        this.personalAccountRepository = personalAccountRepository;
     }
 
     @EventListener
@@ -542,6 +545,42 @@ public class AccountEventListener {
         for (int days : daysAgo) {
             if (dateFinish.toLocalDate().isEqual(now.minusDays(days))) {
                 accountNotificationHelper.sendMailForDeactivatedAccount(account, dateFinish);
+                //отправляем только одно письмо
+                break;
+            }
+        }
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountNotifyInactiveLongTimeEvent(AccountNotifyInactiveLongTimeEvent event) {
+        PersonalAccount account = event.getSource();
+
+        LocalDateTime deactivatedDate = account.getDeactivated();
+        if (account.isActive() || account.getDeactivated() == null) {return;}
+        logger.debug("We got AccountNotifyInactiveLongTimeEvent\n");
+
+        LocalDateTime deactivatedDateMidnight = deactivatedDate.withHour(0).withMinute(0);
+
+        List<AccountStat> accountStatsNoMoney = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
+                account.getId(),
+                AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY,
+                deactivatedDateMidnight
+        );
+
+        List<AccountStat> accountStatsAbonementDelete = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
+                account.getId(),
+                AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE,
+                deactivatedDateMidnight
+        );
+
+        if (accountStatsNoMoney.isEmpty() || accountStatsAbonementDelete.isEmpty()) { return; }
+
+        int[] monthsAgo = {1, 2, 3, 6, 12};
+
+        for (int months : monthsAgo) {
+            if (deactivatedDate.toLocalDate().isEqual(LocalDate.now().minusMonths(months))) {
+                accountNotificationHelper.sendInfoMail(account, "MajordomoHmsReturnClient");
                 //отправляем только одно письмо
                 break;
             }

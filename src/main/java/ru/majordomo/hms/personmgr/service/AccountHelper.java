@@ -711,17 +711,4 @@ public class AccountHelper {
                         abonement -> abonement.getPeriod().equals(period)
                 ).collect(Collectors.toList()).get(0).getService().getCost();
     }
-
-    public String getCostAbonementForEmail(Plan plan) {return getCostAbonement(plan).setScale(2, BigDecimal.ROUND_DOWN).toString();}
-
-    public String getDomainForEmail(PersonalAccount account) {
-
-        List<Domain> domains = this.getDomains(account);
-        if (!(domains.isEmpty())) {
-            return domains.stream().map(Domain::getName).collect(Collectors.joining("<br>"));
-        }
-        return "";
-    }
-
-    public String getBalanceForEmail(PersonalAccount account) {return getBalance(account).setScale(2, BigDecimal.ROUND_DOWN).toString();}
 }
