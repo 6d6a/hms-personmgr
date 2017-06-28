@@ -354,34 +354,6 @@ public class DomainService {
             }
         }
 
-//        for (AccountPromotion accountPromotion : accountPromotions) {
-//            Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-//            if (map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID) != null && map.get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID)) {
-//
-//                PromocodeAction promocodeAction = accountPromotion.getActions().get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
-//                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
-//
-//                if (availableTlds.contains(domainTld.getTld())) {
-//                    map.put(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID, false);
-//                    return BigDecimal.ZERO;
-//                }
-//            }
-//        }
-//
-//        for (AccountPromotion accountPromotion : accountPromotions) {
-//            Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-//            if (map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) != null && map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID)) {
-//                PromocodeAction promocodeAction = accountPromotion.getActions().get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
-//                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
-//
-//                if (availableTlds.contains(domainTld.getTld())) {
-//                    map.put(DOMAIN_DISCOUNT_RU_RF_ACTION_ID, false);
-//                    // Устанавливает цену со скидкой
-//                    return BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost"));
-//                }
-//            }
-//        }
-
         //Проверить домен на премиальность, если да - установить новую цену
         if (availabilityInfo.getPremiumPrice() != null && (availabilityInfo.getPremiumPrice().compareTo(BigDecimal.ZERO) > 0)) {
             return availabilityInfo.getPremiumPrice();
