@@ -18,6 +18,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
@@ -33,9 +35,12 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.cart.Cart;
 import ru.majordomo.hms.personmgr.model.cart.CartItem;
 import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.repository.CartRepository;
 import ru.majordomo.hms.personmgr.service.DomainService;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyString;
 
 
@@ -60,6 +65,8 @@ public class CartManagerImplTest {
     private final String domainName1 = "testsome.ru";
     private final String domainName2 = "testsome2.ru";
     private final String domainName3 = "testsome3.ru";
+
+    private final BigDecimal price = BigDecimal.valueOf(99);
 
     @MockBean(name="domainService")
     private DomainService domainService;
@@ -93,29 +100,19 @@ public class CartManagerImplTest {
 
         Mockito
                 .when(domainService.getPrice(domainName1, null))
-                .thenReturn(BigDecimal.valueOf(99));
+                .thenReturn(price);
 
         Mockito
                 .doNothing()
                 .when(domainService).check(domainName1);
 
-        ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(
-                "1",
-                "name",
-                State.NEED_TO_PROCESS,
-                1,
-                "1",
-                BusinessActionType.DOMAIN_CREATE_RC,
-                new AmqpMessageDestination(),
-                new SimpleServiceMessage(),
-                accountId1,
-                LocalDateTime.now(),
-                LocalDateTime.now(),
-                new HashMap<>());
-
         Mockito
-                .when(domainService.buy(accountId1, domainName1, new ArrayList<>(),null))
-                .thenReturn(processingBusinessAction);
+                .when(domainService.buy(anyString(), anyString(), anyListOf(AccountPromotion.class), any()))
+                .thenAnswer(invocation -> generateProcessingBusinessAction(
+                        invocation.getArgumentAt(0, String.class),
+                        invocation.getArgumentAt(1, String.class)
+                ))
+        ;
     }
 
     @After
@@ -208,6 +205,15 @@ public class CartManagerImplTest {
 
     @Test
     public void buy() throws Exception {
+        List<ProcessingBusinessAction> processingBusinessActions = manager.buy(accountId2, price);
+        Assert.assertNotNull(processingBusinessActions);
+        Assert.assertEquals(1, processingBusinessActions.size());
+        Assert.assertEquals(domainName1, processingBusinessActions.get(0).getParam("name"));
+    }
+
+    @Test(expected = ParameterValidationException.class)
+    public void buyWrongCartPrice() throws Exception {
+        manager.buy(accountId2, BigDecimal.valueOf(49));
     }
 
     private Cart generateEmptyCart() {
@@ -253,5 +259,26 @@ public class CartManagerImplTest {
         domainCartItem.setProcessing(processing);
 
         return domainCartItem;
+    }
+
+    private ProcessingBusinessAction generateProcessingBusinessAction(String accountId, String name) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("name", name);
+
+        ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(
+                "1",
+                "Some processingBusinessAction",
+                State.NEED_TO_PROCESS,
+                1,
+                "1",
+                BusinessActionType.DOMAIN_CREATE_RC,
+                new AmqpMessageDestination(),
+                new SimpleServiceMessage(),
+                accountId,
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                params);
+
+        return processingBusinessAction;
     }
 }
