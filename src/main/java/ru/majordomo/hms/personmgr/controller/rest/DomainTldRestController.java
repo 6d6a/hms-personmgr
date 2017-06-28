@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +24,8 @@ import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.RU_RF_DOMAINS;
+import static ru.majordomo.hms.personmgr.common.Constants.RU_RF_DOMAIN_NEW_PRICE_DATE;
 
 @RestController
 @RequestMapping({"/{accountId}/domain-tlds", "/domain-tlds"})
@@ -54,7 +59,25 @@ public class DomainTldRestController extends CommonRestController {
                 PromocodeAction promocodeAction = promocodeActionRepository.findOne(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
                 List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
                 for (String tld : availableTlds) {
-                    discountedCosts.put(tld, BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
+                    //discountedCosts.put(tld, BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
+
+                    //TODO изменить после 2017-07-01
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    LocalDateTime newRuRfPricesDate = LocalDateTime.parse(RU_RF_DOMAIN_NEW_PRICE_DATE, formatter);
+                    if (LocalDateTime.now().isBefore(newRuRfPricesDate)) {
+                        if (Arrays.asList(RU_RF_DOMAINS).contains(tld)) {
+                            discountedCosts.put(tld, BigDecimal.valueOf(49L));
+                        } else {
+                            discountedCosts.put(tld, BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
+                        }
+                    } else {
+                        if (Arrays.asList(RU_RF_DOMAINS).contains(tld)) {
+                            discountedCosts.put(tld, BigDecimal.valueOf(140L));
+                        } else {
+                            discountedCosts.put(tld, BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
+                        }
+                    }
+                    //TODO end
                 }
                 break;
             }

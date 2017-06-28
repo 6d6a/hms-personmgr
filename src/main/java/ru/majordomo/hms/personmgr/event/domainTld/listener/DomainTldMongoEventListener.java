@@ -16,9 +16,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
-import static ru.majordomo.hms.personmgr.common.Constants.ACTION_DOMAINS;
-import static ru.majordomo.hms.personmgr.common.Constants.ACTION_DOMAIN_END_DATE;
-import static ru.majordomo.hms.personmgr.common.Constants.ACTION_DOMAIN_START_DATE;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.DomainCategory.GEO;
 
 @Component
@@ -50,6 +48,21 @@ public class DomainTldMongoEventListener extends AbstractMongoEventListener<Doma
         if (LocalDateTime.now().isAfter(startDate) && LocalDateTime.now().isBefore(endDate)) {
             if (Arrays.asList(ACTION_DOMAINS).contains(domainTld.getTld()) || domainTld.getDomainCategory() == GEO) {
                 domainTld.getRegistrationService().setCost(BigDecimal.valueOf(49L));
+            }
+        }
+
+
+        // TODO удалить после 2017-06-01 00:00:00
+        LocalDateTime newRuRfPricesDate = LocalDateTime.parse(RU_RF_DOMAIN_NEW_PRICE_DATE, formatter);
+        if (LocalDateTime.now().isBefore(newRuRfPricesDate)) {
+            if (Arrays.asList(RU_RF_DOMAINS).contains(domainTld.getTld())) {
+                domainTld.getRegistrationService().setCost(BigDecimal.valueOf(99L));
+                domainTld.getRenewService().setCost(BigDecimal.valueOf(449L));
+            }
+        } else {
+            if (Arrays.asList(RU_RF_DOMAINS).contains(domainTld.getTld())) {
+                domainTld.getRegistrationService().setCost(BigDecimal.valueOf(190L));
+                domainTld.getRenewService().setCost(BigDecimal.valueOf(590L));
             }
         }
 
