@@ -143,7 +143,7 @@ public class CartManagerImpl implements CartManager {
         checkCartItem(cart, cartItem);
 
         if (cart.hasItem(cartItem)) {
-            throw new ParameterValidationException(cartItem.getType() + " " + cartItem.getName() + " уже присутствует в корзине");
+            throw new ParameterValidationException(cartItem.getTypeTranslated() + " " + cartItem.getName() + " уже присутствует в корзине");
         }
 
         cart.addItem(cartItem);

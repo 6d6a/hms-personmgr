@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.model.cart;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
@@ -25,11 +26,12 @@ public interface CartItem {
 
     void setProcessing(Boolean processing);
 
+    @JsonIgnore
+    String getTypeTranslated();
+
     List<ProcessingBusinessAction> buy();
 
     BigDecimal getPrice();
-
-    String getType();
 
     default void check() {}
 

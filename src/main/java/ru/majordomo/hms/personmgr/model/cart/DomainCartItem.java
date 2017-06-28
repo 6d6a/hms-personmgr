@@ -19,7 +19,7 @@ import ru.majordomo.hms.personmgr.strategy.DomainCartItemStrategy;
 public class DomainCartItem implements CartItem {
     @Transient
     @JsonIgnore
-    private final String TYPE = "Домен";
+    private final String TYPE_TRANSLATED = "Домен";
 
     @NotBlank
     private String name;
@@ -106,8 +106,8 @@ public class DomainCartItem implements CartItem {
     }
 
     @Override
-    public String getType() {
-        return TYPE;
+    public String getTypeTranslated() {
+        return TYPE_TRANSLATED;
     }
 
     @Override

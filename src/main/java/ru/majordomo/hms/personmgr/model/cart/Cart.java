@@ -21,7 +21,7 @@ import ru.majordomo.hms.personmgr.strategy.DomainCartItemStrategy;
 public class Cart extends VersionedModelBelongsToPersonalAccount implements CartItem {
     @Transient
     @JsonIgnore
-    private final String TYPE = "Корзина";
+    private final String TYPE_TRANSLATED = "Корзина";
 
     private Set<CartItem> items = new HashSet<>();
 
@@ -77,13 +77,13 @@ public class Cart extends VersionedModelBelongsToPersonalAccount implements Cart
     @Override
     @JsonIgnore
     public String getName() {
-        return TYPE;
+        return TYPE_TRANSLATED;
     }
 
     @Override
     @JsonIgnore
-    public String getType() {
-        return TYPE;
+    public String getTypeTranslated() {
+        return TYPE_TRANSLATED;
     }
 
     @Override
