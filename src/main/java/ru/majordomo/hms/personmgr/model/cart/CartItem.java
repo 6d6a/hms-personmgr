@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.math.BigDecimal;
+import java.util.List;
 
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
@@ -23,7 +25,7 @@ public interface CartItem {
 
     void setProcessing(Boolean processing);
 
-    void buy();
+    List<ProcessingBusinessAction> buy();
 
     BigDecimal getPrice();
 

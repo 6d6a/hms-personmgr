@@ -6,15 +6,19 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.strategy.DomainCartItemStrategy;
 
 @Document
-public class Cart extends ModelBelongsToPersonalAccount implements CartItem {
+public class Cart extends VersionedModelBelongsToPersonalAccount implements CartItem {
     @Transient
     @JsonIgnore
     private final String TYPE = "Корзина";
@@ -83,8 +87,12 @@ public class Cart extends ModelBelongsToPersonalAccount implements CartItem {
     }
 
     @Override
-    public void buy() {
-        items.forEach(CartItem::buy);
+    public List<ProcessingBusinessAction> buy() {
+        return items
+                .stream()
+                .map(CartItem::buy)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
     }
 
     @Override

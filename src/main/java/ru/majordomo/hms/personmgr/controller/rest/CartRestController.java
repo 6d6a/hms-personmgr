@@ -11,19 +11,21 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.cart.Cart;
 import ru.majordomo.hms.personmgr.model.cart.CartItem;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
-
-import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
 @RestController
 @RequestMapping("/{accountId}/cart")
@@ -50,13 +52,7 @@ public class CartRestController extends CommonRestController {
             @Valid @RequestBody CartItem cartItem,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        Cart cart = manager.findByPersonalAccountId(accountId);
-
-        if (cart.getProcessing()) {
-            throw new ParameterValidationException("Корзина находится в процессе покупки. Дождитесь окончания обработки.");
-        }
-
-        cart = manager.addCartItem(accountId, cartItem);
+        Cart cart = manager.addCartItem(accountId, cartItem);
 
         return new ResponseEntity<>(cart.getItems(), HttpStatus.OK);
     }
@@ -67,23 +63,13 @@ public class CartRestController extends CommonRestController {
             @Valid @RequestBody Set<CartItem> cartItems,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        Cart cart = manager.findByPersonalAccountId(accountId);
-
-        if (cart.getProcessing() && cartItems.size() != 0) {
-            throw new ParameterValidationException("Корзина находится в процессе покупки. Дождитесь окончания обработки.");
-        }
-
-        cart = manager.setCartItems(accountId, cartItems);
-
-//        if (cartItems.size() == 0) {
-//            manager.setProcessing(accountId, false);
-//        }
+        Cart cart = manager.setCartItems(accountId, cartItems);
 
         return new ResponseEntity<>(cart.getItems(), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/buy", method = RequestMethod.POST)
-    public ResponseEntity<Void> buy(
+    public ResponseEntity<List<SimpleServiceMessage>> buy(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Map<String, BigDecimal> requestBody
     ) {
@@ -93,25 +79,15 @@ public class CartRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Покупки услуг невозможны.");
         }
 
-        Cart cart = manager.findByPersonalAccountId(accountId);
-
-        if (cart.getProcessing()) {
-            throw new ParameterValidationException("Корзина находится в процессе покупки. Дождитесь окончания обработки.");
-        }
-
         BigDecimal cartPrice = requestBody.getOrDefault("price", BigDecimal.ZERO);
 
-        if (cart.getPrice().compareTo(cartPrice) != 0) {
-            throw new ParameterValidationException("Переданная стоимость корзины не совпадает с её текущей стоимостью. " +
-                    "Передано: " + formatBigDecimalWithCurrency(cartPrice) +
-                    " Текущая: " + formatBigDecimalWithCurrency(cart.getPrice())
-            );
-        }
+        List<ProcessingBusinessAction> processingBusinessActions = manager.buy(accountId, cartPrice);
 
-        cart.buy();
+        List<SimpleServiceMessage> simpleServiceMessages = processingBusinessActions
+                .stream()
+                .map(this::createSuccessResponse)
+                .collect(Collectors.toList());
 
-        manager.setProcessing(accountId, true);
-
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(simpleServiceMessages, HttpStatus.OK);
     }
 }

@@ -1,8 +1,10 @@
 package ru.majordomo.hms.personmgr.manager;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.cart.Cart;
 import ru.majordomo.hms.personmgr.model.cart.CartItem;
 
@@ -42,4 +44,6 @@ public interface CartManager {
     void setProcessing(String accountId, boolean status);
 
     void setProcessingByName(String accountId, String name, boolean status);
+
+    List<ProcessingBusinessAction> buy(String accountId, BigDecimal cartPrice);
 }

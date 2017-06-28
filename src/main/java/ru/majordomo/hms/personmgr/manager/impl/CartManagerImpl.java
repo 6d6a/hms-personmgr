@@ -1,13 +1,13 @@
 package ru.majordomo.hms.personmgr.manager.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.mongodb.core.MongoOperations;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -15,12 +15,15 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.CartManager;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.cart.Cart;
 import ru.majordomo.hms.personmgr.model.cart.CartItem;
 import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.repository.CartRepository;
 import ru.majordomo.hms.personmgr.service.DomainService;
 import ru.majordomo.hms.personmgr.strategy.DomainCartItemStrategy;
+
+import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
 @Component
 public class CartManagerImpl implements CartManager {
@@ -129,8 +132,13 @@ public class CartManagerImpl implements CartManager {
     }
 
     @Override
+    @Retryable(include = {OptimisticLockingFailureException.class}, maxAttempts = 5)
     public Cart addCartItem(String accountId, CartItem cartItem) {
         Cart cart = findByPersonalAccountId(accountId);
+
+        if (cart.getProcessing()) {
+            throw new ParameterValidationException("Корзина находится в процессе покупки. Дождитесь окончания обработки.");
+        }
 
         checkCartItem(cart, cartItem);
 
@@ -146,26 +154,25 @@ public class CartManagerImpl implements CartManager {
     }
 
     @Override
+    @Retryable(include = {OptimisticLockingFailureException.class}, maxAttempts = 5)
     public Cart deleteCartItemByName(String accountId, String cartItemName) {
         Cart cart = findByPersonalAccountId(accountId);
 
-        Query query;
-        Update update;
+        cart.getItems().stream().filter(item -> item.getName().equals(cartItemName)).findFirst().ifPresent(cart::removeItem);
 
-        for (int i = 0; i < cart.getItems().size(); i++) {
-            query = new Query(new Criteria("_id").is(cart.getId()).and("items." + i + ".name").is(cartItemName));
-            update = new Update().unset("items." + i);
-            //TODO pull сделать вместо unset
-
-            mongoOperations.updateFirst(query, update, Cart.class);
-        }
+        save(cart);
 
         return cart;
     }
 
     @Override
+    @Retryable(include = {OptimisticLockingFailureException.class}, maxAttempts = 5)
     public Cart setCartItems(String accountId, Set<CartItem> cartItems) {
         Cart cart = findByPersonalAccountId(accountId);
+
+        if (cart.getProcessing() && cartItems.size() != 0) {
+            throw new ParameterValidationException("Корзина находится в процессе покупки. Дождитесь окончания обработки.");
+        }
 
         cartItems.forEach(item -> checkCartItem(cart, item));
 
@@ -177,55 +184,54 @@ public class CartManagerImpl implements CartManager {
     }
 
     @Override
+    @Retryable(include = {OptimisticLockingFailureException.class}, maxAttempts = 5)
     public void setProcessing(String accountId, boolean status) {
         Cart cart = findByPersonalAccountId(accountId);
 
-        Query query;
-        Update update;
+        cart.getItems().forEach(item -> item.setProcessing(status));
 
-        for (int i = 0; i < cart.getItems().size(); i++) {
-            query = new Query(new Criteria("_id").is(cart.getId()));
-            update = new Update().set("items." + i + ".processing", status);
-
-            mongoOperations.updateFirst(query, update, Cart.class);
-        }
-
-//        cart.getItems().forEach(item -> item.setProcessing(status));
-//
-//        save(cart);
+        save(cart);
     }
 
     @Override
+    @Retryable(include = {OptimisticLockingFailureException.class}, maxAttempts = 5)
     public void setProcessingByName(String accountId, String name, boolean status) {
         Cart cart = findByPersonalAccountId(accountId);
 
-        Query query;
-        Update update;
+        cart.getItems()
+                .stream()
+                .filter(item -> item.getName().equals(name))
+                .findFirst()
+                .ifPresent(item -> item.setProcessing(status))
+        ;
 
-        for (int i = 0; i < cart.getItems().size(); i++) {
-            query = new Query(new Criteria("_id").is(cart.getId()).and("items." + i + ".name").is(name));
-            update = new Update().set("items." + i + ".processing", status);
+        save(cart);
+    }
 
-            mongoOperations.updateFirst(query, update, Cart.class);
+    @Override
+    public List<ProcessingBusinessAction> buy(String accountId, BigDecimal cartPrice) {
+        Cart cart = findByPersonalAccountId(accountId);
+
+        if (cart.getProcessing()) {
+            throw new ParameterValidationException("Корзина находится в процессе покупки. Дождитесь окончания обработки.");
         }
 
-//        cart.getItems()
-//                .stream()
-//                .filter(item -> item.getName().equals(name))
-//                .forEach(item -> item.setProcessing(status));
+        if (cart.getPrice().compareTo(cartPrice) != 0) {
+            throw new ParameterValidationException("Переданная стоимость корзины не совпадает с её текущей стоимостью. " +
+                    "Передано: " + formatBigDecimalWithCurrency(cartPrice) +
+                    " Текущая: " + formatBigDecimalWithCurrency(cart.getPrice())
+            );
+        }
 
-//        cart = findByPersonalAccountId(accountId);
+        setProcessing(accountId, true);
 
-//        if (cart.getItems().size() == cart.getItems().stream().filter(item -> !item.getProcessing()).count()) {
-//            cart.setProcessing(false);
-//            query = new Query(new Criteria("_id").is(cart.getId()));
-
-//            update = new Update().set("processing", false);
-
-//            mongoOperations.updateFirst(query, update, Cart.class);
-//        }
-
-//        save(cart);
+        try {
+            return cart.buy();
+        } catch (Exception e) {
+            e.printStackTrace();
+            setProcessing(accountId, false);
+            throw e;
+        }
     }
 
     private void checkCartItem(Cart cart, CartItem cartItem) {

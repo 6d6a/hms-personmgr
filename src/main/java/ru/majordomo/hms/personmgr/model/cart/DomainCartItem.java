@@ -6,7 +6,12 @@ import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.data.annotation.Transient;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.strategy.CartItemStrategy;
 import ru.majordomo.hms.personmgr.strategy.DomainCartItemStrategy;
@@ -81,9 +86,11 @@ public class DomainCartItem implements CartItem {
     }
 
     @Override
-    public void buy() {
+    public List<ProcessingBusinessAction> buy() {
         if (strategy != null) {
-            strategy.buy(this);
+            return Collections.singletonList(strategy.buy(this));
+        } else {
+            throw new ParameterValidationException("There is no CartItemStrategy for this item");
         }
     }
 

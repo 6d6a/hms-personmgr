@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.cart.CartItem;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.service.DomainService;
@@ -28,9 +29,9 @@ public class DomainCartItemStrategy implements CartItemStrategy {
     }
 
     @Override
-    public void buy(CartItem domain) {
+    public ProcessingBusinessAction buy(CartItem domain) {
         domainService.check(domain.getName());
-        domainService.buy(accountId, domain.getName(), originalAccountPromotions, domain.getAccountPromotion());
+         return domainService.buy(accountId, domain.getName(), originalAccountPromotions, domain.getAccountPromotion());
     }
 
     @Override

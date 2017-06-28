@@ -29,6 +29,7 @@ import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
@@ -389,7 +390,7 @@ public class DomainService {
         return domainTld.getRegistrationService().getCost();
     }
 
-    public void buy(String accountId, String domainName, List<AccountPromotion> accountPromotions, AccountPromotion accountPromotion) {
+    public ProcessingBusinessAction buy(String accountId, String domainName, List<AccountPromotion> accountPromotions, AccountPromotion accountPromotion) {
         PersonalAccount account = accountManager.findOne(accountId);
 
         SimpleServiceMessage message = new SimpleServiceMessage();
@@ -469,7 +470,7 @@ public class DomainService {
 
         ProcessingBusinessOperation processingBusinessOperation = businessOperationBuilder.build(BusinessOperationType.DOMAIN_CREATE, message);
 
-        businessActionBuilder.build(BusinessActionType.DOMAIN_CREATE_RC, message, processingBusinessOperation);
+        ProcessingBusinessAction processingBusinessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_CREATE_RC, message, processingBusinessOperation);
 
         String actionText = isFreeDomain ?
                 "бесплатную регистрацию" :
@@ -483,6 +484,8 @@ public class DomainService {
         params.put(OPERATOR_KEY, operator);
 
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
+        return processingBusinessAction;
     }
 
     private DomainTld getDomainTld(String domainName) {
