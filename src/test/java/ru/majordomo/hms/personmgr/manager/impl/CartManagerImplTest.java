@@ -17,23 +17,25 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestination;
-import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
 import ru.majordomo.hms.personmgr.config.AppConfigTest;
 import ru.majordomo.hms.personmgr.config.MongoConfigTest;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.cart.Cart;
+import ru.majordomo.hms.personmgr.model.cart.CartItem;
+import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.repository.CartRepository;
 import ru.majordomo.hms.personmgr.service.DomainService;
 
-import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 
 
@@ -47,9 +49,17 @@ import static org.mockito.Matchers.anyString;
 )
 @ActiveProfiles("test")
 public class CartManagerImplTest {
-    private final String cartId = "1";
-    private final String accountId = "1";
-    private final String domainName = "testsome.ru";
+    private final String emptyCartId = "1";
+    private final String notEmptyCartId = "2";
+    private final String processingCartId = "3";
+
+    private final String accountId1 = "1";
+    private final String accountId2 = "2";
+    private final String accountId3 = "3";
+
+    private final String domainName1 = "testsome.ru";
+    private final String domainName2 = "testsome2.ru";
+    private final String domainName3 = "testsome3.ru";
 
     @MockBean(name="domainService")
     private DomainService domainService;
@@ -65,10 +75,12 @@ public class CartManagerImplTest {
 
     @Before
     public void setUp() throws Exception {
-        repository.insert(generateCart());
+        repository.insert(generateEmptyCart());
+        repository.insert(generateNotEmptyCart());
+        repository.insert(generateProcessingCart());
 
         Mockito
-                .when(accountPromotionManager.findByPersonalAccountId(accountId))
+                .when(accountPromotionManager.findByPersonalAccountId(accountId1))
                 .thenReturn(new ArrayList<>());
 
         Mockito
@@ -76,16 +88,16 @@ public class CartManagerImplTest {
                 .when(accountPromotionManager).deactivateAccountPromotionByIdAndActionId(anyString(), anyString());
 
         Mockito
-                .when(domainService.usePromotion(domainName, new ArrayList<>()))
+                .when(domainService.usePromotion(domainName1, new ArrayList<>()))
                 .thenReturn(null);
 
         Mockito
-                .when(domainService.getPrice(domainName, null))
+                .when(domainService.getPrice(domainName1, null))
                 .thenReturn(BigDecimal.valueOf(99));
 
         Mockito
                 .doNothing()
-                .when(domainService).check(domainName);
+                .when(domainService).check(domainName1);
 
         ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(
                 "1",
@@ -96,13 +108,13 @@ public class CartManagerImplTest {
                 BusinessActionType.DOMAIN_CREATE_RC,
                 new AmqpMessageDestination(),
                 new SimpleServiceMessage(),
-                accountId,
+                accountId1,
                 LocalDateTime.now(),
                 LocalDateTime.now(),
                 new HashMap<>());
 
         Mockito
-                .when(domainService.buy(accountId, domainName, new ArrayList<>(),null))
+                .when(domainService.buy(accountId1, domainName1, new ArrayList<>(),null))
                 .thenReturn(processingBusinessAction);
     }
 
@@ -113,54 +125,133 @@ public class CartManagerImplTest {
 
     @Test
     public void findOne() throws Exception {
-        Cart cart = manager.findOne(cartId);
+        Cart cart = manager.findOne(emptyCartId);
 
         Assert.assertNotNull(cart);
-        Assert.assertEquals(cartId, cart.getId());
+        Assert.assertEquals(emptyCartId, cart.getId());
     }
 
     @Test(expected = ResourceNotFoundException.class)
     public void findOneNotFound() {
-        manager.findOne("3");
+        manager.findOne("3324253");
     }
 
     @Test
     public void findByPersonalAccountId() throws Exception {
-        Cart cart = manager.findByPersonalAccountId(accountId);
+        Cart cart = manager.findByPersonalAccountId(accountId1);
 
         Assert.assertNotNull(cart);
-        Assert.assertEquals(accountId, cart.getPersonalAccountId());
+        Assert.assertEquals(accountId1, cart.getPersonalAccountId());
     }
 
     @Test
     public void addCartItem() throws Exception {
+        Cart cart = manager.addCartItem(accountId2, generateCartItem(domainName2, false));
+
+        Assert.assertNotNull(cart);
+        Assert.assertEquals(accountId2, cart.getPersonalAccountId());
+        Assert.assertEquals(2, cart.getItems().size());
+    }
+
+    @Test(expected = ParameterValidationException.class)
+    public void addCartItemOnProcessingCart() throws Exception {
+        Cart cart = manager.addCartItem(accountId3, generateCartItem(domainName2, false));
+
+        Assert.assertNotNull(cart);
+        Assert.assertEquals(accountId2, cart.getPersonalAccountId());
+        Assert.assertEquals(2, cart.getItems().size());
     }
 
     @Test
     public void deleteCartItemByName() throws Exception {
+        Cart cart = manager.deleteCartItemByName(accountId2, domainName1);
+
+        Assert.assertNotNull(cart);
+        Assert.assertEquals(accountId2, cart.getPersonalAccountId());
+        Assert.assertEquals(0, cart.getItems().size());
     }
 
     @Test
     public void setCartItems() throws Exception {
+        Set<CartItem> cartItems = new HashSet<>();
+        cartItems.add(generateCartItem(domainName2, false));
+        cartItems.add(generateCartItem(domainName3, false));
+
+        Cart cart = manager.setCartItems(accountId2, cartItems);
+
+        Assert.assertNotNull(cart);
+        Assert.assertEquals(accountId2, cart.getPersonalAccountId());
+        Assert.assertEquals(2, cart.getItems().size());
     }
 
     @Test
     public void setProcessing() throws Exception {
+        manager.setProcessing(accountId2, true);
+
+        Cart cart = manager.findByPersonalAccountId(accountId2);
+
+        Assert.assertNotNull(cart);
+        Assert.assertEquals(accountId2, cart.getPersonalAccountId());
+        Assert.assertTrue(cart.getItems().stream().allMatch(CartItem::getProcessing));
     }
 
     @Test
     public void setProcessingByName() throws Exception {
+        manager.setProcessingByName(accountId2, domainName1, true);
+
+        Cart cart = manager.findByPersonalAccountId(accountId2);
+
+        Assert.assertNotNull(cart);
+        Assert.assertEquals(accountId2, cart.getPersonalAccountId());
+        Assert.assertTrue(cart.getItems().stream().anyMatch(item -> item.getName().equals(domainName1) && item.getProcessing()));
     }
 
     @Test
     public void buy() throws Exception {
     }
 
-    private Cart generateCart() {
+    private Cart generateEmptyCart() {
         Cart cart = new Cart();
-        cart.setId(cartId);
-        cart.setPersonalAccountId(accountId);
+        cart.setId(emptyCartId);
+        cart.setPersonalAccountId(accountId1);
 
         return cart;
+    }
+
+    private Cart generateNotEmptyCart() {
+        Cart cart = new Cart();
+        cart.setId(notEmptyCartId);
+        cart.setPersonalAccountId(accountId2);
+
+        Set<CartItem> cartItems = new HashSet<>();
+
+        cartItems.add(generateCartItem(domainName1,false));
+
+        cart.setItems(cartItems);
+
+        return cart;
+    }
+
+    private Cart generateProcessingCart() {
+        Cart cart = new Cart();
+        cart.setId(processingCartId);
+        cart.setPersonalAccountId(accountId3);
+
+        Set<CartItem> cartItems = new HashSet<>();
+
+        cartItems.add(generateCartItem(domainName1,true));
+
+        cart.setItems(cartItems);
+
+        return cart;
+    }
+
+    private CartItem generateCartItem(String domainName, Boolean processing) {
+        DomainCartItem domainCartItem = new DomainCartItem();
+        domainCartItem.setName(domainName);
+        domainCartItem.setPersonId("1");
+        domainCartItem.setProcessing(processing);
+
+        return domainCartItem;
     }
 }

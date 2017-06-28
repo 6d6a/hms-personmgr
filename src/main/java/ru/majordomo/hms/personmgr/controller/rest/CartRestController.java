@@ -47,25 +47,25 @@ public class CartRestController extends CommonRestController {
     }
 
     @RequestMapping(value = "/items", method = RequestMethod.POST)
-    public ResponseEntity<Set<CartItem>> addCartItem(
+    public ResponseEntity<Cart> addCartItem(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @Valid @RequestBody CartItem cartItem,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         Cart cart = manager.addCartItem(accountId, cartItem);
 
-        return new ResponseEntity<>(cart.getItems(), HttpStatus.OK);
+        return new ResponseEntity<>(cart, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/items", method = RequestMethod.PATCH)
-    public ResponseEntity<Set<CartItem>> setCartItems(
+    public ResponseEntity<Cart> setCartItems(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @Valid @RequestBody Set<CartItem> cartItems,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         Cart cart = manager.setCartItems(accountId, cartItems);
 
-        return new ResponseEntity<>(cart.getItems(), HttpStatus.OK);
+        return new ResponseEntity<>(cart, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/buy", method = RequestMethod.POST)
