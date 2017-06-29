@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.event.account.AccountDeactivatedSendMailEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyInactiveLongTimeEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountSendInfoMailEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
@@ -42,7 +43,7 @@ public class NotificationScheduler {
     }
 
     //Для неактивных аккаунтов отправляем письма для возврата клиентов
-    @Scheduled(cron = "0 0 3 * * *")
+    @Scheduled(cron = "0 10 3 * * *")
     @SchedulerLock(name = "processNotifyInactiveLongTime")
     public  void processNotifyInactiveLongTime() {
         logger.debug("Started processNotifyInactiveLongTime");
@@ -50,5 +51,16 @@ public class NotificationScheduler {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountNotifyInactiveLongTimeEvent(account)));
         }
         logger.debug("Ended processNotifyInactiveLongTime");
+    }
+
+    //Информационная рассылка
+    @Scheduled(cron = "0 20 3 * * *")
+    @SchedulerLock(name = "processSendInfoMail")
+    public  void processSendInfoMail() {
+        logger.debug("Started processSendInfoMail");
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
+            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountSendInfoMailEvent(account)));
+        }
+        logger.debug("Ended processSendInfoMail");
     }
 }
