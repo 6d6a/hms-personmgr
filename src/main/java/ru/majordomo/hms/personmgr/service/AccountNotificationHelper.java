@@ -63,7 +63,7 @@ public class AccountNotificationHelper {
      */
 
     public void sendMail(PersonalAccount account, String apiName, HashMap<String, String> parameters) {
-        sendMail(account, apiName, 5, parameters);
+        this.sendMail(account, apiName, 5, parameters);
     }
 
     public void sendMail(PersonalAccount account, String apiName, int priority, HashMap<String, String> parameters) {
@@ -84,7 +84,7 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailForDeactivatedAccount(PersonalAccount account) {
-        sendMailForDeactivatedAccount(account, LocalDateTime.now());
+        this.sendMailForDeactivatedAccount(account, LocalDateTime.now());
     }
 
     public void sendMailForDeactivatedAccount(PersonalAccount account, LocalDateTime dateFinish) {
@@ -103,6 +103,7 @@ public class AccountNotificationHelper {
 
     public void sendInfoMail(PersonalAccount account, String apiName) {
         HashMap<String, String> parameters = new HashMap<>();
+
         parameters.put("client_id", account.getAccountId());
         this.sendMail(account, apiName, 1, parameters);
     }

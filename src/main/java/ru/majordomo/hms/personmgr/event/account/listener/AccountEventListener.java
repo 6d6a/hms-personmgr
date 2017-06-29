@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.event.account.listener;
 
+import org.joda.time.Days;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +13,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
@@ -29,6 +32,7 @@ import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
@@ -557,7 +561,9 @@ public class AccountEventListener {
         PersonalAccount account = event.getSource();
 
         LocalDateTime deactivatedDate = account.getDeactivated();
-        if (account.isActive() || account.getDeactivated() == null) {return;}
+        if (account.isActive() || account.getDeactivated() == null) {
+            return;
+        }
         logger.debug("We got AccountNotifyInactiveLongTimeEvent\n");
 
         LocalDateTime deactivatedDateMidnight = deactivatedDate.withHour(0).withMinute(0);
@@ -574,7 +580,9 @@ public class AccountEventListener {
                 deactivatedDateMidnight
         );
 
-        if (accountStatsNoMoney.isEmpty() || accountStatsAbonementDelete.isEmpty()) { return; }
+        if (accountStatsNoMoney.isEmpty() && accountStatsAbonementDelete.isEmpty()) {
+            return;
+        }
 
         int[] monthsAgo = {1, 2, 3, 6, 12};
 
@@ -585,6 +593,81 @@ public class AccountEventListener {
                 break;
             }
         }
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountSendInfoMailEvent(AccountSendInfoMailEvent event) {
+        PersonalAccount account = event.getSource();
+
+        if (!account.getNotifications().contains(MailManagerMessageType.EMAIL_NEWS)) {return;}
+
+        int accountAgeInDays = Math.toIntExact(ChronoUnit.DAYS.between(account.getCreated(), LocalDate.now()));
+
+        String apiName = null;
+
+        if (accountAgeInDays == 30) {
+            //всем, в том числе и неактивным
+            apiName = "MajordomoHmsKonstructorNethouse";
+
+        } else if (account.isActive()) {
+
+            switch (accountAgeInDays) {
+
+                case 4:
+                    //если не регистрировал домен у нас
+                    List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
+                            account.getId(),
+                            AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN,
+                            account.getCreated()
+                    );
+
+                    if (accountStats.isEmpty()) {
+                        apiName = "MajordomoHmsDomainVPodarok";
+                    }
+                    break;
+
+                case 9:
+                    //только для базовых тарифов
+                    VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) planRepository.findOne(account.getPlanId()).getPlanProperties();
+                    if (!planProperties.isBusinessServices()) {
+                        apiName = "MajordomoHmsCorporateTarif";
+                    }
+                    break;
+
+                case 20:
+                    apiName = "MajordomoHmsPromokodGoogle";
+                    break;
+
+                case 25:
+                    //отправляем, если есть домены и ни один не привязан к biz.mail.ru
+                    //делегирован домен на наши NS или нет - неважно
+                    /*List<Domain> domains = accountHelper.getDomains(account);
+                    if (domains.isEmpty()) {
+                        break;
+                    }*/
+                    //пока не готов сам сервис подключения к biz.mail.ru, так что проверять нечего и отправлять не надо
+                    if (false) {
+                        apiName = "MajordomoHmsPochtaMailRu";
+                    }
+                    break;
+
+                case 35:
+                    apiName = "MajordomoHmsProdvigenie";
+                    break;
+
+                case 40:
+                    apiName = "MajordomoHmsProtectSite";
+                    break;
+
+                case 45:
+                    apiName = "MajordomoHmsPartners";
+                    break;
+            }
+        }
+        if (apiName != null) { accountNotificationHelper.sendInfoMail(account, apiName); }
+
+
     }
 
 }

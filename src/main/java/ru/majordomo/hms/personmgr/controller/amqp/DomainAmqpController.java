@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -22,6 +23,7 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
+import ru.majordomo.hms.personmgr.service.AccountStatHelper;
 
 import static ru.majordomo.hms.personmgr.common.Constants.AUTO_RENEW_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -32,12 +34,15 @@ import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 @Service
 public class DomainAmqpController extends CommonAmqpController {
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
+    private final AccountStatHelper accountStatHelper;
 
     @Autowired
     public DomainAmqpController(
-            ProcessingBusinessActionRepository processingBusinessActionRepository
+            ProcessingBusinessActionRepository processingBusinessActionRepository,
+            AccountStatHelper accountStatHelper
     ) {
         this.processingBusinessActionRepository = processingBusinessActionRepository;
+        this.accountStatHelper = accountStatHelper;
     }
 
     @RabbitListener(
@@ -71,6 +76,11 @@ public class DomainAmqpController extends CommonAmqpController {
                     }
                 }
 
+                PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
+
+                if (businessAction.getParam("register") == "true") {
+                    accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN);
+                }
                 //Save history
                 Map<String, String> params = new HashMap<>();
                 params.put(HISTORY_MESSAGE_KEY, "Заявка на создание домена выполнена успешно (имя: " + message.getParam("name") + ")");
