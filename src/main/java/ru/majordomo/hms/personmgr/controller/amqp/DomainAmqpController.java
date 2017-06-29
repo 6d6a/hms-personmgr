@@ -22,7 +22,6 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.model.cart.Cart;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.AUTO_RENEW_KEY;
@@ -65,13 +64,12 @@ public class DomainAmqpController extends CommonAmqpController {
 
         try {
             State state = businessFlowDirector.processMessage(message);
+            ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
-            if (state == State.PROCESSED) {
-                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+            if (businessAction != null) {
+                String domainName = (String) businessAction.getParam("name");
 
-                if (businessAction != null) {
-                    String domainName = (String) businessAction.getParam("name");
-
+                if (state == State.PROCESSED) {
                     if (businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_CREATE_RC)) {
                         PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                         if (account.isAccountNew()) {
@@ -87,6 +85,8 @@ public class DomainAmqpController extends CommonAmqpController {
                     params.put(OPERATOR_KEY, "service");
 
                     publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                } else {
+                    cartManager.setProcessingByName(businessAction.getPersonalAccountId(), domainName, false);
                 }
             }
         } catch (Exception e) {
