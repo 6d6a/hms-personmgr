@@ -31,6 +31,7 @@ import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
+import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
@@ -362,12 +363,16 @@ public class DomainService {
         return domainTld.getRegistrationService().getCost();
     }
 
-    public ProcessingBusinessAction buy(String accountId, String domainName, List<AccountPromotion> accountPromotions, AccountPromotion accountPromotion) {
+    public ProcessingBusinessAction buy(String accountId, DomainCartItem domain, List<AccountPromotion> accountPromotions, AccountPromotion accountPromotion) {
         PersonalAccount account = accountManager.findOne(accountId);
+
+        String domainName = domain.getName();
 
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(accountId);
         message.addParam("name", domainName.toLowerCase());
+        message.addParam("register", true);
+        message.addParam("personId", domain.getPersonId());
 
         logger.debug("Buying domain " + domainName.toLowerCase());
 

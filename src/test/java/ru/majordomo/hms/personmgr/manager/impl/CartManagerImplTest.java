@@ -107,10 +107,10 @@ public class CartManagerImplTest {
                 .when(domainService).check(domainName1);
 
         Mockito
-                .when(domainService.buy(anyString(), anyString(), anyListOf(AccountPromotion.class), any()))
+                .when(domainService.buy(anyString(), any(DomainCartItem.class), anyListOf(AccountPromotion.class), any()))
                 .thenAnswer(invocation -> generateProcessingBusinessAction(
                         invocation.getArgumentAt(0, String.class),
-                        invocation.getArgumentAt(1, String.class)
+                        invocation.getArgumentAt(1, DomainCartItem.class)
                 ))
         ;
     }
@@ -261,9 +261,11 @@ public class CartManagerImplTest {
         return domainCartItem;
     }
 
-    private ProcessingBusinessAction generateProcessingBusinessAction(String accountId, String name) {
+    private ProcessingBusinessAction generateProcessingBusinessAction(String accountId, DomainCartItem domain) {
         Map<String, Object> params = new HashMap<>();
-        params.put("name", name);
+        params.put("name", domain.getName());
+        params.put("register", true);
+        params.put("personId", domain.getPersonId());
 
         ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(
                 "1",
