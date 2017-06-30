@@ -30,14 +30,15 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
+import static ru.majordomo.hms.personmgr.common.Constants.RU_RF_DOMAINS;
 
 @RestController
 @RequestMapping("/{accountId}/domain")
@@ -152,7 +153,26 @@ public class DomainResourceRestController extends CommonResourceRestController {
                         );
 
                         // Устанавливает цену со скидкой
-                        paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
+
+                        //TODO изменить после 2017-07-01
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                        LocalDateTime newRuRfPricesDate = LocalDateTime.parse(RU_RF_DOMAIN_NEW_PRICE_DATE, formatter);
+                        if (LocalDateTime.now().isBefore(newRuRfPricesDate)) {
+                            if (Arrays.asList(RU_RF_DOMAINS).contains(domainTld.getTld())) {
+                                paymentService.setCost(BigDecimal.valueOf(49L));
+                            } else {
+                                paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
+                            }
+                        } else {
+                            if (Arrays.asList(RU_RF_DOMAINS).contains(domainTld.getTld())) {
+                                paymentService.setCost(BigDecimal.valueOf(140L));
+                            } else {
+                                paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
+                            }
+                        }
+                        //TODO end
+
+                        //paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
                         message.addParam("domainDiscountPromotionId", accountPromotion.getId());
                         isDiscountedDomain = true;
                         break;
