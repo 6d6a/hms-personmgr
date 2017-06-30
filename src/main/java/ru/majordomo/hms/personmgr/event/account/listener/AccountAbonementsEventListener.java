@@ -27,9 +27,11 @@ import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -99,49 +101,57 @@ public class AccountAbonementsEventListener {
 
         logger.debug("We got AccountProcessNotifyExpiredAbonementsEvent");
 
-        //границы поиска за каждый из дней - полночь
-        LocalDateTime midnightToday = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDate now = LocalDate.now();
 
         int[] daysAgo = {1, 3, 5, 10, 15, 20};
 
 
         DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         logger.debug("Trying to find all expired abonements for the last month on the date: "
-                + midnightToday.format(formatterDate)
+                + now.format(formatterDate)
         );
 
         List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
                 account.getId(),
                 AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE,
-                LocalDateTime.now().minusMonths(1)
+                LocalDateTime.now().minusDays(21)
         );
 
         if (accountStats.isEmpty()) {
             logger.debug("Not found expired abonements for accountId: " + account.getId() +
-                    "for the last month on date " + midnightToday.format(formatterDate));
+                    "for the last month on date " + now.format(formatterDate));
             return;}
 
         //Не отправляем письма при активном абонементе
         if (accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getAccountId(), LocalDateTime.now()).isEmpty()) {
 
-            LocalDateTime abonementExpiredDateTime = LocalDateTime.parse(accountStats.get(0).getData().get("expireEnd"), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-
+            boolean needToSendMail = false;
+            LocalDate abonementExpiredDate = accountStats.get(0).getCreated().toLocalDate();
             for (int dayAgo : daysAgo) {
-                //Срок действия абонемента закончился. - через 1, 3, 5, 10, 15, 20 дней после окончания
-                if (abonementExpiredDateTime.isBefore(midnightToday.minusDays(dayAgo - 1)) &&
-                        abonementExpiredDateTime.isAfter(midnightToday.minusDays(dayAgo)))
-                {
-                    BigDecimal balance = accountHelper.getBalance(account).setScale(2, BigDecimal.ROUND_DOWN);
-                    Plan plan = planRepository.findOne(account.getPlanId());
-                    //не отправляется, если хватает на 1 месяц хостинга по выбранному тарифу после окончания абонемента
-                    //берем текущий баланс и сравниваем его с
-                    //стоимостью тарифа за месяц, деленной на 30 дней и умноженная на количество оставшихся дней с окончания абонемента
-                    boolean balanceEnoughForOneMonth = balance.compareTo(
-                            (plan.getService().getCost().
-                                            divide(new BigDecimal(30), BigDecimal.ROUND_FLOOR).
-                                            multiply(new BigDecimal(30 - dayAgo)))) >= 0;
 
-                    if (!balanceEnoughForOneMonth) {
+                //Срок действия абонемента закончился - через 1, 3, 5, 10, 15, 20 дней после окончания
+                if (abonementExpiredDate.isEqual(now.minusDays(dayAgo))) {
+
+                    Plan plan = planRepository.findOne(account.getPlanId());
+                    if (!plan.isAbonementOnly()) {
+
+                        //не отправляется, если хватает на 1 месяц хостинга по выбранному тарифу после окончания абонемента
+                        //берем текущий баланс и сравниваем его с
+                        //стоимостью тарифа за месяц, деленной на 30 дней и умноженная на количество оставшихся дней с окончания абонемента
+                        Calendar cal = Calendar.getInstance();
+                        int daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
+                        BigDecimal balance = accountHelper.getBalance(account);
+                        needToSendMail = balance.compareTo(
+                                (plan.getService().getCost()
+                                        .divide(new BigDecimal(daysInMonth), BigDecimal.ROUND_FLOOR)
+                                        .multiply(new BigDecimal(daysInMonth - dayAgo)))) < 0;
+                    }
+
+                    //для только абонементных тарифов и неактивных аккаунтов отправляем письмо
+                    if (plan.isAbonementOnly() && !account.isActive()) {
+                        needToSendMail = true;
+                    }
+                    if (!needToSendMail) {
                         publisher.publishEvent(new AccountSendEmailWithExpiredAbonementEvent(account));
                         //Отправляем только одно письмо
                         break;
@@ -150,6 +160,7 @@ public class AccountAbonementsEventListener {
             }
         }
     }
+
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onAccountSendEmailWithExpiredAbonementEvent(AccountSendEmailWithExpiredAbonementEvent event) {
@@ -165,7 +176,7 @@ public class AccountAbonementsEventListener {
         message.setParams(new HashMap<>());
         message.addParam("email", emails);
         message.addParam("api_name", "MajordomoHmsAbonementEnd");
-        message.addParam("priority", 5);
+        message.addParam("priority", 10);
 
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("acc_id", account.getName());
