@@ -101,6 +101,9 @@ public class AccountAbonementsEventListener {
 
         logger.debug("We got AccountProcessNotifyExpiredAbonementsEvent");
 
+        //Не отправляем письма при активном абонементе
+        if (!accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getAccountId(), LocalDateTime.now()).isEmpty()) {return;}
+
         LocalDate now = LocalDate.now();
 
         int[] daysAgo = {1, 3, 5, 10, 15, 20};
@@ -120,42 +123,38 @@ public class AccountAbonementsEventListener {
         if (accountStats.isEmpty()) {
             logger.debug("Not found expired abonements for accountId: " + account.getId() +
                     "for the last month on date " + now.format(formatterDate));
-            return;}
+            return;
+        }
 
-        //Не отправляем письма при активном абонементе
-        if (accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getAccountId(), LocalDateTime.now()).isEmpty()) {
+        boolean needToSendMail = false;
+        LocalDate abonementExpiredDate = accountStats.get(0).getCreated().toLocalDate();
+        for (int dayAgo : daysAgo) {
+            //Срок действия абонемента закончился - через 1, 3, 5, 10, 15, 20 дней после окончания
+            if (abonementExpiredDate.isEqual(now.minusDays(dayAgo))) {
 
-            boolean needToSendMail = false;
-            LocalDate abonementExpiredDate = accountStats.get(0).getCreated().toLocalDate();
-            for (int dayAgo : daysAgo) {
+                Plan plan = planRepository.findOne(account.getPlanId());
+                if (!plan.isAbonementOnly()) {
 
-                //Срок действия абонемента закончился - через 1, 3, 5, 10, 15, 20 дней после окончания
-                if (abonementExpiredDate.isEqual(now.minusDays(dayAgo))) {
+                    //не отправляется, если хватает на 1 месяц хостинга по выбранному тарифу после окончания абонемента
+                    //берем текущий баланс и сравниваем его с
+                    //стоимостью тарифа за месяц, деленной на 30 дней и умноженная на количество оставшихся дней с окончания абонемента
+                    Calendar cal = Calendar.getInstance();
+                    int daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
+                    BigDecimal balance = accountHelper.getBalance(account);
+                    needToSendMail = balance.compareTo(
+                            (plan.getService().getCost()
+                                    .divide(new BigDecimal(daysInMonth), BigDecimal.ROUND_FLOOR)
+                                    .multiply(new BigDecimal(daysInMonth - dayAgo)))) < 0;
+                }
 
-                    Plan plan = planRepository.findOne(account.getPlanId());
-                    if (!plan.isAbonementOnly()) {
-
-                        //не отправляется, если хватает на 1 месяц хостинга по выбранному тарифу после окончания абонемента
-                        //берем текущий баланс и сравниваем его с
-                        //стоимостью тарифа за месяц, деленной на 30 дней и умноженная на количество оставшихся дней с окончания абонемента
-                        Calendar cal = Calendar.getInstance();
-                        int daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
-                        BigDecimal balance = accountHelper.getBalance(account);
-                        needToSendMail = balance.compareTo(
-                                (plan.getService().getCost()
-                                        .divide(new BigDecimal(daysInMonth), BigDecimal.ROUND_FLOOR)
-                                        .multiply(new BigDecimal(daysInMonth - dayAgo)))) < 0;
-                    }
-
-                    //для только абонементных тарифов и неактивных аккаунтов отправляем письмо
-                    if (plan.isAbonementOnly() && !account.isActive()) {
-                        needToSendMail = true;
-                    }
-                    if (!needToSendMail) {
-                        publisher.publishEvent(new AccountSendEmailWithExpiredAbonementEvent(account));
-                        //Отправляем только одно письмо
-                        break;
-                    }
+                //для только абонементных тарифов и неактивных аккаунтов отправляем письмо
+                if (plan.isAbonementOnly() && !account.isActive()) {
+                    needToSendMail = true;
+                }
+                if (needToSendMail) {
+                    publisher.publishEvent(new AccountSendEmailWithExpiredAbonementEvent(account));
+                    //Отправляем только одно письмо
+                    break;
                 }
             }
         }
