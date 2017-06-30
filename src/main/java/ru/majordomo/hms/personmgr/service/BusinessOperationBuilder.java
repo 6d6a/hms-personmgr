@@ -26,6 +26,11 @@ public class BusinessOperationBuilder {
         operation.setParams(message.getParams());
         operation.setType(operationType);
 
+        String nameInParams = (String) message.getParam("name");
+        if (nameInParams != null) {
+            operation.addPublicParam("name", nameInParams);
+        }
+
         operationRepository.save(operation);
 
         return operation;

@@ -10,8 +10,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
@@ -25,6 +27,7 @@ import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
 import ru.majordomo.hms.personmgr.common.message.ErrorMessage;
+import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
@@ -51,17 +54,35 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
 
+    @Override
+    protected ResponseEntity<Object> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException ex,
+            HttpHeaders headers,
+            HttpStatus status,
+            WebRequest request
+    ) {
+        ex.printStackTrace();
+        final ErrorMessage bodyOfResponse = new ErrorMessage(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                new HashMap<>()
+        );
+        return handleExceptionInternal(ex, bodyOfResponse, headers, HttpStatus.BAD_REQUEST, request);
+    }
+
     @ExceptionHandler(
             {
                     ParameterValidationException.class,
                     DataIntegrityViolationException.class,
-                    LowBalanceException.class
+                    LowBalanceException.class,
+                    DomainNotAvailableException.class
             }
     )
     public ResponseEntity<Object> handleBadRequest(
             final RuntimeException ex,
             final WebRequest request
     ) {
+        ex.printStackTrace();
         final ErrorMessage bodyOfResponse = new ErrorMessage(
                 HttpStatus.BAD_REQUEST.value(),
                 ex.getMessage(),
@@ -88,6 +109,7 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             final DecodeException ex,
             final WebRequest request
     ) {
+        ex.printStackTrace();
         final ErrorMessage bodyOfResponse = new ErrorMessage(
                 HttpStatus.BAD_REQUEST.value(),
                 ex.getMessage(),
@@ -104,12 +126,28 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             final HttpStatus status,
             final WebRequest request
     ) {
+        ex.printStackTrace();
         final ErrorMessage bodyOfResponse = new ErrorMessage(
                 HttpStatus.BAD_REQUEST.value(),
                 ex.getMessage(),
                 new HashMap<>()
         );
-        // ex.getCause() instanceof JsonMappingException, JsonParseException // for additional information later on
+        return handleExceptionInternal(ex, bodyOfResponse, headers, HttpStatus.BAD_REQUEST, request);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotWritable(
+            HttpMessageNotWritableException ex,
+            HttpHeaders headers,
+            HttpStatus status,
+            WebRequest request
+    ) {
+        ex.printStackTrace();
+        final ErrorMessage bodyOfResponse = new ErrorMessage(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                new HashMap<>()
+        );
         return handleExceptionInternal(ex, bodyOfResponse, headers, HttpStatus.BAD_REQUEST, request);
     }
 

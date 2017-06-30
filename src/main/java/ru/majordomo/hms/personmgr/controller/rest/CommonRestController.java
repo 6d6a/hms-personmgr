@@ -63,6 +63,8 @@ public class CommonRestController {
         message.setActionIdentity(businessAction.getId());
         message.setOperationIdentity(businessAction.getOperationId());
 
+        message.addParams(businessAction.getParams());
+
         return message;
     }
 
