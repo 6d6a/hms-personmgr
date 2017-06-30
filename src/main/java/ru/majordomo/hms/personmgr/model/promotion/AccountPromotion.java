@@ -27,6 +27,9 @@ public class AccountPromotion extends VersionedModelBelongsToPersonalAccount {
 
     private Map<@ObjectId(PromocodeAction.class) String, Boolean> actionsWithStatus = new HashMap<>();
 
+    @Transient
+    private Map<String, PromocodeAction> actions = new HashMap<>();
+
     @PersistenceConstructor
     public AccountPromotion(String promotionId, LocalDateTime created) {
         this.promotionId = promotionId;
@@ -65,6 +68,14 @@ public class AccountPromotion extends VersionedModelBelongsToPersonalAccount {
 
     public void setActionsWithStatus(Map<String, Boolean> actionsWithStatus) {
         this.actionsWithStatus = actionsWithStatus;
+    }
+
+    public Map<String, PromocodeAction> getActions() {
+        return actions;
+    }
+
+    public void setActions(Map<String, PromocodeAction> actions) {
+        this.actions = actions;
     }
 
     @Override

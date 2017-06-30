@@ -49,6 +49,10 @@ public class SimpleServiceMessage {
         this.params = params;
     }
 
+    public void addParams(Map<String, Object> params) {
+        this.params.putAll(params);
+    }
+
     public void addParam(String name, Object value) {
         if (params == null) {
             params = new HashMap<>();

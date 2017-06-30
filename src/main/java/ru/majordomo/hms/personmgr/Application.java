@@ -15,6 +15,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.netflix.feign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.retry.annotation.EnableRetry;
 
 import ru.majordomo.hms.personmgr.serializer.PageSerializer;
 import ru.majordomo.hms.personmgr.service.importing.DBImportService;
@@ -23,6 +24,7 @@ import ru.majordomo.hms.personmgr.service.importing.DBImportService;
 @EnableDiscoveryClient
 @EnableFeignClients
 @EnableCaching
+@EnableRetry
 public class Application implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
