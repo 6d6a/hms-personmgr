@@ -55,7 +55,7 @@ public class AbonementsScheduler {
     }
 
     //Выполняем отправку писем истекшим абонементом в 02:42:00 каждый день
-    @Scheduled(cron = "0 */5 * * * *")
+    @Scheduled(cron = "0 42 2 * * *")
     @SchedulerLock(name = "processNotifyExpiredAbonements")
     public void processNotifyExpiredAbonements() {
         logger.debug("Started processNotifyExpiredAbonements");
