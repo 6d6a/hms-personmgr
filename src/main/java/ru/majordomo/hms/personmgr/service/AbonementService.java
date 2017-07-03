@@ -383,7 +383,19 @@ public class AbonementService {
     private void processAccountAbonementDelete(PersonalAccount account, AccountAbonement accountAbonement) {
 
         accountAbonementManager.delete(accountAbonement);
-        publisher.publishEvent(new AccountSendEmailWithExpiredAbonementEvent(account));
+
+        Plan plan = planRepository.findOne(account.getPlanId());
+        boolean needToSendMail = false;
+        if (!plan.isAbonementOnly()) {
+            BigDecimal balance = accountHelper.getBalance(account);
+            BigDecimal costForOneMonth = plan.getService().getCost();
+            needToSendMail = balance.compareTo(costForOneMonth) < 0;
+        } else {
+            needToSendMail = true;
+        }
+        if (needToSendMail) {
+            publisher.publishEvent(new AccountSendEmailWithExpiredAbonementEvent(account));
+        }
 
         AccountStat accountStat = new AccountStat();
         accountStat.setPersonalAccountId(account.getId());
@@ -393,7 +405,6 @@ public class AbonementService {
         Map<String, String> data = new HashMap<>();
         data.put("expireEnd", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         data.put("abonementId", accountAbonement.getAbonementId());
-
         accountStat.setData(data);
 
         accountStatRepository.save(accountStat);
