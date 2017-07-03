@@ -80,7 +80,7 @@ public class DomainAmqpController extends CommonAmqpController {
                         if (account.isAccountNew()) {
                             accountManager.setAccountNew(account.getId(), false);
                         }
-                        if (businessAction.getParam("register") == "true") {
+                        if ((Boolean) businessAction.getParam("register")) {
                             accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN);
                         }
                     }
