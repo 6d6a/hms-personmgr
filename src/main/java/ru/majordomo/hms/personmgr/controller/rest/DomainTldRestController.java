@@ -59,25 +59,7 @@ public class DomainTldRestController extends CommonRestController {
                 PromocodeAction promocodeAction = promocodeActionRepository.findOne(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
                 List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
                 for (String tld : availableTlds) {
-                    //discountedCosts.put(tld, BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
-
-                    //TODO изменить после 2017-07-01
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                    LocalDateTime newRuRfPricesDate = LocalDateTime.parse(RU_RF_DOMAIN_NEW_PRICE_DATE, formatter);
-                    if (LocalDateTime.now().isBefore(newRuRfPricesDate)) {
-                        if (Arrays.asList(RU_RF_DOMAINS).contains(tld)) {
-                            discountedCosts.put(tld, BigDecimal.valueOf(49L));
-                        } else {
-                            discountedCosts.put(tld, BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
-                        }
-                    } else {
-                        if (Arrays.asList(RU_RF_DOMAINS).contains(tld)) {
-                            discountedCosts.put(tld, BigDecimal.valueOf(140L));
-                        } else {
-                            discountedCosts.put(tld, BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
-                        }
-                    }
-                    //TODO end
+                    discountedCosts.put(tld, BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
                 }
                 break;
             }

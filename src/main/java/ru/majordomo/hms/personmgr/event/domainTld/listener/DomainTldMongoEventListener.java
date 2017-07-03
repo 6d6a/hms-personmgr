@@ -52,19 +52,5 @@ public class DomainTldMongoEventListener extends AbstractMongoEventListener<Doma
         }
 
 
-        // TODO удалить после 2017-06-01 00:00:00
-        LocalDateTime newRuRfPricesDate = LocalDateTime.parse(RU_RF_DOMAIN_NEW_PRICE_DATE, formatter);
-        if (LocalDateTime.now().isBefore(newRuRfPricesDate)) {
-            if (Arrays.asList(RU_RF_DOMAINS).contains(domainTld.getTld())) {
-                domainTld.getRegistrationService().setCost(BigDecimal.valueOf(99L));
-                domainTld.getRenewService().setCost(BigDecimal.valueOf(449L));
-            }
-        } else {
-            if (Arrays.asList(RU_RF_DOMAINS).contains(domainTld.getTld())) {
-                domainTld.getRegistrationService().setCost(BigDecimal.valueOf(190L));
-                domainTld.getRenewService().setCost(BigDecimal.valueOf(590L));
-            }
-        }
-
     }
 }
