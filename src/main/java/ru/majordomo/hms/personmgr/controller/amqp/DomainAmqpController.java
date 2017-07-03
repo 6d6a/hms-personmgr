@@ -82,6 +82,7 @@ public class DomainAmqpController extends CommonAmqpController {
                         }
                         if ((Boolean) businessAction.getParam("register")) {
                             HashMap<String, String> data = new HashMap<>();
+                            data.put("personId", (String) businessAction.getParam("personId"));
                             data.put("domainName", domainName);
                             accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN, data);
                         }
