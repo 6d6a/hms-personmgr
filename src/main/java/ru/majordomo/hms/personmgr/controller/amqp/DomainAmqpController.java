@@ -78,7 +78,7 @@ public class DomainAmqpController extends CommonAmqpController {
                     if (businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_CREATE_RC)) {
                         PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                         if (account.isAccountNew()) {
-                            accountManager.setAccountNew(account.getAccountId(), false);
+                            accountManager.setAccountNew(account.getId(), false);
                         }
                         if (businessAction.getParam("register") == "true") {
                             accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN);
