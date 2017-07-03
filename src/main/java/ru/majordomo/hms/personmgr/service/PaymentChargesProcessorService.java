@@ -10,29 +10,18 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.account.AccountDeactivatedSendMailEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
-import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.abonement.Abonement;
-import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
-import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.rc.user.resources.*;
-import ru.majordomo.hms.personmgr.service.AccountStatHelper;
 
 @Service
 public class PaymentChargesProcessorService {
@@ -40,10 +29,8 @@ public class PaymentChargesProcessorService {
 
     private final PersonalAccountManager accountManager;
     private final AccountServiceRepository accountServiceRepository;
-    private final AccountStatRepository accountStatRepository;
     private final AccountHelper accountHelper;
     private final ApplicationEventPublisher publisher;
-    private final PlanRepository planRepository;
     private final AccountStatHelper accountStatHelper;
     private final AccountNotificationHelper accountNotificationHelper;
 
@@ -51,19 +38,15 @@ public class PaymentChargesProcessorService {
     public PaymentChargesProcessorService(
             PersonalAccountManager accountManager,
             AccountServiceRepository accountServiceRepository,
-            AccountStatRepository accountStatRepository,
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher,
-            PlanRepository planRepository,
             AccountStatHelper accountStatHelper,
             AccountNotificationHelper accountNotificationHelper
     ) {
         this.accountManager = accountManager;
         this.accountServiceRepository = accountServiceRepository;
         this.accountHelper = accountHelper;
-        this.accountStatRepository = accountStatRepository;
         this.publisher = publisher;
-        this.planRepository = planRepository;
         this.accountStatHelper = accountStatHelper;
         this.accountNotificationHelper = accountNotificationHelper;
     }

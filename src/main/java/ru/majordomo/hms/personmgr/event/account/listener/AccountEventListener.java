@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.event.account.listener;
 
-import org.joda.time.Days;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +14,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
@@ -531,9 +529,7 @@ public class AccountEventListener {
 
         logger.debug("We got AccountDeactivatedSendMailEvent\n");
 
-        if (account.isActive()) { return;}
-
-        LocalDate now = LocalDate.now();
+        if (account.isActive() || accountHelper.hasActiveAbonement(account)) { return;}
 
         List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
                 account.getId(),
@@ -545,6 +541,8 @@ public class AccountEventListener {
 
         int[] daysAgo = {1, 3, 5, 10, 15, 20};
         LocalDateTime dateFinish = accountStats.get(0).getCreated();
+
+        LocalDate now = LocalDate.now();
 
         for (int days : daysAgo) {
             if (dateFinish.toLocalDate().isEqual(now.minusDays(days))) {

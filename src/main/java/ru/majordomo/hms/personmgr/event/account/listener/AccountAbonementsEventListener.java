@@ -9,14 +9,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessNotifyExpiredAbonementsEvent;
-import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
-import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -25,15 +21,12 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
-import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class AccountAbonementsEventListener {
@@ -43,7 +36,6 @@ public class AccountAbonementsEventListener {
     private final AccountHelper accountHelper;
     private final AccountStatRepository accountStatRepository;
     private final ApplicationEventPublisher publisher;
-    private final AccountAbonementManager accountAbonementManager;
     private final PlanRepository planRepository;
     private final AccountNotificationHelper accountNotificationHelper;
 
@@ -53,7 +45,6 @@ public class AccountAbonementsEventListener {
             AccountStatRepository accountStatRepository,
             AbonementService abonementService,
             ApplicationEventPublisher publisher,
-            AccountAbonementManager accountAbonementManager,
             PlanRepository planRepository,
             AccountNotificationHelper accountNotificationHelper
     ) {
@@ -61,7 +52,6 @@ public class AccountAbonementsEventListener {
         this.accountHelper = accountHelper;
         this.accountStatRepository = accountStatRepository;
         this.publisher = publisher;
-        this.accountAbonementManager = accountAbonementManager;
         this.planRepository = planRepository;
         this.accountNotificationHelper = accountNotificationHelper;
     }
@@ -126,7 +116,7 @@ public class AccountAbonementsEventListener {
             return;}
 
         //Не отправляем письма при активном абонементе
-        if (accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getAccountId(), LocalDateTime.now()).isEmpty()) {
+        if (!accountHelper.hasActiveAbonement(account)) {
 
             LocalDateTime abonementExpiredDateTime = LocalDateTime.parse(accountStats.get(0).getData().get("expireEnd"), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 

@@ -15,14 +15,13 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -59,6 +58,7 @@ public class AccountHelper {
     private final PromocodeRepository promocodeRepository;
     private final AccountOwnerRepository accountOwnerRepository;
     private final PlanRepository planRepository;
+    private final AccountAbonementManager accountAbonementManager;
 
     @Autowired
     public AccountHelper(
@@ -72,7 +72,8 @@ public class AccountHelper {
             AccountPromocodeRepository accountPromocodeRepository,
             PromocodeRepository promocodeRepository,
             AccountOwnerRepository accountOwnerRepository,
-            PlanRepository planRepository
+            PlanRepository planRepository,
+            AccountAbonementManager accountAbonementManager
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -85,6 +86,7 @@ public class AccountHelper {
         this.promocodeRepository = promocodeRepository;
         this.accountOwnerRepository = accountOwnerRepository;
         this.planRepository = planRepository;
+        this.accountAbonementManager = accountAbonementManager;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -710,5 +712,9 @@ public class AccountHelper {
                 .stream().filter(
                         abonement -> abonement.getPeriod().equals(period)
                 ).collect(Collectors.toList()).get(0).getService().getCost();
+    }
+
+    public boolean hasActiveAbonement(PersonalAccount account) {
+        return !accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getAccountId(), LocalDateTime.now()).isEmpty();
     }
 }
