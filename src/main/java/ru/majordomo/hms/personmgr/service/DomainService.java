@@ -11,10 +11,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
@@ -35,14 +32,11 @@ import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.model.promotion.Promotion;
+import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
-import static ru.majordomo.hms.personmgr.common.Constants.AUTO_RENEW_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
 @Service
@@ -65,6 +59,7 @@ public class DomainService {
     private final PersonalAccountManager accountManager;
     private final AccountPromotionManager accountPromotionManager;
     private final BusinessOperationBuilder businessOperationBuilder;
+    private final PromotionRepository promotionRepository;
 
     @Autowired
     public DomainService(
@@ -77,7 +72,8 @@ public class DomainService {
             BlackListService blackListService,
             PersonalAccountManager accountManager,
             AccountPromotionManager accountPromotionManager,
-            BusinessOperationBuilder businessOperationBuilder
+            BusinessOperationBuilder businessOperationBuilder,
+            PromotionRepository promotionRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
@@ -89,6 +85,7 @@ public class DomainService {
         this.accountManager = accountManager;
         this.accountPromotionManager = accountPromotionManager;
         this.businessOperationBuilder = businessOperationBuilder;
+        this.promotionRepository = promotionRepository;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -289,6 +286,15 @@ public class DomainService {
         DomainTld domainTld = getDomainTld(domainName);
 
         Optional<AccountPromotion> foundAccountPromotion = Optional.empty();
+
+        String prioritizedPromotionId = promotionRepository.findByName(FREE_DOMAIN_PROMOTION).getId();
+
+        accountPromotions.sort((o1, o2) -> {
+            if (o1.getPromotionId().equals(o2.getPromotionId())) return 0;
+            if (o1.getPromotionId().equals(prioritizedPromotionId)) return -1;
+            if (o2.getPromotionId().equals(prioritizedPromotionId)) return 1;
+            return 0;
+        });
 
         for (AccountPromotion accountPromotion : accountPromotions) {
             Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
