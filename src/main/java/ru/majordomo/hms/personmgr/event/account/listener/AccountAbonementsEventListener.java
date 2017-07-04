@@ -102,7 +102,7 @@ public class AccountAbonementsEventListener {
         logger.debug("We got AccountProcessNotifyExpiredAbonementsEvent");
 
         //Не отправляем письма при активном абонементе
-        if (!accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getAccountId(), LocalDateTime.now()).isEmpty()) {return;}
+        if (!accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getId(), LocalDateTime.now()).isEmpty()) {return;}
 
         LocalDate now = LocalDate.now();
 
