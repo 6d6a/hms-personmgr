@@ -529,7 +529,7 @@ public class AccountEventListener {
 
         logger.debug("We got AccountDeactivatedSendMailEvent\n");
 
-        if (account.isActive() || accountHelper.hasActiveAbonement(account)) { return;}
+        if (account.isActive() || planRepository.findOne(account.getPlanId()).isAbonementOnly()) { return;}
 
         List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
                 account.getId(),
@@ -637,18 +637,18 @@ public class AccountEventListener {
                     apiName = "MajordomoHmsPromokodGoogle";
                     break;
 
+                /*//пока не готов сам bizmail, отправлять не надо
                 case 25:
                     //отправляем, если есть домены и ни один не привязан к biz.mail.ru
                     //делегирован домен на наши NS или нет - неважно
-                    /*List<Domain> domains = accountHelper.getDomains(account);
+                    List<Domain> domains = accountHelper.getDomains(account);
                     if (domains.isEmpty()) {
                         break;
-                    }*/
-                    //пока не готов сам сервис подключения к biz.mail.ru, так что проверять нечего и отправлять не надо
+                    }
                     if (false) {
                         apiName = "MajordomoHmsPochtaMailRu";
                     }
-                    break;
+                    break;*/
 
                 case 35:
                     apiName = "MajordomoHmsProdvigenie";

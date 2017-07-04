@@ -715,6 +715,6 @@ public class AccountHelper {
     }
 
     public boolean hasActiveAbonement(PersonalAccount account) {
-        return !accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getAccountId(), LocalDateTime.now()).isEmpty();
+        return !accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getId(), LocalDateTime.now()).isEmpty();
     }
 }
