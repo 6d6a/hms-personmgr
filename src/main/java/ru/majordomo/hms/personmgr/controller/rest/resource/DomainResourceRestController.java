@@ -153,26 +153,8 @@ public class DomainResourceRestController extends CommonResourceRestController {
                         );
 
                         // Устанавливает цену со скидкой
+                        paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
 
-                        //TODO изменить после 2017-07-01
-                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                        LocalDateTime newRuRfPricesDate = LocalDateTime.parse(RU_RF_DOMAIN_NEW_PRICE_DATE, formatter);
-                        if (LocalDateTime.now().isBefore(newRuRfPricesDate)) {
-                            if (Arrays.asList(RU_RF_DOMAINS).contains(domainTld.getTld())) {
-                                paymentService.setCost(BigDecimal.valueOf(49L));
-                            } else {
-                                paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
-                            }
-                        } else {
-                            if (Arrays.asList(RU_RF_DOMAINS).contains(domainTld.getTld())) {
-                                paymentService.setCost(BigDecimal.valueOf(140L));
-                            } else {
-                                paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
-                            }
-                        }
-                        //TODO end
-
-                        //paymentService.setCost(BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
                         message.addParam("domainDiscountPromotionId", accountPromotion.getId());
                         isDiscountedDomain = true;
                         break;
