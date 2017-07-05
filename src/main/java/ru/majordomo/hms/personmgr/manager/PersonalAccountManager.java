@@ -54,6 +54,10 @@ public interface PersonalAccountManager {
 
     List<PersonalAccount> findByAccountIdContaining(String accountId);
 
+    Stream<PersonalAccount> findByActiveAndDeactivatedAfterStream(boolean active, LocalDateTime deactivated);
+
+    Stream<PersonalAccount> findByNotificationsEquals(MailManagerMessageType messageType);
+
     Stream<PersonalAccount> findAllStream();
 
     Stream<PersonalAccount> findByIdNotIn(List<String> ids);

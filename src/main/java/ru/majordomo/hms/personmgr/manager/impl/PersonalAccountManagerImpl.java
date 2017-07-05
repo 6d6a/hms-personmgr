@@ -183,6 +183,16 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
+    public Stream<PersonalAccount> findByActiveAndDeactivatedAfterStream(boolean active, LocalDateTime deactivated) {
+        return repository.findByActiveAndDeactivatedAfter(active, deactivated);
+    }
+
+    @Override
+    public Stream<PersonalAccount> findByNotificationsEquals(MailManagerMessageType messageType) {
+        return repository.findByNotificationsEquals(messageType);
+    }
+
+    @Override
     public Stream<PersonalAccount> findByIdNotIn(List<String> ids) {
         return repository.findByIdNotIn(ids);
     }

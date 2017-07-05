@@ -7,12 +7,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.event.account.AccountDeactivatedSendMailEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyInactiveLongTimeEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSendInfoMailEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
+import java.time.LocalDateTime;
 import java.util.stream.Stream;
 
 @Component
@@ -36,7 +38,7 @@ public class NotificationScheduler {
     @SchedulerLock(name = "processAccountDeactivatedSendMail")
     public void processAccountDeactivatedSendMail() {
         logger.debug("Started processNotifyExpiredAbonements");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findByActive(false).stream()) {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountDeactivatedSendMailEvent(account)));
         }
         logger.debug("Ended processNotifyExpiredAbonements");
@@ -47,7 +49,7 @@ public class NotificationScheduler {
     @SchedulerLock(name = "processNotifyInactiveLongTime")
     public  void processNotifyInactiveLongTime() {
         logger.debug("Started processNotifyInactiveLongTime");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findByActiveAndDeactivatedAfterStream(false, LocalDateTime.now().minusMonths(13))) {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountNotifyInactiveLongTimeEvent(account)));
         }
         logger.debug("Ended processNotifyInactiveLongTime");
@@ -58,7 +60,7 @@ public class NotificationScheduler {
     @SchedulerLock(name = "processSendInfoMail")
     public  void processSendInfoMail() {
         logger.debug("Started processSendInfoMail");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findByNotificationsEquals(MailManagerMessageType.EMAIL_NEWS)) {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountSendInfoMailEvent(account)));
         }
         logger.debug("Ended processSendInfoMail");

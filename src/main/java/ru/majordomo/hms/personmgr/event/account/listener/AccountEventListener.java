@@ -557,16 +557,25 @@ public class AccountEventListener {
     @Async("threadPoolTaskExecutor")
     public void onAccountNotifyInactiveLongTimeEvent(AccountNotifyInactiveLongTimeEvent event) {
         PersonalAccount account = event.getSource();
-
-        LocalDateTime deactivatedDate = account.getDeactivated();
-        if (account.isActive() || account.getDeactivated() == null) {
-            return;
-        }
         logger.debug("We got AccountNotifyInactiveLongTimeEvent\n");
 
-        LocalDateTime deactivatedDateMidnight = deactivatedDate.withHour(0).withMinute(0);
+        LocalDateTime deactivatedDate = account.getDeactivated();
+        //LocalDateTime deactivatedDateMidnight = deactivatedDate.withHour(0).withMinute(0);
 
-        List<AccountStat> accountStatsNoMoney = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
+        List<AccountStatType> types = new ArrayList<>();
+        types.add(AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
+        types.add(AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE);
+
+        List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeInAndCreatedAfterOrderByCreatedDesc(
+                account.getId(), types, deactivatedDate.withHour(0).withMinute(0).withSecond(0));
+
+        if (accountStats.isEmpty()
+                || !accountStats.get(0).getCreated().toLocalDate().isEqual(deactivatedDate.toLocalDate()))
+        {
+            return;
+        }
+
+        /*List<AccountStat> accountStatsNoMoney = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
                 account.getId(),
                 AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY,
                 deactivatedDateMidnight
@@ -580,7 +589,7 @@ public class AccountEventListener {
 
         if (accountStatsNoMoney.isEmpty() && accountStatsAbonementDelete.isEmpty()) {
             return;
-        }
+        }*/
 
         int[] monthsAgo = {1, 2, 3, 6, 12};
 
@@ -598,9 +607,7 @@ public class AccountEventListener {
     public void onAccountSendInfoMailEvent(AccountSendInfoMailEvent event) {
         PersonalAccount account = event.getSource();
 
-        if (!account.getNotifications().contains(MailManagerMessageType.EMAIL_NEWS)) {return;}
-
-        int accountAgeInDays = Math.toIntExact(ChronoUnit.DAYS.between(account.getCreated(), LocalDate.now()));
+        int accountAgeInDays = ((Long) ChronoUnit.DAYS.between(account.getCreated(), LocalDate.now())).intValue();
 
         String apiName = null;
 

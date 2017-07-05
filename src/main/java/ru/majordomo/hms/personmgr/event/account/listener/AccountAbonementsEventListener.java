@@ -99,9 +99,6 @@ public class AccountAbonementsEventListener {
 
         logger.debug("We got AccountProcessNotifyExpiredAbonementsEvent");
 
-        //Не отправляем письма при активном абонементе
-        if (accountHelper.hasActiveAbonement(account)) {return;}
-
         LocalDate now = LocalDate.now();
 
         int[] daysAgo = {1, 3, 5, 10, 15, 20};
