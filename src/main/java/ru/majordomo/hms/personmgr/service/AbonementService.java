@@ -39,6 +39,7 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.time.temporal.ChronoUnit.DAYS;
+import static ru.majordomo.hms.personmgr.common.AccountStatType.*;
 import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_MESSAGE_SEND;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
@@ -144,7 +145,7 @@ public class AbonementService {
     public void deleteAbonement(PersonalAccount account, String accountAbonementId) {
         AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
 
-        processAccountAbonementDelete(account, accountAbonement);
+        processAccountAbonementDelete(account, accountAbonement, VIRTUAL_HOSTING_USER_DELETE_ABONEMENT);
     }
 
     public void processExpiringAbonementsByAccount(PersonalAccount account) {
@@ -377,7 +378,7 @@ public class AbonementService {
      * @param account Аккаунт
      * @param accountAbonement абонемента на аккаунте
      */
-    private void processAccountAbonementDelete(PersonalAccount account, AccountAbonement accountAbonement) {
+    private void processAccountAbonementDelete(PersonalAccount account, AccountAbonement accountAbonement, AccountStatType reason) {
 
         accountAbonementManager.delete(accountAbonement);
 
@@ -397,7 +398,7 @@ public class AbonementService {
         Map<String, String> data = new HashMap<>();
         data.put("expireEnd", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         data.put("abonementId", accountAbonement.getAbonementId());
-        accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE, data);
+        accountStatHelper.add(account, reason, data);
 
         //Создаем AccountService с выбранным тарифом
         addPlanServicesAfterAbonementExpire(account);
@@ -405,6 +406,10 @@ public class AbonementService {
         if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
             accountHelper.switchAccountResources(account, false);
         }
+    }
+
+    private void processAccountAbonementDelete(PersonalAccount account, AccountAbonement accountAbonement) {
+        this.processAccountAbonementDelete(account, accountAbonement, VIRTUAL_HOSTING_ABONEMENT_DELETE);
     }
 
     /**

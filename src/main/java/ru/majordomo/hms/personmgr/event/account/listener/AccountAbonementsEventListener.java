@@ -99,30 +99,19 @@ public class AccountAbonementsEventListener {
 
         logger.debug("We got AccountProcessNotifyExpiredAbonementsEvent");
 
-        LocalDate now = LocalDate.now();
-
-        int[] daysAgo = {1, 3, 5, 10, 15, 20};
-
-
-        DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        logger.debug("Trying to find all expired abonements for the last month on the date: "
-                + now.format(formatterDate)
-        );
-
         List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
                 account.getId(),
                 AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE,
                 LocalDateTime.now().minusDays(21)
         );
 
-        if (accountStats.isEmpty()) {
-            logger.debug("Not found expired abonements for accountId: " + account.getId() +
-                    "for the last month on date " + now.format(formatterDate));
-            return;
-        }
+        if (accountStats.isEmpty()) { return; }
 
+        int[] daysAgo = {1, 3, 5, 10, 15, 20};
         boolean needToSendMail = false;
+        LocalDate now = LocalDate.now();
         LocalDate abonementExpiredDate = accountStats.get(0).getCreated().toLocalDate();
+
         for (int dayAgo : daysAgo) {
             //Срок действия абонемента закончился - через 1, 3, 5, 10, 15, 20 дней после окончания
             if (abonementExpiredDate.isEqual(now.minusDays(dayAgo))) {
