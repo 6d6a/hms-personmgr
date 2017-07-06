@@ -575,22 +575,6 @@ public class AccountEventListener {
             return;
         }
 
-        /*List<AccountStat> accountStatsNoMoney = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
-                account.getId(),
-                AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY,
-                deactivatedDateMidnight
-        );
-
-        List<AccountStat> accountStatsAbonementDelete = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
-                account.getId(),
-                AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE,
-                deactivatedDateMidnight
-        );
-
-        if (accountStatsNoMoney.isEmpty() && accountStatsAbonementDelete.isEmpty()) {
-            return;
-        }*/
-
         int[] monthsAgo = {1, 2, 3, 6, 12};
 
         for (int months : monthsAgo) {
