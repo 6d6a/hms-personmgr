@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -92,6 +93,16 @@ public class AccountHelper {
         }
 
         return clientEmails;
+    }
+
+    public List<String> getEmails(PersonalAccount account) {
+        AccountOwner currentOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
+
+        if (currentOwner != null) {
+            return currentOwner.getContactInfo().getEmailAddresses();
+        }
+
+        return new ArrayList<>();
     }
 
     /**
