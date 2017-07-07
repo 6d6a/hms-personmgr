@@ -13,11 +13,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
@@ -59,7 +63,7 @@ public class SupportRequestRestController extends CommonRestController {
     @PostMapping(value = "")
     public ResponseEntity<String> sendSupportRequest(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "file", required = false) MultipartFile[] files,
             @RequestParam("message") String messageText,
             @RequestParam("name") String name,
             @RequestParam("email") String email,
@@ -92,19 +96,51 @@ public class SupportRequestRestController extends CommonRestController {
 
         message.addParam("parametrs", parameters);
 
-        if (file != null && !file.isEmpty()) {
-            Map<String, String> attachment = new HashMap<>();
-            try {
-                attachment.put("body", Base64.getMimeEncoder().encodeToString(file.getBytes()));
-                attachment.put("mime_type", file.getContentType());
-                attachment.put("filename", file.getOriginalFilename());
+        try {
+            if (files != null && files.length > 0) {
+                byte[] fileBytes;
+                String fileType, fileName;
 
-                message.addParam("attachment", attachment);
-            } catch (IOException e) {
-                e.printStackTrace();
-                throw new ParameterValidationException("Ошибка при обработке вложения.");
+                if (files.length == 1 && !files[0].isEmpty()) {
+                    fileName = files[0].getOriginalFilename();
+                    fileBytes = files[0].getBytes();
+                    fileType = files[0].getContentType();
+                } else {
+                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                    ZipOutputStream zipOut = new ZipOutputStream(outputStream);
+                    for (MultipartFile oneFile : files) {
+                        InputStream inputStream = oneFile.getInputStream();
+                        ZipEntry zipEntry = new ZipEntry(oneFile.getOriginalFilename());
+                        zipOut.putNextEntry(zipEntry);
+
+                        byte[] bytes = new byte[1024];
+                        int length;
+                        while((length = inputStream.read(bytes)) >= 0) {
+                            zipOut.write(bytes, 0, length);
+                        }
+                        inputStream.close();
+                    }
+                    zipOut.close();
+                    outputStream.close();
+                    fileBytes = outputStream.toByteArray();
+                    fileName = "attachment.zip";
+                    fileType = "application/zip";
+                }
+
+                if (fileBytes != null && fileType != null && fileName != null) {
+                    Map<String, String> attachment = new HashMap<>();
+                    attachment.put("body", Base64.getMimeEncoder().encodeToString(fileBytes));
+                    attachment.put("mime_type", fileType);
+                    attachment.put("filename", fileName);
+
+                    message.addParam("attachment", attachment);
+                }
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new ParameterValidationException("Ошибка при обработке вложения.");
         }
+
 
         publisher.publishEvent(new SendMailEvent(message));
 
