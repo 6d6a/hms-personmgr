@@ -591,7 +591,7 @@ public class AccountEventListener {
     public void onAccountSendInfoMailEvent(AccountSendInfoMailEvent event) {
         PersonalAccount account = event.getSource();
 
-        int accountAgeInDays = ((Long) ChronoUnit.DAYS.between(account.getCreated(), LocalDate.now())).intValue();
+        int accountAgeInDays = ((Long) ChronoUnit.DAYS.between(account.getCreated().toLocalDate(), LocalDate.now())).intValue();
 
         String apiName = null;
 
