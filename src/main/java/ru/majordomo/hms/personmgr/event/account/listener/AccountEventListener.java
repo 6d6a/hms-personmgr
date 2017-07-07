@@ -655,8 +655,24 @@ public class AccountEventListener {
             }
         }
         if (apiName != null) { accountNotificationHelper.sendInfoMail(account, apiName); }
-
-
     }
 
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountOwnerChangeEmailEvent(AccountOwnerChangeEmailEvent event) {
+        PersonalAccount account = event.getSource();
+        Map<String, Object> params = event.getParams();
+
+        logger.debug("We got AccountOwnerChangeEmailEvent\n");
+
+        String token = tokenHelper.generateToken(account, TokenType.CHANGE_OWNER_EMAILS, params);
+
+        HashMap<String, String> paramsForEmail = new HashMap<>();
+        paramsForEmail.put("acc_id", account.getName());
+        paramsForEmail.put("old_emails", String.join("<br>", (List) params.get("oldemails")));
+        paramsForEmail.put("new_emails", String.join("<br>", (List) params.get("newemails")));
+        paramsForEmail.put("token", token);
+        paramsForEmail.put("ip", (String) params.get("ip"));
+        accountNotificationHelper.sendMail(account, "MajordomoHmsChangeEmail", 10, paramsForEmail);
+    }
 }

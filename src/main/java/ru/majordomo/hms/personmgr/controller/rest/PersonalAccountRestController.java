@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -32,6 +33,7 @@ import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountOwnerChangeEmailEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverConfirmedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverEvent;
@@ -39,6 +41,7 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
+import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -174,6 +177,7 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         AccountOwner currentOwner = accountOwnerRepository.findOneByPersonalAccountId(accountId);
 
+        HashMap<String, List> differentFields = new HashMap<>();
         if (currentOwner != null) {
             if (!request.isUserInRole("ADMIN")) {
                 accountOwnerHelper.checkNotEmptyFields(currentOwner, owner);
@@ -188,15 +192,89 @@ public class PersonalAccountRestController extends CommonRestController {
         //Запишем инфу о произведенном изменении владельца в историю клиента
         String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Произведена смена владельца аккаунта Предыдущий владелец: " +
+
+        boolean changeEmail = !currentOwner.equalEmailAdressess(owner);
+        String ip = getClientIP(request);
+        if (changeEmail) {
+            PersonalAccount account = accountManager.findOne(accountId);
+            ContactInfo contactInfo = currentOwner.getContactInfo();
+            contactInfo.setEmailAddresses(currentOwner.getContactInfo().getEmailAddresses());
+            owner.setContactInfo(contactInfo);
+            List<String> oldEmails = currentOwner.getContactInfo().getEmailAddresses();
+            Map<String, Object> paramsForToken = new HashMap<>();
+            paramsForToken.put("newemails", owner.getContactInfo().getEmailAddresses());
+            paramsForToken.put("ip", ip);
+            paramsForToken.put("oldemails", currentOwner.getContactInfo().getEmailAddresses());
+            publisher.publishEvent(new AccountOwnerChangeEmailEvent(account, paramsForToken));
+        }
+        String historyMessage = "Произведена смена владельца аккаунта с IP: " + ip + " Предыдущий владелец: " +
                 currentOwner +
                 " Новый владелец: " + owner
-        );
+                ;
+        if (changeEmail) {historyMessage += " Ожидается подтверждение смены контактных Email на "
+                + owner.getContactInfo().getEmailAddresses();}
+        params.put(HISTORY_MESSAGE_KEY, historyMessage);
         params.put(OPERATOR_KEY, operator);
 
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
         return new ResponseEntity(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/change_emails",
+            method = RequestMethod.GET)
+    public ResponseEntity<Object> confirmEmailsChange(
+            @RequestParam("token") String tokenId,
+            HttpServletRequest request,
+            @RequestHeader HttpHeaders httpHeaders
+    ) {
+        logger.debug("confirmPasswordRecovery httpHeaders: " + httpHeaders.toString());
+
+        Token token = tokenHelper.getToken(tokenId);
+
+        if (token == null) {
+            return new ResponseEntity<>(
+                    createErrorResponse(
+                            "Запрос на восстановление пароля не найден или уже выполнен ранее."
+                    ),
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        PersonalAccount account = accountManager.findOne(token.getPersonalAccountId());
+
+        if (account == null) {
+            return new ResponseEntity<>(
+                    createErrorResponse(
+                            "Аккаунт не найден."
+                    ),
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        String ip = getClientIP(request);
+
+        String password = randomAlphabetic(8);
+
+        accountHelper.changePassword(account, password);
+
+        Map<String, String> params = new HashMap<>();
+        params.put(PASSWORD_KEY, password);
+        params.put(IP_KEY, ip);
+
+        publisher.publishEvent(new AccountPasswordRecoverConfirmedEvent(account, params));
+
+        publisher.publishEvent(new TokenDeleteEvent(token));
+
+        SimpleServiceMessage message = createSuccessResponse("Пароль успешно восстановлен. " +
+                "Новый пароль отправлен на контактный e-mail владельца аккаунта.");
+        message.addParam("password", password);
+        message.addParam("login", account.getName());
+
+        return new ResponseEntity<>(
+                message,
+                HttpStatus.OK
+        );
     }
 
     @RequestMapping(value = "/{accountId}/owner",

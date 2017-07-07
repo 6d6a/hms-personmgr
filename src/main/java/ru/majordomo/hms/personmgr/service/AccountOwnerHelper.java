@@ -5,7 +5,11 @@ import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
+import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalInfo;
+
+import java.util.HashMap;
+import java.util.List;
 
 @Service
 public class AccountOwnerHelper {
@@ -165,6 +169,13 @@ public class AccountOwnerHelper {
     }
 
     private void setAllowedFields(AccountOwner currentAccountOwner, AccountOwner accountOwner) {
-        currentAccountOwner.setContactInfo(accountOwner.getContactInfo());
+        if (!currentAccountOwner.equalEmailAdressess(accountOwner)) {
+            ContactInfo contactInfo = accountOwner.getContactInfo();
+            contactInfo.setEmailAddresses(currentAccountOwner.getContactInfo().getEmailAddresses());
+
+            currentAccountOwner.setContactInfo(contactInfo);
+        } else {
+            currentAccountOwner.setContactInfo(accountOwner.getContactInfo());
+        }
     }
 }
