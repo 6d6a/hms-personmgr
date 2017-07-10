@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +31,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountOwnerChangeEmailEvent;
@@ -222,7 +222,7 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity(HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/change_emails",
+    @RequestMapping(value = "/change_email",
             method = RequestMethod.GET)
     public ResponseEntity<Object> confirmEmailsChange(
             @RequestParam("token") String tokenId,
@@ -231,19 +231,17 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         logger.debug("confirmPasswordRecovery httpHeaders: " + httpHeaders.toString());
 
-        Token token = tokenHelper.getToken(tokenId);
-
+        Token token = tokenHelper.getToken(tokenId, TokenType.CHANGE_OWNER_EMAILS);
         if (token == null) {
             return new ResponseEntity<>(
                     createErrorResponse(
-                            "Запрос на изменение контактных e-mail не найден или уже выполнен ранее."
+                            "Запрос на изменение контактных e-mail адресов не найден или уже выполнен ранее."
                     ),
                     HttpStatus.BAD_REQUEST
             );
         }
 
         PersonalAccount account = accountManager.findOne(token.getPersonalAccountId());
-
         if (account == null) {
             return new ResponseEntity<>(
                     createErrorResponse(
@@ -252,9 +250,12 @@ public class PersonalAccountRestController extends CommonRestController {
                     HttpStatus.BAD_REQUEST
             );
         }
-
-
-        //accountHelper.setEmail(account, newEmail);
+        List<String> newEmail = (List) token.getParam("newemails");
+        AccountOwner accountOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
+        ContactInfo contactInfo = accountOwner.getContactInfo();
+        contactInfo.setEmailAddresses(newEmail);
+        accountOwner.setContactInfo(contactInfo);
+        accountOwnerRepository.save(accountOwner);
 
         publisher.publishEvent(new TokenDeleteEvent(token));
 

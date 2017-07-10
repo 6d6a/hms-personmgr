@@ -39,6 +39,10 @@ public class TokenHelper {
         return repository.findByIdAndDeletedIsNull(id);
     }
 
+    public Token getToken(String id, TokenType tokenType) {
+        return repository.findByIdAndTypeAndDeletedIsNull(id, tokenType);
+    }
+
     public void deleteToken(Token token) {
         token.setDeleted(LocalDateTime.now());
 
