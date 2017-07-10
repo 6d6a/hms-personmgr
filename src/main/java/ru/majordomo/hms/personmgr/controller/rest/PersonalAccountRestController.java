@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -235,7 +236,7 @@ public class PersonalAccountRestController extends CommonRestController {
         if (token == null) {
             return new ResponseEntity<>(
                     createErrorResponse(
-                            "Запрос на восстановление пароля не найден или уже выполнен ранее."
+                            "Запрос на изменение контактных e-mail не найден или уже выполнен ранее."
                     ),
                     HttpStatus.BAD_REQUEST
             );
@@ -252,25 +253,12 @@ public class PersonalAccountRestController extends CommonRestController {
             );
         }
 
-        String ip = getClientIP(request);
 
-        String password = randomAlphabetic(8);
-
-        accountHelper.changePassword(account, password);
-
-        Map<String, String> params = new HashMap<>();
-        params.put(PASSWORD_KEY, password);
-        params.put(IP_KEY, ip);
-
-        publisher.publishEvent(new AccountPasswordRecoverConfirmedEvent(account, params));
+        //accountHelper.setEmail(account, newEmail);
 
         publisher.publishEvent(new TokenDeleteEvent(token));
 
-        SimpleServiceMessage message = createSuccessResponse("Пароль успешно восстановлен. " +
-                "Новый пароль отправлен на контактный e-mail владельца аккаунта.");
-        message.addParam("password", password);
-        message.addParam("login", account.getName());
-
+        SimpleServiceMessage message = createSuccessResponse("Email-адреса владельца аккаунта успешно изменены. ");
         return new ResponseEntity<>(
                 message,
                 HttpStatus.OK

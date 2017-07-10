@@ -669,7 +669,6 @@ public class AccountEventListener {
 
         HashMap<String, String> paramsForEmail = new HashMap<>();
         paramsForEmail.put("acc_id", account.getName());
-        paramsForEmail.put("old_emails", String.join("<br>", (List) params.get("oldemails")));
         paramsForEmail.put("new_emails", String.join("<br>", (List) params.get("newemails")));
         paramsForEmail.put("token", token);
         paramsForEmail.put("ip", (String) params.get("ip"));
