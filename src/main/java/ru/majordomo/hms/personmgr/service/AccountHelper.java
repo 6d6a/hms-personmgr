@@ -101,6 +101,16 @@ public class AccountHelper {
         return clientEmails;
     }
 
+    public List<String> getEmails(PersonalAccount account) {
+        AccountOwner currentOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
+
+        if (currentOwner != null) {
+            return currentOwner.getContactInfo().getEmailAddresses();
+        }
+
+        return new ArrayList<>();
+    }
+
     /**
      * Получим баланс
      *

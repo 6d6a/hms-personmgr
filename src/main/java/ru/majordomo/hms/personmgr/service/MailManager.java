@@ -105,7 +105,7 @@ public class MailManager {
                 send(message, urlKey);
             } else {
                 e.printStackTrace();
-                logger.error("Exception in ru.majordomo.hms.personmgr.service.MailManager.send #1 " + e.getMessage());
+                logger.error("Exception in ru.majordomo.hms.personmgr.service.MailManager.send #1 " + e.getMessage() + " " + e.getResponseBodyAsString());
             }
         } catch (RestClientException e) {
             e.printStackTrace();
