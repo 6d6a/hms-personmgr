@@ -222,7 +222,7 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity(HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/change_email",
+    @RequestMapping(value = "/change-email",
             method = RequestMethod.GET)
     public ResponseEntity<Object> confirmEmailsChange(
             @RequestParam("token") String tokenId,
