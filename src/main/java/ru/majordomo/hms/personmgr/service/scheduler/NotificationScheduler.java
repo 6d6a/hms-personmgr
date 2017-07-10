@@ -49,7 +49,7 @@ public class NotificationScheduler {
     @SchedulerLock(name = "processNotifyInactiveLongTime")
     public  void processNotifyInactiveLongTime() {
         logger.debug("Started processNotifyInactiveLongTime");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findByActiveAndDeactivatedAfterStream(false, LocalDateTime.now().minusMonths(13))) {
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findByActiveAndDeactivatedAfter(false, LocalDateTime.now().minusMonths(13))) {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountNotifyInactiveLongTimeEvent(account)));
         }
         logger.debug("Ended processNotifyInactiveLongTime");
