@@ -9,10 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -20,11 +18,13 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
@@ -32,6 +32,7 @@ import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
@@ -56,6 +57,8 @@ public class AccountHelper {
     private final AccountPromocodeRepository accountPromocodeRepository;
     private final PromocodeRepository promocodeRepository;
     private final AccountOwnerRepository accountOwnerRepository;
+    private final PlanRepository planRepository;
+    private final AccountAbonementManager accountAbonementManager;
 
     @Autowired
     public AccountHelper(
@@ -68,7 +71,9 @@ public class AccountHelper {
             ApplicationEventPublisher publisher,
             AccountPromocodeRepository accountPromocodeRepository,
             PromocodeRepository promocodeRepository,
-            AccountOwnerRepository accountOwnerRepository
+            AccountOwnerRepository accountOwnerRepository,
+            PlanRepository planRepository,
+            AccountAbonementManager accountAbonementManager
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -80,6 +85,8 @@ public class AccountHelper {
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.promocodeRepository = promocodeRepository;
         this.accountOwnerRepository = accountOwnerRepository;
+        this.planRepository = planRepository;
+        this.accountAbonementManager = accountAbonementManager;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -672,5 +679,42 @@ public class AccountHelper {
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
         }
 
+    }
+
+    /*
+     * получим стоимость абонемента на период через Plan, PlanId или PersonalAccount
+     * @period - период действия абонемента, "P1Y" - на год
+     */
+
+    public BigDecimal getCostAbonement(PersonalAccount account) {
+        return getCostAbonement(account.getPlanId(), "P1Y");
+    }
+
+    public BigDecimal getCostAbonement(PersonalAccount account, String period) {
+        return getCostAbonement(account.getPlanId(), period);
+    }
+
+    public BigDecimal getCostAbonement(String planId) {
+        return getCostAbonement(planId, "P1Y");
+    }
+
+    public BigDecimal getCostAbonement(String planId, String period) {
+        Plan plan = planRepository.findOne(planId);
+        return getCostAbonement(plan, period);
+    }
+
+    public BigDecimal getCostAbonement(Plan plan) {
+        return this.getCostAbonement(plan, "P1Y");
+    }
+
+    public BigDecimal getCostAbonement(Plan plan, String period) {
+        return plan.getAbonements()
+                .stream().filter(
+                        abonement -> abonement.getPeriod().equals(period)
+                ).collect(Collectors.toList()).get(0).getService().getCost();
+    }
+
+    public boolean hasActiveAbonement(PersonalAccount account) {
+        return !accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getId(), LocalDateTime.now()).isEmpty();
     }
 }
