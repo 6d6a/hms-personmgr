@@ -183,7 +183,7 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
-    public Stream<PersonalAccount> findByActiveAndDeactivatedAfterStream(boolean active, LocalDateTime deactivated) {
+    public Stream<PersonalAccount> findByActiveAndDeactivatedAfter(boolean active, LocalDateTime deactivated) {
         return repository.findByActiveAndDeactivatedAfter(active, deactivated);
     }
 
