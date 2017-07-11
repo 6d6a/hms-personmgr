@@ -170,9 +170,8 @@ public class AccountOwnerHelper {
 
     private void setAllowedFields(AccountOwner currentAccountOwner, AccountOwner accountOwner) {
         if (!currentAccountOwner.equalEmailAdressess(accountOwner)) {
-            ContactInfo contactInfo = accountOwner.getContactInfo();
+            ContactInfo contactInfo = (ContactInfo) accountOwner.getContactInfo().clone();
             contactInfo.setEmailAddresses(currentAccountOwner.getContactInfo().getEmailAddresses());
-
             currentAccountOwner.setContactInfo(contactInfo);
         } else {
             currentAccountOwner.setContactInfo(accountOwner.getContactInfo());

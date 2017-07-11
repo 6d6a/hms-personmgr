@@ -92,6 +92,15 @@ public class ContactInfo {
     }
 
     @Override
+    public Object clone() {
+        try {
+            return super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError("Can not clone object ContactInfo:" + this.toString());
+        }
+    }
+
+    @Override
     public String toString() {
         return "ContactInfo{" +
                 "phoneNumbers=" + phoneNumbers +
