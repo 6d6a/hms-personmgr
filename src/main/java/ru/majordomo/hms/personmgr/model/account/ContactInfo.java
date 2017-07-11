@@ -91,13 +91,17 @@ public class ContactInfo {
         this.bankAccount = bankAccount;
     }
 
-    @Override
-    public Object clone() {
-        try {
-            return super.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new AssertionError("Can not clone object ContactInfo:" + this.toString());
-        }
+    public ContactInfo() {}
+
+    public ContactInfo(ContactInfo contactInfo) {
+        super();
+        this.setEmailAddresses(new ArrayList<>(contactInfo.getEmailAddresses()));
+        this.setPhoneNumbers(new ArrayList<>(contactInfo.getPhoneNumbers()));
+        this.setPostalAddress(contactInfo.getPostalAddress());
+        this.setBankAccount(contactInfo.getBankAccount());
+        this.setBankName(contactInfo.getBankName());
+        this.setBik(contactInfo.getBik());
+        this.setCorrespondentAccount(contactInfo.getCorrespondentAccount());
     }
 
     @Override

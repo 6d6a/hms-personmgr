@@ -20,10 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -178,9 +175,11 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         AccountOwner currentOwner = accountOwnerRepository.findOneByPersonalAccountId(accountId);
 
-        HashMap<String, List> differentFields = new HashMap<>();
+        boolean changeEmail = false;
+        List<String> currentEmails = new ArrayList<>(currentOwner.getContactInfo().getEmailAddresses());
         if (currentOwner != null) {
             if (!request.isUserInRole("ADMIN")) {
+                changeEmail = !currentOwner.equalEmailAdressess(owner);
                 accountOwnerHelper.checkNotEmptyFields(currentOwner, owner);
                 accountOwnerHelper.setEmptyAndAllowedToEditFields(currentOwner, owner);
             } else {
@@ -194,18 +193,13 @@ public class PersonalAccountRestController extends CommonRestController {
         String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();
 
-        boolean changeEmail = !currentOwner.equalEmailAdressess(owner);
         String ip = getClientIP(request);
         if (changeEmail) {
             PersonalAccount account = accountManager.findOne(accountId);
-            ContactInfo contactInfo = currentOwner.getContactInfo();
-            contactInfo.setEmailAddresses(currentOwner.getContactInfo().getEmailAddresses());
-            owner.setContactInfo(contactInfo);
-            List<String> oldEmails = currentOwner.getContactInfo().getEmailAddresses();
             Map<String, Object> paramsForToken = new HashMap<>();
             paramsForToken.put("newemails", owner.getContactInfo().getEmailAddresses());
             paramsForToken.put("ip", ip);
-            paramsForToken.put("oldemails", currentOwner.getContactInfo().getEmailAddresses());
+            paramsForToken.put("oldemails", currentEmails);
             publisher.publishEvent(new AccountOwnerChangeEmailEvent(account, paramsForToken));
         }
         String historyMessage = "Произведена смена владельца аккаунта с IP: " + ip + " Предыдущий владелец: " +
@@ -250,7 +244,7 @@ public class PersonalAccountRestController extends CommonRestController {
                     HttpStatus.BAD_REQUEST
             );
         }
-        List<String> newEmail = (List) token.getParam("newemails");
+        List<String> newEmail = (List<String>) token.getParam("newemails");
         AccountOwner accountOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
         ContactInfo contactInfo = accountOwner.getContactInfo();
         contactInfo.setEmailAddresses(newEmail);

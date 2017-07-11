@@ -8,6 +8,7 @@ import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalInfo;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -165,16 +166,20 @@ public class AccountOwnerHelper {
         currentAccountOwner.setName(accountOwner.getName());
         currentAccountOwner.setPersonalInfo(accountOwner.getPersonalInfo());
 
-        setAllowedFields(currentAccountOwner, accountOwner);
+        setAllowedFieldsAdmin(currentAccountOwner, accountOwner);
     }
 
     private void setAllowedFields(AccountOwner currentAccountOwner, AccountOwner accountOwner) {
         if (!currentAccountOwner.equalEmailAdressess(accountOwner)) {
-            ContactInfo contactInfo = (ContactInfo) accountOwner.getContactInfo().clone();
+            ContactInfo contactInfo = new ContactInfo(accountOwner.getContactInfo());
             contactInfo.setEmailAddresses(currentAccountOwner.getContactInfo().getEmailAddresses());
             currentAccountOwner.setContactInfo(contactInfo);
         } else {
             currentAccountOwner.setContactInfo(accountOwner.getContactInfo());
         }
+    }
+
+    private void setAllowedFieldsAdmin(AccountOwner currentAccountOwner, AccountOwner accountOwner) {
+        currentAccountOwner.setContactInfo(accountOwner.getContactInfo());
     }
 }
