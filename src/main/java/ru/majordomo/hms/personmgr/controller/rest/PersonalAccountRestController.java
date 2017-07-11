@@ -223,7 +223,7 @@ public class PersonalAccountRestController extends CommonRestController {
             HttpServletRequest request,
             @RequestHeader HttpHeaders httpHeaders
     ) {
-        logger.debug("confirmPasswordRecovery httpHeaders: " + httpHeaders.toString());
+        logger.debug("confirmChangeOwnerEmail httpHeaders: " + httpHeaders.toString());
 
         Token token = tokenHelper.getToken(tokenId, TokenType.CHANGE_OWNER_EMAILS);
         if (token == null) {
