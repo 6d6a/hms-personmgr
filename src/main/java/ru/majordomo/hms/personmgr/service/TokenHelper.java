@@ -39,6 +39,8 @@ public class TokenHelper {
         return repository.findByIdAndDeletedIsNull(id);
     }
 
+    public Token getToken(TokenType tokenType, String personalAccountId) { return repository.findByTypeAndDeletedIsNullAndPersonalAccountId(tokenType, personalAccountId); }
+
     public Token getToken(String id, TokenType tokenType) {
         return repository.findByIdAndTypeAndDeletedIsNull(id, tokenType);
     }

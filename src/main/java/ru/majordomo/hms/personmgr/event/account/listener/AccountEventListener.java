@@ -34,6 +34,7 @@ import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
+import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.rc.user.resources.Domain;
@@ -664,6 +665,9 @@ public class AccountEventListener {
         Map<String, Object> params = event.getParams();
 
         logger.debug("We got AccountOwnerChangeEmailEvent\n");
+
+        Token oldToken = tokenHelper.getToken(TokenType.CHANGE_OWNER_EMAILS, account.getId());
+        if (oldToken != null) { tokenHelper.deleteToken(oldToken); }
 
         String token = tokenHelper.generateToken(account, TokenType.CHANGE_OWNER_EMAILS, params);
 
