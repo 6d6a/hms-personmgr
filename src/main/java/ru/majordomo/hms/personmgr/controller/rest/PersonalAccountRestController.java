@@ -25,6 +25,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
@@ -170,7 +171,7 @@ public class PersonalAccountRestController extends CommonRestController {
                     method = RequestMethod.PUT)
     public ResponseEntity changeOwner(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody AccountOwner owner,
+            @Valid @RequestBody AccountOwner owner,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         AccountOwner currentOwner = accountOwnerRepository.findOneByPersonalAccountId(accountId);
