@@ -34,6 +34,7 @@ import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
+import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.rc.user.resources.Domain;
@@ -655,8 +656,26 @@ public class AccountEventListener {
             }
         }
         if (apiName != null) { accountNotificationHelper.sendInfoMail(account, apiName); }
-
-
     }
 
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountOwnerChangeEmailEvent(AccountOwnerChangeEmailEvent event) {
+        PersonalAccount account = event.getSource();
+        Map<String, Object> params = event.getParams();
+
+        logger.debug("We got AccountOwnerChangeEmailEvent\n");
+
+        Token oldToken = tokenHelper.getToken(TokenType.CHANGE_OWNER_EMAILS, account.getId());
+        if (oldToken != null) { tokenHelper.deleteToken(oldToken); }
+
+        String token = tokenHelper.generateToken(account, TokenType.CHANGE_OWNER_EMAILS, params);
+
+        HashMap<String, String> paramsForEmail = new HashMap<>();
+        paramsForEmail.put("acc_id", account.getName());
+        paramsForEmail.put("new_emails", String.join("<br>", (List) params.get("newemails")));
+        paramsForEmail.put("token", token);
+        paramsForEmail.put("ip", (String) params.get("ip"));
+        accountNotificationHelper.sendMail(account, "MajordomoHmsChangeEmail", 10, paramsForEmail);
+    }
 }
