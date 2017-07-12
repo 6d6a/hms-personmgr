@@ -150,12 +150,10 @@ public class DomainService {
             message.setAccountId(account.getId());
             message.setParams(new HashMap<>());
             message.addParam("email", email);
-            //TODO Убрать точку в шаблоне после баланса, так как получается "руб.."
-            message.addParam("api_name", "MajordomoVHDomainsExpires");
+            message.addParam("api_name", "MajordomoHMSVHDomainsExpires");
             message.addParam("priority", 10);
 
             HashMap<String, String> parameters = new HashMap<>();
-            parameters.put("client_id", message.getAccountId());
             parameters.put("acc_id", account.getName());
             parameters.put("domains", domainsForMail);
             parameters.put("balance", formatBigDecimalWithCurrency(balance));
