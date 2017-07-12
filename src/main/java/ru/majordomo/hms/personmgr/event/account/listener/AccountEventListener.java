@@ -337,25 +337,12 @@ public class AccountEventListener {
 
         publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
 
-        if (account.hasNotification(MailManagerMessageType.EMAIL_CHANGE_ACCOUNT_PASSWORD)) {
-            String emails = accountHelper.getEmail(account);
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("acc_id", account.getAccountId());
+        parameters.put("ip", ip);
+        parameters.put("date", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy H:m:s")));
 
-            SimpleServiceMessage message = new SimpleServiceMessage();
-            message.setParams(new HashMap<>());
-            message.addParam("email", emails);
-            message.addParam("api_name", "MajordomoVHPassChAccount");
-            message.addParam("priority", 10);
-
-            HashMap<String, String> parameters = new HashMap<>();
-            parameters.put("client_id", account.getAccountId());
-            parameters.put("acc_id", account.getAccountId());
-            parameters.put("ip", ip);
-            parameters.put("date", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy H:m:s")));
-
-            message.addParam("parametrs", parameters);
-
-            publisher.publishEvent(new SendMailEvent(message));
-        }
+        accountNotificationHelper.sendMail(account, "MajordomoVHPassChAccount", 10, parameters);
     }
 
     @EventListener
