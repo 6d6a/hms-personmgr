@@ -129,6 +129,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
         personalAccount.setAccountType(AccountType.VIRTUAL_HOSTING);
         personalAccount.setPlanId(plan.getId());
         personalAccount.setAccountId(accountId);
+        personalAccount.setId(accountId);
         personalAccount.setClientId(accountId);
         personalAccount.setName(VH_ACCOUNT_PREFIX + accountId);
         personalAccount.setActive(!plan.isAbonementOnly());
