@@ -91,6 +91,19 @@ public class ContactInfo {
         this.bankAccount = bankAccount;
     }
 
+    public ContactInfo() {}
+
+    public ContactInfo(ContactInfo contactInfo) {
+        super();
+        this.setEmailAddresses(new ArrayList<>(contactInfo.getEmailAddresses()));
+        this.setPhoneNumbers(new ArrayList<>(contactInfo.getPhoneNumbers()));
+        this.setPostalAddress(contactInfo.getPostalAddress());
+        this.setBankAccount(contactInfo.getBankAccount());
+        this.setBankName(contactInfo.getBankName());
+        this.setBik(contactInfo.getBik());
+        this.setCorrespondentAccount(contactInfo.getCorrespondentAccount());
+    }
+
     @Override
     public String toString() {
         return "ContactInfo{" +

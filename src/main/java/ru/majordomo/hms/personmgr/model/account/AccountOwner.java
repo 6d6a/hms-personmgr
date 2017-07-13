@@ -11,6 +11,7 @@ import ru.majordomo.hms.personmgr.validation.groupSequenceProvider.AccountOwnerG
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import java.util.List;
 
 @Document
 @UniquePersonalAccountIdModel(AccountOwner.class)
@@ -54,6 +55,13 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
 
     public ContactInfo getContactInfo() {
         return contactInfo;
+    }
+
+    public boolean equalEmailAdressess(AccountOwner owner) {
+        List<String> emails = owner.getContactInfo().getEmailAddresses();
+        List<String> emailsThis = this.getContactInfo().getEmailAddresses();
+        if (emails.size() != emailsThis.size()) { return false; }
+        return emails.containsAll(emailsThis);
     }
 
     public void setContactInfo(ContactInfo contactInfo) {

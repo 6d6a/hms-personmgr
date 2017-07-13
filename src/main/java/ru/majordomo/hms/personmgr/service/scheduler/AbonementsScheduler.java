@@ -15,6 +15,7 @@ import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonements
 import ru.majordomo.hms.personmgr.event.account.AccountProcessNotifyExpiredAbonementsEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
 
 @Component
 public class AbonementsScheduler {
@@ -22,14 +23,17 @@ public class AbonementsScheduler {
 
     private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
+    private final AccountHelper accountHelper;
 
     @Autowired
     public AbonementsScheduler(
             PersonalAccountManager accountManager,
-            ApplicationEventPublisher publisher
+            ApplicationEventPublisher publisher,
+            AccountHelper accountHelper
     ) {
         this.accountManager = accountManager;
         this.publisher = publisher;
+        this.accountHelper = accountHelper;
     }
 
     //Выполняем обработку абонементов с истекающим сроком действия в 00:32:00 каждый день
@@ -59,7 +63,9 @@ public class AbonementsScheduler {
     @SchedulerLock(name = "processNotifyExpiredAbonements")
     public void processNotifyExpiredAbonements() {
         logger.debug("Started processNotifyExpiredAbonements");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
+        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()
+                .filter(account -> !accountHelper.hasActiveAbonement(account)))
+        {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessNotifyExpiredAbonementsEvent(account)));
         }
         logger.debug("Ended processNotifyExpiredAbonements");

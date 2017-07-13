@@ -7,10 +7,12 @@ import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.rest.core.annotation.RestResource;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 public interface PersonalAccountRepository extends MongoRepository<PersonalAccount, String> {
@@ -34,6 +36,12 @@ public interface PersonalAccountRepository extends MongoRepository<PersonalAccou
 
     @Query("{}")
     Stream<PersonalAccount> findAllStream();
+
+    Stream<PersonalAccount> findByActiveAndDeactivatedAfter(
+            @Param("active") boolean active,
+            @Param("deactivated") LocalDateTime deactivated);
+
+    Stream<PersonalAccount> findByNotificationsEquals(@Param("notifications") MailManagerMessageType messageType);
 
     Stream<PersonalAccount> findByIdNotIn(@Param("ids") List<String> ids);
 

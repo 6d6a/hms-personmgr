@@ -9,8 +9,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
@@ -28,14 +30,13 @@ import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
+import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.repository.*;
-import ru.majordomo.hms.personmgr.service.AbonementService;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
-import ru.majordomo.hms.personmgr.service.TokenHelper;
+import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
@@ -58,6 +59,8 @@ public class AccountEventListener {
     private final AbonementService abonementService;
     private final PersonalAccountManager accountManager;
     private final AccountAbonementManager accountAbonementManager;
+    private final AccountNotificationHelper accountNotificationHelper;
+    private final PersonalAccountRepository personalAccountRepository;
 
     @Autowired
     public AccountEventListener(
@@ -72,7 +75,9 @@ public class AccountEventListener {
             PromotionRepository promotionRepository,
             AbonementService abonementService,
             PersonalAccountManager accountManager,
-            AccountAbonementManager accountAbonementManager
+            AccountAbonementManager accountAbonementManager,
+            AccountNotificationHelper accountNotificationHelper,
+            PersonalAccountRepository personalAccountRepository
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -86,6 +91,8 @@ public class AccountEventListener {
         this.abonementService = abonementService;
         this.accountManager = accountManager;
         this.accountAbonementManager = accountAbonementManager;
+        this.accountNotificationHelper = accountNotificationHelper;
+        this.personalAccountRepository = personalAccountRepository;
     }
 
     @EventListener
@@ -330,25 +337,12 @@ public class AccountEventListener {
 
         publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
 
-        if (account.hasNotification(MailManagerMessageType.EMAIL_CHANGE_ACCOUNT_PASSWORD)) {
-            String emails = accountHelper.getEmail(account);
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("acc_id", account.getAccountId());
+        parameters.put("ip", ip);
+        parameters.put("date", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy H:m:s")));
 
-            SimpleServiceMessage message = new SimpleServiceMessage();
-            message.setParams(new HashMap<>());
-            message.addParam("email", emails);
-            message.addParam("api_name", "MajordomoVHPassChAccount");
-            message.addParam("priority", 10);
-
-            HashMap<String, String> parameters = new HashMap<>();
-            parameters.put("client_id", account.getAccountId());
-            parameters.put("acc_id", account.getAccountId());
-            parameters.put("ip", ip);
-            parameters.put("date", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy H:m:s")));
-
-            message.addParam("parametrs", parameters);
-
-            publisher.publishEvent(new SendMailEvent(message));
-        }
+        accountNotificationHelper.sendMail(account, "MajordomoVHPassChAccount", 10, parameters);
     }
 
     @EventListener
@@ -382,7 +376,7 @@ public class AccountEventListener {
             //Проверка на то что аккаунт новый (на нём не было доменов)
             if (account.isAccountNew()) {
                 List<Domain> domains = accountHelper.getDomains(account);
-                if (!plan.isAbonementOnly() && plan.isActive() && (domains == null || domains.size() == 0)) {
+                if (!plan.isAbonementOnly() && plan.isActive() && !plan.getName().equals(ACTIVE_PLAN_NAME_WITHOUT_FREE_DOMAIN) && (domains == null || domains.size() == 0)) {
                     Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
                     List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
                     if (accountPromotions == null || accountPromotions.isEmpty()) {
@@ -513,5 +507,162 @@ public class AccountEventListener {
                 }
             }
         }
+    }
+
+    //Отправка писем в случае выключенного аккаунта из-за нехватки средств
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountDeactivatedSendMailEvent(AccountDeactivatedSendMailEvent event) {
+        PersonalAccount account = event.getSource();
+
+        logger.debug("We got AccountDeactivatedSendMailEvent\n");
+
+        if (account.isActive() || planRepository.findOne(account.getPlanId()).isAbonementOnly()) { return;}
+
+        List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
+                account.getId(),
+                AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY,
+                LocalDateTime.now().minusDays(21)
+        );
+
+        if (accountStats.isEmpty()) {return;}
+
+        int[] daysAgo = {1, 3, 5, 10, 15, 20};
+        LocalDateTime dateFinish = accountStats.get(0).getCreated();
+
+        LocalDate now = LocalDate.now();
+
+        for (int days : daysAgo) {
+            if (dateFinish.toLocalDate().isEqual(now.minusDays(days))) {
+                accountNotificationHelper.sendMailForDeactivatedAccount(account, dateFinish);
+                //отправляем только одно письмо
+                break;
+            }
+        }
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountNotifyInactiveLongTimeEvent(AccountNotifyInactiveLongTimeEvent event) {
+        PersonalAccount account = event.getSource();
+        logger.debug("We got AccountNotifyInactiveLongTimeEvent\n");
+
+        LocalDateTime deactivatedDate = account.getDeactivated();
+        //LocalDateTime deactivatedDateMidnight = deactivatedDate.withHour(0).withMinute(0);
+
+        List<AccountStatType> types = new ArrayList<>();
+        types.add(AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
+        types.add(AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE);
+
+        List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeInAndCreatedAfterOrderByCreatedDesc(
+                account.getId(), types, deactivatedDate.withHour(0).withMinute(0).withSecond(0));
+
+        if (accountStats.isEmpty()
+                || !accountStats.get(0).getCreated().toLocalDate().isEqual(deactivatedDate.toLocalDate()))
+        {
+            return;
+        }
+
+        int[] monthsAgo = {1, 2, 3, 6, 12};
+
+        for (int months : monthsAgo) {
+            if (deactivatedDate.toLocalDate().isEqual(LocalDate.now().minusMonths(months))) {
+                accountNotificationHelper.sendInfoMail(account, "MajordomoHmsReturnClient");
+                //отправляем только одно письмо
+                break;
+            }
+        }
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountSendInfoMailEvent(AccountSendInfoMailEvent event) {
+        PersonalAccount account = event.getSource();
+
+        int accountAgeInDays = ((Long) ChronoUnit.DAYS.between(account.getCreated().toLocalDate(), LocalDate.now())).intValue();
+
+        String apiName = null;
+
+        if (accountAgeInDays == 30) {
+            //всем, в том числе и неактивным
+            apiName = "MajordomoHmsKonstructorNethouse";
+
+        } else if (account.isActive()) {
+
+            switch (accountAgeInDays) {
+
+                case 4:
+                    //если не регистрировал домен у нас
+                    List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
+                            account.getId(),
+                            AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN,
+                            account.getCreated()
+                    );
+
+                    if (accountStats.isEmpty()) {
+                        apiName = "MajordomoHmsDomainVPodarok";
+                    }
+                    break;
+
+                case 9:
+                    //только для базовых тарифов
+                    VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) planRepository.findOne(account.getPlanId()).getPlanProperties();
+                    if (!planProperties.isBusinessServices()) {
+                        apiName = "MajordomoHmsCorporateTarif";
+                    }
+                    break;
+
+                case 20:
+                    apiName = "MajordomoHmsPromokodGoogle";
+                    break;
+
+                /*//пока не готов сам bizmail, отправлять не надо
+                case 25:
+                    //отправляем, если есть домены и ни один не привязан к biz.mail.ru
+                    //делегирован домен на наши NS или нет - неважно
+                    List<Domain> domains = accountHelper.getDomains(account);
+                    if (domains.isEmpty()) {
+                        break;
+                    }
+                    if (false) {
+                        apiName = "MajordomoHmsPochtaMailRu";
+                    }
+                    break;*/
+
+                case 35:
+                    apiName = "MajordomoHmsProdvigenie";
+                    break;
+
+                case 40:
+                    apiName = "MajordomoHmsProtectSite";
+                    break;
+
+                case 45:
+                    apiName = "MajordomoHmsPartners";
+                    break;
+            }
+        }
+        if (apiName != null) { accountNotificationHelper.sendInfoMail(account, apiName); }
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountOwnerChangeEmailEvent(AccountOwnerChangeEmailEvent event) {
+        PersonalAccount account = event.getSource();
+        Map<String, Object> params = event.getParams();
+
+        logger.debug("We got AccountOwnerChangeEmailEvent\n");
+
+        Token oldToken = tokenHelper.getToken(TokenType.CHANGE_OWNER_EMAILS, account.getId());
+        if (oldToken != null) { tokenHelper.deleteToken(oldToken); }
+
+        String token = tokenHelper.generateToken(account, TokenType.CHANGE_OWNER_EMAILS, params);
+
+        HashMap<String, String> paramsForEmail = new HashMap<>();
+        paramsForEmail.put("acc_id", account.getName());
+        paramsForEmail.put("new_emails", String.join("<br>", (List) params.get("newemails")));
+        paramsForEmail.put("token", token);
+        paramsForEmail.put("ip", (String) params.get("ip"));
+        accountNotificationHelper.sendMail(account, "MajordomoHmsChangeEmail", 10, paramsForEmail);
     }
 }

@@ -9,14 +9,11 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessNotifyExpiredAbonementsEvent;
-import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
-import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -24,17 +21,15 @@ import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.rc.user.resources.Domain;
+import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class AccountAbonementsEventListener {
@@ -44,8 +39,9 @@ public class AccountAbonementsEventListener {
     private final AccountHelper accountHelper;
     private final AccountStatRepository accountStatRepository;
     private final ApplicationEventPublisher publisher;
-    private final AccountAbonementManager accountAbonementManager;
     private final PlanRepository planRepository;
+    private final AccountNotificationHelper accountNotificationHelper;
+    private final AccountAbonementManager accountAbonementManager;
 
     @Autowired
     public AccountAbonementsEventListener(
@@ -53,15 +49,17 @@ public class AccountAbonementsEventListener {
             AccountStatRepository accountStatRepository,
             AbonementService abonementService,
             ApplicationEventPublisher publisher,
-            AccountAbonementManager accountAbonementManager,
-            PlanRepository planRepository
+            PlanRepository planRepository,
+            AccountNotificationHelper accountNotificationHelper,
+            AccountAbonementManager accountAbonementManager
     ) {
         this.abonementService = abonementService;
         this.accountHelper = accountHelper;
         this.accountStatRepository = accountStatRepository;
         this.publisher = publisher;
-        this.accountAbonementManager = accountAbonementManager;
         this.planRepository = planRepository;
+        this.accountNotificationHelper = accountNotificationHelper;
+        this.accountAbonementManager = accountAbonementManager;
     }
 
     @EventListener
@@ -101,33 +99,19 @@ public class AccountAbonementsEventListener {
 
         logger.debug("We got AccountProcessNotifyExpiredAbonementsEvent");
 
-        //Не отправляем письма при активном абонементе
-        if (!accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getId(), LocalDateTime.now()).isEmpty()) {return;}
-
-        LocalDate now = LocalDate.now();
-
-        int[] daysAgo = {1, 3, 5, 10, 15, 20};
-
-
-        DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        logger.debug("Trying to find all expired abonements for the last month on the date: "
-                + now.format(formatterDate)
-        );
-
         List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
                 account.getId(),
                 AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE,
                 LocalDateTime.now().minusDays(21)
         );
 
-        if (accountStats.isEmpty()) {
-            logger.debug("Not found expired abonements for accountId: " + account.getId() +
-                    "for the last month on date " + now.format(formatterDate));
-            return;
-        }
+        if (accountStats.isEmpty()) { return; }
 
+        int[] daysAgo = {1, 3, 5, 10, 15, 20};
         boolean needToSendMail = false;
+        LocalDate now = LocalDate.now();
         LocalDate abonementExpiredDate = accountStats.get(0).getCreated().toLocalDate();
+
         for (int dayAgo : daysAgo) {
             //Срок действия абонемента закончился - через 1, 3, 5, 10, 15, 20 дней после окончания
             if (abonementExpiredDate.isEqual(now.minusDays(dayAgo))) {
@@ -167,38 +151,13 @@ public class AccountAbonementsEventListener {
 
         logger.debug("We got AccountSendEmailWithExpiredAbonementEvent");
 
+        BigDecimal costAbonement = accountHelper.getCostAbonement(account).setScale(2, BigDecimal.ROUND_DOWN);
         BigDecimal balance = accountHelper.getBalance(account).setScale(2, BigDecimal.ROUND_DOWN);
-        Plan plan = planRepository.findOne(account.getPlanId());
-
-        String emails = accountHelper.getEmail(account);
-        SimpleServiceMessage message = new SimpleServiceMessage();
-        message.setParams(new HashMap<>());
-        message.addParam("email", emails);
-        message.addParam("api_name", "MajordomoHmsAbonementEnd");
-        message.addParam("priority", 10);
-
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("acc_id", account.getName());
-
-        String domainsForEmail = "";
-        List<Domain> domains = accountHelper.getDomains(account);
-        if (!(domains.isEmpty())) {
-            domainsForEmail = domains.stream().map(Domain::getName).collect(Collectors.joining("<br>"));
-        }
-        parameters.put("domains", domainsForEmail);
-
+        parameters.put("domains", accountNotificationHelper.getDomainForEmail(account));
         parameters.put("balance", balance.toString() + " рублей");
-
-        //так как активного абонемента уже нет или он мог быть бесплатным тестовым, получаем стоимость абонемента через активный план
-        List<Abonement> abonements = plan.getAbonements()
-                .stream().filter(
-                        abonement -> abonement.getPeriod().equals("P1Y")
-                ).collect(Collectors.toList());
-        BigDecimal costAbonement = abonements.get(0).getService().getCost().setScale(2, BigDecimal.ROUND_DOWN);
         parameters.put("cost_per_year", costAbonement.toString());
-
-        message.addParam("parametrs", parameters);
-
-        publisher.publishEvent(new SendMailEvent(message));
+        accountNotificationHelper.sendMail(account,"MajordomoHmsAbonementEnd", parameters);
     }
 }

@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Stream;
 
+import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.model.token.Token;
 
 public interface TokenRepository extends MongoRepository<Token, String> {
@@ -18,5 +19,7 @@ public interface TokenRepository extends MongoRepository<Token, String> {
     Page<Token> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId, Pageable pageable);
     Token findByIdAndPersonalAccountId(@Param("id") String id, @Param("personalAccountId") String personalAccountId);
     Token findByIdAndDeletedIsNull(@Param("id") String id);
+    Token findByIdAndTypeAndDeletedIsNull(@Param("id") String id, @Param("type") TokenType tokenType);
+    Token findByTypeAndDeletedIsNullAndPersonalAccountId(@Param("type") TokenType tokenType, @Param("personalAccountId") String personalAccountId);
     Stream<Token> findByCreatedBeforeOrderByCreatedDateAsc(@Param("created") LocalDateTime createdDate);
 }
