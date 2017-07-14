@@ -115,8 +115,9 @@ public class NotificationRestController extends CommonRestController {
                 && state) {
             notifications.add(messageType);
             change = true;
-        } else if (notifications.contains(messageType) &&
-                !state) {
+        } else if (notifications.contains(messageType)
+                && !state) {
+            notifications.remove(messageType);
             change = true;
         }
         if (change) {
