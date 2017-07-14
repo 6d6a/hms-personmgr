@@ -6,14 +6,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 public class CommonRestController {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
@@ -96,5 +101,12 @@ public class CommonRestController {
                 throw new ParameterWithRoleSecurityException("Changing '" + param + "' property is forbidden");
             }
         });
+    }
+
+    public void addHistoryMessage(String operator, String accountId, String message) {
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, message);
+        params.put(OPERATOR_KEY, operator);
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
     }
 }
