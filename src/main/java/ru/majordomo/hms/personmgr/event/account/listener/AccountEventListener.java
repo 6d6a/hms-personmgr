@@ -376,7 +376,7 @@ public class AccountEventListener {
             //Проверка на то что аккаунт новый (на нём не было доменов)
             if (account.isAccountNew()) {
                 List<Domain> domains = accountHelper.getDomains(account);
-                if (!plan.isAbonementOnly() && plan.isActive() && (domains == null || domains.size() == 0)) {
+                if (!plan.isAbonementOnly() && plan.isActive() && !plan.getName().equals(ACTIVE_PLAN_NAME_WITHOUT_FREE_DOMAIN) && (domains == null || domains.size() == 0)) {
                     Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
                     List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
                     if (accountPromotions == null || accountPromotions.isEmpty()) {
