@@ -65,6 +65,28 @@ public class NotificationRestController extends CommonRestController {
         return findAll();
     }
 
+    @RequestMapping(value = "/{accountId}/notifications/{notificationId}",
+            method = RequestMethod.POST)
+    public ResponseEntity<Object> addNotification(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @PathVariable(value = "notificationId") String notificationId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        setNotifications(accountId, notificationId, true, request);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/{accountId}/notifications/{notificationId}",
+            method = RequestMethod.DELETE)
+    public ResponseEntity<Object> deleteNotification(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @PathVariable(value = "notificationId") String notificationId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        setNotifications(accountId, notificationId, false, request);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     private ResponseEntity<Notification> findOne(String notificationId) {
         Notification notification = notificationRepository.findOne(notificationId);
 
@@ -80,29 +102,6 @@ public class NotificationRestController extends CommonRestController {
 
         return new ResponseEntity<>(notifications, HttpStatus.OK);
     }
-
-    @RequestMapping(value = "/{accountId}/notifications/{notificationId}",
-            method = RequestMethod.POST)
-    public ResponseEntity<Object> addNotifications(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @PathVariable(value = "notificationId") String notificationId,
-            SecurityContextHolderAwareRequestWrapper request
-    ) {
-        setNotifications(accountId, notificationId, true, request);
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @RequestMapping(value = "/{accountId}/notifications/{notificationId}",
-            method = RequestMethod.DELETE)
-    public ResponseEntity<Object> deleteNotifications(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @PathVariable(value = "notificationId") String notificationId,
-            SecurityContextHolderAwareRequestWrapper request
-    ) {
-        setNotifications(accountId, notificationId, false, request);
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
 
     private void setNotifications(String accountId, String notificationId, boolean state, SecurityContextHolderAwareRequestWrapper request) {
 
