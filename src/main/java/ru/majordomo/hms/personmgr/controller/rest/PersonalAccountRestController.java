@@ -75,7 +75,6 @@ public class PersonalAccountRestController extends CommonRestController {
     private final AccountHelper accountHelper;
     private final AccountOwnerHelper accountOwnerHelper;
     private final TokenHelper tokenHelper;
-    private final NotificationRepository notificationRepository;
 
     @Autowired
     public PersonalAccountRestController(
@@ -86,8 +85,7 @@ public class PersonalAccountRestController extends CommonRestController {
             ApplicationEventPublisher publisher,
             AccountHelper accountHelper,
             AccountOwnerHelper accountOwnerHelper,
-            TokenHelper tokenHelper,
-            NotificationRepository notificationRepository
+            TokenHelper tokenHelper
     ) {
         this.planRepository = planRepository;
         this.accountOwnerRepository = accountOwnerRepository;
@@ -97,7 +95,6 @@ public class PersonalAccountRestController extends CommonRestController {
         this.accountHelper = accountHelper;
         this.accountOwnerHelper = accountOwnerHelper;
         this.tokenHelper = tokenHelper;
-        this.notificationRepository = notificationRepository;
     }
 
     @RequestMapping(value = "/accounts",
@@ -592,53 +589,5 @@ public class PersonalAccountRestController extends CommonRestController {
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
         return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @RequestMapping(value = "/{accountId}/notifications/{notificationId}",
-            method = RequestMethod.POST)
-    public ResponseEntity<Object> addNotifications(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @PathVariable(value = "notificationId") String notificationId,
-            SecurityContextHolderAwareRequestWrapper request
-    ) {
-        setNotifications(accountId, notificationId, true, request);
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @RequestMapping(value = "/{accountId}/notifications/{notificationId}",
-            method = RequestMethod.DELETE)
-    public ResponseEntity<Object> deleteNotifications(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @PathVariable(value = "notificationId") String notificationId,
-            SecurityContextHolderAwareRequestWrapper request
-    ) {
-        setNotifications(accountId, notificationId, false, request);
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-
-    private void setNotifications(String accountId, String notificationId, boolean state, SecurityContextHolderAwareRequestWrapper request) {
-
-        PersonalAccount account =  accountManager.findOne(accountId);
-        boolean change = false;
-        Set<MailManagerMessageType> notifications = account.getNotifications();
-        Notification notification = notificationRepository.findOne(notificationId);
-        MailManagerMessageType messageType = notification.getType();
-
-        if (!notifications.contains(messageType)
-                && state) {
-            notifications.add(messageType);
-            change = true;
-        } else if (notifications.contains(messageType) &&
-                !state) {
-            change = true;
-        }
-        if (change) {
-            accountManager.setNotifications(accountId, notifications);
-            String operator = request.getUserPrincipal().getName();
-            String notificationName = notification.getName();
-            String message = notificationName + (state ? "включено." : "отключено.");
-            addHistoryMessage(operator, accountId, message);
-        }
     }
 }

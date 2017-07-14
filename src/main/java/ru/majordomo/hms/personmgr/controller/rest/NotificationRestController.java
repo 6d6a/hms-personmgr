@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,8 +14,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
 
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Views;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
@@ -75,5 +79,53 @@ public class NotificationRestController extends CommonRestController {
         List<Notification> notifications = notificationRepository.findAll();
 
         return new ResponseEntity<>(notifications, HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/{accountId}/notifications/{notificationId}",
+            method = RequestMethod.POST)
+    public ResponseEntity<Object> addNotifications(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @PathVariable(value = "notificationId") String notificationId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        setNotifications(accountId, notificationId, true, request);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/{accountId}/notifications/{notificationId}",
+            method = RequestMethod.DELETE)
+    public ResponseEntity<Object> deleteNotifications(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @PathVariable(value = "notificationId") String notificationId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        setNotifications(accountId, notificationId, false, request);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+
+    private void setNotifications(String accountId, String notificationId, boolean state, SecurityContextHolderAwareRequestWrapper request) {
+
+        PersonalAccount account =  accountManager.findOne(accountId);
+        boolean change = false;
+        Set<MailManagerMessageType> notifications = account.getNotifications();
+        Notification notification = notificationRepository.findOne(notificationId);
+        MailManagerMessageType messageType = notification.getType();
+
+        if (!notifications.contains(messageType)
+                && state) {
+            notifications.add(messageType);
+            change = true;
+        } else if (notifications.contains(messageType) &&
+                !state) {
+            change = true;
+        }
+        if (change) {
+            accountManager.setNotifications(accountId, notifications);
+            String operator = request.getUserPrincipal().getName();
+            String notificationName = notification.getName();
+            String message = notificationName + (state ? "включено." : "отключено.");
+            addHistoryMessage(operator, accountId, message);
+        }
     }
 }
