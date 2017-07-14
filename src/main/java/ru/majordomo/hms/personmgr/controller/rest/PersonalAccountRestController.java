@@ -25,30 +25,27 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
 
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.account.AccountOwnerChangeEmailEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverConfirmedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
-import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.AccountOwnerHelper;
 import ru.majordomo.hms.personmgr.service.PlanChangeService;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.service.TokenHelper;
@@ -69,32 +66,29 @@ import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
 @Validated
 public class PersonalAccountRestController extends CommonRestController {
     private final PlanRepository planRepository;
-    private final AccountOwnerRepository accountOwnerRepository;
+    private final AccountOwnerManager accountOwnerManager;
     private final PlanChangeService planChangeService;
     private final RcUserFeignClient rcUserFeignClient;
     private final ApplicationEventPublisher publisher;
     private final AccountHelper accountHelper;
-    private final AccountOwnerHelper accountOwnerHelper;
     private final TokenHelper tokenHelper;
 
     @Autowired
     public PersonalAccountRestController(
             PlanRepository planRepository,
-            AccountOwnerRepository accountOwnerRepository,
+            AccountOwnerManager accountOwnerManager,
             PlanChangeService planChangeService,
             RcUserFeignClient rcUserFeignClient,
             ApplicationEventPublisher publisher,
             AccountHelper accountHelper,
-            AccountOwnerHelper accountOwnerHelper,
             TokenHelper tokenHelper
     ) {
         this.planRepository = planRepository;
-        this.accountOwnerRepository = accountOwnerRepository;
+        this.accountOwnerManager = accountOwnerManager;
         this.planChangeService = planChangeService;
         this.rcUserFeignClient = rcUserFeignClient;
         this.publisher = publisher;
         this.accountHelper = accountHelper;
-        this.accountOwnerHelper = accountOwnerHelper;
         this.tokenHelper = tokenHelper;
     }
 
@@ -167,56 +161,6 @@ public class PersonalAccountRestController extends CommonRestController {
         }
     }
 
-    @RequestMapping(value = "/{accountId}/owner",
-                    method = RequestMethod.PUT)
-    public ResponseEntity changeOwner(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @Valid @RequestBody AccountOwner owner,
-            SecurityContextHolderAwareRequestWrapper request
-    ) {
-        AccountOwner currentOwner = accountOwnerRepository.findOneByPersonalAccountId(accountId);
-
-        boolean changeEmail = false;
-        List<String> currentEmails = new ArrayList<>(currentOwner.getContactInfo().getEmailAddresses());
-        if (currentOwner != null) {
-            if (!request.isUserInRole("ADMIN")) {
-                changeEmail = !currentOwner.equalEmailAdressess(owner);
-                accountOwnerHelper.checkNotEmptyFields(currentOwner, owner);
-                accountOwnerHelper.setEmptyAndAllowedToEditFields(currentOwner, owner);
-            } else {
-                accountOwnerHelper.setFields(currentOwner, owner);
-            }
-        }
-
-        accountOwnerRepository.save(currentOwner);
-
-        //Запишем инфу о произведенном изменении владельца в историю клиента
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-
-        String ip = getClientIP(request);
-        if (changeEmail) {
-            PersonalAccount account = accountManager.findOne(accountId);
-            Map<String, Object> paramsForToken = new HashMap<>();
-            paramsForToken.put("newemails", owner.getContactInfo().getEmailAddresses());
-            paramsForToken.put("ip", ip);
-            paramsForToken.put("oldemails", currentEmails);
-            publisher.publishEvent(new AccountOwnerChangeEmailEvent(account, paramsForToken));
-        }
-        String historyMessage = "Произведена смена владельца аккаунта с IP: " + ip + " Предыдущий владелец: " +
-                currentOwner +
-                " Новый владелец: " + owner
-                ;
-        if (changeEmail) {historyMessage += " Ожидается подтверждение смены контактных Email на "
-                + owner.getContactInfo().getEmailAddresses();}
-        params.put(HISTORY_MESSAGE_KEY, historyMessage);
-        params.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-
-        return new ResponseEntity(HttpStatus.OK);
-    }
-
     @RequestMapping(value = "/change-email",
             method = RequestMethod.GET)
     public ResponseEntity<Object> confirmEmailsChange(
@@ -246,11 +190,11 @@ public class PersonalAccountRestController extends CommonRestController {
             );
         }
         List<String> newEmail = (List<String>) token.getParam("newemails");
-        AccountOwner accountOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
+        AccountOwner accountOwner = accountOwnerManager.findOneByPersonalAccountId(account.getId());
         ContactInfo contactInfo = accountOwner.getContactInfo();
         contactInfo.setEmailAddresses(newEmail);
         accountOwner.setContactInfo(contactInfo);
-        accountOwnerRepository.save(accountOwner);
+        accountOwnerManager.save(accountOwner);
 
         publisher.publishEvent(new TokenDeleteEvent(token));
 
@@ -259,22 +203,6 @@ public class PersonalAccountRestController extends CommonRestController {
                 message,
                 HttpStatus.OK
         );
-    }
-
-    @RequestMapping(value = "/{accountId}/owner",
-                    method = RequestMethod.GET)
-    public ResponseEntity<AccountOwner> getOwner(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
-    ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        AccountOwner accountOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
-
-        if (accountOwner == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-
-        return new ResponseEntity<>(accountOwner, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{accountId}/password",

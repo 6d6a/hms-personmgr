@@ -7,12 +7,12 @@ import org.springframework.stereotype.Service;
 
 import java.util.stream.Stream;
 
+import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.PersonalInfo;
-import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.rc.user.resources.Person;
 
@@ -23,23 +23,23 @@ import ru.majordomo.hms.rc.user.resources.Person;
 public class AccountOwnerDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountOwnerDBImportService.class);
 
-    private AccountOwnerRepository accountOwnerRepository;
+    private AccountOwnerManager accountOwnerManager;
     private PersonalAccountManager accountManager;
     private RcUserFeignClient rcUserFeignClient;
 
     @Autowired
     public AccountOwnerDBImportService(
-            AccountOwnerRepository accountOwnerRepository,
+            AccountOwnerManager accountOwnerManager,
             PersonalAccountManager accountManager,
             RcUserFeignClient rcUserFeignClient
     ) {
-        this.accountOwnerRepository = accountOwnerRepository;
+        this.accountOwnerManager = accountOwnerManager;
         this.accountManager = accountManager;
         this.rcUserFeignClient = rcUserFeignClient;
     }
 
     public boolean importToMongo() {
-//        accountOwnerRepository.deleteAll();
+//        accountOwnerManager.deleteAll();
 
         try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
             personalAccountStream.forEach(this::pullOwner);
@@ -51,9 +51,9 @@ public class AccountOwnerDBImportService {
         if (account.getOwnerPersonId() == null) {
             return;
         } else {
-            AccountOwner accountOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
+            AccountOwner accountOwner = accountOwnerManager.findOneByPersonalAccountId(account.getId());
             if (accountOwner != null) {
-                accountOwnerRepository.delete(accountOwner);
+                accountOwnerManager.delete(accountOwner);
             }
         }
 
@@ -76,7 +76,7 @@ public class AccountOwnerDBImportService {
         }
 
         try {
-            accountOwnerRepository.insert(accountOwner);
+            accountOwnerManager.insert(accountOwner);
         } catch (Exception e) {
             logger.error("[pullOwner][Exception] person: " + person + " accountOwner: " + accountOwner + " exc: " + e.getMessage());
             e.printStackTrace();
