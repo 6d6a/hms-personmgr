@@ -1,19 +1,117 @@
-package ru.majordomo.hms.personmgr.service;
+package ru.majordomo.hms.personmgr.manager.impl;
 
-import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.stereotype.Component;
 
+import java.util.List;
 
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
+import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalInfo;
+import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+@Component
+public class AccountOwnerManagerImpl implements AccountOwnerManager {
+    private final AccountOwnerRepository repository;
+    private final MongoOperations mongoOperations;
 
-@Service
-public class AccountOwnerHelper {
+    @Autowired
+    public AccountOwnerManagerImpl(
+            AccountOwnerRepository repository,
+            MongoOperations mongoOperations
+    ) {
+        this.repository = repository;
+        this.mongoOperations = mongoOperations;
+    }
+
+    @Override
+    public boolean exists(String id) {
+        return repository.exists(id);
+    }
+
+    @Override
+    public long count() {
+        return repository.count();
+    }
+
+    @Override
+    public void delete(String id) {
+        repository.delete(id);
+    }
+
+    @Override
+    public void delete(AccountOwner accountOwner) {
+        repository.delete(accountOwner);
+    }
+
+    @Override
+    public void delete(Iterable<AccountOwner> accountOwners) {
+        repository.delete(accountOwners);
+    }
+
+    @Override
+    public void deleteAll() {
+        repository.deleteAll();
+    }
+
+    @Override
+    public AccountOwner save(AccountOwner accountOwner) {
+        return repository.save(accountOwner);
+    }
+
+    @Override
+    public List<AccountOwner> save(Iterable<AccountOwner> accountOwners) {
+        return repository.save(accountOwners);
+    }
+
+    @Override
+    public AccountOwner insert(AccountOwner accountOwner) {
+        return repository.insert(accountOwner);
+    }
+
+    @Override
+    public List<AccountOwner> insert(Iterable<AccountOwner> accountOwners) {
+        return repository.insert(accountOwners);
+    }
+
+    @Override
+    public AccountOwner findOne(String id) {
+        checkById(id);
+        return repository.findOne(id);
+    }
+
+    @Override
+    public List<AccountOwner> findAll() {
+        return repository.findAll();
+    }
+
+    @Override
+    public List<AccountOwner> findByPersonalAccountId(String personalAccountId) {
+        return repository.findByPersonalAccountId(personalAccountId);
+    }
+
+    @Override
+    public Page<AccountOwner> findByPersonalAccountId(String personalAccountId, Pageable pageable) {
+        return repository.findByPersonalAccountId(personalAccountId, pageable);
+    }
+
+    @Override
+    public AccountOwner findOneByPersonalAccountId(String personalAccountId) {
+        return repository.findOneByPersonalAccountId(personalAccountId);
+    }
+
+    @Override
+    public List<AccountOwner> findAllByTypeIn(List<AccountOwner.Type> types) {
+        return repository.findAllByTypeIn(types);
+    }
+
+    @Override
     public void checkNotEmptyFields(AccountOwner currentAccountOwner, AccountOwner accountOwner) {
         if (currentAccountOwner.getType() != null &&
                 accountOwner.getType() != null &&
@@ -93,6 +191,7 @@ public class AccountOwnerHelper {
         }
     }
 
+    @Override
     public void setEmptyAndAllowedToEditFields(AccountOwner currentAccountOwner, AccountOwner accountOwner) {
         if (currentAccountOwner.getType() == null && accountOwner.getType() != null) {
             currentAccountOwner.setType(accountOwner.getType());
@@ -161,6 +260,7 @@ public class AccountOwnerHelper {
         setAllowedFields(currentAccountOwner, accountOwner);
     }
 
+    @Override
     public void setFields(AccountOwner currentAccountOwner, AccountOwner accountOwner) {
         currentAccountOwner.setType(accountOwner.getType());
         currentAccountOwner.setName(accountOwner.getName());
@@ -181,5 +281,11 @@ public class AccountOwnerHelper {
 
     private void setAllowedFieldsAdmin(AccountOwner currentAccountOwner, AccountOwner accountOwner) {
         currentAccountOwner.setContactInfo(accountOwner.getContactInfo());
+    }
+
+    private void checkById(String id) {
+        if (!exists(id)) {
+            throw new ResourceNotFoundException("AccountAbonement с id: " + id + " не найден");
+        }
     }
 }

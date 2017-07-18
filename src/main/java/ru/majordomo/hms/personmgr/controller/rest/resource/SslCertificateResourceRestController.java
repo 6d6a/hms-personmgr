@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.IDN;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
@@ -74,7 +75,7 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
         Boolean hasAlienNS = false;
 
         try {
-            Lookup lookup = new Lookup(InternetDomainName.from(domainName).topPrivateDomain().toString(), Type.NS);
+            Lookup lookup = new Lookup(InternetDomainName.from(IDN.toASCII(domainName)).topPrivateDomain().toString(), Type.NS);
             lookup.setResolver(new SimpleResolver("8.8.8.8"));
 
             Record[] records = lookup.run();

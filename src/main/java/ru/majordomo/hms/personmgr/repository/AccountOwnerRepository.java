@@ -16,4 +16,5 @@ public interface AccountOwnerRepository extends MongoRepository<AccountOwner, St
     List<AccountOwner> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
     Page<AccountOwner> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId, Pageable pageable);
     AccountOwner findByIdAndPersonalAccountId(@Param("id") String id, @Param("personalAccountId") String personalAccountId);
+    List<AccountOwner> findAllByTypeIn(List<AccountOwner.Type> types);
 }

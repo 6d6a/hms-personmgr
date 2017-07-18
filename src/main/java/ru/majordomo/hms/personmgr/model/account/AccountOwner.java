@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.model.account;
 
 import org.hibernate.validator.constraints.NotBlank;
 import org.hibernate.validator.group.GroupSequenceProvider;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.validation.annotation.Validated;
 
@@ -11,6 +12,7 @@ import ru.majordomo.hms.personmgr.validation.groupSequenceProvider.AccountOwnerG
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+
 import java.util.List;
 
 @Document
@@ -36,6 +38,9 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
 
     @Valid
     private PersonalInfo personalInfo;
+
+    @Transient
+    private String accountId;
 
     public String getName() {
         return name;
@@ -74,6 +79,14 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
 
     public void setPersonalInfo(PersonalInfo personalInfo) {
         this.personalInfo = personalInfo;
+    }
+
+    public String getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(String accountId) {
+        this.accountId = accountId;
     }
 
     @Override

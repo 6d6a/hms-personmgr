@@ -26,4 +26,6 @@ public @interface ObjectId {
     Class<? extends BaseModel> value();
 
     String collection() default "";
+
+    String idFieldName() default "";
 }

@@ -420,6 +420,7 @@ public class PlanChangeService {
                 payment.put("paymentTypeId", BONUS_PAYMENT_TYPE_ID);
                 payment.put("amount", planChangeAgreement.getDelta());
                 payment.put("message", "Возврат средств при отказе от абонемента при смене тарифного плана");
+                payment.put("disableAsync", true);
 
                 try {
                     finFeignClient.addPayment(payment);
@@ -510,6 +511,7 @@ public class PlanChangeService {
                     payment.put("paymentTypeId", BONUS_PAYMENT_TYPE_ID);
                     payment.put("amount", remainedServiceCost);
                     payment.put("message", "Возврат неиспользованных средств при отказе от абонемента");
+                    payment.put("disableAsync", true);
 
                     try {
                         finFeignClient.addPayment(payment);
@@ -559,9 +561,8 @@ public class PlanChangeService {
      */
     private void processNewAccountAbonement(PersonalAccount account, Plan newPlan) {
         Abonement abonement = newPlan.getNotInternalAbonement();
-        addAccountAbonement(account, abonement);
-
         accountHelper.charge(account, abonement.getService());
+        addAccountAbonement(account, abonement);
     }
 
     /**
