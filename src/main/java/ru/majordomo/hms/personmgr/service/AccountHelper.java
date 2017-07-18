@@ -19,6 +19,7 @@ import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -30,7 +31,6 @@ import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
@@ -56,7 +56,7 @@ public class AccountHelper {
     private final ApplicationEventPublisher publisher;
     private final AccountPromocodeRepository accountPromocodeRepository;
     private final PromocodeRepository promocodeRepository;
-    private final AccountOwnerRepository accountOwnerRepository;
+    private final AccountOwnerManager accountOwnerManager;
     private final PlanRepository planRepository;
     private final AccountAbonementManager accountAbonementManager;
 
@@ -71,7 +71,7 @@ public class AccountHelper {
             ApplicationEventPublisher publisher,
             AccountPromocodeRepository accountPromocodeRepository,
             PromocodeRepository promocodeRepository,
-            AccountOwnerRepository accountOwnerRepository,
+            AccountOwnerManager accountOwnerManager,
             PlanRepository planRepository,
             AccountAbonementManager accountAbonementManager
     ) {
@@ -84,7 +84,7 @@ public class AccountHelper {
         this.publisher = publisher;
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.promocodeRepository = promocodeRepository;
-        this.accountOwnerRepository = accountOwnerRepository;
+        this.accountOwnerManager = accountOwnerManager;
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
     }
@@ -92,7 +92,7 @@ public class AccountHelper {
     public String getEmail(PersonalAccount account) {
         String clientEmails = "";
 
-        AccountOwner currentOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
+        AccountOwner currentOwner = accountOwnerManager.findOneByPersonalAccountId(account.getId());
 
         if (currentOwner != null) {
             clientEmails = String.join(", ", currentOwner.getContactInfo().getEmailAddresses());
@@ -102,7 +102,7 @@ public class AccountHelper {
     }
 
     public List<String> getEmails(PersonalAccount account) {
-        AccountOwner currentOwner = accountOwnerRepository.findOneByPersonalAccountId(account.getId());
+        AccountOwner currentOwner = accountOwnerManager.findOneByPersonalAccountId(account.getId());
 
         if (currentOwner != null) {
             return currentOwner.getContactInfo().getEmailAddresses();

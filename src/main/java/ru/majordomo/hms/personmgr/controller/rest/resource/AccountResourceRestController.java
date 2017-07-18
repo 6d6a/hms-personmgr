@@ -18,6 +18,7 @@ import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -26,7 +27,6 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
-import ru.majordomo.hms.personmgr.repository.AccountOwnerRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
@@ -49,7 +49,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
     private final PlanRepository planRepository;
     private final PromocodeProcessor promocodeProcessor;
     private final AccountServiceRepository accountServiceRepository;
-    private final AccountOwnerRepository accountOwnerRepository;
+    private final AccountOwnerManager accountOwnerManager;
     private final PlanLimitsService planLimitsService;
     private final SiFeignClient siFeignClient;
     private final BusinessOperationBuilder businessOperationBuilder;
@@ -61,7 +61,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
             PlanRepository planRepository,
             PromocodeProcessor promocodeProcessor,
             AccountServiceRepository accountServiceRepository,
-            AccountOwnerRepository accountOwnerRepository,
+            AccountOwnerManager accountOwnerManager,
             PlanLimitsService planLimitsService,
             SiFeignClient siFeignClient,
             BusinessOperationBuilder businessOperationBuilder
@@ -71,7 +71,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
         this.planRepository = planRepository;
         this.promocodeProcessor = promocodeProcessor;
         this.accountServiceRepository = accountServiceRepository;
-        this.accountOwnerRepository = accountOwnerRepository;
+        this.accountOwnerManager = accountOwnerManager;
         this.planLimitsService = planLimitsService;
         this.siFeignClient = siFeignClient;
         this.businessOperationBuilder = businessOperationBuilder;
@@ -159,7 +159,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
             accountOwner.setPersonalInfo(personalInfo);
         }
 
-        accountOwnerRepository.insert(accountOwner);
+        accountOwnerManager.insert(accountOwner);
         logger.debug("accountOwner saved: " + accountOwner.toString());
 
         //Создаем AccountService с выбранным тарифом

@@ -12,6 +12,7 @@ import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 
 public interface PersonalAccountManager {
     boolean exists(String id);
@@ -53,6 +54,10 @@ public interface PersonalAccountManager {
     List<PersonalAccount> findByActive(boolean active);
 
     List<PersonalAccount> findByAccountIdContaining(String accountId);
+
+    List<PersonalAccountWithNotificationsProjection> findWithNotifications();
+
+    PersonalAccountWithNotificationsProjection findOneByAccountIdWithNotifications(String accountId);
 
     Stream<PersonalAccount> findByActiveAndDeactivatedAfter(boolean active, LocalDateTime deactivated);
 

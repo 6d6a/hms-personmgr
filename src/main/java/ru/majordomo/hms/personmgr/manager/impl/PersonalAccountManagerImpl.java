@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.aggregation.TypedAggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -22,8 +24,11 @@ import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.project;
 import static ru.majordomo.hms.personmgr.common.AccountSetting.ADD_QUOTA_IF_OVERQUOTED;
 import static ru.majordomo.hms.personmgr.common.AccountSetting.AUTO_BILL_SENDING;
 import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT;
@@ -180,6 +185,26 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     @Override
     public Stream<PersonalAccount> findAllStream() {
         return repository.findAllStream();
+    }
+
+    @Override
+    public List<PersonalAccountWithNotificationsProjection> findWithNotifications() {
+        TypedAggregation<PersonalAccount> agg = newAggregation(PersonalAccount.class,
+                project("id", "notifications", "accountId")
+        );
+
+        AggregationResults<PersonalAccountWithNotificationsProjection> result = mongoOperations
+                .aggregate(agg, "personalAccount", PersonalAccountWithNotificationsProjection.class);
+
+        return result.getMappedResults();
+    }
+
+    @Override
+    public PersonalAccountWithNotificationsProjection findOneByAccountIdWithNotifications(String accountId) {
+        Query query = new Query(new Criteria("accountId").is(accountId));
+        query.fields().include("notifications").include("accountId");
+
+        return mongoOperations.findOne(query, PersonalAccountWithNotificationsProjection.class, "personalAccount");
     }
 
     @Override

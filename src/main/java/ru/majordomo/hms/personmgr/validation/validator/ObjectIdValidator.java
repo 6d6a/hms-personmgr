@@ -1,7 +1,7 @@
 package ru.majordomo.hms.personmgr.validation.validator;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
@@ -15,19 +15,21 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 @Component
 public class ObjectIdValidator implements ConstraintValidator<ObjectId, String> {
-    private final MongoTemplate mongoTemplate;
+    private final MongoOperations operations;
     private Class<? extends BaseModel> objectModel;
     private String collection;
+    private String idFieldName;
 
     @Autowired
-    public ObjectIdValidator(MongoTemplate mongoTemplate) {
-        this.mongoTemplate = mongoTemplate;
+    public ObjectIdValidator(MongoOperations operations) {
+        this.operations = operations;
     }
 
     @Override
     public void initialize(ObjectId objectId) {
         this.objectModel = objectId.value();
         this.collection = objectId.collection();
+        this.idFieldName = objectId.idFieldName();
     }
 
     @Override
@@ -37,17 +39,18 @@ public class ObjectIdValidator implements ConstraintValidator<ObjectId, String> 
                 return true;
             } else {
                 boolean foundObject;
-                if (!collection.equals("")) {
-                    foundObject = mongoTemplate.exists(
-                            new Query(where("_id").is(s)),
-                            this.objectModel,
-                            collection
-                    );
+                Query query;
+
+                if (idFieldName.equals("")) {
+                    query = new Query(where("_id").is(s));
                 } else {
-                    foundObject = mongoTemplate.exists(
-                            new Query(where("_id").is(s)),
-                            this.objectModel
-                    );
+                    query = new Query(where(idFieldName).is(s));
+                }
+
+                if (collection.equals("")) {
+                    foundObject = operations.exists(query, this.objectModel);
+                } else {
+                    foundObject = operations.exists(query, this.objectModel, collection);
                 }
 
                 return foundObject;
