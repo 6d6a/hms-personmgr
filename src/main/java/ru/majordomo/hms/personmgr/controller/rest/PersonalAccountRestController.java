@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,6 +42,7 @@ import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
@@ -518,5 +520,23 @@ public class PersonalAccountRestController extends CommonRestController {
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @RequestMapping(value = "/is_subscribed_account",
+                    method = RequestMethod.GET)
+    public ResponseEntity<Map<String, Boolean>> isSubscribed(
+            @ObjectId(
+                    value = PersonalAccount.class,
+                    idFieldName = "accountId"
+            )
+            @RequestParam(value = "accountId") String accountId
+    ) {
+        PersonalAccountWithNotificationsProjection account = accountManager.findOneByAccountIdWithNotifications(accountId);
+
+        Map<String, Boolean> isSubscribedResult = new HashMap<>();
+        isSubscribedResult.put("is_subscribed", account.hasNotification(MailManagerMessageType.EMAIL_NEWS));
+
+        return new ResponseEntity<>(isSubscribedResult, HttpStatus.OK);
     }
 }

@@ -1,10 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
@@ -17,11 +14,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
@@ -30,12 +27,13 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
+import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.MAILING_TYPE_INFO;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
+import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_NEWS;
 import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
 
 @RestController
@@ -119,7 +117,8 @@ public class AccountOwnerRestController extends CommonRestController {
     @RequestMapping(value = "/account-owner", method = RequestMethod.GET)
     public ResponseEntity<List<AccountOwner>> listAll(
             @RequestParam(required = false) AccountOwner.Type type,
-            @RequestParam(required = false) List<AccountOwner.Type> types
+            @RequestParam(required = false) List<AccountOwner.Type> types,
+            @RequestParam(required = false, defaultValue = MAILING_TYPE_INFO) String mailingType
     ) {
         List<AccountOwner> accountOwners;
         if (type != null) {
@@ -129,6 +128,24 @@ public class AccountOwnerRestController extends CommonRestController {
         } else {
             accountOwners = accountOwnerManager.findAll();
         }
+
+        List<PersonalAccountWithNotificationsProjection> accounts = accountManager.findWithNotifications();
+        Map<String, PersonalAccountWithNotificationsProjection> accountMap = accounts
+                .stream()
+                .collect(Collectors.toMap(PersonalAccountWithNotificationsProjection::getId, account -> account));
+
+        if (mailingType.equals(MAILING_TYPE_INFO)) {
+            accountOwners.removeIf(accountOwner -> {
+                PersonalAccountWithNotificationsProjection account = accountMap.get(accountOwner.getPersonalAccountId());
+
+                return account != null && !account.hasNotification(EMAIL_NEWS);
+            });
+        }
+
+        accountOwners.forEach(accountOwner -> {
+            PersonalAccountWithNotificationsProjection account = accountMap.get(accountOwner.getPersonalAccountId());
+            accountOwner.setAccountId(account.getAccountId());
+        });
 
         return new ResponseEntity<>(accountOwners, HttpStatus.OK);
     }
