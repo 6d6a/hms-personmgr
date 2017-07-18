@@ -569,7 +569,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
     @RequestMapping(value = "/{accountId}/account/notifications",
                     method = RequestMethod.PATCH)
-    public ResponseEntity<Object> setNotifications(
+    public ResponseEntity<Object> setSmsNotifications(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Set<MailManagerMessageType> notifications,
             SecurityContextHolderAwareRequestWrapper request
@@ -577,7 +577,11 @@ public class PersonalAccountRestController extends CommonRestController {
         PersonalAccount account = accountManager.findOne(accountId);
 
         Set<MailManagerMessageType> oldNotifications = account.getNotifications();
-
+        if (oldNotifications.contains(EMAIL_NEWS)) {
+            notifications.add(EMAIL_NEWS);
+        } else {
+            notifications.remove(EMAIL_NEWS);
+        }
         accountManager.setNotifications(accountId, notifications);
 
         //Save history
