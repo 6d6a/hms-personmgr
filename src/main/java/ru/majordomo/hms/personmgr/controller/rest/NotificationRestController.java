@@ -6,17 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
-import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Views;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
@@ -63,26 +58,6 @@ public class NotificationRestController extends CommonRestController {
         return findAll();
     }
 
-    @JsonView
-    @RequestMapping(value = "/{accountId}/notifications/email-news",
-            method = RequestMethod.POST)
-    public ResponseEntity<Object> addNotification(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, Object> requestBody,
-            SecurityContextHolderAwareRequestWrapper request
-    ) {
-        try {
-            boolean newState = (boolean) requestBody.get("enabled");
-            setNotifications(accountId, MailManagerMessageType.EMAIL_NEWS, newState, request);
-        } catch (ClassCastException e) {
-            return new ResponseEntity<>(
-                    this.createErrorResponse("Некорректный параметр запроса."),
-                    HttpStatus.BAD_REQUEST
-            );
-        }
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
     private ResponseEntity<Notification> findOne(String notificationId) {
         Notification notification = notificationRepository.findOne(notificationId);
 
@@ -99,29 +74,4 @@ public class NotificationRestController extends CommonRestController {
         return new ResponseEntity<>(notifications, HttpStatus.OK);
     }
 
-    private void setNotifications(String accountId, MailManagerMessageType messageType, boolean state, SecurityContextHolderAwareRequestWrapper request) {
-
-        PersonalAccount account = accountManager.findOne(accountId);
-        boolean change = false;
-        Set<MailManagerMessageType> notifications = account.getNotifications();
-        Notification notification = notificationRepository.findByType(messageType);
-        if (notification == null) { return; }
-
-        if (!notifications.contains(messageType)
-                && state) {
-            notifications.add(messageType);
-            change = true;
-        } else if (notifications.contains(messageType)
-                && !state) {
-            notifications.remove(messageType);
-            change = true;
-        }
-        if (change) {
-            accountManager.setNotifications(accountId, notifications);
-            String operator = request.getUserPrincipal().getName();
-            String notificationName = notification.getName();
-            String message = notificationName + (state ? "включено." : "отключено.");
-            addHistoryMessage(operator, accountId, message);
-        }
-    }
 }
