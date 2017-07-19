@@ -44,9 +44,12 @@ import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
+import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.*;
@@ -59,11 +62,7 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
-import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.IP_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_CHANGE;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_RECOVER;
 import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
@@ -79,6 +78,8 @@ public class PersonalAccountRestController extends CommonRestController {
     private final AccountHelper accountHelper;
     private final TokenHelper tokenHelper;
     private final NotificationRepository notificationRepository;
+    private final AccountServiceRepository accountServiceRepository;
+    private final AccountServiceHelper accountServiceHelper;
 
     @Autowired
     public PersonalAccountRestController(
@@ -89,7 +90,9 @@ public class PersonalAccountRestController extends CommonRestController {
             ApplicationEventPublisher publisher,
             AccountHelper accountHelper,
             TokenHelper tokenHelper,
-            NotificationRepository notificationRepository
+            NotificationRepository notificationRepository,
+            AccountServiceRepository accountServiceRepository,
+            AccountServiceHelper accountServiceHelper
     ) {
         this.planRepository = planRepository;
         this.accountOwnerManager = accountOwnerManager;
@@ -99,6 +102,8 @@ public class PersonalAccountRestController extends CommonRestController {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
         this.notificationRepository = notificationRepository;
+        this.accountServiceRepository = accountServiceRepository;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     @RequestMapping(value = "/accounts",
@@ -529,7 +534,6 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-
     @RequestMapping(value = "/{accountId}/account/notifications/sms",
                     method = RequestMethod.PATCH)
     public ResponseEntity<Object> setSmsNotifications(
@@ -537,7 +541,15 @@ public class PersonalAccountRestController extends CommonRestController {
             @RequestBody Set<MailManagerMessageType> notifications,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        this.setNotifications(accountId, notifications, "SMS_", request);
+        PersonalAccount account = accountManager.findOne(accountId);
+        PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
+        List<AccountService> accountSmsServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
+
+        if (notifications.isEmpty() && !accountSmsServices.isEmpty()) {
+            throw new ParameterValidationException("Для отправки SMS-уведомлений необходимо выбрать хотя бы один вид уведомлений.");
+        }
+
+        setNotifications(account, notifications, "SMS_", request);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -578,11 +590,6 @@ public class PersonalAccountRestController extends CommonRestController {
 
         return new ResponseEntity<>(isSubscribedResult, HttpStatus.OK);
     }
-    
-    private void setNotifications(String accountId, Set<MailManagerMessageType> notifications, String pattern, SecurityContextHolderAwareRequestWrapper request) {
-        PersonalAccount account = accountManager.findOne(accountId);
-        this.setNotifications(account, notifications, pattern, request);
-    }
 
     private void setNotifications(PersonalAccount account, Set<MailManagerMessageType> notifications, String pattern, SecurityContextHolderAwareRequestWrapper request) {
 
@@ -620,7 +627,9 @@ public class PersonalAccountRestController extends CommonRestController {
         boolean change = false;
         Set<MailManagerMessageType> notifications = account.getNotifications();
         Notification notification = notificationRepository.findByType(messageType);
-        if (notification == null) { return; }
+        if (notification == null) {
+            return;
+        }
 
         if (!notifications.contains(messageType)
                 && state) {

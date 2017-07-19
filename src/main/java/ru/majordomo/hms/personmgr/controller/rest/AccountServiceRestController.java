@@ -18,12 +18,14 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
@@ -37,7 +39,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.ANTI_SPAM_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.ENABLED_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SERVICE_CREATE;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SERVICE_ENABLE;
 
@@ -142,7 +143,7 @@ public class AccountServiceRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        PaymentService paymentService = getSmsPaymentServiceByPlanId(account.getPlanId());
+        PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
 
         List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
 
@@ -168,7 +169,20 @@ public class AccountServiceRestController extends CommonRestController {
 
         Boolean enabled = (Boolean) requestBody.get(ENABLED_KEY);
 
-        PaymentService paymentService = getSmsPaymentServiceByPlanId(account.getPlanId());
+        if (enabled) {
+            Set<MailManagerMessageType> smsNotifications = account.getNotifications().stream()
+                    .filter(mailManagerMessageType -> mailManagerMessageType.name().startsWith("SMS_"))
+                    .collect(Collectors.toSet());
+
+            if (smsNotifications.isEmpty() || account.getSmsPhoneNumber() == null) {
+                throw new ParameterValidationException(
+                        "Для включения SMS-уведомлений необходимо выбрать хотя бы один вид уведомлений" +
+                        " и указать номер телефона."
+                );
+            }
+        }
+
+        PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
 
         processCustomService(account, paymentService, enabled);
 
@@ -278,31 +292,6 @@ public class AccountServiceRestController extends CommonRestController {
 
         if (paymentService == null) {
             throw new ParameterValidationException("paymentService with oldId " + paymentServiceOldId + " not found");
-        }
-
-        return paymentService;
-    }
-
-    private PaymentService getSmsPaymentServiceByPlanId(String planId) {
-        Plan plan = planRepository.findOne(planId);
-
-        if (plan == null) {
-            throw new ParameterValidationException("Plan with id " + planId + " not found");
-        }
-
-        String smsServiceId = plan.getSmsServiceId();
-
-        PaymentService paymentService;
-
-        if (smsServiceId == null) {
-            smsServiceId = SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
-            paymentService = serviceRepository.findByOldId(smsServiceId);
-        } else {
-            paymentService = serviceRepository.findOne(smsServiceId);
-        }
-
-        if (paymentService == null) {
-            throw new ParameterValidationException("paymentService with id " + smsServiceId + " not found");
         }
 
         return paymentService;
