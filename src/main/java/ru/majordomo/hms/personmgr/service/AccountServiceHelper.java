@@ -6,17 +6,32 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
+
+import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
 
 @Service
 public class AccountServiceHelper {
     private final AccountServiceRepository accountServiceRepository;
+    private final PlanRepository planRepository;
+    private final PaymentServiceRepository serviceRepository;
 
     @Autowired
-    public AccountServiceHelper(AccountServiceRepository accountServiceRepository) {
+    public AccountServiceHelper(
+            AccountServiceRepository accountServiceRepository,
+            PlanRepository planRepository,
+            PaymentServiceRepository serviceRepository
+    ) {
         this.accountServiceRepository = accountServiceRepository;
+        this.planRepository = planRepository;
+        this.serviceRepository = serviceRepository;
     }
 
     /**
@@ -181,5 +196,37 @@ public class AccountServiceHelper {
         accountServices.forEach(accountService -> accountService.setLastBilled(LocalDateTime.now()));
 
         accountServiceRepository.save(accountServices);
+    }
+
+    //получить PaymentService для услуги SMS-уведомлений
+    public PaymentService getSmsPaymentServiceByPlanId(String planId) {
+        Plan plan = planRepository.findOne(planId);
+
+        if (plan == null) {
+            throw new ParameterValidationException("Plan with id " + planId + " not found");
+        }
+
+        String smsServiceId = plan.getSmsServiceId();
+
+        PaymentService paymentService;
+
+        if (smsServiceId == null) {
+            smsServiceId = SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
+            paymentService = serviceRepository.findByOldId(smsServiceId);
+        } else {
+            paymentService = serviceRepository.findOne(smsServiceId);
+        }
+
+        if (paymentService == null) {
+            throw new ParameterValidationException("paymentService with id " + smsServiceId + " not found");
+        }
+
+        return paymentService;
+    }
+
+    public boolean hasSmsNotifications(PersonalAccount account) {
+        PaymentService paymentService = this.getSmsPaymentServiceByPlanId(account.getPlanId());
+        AccountService accountSmsService = accountServiceRepository.findOneByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
+        return (accountSmsService != null && accountSmsService.isEnabled());
     }
 }

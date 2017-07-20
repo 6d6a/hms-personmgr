@@ -12,6 +12,7 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 
 public interface AccountServiceRepository extends MongoRepository<AccountService,String> {
     AccountService findByPersonalAccountIdAndId(@Param("personalAccountId") String personalAccountId, @Param("id") String id);
+    AccountService findOneByPersonalAccountIdAndServiceId(@Param("personalAccountId") String personalAccountId, @Param("serviceId") String serviceId);
     @RestResource(path = "findListByPersonalAccountId", rel = "findListByPersonalAccountId")
     List<AccountService> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
     Page<AccountService> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId, Pageable pageable);
