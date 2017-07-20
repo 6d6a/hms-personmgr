@@ -500,7 +500,7 @@ public class PersonalAccountRestController extends CommonRestController {
             if (!Utils.isPhoneValid(smsPhoneNumber) && !smsPhoneNumber.equals("")) {
                 throw new ParameterValidationException("SMSPhoneNumber is not valid.");
             }
-            
+
             accountManager.setSmsPhoneNumber(accountId, smsPhoneNumber);
 
             //Save history
@@ -547,10 +547,8 @@ public class PersonalAccountRestController extends CommonRestController {
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
-        PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
-        List<AccountService> accountSmsServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
 
-        if (notifications.isEmpty() && !accountSmsServices.isEmpty()) {
+        if (notifications.isEmpty() && accountServiceHelper.hasSmsNotifications(account)) {
             throw new ParameterValidationException("Для отправки SMS-уведомлений необходимо выбрать хотя бы один вид уведомлений.");
         }
 
