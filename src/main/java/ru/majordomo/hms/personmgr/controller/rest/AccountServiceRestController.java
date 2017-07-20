@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -174,12 +175,20 @@ public class AccountServiceRestController extends CommonRestController {
                     .filter(mailManagerMessageType -> mailManagerMessageType.name().startsWith("SMS_"))
                     .collect(Collectors.toSet());
 
-            if (smsNotifications.isEmpty() || account.getSmsPhoneNumber() == null) {
-                throw new ParameterValidationException(
-                        "Для включения SMS-уведомлений необходимо выбрать хотя бы один вид уведомлений" +
-                        " и указать номер телефона."
-                );
+            boolean smsNotificationsEmpty = smsNotifications.isEmpty();
+            boolean phoneInvalid = account.getSmsPhoneNumber() == null || !Utils.isPhoneValid(account.getSmsPhoneNumber());
+            if (smsNotificationsEmpty || phoneInvalid) {
+                String message;
+                if (smsNotificationsEmpty && phoneInvalid) {
+                    message = "Выберите хотя бы один вид уведомлений и укажите корректный номер телефона.";
+                } else if (smsNotificationsEmpty) {
+                    message = "Выберите хотя бы один вид уведомлений.";
+                } else {
+                    message = "Укажите корректный номер телефона.";
+                }
+                throw new ParameterValidationException(message);
             }
+
         }
 
         PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
