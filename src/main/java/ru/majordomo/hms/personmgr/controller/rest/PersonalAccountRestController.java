@@ -492,19 +492,24 @@ public class PersonalAccountRestController extends CommonRestController {
 
         if (requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name()) != null) {
             String smsPhoneNumber = (String)requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name());
-            if (Utils.isPhoneValid(smsPhoneNumber)) {
-                accountManager.setSmsPhoneNumber(accountId, smsPhoneNumber);
 
-                //Save history
-                String operator = request.getUserPrincipal().getName();
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Установлен телефон для СМС-уведомлений на '" + smsPhoneNumber + "'");
-                params.put(OPERATOR_KEY, operator);
+            if (smsPhoneNumber.equals("") && accountServiceHelper.hasSmsNotifications(account)) {
+                throw new ParameterValidationException("SMSPhoneNumber can't be empty with active sms notifications.");
+            }
 
-                publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-            } else {
+            if (!Utils.isPhoneValid(smsPhoneNumber) && !smsPhoneNumber.equals("")) {
                 throw new ParameterValidationException("SMSPhoneNumber is not valid.");
             }
+            
+            accountManager.setSmsPhoneNumber(accountId, smsPhoneNumber);
+
+            //Save history
+            String operator = request.getUserPrincipal().getName();
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Установлен телефон для СМС-уведомлений на '" + smsPhoneNumber + "'");
+            params.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
         return new ResponseEntity<>(HttpStatus.OK);
