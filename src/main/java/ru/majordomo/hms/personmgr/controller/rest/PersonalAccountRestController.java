@@ -620,7 +620,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         //Save history
         String operator = request.getUserPrincipal().getName();
-        String message = "SMS-уведомления изменены c [" + oldNotificationsAsString + "] на [" + newNotificationsAsString + "]";
+        String message = "Уведомления [" + pattern + "] изменены c [" + oldNotificationsAsString + "] на [" + newNotificationsAsString + "]";
         addHistoryMessage(operator, account.getId(), message);
     }
 
