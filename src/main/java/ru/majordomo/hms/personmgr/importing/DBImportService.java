@@ -1,9 +1,11 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class DBImportService {
@@ -27,7 +29,9 @@ public class DBImportService {
     private final AccountCommentDBImportService accountCommentDBImportService;
     private final PromotionDBSeedService promotionDBSeedService;
     private final AccountPromotionDBImportService accountPromotionDBImportService;
+    private final AccountOwnerFromPersonDBImportService accountOwnerFromPersonDBImportService;
     private final AccountOwnerDBImportService accountOwnerDBImportService;
+    private final AccountSelectorService accountSelectorService;
 
     @Autowired
     public DBImportService(
@@ -49,7 +53,9 @@ public class DBImportService {
             AccountCommentDBImportService accountCommentDBImportService,
             PromotionDBSeedService promotionDBSeedService,
             AccountPromotionDBImportService accountPromotionDBImportService,
-            AccountOwnerDBImportService accountOwnerDBImportService
+            AccountOwnerFromPersonDBImportService accountOwnerFromPersonDBImportService,
+            AccountOwnerDBImportService accountOwnerDBImportService,
+            AccountSelectorService accountSelectorService
     ) {
         this.accountNotificationDBImportService = accountNotificationDBImportService;
         this.businessActionDBSeedService = businessActionDBSeedService;
@@ -69,7 +75,9 @@ public class DBImportService {
         this.accountCommentDBImportService = accountCommentDBImportService;
         this.promotionDBSeedService = promotionDBSeedService;
         this.accountPromotionDBImportService = accountPromotionDBImportService;
+        this.accountOwnerFromPersonDBImportService = accountOwnerFromPersonDBImportService;
         this.accountOwnerDBImportService = accountOwnerDBImportService;
+        this.accountSelectorService = accountSelectorService;
     }
 
     public boolean seedDB() {
@@ -137,9 +145,9 @@ public class DBImportService {
 //
 //        imported = accountPromotionDBImportService.importToMongo();
 //        logger.debug(imported ? "accountPromotion db_imported" : "accountPromotion db_not_imported");
-
-        imported = accountOwnerDBImportService.importToMongo();
-        logger.debug(imported ? "accountOwner db_imported" : "accountOwner db_not_imported");
+//
+//        imported = accountOwnerDBImportService.importToMongo();
+//        logger.debug(imported ? "accountOwner db_imported" : "accountOwner db_not_imported");
 
         return true;
     }
@@ -147,32 +155,61 @@ public class DBImportService {
     public boolean importToMongo(String accountId) {
         boolean imported;
 
-//        imported = accountNotificationDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "accountNotification db_imported" : "accountNotification db_not_imported");
-//
-//        imported = planDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "plan db_imported" : "plan db_not_imported");
-//
-//        imported = personalAccountDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
-//
-//        imported = accountServicesDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "accountServices db_imported" : "accountServices db_not_imported");
-//
-//        imported = promocodeDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "promocode db_imported" : "promocode db_not_imported");
-//
-//        imported = accountPromocodeDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "accountPromocode db_imported" : "accountPromocode db_not_imported");
-//
-//        imported = bonusPromocodeDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "bonusPromocode db_imported" : "bonusPromocode db_not_imported");
-//
-//        imported = accountAbonementDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "accountAbonement db_imported" : "accountAbonement db_not_imported");
-//
-//        imported = accountCommentDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "accountComment db_imported" : "accountComment db_not_imported");
+        imported = promocodeDBImportService.importToMongo(accountId);
+        logger.debug(imported ? "promocode db_imported" : "promocode db_not_imported");
+
+        imported = personalAccountDBImportService.importToMongo(accountId);
+        logger.debug(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
+
+        imported = accountNotificationDBImportService.importToMongo(accountId);
+        logger.debug(imported ? "accountNotification db_imported" : "accountNotification db_not_imported");
+
+        imported = accountServicesDBImportService.importToMongo(accountId);
+        logger.debug(imported ? "accountServices db_imported" : "accountServices db_not_imported");
+
+        imported = accountHistoryDBImportService.importToMongo(accountId);
+        logger.debug(imported ? "accountHistory db_imported" : "accountHistory db_not_imported");
+
+        imported = accountCommentDBImportService.importToMongo(accountId);
+        logger.debug(imported ? "accountComment db_imported" : "accountComment db_not_imported");
+
+        imported = accountPromocodeDBImportService.importToMongo(accountId);
+        logger.debug(imported ? "accountPromocode db_imported" : "accountPromocode db_not_imported");
+
+        imported = accountAbonementDBImportService.importToMongo(accountId);
+        logger.debug(imported ? "accountAbonement db_imported" : "accountAbonement db_not_imported");
+
+        imported = accountOwnerDBImportService.importToMongo(accountId);
+        logger.debug(imported ? "accountOwner db_imported" : "accountOwner db_not_imported");
+
+        return true;
+    }
+
+    public void clean(String accountId) {
+        promocodeDBImportService.clean(accountId);
+
+        accountHistoryDBImportService.clean(accountId);
+        accountCommentDBImportService.clean(accountId);
+        accountServicesDBImportService.clean(accountId);
+        accountPromocodeDBImportService.clean(accountId);
+        accountAbonementDBImportService.clean(accountId);
+        accountOwnerDBImportService.clean(accountId);
+
+        personalAccountDBImportService.clean(accountId);
+    }
+
+    public boolean importToMongoByServerId(String serverId) {
+        List<String> accountIds = accountSelectorService.selectAccountIdsByServerId(serverId);
+
+        accountIds.forEach(this::importToMongo);
+
+        return true;
+    }
+
+    public boolean cleanByServerId(String serverId) {
+        List<String> accountIds = accountSelectorService.selectAccountIdsByServerId(serverId);
+
+        accountIds.forEach(this::clean);
 
         return true;
     }

@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +17,7 @@ import java.util.List;
 import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.event.accountService.AccountServiceCreateEvent;
 import ru.majordomo.hms.personmgr.event.accountService.AccountServiceImportEvent;
+import ru.majordomo.hms.personmgr.model.account.AccountHistory;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
@@ -145,19 +146,25 @@ public class AccountServicesDBImportService {
         return null;
     }
 
-    public boolean importToMongo() {
+    public void clean() {
         accountServiceRepository.deleteAll();
+    }
+
+    public void clean(String accountId) {
+        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountId(accountId);
+        if (accountServices != null && !accountServices.isEmpty()) {
+            accountServiceRepository.delete(accountServices);
+        }
+    }
+
+    public boolean importToMongo() {
+        clean();
         pull();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
-        List<AccountService> services = accountServiceRepository.findByPersonalAccountId(accountId);
-
-        if (services != null && !services.isEmpty()) {
-            accountServiceRepository.delete(services);
-        }
-
+        clean(accountId);
         pull(accountId);
         return true;
     }

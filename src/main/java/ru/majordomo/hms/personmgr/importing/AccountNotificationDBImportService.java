@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +59,10 @@ public class AccountNotificationDBImportService {
             personalAccount.addNotification(MailManagerMessageType.EMAIL_REMAINING_DAYS);
             personalAccount.addNotification(MailManagerMessageType.EMAIL_DOMAIN_DELEGATION_ENDING);
 
-            String query = "SELECT ahs_account_id, ahs_sms_id FROM account_has_sms WHERE ahs_account_id = :ahs_account_id AND ahs_sms_id IN (24, 26, 28, 29, 42, 44, 77)";
+            String query = "SELECT ahs_account_id, ahs_sms_id " +
+                    "FROM account_has_sms " +
+                    "WHERE ahs_account_id = :ahs_account_id " +
+                    "AND ahs_sms_id IN (24, 26, 28, 29, 42, 44, 77)";
 
             SqlParameterSource namedParametersE = new MapSqlParameterSource("ahs_account_id", personalAccount.getAccountId());
 
@@ -131,7 +134,10 @@ public class AccountNotificationDBImportService {
         } catch (ConstraintViolationException e) {
             logger.debug(e.getMessage() +
                     " with errors: " +
-                    e.getConstraintViolations().stream().map(ConstraintViolation::getMessage).collect(Collectors.joining())
+                    e.getConstraintViolations()
+                            .stream()
+                            .map(ConstraintViolation::getMessage)
+                            .collect(Collectors.joining())
             );
         }
     }

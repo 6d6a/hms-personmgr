@@ -18,7 +18,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.retry.annotation.EnableRetry;
 
 import ru.majordomo.hms.personmgr.serializer.PageSerializer;
-import ru.majordomo.hms.personmgr.service.importing.DBImportService;
+import ru.majordomo.hms.personmgr.importing.DBImportService;
 
 @SpringBootApplication
 @EnableDiscoveryClient
@@ -44,6 +44,8 @@ public class Application implements CommandLineRunner {
             String dbSeedOption = "--db_seed";
             String dbImportOption = "--db_import";
             String dbImportOneAccountOption = "--db_import_one_account";
+            String dbImportOneServerOption = "--db_import_one_server";
+            String dbCleanOneServerOption = "--db_clean_one_server";
             String processOption = "--process";
             StringBuilder sb = new StringBuilder();
             for (String option : args) {
@@ -64,6 +66,16 @@ public class Application implements CommandLineRunner {
 
                     imported = dbImportService.importToMongo("100800");
                     sb.append(" ").append(imported ? "dbImportService db_imported" : "dbImportService db_not_imported");
+                } else if (option.equals(dbImportOneServerOption)) {
+                    boolean imported;
+
+                    imported = dbImportService.importToMongoByServerId("112");
+                    sb.append(" ").append(imported ? "dbImportService db_imported" : "dbImportService db_not_imported");
+                } else if (option.equals(dbCleanOneServerOption)) {
+                    boolean imported;
+
+                    imported = dbImportService.cleanByServerId("112");
+                    sb.append(" ").append(imported ? "dbImportService db_cleaned" : "dbImportService db_not_cleaned");
                 } else if (option.equals(processOption)) {
                     //                PersonalAccount account = personalAccountRepository.findByAccountId("100800");
                     //                domainService.processDomainsAutoRenewByAccount(account);

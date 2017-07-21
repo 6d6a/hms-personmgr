@@ -43,12 +43,28 @@ public class ContactInfo {
         this.phoneNumbers = phoneNumbers;
     }
 
+    public void addPhoneNumber(String phoneNumber) {
+        if (phoneNumbers == null) {
+            phoneNumbers = new ArrayList<>();
+        }
+
+        phoneNumbers.add(phoneNumber);
+    }
+
     public List<String> getEmailAddresses() {
         return emailAddresses;
     }
 
     public void setEmailAddresses(List<String> emailAddresses) {
         this.emailAddresses = emailAddresses;
+    }
+
+    public void addEmailAddress(String emailAddress) {
+        if (emailAddresses == null) {
+            emailAddresses = new ArrayList<>();
+        }
+
+        emailAddresses.add(emailAddress);
     }
 
     public String getPostalAddress() {

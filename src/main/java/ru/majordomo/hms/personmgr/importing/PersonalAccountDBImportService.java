@@ -1,9 +1,12 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
 
 import java.sql.ResultSet;
@@ -22,18 +25,18 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 public class PersonalAccountDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(PersonalAccountDBImportService.class);
 
-    private JdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate jdbcTemplate;
     private PersonalAccountManager accountManager;
     private PlanRepository planRepository;
     private List<PersonalAccount> personalAccounts = new ArrayList<>();
 
     @Autowired
     public PersonalAccountDBImportService(
-            JdbcTemplate jdbcTemplate,
+            @Qualifier("namedParameterJdbcTemplate") NamedParameterJdbcTemplate namedParameterJdbcTemplate,
             PersonalAccountManager accountManager,
             PlanRepository planRepository
     ) {
-        this.jdbcTemplate = jdbcTemplate;
+        this.jdbcTemplate = namedParameterJdbcTemplate;
         this.accountManager = accountManager;
         this.planRepository = planRepository;
     }
@@ -57,11 +60,11 @@ public class PersonalAccountDBImportService {
                 "LEFT JOIN Money m ON a.id = m.acc_id " +
                 "LEFT JOIN client c ON a.client_id = c.Client_ID " +
                 "LEFT JOIN extend e ON (a.id = e.acc_id AND e.usluga = 18) " +
-                "WHERE a.client_id != 0 AND a.id = ?";
-        jdbcTemplate.query(query,
-                new Object[] { accountId },
-                this::rowMap
-        );
+                "WHERE a.client_id != 0 AND a.id = :accountId";
+
+        SqlParameterSource namedParametersE = new MapSqlParameterSource("accountId", accountId);
+
+        jdbcTemplate.query(query, namedParametersE, this::rowMap);
     }
 
     private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
@@ -105,25 +108,27 @@ public class PersonalAccountDBImportService {
         return personalAccount;
     }
 
-    public boolean importToMongo() {
+    public void clean() {
         accountManager.deleteAll();
+    }
+
+    public void clean(String accountId) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (account != null) {
+            accountManager.delete(account);
+        }
+    }
+
+    public boolean importToMongo() {
+        clean();
         pull();
         pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
-        PersonalAccount account;
-        try {
-            account = accountManager.findByAccountId(accountId);
-
-            if (account != null) {
-                accountManager.delete(account);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        clean(accountId);
         pull(accountId);
         pushToMongo();
         return true;

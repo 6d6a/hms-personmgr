@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,9 +106,11 @@ public class AccountPromocodeDBImportService {
 
                     publisher.publishEvent(new AccountPromocodeCreateEvent(accountPromocode));
 
-                    //TODO добавить JOIN account что-бы не барть удаленные акки
+                    //TODO Вероятно стоит искать только перенесенные аккаунты (хотя хз)
                     String queryPromocodes = "SELECT p.acc_id, p.promo_code " +
-                            "FROM promocodes p WHERE promo_code = :promo_code";
+                            "FROM promocodes p " +
+                            "JOIN account a ON a.id = p.acc_id " +
+                            "WHERE promo_code = :promo_code";
                     SqlParameterSource namedParametersP = new MapSqlParameterSource(
                             "promo_code",
                             rs.getString("postfix") + rs.getString("id")
@@ -141,20 +143,27 @@ public class AccountPromocodeDBImportService {
         );
     }
 
-    public boolean importToMongo() {
+    public void clean() {
         accountPromocodeRepository.deleteAll();
+    }
+
+    public void clean(String accountId) {
+        List<AccountPromocode> accountPromocodes = accountPromocodeRepository.findByOwnerPersonalAccountId(accountId);
+
+        if (!accountPromocodes.isEmpty()) {
+            accountPromocodeRepository.delete(accountPromocodes);
+        }
+    }
+
+    public boolean importToMongo() {
+        clean();
         pull();
         pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
-        List<AccountPromocode> accountPromocodes = accountPromocodeRepository.findByOwnerPersonalAccountId(accountId);
-
-        if (!accountPromocodes.isEmpty()) {
-            accountPromocodeRepository.delete(accountPromocodes);
-        }
-
+        clean(accountId);
         pull(accountId);
         pushToMongo();
         return true;

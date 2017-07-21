@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +16,7 @@ import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
@@ -101,16 +102,27 @@ public class BonusPromocodeDBImportService {
         return promocode;
     }
 
+    public void clean() {
+        promocodeRepository.deleteByType(PromocodeType.BONUS);
+    }
+
+    public void clean(String promoCode) {
+        Promocode promocode = promocodeRepository.findByCode(promoCode);
+        if (promocode != null) {
+            promocodeRepository.delete(promocode);
+        }
+    }
+
     public boolean importToMongo() {
-//        promocodeRepository.deleteAll();
+        clean();
         pull();
         pushToMongo();
         return true;
     }
 
-    public boolean importToMongo(String accountName) {
-//        promocodeRepository.deleteAll();
-        pull(accountName);
+    public boolean importToMongo(String promoCode) {
+        clean(promoCode);
+        pull(promoCode);
         pushToMongo();
         return true;
     }

@@ -11,7 +11,7 @@ import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeCreateE
 import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeImportEvent;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
-import ru.majordomo.hms.personmgr.service.importing.AccountPromocodeDBImportService;
+import ru.majordomo.hms.personmgr.importing.AccountPromocodeDBImportService;
 
 @Component
 public class AccountPromocodeEventListener {

@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +33,9 @@ public class PromocodeDBImportService {
     private List<Promocode> promocodesList = new ArrayList<>();
 
     @Autowired
-    public PromocodeDBImportService(@Qualifier("partnersNamedParameterJdbcTemplate") NamedParameterJdbcTemplate partnersNamedParameterJdbcTemplate, PromocodeRepository promocodeRepository) {
+    public PromocodeDBImportService(
+            @Qualifier("partnersNamedParameterJdbcTemplate") NamedParameterJdbcTemplate partnersNamedParameterJdbcTemplate,
+            PromocodeRepository promocodeRepository) {
         this.partnersNamedParameterJdbcTemplate = partnersNamedParameterJdbcTemplate;
         this.promocodeRepository = promocodeRepository;
     }
@@ -44,7 +46,9 @@ public class PromocodeDBImportService {
     }
 
     private void pull(String accountId) {
-        String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.created FROM promorecord p WHERE accountid = :accountid";
+        String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.created " +
+                "FROM promorecord p " +
+                "WHERE accountid = :accountid";
 
         SqlParameterSource namedParametersE = new MapSqlParameterSource("accountid", accountId);
 
@@ -67,15 +71,27 @@ public class PromocodeDBImportService {
         return promocode;
     }
 
-    public boolean importToMongo() {
+    public void clean() {
         promocodeRepository.deleteAll();
+    }
+
+    public void clean(String accountId) {
+        pull(accountId);
+
+        if (!promocodesList.isEmpty()) {
+            promocodeRepository.delete(promocodesList);
+        }
+    }
+
+    public boolean importToMongo() {
+        clean();
         pull();
         pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
-        promocodeRepository.deleteAll();
+        clean(accountId);
         pull(accountId);
         pushToMongo();
         return true;

@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,8 +53,6 @@ public class AccountAbonementDBImportService {
     }
 
     public void pull() {
-        accountAbonementManager.deleteAll();
-
         String query = "SELECT a.acc_id, a.day_buy, a.date_end, aa.auto " +
                 "FROM abonement a " +
                 "LEFT JOIN abt_auto_buy aa USING(acc_id) " +
@@ -64,8 +62,6 @@ public class AccountAbonementDBImportService {
     }
 
     public void pull(String accountId) {
-        accountAbonementManager.deleteAll();
-
         String query = "SELECT a.acc_id, a.day_buy, a.date_end, aa.auto FROM abonement a LEFT JOIN abt_auto_buy aa USING(acc_id) WHERE a.acc_id = :acc_id ORDER BY a.acc_id ASC";
         SqlParameterSource namedParameters = new MapSqlParameterSource("acc_id", accountId);
 
@@ -109,23 +105,26 @@ public class AccountAbonementDBImportService {
         return accountAbonement;
     }
 
+    public void clean() {
+        accountAbonementManager.deleteAll();
+    }
+
+    public void clean(String accountId) {
+        AccountAbonement foundAccountAbonement = accountAbonementManager.findByPersonalAccountId(accountId);
+
+        if (foundAccountAbonement != null) {
+            accountAbonementManager.delete(foundAccountAbonement);
+        }
+    }
     public boolean importToMongo() {
+        clean();
         pull();
         pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
-        PersonalAccount account = accountManager.findByAccountId(accountId);
-
-        if (account != null) {
-            AccountAbonement foundAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-
-            if (foundAccountAbonement != null) {
-                accountAbonementManager.delete(foundAccountAbonement);
-            }
-        }
-
+        clean(accountId);
         pull(accountId);
         pushToMongo();
         return true;

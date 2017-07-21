@@ -11,7 +11,7 @@ import ru.majordomo.hms.personmgr.event.accountService.AccountServiceCreateEvent
 import ru.majordomo.hms.personmgr.event.accountService.AccountServiceImportEvent;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
-import ru.majordomo.hms.personmgr.service.importing.AccountServicesDBImportService;
+import ru.majordomo.hms.personmgr.importing.AccountServicesDBImportService;
 
 @Component
 public class AccountServiceEventListener {
