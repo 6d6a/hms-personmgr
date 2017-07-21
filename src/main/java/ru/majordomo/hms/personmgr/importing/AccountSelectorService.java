@@ -14,7 +14,7 @@ import java.util.List;
 
 @Service
 public class AccountSelectorService {
-    private final static Logger logger = LoggerFactory.getLogger(PersonalAccountDBImportService.class);
+    private final static Logger logger = LoggerFactory.getLogger(AccountSelectorService.class);
 
     private final NamedParameterJdbcTemplate partnersNamedParameterJdbcTemplate;
 

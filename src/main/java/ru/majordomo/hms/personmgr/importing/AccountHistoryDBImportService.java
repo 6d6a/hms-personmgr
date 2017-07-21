@@ -50,7 +50,8 @@ public class AccountHistoryDBImportService {
     }
 
     public void pull(String accountId) {
-        String query = "SELECT id, account, date, action, login FROM client_history WHERE id > 4961960 AND account = :account_id";
+//        String query = "SELECT id, account, date, action, login FROM client_history WHERE id > 4961960 AND account = :account_id";
+        String query = "SELECT id, account, date, action, login FROM client_history WHERE account = :account_id";
 
         SqlParameterSource namedParameter = new MapSqlParameterSource("account_id", accountId);
 
