@@ -11,12 +11,15 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
@@ -137,6 +140,11 @@ public class AccountResourceRestController extends CommonResourceRestController 
         personalAccount.setAccountNew(true);
         personalAccount.setCredit(false);
         personalAccount.setCreditPeriod("P14D");
+
+        //Установка уведомлений по-умолчанию (почтовая информационная рассылка)
+        Set<MailManagerMessageType> defaultNotifications = new HashSet<>();
+        defaultNotifications.add(MailManagerMessageType.EMAIL_NEWS);
+        personalAccount.setNotifications(defaultNotifications);
 
         accountManager.insert(personalAccount);
         logger.debug("personalAccount saved: " + personalAccount.toString());
