@@ -647,7 +647,7 @@ public class PersonalAccountRestController extends CommonRestController {
             accountManager.setNotifications(accountId, notifications);
             String operator = request.getUserPrincipal().getName();
             String notificationName = notification.getName();
-            String message = notificationName + (state ? "включено." : "отключено.");
+            String message = notificationName + (state ? " включено." : " отключено.");
             addHistoryMessage(operator, accountId, message);
         }
     }
