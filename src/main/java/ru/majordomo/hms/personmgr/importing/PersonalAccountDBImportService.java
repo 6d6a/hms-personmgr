@@ -1,9 +1,11 @@
 package ru.majordomo.hms.personmgr.importing;
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -20,6 +22,9 @@ import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+
+import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.formatPhone;
+import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
 
 @Service
 public class PersonalAccountDBImportService {
@@ -82,7 +87,11 @@ public class PersonalAccountDBImportService {
             personalAccount.setPlanId(plan.getId());
             personalAccount.setAccountId(rs.getString("id"));
             personalAccount.setClientId(rs.getString("client_id"));
-            personalAccount.setName(rs.getString("name"));
+            personalAccount.setName(
+                    rs.getString("name").startsWith("ac_") ?
+                            rs.getString("name").toUpperCase() :
+                            rs.getString("name")
+            );
             personalAccount.setActive(rs.getBoolean("status"));
             personalAccount.setCreated(LocalDateTime.now());
 
@@ -97,7 +106,15 @@ public class PersonalAccountDBImportService {
             String smsPhone = rs.getString("sms_phone");
 
             if (smsPhone != null && !smsPhone.equals("")) {
-                personalAccount.setSmsPhoneNumber(smsPhone);
+                if (phoneValid(smsPhone)) {
+
+                    String formattedPhone = formatPhone(smsPhone);
+                    if (!formattedPhone.equals("")) {
+                        personalAccount.setSmsPhoneNumber(formattedPhone);
+                    }
+                } else {
+                    logger.error("smsPhone not valid: " + smsPhone);
+                }
             }
 
             personalAccounts.add(personalAccount);
@@ -113,7 +130,12 @@ public class PersonalAccountDBImportService {
     }
 
     public void clean(String accountId) {
-        PersonalAccount account = accountManager.findOne(accountId);
+        PersonalAccount account;
+        try {
+            account = accountManager.findOne(accountId);
+        } catch (ResourceNotFoundException e) {
+            return;
+        }
 
         if (account != null) {
             accountManager.delete(account);

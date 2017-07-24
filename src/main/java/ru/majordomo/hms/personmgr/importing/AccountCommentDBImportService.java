@@ -48,6 +48,8 @@ public class AccountCommentDBImportService {
     }
 
     public void pull(String accountId) {
+        logger.debug("AccountComments for acc " + accountId);
+
         String query = "SELECT comment_id, account_id, comment_date, comment_text, login FROM account_comments WHERE account_id = :account_id";
 
         SqlParameterSource namedParameter = new MapSqlParameterSource("account_id", accountId);
@@ -56,11 +58,12 @@ public class AccountCommentDBImportService {
     }
 
     private AccountComment rowMap(ResultSet rs, int rowNum) throws SQLException {
+        String accountId = rs.getString("account_id");
+
         AccountComment accountComment = new AccountComment();
 
-        logger.debug("rs.getString(\"account_id\") " + rs.getString("account_id"));
 
-        accountComment.setPersonalAccountId(rs.getString("account_id"));
+        accountComment.setPersonalAccountId(accountId);
         accountComment.setCreated(LocalDateTime.of(
                 rs.getDate("comment_date").toLocalDate(),
                 rs.getTime("comment_date").toLocalTime())
@@ -69,6 +72,8 @@ public class AccountCommentDBImportService {
         accountComment.setOperator(rs.getString("login"));
 
         accountComments.add(accountComment);
+
+        logger.debug("AccountComment for acc " + accountId + " message: " + accountComment.getMessage());
 
         return accountComment;
     }

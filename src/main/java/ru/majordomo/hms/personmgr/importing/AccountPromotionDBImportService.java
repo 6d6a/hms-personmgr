@@ -55,10 +55,10 @@ public class AccountPromotionDBImportService {
     public void pull() {
         logger.debug("Start AccountPromotion importing");
 
-        String query = "SELECT account.id, account.plan_id, account.acc_create_date, count(domain.Domain_ID) as domain_count " +
-                "FROM account LEFT JOIN domain ON account.uid = domain.UID " +
-                "WHERE account.id != 999 AND account.acc_create_date > :acc_create_date " +
-                "GROUP BY account.id HAVING COUNT(domain.Domain_ID) = 0";
+        String query = "SELECT a.id, a.plan_id, a.acc_create_date, count(d.Domain_ID) as domain_count " +
+                "FROM account a LEFT JOIN domain d ON a.uid = d.UID " +
+                "WHERE a.id != 999 AND a.acc_create_date > :acc_create_date " +
+                "GROUP BY a.id HAVING COUNT(d.Domain_ID) = 0";
         // Берём аккаунты зарегистрированные за последние 3 года
         LocalDateTime now = LocalDateTime.now().minusYears(3L);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -77,7 +77,13 @@ public class AccountPromotionDBImportService {
                 "WHERE a.id != 999 AND a.acc_create_date > :acc_create_date AND a.id = :account_id " +
                 "GROUP BY a.id HAVING COUNT(d.Domain_ID) = 0";
 
-        SqlParameterSource namedParameter = new MapSqlParameterSource("account_id", accountId);
+        // Берём аккаунты зарегистрированные за последние 3 года
+        LocalDateTime now = LocalDateTime.now().minusYears(3L);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        String formatDateTime = now.format(formatter);
+
+        SqlParameterSource namedParameter = new MapSqlParameterSource("account_id", accountId)
+                .addValue("acc_create_date", formatDateTime);
 
         namedParameterJdbcTemplate.query(query, namedParameter, this::rowMap);
     }
@@ -147,12 +153,11 @@ public class AccountPromotionDBImportService {
                             }
                         } catch (EmptyResultDataAccessException ex) {
                             ex.printStackTrace();
+                            logger.error("[EmptyResultDataAccessException]: " + ex.getMessage());
                         }
                     }
                 }
-
             }
-
         }
         return true;
     }

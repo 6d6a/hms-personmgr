@@ -4,8 +4,10 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.querydsl.QueryDslPredicateExecutor;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.rest.core.annotation.RestResource;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -17,12 +19,23 @@ public interface PaymentServiceRepository extends MongoRepository<PaymentService
         QueryDslPredicateExecutor<PaymentService> {
     @Cacheable("paymentServices")
     PaymentService findOne(String id);
+
     List<PaymentService> findAll();
+
+    @Query("{}")
+    @RestResource(path = "findAllPaymentServices",
+                  rel = "findAllPaymentServices")
+    List<PaymentService> findAllPaymentServices();
+
     @Cacheable("paymentServicesActive")
     List<PaymentService> findByActive(@Param("active") boolean active);
+
     List<PaymentService> findByPaymentType(@Param("paymentType") ServicePaymentType paymentType);
+
     PaymentService findByName(@Param("name") String name);
+
     Stream<PaymentService> findByOldIdRegex(@Param("oldId") String oldId);
+
     @Cacheable("paymentServicesOldId")
     PaymentService findByOldId(@Param("oldId") String oldId);
 
@@ -47,6 +60,7 @@ public interface PaymentServiceRepository extends MongoRepository<PaymentService
     void delete(String s);
 
     @Override
-    @CacheEvict(value = {"paymentServices", "paymentServicesOldId", "paymentServicesActive"}, allEntries = true)
+    @CacheEvict(value = {"paymentServices", "paymentServicesOldId", "paymentServicesActive"},
+                allEntries = true)
     void deleteAll();
 }

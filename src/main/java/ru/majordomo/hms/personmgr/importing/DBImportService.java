@@ -182,6 +182,9 @@ public class DBImportService {
         imported = accountOwnerDBImportService.importToMongo(accountId);
         logger.debug(imported ? "accountOwner db_imported" : "accountOwner db_not_imported");
 
+        imported = accountPromotionDBImportService.importToMongo(accountId);
+        logger.debug(imported ? "accountPromotion db_imported" : "accountPromotion db_not_imported");
+
         return true;
     }
 

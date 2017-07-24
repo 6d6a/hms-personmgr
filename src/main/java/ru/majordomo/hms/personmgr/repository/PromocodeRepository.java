@@ -16,5 +16,6 @@ public interface PromocodeRepository extends MongoRepository<Promocode, String> 
     Promocode findByTypeAndActive(@Param("type") String type, @Param("active") boolean active);
     List<Promocode> findByType(@Param("type") PromocodeType type);
     void deleteByType(@Param("type") PromocodeType type);
+    void deleteByCode(@Param("code") String code);
     List<Promocode> findByActive(@Param("active") boolean active);
 }

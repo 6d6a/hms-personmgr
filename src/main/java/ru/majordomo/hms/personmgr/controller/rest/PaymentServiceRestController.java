@@ -37,6 +37,14 @@ public class PaymentServiceRestController extends CommonRestController {
         return new ResponseEntity<>(services, HttpStatus.OK);
     }
 
+    @RequestMapping(value = "/payment-services", method = RequestMethod.GET, headers = "X-HMS-Pageable=false")
+    public ResponseEntity<List<PaymentService>> listAll(
+    ) {
+        List<PaymentService> services = repository.findAllPaymentServices();
+
+        return new ResponseEntity<>(services, HttpStatus.OK);
+    }
+
     @RequestMapping(value = "/payment-services", method = RequestMethod.GET)
     public ResponseEntity<Page<PaymentService>> listAll(
             @QuerydslPredicate(root = PaymentService.class) Predicate predicate,

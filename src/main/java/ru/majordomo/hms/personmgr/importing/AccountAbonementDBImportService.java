@@ -83,9 +83,18 @@ public class AccountAbonementDBImportService {
 
                 try {
                     accountAbonement.setCreated(LocalDateTime.of(rs.getDate("day_buy").toLocalDate(), LocalTime.MAX));
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    logger.error("Exception in accountAbonement.setCreated(LocalDateTime.of" +
+                            "(rs.getDate(\"day_buy\").toLocalDate(), LocalTime.MAX)); " + e.getMessage());
+                }
+
+                try {
                     accountAbonement.setExpired(LocalDateTime.of(rs.getDate("date_end").toLocalDate(), LocalTime.MAX));
                 } catch (SQLException e) {
                     e.printStackTrace();
+                    logger.error("Exception in accountAbonement.setExpired(LocalDateTime.of" +
+                            "(rs.getDate(\"date_end\").toLocalDate(), LocalTime.MAX)); " + e.getMessage());
                 }
 
                 accountAbonement.setAutorenew(rs.getString("auto") != null);

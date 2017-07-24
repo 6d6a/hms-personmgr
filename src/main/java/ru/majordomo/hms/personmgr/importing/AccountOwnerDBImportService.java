@@ -179,6 +179,11 @@ public class AccountOwnerDBImportService {
 
                 personalInfo.setIssuedOrg(passportFromDatabase);
             }
+
+            String postalAddress = rs.getString("address_post");
+            if (postalAddress != null && !postalAddress.equals("")) {
+                personalInfo.setAddress(postalAddress);
+            }
         } else if (personType.equals("ju")) {
             personalInfo.setInn(rs.getString("inn"));
             personalInfo.setKpp(rs.getString("kpp"));

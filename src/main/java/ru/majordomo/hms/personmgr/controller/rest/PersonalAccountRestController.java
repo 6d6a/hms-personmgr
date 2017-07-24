@@ -30,7 +30,6 @@ import javax.servlet.http.HttpServletRequest;
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
-import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverConfirmedEvent;
@@ -60,6 +59,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.IP_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_CHANGE;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_RECOVER;
 import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
@@ -480,7 +480,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         if (requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name()) != null) {
             String smsPhoneNumber = (String)requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name());
-            if (Utils.isPhoneValid(smsPhoneNumber)) {
+            if (phoneValid(smsPhoneNumber)) {
                 accountManager.setSmsPhoneNumber(accountId, smsPhoneNumber);
 
                 //Save history

@@ -7,14 +7,27 @@ import com.google.i18n.phonenumbers.Phonenumber;
 public class PhoneNumberManager {
     private static PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
 
-    public static Boolean phoneValid(String phone) {
-        Phonenumber.PhoneNumber phoneNumber;
+    public static Phonenumber.PhoneNumber parsePhone(String phone) {
         try {
-            phoneNumber = phoneNumberUtil.parse(phone, "RU");
-            return phoneNumberUtil.isValidNumber(phoneNumber);
+            return phoneNumberUtil.parse(phone, "RU");
         } catch (NumberParseException e) {
-            return false;
+            return null;
         }
     }
 
+    public static String formatPhone(String phone) {
+        Phonenumber.PhoneNumber phoneNumber = parsePhone(phone);
+
+        if (phoneNumber == null) {
+            return "";
+        }
+
+        return phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.E164);
+    }
+
+    public static Boolean phoneValid(String phone) {
+        Phonenumber.PhoneNumber phoneNumber = parsePhone(phone);
+
+        return phoneNumber != null && phoneNumberUtil.isValidNumber(phoneNumber);
+    }
 }

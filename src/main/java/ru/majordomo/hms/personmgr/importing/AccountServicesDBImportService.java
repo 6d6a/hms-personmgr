@@ -90,7 +90,7 @@ public class AccountServicesDBImportService {
 
             publisher.publishEvent(new AccountServiceCreateEvent(accountService));
 
-            logger.debug("Added Plan service " + service.getId() + " for PersonalAccount " + rs.getString("name"));
+            logger.debug("Added Plan service " + service.getName() + " for PersonalAccount " + rs.getString("name"));
         } else {
             logger.error("Plan PaymentService not found");
         }
@@ -137,7 +137,7 @@ public class AccountServicesDBImportService {
 
                     publisher.publishEvent(new AccountServiceCreateEvent(accountServiceE));
 
-                    logger.debug("Added accountService for service " + serviceE.getId() + " for PersonalAccount " + rsE.getString("acc_id"));
+                    logger.debug("Added accountService for service " + serviceE.getName() + " for PersonalAccount " + rsE.getString("acc_id"));
 
                     return accountServiceE;
                 }

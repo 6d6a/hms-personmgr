@@ -50,7 +50,9 @@ public class AccountHistoryDBImportService {
     }
 
     public void pull(String accountId) {
-//        String query = "SELECT id, account, date, action, login FROM client_history WHERE id > 4961960 AND account = :account_id";
+        logger.debug("AccountHistories for acc: " + accountId);
+
+        //        String query = "SELECT id, account, date, action, login FROM client_history WHERE id > 4961960 AND account = :account_id";
         String query = "SELECT id, account, date, action, login FROM client_history WHERE account = :account_id";
 
         SqlParameterSource namedParameter = new MapSqlParameterSource("account_id", accountId);
@@ -59,11 +61,11 @@ public class AccountHistoryDBImportService {
     }
 
     private AccountHistory rowMap(ResultSet rs, int rowNum) throws SQLException {
+        String accountId = rs.getString("account");
+
         AccountHistory accountHistory = new AccountHistory();
 
-        logger.debug("AccountHistory for acc: " + rs.getString("account"));
-
-        accountHistory.setPersonalAccountId(rs.getString("account"));
+        accountHistory.setPersonalAccountId(accountId);
 
         accountHistory.setCreated(new Timestamp(rs.getLong("date") * 1000).toLocalDateTime());
 
@@ -71,12 +73,16 @@ public class AccountHistoryDBImportService {
             accountHistory.setMessage(EncodingUtils.getString(rs.getString("action").getBytes("windows-1251"), "koi8-r"));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
+            logger.error("Exception in accountHistory.setMessage: " + e.getMessage());
         }
         try {
             accountHistory.setOperator(EncodingUtils.getString(rs.getString("login").getBytes("windows-1251"), "koi8-r"));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
+            logger.error("Exception in accountHistory.setOperator: " + e.getMessage());
         }
+
+        logger.debug("AccountHistory for acc: " + accountId + " message: " + accountHistory.getMessage());
 
         accountHistoryList.add(accountHistory);
 

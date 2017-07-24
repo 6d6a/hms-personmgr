@@ -79,7 +79,9 @@ public class PromocodeDBImportService {
         pull(accountId);
 
         if (!promocodesList.isEmpty()) {
-            promocodeRepository.delete(promocodesList);
+            promocodesList.forEach(promocode -> {
+                promocodeRepository.deleteByCode(promocode.getCode());
+            });
         }
     }
 
