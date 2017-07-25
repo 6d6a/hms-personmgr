@@ -55,6 +55,7 @@ public class AbonementService {
     private final AccountServiceHelper accountServiceHelper;
     private final ApplicationEventPublisher publisher;
     private final AccountStatHelper accountStatHelper;
+    private final FinFeignClient finFeignClient;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -65,7 +66,8 @@ public class AbonementService {
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
             ApplicationEventPublisher publisher,
-            AccountStatHelper accountStatHelper
+            AccountStatHelper accountStatHelper,
+            FinFeignClient finFeignClient
     ) {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
@@ -73,6 +75,7 @@ public class AbonementService {
         this.accountServiceHelper = accountServiceHelper;
         this.publisher = publisher;
         this.accountStatHelper = accountStatHelper;
+        this.finFeignClient = finFeignClient;
     }
 
     /**
@@ -194,9 +197,11 @@ public class AbonementService {
                 }
             }
 
+            Boolean isRecurrentActive = finFeignClient.isRecurrentActive(account.getId());
+
             if (!plan.isAbonementOnly() && balance.compareTo(monthCost) < 0) {
                 // Автопроделния у абонементов с internal == true не должно быть
-                if (accountAbonement.isAutorenew()) {
+                if (isRecurrentActive) {
                     if (balance.compareTo(abonementCost) < 0) {
                         sendMessage = true;
                     }
@@ -236,7 +241,7 @@ public class AbonementService {
                 parameters.put("balance", formatBigDecimalWithCurrency(balance));
                 parameters.put("cost", formatBigDecimalWithCurrency(abonementCost)); //Этот параметр передаётся, но не используется
                 parameters.put("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-                parameters.put("auto_renew", accountAbonement.isAutorenew() ? "включено" : "выключено");
+                parameters.put("auto_renew", isRecurrentActive ? "включено" : "выключено");
                 parameters.put("from", "noreply@majordomo.ru");
 
                 message.addParam("parametrs", parameters);
@@ -271,7 +276,9 @@ public class AbonementService {
             // Если абонемент не бонусный (internal)
             if (!accountAbonement.getAbonement().isInternal()) {
                 // Если включено автопродление
-                if (accountAbonement.isAutorenew()) {
+                Boolean isRecurrentActive = finFeignClient.isRecurrentActive(account.getId());
+
+                if (isRecurrentActive) {
                     logger.debug("Abonement has autorenew option enabled");
 
                     if (balance.compareTo(abonementCost) >= 0) {
