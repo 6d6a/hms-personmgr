@@ -48,6 +48,9 @@ public class Application implements CommandLineRunner {
             String dbCleanOneServerOption = "--db_clean_one_server";
             String processOption = "--process";
             StringBuilder sb = new StringBuilder();
+
+            String serverId = "116";
+
             for (String option : args) {
                 sb.append(" ").append(option);
 
@@ -69,12 +72,12 @@ public class Application implements CommandLineRunner {
                 } else if (option.equals(dbImportOneServerOption)) {
                     boolean imported;
 
-                    imported = dbImportService.importToMongoByServerId("112");
+                    imported = dbImportService.importToMongoByServerId(serverId);
                     sb.append(" ").append(imported ? "dbImportService db_imported" : "dbImportService db_not_imported");
                 } else if (option.equals(dbCleanOneServerOption)) {
                     boolean imported;
 
-                    imported = dbImportService.cleanByServerId("112");
+                    imported = dbImportService.cleanByServerId(serverId);
                     sb.append(" ").append(imported ? "dbImportService db_cleaned" : "dbImportService db_not_cleaned");
                 } else if (option.equals(processOption)) {
                     //                PersonalAccount account = personalAccountRepository.findByAccountId("100800");

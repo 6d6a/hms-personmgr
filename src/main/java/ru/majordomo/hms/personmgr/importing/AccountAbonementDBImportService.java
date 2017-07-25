@@ -12,8 +12,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.validation.ConstraintViolation;
@@ -37,7 +35,6 @@ public class AccountAbonementDBImportService {
     private PlanRepository planRepository;
     private PersonalAccountManager accountManager;
     private NamedParameterJdbcTemplate jdbcTemplate;
-    private List<AccountAbonement> accountAbonements = new ArrayList<>();
 
     @Autowired
     public AccountAbonementDBImportService(
@@ -62,10 +59,14 @@ public class AccountAbonementDBImportService {
     }
 
     public void pull(String accountId) {
+        logger.debug("[start] Searching for AccountAbonement for account: " + accountId);
+
         String query = "SELECT a.acc_id, a.day_buy, a.date_end, aa.auto FROM abonement a LEFT JOIN abt_auto_buy aa USING(acc_id) WHERE a.acc_id = :acc_id ORDER BY a.acc_id ASC";
         SqlParameterSource namedParameters = new MapSqlParameterSource("acc_id", accountId);
 
         jdbcTemplate.query(query, namedParameters, this::rowMap);
+
+        logger.debug("[finish] Searching for AccountAbonement for account: " + accountId);
     }
 
     private AccountAbonement rowMap(ResultSet rs, int rowNum) throws SQLException {
@@ -103,7 +104,16 @@ public class AccountAbonementDBImportService {
 
                 logger.debug("Found accountAbonement for account: " + rs.getString("acc_id") + " accountAbonement: " + accountAbonement);
 
-                accountAbonements.add(accountAbonement);
+                try {
+                    accountAbonementManager.save(accountAbonement);
+                } catch (ConstraintViolationException e) {
+                    logger.debug(e.getMessage() + " with errors: " +
+                            e.getConstraintViolations()
+                                    .stream()
+                                    .map(ConstraintViolation::getMessage)
+                                    .collect(Collectors.joining())
+                    );
+                }
             } else {
                 logger.debug("Plan not found account: " + rs.getString("acc_id") + " planId: " + account.getPlanId());
             }
@@ -128,27 +138,12 @@ public class AccountAbonementDBImportService {
     public boolean importToMongo() {
         clean();
         pull();
-        pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
         clean(accountId);
         pull(accountId);
-        pushToMongo();
         return true;
-    }
-
-    private void pushToMongo() {
-        try {
-            accountAbonementManager.save(accountAbonements);
-        } catch (ConstraintViolationException e) {
-            logger.debug(e.getMessage() + " with errors: " +
-                    e.getConstraintViolations()
-                            .stream()
-                            .map(ConstraintViolation::getMessage)
-                            .collect(Collectors.joining())
-            );
-        }
     }
 }

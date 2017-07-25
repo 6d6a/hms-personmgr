@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,7 +29,6 @@ public class AccountCommentDBImportService {
 
     private AccountCommentRepository accountCommentRepository;
     private NamedParameterJdbcTemplate jdbcTemplate;
-    private List<AccountComment> accountComments = new ArrayList<>();
 
     @Autowired
     public AccountCommentDBImportService(
@@ -48,20 +46,21 @@ public class AccountCommentDBImportService {
     }
 
     public void pull(String accountId) {
-        logger.debug("AccountComments for acc " + accountId);
+        logger.debug("[start] Searching for AccountComments for acc " + accountId);
 
         String query = "SELECT comment_id, account_id, comment_date, comment_text, login FROM account_comments WHERE account_id = :account_id";
 
         SqlParameterSource namedParameter = new MapSqlParameterSource("account_id", accountId);
 
         jdbcTemplate.query(query, namedParameter, this::rowMap);
+
+        logger.debug("[finish] Searching for AccountComments for acc " + accountId);
     }
 
     private AccountComment rowMap(ResultSet rs, int rowNum) throws SQLException {
         String accountId = rs.getString("account_id");
 
         AccountComment accountComment = new AccountComment();
-
 
         accountComment.setPersonalAccountId(accountId);
         accountComment.setCreated(LocalDateTime.of(
@@ -71,8 +70,16 @@ public class AccountCommentDBImportService {
         accountComment.setMessage(rs.getString("comment_text"));
         accountComment.setOperator(rs.getString("login"));
 
-        accountComments.add(accountComment);
-
+        try {
+            accountCommentRepository.save(accountComment);
+        } catch (ConstraintViolationException e) {
+            logger.debug(e.getMessage() + " with errors: " +
+                    e.getConstraintViolations()
+                            .stream()
+                            .map(ConstraintViolation::getMessage)
+                            .collect(Collectors.joining())
+            );
+        }
         logger.debug("AccountComment for acc " + accountId + " message: " + accountComment.getMessage());
 
         return accountComment;
@@ -92,27 +99,12 @@ public class AccountCommentDBImportService {
     public boolean importToMongo() {
         clean();
         pull();
-        pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
         clean(accountId);
         pull(accountId);
-        pushToMongo();
         return true;
-    }
-
-    private void pushToMongo() {
-        try {
-            accountCommentRepository.save(accountComments);
-        } catch (ConstraintViolationException e) {
-            logger.debug(e.getMessage() + " with errors: " +
-                    e.getConstraintViolations()
-                            .stream()
-                            .map(ConstraintViolation::getMessage)
-                            .collect(Collectors.joining())
-            );
-        }
     }
 }

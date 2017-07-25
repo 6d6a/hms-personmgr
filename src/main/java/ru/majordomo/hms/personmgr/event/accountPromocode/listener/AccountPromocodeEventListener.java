@@ -7,6 +7,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeCleanEvent;
 import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeCreateEvent;
 import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeImportEvent;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
@@ -31,7 +32,7 @@ public class AccountPromocodeEventListener {
 
     @EventListener
     @Async("threadPoolTaskExecutor")
-    public void onAccountPromocodeCreateEvent(AccountPromocodeCreateEvent event) {
+    public void on(AccountPromocodeCreateEvent event) {
         AccountPromocode accountPromocode = event.getSource();
 
         logger.debug("We got AccountPromocodeCreateEvent");
@@ -40,13 +41,13 @@ public class AccountPromocodeEventListener {
             accountPromocodeRepository.insert(accountPromocode);
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Exception in ru.majordomo.hms.personmgr.event.accountPromocode.listener.AccountPromocodeEventListener.onAccountPromocodeCreateEvent " + e.getMessage());
+            logger.error("Exception in AccountPromocodeCreateEvent " + e.getMessage());
         }
     }
 
     @EventListener
     @Async("threadPoolTaskExecutor")
-    public void onAccountPromocodeImportEvent(AccountPromocodeImportEvent event) {
+    public void on(AccountPromocodeImportEvent event) {
         String accountId = event.getSource();
 
         logger.debug("We got AccountPromocodeImportEvent");
@@ -55,7 +56,22 @@ public class AccountPromocodeEventListener {
             accountPromocodeDBImportService.pull(accountId);
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Exception in ru.majordomo.hms.personmgr.event.accountPromocode.listener.AccountPromocodeEventListener.onAccountPromocodeImportEvent " + e.getMessage());
+            logger.error("Exception in AccountPromocodeImportEvent " + e.getMessage());
+        }
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountPromocodeCleanEvent event) {
+        String accountId = event.getSource();
+
+        logger.debug("We got AccountPromocodeCleanEvent");
+
+        try {
+            accountPromocodeDBImportService.clean(accountId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Exception in AccountPromocodeCleanEvent " + e.getMessage());
         }
     }
 }

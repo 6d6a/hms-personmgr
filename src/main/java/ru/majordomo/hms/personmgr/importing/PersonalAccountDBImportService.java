@@ -33,7 +33,6 @@ public class PersonalAccountDBImportService {
     private NamedParameterJdbcTemplate jdbcTemplate;
     private PersonalAccountManager accountManager;
     private PlanRepository planRepository;
-    private List<PersonalAccount> personalAccounts = new ArrayList<>();
 
     @Autowired
     public PersonalAccountDBImportService(
@@ -59,6 +58,8 @@ public class PersonalAccountDBImportService {
     }
 
     private void pull(String accountId) {
+        logger.debug("[start] Searching for PersonalAccount for acc " + accountId);
+
         String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, " +
                 "a.status, c.client_auto_bill, a.overquoted, a.overquot_addcost, e.value as sms_phone " +
                 "FROM account a " +
@@ -70,6 +71,8 @@ public class PersonalAccountDBImportService {
         SqlParameterSource namedParametersE = new MapSqlParameterSource("accountId", accountId);
 
         jdbcTemplate.query(query, namedParametersE, this::rowMap);
+
+        logger.debug("[finish] Searching for PersonalAccount for acc " + accountId);
     }
 
     private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
@@ -117,7 +120,7 @@ public class PersonalAccountDBImportService {
                 }
             }
 
-            personalAccounts.add(personalAccount);
+            accountManager.save(personalAccount);
         } else {
             logger.debug("Plan not found account: " + rs.getString("acc_id") + " planId: " + rs.getString("plan_id"));
         }
@@ -145,20 +148,12 @@ public class PersonalAccountDBImportService {
     public boolean importToMongo() {
         clean();
         pull();
-        pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
         clean(accountId);
         pull(accountId);
-        pushToMongo();
         return true;
-    }
-
-    private void pushToMongo() {
-        logger.debug("pushToMongo personalAccounts");
-
-        accountManager.save(personalAccounts);
     }
 }

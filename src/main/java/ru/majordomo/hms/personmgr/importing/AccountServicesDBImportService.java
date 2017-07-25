@@ -12,12 +12,15 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.event.accountService.AccountServiceCreateEvent;
 import ru.majordomo.hms.personmgr.event.accountService.AccountServiceImportEvent;
-import ru.majordomo.hms.personmgr.model.account.AccountHistory;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
@@ -34,7 +37,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_10_R
 import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_FREE_SERVICE_ID;
 
-
 /**
  * DBImportService
  */
@@ -47,6 +49,9 @@ public class AccountServicesDBImportService {
     private final AccountServiceRepository accountServiceRepository;
     private final ApplicationEventPublisher publisher;
 
+    private List<PaymentService> paymentServices = new ArrayList<>();
+    private Map<String, PaymentService> oldServiceIdToService = new HashMap<>();
+
     @Autowired
     public AccountServicesDBImportService(
             NamedParameterJdbcTemplate jdbcTemplate,
@@ -58,6 +63,8 @@ public class AccountServicesDBImportService {
         this.paymentServiceRepository = paymentServiceRepository;
         this.accountServiceRepository = accountServiceRepository;
         this.publisher = publisher;
+
+        loadPaymentServices();
     }
 
     private void pull() {
@@ -69,6 +76,8 @@ public class AccountServicesDBImportService {
     }
 
     public void pull(String accountId) {
+        logger.debug("[start] Searching for AccountService for acc " + accountId);
+
         String query = "SELECT id, name, plan_id FROM account WHERE id = :accountId";
         SqlParameterSource namedParameters1 = new MapSqlParameterSource("accountId", accountId);
 
@@ -76,13 +85,15 @@ public class AccountServicesDBImportService {
                 namedParameters1,
                 this::rowMap
         );
+
+        logger.debug("[finish] Searching for AccountService for acc " + accountId);
     }
 
     private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
         logger.debug("Found PersonalAccount " + rs.getString("name"));
 
-        PaymentService service = paymentServiceRepository.findByOldId(PLAN_SERVICE_PREFIX
-                + rs.getString("plan_id"));
+        String oldId = PLAN_SERVICE_PREFIX + rs.getString("plan_id");
+        PaymentService service = oldServiceIdToService.get(oldId);
 
         if (service != null) {
             AccountService accountService = new AccountService(service);
@@ -118,7 +129,7 @@ public class AccountServicesDBImportService {
 
                     logger.debug("Trying to find PaymentService for " + serviceOldId);
 
-                    PaymentService serviceE = paymentServiceRepository.findByOldId(serviceOldId);
+                    PaymentService serviceE = oldServiceIdToService.get(serviceOldId);
 
                     if (serviceE == null) {
                         logger.error("PaymentService not found for account: " +
@@ -167,5 +178,16 @@ public class AccountServicesDBImportService {
         clean(accountId);
         pull(accountId);
         return true;
+    }
+
+    private void loadPaymentServices() {
+        if (paymentServices.isEmpty()) {
+            paymentServices = paymentServiceRepository.findAllPaymentServices();
+
+            oldServiceIdToService = paymentServices
+                    .stream()
+                    .collect(Collectors.toMap(PaymentService::getOldId, paymentService -> paymentService))
+            ;
+        }
     }
 }

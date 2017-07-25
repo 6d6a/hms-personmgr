@@ -13,8 +13,6 @@ import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.validation.ConstraintViolation;
@@ -32,7 +30,6 @@ public class AccountHistoryDBImportService {
 
     private AccountHistoryRepository accountHistoryRepository;
     private NamedParameterJdbcTemplate jdbcTemplate;
-    private List<AccountHistory> accountHistoryList = new ArrayList<>();
 
     @Autowired
     public AccountHistoryDBImportService(
@@ -50,7 +47,7 @@ public class AccountHistoryDBImportService {
     }
 
     public void pull(String accountId) {
-        logger.debug("AccountHistories for acc: " + accountId);
+        logger.debug("[start] Searching for AccountHistories for acc: " + accountId);
 
         //        String query = "SELECT id, account, date, action, login FROM client_history WHERE id > 4961960 AND account = :account_id";
         String query = "SELECT id, account, date, action, login FROM client_history WHERE account = :account_id";
@@ -58,6 +55,8 @@ public class AccountHistoryDBImportService {
         SqlParameterSource namedParameter = new MapSqlParameterSource("account_id", accountId);
 
         jdbcTemplate.query(query, namedParameter, this::rowMap);
+
+        logger.debug("[finish] Searching for AccountHistories for acc: " + accountId);
     }
 
     private AccountHistory rowMap(ResultSet rs, int rowNum) throws SQLException {
@@ -82,9 +81,18 @@ public class AccountHistoryDBImportService {
             logger.error("Exception in accountHistory.setOperator: " + e.getMessage());
         }
 
-        logger.debug("AccountHistory for acc: " + accountId + " message: " + accountHistory.getMessage());
+        try {
+            accountHistoryRepository.save(accountHistory);
+        } catch (ConstraintViolationException e) {
+            logger.debug(e.getMessage() + " with errors: "
+                    + e.getConstraintViolations()
+                    .stream()
+                    .map(ConstraintViolation::getMessage)
+                    .collect(Collectors.joining())
+            );
+        }
 
-        accountHistoryList.add(accountHistory);
+        logger.debug("AccountHistory for acc: " + accountId + " message: " + accountHistory.getMessage());
 
         return accountHistory;
     }
@@ -94,36 +102,18 @@ public class AccountHistoryDBImportService {
     }
 
     public void clean(String accountId) {
-        List<AccountHistory> accountHistories = accountHistoryRepository.findByPersonalAccountId(accountId);
-        if (accountHistories != null) {
-            accountHistoryRepository.delete(accountHistories);
-        }
+        accountHistoryRepository.deleteByPersonalAccountId(accountId);
     }
 
     public boolean importToMongo() {
         clean();
         pull();
-        pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
         clean(accountId);
         pull(accountId);
-        pushToMongo();
         return true;
-    }
-
-    private void pushToMongo() {
-        try {
-            accountHistoryRepository.save(accountHistoryList);
-        } catch (ConstraintViolationException e) {
-            logger.debug(e.getMessage() + " with errors: "
-                    + e.getConstraintViolations()
-                    .stream()
-                    .map(ConstraintViolation::getMessage)
-                    .collect(Collectors.joining())
-            );
-        }
     }
 }

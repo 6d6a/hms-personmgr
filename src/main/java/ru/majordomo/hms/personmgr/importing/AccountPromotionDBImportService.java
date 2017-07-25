@@ -72,6 +72,8 @@ public class AccountPromotionDBImportService {
     }
 
     public void pull(String accountId) {
+        logger.debug("[start] Searching for AccountPromotion for acc " + accountId);
+
         String query = "SELECT a.id, a.plan_id, a.acc_create_date, count(d.Domain_ID) as domain_count " +
                 "FROM account a LEFT JOIN domain d ON a.uid = d.UID " +
                 "WHERE a.id != 999 AND a.acc_create_date > :acc_create_date AND a.id = :account_id " +
@@ -86,6 +88,8 @@ public class AccountPromotionDBImportService {
                 .addValue("acc_create_date", formatDateTime);
 
         namedParameterJdbcTemplate.query(query, namedParameter, this::rowMap);
+
+        logger.debug("[finish] Searching for AccountPromotion for acc " + accountId);
     }
 
     private boolean rowMap(ResultSet rs, int rowNum) throws SQLException {

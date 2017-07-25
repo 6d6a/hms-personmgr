@@ -21,7 +21,7 @@ public class AccountHistory extends ModelBelongsToPersonalAccount {
     @Indexed
     private LocalDateTime created;
 
-    @TextIndexed
+//    @TextIndexed
     private String message;
 
     private String operator;

@@ -55,6 +55,8 @@ public class AccountOwnerDBImportService {
     }
 
     public void pull(String accountId) {
+        logger.debug("[start] Searching for AccountOwner for acc " + accountId);
+
         String query = "SELECT a.id, " +
                 "c.Client_ID, c.name as client_name, c.phone, c.phone2, c.email, c.email2, c.email3, " +
                 "c.passport, '' as passport_number, '' as passport_org, '' as passport_date, " +
@@ -70,6 +72,8 @@ public class AccountOwnerDBImportService {
                 namedParameters1,
                 this::rowMap
         );
+
+        logger.debug("[finish] Searching for AccountOwner for acc " + accountId);
     }
 
     private AccountOwner rowMap(ResultSet rs, int rowNum) throws SQLException {

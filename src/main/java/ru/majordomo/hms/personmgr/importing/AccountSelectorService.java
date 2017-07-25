@@ -27,7 +27,7 @@ public class AccountSelectorService {
     public List<String> selectAccountIdsByServerId(String serverId) {
         List<String> accountIds;
 
-        String query = "SELECT a.id, a.name FROM account a WHERE a.server_id = :serverId";
+        String query = "SELECT a.id, a.name FROM account a WHERE a.server_id = :serverId ORDER BY a.id ASC";
 
         SqlParameterSource namedParametersE = new MapSqlParameterSource("serverId", serverId);
 
