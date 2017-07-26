@@ -8,11 +8,14 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.event.account.AccountProcessChargesEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.service.FinFeignClient;
+import ru.majordomo.hms.personmgr.service.RecurrentProcessorService;
 
 @Component
 public class ChargesScheduler {
@@ -20,14 +23,35 @@ public class ChargesScheduler {
 
     private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
+    private final FinFeignClient finFeignClient;
+    private final RecurrentProcessorService recurrentProcessorService;
 
     @Autowired
     public ChargesScheduler(
             PersonalAccountManager accountManager,
-            ApplicationEventPublisher publisher
+            ApplicationEventPublisher publisher,
+            FinFeignClient finFeignClient,
+            RecurrentProcessorService recurrentProcessorService
     ) {
         this.accountManager = accountManager;
         this.publisher = publisher;
+        this.finFeignClient = finFeignClient;
+        this.recurrentProcessorService = recurrentProcessorService;
+    }
+
+
+    //Выполняем реккуренты в 00:10:00 каждый день
+    @Scheduled(cron = "0 10 0 * * *")
+    @SchedulerLock(name="processRecurrents")
+    public void processRecurrents() {
+        logger.debug("Started processRecurrents");
+        try {
+            List<String> accountIds = finFeignClient.getRecurrentAccounts();
+            accountIds.forEach(item -> recurrentProcessorService.processRecurrent(accountManager.findOne(item)));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        logger.debug("Ended processRecurrents");
     }
 
     //Выполняем списания в 01:00:00 каждый день
