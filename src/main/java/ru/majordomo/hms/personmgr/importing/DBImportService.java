@@ -170,47 +170,25 @@ public class DBImportService {
     }
 
     public boolean importToMongo(String accountId) {
-        boolean imported;
-
 //        publisher.publishEvent(new PromocodeImportEvent(accountId));
-//        imported = promocodeDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "promocode db_imported" : "promocode db_not_imported");
 
 //        publisher.publishEvent(new PersonalAccountImportEvent(accountId));
-//        imported = personalAccountDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "personalAccount db_imported" : "personalAccount db_not_imported");
 
 //        publisher.publishEvent(new PersonalAccountNotificationImportEvent(accountId));
-//        imported = accountNotificationDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "accountNotification db_imported" : "accountNotification db_not_imported");
 
 //        publisher.publishEvent(new AccountServiceImportEvent(accountId));
-//        imported = accountServicesDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "accountServices db_imported" : "accountServices db_not_imported");
 
 //        publisher.publishEvent(new AccountHistoryImportEvent(accountId));
-//        imported = accountHistoryDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "accountHistory db_imported" : "accountHistory db_not_imported");
 
 //        publisher.publishEvent(new AccountCommentImportEvent(accountId));
-//        imported = accountCommentDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "accountComment db_imported" : "accountComment db_not_imported");
 
 //        publisher.publishEvent(new AccountPromocodeImportEvent(accountId));
-//        imported = accountPromocodeDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "accountPromocode db_imported" : "accountPromocode db_not_imported");
 
 //        publisher.publishEvent(new AccountAbonementImportEvent(accountId));
-//        imported = accountAbonementDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "accountAbonement db_imported" : "accountAbonement db_not_imported");
 
 //        publisher.publishEvent(new AccountOwnerImportEvent(accountId));
-//        imported = accountOwnerDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "accountOwner db_imported" : "accountOwner db_not_imported");
 
 //        publisher.publishEvent(new AccountPromotionImportEvent(accountId));
-//        imported = accountPromotionDBImportService.importToMongo(accountId);
-//        logger.debug(imported ? "accountPromotion db_imported" : "accountPromotion db_not_imported");
 
         return true;
     }
