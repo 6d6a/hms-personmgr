@@ -117,4 +117,32 @@ public class PersonResourceRestController extends CommonResourceRestController {
 
         return this.createSuccessResponse(businessAction);
     }
+
+    @RequestMapping(value = "/add", method = RequestMethod.POST)
+    public SimpleServiceMessage create(
+            @RequestBody Map<String, String> requestBody,
+            HttpServletResponse response,
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+//        message.setAccountId(accountId);
+//
+//        logger.debug("Creating person " + message.toString());
+//
+//        ProcessingBusinessAction businessAction = process(BusinessOperationType.PERSON_CREATE, BusinessActionType.PERSON_CREATE_RC, message);
+//
+//        response.setStatus(HttpServletResponse.SC_ACCEPTED);
+//
+//        //Save history
+//        String operator = request.getUserPrincipal().getName();
+//        Map<String, String> params = new HashMap<>();
+//        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на создание персоны (имя: " + message.getParam("name") + ")");
+//        params.put(OPERATOR_KEY, operator);
+//
+//        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+//
+//        return this.createSuccessResponse(businessAction);
+
+        return null;
+    }
 }
