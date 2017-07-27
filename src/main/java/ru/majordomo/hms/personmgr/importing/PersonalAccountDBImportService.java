@@ -11,10 +11,14 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
 
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
+
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
@@ -128,6 +132,56 @@ public class PersonalAccountDBImportService {
         return personalAccount;
     }
 
+    private void pullCreated(String accountId) {
+        logger.debug("[start] Searching for Created in PersonalAccount for acc " + accountId);
+
+        String query = "SELECT a.id, a.name, a.acc_create_date, a.status, a.date_negative_balance " +
+                "FROM account a " +
+                "WHERE a.id = :accountId";
+
+        SqlParameterSource namedParametersE = new MapSqlParameterSource("accountId", accountId);
+
+        jdbcTemplate.query(query, namedParametersE, this::rowMapCreated);
+
+        logger.debug("[finish] Searching for Created in PersonalAccount for acc " + accountId);
+    }
+
+    private PersonalAccount rowMapCreated(ResultSet rs, int rowNum) throws SQLException {
+        logger.debug("Found Created PersonalAccount " + rs.getString("name"));
+
+        PersonalAccount personalAccount = accountManager.findOne(rs.getString("id"));
+
+        try {
+            Date accCreateDate = rs.getDate("acc_create_date");
+
+            if (accCreateDate != null) {
+                personalAccount.setCreated(LocalDateTime.of(accCreateDate.toLocalDate(), LocalTime.MAX));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            logger.error("Exception " + e.getMessage());
+        }
+
+        try {
+            String status = rs.getString("status");
+
+            if (status.equals("0")) {
+                Date dateNegativeBalance = rs.getDate("date_negative_balance");
+
+                if (dateNegativeBalance != null) {
+                    personalAccount.setDeactivated(LocalDateTime.of(dateNegativeBalance.toLocalDate(), LocalTime.MAX));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            logger.error("Exception " + e.getMessage());
+        }
+
+        accountManager.save(personalAccount);
+
+        return personalAccount;
+    }
+
     public void clean() {
         accountManager.deleteAll();
     }
@@ -154,6 +208,7 @@ public class PersonalAccountDBImportService {
     public boolean importToMongo(String accountId) {
         clean(accountId);
         pull(accountId);
+//        pullCreated(accountId);
         return true;
     }
 }

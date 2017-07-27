@@ -78,7 +78,7 @@ public class AccountServicesDBImportService {
     public void pull(String accountId) {
         logger.debug("[start] Searching for AccountService for acc " + accountId);
 
-        String query = "SELECT id, name, plan_id FROM account WHERE id = :accountId";
+        String query = "SELECT id, name, plan_id, client_type FROM account WHERE id = :accountId";
         SqlParameterSource namedParameters1 = new MapSqlParameterSource("accountId", accountId);
 
         jdbcTemplate.query(query,
@@ -92,18 +92,22 @@ public class AccountServicesDBImportService {
     private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
         logger.debug("Found PersonalAccount " + rs.getString("name"));
 
-        String oldId = PLAN_SERVICE_PREFIX + rs.getString("plan_id");
-        PaymentService service = oldServiceIdToService.get(oldId);
+        String clientType = rs.getString("client_type");
 
-        if (service != null) {
-            AccountService accountService = new AccountService(service);
-            accountService.setPersonalAccountId(rs.getString("id"));
+        if (!clientType.equals("4")) {
+            String oldId = PLAN_SERVICE_PREFIX + rs.getString("plan_id");
+            PaymentService service = oldServiceIdToService.get(oldId);
 
-            publisher.publishEvent(new AccountServiceCreateEvent(accountService));
+            if (service != null) {
+                AccountService accountService = new AccountService(service);
+                accountService.setPersonalAccountId(rs.getString("id"));
 
-            logger.debug("Added Plan service " + service.getName() + " for PersonalAccount " + rs.getString("name"));
-        } else {
-            logger.error("Plan PaymentService not found");
+                publisher.publishEvent(new AccountServiceCreateEvent(accountService));
+
+                logger.debug("Added Plan service " + service.getName() + " for PersonalAccount " + rs.getString("name"));
+            } else {
+                logger.error("Plan PaymentService not found");
+            }
         }
 
         String queryExtend = "SELECT acc_id, Domain_name, usluga, cost, value, promo FROM extend WHERE acc_id = :acc_id AND usluga NOT IN (:usluga_ids)";

@@ -178,8 +178,6 @@ public class DBImportService {
 
 //        publisher.publishEvent(new AccountServiceImportEvent(accountId));
 
-//        publisher.publishEvent(new AccountHistoryImportEvent(accountId));
-
 //        publisher.publishEvent(new AccountCommentImportEvent(accountId));
 
 //        publisher.publishEvent(new AccountPromocodeImportEvent(accountId));
@@ -189,6 +187,8 @@ public class DBImportService {
 //        publisher.publishEvent(new AccountOwnerImportEvent(accountId));
 
 //        publisher.publishEvent(new AccountPromotionImportEvent(accountId));
+
+//        publisher.publishEvent(new AccountHistoryImportEvent(accountId));
 
         return true;
     }

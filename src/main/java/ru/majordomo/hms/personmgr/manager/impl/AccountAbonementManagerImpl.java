@@ -15,6 +15,7 @@ import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Component
 public class AccountAbonementManagerImpl implements AccountAbonementManager {
@@ -95,6 +96,11 @@ public class AccountAbonementManagerImpl implements AccountAbonementManager {
     @Override
     public List<AccountAbonement> findAll() {
         return repository.findAll();
+    }
+
+    @Override
+    public Stream<AccountAbonement> findAllStream() {
+        return repository.findAllStream();
     }
 
     @Override

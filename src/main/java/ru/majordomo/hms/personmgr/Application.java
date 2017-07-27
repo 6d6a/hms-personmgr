@@ -49,7 +49,8 @@ public class Application implements CommandLineRunner {
             String processOption = "--process";
             StringBuilder sb = new StringBuilder();
 
-            String serverId = "136";//122
+            String serverId = "122";
+//            String serverId = "136";
 
             for (String option : args) {
                 sb.append(" ").append(option);

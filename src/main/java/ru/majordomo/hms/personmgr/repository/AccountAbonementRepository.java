@@ -3,11 +3,13 @@ package ru.majordomo.hms.personmgr.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.rest.core.annotation.RestResource;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 
@@ -30,4 +32,7 @@ public interface AccountAbonementRepository extends MongoRepository<AccountAbone
     List<AccountAbonement> findByPersonalAccountIdAndExpiredAfterAndAutorenew(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired, @Param("autorenew") String autorenew);
     List<AccountAbonement> findByPersonalAccountIdAndExpiredBeforeAndAutorenew(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired, @Param("autorenew") String autorenew);
     List<AccountAbonement> findByPersonalAccountIdAndAbonementId(@Param("personalAccountId") String personalAccountId, @Param("abonementId") String abonementId);
+
+    @Query("{}")
+    Stream<AccountAbonement> findAllStream();
 }
