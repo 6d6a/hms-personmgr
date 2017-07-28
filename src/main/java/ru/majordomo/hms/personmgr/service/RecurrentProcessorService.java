@@ -225,7 +225,7 @@ public class RecurrentProcessorService {
                 }
 
                 // --- ИТОГО НЕХВАТАТ ---
-                if (balance.compareTo(overallRecurrentSum) < 0) {
+                if (overallRecurrentSum.compareTo(BigDecimal.ZERO) > 0 && balance.compareTo(overallRecurrentSum) < 0) {
                     BigDecimal sumToChargeFromCart = overallRecurrentSum.subtract(balance);
 
                     sumToChargeFromCart = sumToChargeFromCart.setScale(0, BigDecimal.ROUND_UP);
