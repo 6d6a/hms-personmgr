@@ -128,8 +128,7 @@ public class AccountQuotaService {
                 List<Quotable> resourses = accountHelper.filterQuotableResoursesByWritableState(
                         accountHelper.getQuotableResources(account), true);
 
-                // если writable=true ресурсы найдены
-                // юзеру отправляется письмо и выключаются включенные ресурсы
+                // если writable=true ресурсы найдены, отправляется письмо и выключаются включенные ресурсы
                 if (resourses != null && !resourses.isEmpty()) {
                     // Устанавливаем writable false для ресурсов
                     accountHelper.setWritableForAccountQuotaServicesByList(account, false, resourses);
