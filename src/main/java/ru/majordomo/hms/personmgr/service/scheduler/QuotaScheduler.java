@@ -34,8 +34,8 @@ public class QuotaScheduler {
     }
 
     //Выполняем проверку квоты каждые 30 минут
-    @Scheduled(cron = "0 */5 * * * *")
-    //@SchedulerLock(name = "processQuotaChecks")
+    @Scheduled(cron = "0 */30 * * * *")
+    @SchedulerLock(name = "processQuotaChecks")
     public void processQuotaChecks() {
         logger.debug("Started processQuotaChecks");
         try (Stream<PersonalAccount> personalAccountStream = accountManager.findByIdNotIn(Collections.singletonList(TECHNICAL_ACCOUNT_ID))) {
