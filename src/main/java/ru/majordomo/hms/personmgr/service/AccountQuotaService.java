@@ -137,7 +137,7 @@ public class AccountQuotaService {
 
                     Map<String, String> params = new HashMap<>();
                     params.put(SERVICE_NAME_KEY, plan.getName());
-                    publisher.publishEvent(new AccountQuotaDiscardEvent(account, params));
+                    //publisher.publishEvent(new AccountQuotaDiscardEvent(account, params));
                 }
             }
         } else {
