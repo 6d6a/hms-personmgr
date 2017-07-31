@@ -60,7 +60,7 @@ public class AccountEventListener {
     private final PersonalAccountManager accountManager;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountNotificationHelper accountNotificationHelper;
-    private final PersonalAccountRepository personalAccountRepository;
+    private final BizMailFeignClient bizMailFeignClient;
 
     @Autowired
     public AccountEventListener(
@@ -77,7 +77,7 @@ public class AccountEventListener {
             PersonalAccountManager accountManager,
             AccountAbonementManager accountAbonementManager,
             AccountNotificationHelper accountNotificationHelper,
-            PersonalAccountRepository personalAccountRepository
+            BizMailFeignClient bizMailFeignClient
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -92,7 +92,7 @@ public class AccountEventListener {
         this.accountManager = accountManager;
         this.accountAbonementManager = accountAbonementManager;
         this.accountNotificationHelper = accountNotificationHelper;
-        this.personalAccountRepository = personalAccountRepository;
+        this.bizMailFeignClient = bizMailFeignClient;
     }
 
     @EventListener
@@ -616,7 +616,6 @@ public class AccountEventListener {
                     apiName = "MajordomoHmsPromokodGoogle";
                     break;
 
-                /*//пока не готов сам bizmail, отправлять не надо
                 case 25:
                     //отправляем, если есть домены и ни один не привязан к biz.mail.ru
                     //делегирован домен на наши NS или нет - неважно
@@ -624,10 +623,11 @@ public class AccountEventListener {
                     if (domains.isEmpty()) {
                         break;
                     }
-                    if (false) {
+                    List<Object> bizDomains = bizMailFeignClient.getDomainsFromBizmail(account.getId());
+                    if (bizDomains != null || bizDomains.isEmpty()) {
                         apiName = "MajordomoHmsPochtaMailRu";
                     }
-                    break;*/
+                    break;
 
                 case 35:
                     apiName = "MajordomoHmsProdvigenie";
