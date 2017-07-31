@@ -595,18 +595,22 @@ public class PersonalAccountRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @RequestMapping(value = "/toggle_account_state",
-            method = RequestMethod.PATCH)
-    public ResponseEntity<Void> toggleAccount(
-            @ObjectId(
-                    value = PersonalAccount.class,
-                    idFieldName = "accountId"
-            )
-            @RequestParam(value = "accountId") String accountId
+    @RequestMapping(value = "/{accountId}/account/toggle_account_state",
+            method = RequestMethod.POST)
+    public ResponseEntity<Object> toggleAccount(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
         accountHelper.switchAccountResources(account, !account.isActive());
+
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Аккаунт " + (!account.isActive() ? "включен" : "выключен"));
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
