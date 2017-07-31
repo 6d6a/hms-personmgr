@@ -594,6 +594,23 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(isSubscribedResult, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @RequestMapping(value = "/toggle_account_state",
+            method = RequestMethod.PATCH)
+    public ResponseEntity<Void> toggleAccount(
+            @ObjectId(
+                    value = PersonalAccount.class,
+                    idFieldName = "accountId"
+            )
+            @RequestParam(value = "accountId") String accountId
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        accountHelper.switchAccountResources(account, !account.isActive());
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     private void setNotifications(PersonalAccount account, Set<MailManagerMessageType> notifications, String pattern, SecurityContextHolderAwareRequestWrapper request) {
 
         Set<MailManagerMessageType> oldNotifications = account.getNotifications();
