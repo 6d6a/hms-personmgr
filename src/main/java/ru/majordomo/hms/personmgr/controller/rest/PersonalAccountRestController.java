@@ -594,7 +594,7 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(isSubscribedResult, HttpStatus.OK);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
     @RequestMapping(value = "/{accountId}/account/toggle_account_state",
             method = RequestMethod.POST)
     public ResponseEntity<Object> toggleAccount(
