@@ -595,7 +595,7 @@ public class PersonalAccountRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
-    @RequestMapping(value = "/{accountId}/account/toggle_account_state",
+    @RequestMapping(value = "/{accountId}/account/toggle_state",
             method = RequestMethod.POST)
     public ResponseEntity<Object> toggleAccount(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
