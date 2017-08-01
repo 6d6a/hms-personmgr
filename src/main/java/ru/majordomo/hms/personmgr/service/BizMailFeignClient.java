@@ -11,7 +11,6 @@ import java.util.List;
 
 @FeignClient(name = "bizmail", configuration = FeignConfig.class)
 public interface BizMailFeignClient {
-
-    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/domain/all", consumes = "application/json")
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/domain", consumes = "application/json", headers = "X-HMS-AllDomainFromDB=true")
     List<Object> getDomainsFromBizmail(@PathVariable("accountId") String accountId);
 }
