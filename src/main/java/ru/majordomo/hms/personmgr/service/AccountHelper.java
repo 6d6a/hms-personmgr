@@ -319,12 +319,7 @@ public class AccountHelper {
 
             accountPromotionManager.insert(accountPromotion);
 
-            //Save history
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Добавлен бонус " + accountPromotion.getPromotion().getName());
-            params.put(OPERATOR_KEY, "service");
-
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+            saveHistoryForOperatorService(account, "Добавлен бонус " + accountPromotion.getPromotion().getName());
         }
     }
 
@@ -390,12 +385,7 @@ public class AccountHelper {
     }
 
     public void switchAccountResources(PersonalAccount account, Boolean state) {
-        //Save history
-        Map<String, String> paramsHistory = new HashMap<>();
-        paramsHistory.put(HISTORY_MESSAGE_KEY, "Аккаунт " + (state ? "включен" : "выключен"));
-        paramsHistory.put(OPERATOR_KEY, "service");
-
-        publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+        saveHistoryForOperatorService(account, "Аккаунт " + (state ? "включен" : "выключен"));
 
         accountManager.setActive(account.getId(), state);
 
@@ -412,12 +402,8 @@ public class AccountHelper {
 
                 businessActionBuilder.build(BusinessActionType.WEB_SITE_UPDATE_RC, message);
 
-                //Save history
-                paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на " + (state ? "включение" : "выключение") + " сайта '" + webSite.getName() + "'");
-                paramsHistory.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " сайта '" + webSite.getName() + "'";
+                saveHistoryForOperatorService(account, historyMessage);
             }
 
         } catch (Exception e) {
@@ -438,12 +424,8 @@ public class AccountHelper {
 
                 businessActionBuilder.build(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
-                //Save history
-                paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на " + (state ? "включение" : "выключение") + " пользователя базы данных '" + databaseUser.getName() + "'");
-                paramsHistory.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " пользователя базы данных '" + databaseUser.getName() + "'";
+                saveHistoryForOperatorService(account, historyMessage);
             }
 
         } catch (Exception e) {
@@ -464,12 +446,8 @@ public class AccountHelper {
 
                 businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
-                //Save history
-                paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getName() + "'");
-                paramsHistory.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getName() + "'";
+                saveHistoryForOperatorService(account, historyMessage);
             }
 
         } catch (Exception e) {
@@ -490,12 +468,8 @@ public class AccountHelper {
 
                 businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, message);
 
-                //Save history
-                paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на " + (state ? "включение" : "выключение") + " домена '" + domain.getName() + "'");
-                paramsHistory.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " домена '" + domain.getName() + "'";
+                saveHistoryForOperatorService(account, historyMessage);
             }
 
         } catch (Exception e) {
@@ -516,12 +490,8 @@ public class AccountHelper {
 
                 businessActionBuilder.build(BusinessActionType.FTP_USER_UPDATE_RC, message);
 
-                //Save history
-                paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на " + (state ? "включение" : "выключение") + " FTP-пользователя '" + ftpUser.getName() + "'");
-                paramsHistory.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " FTP-пользователя '" + ftpUser.getName() + "'";
+                saveHistoryForOperatorService(account, historyMessage);
             }
 
         } catch (Exception e) {
@@ -542,12 +512,8 @@ public class AccountHelper {
 
                 businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
-                //Save history
-                paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на " + (state ? "включение" : "выключение") + " UNIX-аккаунта '" + unixAccount.getName() + "'");
-                paramsHistory.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " UNIX-аккаунта '" + unixAccount.getName() + "'";
+                saveHistoryForOperatorService(account, historyMessage);
             }
 
         } catch (Exception e) {
@@ -557,27 +523,12 @@ public class AccountHelper {
     }
 
     public void setWritableForAccountQuotaServices(PersonalAccount account, Boolean state) {
-        Map<String, String> paramsHistory;
 
         try {
             Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
 
             for (UnixAccount unixAccount : unixAccounts) {
-                SimpleServiceMessage message = new SimpleServiceMessage();
-                message.setParams(new HashMap<>());
-                message.setAccountId(account.getId());
-                message.addParam("resourceId", unixAccount.getId());
-                message.addParam("writable", state);
-
-                businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
-
-                //Save history
-                paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на " + (state ? "включение" : "выключение") +
-                        " возможности записывать данные (writable) для UNIX-аккаунта '" + unixAccount.getName() + "'");
-                paramsHistory.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                setWritableForUnixAccount(account, unixAccount, state);
             }
 
         } catch (Exception e) {
@@ -590,21 +541,7 @@ public class AccountHelper {
             Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
 
             for (Mailbox mailbox : mailboxes) {
-                SimpleServiceMessage message = new SimpleServiceMessage();
-                message.setParams(new HashMap<>());
-                message.setAccountId(account.getId());
-                message.addParam("resourceId", mailbox.getId());
-                message.addParam("writable", state);
-
-                businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
-
-                //Save history
-                paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на " + (state ? "включение" : "выключение") +
-                        " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getName() + "'");
-                paramsHistory.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                setWritableForMailbox(account, mailbox, state);
             }
 
         } catch (Exception e) {
@@ -617,21 +554,7 @@ public class AccountHelper {
             Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
 
             for (Database database : databases) {
-                SimpleServiceMessage message = new SimpleServiceMessage();
-                message.setParams(new HashMap<>());
-                message.setAccountId(account.getId());
-                message.addParam("resourceId", database.getId());
-                message.addParam("writable", state);
-
-                businessActionBuilder.build(BusinessActionType.DATABASE_UPDATE_RC, message);
-
-                //Save history
-                paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на " + (state ? "включение" : "выключение") +
-                        " возможности записывать данные (writable) для базы данных '" + database.getName() + "'");
-                paramsHistory.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                setWritableForDatabase(account, database, state);
             }
 
         } catch (Exception e) {
@@ -654,13 +577,9 @@ public class AccountHelper {
 
                 businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
-                //Save history
-                Map<String, String> paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на установку новой квоты в значение '" + quotaInBytes +
-                        " байт' для UNIX-аккаунта '" + unixAccount.getName() + "'");
-                paramsHistory.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                String historyMessage = "Отправлена заявка на установку новой квоты в значение '" + quotaInBytes +
+                                        " байт' для UNIX-аккаунта '" + unixAccount.getName() + "'";
+                saveHistoryForOperatorService(account, historyMessage);
             }
 
         } catch (Exception e) {
@@ -681,12 +600,8 @@ public class AccountHelper {
 
             businessActionBuilder.build(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
 
-            //Save history
-            Map<String, String> paramsHistory = new HashMap<>();
-            paramsHistory.put(HISTORY_MESSAGE_KEY, "Отправлена заявка на выключение SSL сертификата '" + sslCertificate.getName() + "'");
-            paramsHistory.put(OPERATOR_KEY, "service");
-
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+            String historyMessage = "Отправлена заявка на выключение SSL сертификата '" + sslCertificate.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
         }
 
     }
@@ -726,5 +641,145 @@ public class AccountHelper {
 
     public boolean hasActiveAbonement(PersonalAccount account) {
         return !accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getId(), LocalDateTime.now()).isEmpty();
+    }
+
+    public List<Quotable> getQuotableResources(PersonalAccount account) {
+        List<Quotable> quotableResources = new ArrayList<>();
+
+        try {
+            Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
+            quotableResources.addAll(unixAccounts);
+        } catch (Exception e) {
+            logger.error("get unixAccounts failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+
+        try {
+            Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+            quotableResources.addAll(mailboxes);
+        } catch (Exception e) {
+            logger.error("get Mailbox failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+
+        try {
+            Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+            quotableResources.addAll(databases);
+        } catch (Exception e) {
+            logger.error("get Database failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+        return quotableResources;
+    }
+
+    public List<Quotable> filterQuotableResoursesByWritableState(List<Quotable> quotableResources, boolean state) {
+        return quotableResources.stream().filter(
+                quotableResource -> (quotableResource.getWritable() == state)
+        ).collect(Collectors.toList());
+    }
+
+    public void setWritableForAccountQuotaServicesByList(PersonalAccount account, Boolean state, List<Quotable> resourses) {
+
+        for (Quotable resource: resourses) {
+            try {
+                if (resource instanceof UnixAccount) {
+
+                    setWritableForUnixAccount(account, (UnixAccount) resource, state);
+
+                } else if (resource instanceof Mailbox) {
+
+                    setWritableForMailbox(account, (Mailbox) resource, state);
+
+                } else if (resource instanceof Database) {
+
+                    setWritableForDatabase(account, (Database) resource, state);
+
+                } else {
+
+                    logger.error("can't cast resource [" + resource + "] for accountId: " + account.getId());
+                }
+            } catch (Exception e) {
+                logger.error("account resource [" + resource + "] writable switch failed for accountId: " + account.getId());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void setWritableForUnixAccount(PersonalAccount account, UnixAccount unixAccount, boolean state) {
+
+        try {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", unixAccount.getId());
+            message.addParam("writable", state);
+
+            businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
+                    " возможности записывать данные (writable) для UNIX-аккаунта '" + unixAccount.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+
+        } catch (Exception e) {
+            logger.error("account unixAccount [" + unixAccount.getId() + "] writable switch failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+    }
+
+    public void setWritableForMailbox(PersonalAccount account, Mailbox mailbox, boolean state) {
+
+        try {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", mailbox.getId());
+            message.addParam("writable", state);
+
+            businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
+                    " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+
+
+        } catch (Exception e) {
+            logger.error("account Mailbox [" + mailbox.getId() + "] writable switch failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+    }
+
+    public void setWritableForDatabase(PersonalAccount account, Database database, Boolean state) {
+
+        try {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", database.getId());
+            message.addParam("writable", state);
+
+            businessActionBuilder.build(BusinessActionType.DATABASE_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
+                    " возможности записывать данные (writable) для базы данных '" + database.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+
+        } catch (Exception e) {
+            logger.error("account Database [" + database.getName() + "] writable switch failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+    }
+
+    public void saveHistoryForOperatorService(PersonalAccount account, String message) {
+        this.saveHistory(account, message, "service");
+    }
+
+    public void saveHistory(PersonalAccount account, String message, String operator) {
+
+        Map<String, String> paramsHistory = new HashMap<>();
+        paramsHistory.put(HISTORY_MESSAGE_KEY, message);
+        paramsHistory.put(OPERATOR_KEY, "service");
+
+        publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+
     }
 }

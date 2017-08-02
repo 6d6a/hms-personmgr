@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
@@ -32,7 +33,6 @@ import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
-import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -44,10 +44,13 @@ public class DomainService {
     private final static Logger logger = LoggerFactory.getLogger(DomainService.class);
 
     private static TemporalAdjuster THIRTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(30));
+    private static TemporalAdjuster THIRTY_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(30));
     private static TemporalAdjuster SIXTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(60));
     private static TemporalAdjuster TWENTY_NINE_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(29));
     private static TemporalAdjuster THREE_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(3));
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
+    private static TemporalAdjuster FIFTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(50));
+    private static TemporalAdjuster TWENTY_FIVE_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(25));
 
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountHelper accountHelper;
@@ -60,6 +63,7 @@ public class DomainService {
     private final AccountPromotionManager accountPromotionManager;
     private final BusinessOperationBuilder businessOperationBuilder;
     private final PromotionRepository promotionRepository;
+    private final AccountNotificationHelper accountNotificationHelper;
 
     @Autowired
     public DomainService(
@@ -73,7 +77,8 @@ public class DomainService {
             PersonalAccountManager accountManager,
             AccountPromotionManager accountPromotionManager,
             BusinessOperationBuilder businessOperationBuilder,
-            PromotionRepository promotionRepository
+            PromotionRepository promotionRepository,
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
@@ -86,90 +91,63 @@ public class DomainService {
         this.accountPromotionManager = accountPromotionManager;
         this.businessOperationBuilder = businessOperationBuilder;
         this.promotionRepository = promotionRepository;
+        this.accountNotificationHelper = accountNotificationHelper;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
-        //В итоге нам нужно получить домены которые заканчиваются через 30 дней или между 14 "до" и 3 днями "после" окончания
 
-        //Ищем paidTill равный +30 дням от текущей даты
-        LocalDate paidTillStart = LocalDate.now().with(THIRTY_DAYS_AFTER);
-        LocalDate paidTillEnd = LocalDate.now().with(THIRTY_DAYS_AFTER);
+        try {
+            LocalDate paidTillStart = LocalDate.now().with(THIRTY_DAYS_BEFORE);
+            LocalDate paidTillEnd = LocalDate.now().with(THIRTY_DAYS_AFTER);
 
-        logger.debug("Trying to find all expiring domains from paidTillStart: "
-                + paidTillStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                + " to paidTillEnd: " + paidTillEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-        );
+            logger.debug("Trying to find all expiring domains from paidTillStart: "
+                    + paidTillStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                    + " to paidTillEnd: " + paidTillEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            );
 
-        List<Domain> domains = rcUserFeignClient.getExpiringDomainsByAccount(
-                account.getId(),
-                paidTillStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                paidTillEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-        );
-
-        //Ищем paidTill начиная с 3 дней до текущей даты
-        paidTillStart = LocalDate.now().with(THREE_DAYS_BEFORE);
-        //И закакнчивая 14 днями после текущей даты
-        paidTillEnd = LocalDate.now().with(FOURTEEN_DAYS_AFTER);
-
-        logger.debug("Trying to find expiring domains from paidTillStart: "
-                + paidTillStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                + " to paidTillEnd: " + paidTillEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-        );
-
-        domains.addAll(rcUserFeignClient.getExpiringDomainsByAccount(
-                account.getId(),
-                paidTillStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                paidTillEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-        ));
-
-        if (domains.isEmpty()) {
-            logger.debug("Not found expiring domains for accountId: " + account.getId());
-        }
-
-        domains.forEach(domain -> logger.debug("We found expiring domain: " + domain));
-
-        if (!domains.isEmpty() && account.hasNotification(MailManagerMessageType.EMAIL_DOMAIN_DELEGATION_ENDING)) {
-            BigDecimal balance = accountHelper.getBalance(account);
-
-            String domainsForMail = "";
-            for (Domain domain : domains) {
-                String autoRenew = domain.getAutoRenew() ? "включено" : "выключено";
-                domainsForMail += String.format(
-                        "%-20s - %s - %-10s<br>",
-                        domain.getName(),
-                        domain.getRegSpec().getPaidTill().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                        autoRenew
-                );
+            List<Domain> domains = rcUserFeignClient.getExpiringDomainsByAccount(
+                    account.getId(),
+                    paidTillStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                    paidTillEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            );
+            if (domains.isEmpty()) {
+                logger.debug("Not found expiring domains for accountId: " + account.getId());
+                return;
             }
 
-            //Отправим письмо
-            String email = accountHelper.getEmail(account);
+            List<Domain> expiringDomains = new ArrayList<>();
+            List<Domain> expiredDomains = new ArrayList<>();
+            List<Integer> daysBeforeExpired = Arrays.asList(30, 25, 20, 15, 10, 7, 5, 3, 2, 1);
+            List<Integer> daysAfterExpered = Arrays.asList(1, 5, 10, 15, 20, 25, 30);
+            int days = 0;
 
-            SimpleServiceMessage message = new SimpleServiceMessage();
+            for (Domain domain : domains) {
+                days = ((Long) ChronoUnit.DAYS.between(domain.getRegSpec().getPaidTill(), LocalDate.now())).intValue();
+                if (daysBeforeExpired.contains(days)) {
+                    expiringDomains.add(domain);
+                } else if (daysAfterExpered.contains(-days)) {
+                    expiredDomains.add(domain);
+                }
+            }
 
-            message.setAccountId(account.getId());
-            message.setParams(new HashMap<>());
-            message.addParam("email", email);
-            message.addParam("api_name", "MajordomoHMSVHDomainsExpires");
-            message.addParam("priority", 10);
-
-            HashMap<String, String> parameters = new HashMap<>();
-            parameters.put("acc_id", account.getName());
-            parameters.put("domains", domainsForMail);
-            parameters.put("balance", formatBigDecimalWithCurrency(balance));
-            parameters.put("from", "noreply@majordomo.ru");
-
-            message.addParam("parametrs", parameters);
-
-            publisher.publishEvent(new SendMailEvent(message));
+            domains.forEach(domain -> logger.debug("We found expiring domain: " + domain));
+            if (!expiringDomains.isEmpty()) {
+                sendMailForExpiringAndExpiredDomain(account, expiringDomains, false);
+            }
+            if (!expiredDomains.isEmpty()) {
+                sendMailForExpiringAndExpiredDomain(account, expiredDomains, true);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.service.DomainService.processExpiringDomainsByAccount " + e.getMessage());
         }
     }
 
     public void processDomainsAutoRenewByAccount(PersonalAccount account) {
-        //Ищем paidTill начиная с текущей даты
-        LocalDate paidTillStart = LocalDate.now();
-        //И закакнчивая 30 днями после текущей даты
-        LocalDate paidTillEnd = LocalDate.now().with(THIRTY_DAYS_AFTER);
+        //Ищем paidTill начиная с 25 дней до текущей даты
+        LocalDate paidTillStart = LocalDate.now().with(TWENTY_FIVE_DAYS_BEFORE);
+        //И закакнчивая 50 днями после текущей даты
+        LocalDate paidTillEnd = LocalDate.now().with(FIFTY_DAYS_AFTER);
 
         logger.debug("Trying to find domains for AutoRenew from paidTillStart: "
                 + paidTillStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
@@ -189,83 +167,71 @@ public class DomainService {
         domains.forEach(domain -> logger.debug("We found domain for AutoRenew: " + domain));
 
         for (Domain domain : domains) {
-            BigDecimal balance = accountHelper.getBalance(account);
 
-            DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domain.getName(), domain.getRegSpec().getRegistrar());
+            if (domain.getAutoRenew()) {
 
-            //TODO Стоимость может быть со скидкой
-            //например для ac_99521 ru, рф по 150
-            //TODO Домен может быть премиальным и стоимость продления нужно проверить на reg-rpc
-            //domains_get_premium_pricing($domain, 'renew');
-            try {
-                accountHelper.checkBalance(account, domainTld.getRenewService());
-            } catch (LowBalanceException e) {
-                //Если денег не хватает
-                //Запишем попытку в историю клиента
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Автоматическое продление " + domain.getName() + " невозможно, на счету " + balance + " руб.");
-                params.put(OPERATOR_KEY, "service");
+                BigDecimal balance = accountHelper.getBalance(account);
 
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domain.getName(), domain.getRegSpec().getRegistrar());
 
-                //Отправим письмо
-                String email = accountHelper.getEmail(account);
-
-                SimpleServiceMessage message = new SimpleServiceMessage();
-
-                message.setAccountId(account.getId());
-                message.setParams(new HashMap<>());
-                message.addParam("email", email);
-                message.addParam("api_name", "MajordomoVHNomoneyProlong");
-                message.addParam("priority", 10);
-
-                HashMap<String, String> parameters = new HashMap<>();
-                parameters.put("client_id", message.getAccountId());
-                parameters.put("acc_id", account.getName());
-                parameters.put("domen", domain.getName());
-                parameters.put("from", "noreply@majordomo.ru");
-
-                message.addParam("parametrs", parameters);
-
-                publisher.publishEvent(new SendMailEvent(message));
-
-                String smsPhone = account.getSmsPhoneNumber();
-
-                //Если подключено СМС-уведомление, то также отправим его
-                if (account.hasNotification(MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN)
-                        && smsPhone != null
-                        && !smsPhone.equals("")) {
-                    message = new SimpleServiceMessage();
-
-                    message.setAccountId(account.getId());
-                    message.setParams(new HashMap<>());
-                    message.addParam("phone", smsPhone);
-                    message.addParam("api_name", "MajordomoNoMoneyToAutoRenewDomain");
-                    message.addParam("priority", 10);
-
-                    parameters = new HashMap<>();
-                    parameters.put("client_id", message.getAccountId());
-                    parameters.put("domain", domain.getName());
-
-                    message.addParam("parametrs", parameters);
-
-                    publisher.publishEvent(new SendSmsEvent(message));
+                AvailabilityInfo availabilityInfo = domainRegistrarFeignClient.getAvailabilityInfo(domain.getName());
+                if (availabilityInfo.getPremiumPrice() != null && (availabilityInfo.getPremiumPrice().compareTo(BigDecimal.ZERO) > 0)) {
+                    domainTld.getRenewService().setCost(availabilityInfo.getPremiumPrice());
                 }
+                try {
+                    accountHelper.checkBalance(account, domainTld.getRenewService());
+                } catch (LowBalanceException e) {
+                    //Если денег не хватает
+                    //Запишем попытку в историю клиента
+                    accountHelper.saveHistoryForOperatorService(account, "Автоматическое продление " + domain.getName() + " невозможно, на счету " + balance + " руб.");
+
+                    //Отправим письмо
+                    HashMap<String, String> parameters = new HashMap<>();
+                    parameters.put("client_id", account.getAccountId());
+                    parameters.put("acc_id", account.getName());
+                    parameters.put("domen", domain.getName());
+                    parameters.put("from", "noreply@majordomo.ru");
+
+                    accountNotificationHelper.sendMail(account, "MajordomoVHNomoneyProlong", 10, parameters);
+
+                    String smsPhone = account.getSmsPhoneNumber();
+
+                    //Если подключено СМС-уведомление, то также отправим его
+                    if (account.hasNotification(MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN)
+                            && smsPhone != null
+                            && !smsPhone.equals("")) {
+                        SimpleServiceMessage message = new SimpleServiceMessage();
+
+                        message.setAccountId(account.getId());
+                        message.setParams(new HashMap<>());
+                        message.addParam("phone", smsPhone);
+                        message.addParam("api_name", "MajordomoNoMoneyToAutoRenewDomain");
+                        message.addParam("priority", 10);
+
+                        parameters = new HashMap<>();
+                        parameters.put("client_id", message.getAccountId());
+                        parameters.put("domain", domain.getName());
+
+                        message.addParam("parametrs", parameters);
+
+                        publisher.publishEvent(new SendSmsEvent(message));
+                    }
+                }
+
+                SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRenewService());
+
+                String documentNumber = (String) blockResult.getParam("documentNumber");
+
+                SimpleServiceMessage domainRenewMessage = new SimpleServiceMessage();
+
+                domainRenewMessage.setAccountId(account.getId());
+                domainRenewMessage.addParam(RESOURCE_ID_KEY, domain.getId());
+                domainRenewMessage.addParam("renew", true);
+                domainRenewMessage.addParam(AUTO_RENEW_KEY, true);
+                domainRenewMessage.addParam("documentNumber", documentNumber);
+
+                businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, domainRenewMessage);
             }
-
-            SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRenewService());
-
-            String documentNumber = (String) blockResult.getParam("documentNumber");
-
-            SimpleServiceMessage domainRenewMessage = new SimpleServiceMessage();
-
-            domainRenewMessage.setAccountId(account.getId());
-            domainRenewMessage.addParam(RESOURCE_ID_KEY, domain.getId());
-            domainRenewMessage.addParam("renew", true);
-            domainRenewMessage.addParam(AUTO_RENEW_KEY, true);
-            domainRenewMessage.addParam("documentNumber", documentNumber);
-
-            businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, domainRenewMessage);
         }
     }
 
@@ -501,5 +467,31 @@ public class DomainService {
         }
 
         return availabilityInfo;
+    }
+
+    private void sendMailForExpiringAndExpiredDomain(PersonalAccount account, List<Domain> domains, boolean expired){
+
+        BigDecimal balance = accountHelper.getBalance(account);
+
+        String domainsForMail = "";
+        for (Domain domain : domains) {
+            String autoRenew = domain.getAutoRenew() ? "включено" : "выключено";
+            domainsForMail += String.format(
+                    "%-20s - %s - %-10s<br>",
+                    domain.getName(),
+                    domain.getRegSpec().getPaidTill().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                    autoRenew
+            );
+        }
+
+        //Отправим письмо
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("acc_id", account.getName());
+        parameters.put("domains", domainsForMail);
+        parameters.put("balance", formatBigDecimalWithCurrency(balance));
+        parameters.put("from", "noreply@majordomo.ru");
+        accountNotificationHelper.sendMail(account,
+                expired ? "MajordomoHMSVHDomainsAfterExpired" : "MajordomoHMSVHDomainsExpires",
+                10, parameters);
     }
 }

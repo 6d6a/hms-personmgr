@@ -16,12 +16,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.*;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
@@ -60,7 +58,8 @@ public class AccountEventListener {
     private final PersonalAccountManager accountManager;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountNotificationHelper accountNotificationHelper;
-    private final PersonalAccountRepository personalAccountRepository;
+    private final BizMailFeignClient bizMailFeignClient;
+    private final PaymentChargesProcessorService paymentChargesProcessorService;
 
     @Autowired
     public AccountEventListener(
@@ -77,7 +76,8 @@ public class AccountEventListener {
             PersonalAccountManager accountManager,
             AccountAbonementManager accountAbonementManager,
             AccountNotificationHelper accountNotificationHelper,
-            PersonalAccountRepository personalAccountRepository
+            BizMailFeignClient bizMailFeignClient,
+            PaymentChargesProcessorService paymentChargesProcessorService
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -92,7 +92,8 @@ public class AccountEventListener {
         this.accountManager = accountManager;
         this.accountAbonementManager = accountAbonementManager;
         this.accountNotificationHelper = accountNotificationHelper;
-        this.personalAccountRepository = personalAccountRepository;
+        this.bizMailFeignClient = bizMailFeignClient;
+        this.paymentChargesProcessorService = paymentChargesProcessorService;
     }
 
     @EventListener
@@ -103,14 +104,6 @@ public class AccountEventListener {
 
         logger.debug("We got AccountCreatedEvent");
 
-        String emails = accountHelper.getEmail(account);
-
-        SimpleServiceMessage message = new SimpleServiceMessage();
-        message.setParams(new HashMap<>());
-        message.addParam("email", emails);
-        message.addParam("api_name", "MajordomoHMSClientCreatedConfirmation");
-        message.addParam("priority", 10);
-
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
         parameters.put(PASSWORD_KEY, (String) params.get(PASSWORD_KEY));
@@ -118,9 +111,7 @@ public class AccountEventListener {
         parameters.put("ftp_login", "FTP_LOGIN");
         parameters.put("ftp_password", "FTP_PASSWORD");
 
-        message.addParam("parametrs", parameters);
-
-        publisher.publishEvent(new SendMailEvent(message));
+        accountNotificationHelper.sendMail(account, "MajordomoHMSClientCreatedConfirmation", 10, parameters);
     }
 
     @EventListener
@@ -131,26 +122,14 @@ public class AccountEventListener {
 
         logger.debug("We got AccountQuotaAddedEvent");
 
-        String email = accountHelper.getEmail(account);
         String planName = (String) params.get(SERVICE_NAME_KEY);
 
-        SimpleServiceMessage message = new SimpleServiceMessage();
-
-        message.setAccountId(account.getId());
-        message.setParams(new HashMap<>());
-        message.addParam("email", email);
-        message.addParam("api_name", "MajordomoVHQuotaAdd");
-        message.addParam("priority", 10);
-
-
         HashMap<String, String> parameters = new HashMap<>();
-        parameters.put("client_id", message.getAccountId());
+        parameters.put("client_id", account.getAccountId());
         parameters.put("acc_id", account.getName());
         parameters.put("tariff", planName);
 
-        message.addParam("parametrs", parameters);
-
-        publisher.publishEvent(new SendMailEvent(message));
+        accountNotificationHelper.sendMail(account, "MajordomoVHQuotaAdd", 10, parameters);
     }
 
     @EventListener
@@ -161,32 +140,15 @@ public class AccountEventListener {
 
         logger.debug("We got AccountQuotaDiscardEvent");
 
-        String email = accountHelper.getEmail(account);
         String planName = (String) params.get(SERVICE_NAME_KEY);
 
-        SimpleServiceMessage message = new SimpleServiceMessage();
-
-        message.setAccountId(account.getId());
-        message.setParams(new HashMap<>());
-        message.addParam("email", email);
-        message.addParam("api_name", "MajordomoVHQuotaDiscard");
-        message.addParam("priority", 10);
-
-
         HashMap<String, String> parameters = new HashMap<>();
-        parameters.put("client_id", message.getAccountId());
+        parameters.put("client_id", account.getAccountId());
         parameters.put("acc_id", account.getName());
         parameters.put("tariff", planName);
-        List<Domain> domains = accountHelper.getDomains(account);
-        List<String> domainNames = new ArrayList<>();
-        for (Domain domain: domains) {
-            domainNames.add(domain.getName());
-        }
-        parameters.put("domains", String.join("<br>", domainNames));
+        parameters.put("domains", accountNotificationHelper.getDomainForEmail(account));
 
-        message.addParam("parametrs", parameters);
-
-        publisher.publishEvent(new SendMailEvent(message));
+        accountNotificationHelper.sendMail(account, "MajordomoVHQuotaDiscard", 10, parameters);
     }
 
     @EventListener
@@ -220,30 +182,14 @@ public class AccountEventListener {
 
         logger.debug("We got AccountNotifyRemainingDaysEvent");
 
-        String email = accountHelper.getEmail(account);
         Integer remainingDays = (Integer) params.get("remainingDays");
-
-        SimpleServiceMessage message = new SimpleServiceMessage();
-
-        message.setAccountId(account.getId());
-        message.setParams(new HashMap<>());
-        message.addParam("email", email);
-        message.addParam("api_name", "MajordomoVHMoneyLowLevel");
-        message.addParam("priority", 10);
 
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("acc_id", account.getName());
         parameters.put("days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
-        List<Domain> domains = accountHelper.getDomains(account);
-        List<String> domainNames = new ArrayList<>();
-        for (Domain domain : domains) {
-            domainNames.add(domain.getName());
-        }
-        parameters.put("domains", "<br>" + String.join("<br>", domainNames));
+        parameters.put("domains", accountNotificationHelper.getDomainForEmail(account));
 
-        message.addParam("parametrs", parameters);
-
-        publisher.publishEvent(new SendMailEvent(message));
+        accountNotificationHelper.sendMail(account, "MajordomoVHMoneyLowLevel", 10, parameters);
     }
 
     @EventListener
@@ -253,14 +199,6 @@ public class AccountEventListener {
         Map<String, ?> params = event.getParams();
 
         logger.debug("We got AccountPasswordRecoverEvent");
-
-        String emails = accountHelper.getEmail(account);
-
-        SimpleServiceMessage message = new SimpleServiceMessage();
-        message.setParams(new HashMap<>());
-        message.addParam("email", emails);
-        message.addParam("api_name", "MajordomoHMSPasswordChangeRequest");
-        message.addParam("priority", 10);
 
         String token = tokenHelper.generateToken(account, TokenType.PASSWORD_RECOVERY_REQUEST);
 
@@ -273,16 +211,10 @@ public class AccountEventListener {
         parameters.put("ip", ip);
         parameters.put("token", token);
 
-        message.addParam("parametrs", parameters);
-
-        publisher.publishEvent(new SendMailEvent(message));
+        accountNotificationHelper.sendMail(account, "MajordomoHMSPasswordChangeRequest", 10, parameters);
 
         //Запишем в историю клиента
-        Map<String, String> historyParams = new HashMap<>();
-        historyParams.put(HISTORY_MESSAGE_KEY, "Получена заявка на смену пароля к панели управления с IP: " + ip);
-        historyParams.put(OPERATOR_KEY, "service");
-
-        publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        accountHelper.saveHistoryForOperatorService(account, "Получена заявка на смену пароля к панели управления с IP: " + ip);
     }
 
     @EventListener
@@ -293,31 +225,17 @@ public class AccountEventListener {
 
         logger.debug("We got AccountPasswordRecoverConfirmedEvent");
 
-        String emails = accountHelper.getEmail(account);
-
-        SimpleServiceMessage message = new SimpleServiceMessage();
-        message.setParams(new HashMap<>());
-        message.addParam("email", emails);
-        message.addParam("api_name", "MajordomoVHResetPassConfirm");
-        message.addParam("priority", 10);
-
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
         parameters.put("acc_id", account.getName());
         parameters.put("pass", (String) params.get(PASSWORD_KEY));
 
-        message.addParam("parametrs", parameters);
-
-        publisher.publishEvent(new SendMailEvent(message));
+        accountNotificationHelper.sendMail(account, "MajordomoVHResetPassConfirm", 10, parameters);
 
         String ip = (String) params.get(IP_KEY);
 
         //Запишем в историю клиента
-        Map<String, String> historyParams = new HashMap<>();
-        historyParams.put(HISTORY_MESSAGE_KEY, "Произведена смена пароля к панели управления с IP: " + ip);
-        historyParams.put(OPERATOR_KEY, "service");
-
-        publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        accountHelper.saveHistoryForOperatorService(account, "Произведена смена пароля к панели управления с IP: " + ip);
     }
 
     @EventListener
@@ -331,11 +249,7 @@ public class AccountEventListener {
         String ip = (String) params.get(IP_KEY);
 
         //Запишем в историю клиента
-        Map<String, String> historyParams = new HashMap<>();
-        historyParams.put(HISTORY_MESSAGE_KEY, "Произведена смена пароля к панели управления с IP: " + ip);
-        historyParams.put(OPERATOR_KEY, "service");
-
-        publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        accountHelper.saveHistoryForOperatorService(account, "Произведена смена пароля к панели управления с IP: " + ip);
 
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("acc_id", account.getAccountId());
@@ -423,11 +337,11 @@ public class AccountEventListener {
                     logger.debug("Processed promocode addPayment: " + responseMessage);
 
                     //Save history
-                    Map<String, String> params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Произведено начисление процента от пополнения (" + promocodeBonus.toString() + " руб. от " + amount.toString() + " руб.) владельцу партнерского промокода" + accountPromocode.getPromocode().getCode() + " - " + accountForPartnerBonus.getName());
-                    params.put(OPERATOR_KEY, "service");
-
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    accountHelper.saveHistoryForOperatorService(account, "Произведено начисление процента от пополнения ("
+                            + promocodeBonus.toString() + " руб. от "
+                            + amount.toString() + " руб.) владельцу партнерского промокода"
+                            + accountPromocode.getPromocode().getCode() + " - " + accountForPartnerBonus.getName()
+                    );
 
                     //Статистика
                     AccountStat accountStat = new AccountStat();
@@ -484,9 +398,13 @@ public class AccountEventListener {
 
                 // Включаем аккаунт, если был выключен
                 if (!account.isActive()) {
-                    accountHelper.switchAccountResources(account, true);
-                    // сразу списываем за текущий день после включения (если не хватает - аккаунт снова выключится)
-                    publisher.publishEvent(new AccountProcessChargesEvent(account));
+                    // Ставим флаг активности для возможности списать средства
+                    account.setActive(true);
+                    // сразу списываем за текущий день
+                    Boolean success = paymentChargesProcessorService.processCharge(account);
+                    if (success) {
+                        accountHelper.switchAccountResources(account, true);
+                    }
                 }
             }
 
@@ -503,6 +421,12 @@ public class AccountEventListener {
                     } catch (Exception e) {
                         logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
                         e.printStackTrace();
+                    }
+                } else if (!account.isActive() && balance.compareTo(BigDecimal.ZERO) > 0) {
+                    account.setActive(true);
+                    Boolean success = paymentChargesProcessorService.processCharge(account);
+                    if (success) {
+                        accountHelper.switchAccountResources(account, true);
                     }
                 }
             }
@@ -548,7 +472,6 @@ public class AccountEventListener {
         logger.debug("We got AccountNotifyInactiveLongTimeEvent\n");
 
         LocalDateTime deactivatedDate = account.getDeactivated();
-        //LocalDateTime deactivatedDateMidnight = deactivatedDate.withHour(0).withMinute(0);
 
         List<AccountStatType> types = new ArrayList<>();
         types.add(AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
@@ -616,18 +539,23 @@ public class AccountEventListener {
                     apiName = "MajordomoHmsPromokodGoogle";
                     break;
 
-                /*//пока не готов сам bizmail, отправлять не надо
                 case 25:
                     //отправляем, если есть домены и ни один не привязан к biz.mail.ru
                     //делегирован домен на наши NS или нет - неважно
                     List<Domain> domains = accountHelper.getDomains(account);
-                    if (domains.isEmpty()) {
+                    if (domains == null || domains.isEmpty()) {
                         break;
                     }
-                    if (false) {
+                    List<Object> bizDomains = new ArrayList<>();
+                    try {
+                        bizDomains = bizMailFeignClient.getDomainsFromBizmail(account.getId());
+                    } catch (Exception e) {
+                        logger.error("Could not get domains from bizmail with account id [" + account.getId() + "] " + e.getMessage());
+                    }
+                    if (bizDomains != null && bizDomains.isEmpty()) {
                         apiName = "MajordomoHmsPochtaMailRu";
                     }
-                    break;*/
+                    break;
 
                 case 35:
                     apiName = "MajordomoHmsProdvigenie";

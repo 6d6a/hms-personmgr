@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -41,11 +42,15 @@ import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
+import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
+import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
+import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.service.*;
+import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.PlanChangeService;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
@@ -54,11 +59,7 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
-import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.IP_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_CHANGE;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_RECOVER;
@@ -74,6 +75,9 @@ public class PersonalAccountRestController extends CommonRestController {
     private final ApplicationEventPublisher publisher;
     private final AccountHelper accountHelper;
     private final TokenHelper tokenHelper;
+    private final NotificationRepository notificationRepository;
+    private final AccountServiceRepository accountServiceRepository;
+    private final AccountServiceHelper accountServiceHelper;
 
     @Autowired
     public PersonalAccountRestController(
@@ -83,7 +87,10 @@ public class PersonalAccountRestController extends CommonRestController {
             RcUserFeignClient rcUserFeignClient,
             ApplicationEventPublisher publisher,
             AccountHelper accountHelper,
-            TokenHelper tokenHelper
+            TokenHelper tokenHelper,
+            NotificationRepository notificationRepository,
+            AccountServiceRepository accountServiceRepository,
+            AccountServiceHelper accountServiceHelper
     ) {
         this.planRepository = planRepository;
         this.accountOwnerManager = accountOwnerManager;
@@ -92,6 +99,9 @@ public class PersonalAccountRestController extends CommonRestController {
         this.publisher = publisher;
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
+        this.notificationRepository = notificationRepository;
+        this.accountServiceRepository = accountServiceRepository;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     @RequestMapping(value = "/accounts",
@@ -480,26 +490,31 @@ public class PersonalAccountRestController extends CommonRestController {
 
         if (requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name()) != null) {
             String smsPhoneNumber = (String)requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name());
-            if (phoneValid(smsPhoneNumber)) {
-                accountManager.setSmsPhoneNumber(accountId, smsPhoneNumber);
 
-                //Save history
-                String operator = request.getUserPrincipal().getName();
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Установлен телефон для СМС-уведомлений на '" + smsPhoneNumber + "'");
-                params.put(OPERATOR_KEY, operator);
+            if (smsPhoneNumber.equals("") && accountServiceHelper.hasSmsNotifications(account)) {
+                throw new ParameterValidationException("SMSPhoneNumber can't be empty with active sms notifications.");
+            }
 
-                publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-            } else {
+            if (!phoneValid(smsPhoneNumber) && !smsPhoneNumber.equals("")) {
                 throw new ParameterValidationException("SMSPhoneNumber is not valid.");
             }
+
+            accountManager.setSmsPhoneNumber(accountId, smsPhoneNumber);
+
+            //Save history
+            String operator = request.getUserPrincipal().getName();
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Установлен телефон для СМС-уведомлений на '" + smsPhoneNumber + "'");
+            params.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
         }
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{accountId}/account/notifications",
-                    method = RequestMethod.PATCH)
+            method = RequestMethod.PATCH)
     public ResponseEntity<Object> setNotifications(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Set<MailManagerMessageType> notifications,
@@ -522,6 +537,43 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @RequestMapping(value = "/{accountId}/account/notifications/sms",
+                    method = RequestMethod.PATCH)
+    public ResponseEntity<Object> setSmsNotifications(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody Set<MailManagerMessageType> notifications,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (notifications.isEmpty() && accountServiceHelper.hasSmsNotifications(account)) {
+            throw new ParameterValidationException("Для отправки SMS-уведомлений необходимо выбрать хотя бы один вид уведомлений.");
+        }
+
+        setNotifications(account, notifications, "SMS_", request);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/{accountId}/account/notifications/email-news",
+            method = RequestMethod.POST)
+    public ResponseEntity<Object> addNotification(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody Map<String, Object> requestBody,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        try {
+            boolean newState = (boolean) requestBody.get("enabled");
+            setNotification(accountId, MailManagerMessageType.EMAIL_NEWS, newState, request);
+        } catch (ClassCastException e) {
+            return new ResponseEntity<>(
+                    this.createErrorResponse("Некорректный параметр запроса."),
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @RequestMapping(value = "/is_subscribed_account",
                     method = RequestMethod.GET)
@@ -538,5 +590,84 @@ public class PersonalAccountRestController extends CommonRestController {
         isSubscribedResult.put("is_subscribed", account.hasNotification(MailManagerMessageType.EMAIL_NEWS));
 
         return new ResponseEntity<>(isSubscribedResult, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
+    @RequestMapping(value = "/{accountId}/account/toggle_state",
+            method = RequestMethod.POST)
+    public ResponseEntity<Object> toggleAccount(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        accountHelper.switchAccountResources(account, !account.isActive());
+
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Аккаунт " + (!account.isActive() ? "включен" : "выключен"));
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    private void setNotifications(PersonalAccount account, Set<MailManagerMessageType> notifications, String pattern, SecurityContextHolderAwareRequestWrapper request) {
+
+        Set<MailManagerMessageType> oldNotifications = account.getNotifications();
+
+        //Получаем список только изменяемых уведомлений
+        notifications = notifications.stream()
+                .filter(mailManagerMessageType -> mailManagerMessageType.name().startsWith(pattern))
+                .collect(Collectors.toSet());
+
+        String newNotificationsAsString = notifications.toString();
+        String oldNotificationsAsString = oldNotifications.stream()
+                .filter(mailManagerMessageType -> mailManagerMessageType.name().startsWith(pattern))
+                .toString();
+
+        //К списку уведомлений добавляем все текущие другие уведомления
+        notifications.addAll(
+                oldNotifications.stream()
+                        .filter(mailManagerMessageType -> !mailManagerMessageType.name().startsWith(pattern))
+                        .collect(Collectors.toSet()
+                        )
+        );
+
+        accountManager.setNotifications(account.getId(), notifications);
+
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        String message = "Уведомления [" + pattern + "] изменены c [" + oldNotificationsAsString + "] на [" + newNotificationsAsString + "]";
+        addHistoryMessage(operator, account.getId(), message);
+    }
+
+    private void setNotification(String accountId, MailManagerMessageType messageType, boolean state, SecurityContextHolderAwareRequestWrapper request) {
+
+        PersonalAccount account = accountManager.findOne(accountId);
+        boolean change = false;
+        Set<MailManagerMessageType> notifications = account.getNotifications();
+        Notification notification = notificationRepository.findByType(messageType);
+        if (notification == null) {
+            return;
+        }
+
+        if (!notifications.contains(messageType)
+                && state) {
+            notifications.add(messageType);
+            change = true;
+        } else if (notifications.contains(messageType)
+                && !state) {
+            notifications.remove(messageType);
+            change = true;
+        }
+        if (change) {
+            accountManager.setNotifications(accountId, notifications);
+            String operator = request.getUserPrincipal().getName();
+            String notificationName = notification.getName();
+            String message = notificationName + (state ? " включено." : " отключено.");
+            addHistoryMessage(operator, accountId, message);
+        }
     }
 }
