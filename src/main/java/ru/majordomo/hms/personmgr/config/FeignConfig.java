@@ -13,6 +13,7 @@ import org.springframework.web.context.request.RequestContextListener;
 
 import java.util.Collections;
 
+import feign.Request;
 import feign.RequestInterceptor;
 import ru.majordomo.hms.personmgr.security.OAuth2FeignRequestInterceptor;
 
@@ -35,6 +36,12 @@ public class FeignConfig {
 
     @Value("${si_oauth.servicePassword}")
     private String password;
+
+    @Value("${service.feign.connectTimeout:30000}")
+    private int connectTimeout;
+
+    @Value("${service.feign.readTimeOut:120000}")
+    private int readTimeout;
 
     @Bean
     public RequestInterceptor oauth2FeignRequestInterceptor(){
@@ -60,4 +67,10 @@ public class FeignConfig {
     @Bean public RequestContextListener requestContextListener(){
         return new RequestContextListener();
     }
+
+    @Bean
+    public Request.Options options() {
+        return new Request.Options(connectTimeout, readTimeout);
+    }
+
 }

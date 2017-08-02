@@ -19,6 +19,7 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.rc.user.resources.Quotable;
 
 import static java.lang.Math.ceil;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_CAPACITY;
@@ -121,16 +122,23 @@ public class AccountQuotaService {
             } else {
                 // Если НЕ стоит флаг добавления дополнительнго места
                 logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
-                        + " account isAddQuotaIfOverquoted == false. " +
-                        "Sending mail and setting writable to false to resources");
-                // Устанавливаем writable false для ресурсов
-                accountHelper.setWritableForAccountQuotaServices(account, false);
+                        + " account isAddQuotaIfOverquoted == false. ");
 
-                Map<String, String> params = new HashMap<>();
-                params.put(SERVICE_NAME_KEY, plan.getName());
+                //Ищем quotable - ресурсы, которые надо выключить
+                List<Quotable> resourses = accountHelper.filterQuotableResoursesByWritableState(
+                        accountHelper.getQuotableResources(account), true);
 
-                // Письмо юзеру
-                publisher.publishEvent(new AccountQuotaDiscardEvent(account, params));
+                // если writable=true ресурсы найдены, отправляется письмо и выключаются включенные ресурсы
+                if (resourses != null && !resourses.isEmpty()) {
+                    // Устанавливаем writable false для ресурсов
+                    accountHelper.setWritableForAccountQuotaServicesByList(account, false, resourses);
+
+                    logger.debug("Sending mail and setting writable to false to resources");
+
+                    Map<String, String> params = new HashMap<>();
+                    params.put(SERVICE_NAME_KEY, plan.getName());
+                    publisher.publishEvent(new AccountQuotaDiscardEvent(account, params));
+                }
             }
         } else {
             // Превышения нет

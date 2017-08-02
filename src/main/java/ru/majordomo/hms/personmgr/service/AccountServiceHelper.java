@@ -93,7 +93,7 @@ public class AccountServiceHelper {
     }
 
     /**
-     * Оюновляем услугу
+     * Обновляем услугу
      *
      * @param account   Аккаунт
      * @param serviceId id услуги
