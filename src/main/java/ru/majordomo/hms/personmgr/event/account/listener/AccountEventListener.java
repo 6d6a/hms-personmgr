@@ -16,12 +16,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.*;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
@@ -61,6 +59,7 @@ public class AccountEventListener {
     private final AccountAbonementManager accountAbonementManager;
     private final AccountNotificationHelper accountNotificationHelper;
     private final BizMailFeignClient bizMailFeignClient;
+    private final PaymentChargesProcessorService paymentChargesProcessorService;
 
     @Autowired
     public AccountEventListener(
@@ -77,7 +76,8 @@ public class AccountEventListener {
             PersonalAccountManager accountManager,
             AccountAbonementManager accountAbonementManager,
             AccountNotificationHelper accountNotificationHelper,
-            BizMailFeignClient bizMailFeignClient
+            BizMailFeignClient bizMailFeignClient,
+            PaymentChargesProcessorService paymentChargesProcessorService
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -93,6 +93,7 @@ public class AccountEventListener {
         this.accountAbonementManager = accountAbonementManager;
         this.accountNotificationHelper = accountNotificationHelper;
         this.bizMailFeignClient = bizMailFeignClient;
+        this.paymentChargesProcessorService = paymentChargesProcessorService;
     }
 
     @EventListener
@@ -397,9 +398,13 @@ public class AccountEventListener {
 
                 // Включаем аккаунт, если был выключен
                 if (!account.isActive()) {
-                    accountHelper.switchAccountResources(account, true);
-                    // сразу списываем за текущий день после включения (если не хватает - аккаунт снова выключится)
-                    publisher.publishEvent(new AccountProcessChargesEvent(account));
+                    // Ставим флаг активности для возможности списать средства
+                    account.setActive(true);
+                    // сразу списываем за текущий день
+                    Boolean success = paymentChargesProcessorService.processCharge(account);
+                    if (success) {
+                        accountHelper.switchAccountResources(account, true);
+                    }
                 }
             }
 
@@ -416,6 +421,12 @@ public class AccountEventListener {
                     } catch (Exception e) {
                         logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
                         e.printStackTrace();
+                    }
+                } else if (!account.isActive() && balance.compareTo(BigDecimal.ZERO) > 0) {
+                    account.setActive(true);
+                    Boolean success = paymentChargesProcessorService.processCharge(account);
+                    if (success) {
+                        accountHelper.switchAccountResources(account, true);
                     }
                 }
             }
@@ -461,7 +472,6 @@ public class AccountEventListener {
         logger.debug("We got AccountNotifyInactiveLongTimeEvent\n");
 
         LocalDateTime deactivatedDate = account.getDeactivated();
-        //LocalDateTime deactivatedDateMidnight = deactivatedDate.withHour(0).withMinute(0);
 
         List<AccountStatType> types = new ArrayList<>();
         types.add(AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);

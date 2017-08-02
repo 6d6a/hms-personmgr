@@ -56,7 +56,9 @@ public class PaymentChargesProcessorService {
         this.processCharge(account);
     }
 
-    public void processCharge(PersonalAccount account) {
+    public Boolean processCharge(PersonalAccount account) {
+
+        Boolean success = true;
 
         if (account.isActive()) {
 
@@ -106,6 +108,7 @@ public class PaymentChargesProcessorService {
                             if ( creditActivationDate.isBefore(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {
                                 // Выключаем аккаунт, если срок кредита истёк
                                 accountHelper.switchAccountResources(account, false);
+                                success = false;
                                 accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
                                 accountNotificationHelper.sendMailForDeactivatedAccount(account);
 
@@ -134,6 +137,7 @@ public class PaymentChargesProcessorService {
             if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0) {
                 if (!account.isCredit()) {
                     accountHelper.switchAccountResources(account, false);
+                    success = false;;
                     accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
                     accountNotificationHelper.sendMailForDeactivatedAccount(account);
                 } else if (account.getCreditActivationDate() == null) {
@@ -160,6 +164,8 @@ public class PaymentChargesProcessorService {
             }
 
         }
+
+        return success;
     }
 
     private void makeCharge(PersonalAccount paymentAccount, AccountService accountService, BigDecimal cost, LocalDateTime chargeDate, Boolean forceCharge) {
