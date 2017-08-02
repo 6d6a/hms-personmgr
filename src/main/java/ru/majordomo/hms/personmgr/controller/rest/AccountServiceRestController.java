@@ -40,6 +40,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.ANTI_SPAM_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.ENABLED_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
+import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SERVICE_CREATE;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SERVICE_ENABLE;
 
@@ -176,7 +177,7 @@ public class AccountServiceRestController extends CommonRestController {
                     .collect(Collectors.toSet());
 
             boolean smsNotificationsEmpty = smsNotifications.isEmpty();
-            boolean phoneInvalid = account.getSmsPhoneNumber() == null || !Utils.isPhoneValid(account.getSmsPhoneNumber());
+            boolean phoneInvalid = account.getSmsPhoneNumber() == null || !phoneValid(account.getSmsPhoneNumber());
             if (smsNotificationsEmpty || phoneInvalid) {
                 String message;
                 if (smsNotificationsEmpty && phoneInvalid) {
