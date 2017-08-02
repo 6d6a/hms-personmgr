@@ -490,8 +490,8 @@ public class AccountEventListener {
                     // Ставим флаг активности для возможности списать средства
                     account.setActive(true);
                     // сразу списываем за текущий день
-                    Boolean accountWasDisabled = paymentChargesProcessorService.processCharge(account);
-                    if (!accountWasDisabled) {
+                    Boolean success = paymentChargesProcessorService.processCharge(account);
+                    if (success) {
                         accountHelper.switchAccountResources(account, true);
                     }
                 }
@@ -513,8 +513,8 @@ public class AccountEventListener {
                     }
                 } else if (!account.isActive() && balance.compareTo(BigDecimal.ZERO) > 0) {
                     account.setActive(true);
-                    Boolean accountWasDisabled = paymentChargesProcessorService.processCharge(account);
-                    if (!accountWasDisabled) {
+                    Boolean success = paymentChargesProcessorService.processCharge(account);
+                    if (success) {
                         accountHelper.switchAccountResources(account, true);
                     }
                 }
