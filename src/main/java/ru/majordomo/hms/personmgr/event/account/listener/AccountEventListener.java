@@ -61,6 +61,7 @@ public class AccountEventListener {
     private final AccountAbonementManager accountAbonementManager;
     private final AccountNotificationHelper accountNotificationHelper;
     private final PersonalAccountRepository personalAccountRepository;
+    private final PaymentChargesProcessorService paymentChargesProcessorService;
 
     @Autowired
     public AccountEventListener(
@@ -77,7 +78,8 @@ public class AccountEventListener {
             PersonalAccountManager accountManager,
             AccountAbonementManager accountAbonementManager,
             AccountNotificationHelper accountNotificationHelper,
-            PersonalAccountRepository personalAccountRepository
+            PersonalAccountRepository personalAccountRepository,
+            PaymentChargesProcessorService paymentChargesProcessorService
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -93,6 +95,7 @@ public class AccountEventListener {
         this.accountAbonementManager = accountAbonementManager;
         this.accountNotificationHelper = accountNotificationHelper;
         this.personalAccountRepository = personalAccountRepository;
+        this.paymentChargesProcessorService = paymentChargesProcessorService;
     }
 
     @EventListener
@@ -484,9 +487,13 @@ public class AccountEventListener {
 
                 // Включаем аккаунт, если был выключен
                 if (!account.isActive()) {
-                    accountHelper.switchAccountResources(account, true);
-                    // сразу списываем за текущий день после включения (если не хватает - аккаунт снова выключится)
-                    publisher.publishEvent(new AccountProcessChargesEvent(account));
+                    // Ставим флаг активности для возможности списать средства
+                    account.setActive(true);
+                    // сразу списываем за текущий день
+                    Boolean success = paymentChargesProcessorService.processCharge(account);
+                    if (success) {
+                        accountHelper.switchAccountResources(account, true);
+                    }
                 }
             }
 
@@ -503,6 +510,12 @@ public class AccountEventListener {
                     } catch (Exception e) {
                         logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
                         e.printStackTrace();
+                    }
+                } else if (!account.isActive() && balance.compareTo(BigDecimal.ZERO) > 0) {
+                    account.setActive(true);
+                    Boolean success = paymentChargesProcessorService.processCharge(account);
+                    if (success) {
+                        accountHelper.switchAccountResources(account, true);
                     }
                 }
             }
