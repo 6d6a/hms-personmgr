@@ -148,11 +148,7 @@ public class AccountPromocodeDBImportService {
     }
 
     public void clean(String accountId) {
-        List<AccountPromocode> accountPromocodes = accountPromocodeRepository.findByOwnerPersonalAccountId(accountId);
-
-        if (!accountPromocodes.isEmpty()) {
-            accountPromocodeRepository.delete(accountPromocodes);
-        }
+        accountPromocodeRepository.deleteByOwnerPersonalAccountId(accountId);
     }
 
     public boolean importToMongo() {

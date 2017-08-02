@@ -166,10 +166,7 @@ public class AccountServicesDBImportService {
     }
 
     public void clean(String accountId) {
-        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountId(accountId);
-        if (accountServices != null && !accountServices.isEmpty()) {
-            accountServiceRepository.delete(accountServices);
-        }
+        accountServiceRepository.deleteByPersonalAccountId(accountId);
     }
 
     public boolean importToMongo() {

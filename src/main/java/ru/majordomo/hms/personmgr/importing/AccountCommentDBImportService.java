@@ -90,10 +90,7 @@ public class AccountCommentDBImportService {
     }
 
     public void clean(String accountId) {
-        List<AccountComment> accountComments = accountCommentRepository.findByPersonalAccountId(accountId);
-        if (accountComments != null) {
-            accountCommentRepository.delete(accountComments);
-        }
+        accountCommentRepository.deleteByPersonalAccountId(accountId);
     }
 
     public boolean importToMongo() {

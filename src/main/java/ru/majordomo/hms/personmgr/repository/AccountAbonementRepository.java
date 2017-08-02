@@ -35,4 +35,6 @@ public interface AccountAbonementRepository extends MongoRepository<AccountAbone
 
     @Query("{}")
     Stream<AccountAbonement> findAllStream();
+
+    void deleteByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
 }

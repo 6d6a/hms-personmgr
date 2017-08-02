@@ -65,7 +65,8 @@ public class PersonalAccountDBImportService {
         logger.debug("[start] Searching for PersonalAccount for acc " + accountId);
 
         String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, " +
-                "a.status, c.client_auto_bill, a.overquoted, a.overquot_addcost, e.value as sms_phone " +
+                "a.status, a.acc_create_date, a.date_negative_balance, " +
+                "c.client_auto_bill, a.overquoted, a.overquot_addcost, e.value as sms_phone " +
                 "FROM account a " +
                 "LEFT JOIN Money m ON a.id = m.acc_id " +
                 "LEFT JOIN client c ON a.client_id = c.Client_ID " +
@@ -100,7 +101,32 @@ public class PersonalAccountDBImportService {
                             rs.getString("name")
             );
             personalAccount.setActive(rs.getBoolean("status"));
-            personalAccount.setCreated(LocalDateTime.now());
+
+            try {
+                Date accCreateDate = rs.getDate("acc_create_date");
+
+                if (accCreateDate != null) {
+                    personalAccount.setCreated(LocalDateTime.of(accCreateDate.toLocalDate(), LocalTime.MAX));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                logger.error("Exception " + e.getMessage());
+            }
+
+            try {
+                String status = rs.getString("status");
+
+                if (status.equals("0")) {
+                    Date dateNegativeBalance = rs.getDate("date_negative_balance");
+
+                    if (dateNegativeBalance != null) {
+                        personalAccount.setDeactivated(LocalDateTime.of(dateNegativeBalance.toLocalDate(), LocalTime.MAX));
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                logger.error("Exception " + e.getMessage());
+            }
 
             personalAccount.setNotifyDays(rs.getInt("notify_days"));
             personalAccount.setCredit(rs.getString("credit").equals("y"));
@@ -132,71 +158,12 @@ public class PersonalAccountDBImportService {
         return personalAccount;
     }
 
-    private void pullCreated(String accountId) {
-        logger.debug("[start] Searching for Created in PersonalAccount for acc " + accountId);
-
-        String query = "SELECT a.id, a.name, a.acc_create_date, a.status, a.date_negative_balance " +
-                "FROM account a " +
-                "WHERE a.id = :accountId";
-
-        SqlParameterSource namedParametersE = new MapSqlParameterSource("accountId", accountId);
-
-        jdbcTemplate.query(query, namedParametersE, this::rowMapCreated);
-
-        logger.debug("[finish] Searching for Created in PersonalAccount for acc " + accountId);
-    }
-
-    private PersonalAccount rowMapCreated(ResultSet rs, int rowNum) throws SQLException {
-        logger.debug("Found Created PersonalAccount " + rs.getString("name"));
-
-        PersonalAccount personalAccount = accountManager.findOne(rs.getString("id"));
-
-        try {
-            Date accCreateDate = rs.getDate("acc_create_date");
-
-            if (accCreateDate != null) {
-                personalAccount.setCreated(LocalDateTime.of(accCreateDate.toLocalDate(), LocalTime.MAX));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            logger.error("Exception " + e.getMessage());
-        }
-
-        try {
-            String status = rs.getString("status");
-
-            if (status.equals("0")) {
-                Date dateNegativeBalance = rs.getDate("date_negative_balance");
-
-                if (dateNegativeBalance != null) {
-                    personalAccount.setDeactivated(LocalDateTime.of(dateNegativeBalance.toLocalDate(), LocalTime.MAX));
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            logger.error("Exception " + e.getMessage());
-        }
-
-        accountManager.save(personalAccount);
-
-        return personalAccount;
-    }
-
     public void clean() {
         accountManager.deleteAll();
     }
 
     public void clean(String accountId) {
-        PersonalAccount account;
-        try {
-            account = accountManager.findOne(accountId);
-        } catch (ResourceNotFoundException e) {
-            return;
-        }
-
-        if (account != null) {
-            accountManager.delete(account);
-        }
+        accountManager.delete(accountId);
     }
 
     public boolean importToMongo() {
@@ -208,7 +175,6 @@ public class PersonalAccountDBImportService {
     public boolean importToMongo(String accountId) {
         clean(accountId);
         pull(accountId);
-//        pullCreated(accountId);
         return true;
     }
 }

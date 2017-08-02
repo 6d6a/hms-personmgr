@@ -43,6 +43,8 @@ public interface AccountAbonementManager {
 
     AccountAbonement findByPersonalAccountId(String personalAccountId);
 
+    void deleteByPersonalAccountId(String personalAccountId);
+
     Page<AccountAbonement> findByPersonalAccountId(String personalAccountId, Pageable pageable);
 
     List<AccountAbonement> findByPersonalAccountIdAndExpiredAfter(String personalAccountId, LocalDateTime expired);

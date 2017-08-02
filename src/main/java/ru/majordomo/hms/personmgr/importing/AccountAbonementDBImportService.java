@@ -129,11 +129,7 @@ public class AccountAbonementDBImportService {
     }
 
     public void clean(String accountId) {
-        AccountAbonement foundAccountAbonement = accountAbonementManager.findByPersonalAccountId(accountId);
-
-        if (foundAccountAbonement != null) {
-            accountAbonementManager.delete(foundAccountAbonement);
-        }
+        accountAbonementManager.deleteByPersonalAccountId(accountId);
     }
     public boolean importToMongo() {
         clean();

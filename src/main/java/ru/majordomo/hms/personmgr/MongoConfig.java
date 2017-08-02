@@ -11,9 +11,7 @@ import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
-import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.mapping.event.ValidatingMongoEventListener;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 
@@ -24,7 +22,6 @@ import ru.majordomo.hms.personmgr.validation.event.listener.CustomValidatingMong
  * MongoConfig
  */
 @Configuration
-@EnableMongoAuditing
 public class MongoConfig extends AbstractMongoConfiguration {
 
     @Value("${spring.data.mongodb.uri}")

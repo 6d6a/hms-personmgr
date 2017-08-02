@@ -49,8 +49,8 @@ public class Application implements CommandLineRunner {
             String processOption = "--process";
             StringBuilder sb = new StringBuilder();
 
-            String serverId = "122";
-//            String serverId = "136";
+//            String serverId = "122";
+            String serverId = "136";
 
             for (String option : args) {
                 sb.append(" ").append(option);
@@ -68,7 +68,7 @@ public class Application implements CommandLineRunner {
                 } else if (option.equals(dbImportOneAccountOption)) {
                     boolean imported;
 
-                    imported = dbImportService.importToMongo("100800");
+                    imported = dbImportService.importToMongo("3949");
                     sb.append(" ").append(imported ? "dbImportService db_imported" : "dbImportService db_not_imported");
                 } else if (option.equals(dbImportOneServerOption)) {
                     boolean imported;

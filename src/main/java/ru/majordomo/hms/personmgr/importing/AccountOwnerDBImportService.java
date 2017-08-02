@@ -112,11 +112,7 @@ public class AccountOwnerDBImportService {
     }
 
     public void clean(String accountId) {
-        AccountOwner accountOwner = accountOwnerManager.findOneByPersonalAccountId(accountId);
-
-        if (accountOwner != null) {
-            accountOwnerManager.delete(accountOwner);
-        }
+        accountOwnerManager.deleteByPersonalAccountId(accountId);
     }
 
     public boolean importToMongo() {

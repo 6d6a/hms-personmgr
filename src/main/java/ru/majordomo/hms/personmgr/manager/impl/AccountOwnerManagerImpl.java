@@ -107,6 +107,11 @@ public class AccountOwnerManagerImpl implements AccountOwnerManager {
     }
 
     @Override
+    public void deleteByPersonalAccountId(String personalAccountId) {
+        repository.deleteOneByPersonalAccountId(personalAccountId);
+    }
+
+    @Override
     public List<AccountOwner> findAllByTypeIn(List<AccountOwner.Type> types) {
         return repository.findAllByTypeIn(types);
     }

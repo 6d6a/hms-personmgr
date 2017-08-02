@@ -40,4 +40,6 @@ public interface AccountPromocodeRepository extends MongoRepository<AccountPromo
     );
 
     AccountPromocode findByPersonalAccountIdAndId(@Param("personalAccountId") String personalAccountId, @Param("id") String id);
+
+    void deleteByOwnerPersonalAccountId(@Param("ownerPersonalAccountId") String ownerPersonalAccountId);
 }
