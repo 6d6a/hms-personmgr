@@ -504,6 +504,8 @@ public class AccountEventListener {
                         logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
                         e.printStackTrace();
                     }
+                } else if (!account.isActive() && balance.compareTo(BigDecimal.ZERO) > 0) {
+                    accountHelper.switchAccountResources(account, true);
                 }
             }
         }
