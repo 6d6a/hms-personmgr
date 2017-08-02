@@ -506,6 +506,7 @@ public class AccountEventListener {
                     }
                 } else if (!account.isActive() && balance.compareTo(BigDecimal.ZERO) > 0) {
                     accountHelper.switchAccountResources(account, true);
+                    publisher.publishEvent(new AccountProcessChargesEvent(account));
                 }
             }
         }
