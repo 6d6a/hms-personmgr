@@ -31,7 +31,6 @@ import javax.servlet.http.HttpServletRequest;
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
-import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverConfirmedEvent;
@@ -44,8 +43,6 @@ import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
-import ru.majordomo.hms.personmgr.model.service.AccountService;
-import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
@@ -63,6 +60,7 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
+import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_CHANGE;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_RECOVER;
 import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
@@ -497,7 +495,7 @@ public class PersonalAccountRestController extends CommonRestController {
                 throw new ParameterValidationException("SMSPhoneNumber can't be empty with active sms notifications.");
             }
 
-            if (!Utils.isPhoneValid(smsPhoneNumber) && !smsPhoneNumber.equals("")) {
+            if (!phoneValid(smsPhoneNumber) && !smsPhoneNumber.equals("")) {
                 throw new ParameterValidationException("SMSPhoneNumber is not valid.");
             }
 

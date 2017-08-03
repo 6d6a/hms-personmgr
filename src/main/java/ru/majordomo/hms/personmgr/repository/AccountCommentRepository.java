@@ -15,4 +15,5 @@ public interface AccountCommentRepository extends MongoRepository<AccountComment
     List<AccountComment> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
     Page<AccountComment> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId, Pageable pageable);
     AccountComment findByIdAndPersonalAccountId(@Param("id") String id, @Param("personalAccountId") String personalAccountId);
+    void deleteByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
 }

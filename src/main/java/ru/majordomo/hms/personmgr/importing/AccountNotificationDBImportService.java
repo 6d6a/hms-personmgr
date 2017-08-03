@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +29,6 @@ public class AccountNotificationDBImportService {
 
     private PersonalAccountManager accountManager;
     private NamedParameterJdbcTemplate jdbcTemplate;
-    private List<PersonalAccount> personalAccountList = new ArrayList<>();
 
     @Autowired
     public AccountNotificationDBImportService(
@@ -44,22 +43,24 @@ public class AccountNotificationDBImportService {
         List<PersonalAccount> personalAccounts = accountManager.findAll();
 
         for (PersonalAccount personalAccount : personalAccounts) {
-            this.pull(personalAccount.getName());
+            this.pull(personalAccount.getAccountId());
         }
     }
 
     private void pull(String accountId) {
-        PersonalAccount personalAccount = accountManager.findByAccountId(accountId);
-        logger.debug("Start pull for " + accountId);
+        logger.info("[start] Searching for AccountNotification for acc " + accountId);
+
+        PersonalAccount personalAccount = accountManager.findOne(accountId);
 
         if (personalAccount != null) {
-            logger.debug("Start pull found account " + accountId);
-
             personalAccount.addNotification(MailManagerMessageType.EMAIL_NEWS);
             personalAccount.addNotification(MailManagerMessageType.EMAIL_REMAINING_DAYS);
             personalAccount.addNotification(MailManagerMessageType.EMAIL_DOMAIN_DELEGATION_ENDING);
 
-            String query = "SELECT ahs_account_id, ahs_sms_id FROM account_has_sms WHERE ahs_account_id = :ahs_account_id AND ahs_sms_id IN (24, 26, 28, 29, 42, 44, 77)";
+            String query = "SELECT ahs_account_id, ahs_sms_id " +
+                    "FROM account_has_sms " +
+                    "WHERE ahs_account_id = :ahs_account_id " +
+                    "AND ahs_sms_id IN (24, 26, 28, 29, 42, 44, 77)";
 
             SqlParameterSource namedParametersE = new MapSqlParameterSource("ahs_account_id", personalAccount.getAccountId());
 
@@ -109,30 +110,29 @@ public class AccountNotificationDBImportService {
                 return personalAccount;
             });
 
-            personalAccountList.add(personalAccount);
+            try {
+                accountManager.save(personalAccount);
+            } catch (ConstraintViolationException e) {
+                logger.debug(e.getMessage() +
+                        " with errors: " +
+                        e.getConstraintViolations()
+                                .stream()
+                                .map(ConstraintViolation::getMessage)
+                                .collect(Collectors.joining())
+                );
+            }
         }
+
+        logger.info("[finish] Searching for AccountNotification for acc " + accountId);
     }
 
     public boolean importToMongo() {
         pull();
-        pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
         pull(accountId);
-        pushToMongo();
         return true;
-    }
-
-    private void pushToMongo() {
-        try {
-            accountManager.save(personalAccountList);
-        } catch (ConstraintViolationException e) {
-            logger.debug(e.getMessage() +
-                    " with errors: " +
-                    e.getConstraintViolations().stream().map(ConstraintViolation::getMessage).collect(Collectors.joining())
-            );
-        }
     }
 }

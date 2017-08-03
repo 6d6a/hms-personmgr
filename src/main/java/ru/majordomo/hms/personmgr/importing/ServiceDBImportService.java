@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +12,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
@@ -29,7 +28,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_MONEY_RETURN_P
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_MONEY_TRANSFER_PREFIX;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_OLD_PREFIX;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_PREFIX;
-
 
 /**
  * Сервис для загрузки первичных данных в БД
@@ -192,7 +190,12 @@ public class ServiceDBImportService {
         try {
             paymentServiceRepository.save(serviceList);
         } catch (ConstraintViolationException e) {
-            logger.debug(e.getMessage() + " with errors: " + StreamSupport.stream(e.getConstraintViolations().spliterator(), false).map(ConstraintViolation::getMessage).collect(Collectors.joining()));
+            logger.debug(e.getMessage() + " with errors: " +
+                    e.getConstraintViolations()
+                            .stream()
+                            .map(ConstraintViolation::getMessage)
+                            .collect(Collectors.joining())
+            );
         }
     }
 }

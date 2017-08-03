@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryImportEvent;
+import ru.majordomo.hms.personmgr.importing.AccountHistoryDBImportService;
 import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -20,12 +22,15 @@ public class AccountHistoryEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountHistoryEventListener.class);
 
     private final AccountHistoryService accountHistoryService;
+    private final AccountHistoryDBImportService accountHistoryDBImportService;
 
     @Autowired
     public AccountHistoryEventListener(
-            AccountHistoryService accountHistoryService
+            AccountHistoryService accountHistoryService,
+            AccountHistoryDBImportService accountHistoryDBImportService
     ) {
         this.accountHistoryService = accountHistoryService;
+        this.accountHistoryDBImportService = accountHistoryDBImportService;
     }
 
     @EventListener
@@ -45,6 +50,21 @@ public class AccountHistoryEventListener {
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("[AccountHistoryEventListener] accountHistoryService.addMessage Exception: " + e.getMessage());
+        }
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountHistoryImportEvent event) {
+        String accountId = event.getSource();
+
+        logger.debug("We got AccountHistoryImportEvent");
+
+        try {
+            accountHistoryDBImportService.importToMongo(accountId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Exception in AccountHistoryImportEvent " + e.getMessage());
         }
     }
 }
