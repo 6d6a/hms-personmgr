@@ -62,7 +62,7 @@ public class PersonalAccountDBImportService {
     }
 
     private void pull(String accountId) {
-        logger.debug("[start] Searching for PersonalAccount for acc " + accountId);
+        logger.info("[start] Searching for PersonalAccount for acc " + accountId);
 
         String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, " +
                 "a.status, a.acc_create_date, a.date_negative_balance, " +
@@ -77,7 +77,7 @@ public class PersonalAccountDBImportService {
 
         jdbcTemplate.query(query, namedParametersE, this::rowMap);
 
-        logger.debug("[finish] Searching for PersonalAccount for acc " + accountId);
+        logger.info("[finish] Searching for PersonalAccount for acc " + accountId);
     }
 
     private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
@@ -146,13 +146,13 @@ public class PersonalAccountDBImportService {
                         personalAccount.setSmsPhoneNumber(formattedPhone);
                     }
                 } else {
-                    logger.error("smsPhone not valid: " + smsPhone);
+                    logger.error("smsPhone for " + rs.getString("name") + " not valid: " + smsPhone);
                 }
             }
 
             accountManager.save(personalAccount);
         } else {
-            logger.debug("Plan not found account: " + rs.getString("acc_id") + " planId: " + rs.getString("plan_id"));
+            logger.error("Plan not found account: " + rs.getString("acc_id") + " planId: " + rs.getString("plan_id"));
         }
 
         return personalAccount;

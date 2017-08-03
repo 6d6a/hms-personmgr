@@ -76,7 +76,7 @@ public class AccountServicesDBImportService {
     }
 
     public void pull(String accountId) {
-        logger.debug("[start] Searching for AccountService for acc " + accountId);
+        logger.info("[start] Searching for AccountService for acc " + accountId);
 
         String query = "SELECT id, name, plan_id, client_type FROM account WHERE id = :accountId";
         SqlParameterSource namedParameters1 = new MapSqlParameterSource("accountId", accountId);
@@ -86,12 +86,10 @@ public class AccountServicesDBImportService {
                 this::rowMap
         );
 
-        logger.debug("[finish] Searching for AccountService for acc " + accountId);
+        logger.info("[finish] Searching for AccountService for acc " + accountId);
     }
 
     private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
-        logger.debug("Found PersonalAccount " + rs.getString("name"));
-
         String clientType = rs.getString("client_type");
 
         if (!clientType.equals("4")) {
@@ -104,7 +102,7 @@ public class AccountServicesDBImportService {
 
                 publisher.publishEvent(new AccountServiceCreateEvent(accountService));
 
-                logger.debug("Added Plan service " + service.getName() + " for PersonalAccount " + rs.getString("name"));
+                logger.info("Added Plan service " + service.getName() + " for PersonalAccount " + rs.getString("name"));
             } else {
                 logger.error("Plan PaymentService not found");
             }
@@ -152,7 +150,7 @@ public class AccountServicesDBImportService {
 
                     publisher.publishEvent(new AccountServiceCreateEvent(accountServiceE));
 
-                    logger.debug("Added accountService for service " + serviceE.getName() + " for PersonalAccount " + rsE.getString("acc_id"));
+                    logger.info("Added accountService for service " + serviceE.getName() + " for PersonalAccount " + rsE.getString("acc_id"));
 
                     return accountServiceE;
                 }

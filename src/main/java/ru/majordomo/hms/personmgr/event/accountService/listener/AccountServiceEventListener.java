@@ -51,7 +51,7 @@ public class AccountServiceEventListener {
         logger.debug("We got AccountServiceImportEvent");
 
         try {
-            accountServicesDBImportService.pull(accountId);
+            accountServicesDBImportService.importToMongo(accountId);
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in ru.majordomo.hms.personmgr.event.accountService.listener.AccountServiceEventListener.onAccountServiceImportEvent " + e.getMessage());

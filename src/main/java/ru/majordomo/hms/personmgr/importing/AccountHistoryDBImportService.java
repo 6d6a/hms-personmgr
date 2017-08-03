@@ -47,7 +47,7 @@ public class AccountHistoryDBImportService {
     }
 
     public void pull(String accountId) {
-        logger.debug("[start] Searching for AccountHistories for acc: " + accountId);
+        logger.info("[start] Searching for AccountHistories for acc: " + accountId);
 
         //        String query = "SELECT id, account, date, action, login FROM client_history WHERE id > 4961960 AND account = :account_id";
         String query = "SELECT id, account, date, action, login FROM client_history WHERE account = :account_id";
@@ -56,7 +56,7 @@ public class AccountHistoryDBImportService {
 
         jdbcTemplate.query(query, namedParameter, this::rowMap);
 
-        logger.debug("[finish] Searching for AccountHistories for acc: " + accountId);
+        logger.info("[finish] Searching for AccountHistories for acc: " + accountId);
     }
 
     private AccountHistory rowMap(ResultSet rs, int rowNum) throws SQLException {
@@ -84,7 +84,7 @@ public class AccountHistoryDBImportService {
         try {
             accountHistoryRepository.save(accountHistory);
         } catch (ConstraintViolationException e) {
-            logger.debug(e.getMessage() + " with errors: "
+            logger.error(e.getMessage() + " with errors: "
                     + e.getConstraintViolations()
                     .stream()
                     .map(ConstraintViolation::getMessage)
@@ -92,7 +92,7 @@ public class AccountHistoryDBImportService {
             );
         }
 
-        logger.debug("AccountHistory for acc: " + accountId + " message: " + accountHistory.getMessage());
+        logger.info("AccountHistory for acc: " + accountId + " message: " + accountHistory.getMessage());
 
         return accountHistory;
     }

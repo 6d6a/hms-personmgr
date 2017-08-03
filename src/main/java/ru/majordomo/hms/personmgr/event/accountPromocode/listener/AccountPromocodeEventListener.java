@@ -53,7 +53,7 @@ public class AccountPromocodeEventListener {
         logger.debug("We got AccountPromocodeImportEvent");
 
         try {
-            accountPromocodeDBImportService.pull(accountId);
+            accountPromocodeDBImportService.importToMongo(accountId);
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in AccountPromocodeImportEvent " + e.getMessage());

@@ -43,7 +43,7 @@ public class PromocodeDBImportService {
     }
 
     private void pull(String accountId) {
-        logger.debug("[start] Searching for Promocode for acc " + accountId);
+        logger.info("[start] Searching for Promocode for acc " + accountId);
 
         String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.created " +
                 "FROM promorecord p " +
@@ -56,7 +56,7 @@ public class PromocodeDBImportService {
                 this::rowMap
         );
 
-        logger.debug("[finish] Searching for Promocode for acc " + accountId);
+        logger.info("[finish] Searching for Promocode for acc " + accountId);
     }
 
     private Promocode rowMap(ResultSet rs, int rowNum) throws SQLException {

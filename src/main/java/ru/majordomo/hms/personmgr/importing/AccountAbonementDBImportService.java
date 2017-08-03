@@ -59,14 +59,14 @@ public class AccountAbonementDBImportService {
     }
 
     public void pull(String accountId) {
-        logger.debug("[start] Searching for AccountAbonement for account: " + accountId);
+        logger.info("[start] Searching for AccountAbonement for account: " + accountId);
 
         String query = "SELECT a.acc_id, a.day_buy, a.date_end, aa.auto FROM abonement a LEFT JOIN abt_auto_buy aa USING(acc_id) WHERE a.acc_id = :acc_id ORDER BY a.acc_id ASC";
         SqlParameterSource namedParameters = new MapSqlParameterSource("acc_id", accountId);
 
         jdbcTemplate.query(query, namedParameters, this::rowMap);
 
-        logger.debug("[finish] Searching for AccountAbonement for account: " + accountId);
+        logger.info("[finish] Searching for AccountAbonement for account: " + accountId);
     }
 
     private AccountAbonement rowMap(ResultSet rs, int rowNum) throws SQLException {
@@ -75,8 +75,6 @@ public class AccountAbonementDBImportService {
         PersonalAccount account = accountManager.findByAccountId(rs.getString("acc_id"));
 
         if (account != null) {
-            logger.debug("Found account: " + rs.getString("acc_id"));
-
             Plan plan = planRepository.findOne(account.getPlanId());
 
             if (plan != null) {
@@ -102,8 +100,6 @@ public class AccountAbonementDBImportService {
 
                 accountAbonement.setAbonementId(plan.getNotInternalAbonementId());
 
-                logger.debug("Found accountAbonement for account: " + rs.getString("acc_id") + " accountAbonement: " + accountAbonement);
-
                 try {
                     accountAbonementManager.save(accountAbonement);
                 } catch (ConstraintViolationException e) {
@@ -114,11 +110,13 @@ public class AccountAbonementDBImportService {
                                     .collect(Collectors.joining())
                     );
                 }
+
+                logger.info("Found accountAbonement for account: " + rs.getString("acc_id") + " accountAbonement: " + accountAbonement);
             } else {
-                logger.debug("Plan not found account: " + rs.getString("acc_id") + " planId: " + account.getPlanId());
+                logger.error("Plan not found account: " + rs.getString("acc_id") + " planId: " + account.getPlanId());
             }
         } else {
-            logger.debug("Account not found account: " + rs.getString("acc_id"));
+            logger.error("Account not found account: " + rs.getString("acc_id"));
         }
 
         return accountAbonement;

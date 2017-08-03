@@ -55,7 +55,7 @@ public class AccountOwnerDBImportService {
     }
 
     public void pull(String accountId) {
-        logger.debug("[start] Searching for AccountOwner for acc " + accountId);
+        logger.info("[start] Searching for AccountOwner for acc " + accountId);
 
         String query = "SELECT a.id, " +
                 "c.Client_ID, c.name as client_name, c.phone, c.phone2, c.email, c.email2, c.email3, " +
@@ -73,16 +73,16 @@ public class AccountOwnerDBImportService {
                 this::rowMap
         );
 
-        logger.debug("[finish] Searching for AccountOwner for acc " + accountId);
+        logger.info("[finish] Searching for AccountOwner for acc " + accountId);
     }
 
     private AccountOwner rowMap(ResultSet rs, int rowNum) throws SQLException {
-        logger.debug("Found Person for id: " + rs.getString("id") +
-                " name: " + rs.getString("client_name"));
+        logger.info("Found Person for id: " + rs.getString("id") +
+                " name: " + StringEscapeUtils.unescapeHtml(rs.getString("client_name")));
 
         AccountOwner accountOwner = new AccountOwner();
         accountOwner.setName(!rs.getString("client_name").equals("") ?
-                rs.getString("client_name") :
+                StringEscapeUtils.unescapeHtml(rs.getString("client_name")) :
                 "person_" + rs.getString("id") + "_" + rs.getString("Client_ID")
         );
         accountOwner.setContactInfo(contactInfoFromResultSet(rs));

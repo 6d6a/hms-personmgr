@@ -72,7 +72,7 @@ public class AccountPromotionDBImportService {
     }
 
     public void pull(String accountId) {
-        logger.debug("[start] Searching for AccountPromotion for acc " + accountId);
+        logger.info("[start] Searching for AccountPromotion for acc " + accountId);
 
         String query = "SELECT a.id, a.plan_id, a.acc_create_date, count(d.Domain_ID) as domain_count " +
                 "FROM account a LEFT JOIN domain d ON a.uid = d.UID " +
@@ -89,7 +89,7 @@ public class AccountPromotionDBImportService {
 
         namedParameterJdbcTemplate.query(query, namedParameter, this::rowMap);
 
-        logger.debug("[finish] Searching for AccountPromotion for acc " + accountId);
+        logger.info("[finish] Searching for AccountPromotion for acc " + accountId);
     }
 
     private boolean rowMap(ResultSet rs, int rowNum) throws SQLException {
@@ -151,7 +151,7 @@ public class AccountPromotionDBImportService {
                                 if (account != null) {
                                     accountHelper.giveGift(account, promotion);
                                 } else {
-                                    logger.debug("AccountPromotion Import Service. Account with id: " +
+                                    logger.error("AccountPromotion Import Service. Account with id: " +
                                             rs.getString("id") + " not found.");
                                 }
                             }

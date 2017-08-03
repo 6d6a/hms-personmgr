@@ -48,13 +48,11 @@ public class AccountNotificationDBImportService {
     }
 
     private void pull(String accountId) {
-        logger.debug("[start] Searching for AccountNotification for acc " + accountId);
+        logger.info("[start] Searching for AccountNotification for acc " + accountId);
 
         PersonalAccount personalAccount = accountManager.findOne(accountId);
 
         if (personalAccount != null) {
-            logger.debug("Start pull found account " + accountId);
-
             personalAccount.addNotification(MailManagerMessageType.EMAIL_NEWS);
             personalAccount.addNotification(MailManagerMessageType.EMAIL_REMAINING_DAYS);
             personalAccount.addNotification(MailManagerMessageType.EMAIL_DOMAIN_DELEGATION_ENDING);
@@ -125,7 +123,7 @@ public class AccountNotificationDBImportService {
             }
         }
 
-        logger.debug("[finish] Searching for AccountNotification for acc " + accountId);
+        logger.info("[finish] Searching for AccountNotification for acc " + accountId);
     }
 
     public boolean importToMongo() {

@@ -46,7 +46,7 @@ public class AccountCommentDBImportService {
     }
 
     public void pull(String accountId) {
-        logger.debug("[start] Searching for AccountComments for acc " + accountId);
+        logger.info("[start] Searching for AccountComments for acc " + accountId);
 
         String query = "SELECT comment_id, account_id, comment_date, comment_text, login FROM account_comments WHERE account_id = :account_id";
 
@@ -54,7 +54,7 @@ public class AccountCommentDBImportService {
 
         jdbcTemplate.query(query, namedParameter, this::rowMap);
 
-        logger.debug("[finish] Searching for AccountComments for acc " + accountId);
+        logger.info("[finish] Searching for AccountComments for acc " + accountId);
     }
 
     private AccountComment rowMap(ResultSet rs, int rowNum) throws SQLException {
@@ -80,7 +80,7 @@ public class AccountCommentDBImportService {
                             .collect(Collectors.joining())
             );
         }
-        logger.debug("AccountComment for acc " + accountId + " message: " + accountComment.getMessage());
+        logger.info("AccountComment for acc " + accountId + " message: " + accountComment.getMessage());
 
         return accountComment;
     }

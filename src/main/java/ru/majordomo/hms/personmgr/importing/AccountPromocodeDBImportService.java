@@ -60,11 +60,11 @@ public class AccountPromocodeDBImportService {
     }
 
     public void pull(String accountId) {
-        logger.debug("[start] Searching for AccountPromocode for acc " + accountId);
+        logger.info("[start] Searching for AccountPromocode for acc " + accountId);
 
         this.pull(accountId, accountId);
 
-        logger.debug("[finish] Searching for AccountPromocode for acc " + accountId);
+        logger.info("[finish] Searching for AccountPromocode for acc " + accountId);
     }
 
     private void pull(String accountId, String personalAccountId) {
