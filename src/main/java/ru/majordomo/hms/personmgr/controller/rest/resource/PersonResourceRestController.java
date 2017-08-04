@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,18 +18,28 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
+import ru.majordomo.hms.rc.user.resources.Person;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
-
 
 @RestController
 @RequestMapping("/{accountId}/person")
 @Validated
 public class PersonResourceRestController extends CommonResourceRestController {
+    private final RcUserFeignClient rcUserFeignClient;
+
+    public PersonResourceRestController(
+            RcUserFeignClient rcUserFeignClient
+    ) {
+        this.rcUserFeignClient = rcUserFeignClient;
+    }
+
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -118,31 +129,22 @@ public class PersonResourceRestController extends CommonResourceRestController {
         return this.createSuccessResponse(businessAction);
     }
 
+    @PreAuthorize("hasAuthority('MANAGE_PERSONS')")
     @RequestMapping(value = "/add", method = RequestMethod.POST)
-    public SimpleServiceMessage create(
+    public Person create(
             @RequestBody Map<String, String> requestBody,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-//        message.setAccountId(accountId);
-//
-//        logger.debug("Creating person " + message.toString());
-//
-//        ProcessingBusinessAction businessAction = process(BusinessOperationType.PERSON_CREATE, BusinessActionType.PERSON_CREATE_RC, message);
-//
-//        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-//
-//        //Save history
-//        String operator = request.getUserPrincipal().getName();
-//        Map<String, String> params = new HashMap<>();
-//        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на создание персоны (имя: " + message.getParam("name") + ")");
-//        params.put(OPERATOR_KEY, operator);
-//
-//        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-//
-//        return this.createSuccessResponse(businessAction);
+        String nicHandle = requestBody.get("nicHandle");
 
-        return null;
+        if (nicHandle == null || nicHandle.equals("")) {
+            throw new ParameterValidationException("Для добавления персоны необходимо указать её nicHandle");
+        }
+
+        logger.debug("Adding person by nicHandle: " + nicHandle);
+
+        return rcUserFeignClient.addPersonByNicHandle(accountId, requestBody);
     }
 }

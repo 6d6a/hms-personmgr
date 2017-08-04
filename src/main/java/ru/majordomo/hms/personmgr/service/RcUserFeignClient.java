@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.cloud.netflix.feign.FeignClient;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -12,6 +13,7 @@ import ru.majordomo.hms.rc.user.resources.*;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 @FeignClient(name = "rc-user", configuration = FeignConfig.class)
 public interface RcUserFeignClient {
@@ -44,6 +46,9 @@ public interface RcUserFeignClient {
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/person/{personId}", consumes = "application/json")
     Person getPerson(@PathVariable("accountId") String accountId, @PathVariable("personId") String personId);
+
+    @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/person", consumes = "application/json")
+    Person addPersonByNicHandle(@PathVariable("accountId") String accountId, @RequestBody Map<String, String> requestBody);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/domain", consumes = "application/json")
     List<Domain> getDomains(@PathVariable("accountId") String accountId);
