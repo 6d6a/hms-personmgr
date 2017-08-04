@@ -17,4 +17,5 @@ public interface AccountHistoryRepository extends MongoRepository<AccountHistory
     List<AccountHistory> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
     Page<AccountHistory> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId, Pageable pageable);
     AccountHistory findByIdAndPersonalAccountId(@Param("id") String id, @Param("personalAccountId") String personalAccountId);
+    void deleteByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
 }

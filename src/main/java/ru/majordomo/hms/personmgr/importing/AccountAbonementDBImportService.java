@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,8 +12,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.validation.ConstraintViolation;
@@ -37,7 +35,6 @@ public class AccountAbonementDBImportService {
     private PlanRepository planRepository;
     private PersonalAccountManager accountManager;
     private NamedParameterJdbcTemplate jdbcTemplate;
-    private List<AccountAbonement> accountAbonements = new ArrayList<>();
 
     @Autowired
     public AccountAbonementDBImportService(
@@ -53,8 +50,6 @@ public class AccountAbonementDBImportService {
     }
 
     public void pull() {
-        accountAbonementManager.deleteAll();
-
         String query = "SELECT a.acc_id, a.day_buy, a.date_end, aa.auto " +
                 "FROM abonement a " +
                 "LEFT JOIN abt_auto_buy aa USING(acc_id) " +
@@ -64,12 +59,14 @@ public class AccountAbonementDBImportService {
     }
 
     public void pull(String accountId) {
-        accountAbonementManager.deleteAll();
+        logger.info("[start] Searching for AccountAbonement for account: " + accountId);
 
         String query = "SELECT a.acc_id, a.day_buy, a.date_end, aa.auto FROM abonement a LEFT JOIN abt_auto_buy aa USING(acc_id) WHERE a.acc_id = :acc_id ORDER BY a.acc_id ASC";
         SqlParameterSource namedParameters = new MapSqlParameterSource("acc_id", accountId);
 
         jdbcTemplate.query(query, namedParameters, this::rowMap);
+
+        logger.info("[finish] Searching for AccountAbonement for account: " + accountId);
     }
 
     private AccountAbonement rowMap(ResultSet rs, int rowNum) throws SQLException {
@@ -78,8 +75,6 @@ public class AccountAbonementDBImportService {
         PersonalAccount account = accountManager.findByAccountId(rs.getString("acc_id"));
 
         if (account != null) {
-            logger.debug("Found account: " + rs.getString("acc_id"));
-
             Plan plan = planRepository.findOne(account.getPlanId());
 
             if (plan != null) {
@@ -87,60 +82,62 @@ public class AccountAbonementDBImportService {
 
                 try {
                     accountAbonement.setCreated(LocalDateTime.of(rs.getDate("day_buy").toLocalDate(), LocalTime.MAX));
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    logger.error("Exception in accountAbonement.setCreated(LocalDateTime.of" +
+                            "(rs.getDate(\"day_buy\").toLocalDate(), LocalTime.MAX)); " + e.getMessage());
+                }
+
+                try {
                     accountAbonement.setExpired(LocalDateTime.of(rs.getDate("date_end").toLocalDate(), LocalTime.MAX));
                 } catch (SQLException e) {
                     e.printStackTrace();
+                    logger.error("Exception in accountAbonement.setExpired(LocalDateTime.of" +
+                            "(rs.getDate(\"date_end\").toLocalDate(), LocalTime.MAX)); " + e.getMessage());
                 }
 
                 accountAbonement.setAutorenew(rs.getString("auto") != null);
 
                 accountAbonement.setAbonementId(plan.getNotInternalAbonementId());
 
-                logger.debug("Found accountAbonement for account: " + rs.getString("acc_id") + " accountAbonement: " + accountAbonement);
+                try {
+                    accountAbonementManager.save(accountAbonement);
+                } catch (ConstraintViolationException e) {
+                    logger.debug(e.getMessage() + " with errors: " +
+                            e.getConstraintViolations()
+                                    .stream()
+                                    .map(ConstraintViolation::getMessage)
+                                    .collect(Collectors.joining())
+                    );
+                }
 
-                accountAbonements.add(accountAbonement);
+                logger.info("Found accountAbonement for account: " + rs.getString("acc_id") + " accountAbonement: " + accountAbonement);
             } else {
-                logger.debug("Plan not found account: " + rs.getString("acc_id") + " planId: " + account.getPlanId());
+                logger.error("Plan not found account: " + rs.getString("acc_id") + " planId: " + account.getPlanId());
             }
         } else {
-            logger.debug("Account not found account: " + rs.getString("acc_id"));
+            logger.error("Account not found account: " + rs.getString("acc_id"));
         }
 
         return accountAbonement;
     }
 
+    public void clean() {
+        accountAbonementManager.deleteAll();
+    }
+
+    public void clean(String accountId) {
+        accountAbonementManager.deleteByPersonalAccountId(accountId);
+    }
     public boolean importToMongo() {
+        clean();
         pull();
-        pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
-        PersonalAccount account = accountManager.findByAccountId(accountId);
-
-        if (account != null) {
-            AccountAbonement foundAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-
-            if (foundAccountAbonement != null) {
-                accountAbonementManager.delete(foundAccountAbonement);
-            }
-        }
-
+        clean(accountId);
         pull(accountId);
-        pushToMongo();
         return true;
-    }
-
-    private void pushToMongo() {
-        try {
-            accountAbonementManager.save(accountAbonements);
-        } catch (ConstraintViolationException e) {
-            logger.debug(e.getMessage() + " with errors: " +
-                    e.getConstraintViolations()
-                            .stream()
-                            .map(ConstraintViolation::getMessage)
-                            .collect(Collectors.joining())
-            );
-        }
     }
 }

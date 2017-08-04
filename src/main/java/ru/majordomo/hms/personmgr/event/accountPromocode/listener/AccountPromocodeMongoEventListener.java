@@ -28,6 +28,10 @@ public class AccountPromocodeMongoEventListener extends AbstractMongoEventListen
 
         accountPromocode.setPromocode(promocode);
 
-        accountPromocode.setPersonalAccountName(mongoOperations.findById(accountPromocode.getPersonalAccountId(), PersonalAccount.class).getName());
+        PersonalAccount account = mongoOperations.findById(accountPromocode.getPersonalAccountId(), PersonalAccount.class);
+
+        if (account != null) {
+            accountPromocode.setPersonalAccountName(account.getName());
+        }
     }
 }

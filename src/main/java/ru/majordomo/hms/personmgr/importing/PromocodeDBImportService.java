@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,9 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
@@ -30,28 +28,35 @@ public class PromocodeDBImportService {
 
     private PromocodeRepository promocodeRepository;
     private NamedParameterJdbcTemplate partnersNamedParameterJdbcTemplate;
-    private List<Promocode> promocodesList = new ArrayList<>();
 
     @Autowired
-    public PromocodeDBImportService(@Qualifier("partnersNamedParameterJdbcTemplate") NamedParameterJdbcTemplate partnersNamedParameterJdbcTemplate, PromocodeRepository promocodeRepository) {
+    public PromocodeDBImportService(
+            @Qualifier("partnersNamedParameterJdbcTemplate") NamedParameterJdbcTemplate partnersNamedParameterJdbcTemplate,
+            PromocodeRepository promocodeRepository) {
         this.partnersNamedParameterJdbcTemplate = partnersNamedParameterJdbcTemplate;
         this.promocodeRepository = promocodeRepository;
     }
 
     private void pull() {
         String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.created FROM promorecord p";
-        promocodesList = partnersNamedParameterJdbcTemplate.query(query, this::rowMap);
+        partnersNamedParameterJdbcTemplate.query(query, this::rowMap);
     }
 
     private void pull(String accountId) {
-        String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.created FROM promorecord p WHERE accountid = :accountid";
+        logger.info("[start] Searching for Promocode for acc " + accountId);
+
+        String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.created " +
+                "FROM promorecord p " +
+                "WHERE accountid = :accountid";
 
         SqlParameterSource namedParametersE = new MapSqlParameterSource("accountid", accountId);
 
-        promocodesList = partnersNamedParameterJdbcTemplate.query(query,
+        partnersNamedParameterJdbcTemplate.query(query,
                 namedParametersE,
                 this::rowMap
         );
+
+        logger.info("[finish] Searching for Promocode for acc " + accountId);
     }
 
     private Promocode rowMap(ResultSet rs, int rowNum) throws SQLException {
@@ -64,25 +69,45 @@ public class PromocodeDBImportService {
 
         promocode.setActionIds(Collections.singletonList(PARTNER_PROMOCODE_ACTION_ID));
 
+        promocodeRepository.save(promocode);
+
         return promocode;
     }
 
-    public boolean importToMongo() {
+    private Promocode rowMapClean(ResultSet rs, int rowNum) throws SQLException {
+        promocodeRepository.deleteByCode(rs.getString("postfix") + rs.getString("id"));
+
+        return null;
+    }
+
+    public void clean() {
         promocodeRepository.deleteAll();
+    }
+
+    public void clean(String accountId) {
+        logger.info("clean of promocodesList for acc: " + accountId);
+
+        String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.created " +
+                "FROM promorecord p " +
+                "WHERE accountid = :accountid";
+
+        SqlParameterSource namedParametersE = new MapSqlParameterSource("accountid", accountId);
+
+        partnersNamedParameterJdbcTemplate.query(query,
+                namedParametersE,
+                this::rowMapClean
+        );
+    }
+
+    public boolean importToMongo() {
+        clean();
         pull();
-        pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
-        promocodeRepository.deleteAll();
+        clean(accountId);
         pull(accountId);
-        pushToMongo();
         return true;
-    }
-
-    private void pushToMongo() {
-        logger.debug("pushToMongo promocodesList");
-        promocodeRepository.save(promocodesList);
     }
 }

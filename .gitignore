@@ -7,3 +7,5 @@ gradlew*
 build/
 docker-compose/
 docker-compose.yml
+/src/main/generated/
+/src/querydsl/

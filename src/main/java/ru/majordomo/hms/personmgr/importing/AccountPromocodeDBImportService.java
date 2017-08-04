@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,16 +60,14 @@ public class AccountPromocodeDBImportService {
     }
 
     public void pull(String accountId) {
-        logger.debug("Start finding for " + accountId);
+        logger.info("[start] Searching for AccountPromocode for acc " + accountId);
 
         this.pull(accountId, accountId);
 
-        logger.debug("Finish finding for " + accountId);
+        logger.info("[finish] Searching for AccountPromocode for acc " + accountId);
     }
 
     private void pull(String accountId, String personalAccountId) {
-        logger.debug("Start pull for " + accountId);
-
         String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.valid_till " +
                 "FROM promorecord p WHERE accountid = :accountid";
 
@@ -106,61 +104,62 @@ public class AccountPromocodeDBImportService {
 
                     publisher.publishEvent(new AccountPromocodeCreateEvent(accountPromocode));
 
-                    //TODO добавить JOIN account что-бы не барть удаленные акки
-                    String queryPromocodes = "SELECT p.acc_id, p.promo_code " +
-                            "FROM promocodes p WHERE promo_code = :promo_code";
-                    SqlParameterSource namedParametersP = new MapSqlParameterSource(
-                            "promo_code",
-                            rs.getString("postfix") + rs.getString("id")
-                    );
-
-                    namedParameterJdbcTemplate.query(queryPromocodes,
-                            namedParametersP,
-                            (rsP, rowNumP) -> {
-                                String accountIdUser = rsP.getString("acc_id");
-                                logger.debug("Found promocodes code " + rs.getString("postfix")
-                                        + rs.getString("id") + " for " + accountIdUser
-                                );
-                                AccountPromocode accountPromocodeP = new AccountPromocode();
-
-                                accountPromocodeP.setPersonalAccountId(accountIdUser);
-
-                                accountPromocodeP.setOwnedByAccount(false);
-                                accountPromocodeP.setOwnerPersonalAccountId(personalAccountId);
-                                accountPromocodeP.setActionsWithStatus(actionsWithStatus);
-
-                                accountPromocodeP.setPromocodeId(promocode.getId());
-
-                                publisher.publishEvent(new AccountPromocodeCreateEvent(accountPromocodeP));
-
-                                return null;
-                            }
-                    );
+                    //TODO т.к. не импортим всё сразу, то пока импортнем только промокод владельца
                     return null;
+
+//                    String queryPromocodes = "SELECT p.acc_id, p.promo_code " +
+//                            "FROM promocodes p " +
+//                            "JOIN account a ON a.id = p.acc_id " +
+//                            "WHERE promo_code = :promo_code";
+//                    SqlParameterSource namedParametersP = new MapSqlParameterSource(
+//                            "promo_code",
+//                            rs.getString("postfix") + rs.getString("id")
+//                    );
+//
+//                    namedParameterJdbcTemplate.query(queryPromocodes,
+//                            namedParametersP,
+//                            (rsP, rowNumP) -> {
+//                                String accountIdUser = rsP.getString("acc_id");
+//                                logger.debug("Found promocodes code " + rs.getString("postfix")
+//                                        + rs.getString("id") + " for " + accountIdUser
+//                                );
+//                                AccountPromocode accountPromocodeP = new AccountPromocode();
+//
+//                                accountPromocodeP.setPersonalAccountId(accountIdUser);
+//
+//                                accountPromocodeP.setOwnedByAccount(false);
+//                                accountPromocodeP.setOwnerPersonalAccountId(personalAccountId);
+//                                accountPromocodeP.setActionsWithStatus(actionsWithStatus);
+//
+//                                accountPromocodeP.setPromocodeId(promocode.getId());
+//
+//                                publisher.publishEvent(new AccountPromocodeCreateEvent(accountPromocodeP));
+//
+//                                return null;
+//                            }
+//                    );
+//                    return null;
                 }
         );
     }
 
-    public boolean importToMongo() {
+    public void clean() {
         accountPromocodeRepository.deleteAll();
+    }
+
+    public void clean(String accountId) {
+        accountPromocodeRepository.deleteByOwnerPersonalAccountId(accountId);
+    }
+
+    public boolean importToMongo() {
+        clean();
         pull();
-        pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
-        List<AccountPromocode> accountPromocodes = accountPromocodeRepository.findByOwnerPersonalAccountId(accountId);
-
-        if (!accountPromocodes.isEmpty()) {
-            accountPromocodeRepository.delete(accountPromocodes);
-        }
-
+        clean(accountId);
         pull(accountId);
-        pushToMongo();
         return true;
-    }
-
-    private void pushToMongo() {
-
     }
 }

@@ -15,6 +15,7 @@ import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Component
 public class AccountAbonementManagerImpl implements AccountAbonementManager {
@@ -98,6 +99,11 @@ public class AccountAbonementManagerImpl implements AccountAbonementManager {
     }
 
     @Override
+    public Stream<AccountAbonement> findAllStream() {
+        return repository.findAllStream();
+    }
+
+    @Override
     public List<AccountAbonement> findByAbonementId(String abonementId) {
         return repository.findByAbonementId(abonementId);
     }
@@ -110,6 +116,11 @@ public class AccountAbonementManagerImpl implements AccountAbonementManager {
     @Override
     public AccountAbonement findByPersonalAccountId(String personalAccountId) {
         return repository.findByPersonalAccountId(personalAccountId);
+    }
+
+    @Override
+    public void deleteByPersonalAccountId(String personalAccountId) {
+        repository.deleteByPersonalAccountId(personalAccountId);
     }
 
     @Override

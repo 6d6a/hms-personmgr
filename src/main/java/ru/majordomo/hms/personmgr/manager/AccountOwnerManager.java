@@ -34,6 +34,8 @@ public interface AccountOwnerManager {
 
     AccountOwner findOneByPersonalAccountId(String personalAccountId);
 
+    void deleteByPersonalAccountId(String personalAccountId);
+
     Page<AccountOwner> findByPersonalAccountId(String personalAccountId, Pageable pageable);
 
     List<AccountOwner> findByPersonalAccountId(String personalAccountId);

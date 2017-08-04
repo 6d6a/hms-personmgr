@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,15 +20,15 @@ import ru.majordomo.hms.rc.user.resources.Person;
  * Сервис для загрузки первичных данных в БД
  */
 @Service
-public class AccountOwnerDBImportService {
-    private final static Logger logger = LoggerFactory.getLogger(AccountOwnerDBImportService.class);
+public class AccountOwnerFromPersonDBImportService {
+    private final static Logger logger = LoggerFactory.getLogger(AccountOwnerFromPersonDBImportService.class);
 
     private AccountOwnerManager accountOwnerManager;
     private PersonalAccountManager accountManager;
     private RcUserFeignClient rcUserFeignClient;
 
     @Autowired
-    public AccountOwnerDBImportService(
+    public AccountOwnerFromPersonDBImportService(
             AccountOwnerManager accountOwnerManager,
             PersonalAccountManager accountManager,
             RcUserFeignClient rcUserFeignClient

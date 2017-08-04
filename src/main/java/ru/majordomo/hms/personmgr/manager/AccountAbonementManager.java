@@ -6,6 +6,7 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 
 public interface AccountAbonementManager {
     boolean exists(String id);
@@ -34,11 +35,15 @@ public interface AccountAbonementManager {
 
     List<AccountAbonement> findAll();
 
+    Stream<AccountAbonement> findAllStream();
+
     List<AccountAbonement> findByAbonementId(String abonementId);
 
     Page<AccountAbonement> findByAbonementId(String abonementId, Pageable pageable);
 
     AccountAbonement findByPersonalAccountId(String personalAccountId);
+
+    void deleteByPersonalAccountId(String personalAccountId);
 
     Page<AccountAbonement> findByPersonalAccountId(String personalAccountId, Pageable pageable);
 

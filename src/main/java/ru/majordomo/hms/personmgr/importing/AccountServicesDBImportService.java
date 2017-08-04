@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +12,11 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.event.accountService.AccountServiceCreateEvent;
@@ -33,7 +37,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_10_R
 import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_FREE_SERVICE_ID;
 
-
 /**
  * DBImportService
  */
@@ -46,6 +49,9 @@ public class AccountServicesDBImportService {
     private final AccountServiceRepository accountServiceRepository;
     private final ApplicationEventPublisher publisher;
 
+    private List<PaymentService> paymentServices = new ArrayList<>();
+    private Map<String, PaymentService> oldServiceIdToService = new HashMap<>();
+
     @Autowired
     public AccountServicesDBImportService(
             NamedParameterJdbcTemplate jdbcTemplate,
@@ -57,6 +63,8 @@ public class AccountServicesDBImportService {
         this.paymentServiceRepository = paymentServiceRepository;
         this.accountServiceRepository = accountServiceRepository;
         this.publisher = publisher;
+
+        loadPaymentServices();
     }
 
     private void pull() {
@@ -68,30 +76,36 @@ public class AccountServicesDBImportService {
     }
 
     public void pull(String accountId) {
-        String query = "SELECT id, name, plan_id FROM account WHERE id = :accountId";
+        logger.info("[start] Searching for AccountService for acc " + accountId);
+
+        String query = "SELECT id, name, plan_id, client_type FROM account WHERE id = :accountId";
         SqlParameterSource namedParameters1 = new MapSqlParameterSource("accountId", accountId);
 
         jdbcTemplate.query(query,
                 namedParameters1,
                 this::rowMap
         );
+
+        logger.info("[finish] Searching for AccountService for acc " + accountId);
     }
 
     private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
-        logger.debug("Found PersonalAccount " + rs.getString("name"));
+        String clientType = rs.getString("client_type");
 
-        PaymentService service = paymentServiceRepository.findByOldId(PLAN_SERVICE_PREFIX
-                + rs.getString("plan_id"));
+        if (!clientType.equals("4")) {
+            String oldId = PLAN_SERVICE_PREFIX + rs.getString("plan_id");
+            PaymentService service = oldServiceIdToService.get(oldId);
 
-        if (service != null) {
-            AccountService accountService = new AccountService(service);
-            accountService.setPersonalAccountId(rs.getString("id"));
+            if (service != null) {
+                AccountService accountService = new AccountService(service);
+                accountService.setPersonalAccountId(rs.getString("id"));
 
-            publisher.publishEvent(new AccountServiceCreateEvent(accountService));
+                publisher.publishEvent(new AccountServiceCreateEvent(accountService));
 
-            logger.debug("Added Plan service " + service.getId() + " for PersonalAccount " + rs.getString("name"));
-        } else {
-            logger.error("Plan PaymentService not found");
+                logger.info("Added Plan service " + service.getName() + " for PersonalAccount " + rs.getString("name"));
+            } else {
+                logger.error("Plan PaymentService not found");
+            }
         }
 
         String queryExtend = "SELECT acc_id, Domain_name, usluga, cost, value, promo FROM extend WHERE acc_id = :acc_id AND usluga NOT IN (:usluga_ids)";
@@ -117,7 +131,7 @@ public class AccountServicesDBImportService {
 
                     logger.debug("Trying to find PaymentService for " + serviceOldId);
 
-                    PaymentService serviceE = paymentServiceRepository.findByOldId(serviceOldId);
+                    PaymentService serviceE = oldServiceIdToService.get(serviceOldId);
 
                     if (serviceE == null) {
                         logger.error("PaymentService not found for account: " +
@@ -136,7 +150,7 @@ public class AccountServicesDBImportService {
 
                     publisher.publishEvent(new AccountServiceCreateEvent(accountServiceE));
 
-                    logger.debug("Added accountService for service " + serviceE.getId() + " for PersonalAccount " + rsE.getString("acc_id"));
+                    logger.info("Added accountService for service " + serviceE.getName() + " for PersonalAccount " + rsE.getString("acc_id"));
 
                     return accountServiceE;
                 }
@@ -145,20 +159,34 @@ public class AccountServicesDBImportService {
         return null;
     }
 
-    public boolean importToMongo() {
+    public void clean() {
         accountServiceRepository.deleteAll();
+    }
+
+    public void clean(String accountId) {
+        accountServiceRepository.deleteByPersonalAccountId(accountId);
+    }
+
+    public boolean importToMongo() {
+        clean();
         pull();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
-        List<AccountService> services = accountServiceRepository.findByPersonalAccountId(accountId);
-
-        if (services != null && !services.isEmpty()) {
-            accountServiceRepository.delete(services);
-        }
-
+        clean(accountId);
         pull(accountId);
         return true;
+    }
+
+    private void loadPaymentServices() {
+        if (paymentServices.isEmpty()) {
+            paymentServices = paymentServiceRepository.findAllPaymentServices();
+
+            oldServiceIdToService = paymentServices
+                    .stream()
+                    .collect(Collectors.toMap(PaymentService::getOldId, paymentService -> paymentService))
+            ;
+        }
     }
 }

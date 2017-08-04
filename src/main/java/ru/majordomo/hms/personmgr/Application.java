@@ -18,7 +18,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.retry.annotation.EnableRetry;
 
 import ru.majordomo.hms.personmgr.serializer.PageSerializer;
-import ru.majordomo.hms.personmgr.service.importing.DBImportService;
+import ru.majordomo.hms.personmgr.importing.DBImportService;
 
 @SpringBootApplication
 @EnableDiscoveryClient
@@ -44,8 +44,16 @@ public class Application implements CommandLineRunner {
             String dbSeedOption = "--db_seed";
             String dbImportOption = "--db_import";
             String dbImportOneAccountOption = "--db_import_one_account";
+            String dbImportOneServerOption = "--db_import_one_server";
+            String dbCleanOneServerOption = "--db_clean_one_server";
             String processOption = "--process";
             StringBuilder sb = new StringBuilder();
+
+            //        String serverId = "122";//web22
+            //        String serverId = "136";//web36
+//            String serverId = "115";//web16
+                    String serverId = "125";//web24
+
             for (String option : args) {
                 sb.append(" ").append(option);
 
@@ -62,8 +70,18 @@ public class Application implements CommandLineRunner {
                 } else if (option.equals(dbImportOneAccountOption)) {
                     boolean imported;
 
-                    imported = dbImportService.importToMongo("100800");
+                    imported = dbImportService.importToMongo("3949");
                     sb.append(" ").append(imported ? "dbImportService db_imported" : "dbImportService db_not_imported");
+                } else if (option.equals(dbImportOneServerOption)) {
+                    boolean imported;
+
+                    imported = dbImportService.importToMongoByServerId(serverId);
+                    sb.append(" ").append(imported ? "dbImportService db_imported" : "dbImportService db_not_imported");
+                } else if (option.equals(dbCleanOneServerOption)) {
+                    boolean imported;
+
+                    imported = dbImportService.cleanByServerId(serverId);
+                    sb.append(" ").append(imported ? "dbImportService db_cleaned" : "dbImportService db_not_cleaned");
                 } else if (option.equals(processOption)) {
                     //                PersonalAccount account = personalAccountRepository.findByAccountId("100800");
                     //                domainService.processDomainsAutoRenewByAccount(account);

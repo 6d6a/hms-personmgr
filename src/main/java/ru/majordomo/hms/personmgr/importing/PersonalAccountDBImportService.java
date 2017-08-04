@@ -1,15 +1,24 @@
-package ru.majordomo.hms.personmgr.service.importing;
+package ru.majordomo.hms.personmgr.importing;
+
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
 
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
+
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
@@ -18,22 +27,24 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
+import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.formatPhone;
+import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
+
 @Service
 public class PersonalAccountDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(PersonalAccountDBImportService.class);
 
-    private JdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate jdbcTemplate;
     private PersonalAccountManager accountManager;
     private PlanRepository planRepository;
-    private List<PersonalAccount> personalAccounts = new ArrayList<>();
 
     @Autowired
     public PersonalAccountDBImportService(
-            JdbcTemplate jdbcTemplate,
+            @Qualifier("namedParameterJdbcTemplate") NamedParameterJdbcTemplate namedParameterJdbcTemplate,
             PersonalAccountManager accountManager,
             PlanRepository planRepository
     ) {
-        this.jdbcTemplate = jdbcTemplate;
+        this.jdbcTemplate = namedParameterJdbcTemplate;
         this.accountManager = accountManager;
         this.planRepository = planRepository;
     }
@@ -51,17 +62,22 @@ public class PersonalAccountDBImportService {
     }
 
     private void pull(String accountId) {
+        logger.info("[start] Searching for PersonalAccount for acc " + accountId);
+
         String query = "SELECT a.id, a.name, a.client_id, a.credit, a.plan_id, m.notify_days, " +
-                "a.status, c.client_auto_bill, a.overquoted, a.overquot_addcost, e.value as sms_phone " +
+                "a.status, a.acc_create_date, a.date_negative_balance, " +
+                "c.client_auto_bill, a.overquoted, a.overquot_addcost, e.value as sms_phone " +
                 "FROM account a " +
                 "LEFT JOIN Money m ON a.id = m.acc_id " +
                 "LEFT JOIN client c ON a.client_id = c.Client_ID " +
                 "LEFT JOIN extend e ON (a.id = e.acc_id AND e.usluga = 18) " +
-                "WHERE a.client_id != 0 AND a.id = ?";
-        jdbcTemplate.query(query,
-                new Object[] { accountId },
-                this::rowMap
-        );
+                "WHERE a.client_id != 0 AND a.id = :accountId";
+
+        SqlParameterSource namedParametersE = new MapSqlParameterSource("accountId", accountId);
+
+        jdbcTemplate.query(query, namedParametersE, this::rowMap);
+
+        logger.info("[finish] Searching for PersonalAccount for acc " + accountId);
     }
 
     private PersonalAccount rowMap(ResultSet rs, int rowNum) throws SQLException {
@@ -79,9 +95,38 @@ public class PersonalAccountDBImportService {
             personalAccount.setPlanId(plan.getId());
             personalAccount.setAccountId(rs.getString("id"));
             personalAccount.setClientId(rs.getString("client_id"));
-            personalAccount.setName(rs.getString("name"));
+            personalAccount.setName(
+                    rs.getString("name").startsWith("ac_") ?
+                            rs.getString("name").toUpperCase() :
+                            rs.getString("name")
+            );
             personalAccount.setActive(rs.getBoolean("status"));
-            personalAccount.setCreated(LocalDateTime.now());
+
+            try {
+                Date accCreateDate = rs.getDate("acc_create_date");
+
+                if (accCreateDate != null) {
+                    personalAccount.setCreated(LocalDateTime.of(accCreateDate.toLocalDate(), LocalTime.MAX));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                logger.error("Exception " + e.getMessage());
+            }
+
+            try {
+                String status = rs.getString("status");
+
+                if (status.equals("0")) {
+                    Date dateNegativeBalance = rs.getDate("date_negative_balance");
+
+                    if (dateNegativeBalance != null) {
+                        personalAccount.setDeactivated(LocalDateTime.of(dateNegativeBalance.toLocalDate(), LocalTime.MAX));
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                logger.error("Exception " + e.getMessage());
+            }
 
             personalAccount.setNotifyDays(rs.getInt("notify_days"));
             personalAccount.setCredit(rs.getString("credit").equals("y"));
@@ -94,44 +139,42 @@ public class PersonalAccountDBImportService {
             String smsPhone = rs.getString("sms_phone");
 
             if (smsPhone != null && !smsPhone.equals("")) {
-                personalAccount.setSmsPhoneNumber(smsPhone);
+                if (phoneValid(smsPhone)) {
+
+                    String formattedPhone = formatPhone(smsPhone);
+                    if (!formattedPhone.equals("")) {
+                        personalAccount.setSmsPhoneNumber(formattedPhone);
+                    }
+                } else {
+                    logger.error("smsPhone for " + rs.getString("name") + " not valid: " + smsPhone);
+                }
             }
 
-            personalAccounts.add(personalAccount);
+            accountManager.save(personalAccount);
         } else {
-            logger.debug("Plan not found account: " + rs.getString("acc_id") + " planId: " + rs.getString("plan_id"));
+            logger.error("Plan not found account: " + rs.getString("acc_id") + " planId: " + rs.getString("plan_id"));
         }
 
         return personalAccount;
     }
 
-    public boolean importToMongo() {
+    public void clean() {
         accountManager.deleteAll();
+    }
+
+    public void clean(String accountId) {
+        accountManager.delete(accountId);
+    }
+
+    public boolean importToMongo() {
+        clean();
         pull();
-        pushToMongo();
         return true;
     }
 
     public boolean importToMongo(String accountId) {
-        PersonalAccount account;
-        try {
-            account = accountManager.findByAccountId(accountId);
-
-            if (account != null) {
-                accountManager.delete(account);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        clean(accountId);
         pull(accountId);
-        pushToMongo();
         return true;
-    }
-
-    private void pushToMongo() {
-        logger.debug("pushToMongo personalAccounts");
-
-        accountManager.save(personalAccounts);
     }
 }
