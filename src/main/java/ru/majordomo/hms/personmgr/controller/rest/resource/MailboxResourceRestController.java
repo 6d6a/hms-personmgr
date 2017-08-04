@@ -25,6 +25,7 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.FieldRoles.MAILBOX_PATCH;
+import static ru.majordomo.hms.personmgr.common.FieldRoles.MAILBOX_POST;
 
 @RestController
 @RequestMapping("/{accountId}/mailbox")
@@ -43,6 +44,12 @@ public class MailboxResourceRestController extends CommonResourceRestController 
 
         if (!accountManager.findOne(accountId).isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание почтового ящика невозможно.");
+        }
+
+        if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
+            checkParamsWithRoles(message.getParams(), MAILBOX_POST, request);
+        } else {
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), MAILBOX_POST, request);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_CREATE, BusinessActionType.MAILBOX_CREATE_RC, message);
@@ -77,7 +84,11 @@ public class MailboxResourceRestController extends CommonResourceRestController 
             throw new ParameterValidationException("Аккаунт неактивен. Обновление почтового ящика невозможно.");
         }
 
-        checkParamsWithRoles(message.getParams(), MAILBOX_PATCH, request);
+        if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
+            checkParamsWithRoles(message.getParams(), MAILBOX_PATCH, request);
+        } else {
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), MAILBOX_PATCH, request);
+        }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_UPDATE, BusinessActionType.MAILBOX_UPDATE_RC, message);
 

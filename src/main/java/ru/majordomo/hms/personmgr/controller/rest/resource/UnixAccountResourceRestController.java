@@ -29,6 +29,7 @@ import ru.majordomo.hms.rc.user.resources.UnixAccount;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.FieldRoles.UNIX_ACCOUNT_PATCH;
+import static ru.majordomo.hms.personmgr.common.FieldRoles.UNIX_ACCOUNT_POST;
 
 @RestController
 @RequestMapping("/{accountId}/unix-account")
@@ -59,6 +60,12 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
         }
 
         logger.debug("Creating unix account " + message.toString());
+
+        if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
+            checkParamsWithRoles(message.getParams(), UNIX_ACCOUNT_POST, request);
+        } else {
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), UNIX_ACCOUNT_POST, request);
+        }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.UNIX_ACCOUNT_CREATE, BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
 
@@ -92,7 +99,11 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
 
         logger.debug("Updating unix account with id " + resourceId + " " + message.toString());
 
-        checkParamsWithRoles(message.getParams(), UNIX_ACCOUNT_PATCH, request);
+        if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
+            checkParamsWithRoles(message.getParams(), UNIX_ACCOUNT_PATCH, request);
+        } else {
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), UNIX_ACCOUNT_PATCH, request);
+        }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.UNIX_ACCOUNT_UPDATE, BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 

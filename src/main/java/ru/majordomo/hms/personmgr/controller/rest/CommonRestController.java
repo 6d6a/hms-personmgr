@@ -103,6 +103,20 @@ public class CommonRestController {
         });
     }
 
+    protected void checkParamsWithRolesAndDeleteRestricted(
+            Map<String, Object> params,
+            Map<String, String> paramsWithRoles,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        paramsWithRoles.forEach((param, role) -> {
+            if (params.get(param) != null && !request.isUserInRole(role)) {
+                logger.debug("Changing '" + param + "' property is forbidden. Only role '" + role + "' allowed to edit.");
+                params.remove(param);
+            }
+        });
+    }
+
+
     public void addHistoryMessage(String operator, String accountId, String message) {
         Map<String, String> params = new HashMap<>();
         params.put(HISTORY_MESSAGE_KEY, message);
