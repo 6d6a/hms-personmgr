@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -49,7 +50,8 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         message.setAccountId(accountId);
 
@@ -62,9 +64,9 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
         logger.debug("Creating unix account " + message.toString());
 
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
-            checkParamsWithRoles(message.getParams(), UNIX_ACCOUNT_POST, request);
+            checkParamsWithRoles(message.getParams(), UNIX_ACCOUNT_POST, authentication);
         } else {
-            checkParamsWithRolesAndDeleteRestricted(message.getParams(), UNIX_ACCOUNT_POST, request);
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), UNIX_ACCOUNT_POST, authentication);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.UNIX_ACCOUNT_CREATE, BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
@@ -88,7 +90,8 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         message.setAccountId(accountId);
         message.addParam("resourceId", resourceId);
@@ -100,9 +103,9 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
         logger.debug("Updating unix account with id " + resourceId + " " + message.toString());
 
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
-            checkParamsWithRoles(message.getParams(), UNIX_ACCOUNT_PATCH, request);
+            checkParamsWithRoles(message.getParams(), UNIX_ACCOUNT_PATCH, authentication);
         } else {
-            checkParamsWithRolesAndDeleteRestricted(message.getParams(), UNIX_ACCOUNT_PATCH, request);
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), UNIX_ACCOUNT_PATCH, authentication);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.UNIX_ACCOUNT_UPDATE, BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);

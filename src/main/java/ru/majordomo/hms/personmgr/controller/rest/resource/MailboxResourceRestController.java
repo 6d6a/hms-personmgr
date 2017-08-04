@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,7 +37,8 @@ public class MailboxResourceRestController extends CommonResourceRestController 
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         message.setAccountId(accountId);
 
@@ -47,9 +49,9 @@ public class MailboxResourceRestController extends CommonResourceRestController 
         }
 
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
-            checkParamsWithRoles(message.getParams(), MAILBOX_POST, request);
+            checkParamsWithRoles(message.getParams(), MAILBOX_POST, authentication);
         } else {
-            checkParamsWithRolesAndDeleteRestricted(message.getParams(), MAILBOX_POST, request);
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), MAILBOX_POST, authentication);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_CREATE, BusinessActionType.MAILBOX_CREATE_RC, message);
@@ -73,7 +75,8 @@ public class MailboxResourceRestController extends CommonResourceRestController 
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         message.setAccountId(accountId);
         message.getParams().put("resourceId", resourceId);
@@ -85,9 +88,9 @@ public class MailboxResourceRestController extends CommonResourceRestController 
         }
 
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
-            checkParamsWithRoles(message.getParams(), MAILBOX_PATCH, request);
+            checkParamsWithRoles(message.getParams(), MAILBOX_PATCH, authentication);
         } else {
-            checkParamsWithRolesAndDeleteRestricted(message.getParams(), MAILBOX_PATCH, request);
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), MAILBOX_PATCH, authentication);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_UPDATE, BusinessActionType.MAILBOX_UPDATE_RC, message);

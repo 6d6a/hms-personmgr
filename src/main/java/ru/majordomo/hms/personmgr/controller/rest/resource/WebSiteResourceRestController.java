@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,7 +37,8 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         message.setAccountId(accountId);
 
@@ -53,9 +55,9 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
         }
 
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
-            checkParamsWithRoles(message.getParams(), WEB_SITE_POST, request);
+            checkParamsWithRoles(message.getParams(), WEB_SITE_POST, authentication);
         } else {
-            checkParamsWithRolesAndDeleteRestricted(message.getParams(), WEB_SITE_POST, request);
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), WEB_SITE_POST, authentication);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.WEB_SITE_CREATE, BusinessActionType.WEB_SITE_CREATE_RC, message);
@@ -79,7 +81,8 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         message.setAccountId(accountId);
         message.addParam("resourceId", resourceId);
@@ -91,9 +94,9 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
         }
 
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
-            checkParamsWithRoles(message.getParams(), WEB_SITE_PATCH, request);
+            checkParamsWithRoles(message.getParams(), WEB_SITE_PATCH, authentication);
         } else {
-            checkParamsWithRolesAndDeleteRestricted(message.getParams(), WEB_SITE_PATCH, request);
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), WEB_SITE_PATCH, authentication);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.WEB_SITE_UPDATE, BusinessActionType.WEB_SITE_UPDATE_RC, message);
