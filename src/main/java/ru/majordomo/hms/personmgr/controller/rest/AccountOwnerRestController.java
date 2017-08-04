@@ -76,7 +76,7 @@ public class AccountOwnerRestController extends CommonRestController {
 
         boolean changeEmail = false;
         List<String> currentEmails = new ArrayList<>(currentOwner.getContactInfo().getEmailAddresses());
-        if (!request.isUserInRole("ADMIN")) {
+        if (!request.isUserInRole("ADMIN") && !request.isUserInRole("OPERATOR")) {
             changeEmail = !currentOwner.equalEmailAdressess(owner);
             accountOwnerManager.checkNotEmptyFields(currentOwner, owner);
             accountOwnerManager.setEmptyAndAllowedToEditFields(currentOwner, owner);
