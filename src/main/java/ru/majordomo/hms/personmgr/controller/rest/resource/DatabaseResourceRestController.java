@@ -24,6 +24,8 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
+import static ru.majordomo.hms.personmgr.common.FieldRoles.DATABASE_PATCH;
+import static ru.majordomo.hms.personmgr.common.FieldRoles.DATABASE_POST;
 
 @RestController
 @RequestMapping("/{accountId}/database")
@@ -48,6 +50,12 @@ public class DatabaseResourceRestController extends CommonResourceRestController
 
         if (!accountManager.findOne(accountId).isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание базы данных невозможно.");
+        }
+
+        if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
+            checkParamsWithRoles(message.getParams(), DATABASE_POST, request);
+        } else {
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), DATABASE_POST, request);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_CREATE, BusinessActionType.DATABASE_CREATE_RC, message);
@@ -80,6 +88,12 @@ public class DatabaseResourceRestController extends CommonResourceRestController
 
         if (!accountManager.findOne(accountId).isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление базы данных невозможно.");
+        }
+
+        if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
+            checkParamsWithRoles(message.getParams(), DATABASE_PATCH, request);
+        } else {
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), DATABASE_PATCH, request);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_UPDATE, BusinessActionType.DATABASE_UPDATE_RC, message);
