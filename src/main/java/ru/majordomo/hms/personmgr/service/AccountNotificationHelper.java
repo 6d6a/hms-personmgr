@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
+import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
@@ -101,5 +102,27 @@ public class AccountNotificationHelper {
 
         parameters.put("client_id", account.getAccountId());
         this.sendMail(account, apiName, 1, parameters);
+    }
+
+    public void sendSms(PersonalAccount account, String apiName, int priority) {
+        sendSms(account, apiName, priority, null);
+    }
+
+    public void sendSms(PersonalAccount account, String apiName, int priority, HashMap<String, String> parameters) {
+        SimpleServiceMessage message = new SimpleServiceMessage();
+
+        String smsPhone = account.getSmsPhoneNumber();
+        if (smsPhone == null || smsPhone.equals("")) {
+            logger.error("AccountSmsPhoneNumber is missing, accountName [" + account.getName() + "], parameters: " + (parameters != null ? parameters : ""));
+            return;
+        }
+
+        message.setAccountId(account.getId());
+        message.setParams(new HashMap<>());
+        message.addParam("phone", smsPhone);
+        message.addParam("api_name", apiName);
+        message.addParam("priority", priority);
+        if (parameters != null && !parameters.isEmpty()) { message.addParam("parametrs", parameters); }
+        publisher.publishEvent(new SendSmsEvent(message));
     }
 }

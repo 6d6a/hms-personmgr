@@ -45,6 +45,7 @@ public class PaymentAmqpController extends CommonAmqpController  {
             if (account != null) {
                 // P.S. У этого эвента делэй в 20 секунд
                 publisher.publishEvent(new AccountSwitchByPaymentCreatedEvent(account));
+
             }
 
         }
