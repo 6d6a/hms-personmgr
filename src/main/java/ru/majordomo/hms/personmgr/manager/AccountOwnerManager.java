@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.manager;
 
+import com.querydsl.core.types.Predicate;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -31,6 +33,8 @@ public interface AccountOwnerManager {
     AccountOwner findOne(String id);
 
     List<AccountOwner> findAll();
+
+    Page<AccountOwner> findAll(Predicate predicate, Pageable pageable);
 
     AccountOwner findOneByPersonalAccountId(String personalAccountId);
 
