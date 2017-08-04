@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -66,7 +67,8 @@ public class DnsRecordResourceRestController extends CommonResourceRestControlle
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         message.setAccountId(accountId);
         message.getParams().put("resourceId", resourceId);
@@ -77,7 +79,7 @@ public class DnsRecordResourceRestController extends CommonResourceRestControlle
             throw new ParameterValidationException("Аккаунт неактивен. Обновление DNS-записи невозможно.");
         }
 
-        checkParamsWithRoles(message.getParams(), DNS_RECORD_PATCH, request);
+        checkParamsWithRoles(message.getParams(), DNS_RECORD_PATCH, authentication);
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.DNS_RECORD_UPDATE, BusinessActionType.DNS_RECORD_UPDATE_RC, message);
 
