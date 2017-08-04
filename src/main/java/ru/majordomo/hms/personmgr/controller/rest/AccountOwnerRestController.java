@@ -1,6 +1,11 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Predicate;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,6 +32,7 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.QAccountOwner;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -146,6 +152,28 @@ public class AccountOwnerRestController extends CommonRestController {
             PersonalAccountWithNotificationsProjection account = accountMap.get(accountOwner.getPersonalAccountId());
             accountOwner.setAccountId(account.getAccountId());
         });
+
+        return new ResponseEntity<>(accountOwners, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('OPERATOR')")
+    @RequestMapping(value = "/account-owner/search", method = RequestMethod.GET)
+    public ResponseEntity<Page<AccountOwner>> search(
+            @RequestParam("search") String search,
+            Pageable pageable
+    ) {
+        QAccountOwner qAccountOwner = QAccountOwner.accountOwner;
+
+        BooleanBuilder builder = new BooleanBuilder();
+        Predicate predicate = builder
+                .and(qAccountOwner.name.containsIgnoreCase(search))
+                .or(qAccountOwner.personalAccountName.containsIgnoreCase(search))
+                .or(qAccountOwner.contactInfo.emailAddresses.contains(search))
+                .or(qAccountOwner.contactInfo.phoneNumbers.contains(search))
+                .or(qAccountOwner.personalInfo.inn.eq(search))
+                .or(qAccountOwner.personalInfo.number.containsIgnoreCase(search));
+
+        Page<AccountOwner> accountOwners = accountOwnerManager.findAll(predicate, pageable);
 
         return new ResponseEntity<>(accountOwners, HttpStatus.OK);
     }
