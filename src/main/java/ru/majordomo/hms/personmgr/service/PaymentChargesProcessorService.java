@@ -133,20 +133,22 @@ public class PaymentChargesProcessorService {
                 }
             }
 
-            //Если изначального баланса не хватило для списания
-            if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0) {
-                if (!account.isCredit()) {
-                    accountHelper.switchAccountResources(account, false);
-                    success = false;;
-                    accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
-                    accountNotificationHelper.sendMailForDeactivatedAccount(account);
-                } else if (account.getCreditActivationDate() == null) {
-                    accountManager.setCreditActivationDate(account.getId(), LocalDateTime.now());
-                }
-            }
-
 
             if (dailyCost.compareTo(BigDecimal.ZERO) > 0) {
+
+                //Если изначального баланса не хватило для списания
+                if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0) {
+                    if (!account.isCredit()) {
+                        accountHelper.switchAccountResources(account, false);
+                        success = false;
+                        accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
+                        accountNotificationHelper.sendMailForDeactivatedAccount(account);
+                    } else if (account.getCreditActivationDate() == null) {
+                        accountManager.setCreditActivationDate(account.getId(), LocalDateTime.now());
+                    }
+                }
+
+                //Уведомления
                 Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue() - 1;
 
                 if (account.getNotifyDays() > 0 &&
