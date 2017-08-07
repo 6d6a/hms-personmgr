@@ -163,6 +163,7 @@ public class PaymentChargesProcessorService {
 
                     publisher.publishEvent(new AccountNotifyRemainingDaysEvent(account, params));
                 }
+
             }
 
         }
