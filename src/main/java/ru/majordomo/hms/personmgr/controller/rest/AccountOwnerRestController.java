@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -76,13 +77,14 @@ public class AccountOwnerRestController extends CommonRestController {
     public ResponseEntity changeOwner(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @Valid @RequestBody AccountOwner owner,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         AccountOwner currentOwner = accountOwnerManager.findOneByPersonalAccountId(accountId);
 
         boolean changeEmail = false;
         List<String> currentEmails = new ArrayList<>(currentOwner.getContactInfo().getEmailAddresses());
-        if (!request.isUserInRole("ADMIN") && !request.isUserInRole("OPERATOR")) {
+        if (authentication.getAuthorities().stream().noneMatch(ga -> ga.getAuthority().equals("UPDATE_CLIENT_CONTACTS"))) {
             changeEmail = !currentOwner.equalEmailAdressess(owner);
             accountOwnerManager.checkNotEmptyFields(currentOwner, owner);
             accountOwnerManager.setEmptyAndAllowedToEditFields(currentOwner, owner);
