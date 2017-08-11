@@ -117,7 +117,14 @@ public class AccountQuotaService {
                         publisher.publishEvent(new AccountQuotaAddedEvent(account, params));
                     }
                     // Удаляем или добавляем сервисы
-                    updateQuotaService(account, quotaServiceId, currentQuotaUsed, planQuotaKBFreeLimit, additionalServiceQuota, ADDITIONAL_QUOTA_100_CAPACITY);
+                    updateQuotaService(
+                            account,
+                            quotaServiceId,
+                            currentQuotaUsed,
+                            planQuotaKBFreeLimit,
+                            additionalServiceQuota,
+                            ADDITIONAL_QUOTA_100_CAPACITY
+                    );
                 }
             } else {
                 // Если НЕ стоит флаг добавления дополнительнго места
@@ -184,7 +191,7 @@ public class AccountQuotaService {
             Long oneServiceCapacity
     ) {
         if (currentQuotaUsed != (planQuotaKBFreeLimit + additionalServiceQuota) * 1024) {
-            int notFreeQuotaCount = (int) ceil((currentQuotaUsed - (planQuotaKBFreeLimit * 1024)) / (oneServiceCapacity  * 1024));
+            int notFreeQuotaCount = (int) ceil(((float) currentQuotaUsed - (planQuotaKBFreeLimit * 1024)) / (oneServiceCapacity  * 1024));
             accountServiceHelper.updateAccountService(account, serviceId, notFreeQuotaCount);
 
             logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
