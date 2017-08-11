@@ -18,7 +18,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
 
 @Service
 public class AccountNotificationHelper {
@@ -117,12 +121,34 @@ public class AccountNotificationHelper {
             return;
         }
 
+        //Для mailmanager нужно преобразовать телефон в вид 7XXXXXXXXXX
+
+        if (!phoneValid(smsPhone)) {
+            logger.error("settings.SMS_PHONE_NUMBER [" + smsPhone + "] not valid, accountId : " + account.getId());
+            return;
+        }
+
+        String smsPhoneForMailManager = smsPhone.replaceAll("(\\+7|^8)", "7").replaceAll("[^\\d]", "");
+
+        //Отправляем только по РФ
+        Pattern p = Pattern.compile("^7[\\d]{10}$");
+        Matcher m = p.matcher(smsPhoneForMailManager);
+        if (!m.matches()) {
+            logger.error("smsPhoneForMailManager [" + smsPhoneForMailManager + "] not valid for mail-manager, must be [7xxxxxxxxxx] , accountId : " + account.getId());
+            return;
+        }
+
         message.setAccountId(account.getId());
         message.setParams(new HashMap<>());
-        message.addParam("phone", smsPhone);
+        message.addParam("phone", smsPhoneForMailManager);
         message.addParam("api_name", apiName);
         message.addParam("priority", priority);
-        if (parameters != null && !parameters.isEmpty()) { message.addParam("parametrs", parameters); }
+        if (parameters != null && !parameters.isEmpty()) {
+            message.addParam("parametrs", parameters);
+        } else {
+            parameters = new HashMap<>();
+            parameters.put("client_id", account.getId());
+        }
         publisher.publishEvent(new SendSmsEvent(message));
     }
 }

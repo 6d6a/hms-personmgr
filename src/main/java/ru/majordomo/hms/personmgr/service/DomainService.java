@@ -20,7 +20,6 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
 import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
@@ -168,6 +167,8 @@ public class DomainService {
 
         domains.forEach(domain -> logger.debug("We found domain for AutoRenew: " + domain));
 
+        List<Domain> domainNotProlong = new ArrayList<>();
+
         for (Domain domain : domains) {
 
             if (domain.getAutoRenew()) {
@@ -187,28 +188,7 @@ public class DomainService {
                     //Запишем попытку в историю клиента
                     accountHelper.saveHistoryForOperatorService(account, "Автоматическое продление " + domain.getName() + " невозможно, на счету " + balance + " руб.");
 
-                    //Отправим письмо
-                    HashMap<String, String> parameters = new HashMap<>();
-                    parameters.put("client_id", account.getAccountId());
-                    parameters.put("acc_id", account.getName());
-                    parameters.put("domen", domain.getName());
-                    parameters.put("from", "noreply@majordomo.ru");
-
-                    accountNotificationHelper.sendMail(account, "MajordomoVHNomoneyProlong", 10, parameters);
-
-                    String smsPhone = account.getSmsPhoneNumber();
-
-                    //Если подключено СМС-уведомление, то также отправим его
-                    if (account.hasNotification(MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN)
-                            && smsPhone != null
-                            && !smsPhone.equals("")
-                            && accountServiceHelper.hasSmsNotifications(account)) {
-
-                        parameters = new HashMap<>();
-                        parameters.put("client_id", account.getAccountId());
-                        parameters.put("domain", domain.getName());
-                        accountNotificationHelper.sendSms(account, "MajordomoNoMoneyToAutoRenewDomain", 10, parameters);
-                    }
+                    domainNotProlong.add(domain);
                 }
 
                 SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRenewService());
@@ -226,6 +206,8 @@ public class DomainService {
                 businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, domainRenewMessage);
             }
         }
+        //Отправим уведомления по почте и смс
+        notifyForDomainNoProlongNoMoney(account, domainNotProlong);
     }
 
     public void check(String domainName) {
@@ -486,5 +468,52 @@ public class DomainService {
         accountNotificationHelper.sendMail(account,
                 expired ? "MajordomoHMSVHDomainsAfterExpired" : "MajordomoHMSVHDomainsExpires",
                 10, parameters);
+    }
+
+    private void notifyForDomainNoProlongNoMoney(PersonalAccount account, List<Domain> domains) {
+        if (domains != null && !domains.isEmpty()) {
+
+            //Email
+            String balance = accountNotificationHelper.getBalanceForEmail(account);
+
+            String domainsForMail = "";
+            for (Domain domain : domains) {
+                domainsForMail += String.format(
+                        "%-20s - %s<br>",
+                        domain.getName(),
+                        domain.getRegSpec().getPaidTill().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                );
+            }
+
+            HashMap<String, String> parameters = new HashMap<>();
+            parameters.put("client_id", account.getAccountId());
+            parameters.put("acc_id", account.getName());
+            parameters.put("domain_for_subject", domains.get(0).getName());
+            parameters.put("domains", domainsForMail);
+            parameters.put("from", "noreply@majordomo.ru");
+            parameters.put("balance", balance);
+
+            accountNotificationHelper.sendMail(account, "HMSVHNomoneyDomainProlong", 10, parameters);
+
+            //Если подключено СМС-уведомление, то также отправим его
+            String smsPhone = account.getSmsPhoneNumber();
+
+            if (account.hasNotification(MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN)
+                    && smsPhone != null
+                    && !smsPhone.equals("")
+                    && accountServiceHelper.hasSmsNotifications(account)) {
+
+                String domainParameter = domains.get(0).getName();
+                if (domains.size() > 1) {
+                    domainParameter += " и др. ";
+                }
+
+                parameters = new HashMap<>();
+                parameters.put("client_id", account.getAccountId());
+                parameters.put("domain", domainParameter);
+                accountNotificationHelper.sendSms(account, "MajordomoNoMoneyToAutoRenewDomain", 10, parameters);
+            }
+        }
+
     }
 }
