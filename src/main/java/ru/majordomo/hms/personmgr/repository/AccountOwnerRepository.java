@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.querydsl.QueryDslPredicateExecutor;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.rest.core.annotation.RestResource;
 
@@ -10,7 +11,8 @@ import java.util.List;
 
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 
-public interface AccountOwnerRepository extends MongoRepository<AccountOwner, String> {
+public interface AccountOwnerRepository extends MongoRepository<AccountOwner, String>,
+        QueryDslPredicateExecutor<AccountOwner> {
     AccountOwner findOneByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
     @RestResource(path = "findListByPersonalAccountId", rel = "findListByPersonalAccountId")
     List<AccountOwner> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId);

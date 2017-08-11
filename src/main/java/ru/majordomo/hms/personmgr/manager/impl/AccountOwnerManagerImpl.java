@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.manager.impl;
 
+import com.querydsl.core.types.Predicate;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -89,6 +91,11 @@ public class AccountOwnerManagerImpl implements AccountOwnerManager {
     @Override
     public List<AccountOwner> findAll() {
         return repository.findAll();
+    }
+
+    @Override
+    public Page<AccountOwner> findAll(Predicate predicate, Pageable pageable) {
+        return repository.findAll(predicate, pageable);
     }
 
     @Override

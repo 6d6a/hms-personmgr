@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +26,7 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.FieldRoles.MAILBOX_PATCH;
+import static ru.majordomo.hms.personmgr.common.FieldRoles.MAILBOX_POST;
 
 @RestController
 @RequestMapping("/{accountId}/mailbox")
@@ -35,7 +37,8 @@ public class MailboxResourceRestController extends CommonResourceRestController 
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         message.setAccountId(accountId);
 
@@ -43,6 +46,12 @@ public class MailboxResourceRestController extends CommonResourceRestController 
 
         if (!accountManager.findOne(accountId).isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание почтового ящика невозможно.");
+        }
+
+        if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
+            checkParamsWithRoles(message.getParams(), MAILBOX_POST, authentication);
+        } else {
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), MAILBOX_POST, authentication);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_CREATE, BusinessActionType.MAILBOX_CREATE_RC, message);
@@ -66,7 +75,8 @@ public class MailboxResourceRestController extends CommonResourceRestController 
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         message.setAccountId(accountId);
         message.getParams().put("resourceId", resourceId);
@@ -77,7 +87,11 @@ public class MailboxResourceRestController extends CommonResourceRestController 
             throw new ParameterValidationException("Аккаунт неактивен. Обновление почтового ящика невозможно.");
         }
 
-        checkParamsWithRoles(message.getParams(), MAILBOX_PATCH, request);
+        if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
+            checkParamsWithRoles(message.getParams(), MAILBOX_PATCH, authentication);
+        } else {
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), MAILBOX_PATCH, authentication);
+        }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_UPDATE, BusinessActionType.MAILBOX_UPDATE_RC, message);
 

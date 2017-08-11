@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.HashMap;
@@ -247,8 +248,13 @@ public class PlanChangeService {
         BigDecimal delta;
         BigDecimal currentPlanCost = planRepository.findOne(account.getPlanId()).getService().getCost();
 
-
-        if (accountAbonement.getExpired() != null) {
+        if (accountAbonement.getExpired() == null) {
+            throw new ParameterValidationException("Абонемент не активирован");
+        }
+        // Если смена тарифа с абонментом в тот же день, что он был куплен - возвращаем полную стоимость
+        if (accountAbonement.getCreated().toLocalDate().isEqual(LocalDate.now())) {
+            delta = accountAbonement.getAbonement().getService().getCost();
+        } else {
             LocalDateTime nextDate = accountAbonement.getExpired()
                     .minus(Period.parse(accountAbonement.getAbonement().getPeriod())); // первая дата для начала пересчета АБ
             LocalDateTime stopDate = LocalDateTime.now(); // дата окончания пересчета абонемента
@@ -257,11 +263,9 @@ public class PlanChangeService {
                 total = total.add(currentPlanCost.divide(BigDecimal.valueOf(daysInMonth), 4, BigDecimal.ROUND_HALF_UP));
                 nextDate = nextDate.plusDays(1L);
             }
-        } else {
-            throw new ParameterValidationException("Абонемент не активирован");
-        }
 
-        delta = (accountAbonement.getAbonement().getService().getCost()).subtract(total);
+            delta = (accountAbonement.getAbonement().getService().getCost()).subtract(total);
+        }
 
         // delta может быть как отрицательной (будет списано), так и положительной (будет начислено)
         planChangeAgreement.setDelta(delta);

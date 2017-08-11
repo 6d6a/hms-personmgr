@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
+import org.springframework.security.core.Authentication;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -94,14 +94,28 @@ public class CommonRestController {
         }
     }
 
-    protected void checkParamsWithRoles(Map<String, Object> params, Map<String, String> paramsWithRoles, SecurityContextHolderAwareRequestWrapper request) {
+    protected void checkParamsWithRoles(Map<String, Object> params, Map<String, String> paramsWithRoles, Authentication request) {
         paramsWithRoles.forEach((param, role) -> {
-            if (params.get(param) != null && !request.isUserInRole(role)) {
+            if (params.get(param) != null && request.getAuthorities().stream().noneMatch(ga -> ga.getAuthority().equals(role))) {
                 logger.debug("Changing '" + param + "' property is forbidden. Only role '" + role + "' allowed to edit.");
                 throw new ParameterWithRoleSecurityException("Changing '" + param + "' property is forbidden");
             }
         });
     }
+
+    protected void checkParamsWithRolesAndDeleteRestricted(
+            Map<String, Object> params,
+            Map<String, String> paramsWithRoles,
+            Authentication request
+    ) {
+        paramsWithRoles.forEach((param, role) -> {
+            if (params.get(param) != null && request.getAuthorities().stream().noneMatch(ga -> ga.getAuthority().equals(role))) {
+                logger.debug("Changing '" + param + "' property is forbidden. Only role '" + role + "' allowed to edit.");
+                params.remove(param);
+            }
+        });
+    }
+
 
     public void addHistoryMessage(String operator, String accountId, String message) {
         Map<String, String> params = new HashMap<>();

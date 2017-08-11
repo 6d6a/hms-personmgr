@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +26,7 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.FieldRoles.WEB_SITE_PATCH;
+import static ru.majordomo.hms.personmgr.common.FieldRoles.WEB_SITE_POST;
 
 @RestController
 @RequestMapping("/{accountId}/website")
@@ -35,7 +37,8 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         message.setAccountId(accountId);
 
@@ -49,6 +52,12 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
             return this.createErrorResponse("Plan limit for websites exceeded");
+        }
+
+        if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
+            checkParamsWithRoles(message.getParams(), WEB_SITE_POST, authentication);
+        } else {
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), WEB_SITE_POST, authentication);
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.WEB_SITE_CREATE, BusinessActionType.WEB_SITE_CREATE_RC, message);
@@ -72,7 +81,8 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         message.setAccountId(accountId);
         message.addParam("resourceId", resourceId);
@@ -83,7 +93,11 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
             throw new ParameterValidationException("Аккаунт неактивен. Создание сайта невозможно.");
         }
 
-        checkParamsWithRoles(message.getParams(), WEB_SITE_PATCH, request);
+        if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
+            checkParamsWithRoles(message.getParams(), WEB_SITE_PATCH, authentication);
+        } else {
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), WEB_SITE_PATCH, authentication);
+        }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.WEB_SITE_UPDATE, BusinessActionType.WEB_SITE_UPDATE_RC, message);
 
