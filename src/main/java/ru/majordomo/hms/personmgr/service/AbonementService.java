@@ -56,6 +56,7 @@ public class AbonementService {
     private final ApplicationEventPublisher publisher;
     private final AccountStatHelper accountStatHelper;
     private final FinFeignClient finFeignClient;
+    private final AccountNotificationHelper accountNotificationHelper;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -67,7 +68,8 @@ public class AbonementService {
             AccountServiceHelper accountServiceHelper,
             ApplicationEventPublisher publisher,
             AccountStatHelper accountStatHelper,
-            FinFeignClient finFeignClient
+            FinFeignClient finFeignClient,
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
@@ -76,6 +78,7 @@ public class AbonementService {
         this.publisher = publisher;
         this.accountStatHelper = accountStatHelper;
         this.finFeignClient = finFeignClient;
+        this.accountNotificationHelper = accountNotificationHelper;
     }
 
     /**
@@ -224,18 +227,8 @@ public class AbonementService {
                 }
 
                 //Отправим письмо
-                String email = accountHelper.getEmail(account);
-
-                SimpleServiceMessage message = new SimpleServiceMessage();
-
-                message.setAccountId(account.getId());
-                message.setParams(new HashMap<>());
-                message.addParam("email", email);
-                message.addParam("api_name", "MajordomoVHAbNoMoneyProlong");
-                message.addParam("priority", 1);
-
                 HashMap<String, String> parameters = new HashMap<>();
-                parameters.put("client_id", message.getAccountId());
+                parameters.put("client_id", account.getAccountId());
                 parameters.put("acc_id", account.getName());
                 parameters.put("domains", String.join("<br>", domainNames));
                 parameters.put("balance", formatBigDecimalWithCurrency(balance));
@@ -244,9 +237,7 @@ public class AbonementService {
                 parameters.put("auto_renew", isRecurrentActive ? "включено" : "выключено");
                 parameters.put("from", "noreply@majordomo.ru");
 
-                message.addParam("parametrs", parameters);
-
-                publisher.publishEvent(new SendMailEvent(message));
+                accountNotificationHelper.sendMail(account, "MajordomoVHAbNoMoneyProlong", 1, parameters);
             }
         });
     }

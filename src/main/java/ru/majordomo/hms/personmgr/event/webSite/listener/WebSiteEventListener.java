@@ -11,11 +11,10 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.webSite.WebSiteCreatedEvent;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
@@ -26,18 +25,19 @@ public class WebSiteEventListener {
     private final static Logger logger = LoggerFactory.getLogger(WebSiteEventListener.class);
 
     private final AccountHelper accountHelper;
-    private final ApplicationEventPublisher publisher;
     private final RcUserFeignClient rcUserFeignClient;
+    private final AccountNotificationHelper accountNotificationHelper;
 
     @Autowired
     public WebSiteEventListener(
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher,
-            RcUserFeignClient rcUserFeignClient
+            RcUserFeignClient rcUserFeignClient,
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.accountHelper = accountHelper;
-        this.publisher = publisher;
         this.rcUserFeignClient = rcUserFeignClient;
+        this.accountNotificationHelper = accountNotificationHelper;
     }
 
     @EventListener
@@ -45,8 +45,6 @@ public class WebSiteEventListener {
     public void onWebSiteCreated(WebSiteCreatedEvent event) {
         PersonalAccount account = event.getSource();
         Map<String, ?> params = event.getParams();
-
-        String emails = accountHelper.getEmail(account);
 
         WebSite webSite = null;
 
@@ -65,21 +63,10 @@ public class WebSiteEventListener {
             return;
         }
 
-        String webSiteName = webSite.getName();
-
-        SimpleServiceMessage message = new SimpleServiceMessage();
-
-        message.setParams(new HashMap<>());
-        message.addParam("email", emails);
-        message.addParam("api_name", "MajordomoVHWebSiteCreated");
-        message.addParam("priority", 10);
-
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
-        parameters.put("website_name", webSiteName);
+        parameters.put("website_name", webSite.getName());
 
-        message.addParam("parametrs", parameters);
-
-        publisher.publishEvent(new SendMailEvent(message));
+        accountNotificationHelper.sendMail(account, "MajordomoVHWebSiteCreated", 10, parameters);
     }
 }
