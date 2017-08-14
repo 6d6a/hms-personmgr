@@ -62,13 +62,9 @@ public class PaymentChargesProcessorService {
 
         if (account.isActive()) {
 
-            LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+            LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
 
-            logger.debug("processing charges for PersonalAccount: " + account.getAccountId()
-                    + " name: " + account.getName()
-                    + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE_TIME));
-
-            logger.debug("processing monthly charge for PersonalAccount: " + account.getAccountId()
+            logger.info("processing charges for PersonalAccount: " + account.getAccountId()
                     + " name: " + account.getName()
                     + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE_TIME));
 
@@ -89,8 +85,7 @@ public class PaymentChargesProcessorService {
                 if (accountService.isEnabled()
                         && accountService.getPaymentService() != null
                         && (accountService.getLastBilled() == null
-                        || accountService.getLastBilled().isBefore(chargeDate)
-                        || accountService.getLastBilled().isEqual(chargeDate)))
+                        || accountService.getLastBilled().isBefore(chargeDate)))
                 {
                     BigDecimal cost;
                     Boolean forceCharge = false;
@@ -177,6 +172,11 @@ public class PaymentChargesProcessorService {
             SimpleServiceMessage response = null;
 
             try {
+                logger.info("Send charge request in fin for PersonalAccount: " + paymentAccount.getAccountId()
+                        + " name: " + paymentAccount.getName()
+                        + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE_TIME)
+                        + " cost: " + cost
+                );
                 response = accountHelper.charge(paymentAccount, accountService.getPaymentService(), cost, forceCharge);
             } catch (Exception e) {
                 e.printStackTrace();
