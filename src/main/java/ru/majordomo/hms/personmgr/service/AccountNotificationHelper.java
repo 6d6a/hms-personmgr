@@ -68,7 +68,7 @@ public class AccountNotificationHelper {
 
     public void sendMail(PersonalAccount account, String apiName, int priority, HashMap<String, String> parameters) {
 
-        String email = getEmail(account);
+        String email = accountHelper.getEmail(account);
         SimpleServiceMessage message = new SimpleServiceMessage();
 
         message.setAccountId(account.getId());
@@ -106,17 +106,5 @@ public class AccountNotificationHelper {
 
         parameters.put("client_id", account.getAccountId());
         this.sendMail(account, apiName, 1, parameters);
-    }
-
-    private String getEmail(PersonalAccount account) {
-        String clientEmails = "";
-
-        AccountOwner currentOwner = accountOwnerManager.findOneByPersonalAccountId(account.getId());
-
-        if (currentOwner != null) {
-            clientEmails = String.join(",", currentOwner.getContactInfo().getEmailAddresses());
-        }
-
-        return clientEmails;
     }
 }
