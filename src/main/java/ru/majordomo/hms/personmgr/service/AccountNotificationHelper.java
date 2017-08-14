@@ -7,6 +7,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
+import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
+import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
@@ -27,16 +29,19 @@ public class AccountNotificationHelper {
     private final ApplicationEventPublisher publisher;
     private final PlanRepository planRepository;
     private final AccountHelper accountHelper;
+    private final AccountOwnerManager accountOwnerManager;
 
     @Autowired
     public AccountNotificationHelper(
             ApplicationEventPublisher publisher,
             PlanRepository planRepository,
+            AccountOwnerManager accountOwnerManager,
             AccountHelper accountHelper
     ) {
         this.publisher = publisher;
         this.planRepository = planRepository;
         this.accountHelper = accountHelper;
+        this.accountOwnerManager = accountOwnerManager;
     }
 
     public String getCostAbonementForEmail(Plan plan) {return accountHelper.getCostAbonement(plan).setScale(2, BigDecimal.ROUND_DOWN).toString();}
@@ -63,7 +68,7 @@ public class AccountNotificationHelper {
 
     public void sendMail(PersonalAccount account, String apiName, int priority, HashMap<String, String> parameters) {
 
-        String email = accountHelper.getEmail(account);
+        String email = getEmail(account);
         SimpleServiceMessage message = new SimpleServiceMessage();
 
         message.setAccountId(account.getId());
@@ -101,5 +106,17 @@ public class AccountNotificationHelper {
 
         parameters.put("client_id", account.getAccountId());
         this.sendMail(account, apiName, 1, parameters);
+    }
+
+    private String getEmail(PersonalAccount account) {
+        String clientEmails = "";
+
+        AccountOwner currentOwner = accountOwnerManager.findOneByPersonalAccountId(account.getId());
+
+        if (currentOwner != null) {
+            clientEmails = String.join(",", currentOwner.getContactInfo().getEmailAddresses());
+        }
+
+        return clientEmails;
     }
 }
