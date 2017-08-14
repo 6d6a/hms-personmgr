@@ -55,7 +55,7 @@ public class ChargesScheduler {
     }
 
     //Выполняем списания в 01:00:00 каждый день
-    @Scheduled(cron = "0 0 1 * * *")
+    @Scheduled(cron = "0 15 1 * * *")
     @SchedulerLock(name="processCharges")
     public void processCharges() {
         logger.debug("Started processCharges");
