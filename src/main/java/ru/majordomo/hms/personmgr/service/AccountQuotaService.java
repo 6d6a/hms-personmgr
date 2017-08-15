@@ -100,6 +100,7 @@ public class AccountQuotaService {
 
         // Сравниваем текущее использование квоты c бесплатным лимитом
         if (currentQuotaUsed > planQuotaKBFreeLimit * 1024) {
+            //Превышение квоты есть
             overquotedState = true;
             if (account.isAddQuotaIfOverquoted()) {
                 writableState = true;
@@ -134,8 +135,11 @@ public class AccountQuotaService {
         Long quotaInBytes = (planQuotaKBFreeLimit + (oneServiceCapacity * newAdditionalQuotaCount)) * 1024;
         accountHelper.updateUnixAccountQuota(account, quotaInBytes);
 
+        //Обновим writable для quotable-ресурсов аккаунта
+        setWritable(account, writableState, plan);
+    }
 
-        //Обновляем writable для quotable-ресурсов аккаунта
+    private void setWritable(PersonalAccount account, Boolean writableState, Plan plan) {
         //ищем все quotable-ресурсы с writable, который надо изменить
         List<Quotable> resources = accountHelper.filterQuotableResoursesByWritableState(
                 accountHelper.getQuotableResources(account), !writableState
@@ -160,39 +164,6 @@ public class AccountQuotaService {
                 params.put(SERVICE_NAME_KEY, plan.getName());
                 publisher.publishEvent(new AccountQuotaDiscardEvent(account, params));
             }
-        }
-    }
-
-    /**
-     * Обновляем услуги в зависимости от квот
-     *
-     * @param account   Аккаунт
-     * @param serviceId id услуги
-     * @param currentQuotaUsed текущее кол-во услуг
-     * @param planQuotaKBFreeLimit бесплатно по тарифу
-     * @param additionalServiceQuota кол-во по допуслугам
-     * @param oneServiceCapacity Вместимость одной услуги
-     *
-     */
-    public void updateQuotaService(
-            PersonalAccount account,
-            String serviceId,
-            Long currentQuotaUsed,
-            Long planQuotaKBFreeLimit,
-            Long additionalServiceQuota,
-            Long oneServiceCapacity
-    ) {
-        if (currentQuotaUsed != (planQuotaKBFreeLimit + additionalServiceQuota) * 1024) {
-            int notFreeQuotaCount = (int) ceil(((float) currentQuotaUsed - (planQuotaKBFreeLimit * 1024)) / (oneServiceCapacity  * 1024));
-            accountServiceHelper.updateAccountService(account, serviceId, notFreeQuotaCount);
-
-            logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
-                    + " account quota is set to new value. currentQuotaUsed: " + currentQuotaUsed
-                    + " planQuotaKBFreeLimit: " + planQuotaKBFreeLimit
-                    + " additionalServiceQuota: " + additionalServiceQuota);
-
-            //Обновить квоту только юникс-аккаунта
-            accountHelper.updateUnixAccountQuota(account, (planQuotaKBFreeLimit + (ADDITIONAL_QUOTA_100_CAPACITY * notFreeQuotaCount)) * 1024);
         }
     }
 }
