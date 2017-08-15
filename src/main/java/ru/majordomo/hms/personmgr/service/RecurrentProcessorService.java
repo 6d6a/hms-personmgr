@@ -135,7 +135,7 @@ public class RecurrentProcessorService {
                     accountIsOnAbonement = true;
                 }
 
-                LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).plusDays(1L);
+                LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
                 Integer daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
 
                 // тарифы и услуги - за 5, 4, 3, 2, 1 день до истечения + в день истечения + через 1, 2, 3, 4, 5 дней после

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaAddedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaDiscardEvent;
@@ -75,132 +76,101 @@ public class AccountQuotaService {
      * @param account     Аккаунт
      * @param plan     тариф
      */
+
     public void processQuotaService(PersonalAccount account, Plan plan) {
+        Boolean writableState;
+        Boolean overquotedState;
+        Boolean addQuotaServiceState;
         Long currentQuotaUsed = accountCountersService.getCurrentQuotaUsed(account.getId());
         Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
+
         String quotaServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
         List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), quotaServiceId);
-        Long additionalServiceQuota = 0L;
+        int currentAdditionalQuotaCount = 0;
         if (accountServices.size() > 0) {
-            additionalServiceQuota = accountServices.get(0).getQuantity() * ADDITIONAL_QUOTA_100_CAPACITY;
+            currentAdditionalQuotaCount = accountServices.get(0).getQuantity();
         }
+
+        Long oneServiceCapacity = ADDITIONAL_QUOTA_100_CAPACITY;
+        int newAdditionalQuotaCount = (int) ceil(((float) currentQuotaUsed - (planQuotaKBFreeLimit * 1024)) / (oneServiceCapacity  * 1024));
 
         logger.debug("Processing processQuotaService for account: " + account.getAccountId()
                 + " currentQuotaUsed: " + currentQuotaUsed
                 + " planQuotaKBFreeLimit: " + planQuotaKBFreeLimit
-                + " additionalServiceQuota: " + additionalServiceQuota);
+                + " additionalServiceQuota: " + currentAdditionalQuotaCount * oneServiceCapacity);
 
         // Сравниваем текущее использование квоты c бесплатным лимитом
         if (currentQuotaUsed > planQuotaKBFreeLimit * 1024) {
-            // Если бесплатная квота превышена
-            logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
-                    + " account is overquoted");
-
-            accountManager.setOverquoted(account.getId(), true);
+            //Превышение квоты есть
+            overquotedState = true;
             if (account.isAddQuotaIfOverquoted()) {
-                // Если стоит флаг добавления дополнительнго места
-                logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
-                        + " account isAddQuotaIfOverquoted == true");
-
-                if (currentQuotaUsed != ((planQuotaKBFreeLimit + additionalServiceQuota) * 1024)) {
-                    logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
-                            + " account quota is changed");
-
-                    if (currentQuotaUsed > (planQuotaKBFreeLimit + additionalServiceQuota) * 1024) {
-                        logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
-                                + " account quota is increased");
-
-                        Map<String, String> params = new HashMap<>();
-                        params.put(SERVICE_NAME_KEY, plan.getName());
-
-                        // Письмо юзеру
-                        publisher.publishEvent(new AccountQuotaAddedEvent(account, params));
-                    }
-                    // Удаляем или добавляем сервисы
-                    updateQuotaService(
-                            account,
-                            quotaServiceId,
-                            currentQuotaUsed,
-                            planQuotaKBFreeLimit,
-                            additionalServiceQuota,
-                            ADDITIONAL_QUOTA_100_CAPACITY
-                    );
-                }
+                writableState = true;
+                addQuotaServiceState = true;
             } else {
-                // Если НЕ стоит флаг добавления дополнительнго места
-                logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
-                        + " account isAddQuotaIfOverquoted == false. ");
-
-                //Ищем quotable - ресурсы, которые надо выключить
-                List<Quotable> resourses = accountHelper.filterQuotableResoursesByWritableState(
-                        accountHelper.getQuotableResources(account), true);
-
-                // если writable=true ресурсы найдены, отправляется письмо и выключаются включенные ресурсы
-                if (resourses != null && !resourses.isEmpty()) {
-                    // Устанавливаем writable false для ресурсов
-                    accountHelper.setWritableForAccountQuotaServicesByList(account, false, resourses);
-
-                    logger.debug("Sending mail and setting writable to false to resources");
-
-                    Map<String, String> params = new HashMap<>();
-                    params.put(SERVICE_NAME_KEY, plan.getName());
-                    publisher.publishEvent(new AccountQuotaDiscardEvent(account, params));
-                }
+                writableState = false;
+                newAdditionalQuotaCount = 0;
+                addQuotaServiceState = false;
             }
+        //Превышения квоты по тарифу нет
         } else {
-            // Превышения нет
-            logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
-                    + " account not overquoted");
+            addQuotaServiceState = false;
+            overquotedState = false;
+            newAdditionalQuotaCount = 0;
+            writableState = true;
+        }
 
-            // Если аккаунт был оверквотед
-            if (account.isOverquoted()) {
-                logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
-                        + " account isOverquoted == true. " +
-                        "Setting Overquoted to false. Setting writable to false to resources");
+        //Приводим аккаунт и ресурсы к нужному состоянию
 
-                accountManager.setOverquoted(account.getId(),false);
-                // Устанавливаем writable true для ресурсов
-                accountHelper.setWritableForAccountQuotaServices(account, true);
+        //Обновим Overquoted аккаунта
+        if (account.isOverquoted() != overquotedState) { accountManager.setOverquoted(account.getId(), overquotedState); }
 
-                accountServiceHelper.deleteAccountServiceByServiceId(account, quotaServiceId);
-            }
+        //Обновим количество доп квот
+        if (newAdditionalQuotaCount != currentAdditionalQuotaCount) {
+            accountServiceHelper.updateAccountService(account, quotaServiceId, newAdditionalQuotaCount);
 
-            if (accountCountersService.getCurrentQuota(account.getId()) != (planQuotaKBFreeLimit * 1024)) {
-                accountHelper.updateUnixAccountQuota(account, (planQuotaKBFreeLimit * 1024));
+            // Письмо юзеру о подключении дополнительной квоты
+            if (newAdditionalQuotaCount > currentAdditionalQuotaCount) {
+                Map<String, String> params = new HashMap<>();
+                params.put(SERVICE_NAME_KEY, plan.getName());
+                publisher.publishEvent(new AccountQuotaAddedEvent(account, params));
             }
         }
+        //Обновим состояние услуги доп квоты
+        accountServiceHelper.setEnabledAccountService(account, quotaServiceId, addQuotaServiceState);
+
+        //Обновим квоту юникс-аккаунта
+        Long quotaInBytes = (planQuotaKBFreeLimit + (oneServiceCapacity * newAdditionalQuotaCount)) * 1024;
+        accountHelper.updateUnixAccountQuota(account, quotaInBytes);
+
+        //Обновим writable для quotable-ресурсов аккаунта
+        setWritable(account, writableState, plan);
     }
 
-    /**
-     * Обновляем услуги в зависимости от квот
-     *
-     * @param account   Аккаунт
-     * @param serviceId id услуги
-     * @param currentQuotaUsed текущее кол-во услуг
-     * @param planQuotaKBFreeLimit бесплатно по тарифу
-     * @param additionalServiceQuota кол-во по допуслугам
-     * @param oneServiceCapacity Вместимость одной услуги
-     *
-     */
-    public void updateQuotaService(
-            PersonalAccount account,
-            String serviceId,
-            Long currentQuotaUsed,
-            Long planQuotaKBFreeLimit,
-            Long additionalServiceQuota,
-            Long oneServiceCapacity
-    ) {
-        if (currentQuotaUsed != (planQuotaKBFreeLimit + additionalServiceQuota) * 1024) {
-            int notFreeQuotaCount = (int) ceil(((float) currentQuotaUsed - (planQuotaKBFreeLimit * 1024)) / (oneServiceCapacity  * 1024));
-            accountServiceHelper.updateAccountService(account, serviceId, notFreeQuotaCount);
+    private void setWritable(PersonalAccount account, Boolean writableState, Plan plan) {
+        //ищем все quotable-ресурсы с writable, который надо изменить
+        List<Quotable> resources = accountHelper.filterQuotableResoursesByWritableState(
+                accountHelper.getQuotableResources(account), !writableState
+        );
 
-            logger.debug("Processing processQuotaCheck for account: " + account.getAccountId()
-                    + " account quota is set to new value. currentQuotaUsed: " + currentQuotaUsed
-                    + " planQuotaKBFreeLimit: " + planQuotaKBFreeLimit
-                    + " additionalServiceQuota: " + additionalServiceQuota);
+        //Если у ресурса установлена собственная квота, то при её превышении оставляем writable = false
+        List<Quotable> filteredResources;
+        if (writableState) {
+            filteredResources = resources.stream()
+                    .filter(resource -> resource.getQuota().equals(0L) || resource.getQuota() >= resource.getQuotaUsed())
+                    .collect(Collectors.toList());
+        } else {
+            filteredResources = resources;
+        }
+        // если ресурсы найдены, устанавливаем writable  для ресурсов
+        if (filteredResources != null && !filteredResources.isEmpty()) {
+            accountHelper.setWritableForAccountQuotaServicesByList(account, writableState, filteredResources);
 
-            //Обновить квоту только юникс-аккаунта
-            accountHelper.updateUnixAccountQuota(account, (planQuotaKBFreeLimit + (ADDITIONAL_QUOTA_100_CAPACITY * notFreeQuotaCount)) * 1024);
+            //при отключении хотя бы одного ресурса отправляем письмо
+            if (!writableState) {
+                Map<String, String> params = new HashMap<>();
+                params.put(SERVICE_NAME_KEY, plan.getName());
+                publisher.publishEvent(new AccountQuotaDiscardEvent(account, params));
+            }
         }
     }
 }

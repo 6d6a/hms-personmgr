@@ -95,7 +95,7 @@ public class AccountHelper {
         AccountOwner currentOwner = accountOwnerManager.findOneByPersonalAccountId(account.getId());
 
         if (currentOwner != null) {
-            clientEmails = String.join(", ", currentOwner.getContactInfo().getEmailAddresses());
+            clientEmails = String.join(",", currentOwner.getContactInfo().getEmailAddresses());
         }
 
         return clientEmails;
@@ -569,17 +569,19 @@ public class AccountHelper {
             Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
 
             for (UnixAccount unixAccount : unixAccounts) {
-                SimpleServiceMessage message = new SimpleServiceMessage();
-                message.setParams(new HashMap<>());
-                message.setAccountId(account.getId());
-                message.addParam("resourceId", unixAccount.getId());
-                message.addParam("quota", quotaInBytes);
+                if (!unixAccount.getQuota().equals(quotaInBytes)) {
+                    SimpleServiceMessage message = new SimpleServiceMessage();
+                    message.setParams(new HashMap<>());
+                    message.setAccountId(account.getId());
+                    message.addParam("resourceId", unixAccount.getId());
+                    message.addParam("quota", quotaInBytes);
 
-                businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
+                    businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
-                String historyMessage = "Отправлена заявка на установку новой квоты в значение '" + quotaInBytes +
-                                        " байт' для UNIX-аккаунта '" + unixAccount.getName() + "'";
-                saveHistoryForOperatorService(account, historyMessage);
+                    String historyMessage = "Отправлена заявка на установку новой квоты в значение '" + quotaInBytes +
+                            " байт' для UNIX-аккаунта '" + unixAccount.getName() + "'";
+                    saveHistoryForOperatorService(account, historyMessage);
+                }
             }
 
         } catch (Exception e) {
