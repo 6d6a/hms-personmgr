@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -145,13 +146,8 @@ public class PaymentChargesProcessorService {
 
                 //Уведомления
                 Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue() - 1;
-
-                if (account.getNotifyDays() > 0 &&
-                        remainingDays > 0 &&
-                        remainingDays <= account.getNotifyDays() &&
-                        account.isActive() &&
-                        account.hasNotification(MailManagerMessageType.EMAIL_REMAINING_DAYS)
-                        ) {
+                //Отправляем техническое уведомление об окончании средств за 7, 5, 3, 2, 1 дней
+                if (remainingDays > 0 && Arrays.asList(7, 5, 3, 2, 1).contains(remainingDays)) {
                     //Уведомление об окончании средств
                     Map<String, Integer> params = new HashMap<>();
                     params.put("remainingDays", remainingDays);
