@@ -32,6 +32,7 @@ import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverConfirmedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverEvent;
@@ -446,6 +447,9 @@ public class PersonalAccountRestController extends CommonRestController {
         if (requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED.name()) != null) {
             Boolean addQuotaIfOverquoted = (Boolean) requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED.name());
             accountManager.setAddQuotaIfOverquoted(accountId, addQuotaIfOverquoted);
+
+            //Установим новую квоту, начислим услуги и тд.
+            publisher.publishEvent(new AccountCheckQuotaEvent(account));
 
             //Save history
             String operator = request.getUserPrincipal().getName();
