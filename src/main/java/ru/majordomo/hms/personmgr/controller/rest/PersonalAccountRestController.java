@@ -449,6 +449,7 @@ public class PersonalAccountRestController extends CommonRestController {
             accountManager.setAddQuotaIfOverquoted(accountId, addQuotaIfOverquoted);
 
             //Установим новую квоту, начислим услуги и тд.
+            account.setAddQuotaIfOverquoted(addQuotaIfOverquoted);
             publisher.publishEvent(new AccountCheckQuotaEvent(account));
 
             //Save history
