@@ -80,6 +80,7 @@ public class AccountQuotaService {
     public void processQuotaService(PersonalAccount account, Plan plan) {
         Boolean writableState;
         Boolean overquotedState;
+        Boolean addQuotaServiceState;
         Long currentQuotaUsed = accountCountersService.getCurrentQuotaUsed(account.getId());
         Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
 
@@ -104,12 +105,15 @@ public class AccountQuotaService {
             overquotedState = true;
             if (account.isAddQuotaIfOverquoted()) {
                 writableState = true;
+                addQuotaServiceState = true;
             } else {
                 writableState = false;
                 newAdditionalQuotaCount = 0;
+                addQuotaServiceState = false;
             }
         //Превышения квоты по тарифу нет
         } else {
+            addQuotaServiceState = false;
             overquotedState = false;
             newAdditionalQuotaCount = 0;
             writableState = true;
@@ -123,6 +127,7 @@ public class AccountQuotaService {
         //Обновим количество доп квот
         if (newAdditionalQuotaCount != currentAdditionalQuotaCount) {
             accountServiceHelper.updateAccountService(account, quotaServiceId, newAdditionalQuotaCount);
+
             // Письмо юзеру о подключении дополнительной квоты
             if (newAdditionalQuotaCount > currentAdditionalQuotaCount) {
                 Map<String, String> params = new HashMap<>();
@@ -130,6 +135,8 @@ public class AccountQuotaService {
                 publisher.publishEvent(new AccountQuotaAddedEvent(account, params));
             }
         }
+        //Обновим состояние услуги доп квоты
+        accountServiceHelper.setEnabledAccountService(account, quotaServiceId, addQuotaServiceState);
 
         //Обновим квоту юникс-аккаунта
         Long quotaInBytes = (planQuotaKBFreeLimit + (oneServiceCapacity * newAdditionalQuotaCount)) * 1024;
