@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -14,10 +15,7 @@ import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
-import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.BusinessOperationType;
-import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
@@ -118,23 +116,45 @@ public class DomainService {
 
             List<Domain> expiringDomains = new ArrayList<>();
             List<Domain> expiredDomains = new ArrayList<>();
-            List<Integer> daysBeforeExpired = Arrays.asList(30, 25, 20, 15, 10, 7, 5, 3, 2, 1);
-            List<Integer> daysAfterExpered = Arrays.asList(1, 5, 10, 15, 20, 25, 30);
+            List<Domain> expiringDomainsForSms = new ArrayList<>();
+            List<Integer> daysBeforeExpiredForEmail = Arrays.asList(30, 25, 20, 15, 10, 7, 5, 3, 2, 1);
+            List<Integer> daysAfterExperedForEmail = Arrays.asList(1, 5, 10, 15, 20, 25, 30);
+            List<Integer> daysBeforeExpiredForSms = Arrays.asList(5, 3, 1);
             int days = 0;
+
+            Boolean sendSms = false;
+            String smsPhone = account.getSmsPhoneNumber();
+            if (account.hasNotification(MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING)
+                    && smsPhone != null
+                    && !smsPhone.equals("")
+                    && accountServiceHelper.hasSmsNotifications(account)) {
+                sendSms = true;
+            }
 
             for (Domain domain : domains) {
                 days = ((Long) ChronoUnit.DAYS.between(domain.getRegSpec().getPaidTill(), LocalDate.now())).intValue();
-                if (daysBeforeExpired.contains(days)) {
+                if (daysBeforeExpiredForEmail.contains(days)) {
                     expiringDomains.add(domain);
-                } else if (daysAfterExpered.contains(-days)) {
+                } else if (daysAfterExperedForEmail.contains(-days)) {
                     expiredDomains.add(domain);
+                }
+
+                if (sendSms && daysBeforeExpiredForSms.contains(days)) {
+                    //Через #remaining_days# истекает регистрация домена #domain#
+                    String remainingDays = Utils.pluralizef(" %d день", " %d дня", " %d дней", days);
+                    HashMap<String, String> parameters = new HashMap<>();
+                    parameters.put("remaining_days", remainingDays);
+                    parameters.put("domain", domain.getName());
+                    accountNotificationHelper.sendSms(account, "MajordomoDomainsDelegationEnding", 10, parameters);
                 }
             }
 
-            domains.forEach(domain -> logger.debug("We found expiring domain: " + domain));
+            //notification by email
+            expiringDomains.forEach(domain -> logger.debug("(EMAIL) We found expiring domain: " + domain));
             if (!expiringDomains.isEmpty()) {
                 sendMailForExpiringAndExpiredDomain(account, expiringDomains, false);
             }
+            expiredDomains.forEach(domain -> logger.debug("(EMAIL) We found expired domain: " + domain));
             if (!expiredDomains.isEmpty()) {
                 sendMailForExpiringAndExpiredDomain(account, expiredDomains, true);
             }

@@ -82,7 +82,7 @@ public class PaymentAmqpController extends CommonAmqpController  {
                 String smsPhone = account.getSmsPhoneNumber();
 
                 //Если подключено СМС-уведомление, то также отправим его
-                if (account.hasNotification(MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN)
+                if (account.hasNotification(MailManagerMessageType.SMS_NEW_PAYMENT)
                         && smsPhone != null
                         && !smsPhone.equals("")
                         && accountServiceHelper.hasSmsNotifications(account)) {
