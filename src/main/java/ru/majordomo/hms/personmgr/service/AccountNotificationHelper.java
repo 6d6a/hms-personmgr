@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
@@ -32,16 +33,19 @@ public class AccountNotificationHelper {
     private final ApplicationEventPublisher publisher;
     private final PlanRepository planRepository;
     private final AccountHelper accountHelper;
+    private final AccountServiceHelper accountServiceHelper;
 
     @Autowired
     public AccountNotificationHelper(
             ApplicationEventPublisher publisher,
             PlanRepository planRepository,
-            AccountHelper accountHelper
+            AccountHelper accountHelper,
+            AccountServiceHelper accountServiceHelper
     ) {
         this.publisher = publisher;
         this.planRepository = planRepository;
         this.accountHelper = accountHelper;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     public String getCostAbonementForEmail(Plan plan) {return accountHelper.getCostAbonement(plan).setScale(2, BigDecimal.ROUND_DOWN).toString();}
@@ -108,13 +112,16 @@ public class AccountNotificationHelper {
         this.sendMail(account, apiName, 1, parameters);
     }
 
+    public boolean hasActiveSmsNotificationsAndMessageType(PersonalAccount account, MailManagerMessageType messageType) {
+        return (account.hasNotification(messageType) && accountServiceHelper.hasSmsNotifications(account));
+    }
+
     public void sendSms(PersonalAccount account, String apiName, int priority) {
         sendSms(account, apiName, priority, null);
     }
 
     public void sendSms(PersonalAccount account, String apiName, int priority, HashMap<String, String> parameters) {
         SimpleServiceMessage message = new SimpleServiceMessage();
-
         String smsPhone = account.getSmsPhoneNumber();
         if (smsPhone == null || smsPhone.equals("")) {
             logger.error("AccountSmsPhoneNumber is missing, accountName [" + account.getName() + "], parameters: " + (parameters != null ? parameters : ""));

@@ -161,11 +161,7 @@ public class PaymentChargesProcessorService {
                     }
                     //Отправим смс тем, у кого подключена услуга
                     if (Arrays.asList(5, 3, 1).contains(remainingDays)) {
-                        String smsPhone = account.getSmsPhoneNumber();
-                        if (account.hasNotification(MailManagerMessageType.SMS_REMAINING_DAYS)
-                                && smsPhone != null
-                                && !smsPhone.equals("")
-                                && accountServiceHelper.hasSmsNotifications(account)) {
+                        if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_REMAINING_DAYS)) {
                             HashMap<String, String> parameters = new HashMap<>();
                             parameters.put("remaining_days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
                             parameters.put("client_id", account.getAccountId());

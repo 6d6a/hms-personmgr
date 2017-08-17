@@ -14,6 +14,7 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -114,39 +115,30 @@ public class DomainService {
                 return;
             }
 
+
             List<Domain> expiringDomains = new ArrayList<>();
             List<Domain> expiredDomains = new ArrayList<>();
             List<Domain> expiringDomainsForSms = new ArrayList<>();
-            List<Integer> daysBeforeExpiredForEmail = Arrays.asList(30, 25, 20, 15, 10, 7, 5, 3, 2, 1);
-            List<Integer> daysAfterExperedForEmail = Arrays.asList(1, 5, 10, 15, 20, 25, 30);
-            List<Integer> daysBeforeExpiredForSms = Arrays.asList(5, 3, 1);
-            int days = 0;
 
-            Boolean sendSms = false;
-            String smsPhone = account.getSmsPhoneNumber();
-            if (account.hasNotification(MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING)
-                    && smsPhone != null
-                    && !smsPhone.equals("")
-                    && accountServiceHelper.hasSmsNotifications(account)) {
-                sendSms = true;
-            }
+            //Отправлять уведомление о истечении регистрации домена
+            //на почту за сколько дней до
+            List<Integer> daysBeforeExpiredForEmail = Arrays.asList(30, 25, 20, 15, 10, 7, 5, 3, 2, 1);
+            //на почту через сколько дней после
+            List<Integer> daysAfterExperedForEmail = Arrays.asList(1, 5, 10, 15, 20, 25, 30);
+            //по sms за сколько дней до
+            Integer daysBeforeExpiredForSms = 5;
+
+            //Нужно ли отправлять SMS
+            Boolean sendSms = accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING);
+
+            int daysBeforeExpired;
 
             for (Domain domain : domains) {
-                days = ((Long) ChronoUnit.DAYS.between(domain.getRegSpec().getPaidTill(), LocalDate.now())).intValue();
-                if (daysBeforeExpiredForEmail.contains(days)) {
-                    expiringDomains.add(domain);
-                } else if (daysAfterExperedForEmail.contains(-days)) {
-                    expiredDomains.add(domain);
-                }
-
-                if (sendSms && daysBeforeExpiredForSms.contains(days)) {
-                    //Через #remaining_days# истекает регистрация домена #domain#
-                    String remainingDays = Utils.pluralizef(" %d день", " %d дня", " %d дней", days);
-                    HashMap<String, String> parameters = new HashMap<>();
-                    parameters.put("remaining_days", remainingDays);
-                    parameters.put("domain", domain.getName());
-                    accountNotificationHelper.sendSms(account, "MajordomoDomainsDelegationEnding", 10, parameters);
-                }
+                //дней до истечения, может быть отрицательным
+                daysBeforeExpired = ((Long) ChronoUnit.DAYS.between(domain.getRegSpec().getPaidTill(), LocalDate.now())).intValue();
+                if (daysBeforeExpiredForEmail.contains(daysBeforeExpired)) { expiringDomains.add(domain); }
+                else if (daysAfterExperedForEmail.contains(-daysBeforeExpired)) { expiredDomains.add(domain); }
+                if (sendSms && daysBeforeExpired == daysBeforeExpiredForSms) { expiringDomainsForSms.add(domain); }
             }
 
             //notification by email
@@ -158,6 +150,17 @@ public class DomainService {
             if (!expiredDomains.isEmpty()) {
                 sendMailForExpiringAndExpiredDomain(account, expiredDomains, true);
             }
+
+            //sms
+            if (sendSms && !expiringDomainsForSms.isEmpty()) {
+                String apiName = expiringDomainsForSms.size() == 1 ? "MajordomoOneDomainDelegationEnding" : "MajordomoSomeDomainsDelegationEnding";
+                HashMap<String, String> parameters = new HashMap<>();
+                parameters.put("clientId", account.getAccountId());
+                parameters.put("domain", expiringDomainsForSms.get(0).getName());
+                parameters.put("acc_id", account.getName());
+                accountNotificationHelper.sendSms(account, apiName, 10, parameters);
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in ru.majordomo.hms.personmgr.service.DomainService.processExpiringDomainsByAccount " + e.getMessage());
@@ -516,22 +519,19 @@ public class DomainService {
             accountNotificationHelper.sendMail(account, "HMSVHNomoneyDomainProlong", 10, parameters);
 
             //Если подключено СМС-уведомление, то также отправим его
-            String smsPhone = account.getSmsPhoneNumber();
-
-            if (account.hasNotification(MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN)
-                    && smsPhone != null
-                    && !smsPhone.equals("")
-                    && accountServiceHelper.hasSmsNotifications(account)) {
-
-                String domainParameter = domains.get(0).getName();
-                if (domains.size() > 1) {
-                    domainParameter += " и др. ";
-                }
+            //Отправляем SMS за ... дней до истечения
+            int days = 3;
+            if (domains.stream().filter(
+                    domain -> domain.getRegSpec().getPaidTill().equals(LocalDate.now().plusDays(days))).collect(Collectors.toList())
+                    .isEmpty())
+            if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN)) {
 
                 parameters = new HashMap<>();
                 parameters.put("client_id", account.getAccountId());
-                parameters.put("domain", domainParameter);
-                accountNotificationHelper.sendSms(account, "MajordomoNoMoneyToAutoRenewDomain", 10, parameters);
+                //Текст SMS изменяется в зависимости от количества доменов, требующих продления
+                parameters.put("domain", (domains.size() > 1) ? "истекающих доменов" : ("домена " + domains.get(0).getName()));
+                parameters.put("acc_id", account.getName());
+                accountNotificationHelper.sendSms(account, "HMSMajordomoNoMoneyToAutoRenewDomain", 10, parameters);
             }
         }
 
