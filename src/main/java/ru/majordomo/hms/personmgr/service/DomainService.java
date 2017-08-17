@@ -155,7 +155,7 @@ public class DomainService {
             if (sendSms && !expiringDomainsForSms.isEmpty()) {
                 String apiName = expiringDomainsForSms.size() == 1 ? "MajordomoOneDomainDelegationEnding" : "MajordomoSomeDomainsDelegationEnding";
                 HashMap<String, String> parameters = new HashMap<>();
-                parameters.put("clientId", account.getAccountId());
+                parameters.put("client_id", account.getAccountId());
                 parameters.put("domain", expiringDomainsForSms.get(0).getName());
                 parameters.put("acc_id", account.getName());
                 accountNotificationHelper.sendSms(account, apiName, 10, parameters);
