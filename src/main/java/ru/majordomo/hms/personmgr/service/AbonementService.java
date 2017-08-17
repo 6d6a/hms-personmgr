@@ -200,15 +200,8 @@ public class AbonementService {
                 }
             }
 
-            Boolean isRecurrentActive = finFeignClient.isRecurrentActive(account.getId());
-
             if (!plan.isAbonementOnly() && balance.compareTo(monthCost) < 0) {
-                // Автопроделния у абонементов с internal == true не должно быть
-                if (isRecurrentActive) {
-                    if (balance.compareTo(abonementCost) < 0) {
-                        sendMessage = true;
-                    }
-                } else {
+                if (balance.compareTo(abonementCost) < 0) {
                     sendMessage = true;
                 }
             } else if (plan.isAbonementOnly() && balance.compareTo(abonementCost) < 0) {
@@ -234,7 +227,7 @@ public class AbonementService {
                 parameters.put("balance", formatBigDecimalWithCurrency(balance));
                 parameters.put("cost", formatBigDecimalWithCurrency(abonementCost)); //Этот параметр передаётся, но не используется
                 parameters.put("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-                parameters.put("auto_renew", isRecurrentActive ? "включено" : "выключено");
+                parameters.put("auto_renew", "включено");
                 parameters.put("from", "noreply@majordomo.ru");
 
                 accountNotificationHelper.sendMail(account, "MajordomoVHAbNoMoneyProlong", 1, parameters);
@@ -266,10 +259,6 @@ public class AbonementService {
 
             // Если абонемент не бонусный (internal)
             if (!accountAbonement.getAbonement().isInternal()) {
-                // Если включено автопродление
-                Boolean isRecurrentActive = finFeignClient.isRecurrentActive(account.getId());
-
-                if (isRecurrentActive) {
                     logger.debug("Abonement has autorenew option enabled");
 
                     if (balance.compareTo(abonementCost) >= 0) {
@@ -306,20 +295,6 @@ public class AbonementService {
                         //Сохраним "на будущее" установку автопокупки абонемента
                         publisher.publishEvent(new AccountSetSettingEvent(account, AccountSetting.ABONEMENT_AUTO_RENEW, true));
                     }
-                } else {
-                    //Удаляем абонемент и включаем услуги хостинга по тарифу
-                    processAccountAbonementDelete(account, accountAbonement);
-
-                    //Запишем в историю клиента
-                    Map<String, String> params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Абонемент удален, так как автопродление абонемента не подключено. Стоимость абонемента: " +
-                            formatBigDecimalWithCurrency(abonementCost) +
-                            " Дата окончания: " + currentExpired
-                    );
-                    params.put(OPERATOR_KEY, "service");
-
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
-                }
             } else {
                 // Если абонемент бонусный (internal)
 
