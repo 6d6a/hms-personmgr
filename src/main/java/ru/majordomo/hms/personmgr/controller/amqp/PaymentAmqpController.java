@@ -79,17 +79,22 @@ public class PaymentAmqpController extends CommonAmqpController  {
                 // P.S. У этого эвента делэй в 10 секунд
                 publisher.publishEvent(new AccountPromotionProcessByPaymentCreatedEvent(account, paramsForPublisher));
 
-                String smsPhone = account.getSmsPhoneNumber();
+                try {
+                    String smsPhone = account.getSmsPhoneNumber();
 
-                //Если подключено СМС-уведомление, то также отправим его
-                if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_NEW_PAYMENT)) {
+                    //Если подключено СМС-уведомление, то также отправим его
+                    if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_NEW_PAYMENT)) {
 
-                    HashMap<String, String> paramsForSms = new HashMap<>();
-                    paramsForSms.put("client_id", account.getAccountId());
-                    paramsForSms.put("acc_id", account.getName());
-                    paramsForSms.put("add_sum", Utils.formatBigDecimalWithCurrency((BigDecimal) message.getParam("amount")));
+                        HashMap<String, String> paramsForSms = new HashMap<>();
+                        paramsForSms.put("client_id", account.getAccountId());
+                        paramsForSms.put("acc_id", account.getName());
+                        paramsForSms.put("add_sum", Utils.formatBigDecimalWithCurrency(BigDecimal.valueOf((double) message.getParam("amount"))));
 
-                    accountNotificationHelper.sendSms(account, "MajordomoHMSNewPayment", 10, paramsForSms);
+                        accountNotificationHelper.sendSms(account, "MajordomoHMSNewPayment", 10, paramsForSms);
+                    }
+                } catch (Exception e) {
+                    logger.debug("Exception at send sms in PaymentAmqpController.create :");
+                    e.printStackTrace();
                 }
             }
         }
