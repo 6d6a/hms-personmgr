@@ -77,6 +77,7 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
         try {
             Lookup lookup = new Lookup(InternetDomainName.from(IDN.toASCII(domainName)).topPrivateDomain().toString(), Type.NS);
             lookup.setResolver(new SimpleResolver("8.8.8.8"));
+            lookup.setCache(null);
 
             Record[] records = lookup.run();
 
