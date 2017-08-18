@@ -12,6 +12,7 @@ import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountPromotionProcessByPaymentCreatedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSwitchByPaymentCreatedEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
@@ -88,13 +89,12 @@ public class PaymentAmqpController extends CommonAmqpController  {
                         HashMap<String, String> paramsForSms = new HashMap<>();
                         paramsForSms.put("client_id", account.getAccountId());
                         paramsForSms.put("acc_id", account.getName());
-                        paramsForSms.put("add_sum", Utils.formatBigDecimalWithCurrency(BigDecimal.valueOf((double) message.getParam("amount"))));
+                        paramsForSms.put("add_sum", Utils.formatBigDecimalWithCurrency(Utils.getBigDecimalFromUnexpectedInput(message.getParam("amount"))));
 
                         accountNotificationHelper.sendSms(account, "MajordomoHMSNewPayment", 10, paramsForSms);
                     }
-                } catch (Exception e) {
-                    logger.debug("Exception at send sms in PaymentAmqpController.create :");
-                    e.printStackTrace();
+                } catch (ParameterValidationException e) {
+                    logger.error("Exception at send sms in PaymentAmqpController.create .SMS for account " + account.getName() + " not send.");
                 }
             }
         }
