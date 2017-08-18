@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -13,15 +14,11 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.stream.Collectors;
 
-import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.BusinessOperationType;
-import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
-import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
 import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
@@ -45,10 +42,10 @@ public class DomainService {
 
     private static TemporalAdjuster THIRTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(30));
     private static TemporalAdjuster THIRTY_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(30));
-    private static TemporalAdjuster SIXTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(60));
-    private static TemporalAdjuster TWENTY_NINE_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(29));
-    private static TemporalAdjuster THREE_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(3));
-    private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
+//    private static TemporalAdjuster SIXTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(60));
+//    private static TemporalAdjuster TWENTY_NINE_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(29));
+//    private static TemporalAdjuster THREE_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(3));
+//    private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
     private static TemporalAdjuster FIFTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(50));
     private static TemporalAdjuster TWENTY_FIVE_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(25));
 
@@ -64,6 +61,7 @@ public class DomainService {
     private final BusinessOperationBuilder businessOperationBuilder;
     private final PromotionRepository promotionRepository;
     private final AccountNotificationHelper accountNotificationHelper;
+    private final AccountServiceHelper accountServiceHelper;
 
     @Autowired
     public DomainService(
@@ -78,7 +76,8 @@ public class DomainService {
             AccountPromotionManager accountPromotionManager,
             BusinessOperationBuilder businessOperationBuilder,
             PromotionRepository promotionRepository,
-            AccountNotificationHelper accountNotificationHelper
+            AccountNotificationHelper accountNotificationHelper,
+            AccountServiceHelper accountServiceHelper
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
@@ -92,6 +91,7 @@ public class DomainService {
         this.businessOperationBuilder = businessOperationBuilder;
         this.promotionRepository = promotionRepository;
         this.accountNotificationHelper = accountNotificationHelper;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -115,28 +115,52 @@ public class DomainService {
                 return;
             }
 
+
             List<Domain> expiringDomains = new ArrayList<>();
             List<Domain> expiredDomains = new ArrayList<>();
-            List<Integer> daysBeforeExpired = Arrays.asList(30, 25, 20, 15, 10, 7, 5, 3, 2, 1);
-            List<Integer> daysAfterExpered = Arrays.asList(1, 5, 10, 15, 20, 25, 30);
-            int days = 0;
+            List<Domain> expiringDomainsForSms = new ArrayList<>();
+
+            //Отправлять уведомление о истечении регистрации домена
+            //на почту за сколько дней до
+            List<Integer> daysBeforeExpiredForEmail = Arrays.asList(30, 25, 20, 15, 10, 7, 5, 3, 2, 1);
+            //на почту через сколько дней после
+            List<Integer> daysAfterExperedForEmail = Arrays.asList(1, 5, 10, 15, 20, 25, 30);
+            //по sms за сколько дней до
+            Integer daysBeforeExpiredForSms = 5;
+
+            //Нужно ли отправлять SMS
+            Boolean sendSms = accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING);
+
+            int daysBeforeExpired;
 
             for (Domain domain : domains) {
-                days = ((Long) ChronoUnit.DAYS.between(domain.getRegSpec().getPaidTill(), LocalDate.now())).intValue();
-                if (daysBeforeExpired.contains(days)) {
-                    expiringDomains.add(domain);
-                } else if (daysAfterExpered.contains(-days)) {
-                    expiredDomains.add(domain);
-                }
+                //дней до истечения, может быть отрицательным
+                daysBeforeExpired = ((Long) ChronoUnit.DAYS.between(domain.getRegSpec().getPaidTill(), LocalDate.now())).intValue();
+                if (daysBeforeExpiredForEmail.contains(daysBeforeExpired)) { expiringDomains.add(domain); }
+                else if (daysAfterExperedForEmail.contains(-daysBeforeExpired)) { expiredDomains.add(domain); }
+                if (sendSms && daysBeforeExpired == daysBeforeExpiredForSms) { expiringDomainsForSms.add(domain); }
             }
 
-            domains.forEach(domain -> logger.debug("We found expiring domain: " + domain));
+            //notification by email
+            expiringDomains.forEach(domain -> logger.debug("(EMAIL) We found expiring domain: " + domain));
             if (!expiringDomains.isEmpty()) {
                 sendMailForExpiringAndExpiredDomain(account, expiringDomains, false);
             }
+            expiredDomains.forEach(domain -> logger.debug("(EMAIL) We found expired domain: " + domain));
             if (!expiredDomains.isEmpty()) {
                 sendMailForExpiringAndExpiredDomain(account, expiredDomains, true);
             }
+
+            //sms
+            if (sendSms && !expiringDomainsForSms.isEmpty()) {
+                String apiName = expiringDomainsForSms.size() == 1 ? "MajordomoOneDomainDelegationEnding" : "MajordomoSomeDomainsDelegationEnding";
+                HashMap<String, String> parameters = new HashMap<>();
+                parameters.put("client_id", account.getAccountId());
+                parameters.put("domain", expiringDomainsForSms.get(0).getName());
+                parameters.put("acc_id", account.getName());
+                accountNotificationHelper.sendSms(account, apiName, 10, parameters);
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in ru.majordomo.hms.personmgr.service.DomainService.processExpiringDomainsByAccount " + e.getMessage());
@@ -166,6 +190,8 @@ public class DomainService {
 
         domains.forEach(domain -> logger.debug("We found domain for AutoRenew: " + domain));
 
+        List<Domain> domainNotProlong = new ArrayList<>();
+
         for (Domain domain : domains) {
 
             if (domain.getAutoRenew()) {
@@ -185,37 +211,7 @@ public class DomainService {
                     //Запишем попытку в историю клиента
                     accountHelper.saveHistoryForOperatorService(account, "Автоматическое продление " + domain.getName() + " невозможно, на счету " + balance + " руб.");
 
-                    //Отправим письмо
-                    HashMap<String, String> parameters = new HashMap<>();
-                    parameters.put("client_id", account.getAccountId());
-                    parameters.put("acc_id", account.getName());
-                    parameters.put("domen", domain.getName());
-                    parameters.put("from", "noreply@majordomo.ru");
-
-                    accountNotificationHelper.sendMail(account, "MajordomoVHNomoneyProlong", 10, parameters);
-
-                    String smsPhone = account.getSmsPhoneNumber();
-
-                    //Если подключено СМС-уведомление, то также отправим его
-                    if (account.hasNotification(MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN)
-                            && smsPhone != null
-                            && !smsPhone.equals("")) {
-                        SimpleServiceMessage message = new SimpleServiceMessage();
-
-                        message.setAccountId(account.getId());
-                        message.setParams(new HashMap<>());
-                        message.addParam("phone", smsPhone);
-                        message.addParam("api_name", "MajordomoNoMoneyToAutoRenewDomain");
-                        message.addParam("priority", 10);
-
-                        parameters = new HashMap<>();
-                        parameters.put("client_id", message.getAccountId());
-                        parameters.put("domain", domain.getName());
-
-                        message.addParam("parametrs", parameters);
-
-                        publisher.publishEvent(new SendSmsEvent(message));
-                    }
+                    domainNotProlong.add(domain);
                 }
 
                 SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRenewService());
@@ -233,6 +229,8 @@ public class DomainService {
                 businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, domainRenewMessage);
             }
         }
+        //Отправим уведомления по почте и смс
+        notifyForDomainNoProlongNoMoney(account, domainNotProlong);
     }
 
     public void check(String domainName) {
@@ -493,5 +491,49 @@ public class DomainService {
         accountNotificationHelper.sendMail(account,
                 expired ? "MajordomoHMSVHDomainsAfterExpired" : "MajordomoHMSVHDomainsExpires",
                 10, parameters);
+    }
+
+    private void notifyForDomainNoProlongNoMoney(PersonalAccount account, List<Domain> domains) {
+        if (domains != null && !domains.isEmpty()) {
+
+            //Email
+            String balance = accountNotificationHelper.getBalanceForEmail(account);
+
+            String domainsForMail = "";
+            for (Domain domain : domains) {
+                domainsForMail += String.format(
+                        "%-20s - %s<br>",
+                        domain.getName(),
+                        domain.getRegSpec().getPaidTill().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                );
+            }
+
+            HashMap<String, String> parameters = new HashMap<>();
+            parameters.put("client_id", account.getAccountId());
+            parameters.put("acc_id", account.getName());
+            parameters.put("domain_for_subject", domains.get(0).getName());
+            parameters.put("domains", domainsForMail);
+            parameters.put("from", "noreply@majordomo.ru");
+            parameters.put("balance", balance);
+
+            accountNotificationHelper.sendMail(account, "HMSVHNomoneyDomainProlong", 10, parameters);
+
+            //Если подключено СМС-уведомление, то также отправим его
+            //Отправляем SMS за ... дней до истечения
+            int days = 3;
+            if (domains.stream().filter(
+                    domain -> domain.getRegSpec().getPaidTill().equals(LocalDate.now().plusDays(days))).collect(Collectors.toList())
+                    .isEmpty())
+            if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN)) {
+
+                parameters = new HashMap<>();
+                parameters.put("client_id", account.getAccountId());
+                //Текст SMS изменяется в зависимости от количества доменов, требующих продления
+                parameters.put("domain", (domains.size() > 1) ? "истекающих доменов" : ("домена " + domains.get(0).getName()));
+                parameters.put("acc_id", account.getName());
+                accountNotificationHelper.sendSms(account, "HMSMajordomoNoMoneyToAutoRenewDomain", 10, parameters);
+            }
+        }
+
     }
 }

@@ -17,6 +17,7 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -34,6 +35,7 @@ public class PaymentChargesProcessorService {
     private final ApplicationEventPublisher publisher;
     private final AccountStatHelper accountStatHelper;
     private final AccountNotificationHelper accountNotificationHelper;
+    private final AccountServiceHelper accountServiceHelper;
 
     @Autowired
     public PaymentChargesProcessorService(
@@ -42,6 +44,7 @@ public class PaymentChargesProcessorService {
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher,
             AccountStatHelper accountStatHelper,
+            AccountServiceHelper accountServiceHelper,
             AccountNotificationHelper accountNotificationHelper
     ) {
         this.accountManager = accountManager;
@@ -50,6 +53,7 @@ public class PaymentChargesProcessorService {
         this.publisher = publisher;
         this.accountStatHelper = accountStatHelper;
         this.accountNotificationHelper = accountNotificationHelper;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     public void processCharge(String paymentAccountName) {
@@ -146,13 +150,24 @@ public class PaymentChargesProcessorService {
 
                 //Уведомления
                 Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue() - 1;
-                //Отправляем техническое уведомление об окончании средств за 7, 5, 3, 2, 1 дней
-                if (remainingDays > 0 && Arrays.asList(7, 5, 3, 2, 1).contains(remainingDays)) {
-                    //Уведомление об окончании средств
-                    Map<String, Integer> params = new HashMap<>();
-                    params.put("remainingDays", remainingDays);
+                if (remainingDays > 0 && account.isActive()) {
+                    //Отправляем техническое уведомление на почту об окончании средств за 7, 5, 3, 2, 1 дней
+                    if (Arrays.asList(7, 5, 3, 2, 1).contains(remainingDays)) {
+                        //Уведомление об окончании средств
+                        Map<String, Integer> params = new HashMap<>();
+                        params.put("remainingDays", remainingDays);
 
-                    publisher.publishEvent(new AccountNotifyRemainingDaysEvent(account, params));
+                        publisher.publishEvent(new AccountNotifyRemainingDaysEvent(account, params));
+                    }
+                    //Отправим смс тем, у кого подключена услуга
+                    if (Arrays.asList(5, 3, 1).contains(remainingDays)) {
+                        if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_REMAINING_DAYS)) {
+                            HashMap<String, String> parameters = new HashMap<>();
+                            parameters.put("remaining_days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
+                            parameters.put("client_id", account.getAccountId());
+                            accountNotificationHelper.sendSms(account, "MajordomoRemainingDays", 10, parameters);
+                        }
+                    }
                 }
 
             }
