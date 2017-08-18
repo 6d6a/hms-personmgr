@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.eclipse.jdt.internal.compiler.util.Util;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,9 +13,7 @@ import ru.majordomo.hms.personmgr.event.account.AccountPromotionProcessByPayment
 import ru.majordomo.hms.personmgr.event.account.AccountSwitchByPaymentCreatedEvent;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
-import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,15 +25,12 @@ import static ru.majordomo.hms.personmgr.common.Constants.REAL_PAYMENT_TYPE_KIND
 public class PaymentAmqpController extends CommonAmqpController  {
 
     private final AccountNotificationHelper accountNotificationHelper;
-    private final AccountServiceHelper accountServiceHelper;
 
     @Autowired
     public PaymentAmqpController(
-            AccountNotificationHelper accountNotificationHelper,
-            AccountServiceHelper accountServiceHelper
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.accountNotificationHelper = accountNotificationHelper;
-        this.accountServiceHelper = accountServiceHelper;
     }
 
     @RabbitListener(
@@ -79,17 +73,19 @@ public class PaymentAmqpController extends CommonAmqpController  {
                 // P.S. У этого эвента делэй в 10 секунд
                 publisher.publishEvent(new AccountPromotionProcessByPaymentCreatedEvent(account, paramsForPublisher));
 
-                String smsPhone = account.getSmsPhoneNumber();
+                try {
+                    //Если подключено СМС-уведомление, то также отправим его
+                    if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_NEW_PAYMENT)) {
 
-                //Если подключено СМС-уведомление, то также отправим его
-                if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_NEW_PAYMENT)) {
+                        HashMap<String, String> paramsForSms = new HashMap<>();
+                        paramsForSms.put("client_id", account.getAccountId());
+                        paramsForSms.put("acc_id", account.getName());
+                        paramsForSms.put("add_sum", Utils.formatBigDecimalWithCurrency(Utils.getBigDecimalFromUnexpectedInput(message.getParam("amount"))));
 
-                    HashMap<String, String> paramsForSms = new HashMap<>();
-                    paramsForSms.put("client_id", account.getAccountId());
-                    paramsForSms.put("acc_id", account.getName());
-                    paramsForSms.put("add_sum", Utils.formatBigDecimalWithCurrency((BigDecimal) message.getParam("amount")));
-
-                    accountNotificationHelper.sendSms(account, "MajordomoHMSNewPayment", 10, paramsForSms);
+                        accountNotificationHelper.sendSms(account, "MajordomoHMSNewPayment", 10, paramsForSms);
+                    }
+                } catch (Exception e) {
+                    logger.error("Exception at send sms in PaymentAmqpController.create .SMS for account " + account.getName() + " not send.");
                 }
             }
         }
