@@ -53,6 +53,9 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
+        //TODO delete after tests
+        System.setProperty("dnsjava.options", "verbose");
+        
         message.setAccountId(accountId);
 
         logger.debug("Creating sslcertificate " + message.toString());
