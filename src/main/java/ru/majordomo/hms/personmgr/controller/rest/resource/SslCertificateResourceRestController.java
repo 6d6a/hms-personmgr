@@ -53,9 +53,6 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        //TODO delete after tests
-        System.setProperty("dnsjava.options", "verbose");
-        
         message.setAccountId(accountId);
 
         logger.debug("Creating sslcertificate " + message.toString());
@@ -78,7 +75,9 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
         Boolean hasAlienNS = false;
 
         try {
-            Lookup lookup = new Lookup(InternetDomainName.from(IDN.toASCII(domainName)).topPrivateDomain().toString(), Type.NS);
+            //TODO не ясно для чего было так сделано (InternetDomainName.from(IDN.toASCII(domainName)).topPrivateDomain().toString())
+            //но в новой гуаве оно перестало понимать наши домены третьего уровня типа blabla.org.ru (ищет по org.ru NS-ки)
+            Lookup lookup = new Lookup(IDN.toASCII(domainName), Type.NS);
             lookup.setResolver(new SimpleResolver("8.8.8.8"));
             lookup.setCache(null);
 
@@ -102,7 +101,7 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
         }
 
         if (!canOrderSSL || hasAlienNS) {
-            throw new ParameterValidationException("Домен должен быть делегирован на наши DNS-сервера");
+            throw new ParameterValidationException("Домен должен быть делегирован на наши DNS-серверы (ns.majordomo.ru, ns2.majordomo.ru и ns3.majordomo.ru)");
         }
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.SSL_CERTIFICATE_CREATE, BusinessActionType.SSL_CERTIFICATE_CREATE_RC, message);
