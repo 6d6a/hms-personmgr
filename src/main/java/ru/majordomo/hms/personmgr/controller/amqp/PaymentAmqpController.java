@@ -28,7 +28,7 @@ public class PaymentAmqpController extends CommonAmqpController  {
 
     @Autowired
     public PaymentAmqpController(
-            AccountNotificationHelper accountNotificationHelper,
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.accountNotificationHelper = accountNotificationHelper;
     }
