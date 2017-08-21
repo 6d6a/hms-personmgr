@@ -225,6 +225,11 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
             DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domain.getName(), domain.getRegSpec().getRegistrar());
 
+            AvailabilityInfo availabilityInfo = domainRegistrarFeignClient.getAvailabilityInfo(domain.getName());
+            if (availabilityInfo.getPremiumPrice() != null && (availabilityInfo.getPremiumPrice().compareTo(BigDecimal.ZERO) > 0)) {
+                domainTld.getRenewService().setCost(availabilityInfo.getPremiumPrice());
+            }
+
             accountHelper.checkBalance(account, domainTld.getRenewService());
 
             SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRenewService());
