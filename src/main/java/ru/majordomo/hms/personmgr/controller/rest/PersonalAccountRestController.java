@@ -430,7 +430,7 @@ public class PersonalAccountRestController extends CommonRestController {
                 }
                 // Включение кредита
                 if (!account.isCredit() && !account.isActive()) {
-                    accountHelper.switchAccountResources(account, true);
+                    accountHelper.switchAccountActiveState(account, true);
                 }
             }
             accountManager.setCredit(accountId, credit);
@@ -606,7 +606,7 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        accountHelper.switchAccountResources(account, !account.isActive());
+        accountHelper.switchAccountActiveState(account, !account.isActive());
 
         String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();

@@ -139,7 +139,7 @@ public class PaymentChargesProcessorService {
                 //Если изначального баланса не хватило для списания
                 if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0) {
                     if (!account.isCredit()) {
-                        accountHelper.switchAccountResources(account, false);
+                        accountHelper.switchAccountActiveState(account, false);
                         success = false;
                         accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
                         accountNotificationHelper.sendMailForDeactivatedAccount(account);

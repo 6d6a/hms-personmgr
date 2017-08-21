@@ -272,7 +272,7 @@ public class PromocodeProcessor {
                         if (bonusAbonementId != null) {
                             abonementService.addAbonement(account, bonusAbonementId, false);
 
-                            accountHelper.switchAccountResources(account, true);
+                            accountHelper.switchAccountActiveState(account, true);
 
                             //Save history
                             Map<String, String> params = new HashMap<>();

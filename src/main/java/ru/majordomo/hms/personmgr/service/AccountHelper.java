@@ -384,11 +384,14 @@ public class AccountHelper {
         }
     }
 
-    public void switchAccountResources(PersonalAccount account, Boolean state) {
+    public void switchAccountActiveState(PersonalAccount account, Boolean state) {
         saveHistoryForOperatorService(account, "Аккаунт " + (state ? "включен" : "выключен"));
 
         accountManager.setActive(account.getId(), state);
+        switchAccountResources(account, state);
+    }
 
+    public void switchAccountResources(PersonalAccount account, Boolean state) {
         try {
 
             List<WebSite> webSites = rcUserFeignClient.getWebSites(account.getId());
