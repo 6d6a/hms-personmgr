@@ -430,7 +430,7 @@ public class PersonalAccountRestController extends CommonRestController {
                 }
                 // Включение кредита
                 if (!account.isCredit() && !account.isActive()) {
-                    accountHelper.switchAccountActiveState(account, true);
+                    accountHelper.enableAccount(account);
                 }
             }
             accountManager.setCredit(accountId, credit);

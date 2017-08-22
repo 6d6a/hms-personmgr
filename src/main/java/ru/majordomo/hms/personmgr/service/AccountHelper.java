@@ -384,6 +384,14 @@ public class AccountHelper {
         }
     }
 
+    public void disableAccount(PersonalAccount account) {
+        switchAccountActiveState(account, false);
+    }
+
+    public void enableAccount(PersonalAccount account) {
+        switchAccountActiveState(account, true);
+    }
+
     public void switchAccountActiveState(PersonalAccount account, Boolean state) {
         saveHistoryForOperatorService(account, "Аккаунт " + (state ? "включен" : "выключен"));
 

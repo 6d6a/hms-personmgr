@@ -174,7 +174,7 @@ public class AccountAbonementRestController extends CommonRestController {
             abonementService.addAbonement(account, abonementId, autorenew);
 
             if (accountAbonementManager.findByPersonalAccountId(account.getId()) != null && planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
-                accountHelper.switchAccountActiveState(account, true);
+                accountHelper.enableAccount(account);
             }
 
             //Save history

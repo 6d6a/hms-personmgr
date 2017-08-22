@@ -19,10 +19,13 @@ import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 
 @Service
@@ -67,6 +70,8 @@ public class PaymentChargesProcessorService {
 
         if (account.isActive()) {
 
+            Boolean hasActiveAbonement = accountHelper.hasActiveAbonement(account);
+            boolean needDisableAdditionalServices = false;
             LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
 
             logger.info("processing charges for PersonalAccount: " + account.getAccountId()
@@ -106,12 +111,15 @@ public class PaymentChargesProcessorService {
                         } else {
                             // Проверяем сколько он уже пользуется
                             if ( creditActivationDate.isBefore(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {
-                                // Выключаем аккаунт, если срок кредита истёк
-                                accountHelper.switchAccountResources(account, false);
                                 success = false;
-                                accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
-                                accountNotificationHelper.sendMailForDeactivatedAccount(account);
-
+                                if (hasActiveAbonement) {
+                                    //Если есть активный абонемент, выключаем только услуги
+                                    accountServiceHelper.disableAccountService(account, accountService.getServiceId());
+                                    needDisableAdditionalServices = true;
+                                } else {
+                                    // Если нет абонемента выключаем аккаунт, если срок кредита истёк
+                                    disableAccountWrapper(account);
+                                }
                             } else {
                                 forceCharge = true;
                             }
@@ -139,13 +147,28 @@ public class PaymentChargesProcessorService {
                 //Если изначального баланса не хватило для списания
                 if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0) {
                     if (!account.isCredit()) {
-                        accountHelper.switchAccountActiveState(account, false);
                         success = false;
-                        accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
-                        accountNotificationHelper.sendMailForDeactivatedAccount(account);
+                        if (hasActiveAbonement) {
+                            needDisableAdditionalServices = true;
+                        } else {
+                            //выключаем аккаунт
+                            disableAccountWrapper(account);
+                        }
                     } else if (account.getCreditActivationDate() == null) {
                         accountManager.setCreditActivationDate(account.getId(), LocalDateTime.now());
                     }
+                }
+
+                if (needDisableAdditionalServices) {
+                    //Если есть абонемент отключаем доп квоту и пересчитываем
+                    account.setAddQuotaIfOverquoted(false);
+                    publisher.publishEvent(new AccountCheckQuotaEvent(account));
+                    //смс
+                    PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
+                    accountServiceHelper.disableAccountService(account, paymentService.getId());
+                    //TODO Защита от спама и вирусов
+                    //Надо посылать в rc-user запрос чтобы он проставлял всем ящикам какой нибудь флаг что услуга отключен
+                    //и перезаписывал в redis
                 }
 
                 //Уведомления
@@ -202,5 +225,11 @@ public class PaymentChargesProcessorService {
                 logger.debug("Success. Charge Processor returned true fo service: " + accountService.toString());
             }
         }
+    }
+
+    private void disableAccountWrapper(PersonalAccount account) {
+        accountHelper.disableAccount(account);
+        accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
+        accountNotificationHelper.sendMailForDeactivatedAccount(account);
     }
 }
