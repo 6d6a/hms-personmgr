@@ -34,17 +34,14 @@ import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 @EnableRabbit
 @Service
 public class DomainAmqpController extends CommonAmqpController {
-    private final ProcessingBusinessActionRepository processingBusinessActionRepository;
     private final CartManager cartManager;
     private final AccountStatHelper accountStatHelper;
 
     @Autowired
     public DomainAmqpController(
-            ProcessingBusinessActionRepository processingBusinessActionRepository,
             CartManager cartManager,
             AccountStatHelper accountStatHelper
     ) {
-        this.processingBusinessActionRepository = processingBusinessActionRepository;
         this.cartManager = cartManager;
         this.accountStatHelper = accountStatHelper;
     }
@@ -75,8 +72,9 @@ public class DomainAmqpController extends CommonAmqpController {
                 String domainName = (String) businessAction.getParam("name");
 
                 if (state == State.PROCESSED) {
+                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
+
                     if (businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_CREATE_RC)) {
-                        PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                         if (account.isAccountNew()) {
                             accountManager.setAccountNew(account.getId(), false);
                         }
@@ -95,7 +93,7 @@ public class DomainAmqpController extends CommonAmqpController {
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на создание домена выполнена успешно (имя: " + domainName + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                 } else {
                     cartManager.setProcessingByName(businessAction.getPersonalAccountId(), domainName, false);
                 }
@@ -196,12 +194,17 @@ public class DomainAmqpController extends CommonAmqpController {
             State state = businessFlowDirector.processMessage(message);
 
             if (state.equals(State.PROCESSED)) {
-                //Save history
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление домена выполнена успешно (имя: " + message.getParam("name") + ")");
-                params.put(OPERATOR_KEY, "service");
+                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
-                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                if (businessAction != null) {
+                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
+                    //Save history
+                    Map<String, String> params = new HashMap<>();
+                    params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление домена выполнена успешно (имя: " + message.getParam("name") + ")");
+                    params.put(OPERATOR_KEY, "service");
+
+                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();

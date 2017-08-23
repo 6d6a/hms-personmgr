@@ -9,18 +9,27 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
 public class CommonAmqpController {
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
     protected BusinessFlowDirector businessFlowDirector;
+    protected ProcessingBusinessActionRepository processingBusinessActionRepository;
     protected PersonalAccountManager accountManager;
     protected ApplicationEventPublisher publisher;
 
     @Autowired
     public void setBusinessFlowDirector(BusinessFlowDirector businessFlowDirector) {
         this.businessFlowDirector = businessFlowDirector;
+    }
+
+    @Autowired
+    public void setProcessingBusinessActionRepository(
+            ProcessingBusinessActionRepository processingBusinessActionRepository
+    ) {
+        this.processingBusinessActionRepository = processingBusinessActionRepository;
     }
 
     @Autowired
