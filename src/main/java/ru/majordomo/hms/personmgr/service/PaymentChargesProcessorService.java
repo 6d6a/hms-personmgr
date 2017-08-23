@@ -21,12 +21,14 @@ import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
+
+import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.ANTI_SPAM_SERVICE_ID;
 
 @Service
 public class PaymentChargesProcessorService {
@@ -71,7 +73,6 @@ public class PaymentChargesProcessorService {
         if (account.isActive()) {
 
             Boolean hasActiveAbonement = accountHelper.hasActiveAbonement(account);
-            boolean needDisableAdditionalServices = false;
             LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
 
             logger.info("processing charges for PersonalAccount: " + account.getAccountId()
@@ -87,13 +88,14 @@ public class PaymentChargesProcessorService {
             BigDecimal dailyCost = BigDecimal.ZERO;
 
             for (AccountService accountService : accountServices) {
-                if (accountService.getPaymentService() == null) {
+                PaymentService paymentService = accountService.getPaymentService();
+                if (paymentService == null) {
                     logger.error("accountService.getPaymentService() == null");
     //                throw new ChargeException("accountService.getPaymentService() == null");
                 }
 
                 if (accountService.isEnabled()
-                        && accountService.getPaymentService() != null
+                        && paymentService != null
                         && (accountService.getLastBilled() == null
                         || accountService.getLastBilled().isBefore(chargeDate)))
                 {
@@ -112,13 +114,9 @@ public class PaymentChargesProcessorService {
                             // Проверяем сколько он уже пользуется
                             if ( creditActivationDate.isBefore(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {
                                 success = false;
-                                if (hasActiveAbonement) {
-                                    //Если есть активный абонемент, выключаем только услуги
-                                    accountServiceHelper.disableAccountService(account, accountService.getServiceId());
-                                    needDisableAdditionalServices = true;
-                                } else {
-                                    // Если нет абонемента выключаем аккаунт, если срок кредита истёк
-                                    disableAccountWrapper(account);
+                                if (!hasActiveAbonement) {
+                                    // Если нет абонемента и срок кредита истёк, выключаем аккаунт
+                                    disableAccountSaveStatSendSms(account);
                                 }
                             } else {
                                 forceCharge = true;
@@ -126,17 +124,39 @@ public class PaymentChargesProcessorService {
                         }
                     }
 
+                    //Значение по-умолчанию true, на случай если
+                    //списания не было, значит успешно и выключать услугу не надо
+                    boolean chargeResult = true;
                     switch (accountService.getPaymentService().getPaymentType()) {
                         case MONTH:
                             cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
-                            this.makeCharge(account, accountService, cost, chargeDate, forceCharge);
+                            chargeResult = this.makeCharge(account, accountService, cost, chargeDate, forceCharge);
                             dailyCost = dailyCost.add(cost);
                             break;
                         case DAY:
                             cost = accountService.getCost();
-                            this.makeCharge(account, accountService, cost, chargeDate, forceCharge);
+                            chargeResult = this.makeCharge(account, accountService, cost, chargeDate, forceCharge);
                             dailyCost = dailyCost.add(cost);
                             break;
+                    }
+
+                    //Если есть активный абонемент и списание неудачное, нужно выключить услугу и послать апдейты на ресурсы
+                    if (hasActiveAbonement && !chargeResult) {
+                        accountServiceHelper.disableAccountService(account, accountService.getServiceId());
+                        String paymentServiceOldId = paymentService.getOldId();
+                        if (paymentServiceOldId.equals(ADDITIONAL_QUOTA_100_SERVICE_ID)) {
+                            account.setAddQuotaIfOverquoted(false);
+                            publisher.publishEvent(new AccountCheckQuotaEvent(account));
+//                        } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
+//                            TODO надо что-нибудь отправлять в rc-user чтобы отключить защиту у ящиков
+//                            В rc-user никакого параметра для этого нет, нужно добавить
+//                        } else if (paymentService.getId().equals(smsPaymentService.getId())) {
+//                            Для SMS достаточно выключать сервис
+//                        TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
+                        }
+                        account.setAddQuotaIfOverquoted(false);
+                        publisher.publishEvent(new AccountCheckQuotaEvent(account));
+
                     }
                 }
             }
@@ -148,27 +168,13 @@ public class PaymentChargesProcessorService {
                 if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0) {
                     if (!account.isCredit()) {
                         success = false;
-                        if (hasActiveAbonement) {
-                            needDisableAdditionalServices = true;
-                        } else {
-                            //выключаем аккаунт
-                            disableAccountWrapper(account);
+                        if (!hasActiveAbonement) {
+                            //выключаем аккаунт без абонемента
+                            disableAccountSaveStatSendSms(account);
                         }
                     } else if (account.getCreditActivationDate() == null) {
                         accountManager.setCreditActivationDate(account.getId(), LocalDateTime.now());
                     }
-                }
-
-                if (needDisableAdditionalServices) {
-                    //Если есть абонемент отключаем доп квоту и пересчитываем
-                    account.setAddQuotaIfOverquoted(false);
-                    publisher.publishEvent(new AccountCheckQuotaEvent(account));
-                    //смс
-                    PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
-                    accountServiceHelper.disableAccountService(account, paymentService.getId());
-                    //TODO Защита от спама и вирусов
-                    //Надо посылать в rc-user запрос чтобы он проставлял всем ящикам какой нибудь флаг что услуга отключен
-                    //и перезаписывал в redis
                 }
 
                 //Уведомления
@@ -201,7 +207,8 @@ public class PaymentChargesProcessorService {
         return success;
     }
 
-    private void makeCharge(PersonalAccount paymentAccount, AccountService accountService, BigDecimal cost, LocalDateTime chargeDate, Boolean forceCharge) {
+    private boolean makeCharge(PersonalAccount paymentAccount, AccountService accountService, BigDecimal cost, LocalDateTime chargeDate, Boolean forceCharge) {
+        boolean success = false;
         if (cost.compareTo(BigDecimal.ZERO) == 1) {
             SimpleServiceMessage response = null;
 
@@ -222,12 +229,14 @@ public class PaymentChargesProcessorService {
             } else {
                 accountService.setLastBilled(chargeDate);
                 accountServiceRepository.save(accountService);
+                success = true;
                 logger.debug("Success. Charge Processor returned true fo service: " + accountService.toString());
             }
         }
+        return success;
     }
 
-    private void disableAccountWrapper(PersonalAccount account) {
+    private void disableAccountSaveStatSendSms(PersonalAccount account) {
         accountHelper.disableAccount(account);
         accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
         accountNotificationHelper.sendMailForDeactivatedAccount(account);
