@@ -55,13 +55,14 @@ public class ChargesScheduler {
     }
 
     //Выполняем списания в 01:00:00 каждый день
-    @Scheduled(cron = "0 15 1 * * *")
+    @Scheduled(cron = "0 * * * * *")
     @SchedulerLock(name="processCharges")
     public void processCharges() {
         logger.debug("Started processCharges");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
-            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessChargesEvent(account)));
-        }
-        logger.debug("Ended processCharges");
+//        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
+//            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessChargesEvent(account)));
+            publisher.publishEvent(new AccountProcessChargesEvent(accountManager.findByAccountId("200248")));
+//        }
+//        logger.debug("Ended processCharges");
     }
 }
