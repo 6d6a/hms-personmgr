@@ -83,20 +83,20 @@ public class UnixAccountAmqpController extends CommonAmqpController {
                         paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на первичное создание UNIX-аккаунта выполнена успешно (имя: " + message.getParam("name") + ")");
                         paramsHistory.put(OPERATOR_KEY, "service");
 
-                        publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                        publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), paramsHistory));
                     } else {
                         //Save history
                         paramsHistory = new HashMap<>();
                         paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на создание UNIX-аккаунта выполнена успешно (имя: " + message.getParam("name") + ")");
                         paramsHistory.put(OPERATOR_KEY, "service");
 
-                        publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                        publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), paramsHistory));
                     }
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.UnixAccountAmqpController.create " + e.getMessage());
+            logger.error("Got Exception in UnixAccountAmqpController.create " + e.getMessage());
         }
     }
 
@@ -125,18 +125,17 @@ public class UnixAccountAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                     //Save history
                     Map<String, String> params = new HashMap<>();
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление UNIX-аккаунта выполнена успешно (имя: " + message.getParam("name") + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.UnixAccountAmqpController.update " + e.getMessage());
+            logger.error("Got Exception in UnixAccountAmqpController.update " + e.getMessage());
         }
     }
 
@@ -165,18 +164,17 @@ public class UnixAccountAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                     //Save history
                     Map<String, String> params = new HashMap<>();
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление UNIX-аккаунта выполнена успешно (имя: " + message.getParam("name") + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.UnixAccountAmqpController.delete " + e.getMessage());
+            logger.error("Got Exception in UnixAccountAmqpController.delete " + e.getMessage());
         }
     }
 }

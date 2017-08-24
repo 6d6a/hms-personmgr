@@ -76,19 +76,19 @@ public class AccountDomainsEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onAccountDomainAutoRenewCompletedEvent(AccountDomainAutoRenewCompletedEvent event) {
-        PersonalAccount account = event.getSource();
+        String accountId = event.getSource();
 
         Map<String, ?> params = event.getParams();
 
         logger.debug("We got AccountDomainAutoRenewCompletedEvent");
 
-        Domain domain = rcUserFeignClient.getDomain(account.getId(), (String) params.get(RESOURCE_ID_KEY));
+        Domain domain = rcUserFeignClient.getDomain(accountId, (String) params.get(RESOURCE_ID_KEY));
 
         //Запишем попытку в историю клиента
         Map<String, String> historyParams = new HashMap<>();
         historyParams.put(HISTORY_MESSAGE_KEY, "Произведено автоматическое продление " + domain.getName());
         historyParams.put(OPERATOR_KEY, "service");
 
-        publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        publisher.publishEvent(new AccountHistoryEvent(accountId, historyParams));
     }
 }

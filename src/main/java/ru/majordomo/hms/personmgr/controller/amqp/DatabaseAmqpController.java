@@ -16,7 +16,6 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -42,18 +41,17 @@ public class DatabaseAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                     //Save history
                     Map<String, String> params = new HashMap<>();
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на создание базы данных выполнена успешно (имя: " + message.getParam("name") + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.DatabaseAmqpController.create " + e.getMessage());
+            logger.error("Got Exception in DatabaseAmqpController.create " + e.getMessage());
         }
     }
 
@@ -74,18 +72,17 @@ public class DatabaseAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                     //Save history
                     Map<String, String> params = new HashMap<>();
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление базы данных выполнена успешно (имя: " + message.getParam("name") + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.DatabaseAmqpController.update " + e.getMessage());
+            logger.error("Got Exception in DatabaseAmqpController.update " + e.getMessage());
         }
     }
 
@@ -106,19 +103,18 @@ public class DatabaseAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                     //Save history
                     Map<String, String> params = new HashMap<>();
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление базы данных выполнена успешно (имя: " + message.getParam("name") + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
 
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.DatabaseAmqpController.delete " + e.getMessage());
+            logger.error("Got Exception in DatabaseAmqpController.delete " + e.getMessage());
         }
     }
 }

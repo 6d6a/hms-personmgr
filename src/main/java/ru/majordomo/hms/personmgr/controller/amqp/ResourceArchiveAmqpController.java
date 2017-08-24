@@ -45,18 +45,17 @@ public class ResourceArchiveAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                     //Save history
                     Map<String, String> params = new HashMap<>();
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на создание архива выполнена успешно (имя: " + message.getParam("name") + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.ResourceArchiveAmqpController.create " + e.getMessage());
+            logger.error("Got Exception in ResourceArchiveAmqpController.create " + e.getMessage());
         }
     }
 
@@ -91,12 +90,12 @@ public class ResourceArchiveAmqpController extends CommonAmqpController {
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление архива выполнена успешно (имя: " + message.getParam("name") + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.ResourceArchiveAmqpController.update " + e.getMessage());
+            logger.error("Got Exception in ResourceArchiveAmqpController.update " + e.getMessage());
         }
     }
 
@@ -125,18 +124,17 @@ public class ResourceArchiveAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                     //Save history
                     Map<String, String> params = new HashMap<>();
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление архива выполнена успешно (имя: " + message.getParam("name") + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.ResourceArchiveAmqpController.delete " + e.getMessage());
+            logger.error("Got Exception in ResourceArchiveAmqpController.delete " + e.getMessage());
         }
     }
 }

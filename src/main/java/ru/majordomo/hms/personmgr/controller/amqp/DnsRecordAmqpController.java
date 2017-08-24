@@ -16,7 +16,6 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -49,18 +48,17 @@ public class DnsRecordAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                     //Save history
                     Map<String, String> params = new HashMap<>();
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на создание днс-записи выполнена успешно (имя: " + message.getParam("name") + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.DnsRecordAmqpController.create " + e.getMessage());
+            logger.error("Got Exception in DnsRecordAmqpController.create " + e.getMessage());
         }
     }
 
@@ -89,18 +87,17 @@ public class DnsRecordAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                     //Save history
                     Map<String, String> params = new HashMap<>();
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление днс-записи выполнена успешно (имя: " + message.getParam("name") + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.DnsRecordAmqpController.update " + e.getMessage());
+            logger.error("Got Exception in DnsRecordAmqpController.update " + e.getMessage());
         }
     }
 
@@ -129,18 +126,17 @@ public class DnsRecordAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                     //Save history
                     Map<String, String> params = new HashMap<>();
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление днс-записи выполнена успешно (имя: " + message.getParam("name") + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.DnsRecordAmqpController.delete " + e.getMessage());
+            logger.error("Got Exception in DnsRecordAmqpController.delete " + e.getMessage());
         }
     }
 }

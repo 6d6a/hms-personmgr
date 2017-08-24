@@ -70,7 +70,7 @@ public class WebSiteAmqpController extends CommonAmqpController  {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.WebSiteAmqpController.create " + e.getMessage());
+            logger.error("Got Exception in WebSiteAmqpController.create " + e.getMessage());
         }
     }
 
@@ -99,18 +99,17 @@ public class WebSiteAmqpController extends CommonAmqpController  {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                     //Save history
                     Map<String, String> params = new HashMap<>();
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление сайта выполнена успешно (имя: " + message.getParam("name") + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.WebSiteAmqpController.update " + e.getMessage());
+            logger.error("Got Exception in WebSiteAmqpController.update " + e.getMessage());
         }
     }
 
@@ -139,18 +138,17 @@ public class WebSiteAmqpController extends CommonAmqpController  {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
                     //Save history
                     Map<String, String> params = new HashMap<>();
                     params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление сайта выполнена успешно (имя: " + message.getParam("name") + ")");
                     params.put(OPERATOR_KEY, "service");
 
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.WebSiteAmqpController.delete " + e.getMessage());
+            logger.error("Got Exception in WebSiteAmqpController.delete " + e.getMessage());
         }
     }
 }
