@@ -143,25 +143,10 @@ public class PaymentChargesProcessorService {
 
                     //Если есть активный абонемент и списание неудачное, нужно выключить услугу и послать апдейты на ресурсы
                     if (hasActiveAbonement && !chargeResult) {
-                        accountServiceHelper.disableAccountService(account, accountService.getServiceId());
-                        String paymentServiceOldId = paymentService.getOldId();
-                        if (paymentServiceOldId.equals(ADDITIONAL_QUOTA_100_SERVICE_ID)) {
-                            account.setAddQuotaIfOverquoted(false);
-                            publisher.publishEvent(new AccountCheckQuotaEvent(account));
-//                        } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
-//                            TODO надо что-нибудь отправлять в rc-user чтобы отключить защиту у ящиков
-//                            В rc-user никакого параметра для этого нет, нужно добавить
-//                        } else if (paymentService.getId().equals(smsPaymentService.getId())) {
-//                            Для SMS достаточно выключать сервис
-//                        TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
-                        }
-                        account.setAddQuotaIfOverquoted(false);
-                        publisher.publishEvent(new AccountCheckQuotaEvent(account));
-
+                        disableAdditionalService(account, accountService);
                     }
                 }
             }
-
 
             if (dailyCost.compareTo(BigDecimal.ZERO) > 0) {
 
@@ -220,13 +205,9 @@ public class PaymentChargesProcessorService {
                         + " cost: " + cost
                 );
                 response = accountHelper.charge(paymentAccount, accountService.getPaymentService(), cost, forceCharge);
-            } catch (feign.FeignException e) {
-                if (e.status() == 400) {
-                    logger.debug("Error. Charge Processor returned false (status 400) for service: " + accountService.toString());
-                    return false;
-                } else {
-                    throw e;
-                }
+            } catch (ChargeException e) {
+                logger.debug("Error. Charge Processor returned ChargeException for service: " + accountService.toString());
+                return false;
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("Exception in ru.majordomo.hms.personmgr.service.PaymentChargesProcessorService.makeCharge " + e.getMessage());
@@ -249,5 +230,23 @@ public class PaymentChargesProcessorService {
         accountHelper.disableAccount(account);
         accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
         accountNotificationHelper.sendMailForDeactivatedAccount(account);
+    }
+
+    private void disableAdditionalService(PersonalAccount account, AccountService accountService) {
+        accountServiceHelper.disableAccountService(account, accountService.getServiceId());
+        String paymentServiceOldId = accountService.getPaymentService().getOldId();
+        if (paymentServiceOldId.equals(ADDITIONAL_QUOTA_100_SERVICE_ID)) {
+            account.setAddQuotaIfOverquoted(false);
+            publisher.publishEvent(new AccountCheckQuotaEvent(account));
+//                        } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
+//                            TODO надо что-нибудь отправлять в rc-user чтобы отключить защиту у ящиков
+//                            В rc-user никакого параметра для этого нет, нужно добавить
+//                        } else if (paymentService.getId().equals(smsPaymentService.getId())) {
+//                            Для SMS достаточно выключать сервис
+//                        TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
+        }
+        account.setAddQuotaIfOverquoted(false);
+        publisher.publishEvent(new AccountCheckQuotaEvent(account));
+        accountHelper.saveHistoryForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
     }
 }
