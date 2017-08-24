@@ -222,19 +222,19 @@ public class PaymentChargesProcessorService {
                 response = accountHelper.charge(paymentAccount, accountService.getPaymentService(), cost, forceCharge);
             } catch (feign.FeignException e) {
                 if (e.status() == 400) {
-                    logger.debug("Error. Charge Processor returned false fo service: " + accountService.toString());
-                    success = false;
+                    logger.debug("Error. Charge Processor returned false (status 400) for service: " + accountService.toString());
+                    return false;
                 } else {
                     throw e;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("Exception in ru.majordomo.hms.personmgr.service.PaymentChargesProcessorService.makeCharge " + e.getMessage());
-                success = false;
+                return false;
             }
 
             if (response != null && response.getParam("success") != null && !((boolean) response.getParam("success"))) {
-                logger.debug("Error. Charge Processor returned false fo service: " + accountService.toString());
+                logger.debug("Error. Charge Processor returned false for service: " + accountService.toString());
             } else {
                 accountService.setLastBilled(chargeDate);
                 accountServiceRepository.save(accountService);
