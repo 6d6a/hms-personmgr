@@ -21,6 +21,7 @@ import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
+import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
@@ -219,9 +220,17 @@ public class PaymentChargesProcessorService {
                         + " cost: " + cost
                 );
                 response = accountHelper.charge(paymentAccount, accountService.getPaymentService(), cost, forceCharge);
+            } catch (feign.FeignException e) {
+                if (e.status() == 400) {
+                    logger.debug("Error. Charge Processor returned false fo service: " + accountService.toString());
+                    success = false;
+                } else {
+                    throw e;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("Exception in ru.majordomo.hms.personmgr.service.PaymentChargesProcessorService.makeCharge " + e.getMessage());
+                success = false;
             }
 
             if (response != null && response.getParam("success") != null && !((boolean) response.getParam("success"))) {
