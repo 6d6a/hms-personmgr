@@ -6,7 +6,6 @@ import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
@@ -14,15 +13,10 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
-import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
@@ -30,18 +24,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 @EnableRabbit
 @Service
 public class PersonAmqpController extends CommonAmqpController {
-    private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
-    private final BusinessActionBuilder businessActionBuilder;
-
-    @Autowired
-    public PersonAmqpController(
-            ProcessingBusinessOperationRepository processingBusinessOperationRepository,
-            BusinessActionBuilder businessActionBuilder
-    ) {
-        this.processingBusinessOperationRepository = processingBusinessOperationRepository;
-        this.businessActionBuilder = businessActionBuilder;
-    }
-
     @RabbitListener(
             bindings = @QueueBinding(
                     value = @Queue(
@@ -60,46 +42,24 @@ public class PersonAmqpController extends CommonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        try {
+            State state = businessFlowDirector.processMessage(message);
 
-        if (state == State.PROCESSED) {
-            Map<String, String> params;
-            PersonalAccount account = null;
-            try {
-                //Save history
-                params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Заявка на создание персоны выполнена успешно (имя: " + message.getParam("name") + ")");
-                params.put(OPERATOR_KEY, "service");
+            if (state == State.PROCESSED) {
+                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
-                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                if (businessAction != null) {
+                    //Save history
+                    Map<String, String> params = new HashMap<>();
+                    params.put(HISTORY_MESSAGE_KEY, "Заявка на создание персоны выполнена успешно (имя: " + message.getParam("name") + ")");
+                    params.put(OPERATOR_KEY, "service");
 
-                account = accountManager.findOne(message.getAccountId());
-            } catch (Exception e) {
-                e.printStackTrace();
-                logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.PersonAmqpController.create #1 " + e.getMessage());
-            }
-
-            if (account != null && account.getOwnerPersonId() == null) {
-                String objRef = message.getObjRef();
-                String personId = objRef.substring(objRef.lastIndexOf("/") + 1);
-                if (objRef.equals(personId)) {
-                    logger.error("Не удалось получить personId из objRef: " + objRef);
-                } else {
-                    accountManager.setOwnerPersonId(account.getId(), personId);
-
-                    try {
-                        //Save history
-                        params = new HashMap<>();
-                        params.put(HISTORY_MESSAGE_KEY, "Созданная персона установлена владельцем аккаунта (имя: " + message.getParam("name") + ")");
-                        params.put(OPERATOR_KEY, "service");
-
-                        publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.PersonAmqpController.create #2 " + e.getMessage());
-                    }
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
                 }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in PersonAmqpController.create " + e.getMessage());
         }
     }
 
@@ -125,16 +85,20 @@ public class PersonAmqpController extends CommonAmqpController {
             State state = businessFlowDirector.processMessage(message);
 
             if (state.equals(State.PROCESSED)) {
-                //Save history
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление персоны выполнена успешно (имя: " + message.getParam("name") + ")");
-                params.put(OPERATOR_KEY, "service");
+                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
-                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                if (businessAction != null) {
+                    //Save history
+                    Map<String, String> params = new HashMap<>();
+                    params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление персоны выполнена успешно (имя: " + message.getParam("name") + ")");
+                    params.put(OPERATOR_KEY, "service");
+
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.PersonAmqpController.update " + e.getMessage());
+            logger.error("Got Exception in PersonAmqpController.update " + e.getMessage());
         }
     }
 
@@ -160,16 +124,20 @@ public class PersonAmqpController extends CommonAmqpController {
             State state = businessFlowDirector.processMessage(message);
 
             if (state.equals(State.PROCESSED)) {
-                //Save history
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление персоны выполнена успешно (имя: " + message.getParam("name") + ")");
-                params.put(OPERATOR_KEY, "service");
+                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
-                publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                if (businessAction != null) {
+                    //Save history
+                    Map<String, String> params = new HashMap<>();
+                    params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление персоны выполнена успешно (имя: " + message.getParam("name") + ")");
+                    params.put(OPERATOR_KEY, "service");
+
+                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.PersonAmqpController.delete " + e.getMessage());
+            logger.error("Got Exception in PersonAmqpController.delete " + e.getMessage());
         }
     }
 }
