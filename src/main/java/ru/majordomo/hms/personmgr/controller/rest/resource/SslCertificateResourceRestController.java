@@ -86,7 +86,7 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
                     throw new ParameterValidationException("Домен не найден на вашем аккаунте");
                 }
                 if (domain.getParentDomainId() != null) {
-                    Domain parentDomain = rcUserFeignClient.getDomain(accountId, domain.getId());
+                    Domain parentDomain = rcUserFeignClient.getDomain(accountId, domain.getParentDomainId());
 
                     if (parentDomain != null) {
                         if (!accountId.equals(parentDomain.getAccountId())) {
