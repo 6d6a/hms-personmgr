@@ -403,7 +403,7 @@ public class AccountEventListener {
                     // сразу списываем за текущий день
                     Boolean success = paymentChargesProcessorService.processCharge(account);
                     if (success) {
-                        accountHelper.switchAccountResources(account, true);
+                        accountHelper.enableAccount(account);
                     }
                 }
             }
@@ -417,7 +417,7 @@ public class AccountEventListener {
                 if (accountAbonement == null) {
                     try {
                         abonementService.addAbonement(account, addAbonementId, true);
-                        accountHelper.switchAccountResources(account, true);
+                        accountHelper.enableAccount(account);
                     } catch (Exception e) {
                         logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
                         e.printStackTrace();
@@ -426,7 +426,7 @@ public class AccountEventListener {
                     account.setActive(true);
                     Boolean success = paymentChargesProcessorService.processCharge(account);
                     if (success) {
-                        accountHelper.switchAccountResources(account, true);
+                        accountHelper.enableAccount(account);
                     }
                 }
             }

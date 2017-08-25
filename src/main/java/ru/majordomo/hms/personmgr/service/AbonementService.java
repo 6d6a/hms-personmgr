@@ -377,7 +377,7 @@ public class AbonementService {
         addPlanServicesAfterAbonementExpire(account);
 
         if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
-            accountHelper.switchAccountResources(account, false);
+            accountHelper.disableAccount(account);
         }
     }
 

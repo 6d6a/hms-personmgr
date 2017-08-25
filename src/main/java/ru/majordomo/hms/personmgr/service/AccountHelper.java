@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
+import feign.FeignException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -244,8 +245,10 @@ public class AccountHelper {
         try {
             response = finFeignClient.charge(account.getId(), paymentOperation);
         } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.charge " + e.getMessage());
+            if (!(e instanceof FeignException) || ((FeignException) e).status() != 400 ) {
+                logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.charge " + e.getMessage());
+                e.printStackTrace();
+            }
             throw new ChargeException("ChargeException. Error when charging money." +
                     " Service cost is: " + service.getCost());
         }
@@ -384,11 +387,22 @@ public class AccountHelper {
         }
     }
 
-    public void switchAccountResources(PersonalAccount account, Boolean state) {
+    public void disableAccount(PersonalAccount account) {
+        switchAccountActiveState(account, false);
+    }
+
+    public void enableAccount(PersonalAccount account) {
+        switchAccountActiveState(account, true);
+    }
+
+    public void switchAccountActiveState(PersonalAccount account, Boolean state) {
         saveHistoryForOperatorService(account, "Аккаунт " + (state ? "включен" : "выключен"));
 
         accountManager.setActive(account.getId(), state);
+        switchAccountResources(account, state);
+    }
 
+    public void switchAccountResources(PersonalAccount account, Boolean state) {
         try {
 
             List<WebSite> webSites = rcUserFeignClient.getWebSites(account.getId());

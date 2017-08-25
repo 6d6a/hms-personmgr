@@ -224,6 +224,11 @@ public class AccountServiceHelper {
         return paymentService;
     }
 
+    /**
+     * Есть ли на аккаунте услуга SMS-уведомлений
+     *
+     * @param account   Аккаунт
+     */
     public boolean hasSmsNotifications(PersonalAccount account) {
         PaymentService paymentService = this.getSmsPaymentServiceByPlanId(account.getPlanId());
         AccountService accountSmsService = accountServiceRepository.findOneByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
