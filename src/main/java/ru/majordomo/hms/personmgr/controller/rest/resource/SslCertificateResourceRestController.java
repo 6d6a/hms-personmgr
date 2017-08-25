@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
-import com.google.common.net.InternetDomainName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
@@ -27,7 +26,9 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
+import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
@@ -38,12 +39,15 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 public class SslCertificateResourceRestController extends CommonResourceRestController {
 
     private final PlanRepository planRepository;
+    private final RcUserFeignClient rcUserFeignClient;
 
     @Autowired
     public SslCertificateResourceRestController(
-            PlanRepository planRepository
+            PlanRepository planRepository,
+            RcUserFeignClient rcUserFeignClient
     ) {
         this.planRepository = planRepository;
+        this.rcUserFeignClient = rcUserFeignClient;
     }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
@@ -75,6 +79,23 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
         Boolean hasAlienNS = false;
 
         try {
+            Domain domain = rcUserFeignClient.findDomain(domainName);
+
+            if (domain != null) {
+                if (!accountId.equals(domain.getAccountId())) {
+                    throw new ParameterValidationException("Домен не найден на вашем аккаунте");
+                }
+                if (domain.getParentDomainId() != null) {
+                    Domain parentDomain = rcUserFeignClient.getDomain(accountId, domain.getId());
+
+                    if (parentDomain != null) {
+                        if (!accountId.equals(parentDomain.getAccountId())) {
+                            throw new ParameterValidationException("Основной домен для поддомена не найден на вашем аккаунте");
+                        }
+                        domainName = parentDomain.getName();
+                    }
+                }
+            }
             //TODO не ясно для чего было так сделано (InternetDomainName.from(IDN.toASCII(domainName)).topPrivateDomain().toString())
             //но в новой гуаве оно перестало понимать наши домены третьего уровня типа blabla.org.ru (ищет по org.ru NS-ки)
             Lookup lookup = new Lookup(IDN.toASCII(domainName), Type.NS);
