@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -321,7 +322,7 @@ public class AccountServiceRestController extends CommonRestController {
 
                 AccountService currentService = accountServices.get(0);
 
-                if (currentService.getLastBilled() == null || currentService.getLastBilled().compareTo(LocalDateTime.now()) <= 0) {
+                if (currentService.getLastBilled() == null || currentService.getLastBilled().toLocalDate().compareTo(LocalDate.now()) < 0) {
                     accountHelper.checkBalance(account, paymentService, true);
 
                     BigDecimal dayCost = accountHelper.getDayCostByService(paymentService);
