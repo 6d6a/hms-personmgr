@@ -1,11 +1,9 @@
 package ru.majordomo.hms.personmgr.service.scheduler;
 
-import net.javacrumbs.shedlock.core.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -33,9 +31,6 @@ public class QuotaScheduler {
         this.publisher = publisher;
     }
 
-    //Выполняем проверку квоты каждые 30 минут
-    @Scheduled(cron = "0 */30 * * * *")
-    @SchedulerLock(name = "processQuotaChecks")
     public void processQuotaChecks() {
         logger.debug("Started processQuotaChecks");
         try (Stream<PersonalAccount> personalAccountStream = accountManager.findByIdNotIn(Collections.singletonList(TECHNICAL_ACCOUNT_ID))) {
