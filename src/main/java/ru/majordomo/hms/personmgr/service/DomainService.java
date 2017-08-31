@@ -135,7 +135,7 @@ public class DomainService {
 
             for (Domain domain : domains) {
                 //дней до истечения, может быть отрицательным
-                daysBeforeExpired = ((Long) ChronoUnit.DAYS.between(domain.getRegSpec().getPaidTill(), LocalDate.now())).intValue();
+                daysBeforeExpired = ((Long) ChronoUnit.DAYS.between(LocalDate.now(), domain.getRegSpec().getPaidTill())).intValue();
                 if (daysBeforeExpiredForEmail.contains(daysBeforeExpired)) { expiringDomains.add(domain); }
                 else if (daysAfterExperedForEmail.contains(-daysBeforeExpired)) { expiredDomains.add(domain); }
                 if (sendSms && daysBeforeExpired == daysBeforeExpiredForSms) { expiringDomainsForSms.add(domain); }
