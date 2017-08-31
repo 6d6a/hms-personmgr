@@ -7,13 +7,11 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
@@ -69,8 +67,6 @@ public class PaymentChargesProcessorService {
 
     public Boolean processCharge(PersonalAccount account) {
 
-        Boolean success = true;
-
         if (account.isActive()) {
 
             Boolean hasActiveAbonement = accountHelper.hasActiveAbonement(account);
@@ -85,8 +81,34 @@ public class PaymentChargesProcessorService {
             logger.debug("accountServices : " + accountServices);
 
             Integer daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
-            BigDecimal balance = accountHelper.getBalance(account);
             BigDecimal dailyCost = BigDecimal.ZERO;
+            Boolean forceCharge = false;
+
+            if (account.isCredit()) {
+                //Если у аккаунта подключен кредит
+                LocalDateTime creditActivationDate = account.getCreditActivationDate();
+
+                //Проверяем что дата активации выставлена
+                if (creditActivationDate == null) {
+                    // Далее дата активация выставляется в null, только при платеже, который вывел аккаунт из минуса
+                    forceCharge = true;
+                } else {
+                    // Проверяем сколько он уже пользуется
+                    if ( creditActivationDate.isBefore(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {
+                        if (!hasActiveAbonement) {
+                            // Если нет абонемента и срок кредита истёк, выключаем аккаунт,
+                            // отправляем нужные уведомления и возвращаем false
+                            disableAccountSaveStatSendNotifications(account);
+                            return false;
+                        }
+                    } else {
+                        forceCharge = true;
+                    }
+                }
+            }
+
+            // Сортируем подключенные сервисы по paymentAccount.chargePriority в порядке убывания
+            accountServices.sort(AccountService.ChargePriorityComparator);
 
             for (AccountService accountService : accountServices) {
                 PaymentService paymentService = accountService.getPaymentService();
@@ -98,99 +120,68 @@ public class PaymentChargesProcessorService {
                 if (accountService.isEnabled()
                         && paymentService != null
                         && (accountService.getLastBilled() == null
-                        || accountService.getLastBilled().isBefore(chargeDate)))
+                        || accountService.getLastBilled().isBefore(chargeDate))
+                        && paymentService.getCost().compareTo(BigDecimal.ZERO) > 0
+                        )
                 {
-                    BigDecimal cost;
-                    Boolean forceCharge = false;
+                    BigDecimal cost = BigDecimal.ZERO;
 
-                    if (account.isCredit()) {
-                        //Если у аккаунта подключен кредит
-                        LocalDateTime creditActivationDate = account.getCreditActivationDate();
-
-                        //Проверяем что дата активации выставлена
-                        if (creditActivationDate == null) {
-                            // Далее дата активация выставляется в null, только при платеже, который вывел аккаунт из минуса
-                            forceCharge = true;
-                        } else {
-                            // Проверяем сколько он уже пользуется
-                            if ( creditActivationDate.isBefore(LocalDateTime.now().minus(Period.parse(account.getCreditPeriod()))) ) {
-                                success = false;
-                                if (!hasActiveAbonement) {
-                                    // Если нет абонемента и срок кредита истёк, выключаем аккаунт
-                                    disableAccountSaveStatSendSms(account);
-                                }
-                            } else {
-                                forceCharge = true;
-                            }
-                        }
-                    }
-
+                    //результат списания за услугу, полученный от finansier
                     //Значение по-умолчанию true, на случай если
                     //списания не было, значит успешно и выключать услугу не надо
                     boolean chargeResult = true;
+
                     switch (accountService.getPaymentService().getPaymentType()) {
                         case MONTH:
                             cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
                             chargeResult = this.makeCharge(account, accountService, cost, chargeDate, forceCharge);
-                            dailyCost = dailyCost.add(cost);
                             break;
                         case DAY:
                             cost = accountService.getCost();
                             chargeResult = this.makeCharge(account, accountService, cost, chargeDate, forceCharge);
-                            dailyCost = dailyCost.add(cost);
                             break;
                     }
 
-                    //Если есть активный абонемент и списание неудачное, нужно выключить услугу и послать апдейты на ресурсы
-                    if (hasActiveAbonement && !chargeResult) {
-                        disableAdditionalService(account, accountService);
+                    //Если списание неудачное
+                    if (chargeResult) {
+                        //Если списание удачное, прибавляем списание к ежедневному для расчета оплаченных дней
+                        dailyCost = dailyCost.add(cost);
+                    } else {
+                        // Если есть активный абонемент или оплачиваемый сервис не является тарифным планом
+                        // выключить сервис
+                        if (hasActiveAbonement || !paymentService.getOldId().startsWith("plan_")) {
+                            disableAdditionalService(account, accountService);
+                        } else {
+                            // Если абонемента нет и сервис это тарифный план, который должен быть первым
+                            // выключаем аккаунт, отправляем уведомления и не пытаемся списать за остальные услуги
+                            disableAccountSaveStatSendNotifications(account);
+                            return false;
+                        }
                     }
                 }
             }
 
+            //Если списания за день есть
             if (dailyCost.compareTo(BigDecimal.ZERO) > 0) {
-
-                //Если изначального баланса не хватило для списания
-                if ((balance.subtract(dailyCost).compareTo(BigDecimal.ZERO)) < 0) {
-                    if (!account.isCredit()) {
-                        success = false;
-                        if (!hasActiveAbonement) {
-                            //выключаем аккаунт без абонемента
-                            disableAccountSaveStatSendSms(account);
-                        }
-                    } else if (account.getCreditActivationDate() == null) {
+                //Получаем баланс от Finansier после всех списаний
+                BigDecimal balance = accountHelper.getBalance(account);
+                //Если баланс после всех списаний стал отрицательным,
+                // включен кредит
+                // и не установлена дата активации кредита, устанавливаем её
+                if (balance.compareTo(BigDecimal.ZERO) < 0
+                        && account.isCredit()
+                        && account.getCreditActivationDate() == null
+                        ) {
+                        account.setCreditActivationDate(LocalDateTime.now());
                         accountManager.setCreditActivationDate(account.getId(), LocalDateTime.now());
-                    }
                 }
-
-                //Уведомления
-                Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue() - 1;
-                if (remainingDays > 0 && account.isActive()) {
-                    //Отправляем техническое уведомление на почту об окончании средств за 7, 5, 3, 2, 1 дней
-                    if (Arrays.asList(7, 5, 3, 2, 1).contains(remainingDays)) {
-                        //Уведомление об окончании средств
-                        Map<String, Integer> params = new HashMap<>();
-                        params.put("remainingDays", remainingDays);
-
-                        publisher.publishEvent(new AccountNotifyRemainingDaysEvent(account, params));
-                    }
-                    //Отправим смс тем, у кого подключена услуга
-                    if (Arrays.asList(5, 3, 1).contains(remainingDays)) {
-                        if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_REMAINING_DAYS)) {
-                            HashMap<String, String> parameters = new HashMap<>();
-                            parameters.put("remaining_days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
-                            parameters.put("client_id", account.getAccountId());
-                            accountNotificationHelper.sendSms(account, "MajordomoRemainingDays", 10, parameters);
-                        }
-                    }
-                }
-
+                //Считаем на сколько дней хватит имеющихся денег при подключенных активных услугах и отправляем уведомления
+                Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue();
+                sendNotificationsRemainingDays(account, remainingDays);
             }
-
-
         }
 
-        return success;
+        return true;
     }
 
     private boolean makeCharge(PersonalAccount paymentAccount, AccountService accountService, BigDecimal cost, LocalDateTime chargeDate, Boolean forceCharge) {
@@ -226,7 +217,7 @@ public class PaymentChargesProcessorService {
         return success;
     }
 
-    private void disableAccountSaveStatSendSms(PersonalAccount account) {
+    private void disableAccountSaveStatSendNotifications(PersonalAccount account) {
         accountHelper.disableAccount(account);
         accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
         accountNotificationHelper.sendMailForDeactivatedAccount(account);
@@ -245,8 +236,29 @@ public class PaymentChargesProcessorService {
 //                            Для SMS достаточно выключать сервис
 //                        TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
         }
-        account.setAddQuotaIfOverquoted(false);
-        publisher.publishEvent(new AccountCheckQuotaEvent(account));
         accountHelper.saveHistoryForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
+    }
+
+    private void sendNotificationsRemainingDays(
+            PersonalAccount account,
+            Integer remainingDays
+    ) {
+        if (remainingDays > 0 && account.isActive()) {
+            //Отправляем техническое уведомление на почту об окончании средств за 7, 5, 3, 2, 1 дней
+            if (Arrays.asList(7, 5, 3, 2, 1).contains(remainingDays)) {
+                Map<String, Object> params = new HashMap<>();
+                params.put("remainingDays", remainingDays);
+                publisher.publishEvent(new AccountNotifyRemainingDaysEvent(account, params));
+            }
+            //Отправим смс тем, у кого подключена услуга
+            if (Arrays.asList(5, 3, 1).contains(remainingDays)) {
+                if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_REMAINING_DAYS)) {
+                    HashMap<String, String> parameters = new HashMap<>();
+                    parameters.put("remaining_days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
+                    parameters.put("client_id", account.getAccountId());
+                    accountNotificationHelper.sendSms(account, "MajordomoRemainingDays", 10, parameters);
+                }
+            }
+        }
     }
 }

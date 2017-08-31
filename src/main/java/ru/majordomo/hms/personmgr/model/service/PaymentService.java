@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.model.service;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -38,6 +39,13 @@ public class PaymentService extends BaseModel {
 
     @Indexed(unique = true)
     private String oldId;
+
+    @JsonIgnore
+    private int chargePriority;
+
+    public int getChargePriority() {
+        return chargePriority;
+    }
 
 //    @NotNull
     @ObjectIdMap(value = PaymentService.class)
@@ -143,6 +151,7 @@ public class PaymentService extends BaseModel {
                 ", active=" + active +
                 ", oldId='" + oldId + '\'' +
                 ", servicesIdsWithLimits=" + servicesIdsWithLimits +
+                ", chargePriority=" + chargePriority +
                 "} " + super.toString();
     }
 }
