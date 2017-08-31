@@ -1,11 +1,9 @@
 package ru.majordomo.hms.personmgr.service.scheduler;
 
-import net.javacrumbs.shedlock.core.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -23,20 +21,21 @@ public class BusinessActionsScheduler {
     private final ApplicationEventPublisher publisher;
 
     @Autowired
-    public BusinessActionsScheduler(ProcessingBusinessActionRepository processingBusinessActionRepository, ApplicationEventPublisher publisher) {
+    public BusinessActionsScheduler(
+            ProcessingBusinessActionRepository processingBusinessActionRepository,
+            ApplicationEventPublisher publisher
+    ) {
         this.processingBusinessActionRepository = processingBusinessActionRepository;
         this.publisher = publisher;
     }
 
-    @Scheduled(cron = "0 10 * * * *")
-    @SchedulerLock(name = "cleanBusinessActions")
     public void cleanBusinessActions() {
-        logger.debug("Started cleanBusinessActions");
-        try (Stream<ProcessingBusinessAction> businessActionStream = processingBusinessActionRepository.findByCreatedDateBeforeOrderByCreatedDateAsc(
-                LocalDateTime.now().minusDays(1L))
+        logger.info("Started cleanBusinessActions");
+        try (Stream<ProcessingBusinessAction> businessActionStream = processingBusinessActionRepository
+                .findByCreatedDateBeforeOrderByCreatedDateAsc(LocalDateTime.now().minusDays(1L))
         ) {
             businessActionStream.forEach(action -> publisher.publishEvent(new ProcessingBusinessActionCleanEvent(action)));
         }
-        logger.debug("Ended cleanBusinessActions");
+        logger.info("Ended cleanBusinessActions");
     }
 }

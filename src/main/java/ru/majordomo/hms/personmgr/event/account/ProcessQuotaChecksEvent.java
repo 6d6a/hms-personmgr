@@ -4,6 +4,6 @@ import org.springframework.context.ApplicationEvent;
 
 public class ProcessQuotaChecksEvent extends ApplicationEvent {
     public ProcessQuotaChecksEvent() {
-        super("Clean tokens");
+        super("Process Quota Checks");
     }
 }

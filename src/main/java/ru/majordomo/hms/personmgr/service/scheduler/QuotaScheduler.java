@@ -32,10 +32,10 @@ public class QuotaScheduler {
     }
 
     public void processQuotaChecks() {
-        logger.debug("Started processQuotaChecks");
+        logger.info("Started processQuotaChecks");
         try (Stream<PersonalAccount> personalAccountStream = accountManager.findByIdNotIn(Collections.singletonList(TECHNICAL_ACCOUNT_ID))) {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountCheckQuotaEvent(account)));
         }
-        logger.debug("Ended processQuotaChecks");
+        logger.info("Ended processQuotaChecks");
     }
 }

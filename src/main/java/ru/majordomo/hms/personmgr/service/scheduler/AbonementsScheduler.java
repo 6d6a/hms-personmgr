@@ -1,11 +1,9 @@
 package ru.majordomo.hms.personmgr.service.scheduler;
 
-import net.javacrumbs.shedlock.core.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.stream.Stream;
@@ -37,8 +35,6 @@ public class AbonementsScheduler {
     }
 
     //Выполняем обработку абонементов с истекающим сроком действия в 00:32:00 каждый день
-    @Scheduled(cron = "0 32 0 * * *")
-    @SchedulerLock(name = "processExpiringAbonements")
     public void processExpiringAbonements() {
         logger.debug("Started processExpiringAbonements");
         try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
@@ -48,8 +44,6 @@ public class AbonementsScheduler {
     }
 
     //Выполняем обработку абонементов с истекающим сроком действия в 01:32:00 каждый день
-    @Scheduled(cron = "0 32 1 * * *")
-    @SchedulerLock(name = "processAbonementAutoRenew")
     public void processAbonementsAutoRenew() {
         logger.debug("Started processAbonementsAutoRenew");
         try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
@@ -59,8 +53,6 @@ public class AbonementsScheduler {
     }
 
     //Выполняем отправку писем истекшим абонементом в 02:42:00 каждый день
-    @Scheduled(cron = "0 42 2 * * *")
-    @SchedulerLock(name = "processNotifyExpiredAbonements")
     public void processNotifyExpiredAbonements() {
         logger.debug("Started processNotifyExpiredAbonements");
         try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()

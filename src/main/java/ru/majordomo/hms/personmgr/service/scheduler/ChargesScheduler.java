@@ -1,11 +1,9 @@
 package ru.majordomo.hms.personmgr.service.scheduler;
 
-import net.javacrumbs.shedlock.core.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -41,27 +39,23 @@ public class ChargesScheduler {
 
 
     //Выполняем реккуренты в 00:10:00 каждый день
-    @Scheduled(cron = "0 10 0 * * *")
-    @SchedulerLock(name="processRecurrents")
     public void processRecurrents() {
-        logger.debug("Started processRecurrents");
+        logger.info("Started processRecurrents");
         try {
             List<String> accountIds = finFeignClient.getRecurrentAccounts();
             accountIds.forEach(item -> recurrentProcessorService.processRecurrent(accountManager.findOne(item)));
         } catch (Exception e) {
             e.printStackTrace();
         }
-        logger.debug("Ended processRecurrents");
+        logger.info("Ended processRecurrents");
     }
 
     //Выполняем списания в 01:00:00 каждый день
-    @Scheduled(cron = "0 15 1 * * *")
-    @SchedulerLock(name="processCharges")
     public void processCharges() {
-        logger.debug("Started processCharges");
+        logger.info("Started processCharges");
         try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
             personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessChargesEvent(account)));
         }
-        logger.debug("Ended processCharges");
+        logger.info("Ended processCharges");
     }
 }
