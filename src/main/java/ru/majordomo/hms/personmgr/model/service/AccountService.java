@@ -108,7 +108,7 @@ public class AccountService extends ModelBelongsToPersonalAccount implements Com
 
         @Override
         public int compare(AccountService e1, AccountService e2) {
-            return e1.getPaymentService().getChargePriority() - e2.getPaymentService().getChargePriority();
+            return e2.getPaymentService().getChargePriority() - e1.getPaymentService().getChargePriority();
         }
     };
 
