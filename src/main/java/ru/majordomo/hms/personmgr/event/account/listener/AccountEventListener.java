@@ -395,7 +395,7 @@ public class AccountEventListener {
                 if (account.getCreditActivationDate() != null) {
                     accountManager.removeSettingByName(account.getId(), CREDIT_ACTIVATION_DATE);
                 }
-                accountHelper.tryProcessChargeAndEnableAccount(account);
+                tryProcessChargeAndEnableAccount(account);
             }
 
         } else {
@@ -413,7 +413,7 @@ public class AccountEventListener {
                         e.printStackTrace();
                     }
                 } else if (balance.compareTo(BigDecimal.ZERO) >= 0) {
-                    accountHelper.tryProcessChargeAndEnableAccount(account);
+                    tryProcessChargeAndEnableAccount(account);
                 }
             }
         }
@@ -578,5 +578,17 @@ public class AccountEventListener {
         paramsForEmail.put("token", token);
         paramsForEmail.put("ip", (String) params.get("ip"));
         accountNotificationHelper.sendMail(account, "MajordomoHmsChangeEmail", 10, paramsForEmail);
+    }
+
+    private void tryProcessChargeAndEnableAccount(PersonalAccount account) {
+        if (!account.isActive()) {
+            // Ставим флаг активности для возможности списать средства
+            account.setActive(true);
+            // сразу списываем за текущий день
+            Boolean success = paymentChargesProcessorService.processingDailyServices(account);
+            if (success) {
+                accountHelper.enableAccount(account);
+            }
+        }
     }
 }

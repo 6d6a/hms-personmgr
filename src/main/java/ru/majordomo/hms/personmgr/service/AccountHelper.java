@@ -62,7 +62,6 @@ public class AccountHelper {
     private final PlanRepository planRepository;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountServiceHelper accountServiceHelper;
-    private final PaymentChargesProcessorService paymentChargesProcessorService;
 
     @Autowired
     public AccountHelper(
@@ -78,8 +77,7 @@ public class AccountHelper {
             AccountOwnerManager accountOwnerManager,
             PlanRepository planRepository,
             AccountAbonementManager accountAbonementManager,
-            AccountServiceHelper accountServiceHelper,
-            PaymentChargesProcessorService paymentChargesProcessorService
+            AccountServiceHelper accountServiceHelper
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -94,7 +92,6 @@ public class AccountHelper {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
         this.accountServiceHelper = accountServiceHelper;
-        this.paymentChargesProcessorService = paymentChargesProcessorService;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -859,17 +856,5 @@ public class AccountHelper {
 //            TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
         }
         this.saveHistoryForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
-    }
-
-    public void tryProcessChargeAndEnableAccount(PersonalAccount account) {
-        if (!account.isActive()) {
-            // Ставим флаг активности для возможности списать средства
-            account.setActive(true);
-            // сразу списываем за текущий день
-            Boolean success = paymentChargesProcessorService.processingDailyServices(account);
-            if (success) {
-                this.enableAccount(account);
-            }
-        }
     }
 }

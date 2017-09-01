@@ -57,6 +57,7 @@ public class AbonementService {
     private final AccountStatHelper accountStatHelper;
     private final FinFeignClient finFeignClient;
     private final AccountNotificationHelper accountNotificationHelper;
+    private final PaymentChargesProcessorService paymentChargesProcessorService;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -69,7 +70,8 @@ public class AbonementService {
             ApplicationEventPublisher publisher,
             AccountStatHelper accountStatHelper,
             FinFeignClient finFeignClient,
-            AccountNotificationHelper accountNotificationHelper
+            AccountNotificationHelper accountNotificationHelper,
+            PaymentChargesProcessorService paymentChargesProcessorService
     ) {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
@@ -79,6 +81,7 @@ public class AbonementService {
         this.accountStatHelper = accountStatHelper;
         this.finFeignClient = finFeignClient;
         this.accountNotificationHelper = accountNotificationHelper;
+        this.paymentChargesProcessorService = paymentChargesProcessorService;
     }
 
     /**
@@ -379,7 +382,7 @@ public class AbonementService {
         if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
             accountHelper.disableAccount(account);
         } else {
-            accountHelper.tryProcessChargeAndEnableAccount(account);
+            paymentChargesProcessorService.processingDailyServices(account);
         }
     }
 
