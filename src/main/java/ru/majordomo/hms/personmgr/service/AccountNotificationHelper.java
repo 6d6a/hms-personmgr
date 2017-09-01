@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -17,8 +19,10 @@ import ru.majordomo.hms.rc.user.resources.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -157,5 +161,27 @@ public class AccountNotificationHelper {
             parameters.put("client_id", account.getId());
         }
         publisher.publishEvent(new SendSmsEvent(message));
+    }
+
+    public void sendNotificationsRemainingDays(PersonalAccount account, BigDecimal dailyCost) {
+        BigDecimal balance = accountHelper.getBalance(account);
+        Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue();
+        if (remainingDays > 0 && account.isActive()) {
+            //Отправляем техническое уведомление на почту об окончании средств за 7, 5, 3, 2, 1 дней
+            if (Arrays.asList(7, 5, 3, 2, 1).contains(remainingDays)) {
+                Map<String, Object> params = new HashMap<>();
+                params.put("remainingDays", remainingDays);
+                publisher.publishEvent(new AccountNotifyRemainingDaysEvent(account, params));
+            }
+            //Отправим смс тем, у кого подключена услуга
+            if (Arrays.asList(5, 3, 1).contains(remainingDays)) {
+                if (this.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_REMAINING_DAYS)) {
+                    HashMap<String, String> parameters = new HashMap<>();
+                    parameters.put("remaining_days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
+                    parameters.put("client_id", account.getAccountId());
+                    this.sendSms(account, "MajordomoRemainingDays", 10, parameters);
+                }
+            }
+        }
     }
 }

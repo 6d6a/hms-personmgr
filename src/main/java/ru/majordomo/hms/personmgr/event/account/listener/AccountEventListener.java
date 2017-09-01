@@ -401,7 +401,7 @@ public class AccountEventListener {
                     // Ставим флаг активности для возможности списать средства
                     account.setActive(true);
                     // сразу списываем за текущий день
-                    Boolean success = paymentChargesProcessorService.processCharge(account);
+                    Boolean success = paymentChargesProcessorService.processingDailyServices(account);
                     if (success) {
                         accountHelper.enableAccount(account);
                     }
@@ -424,7 +424,8 @@ public class AccountEventListener {
                     }
                 } else if (!account.isActive() && balance.compareTo(BigDecimal.ZERO) > 0) {
                     account.setActive(true);
-                    Boolean success = paymentChargesProcessorService.processCharge(account);
+                    // сразу списываем за текущий день
+                    Boolean success = paymentChargesProcessorService.processingDailyServices(account);
                     if (success) {
                         accountHelper.enableAccount(account);
                     }

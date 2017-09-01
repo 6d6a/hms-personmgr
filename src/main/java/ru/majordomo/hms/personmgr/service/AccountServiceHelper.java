@@ -3,8 +3,11 @@ package ru.majordomo.hms.personmgr.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -233,5 +236,33 @@ public class AccountServiceHelper {
         PaymentService paymentService = this.getSmsPaymentServiceByPlanId(account.getPlanId());
         AccountService accountSmsService = accountServiceRepository.findOneByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
         return (accountSmsService != null && accountSmsService.isEnabled());
+    }
+
+    public List<AccountService> getDaylyServicesToCharge(PersonalAccount account, LocalDateTime chargeDate) {
+        List<AccountService> daylyServices = new ArrayList<>();
+        List<AccountService> accountServices = account.getServices();
+        if (accountServices == null || accountServices.isEmpty()) { return daylyServices;}
+        daylyServices = accountServices.stream().filter(accountService ->
+                accountService.isEnabled()
+                        && accountService.getPaymentService() != null
+                        && (accountService.getLastBilled() == null
+                        || accountService.getLastBilled().isBefore(chargeDate)
+                )
+                        && accountService.getPaymentService().getCost().compareTo(BigDecimal.ZERO) > 0
+        ).collect(Collectors.toList());
+        return daylyServices;
+    }
+
+    public String getPaymentServiceType(AccountService accountService) {
+        if (accountService.getPaymentService() != null) {
+            String oldId = accountService.getPaymentService().getOldId();
+            if (oldId.startsWith("plan_")) {
+                return "PLAN";
+            } else {
+                return "ADDITIONAL_SERVICE";
+            }
+        } else {
+            return null;
+        }
     }
 }

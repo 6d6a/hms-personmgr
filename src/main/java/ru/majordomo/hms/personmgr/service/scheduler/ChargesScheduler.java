@@ -59,8 +59,17 @@ public class ChargesScheduler {
     @SchedulerLock(name="processCharges")
     public void processCharges() {
         logger.debug("Started processCharges");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
-            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessChargesEvent(account)));
+        List<PersonalAccount> personalAccounts = accountManager.findByActive(true);
+        if (personalAccounts != null) {
+            try {
+
+                personalAccounts.forEach(account -> publisher.publishEvent(new AccountProcessChargesEvent(account)));
+            } catch (Exception e) {
+                logger.error("Catching exception in publish events AccountProcessChargesEvent");
+                e.printStackTrace();
+            }
+        } else {
+            logger.error("Active accounts not found in daily charges.");
         }
         logger.debug("Ended processCharges");
     }
