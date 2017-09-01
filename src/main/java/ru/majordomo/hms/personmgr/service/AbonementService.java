@@ -378,6 +378,8 @@ public class AbonementService {
 
         if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
             accountHelper.disableAccount(account);
+        } else {
+            accountHelper.tryProcessChargeAndEnableAccount(account);
         }
     }
 
