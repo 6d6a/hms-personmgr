@@ -245,8 +245,9 @@ public class AccountServiceHelper {
         daylyServices = accountServices.stream().filter(accountService ->
                 accountService.isEnabled()
                         && accountService.getPaymentService() != null
-                        && (accountService.getLastBilled() == null
-                        || accountService.getLastBilled().isBefore(chargeDate)
+                        && (
+                                accountService.getLastBilled() == null
+                                        || accountService.getLastBilled().isBefore(chargeDate)
                 )
                         && accountService.getPaymentService().getCost().compareTo(BigDecimal.ZERO) > 0
         ).collect(Collectors.toList());
