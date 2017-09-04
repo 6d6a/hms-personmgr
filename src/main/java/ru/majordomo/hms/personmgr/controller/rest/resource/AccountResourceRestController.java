@@ -2,10 +2,9 @@ package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -21,6 +20,7 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
@@ -33,19 +33,14 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
-import ru.majordomo.hms.personmgr.service.BusinessOperationBuilder;
-import ru.majordomo.hms.personmgr.service.PlanLimitsService;
-import ru.majordomo.hms.personmgr.service.PromocodeProcessor;
-import ru.majordomo.hms.personmgr.service.SequenceCounterService;
-import ru.majordomo.hms.personmgr.service.SiFeignClient;
+import ru.majordomo.hms.personmgr.service.*;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
-import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.VH_ACCOUNT_PREFIX;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_CREATE;
 
 @RestController
-@RequestMapping("/register")
 public class AccountResourceRestController extends CommonResourceRestController {
     private final SequenceCounterService sequenceCounterService;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
@@ -56,6 +51,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
     private final PlanLimitsService planLimitsService;
     private final SiFeignClient siFeignClient;
     private final BusinessOperationBuilder businessOperationBuilder;
+    private final RcUserFeignClient rcUserFeignClient;
 
     @Autowired
     public AccountResourceRestController(
@@ -67,7 +63,8 @@ public class AccountResourceRestController extends CommonResourceRestController 
             AccountOwnerManager accountOwnerManager,
             PlanLimitsService planLimitsService,
             SiFeignClient siFeignClient,
-            BusinessOperationBuilder businessOperationBuilder
+            BusinessOperationBuilder businessOperationBuilder,
+            RcUserFeignClient rcUserFeignClient
     ) {
         this.sequenceCounterService = sequenceCounterService;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
@@ -78,11 +75,12 @@ public class AccountResourceRestController extends CommonResourceRestController 
         this.planLimitsService = planLimitsService;
         this.siFeignClient = siFeignClient;
         this.businessOperationBuilder = businessOperationBuilder;
+        this.rcUserFeignClient = rcUserFeignClient;
     }
 
 
     @SuppressWarnings("unchecked")
-    @RequestMapping(value = "", method = RequestMethod.POST)
+    @RequestMapping(value = "/register", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response
@@ -221,6 +219,43 @@ public class AccountResourceRestController extends CommonResourceRestController 
         responseMessage.addParam("credentials", credentials);
 
         return responseMessage;
+    }
+
+    @RequestMapping(value = "/account/{accountId}/move", method = RequestMethod.POST)
+    public Boolean moveAccount(
+            @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
+            @RequestParam Map<String, String> params,
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
+    ) {
+        if (authentication.getAuthorities().stream().noneMatch(ga -> ga.getAuthority().equals("TRANSFER_ACCOUNT"))) {
+            return false;
+        }
+
+        String desiredServerId = params.get("serverId");
+        if (desiredServerId == null || desiredServerId.equals("")) {
+            return false;
+        }
+
+        try {
+            Boolean success = rcUserFeignClient.moveAccount(accountId, desiredServerId);
+
+            if (success) {
+                String operator = request.getUserPrincipal().getName();
+                String historyMessage = "Сервер аккаунта " + accountId + " изменён на " + desiredServerId;
+                Map<String, String> historyParams = new HashMap<>();
+
+                historyParams.put(HISTORY_MESSAGE_KEY, historyMessage);
+                historyParams.put(OPERATOR_KEY, operator);
+
+                publisher.publishEvent(new AccountHistoryEvent(accountId, historyParams));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        return true;
     }
 //
 //    @RequestMapping(value = "/{accountId}", method = RequestMethod.PATCH)
