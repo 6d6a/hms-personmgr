@@ -166,8 +166,10 @@ public class CommonAmqpController {
         switch (state) {
             case PROCESSED:
                 logger.info(logMessage + " завершено успешно");
+                break;
             case ERROR:
                 logger.error(logMessage + " не удалось");
+                break;
         }
     }
 
