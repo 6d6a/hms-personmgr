@@ -390,22 +390,12 @@ public class AccountEventListener {
 
         if (!plan.isAbonementOnly()) {
 
-            if (balance.compareTo(BigDecimal.ZERO) > 0) {
+            if (balance.compareTo(BigDecimal.ZERO) >= 0) {
                 // Обнуляем дату активации кредита
                 if (account.getCreditActivationDate() != null) {
                     accountManager.removeSettingByName(account.getId(), CREDIT_ACTIVATION_DATE);
                 }
-
-                // Включаем аккаунт, если был выключен
-                if (!account.isActive()) {
-                    // Ставим флаг активности для возможности списать средства
-                    account.setActive(true);
-                    // сразу списываем за текущий день
-                    Boolean success = paymentChargesProcessorService.processCharge(account);
-                    if (success) {
-                        accountHelper.enableAccount(account);
-                    }
-                }
+                tryProcessChargeAndEnableAccount(account);
             }
 
         } else {
@@ -422,12 +412,8 @@ public class AccountEventListener {
                         logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
                         e.printStackTrace();
                     }
-                } else if (!account.isActive() && balance.compareTo(BigDecimal.ZERO) > 0) {
-                    account.setActive(true);
-                    Boolean success = paymentChargesProcessorService.processCharge(account);
-                    if (success) {
-                        accountHelper.enableAccount(account);
-                    }
+                } else if (balance.compareTo(BigDecimal.ZERO) >= 0) {
+                    tryProcessChargeAndEnableAccount(account);
                 }
             }
         }
@@ -592,5 +578,17 @@ public class AccountEventListener {
         paramsForEmail.put("token", token);
         paramsForEmail.put("ip", (String) params.get("ip"));
         accountNotificationHelper.sendMail(account, "MajordomoHmsChangeEmail", 10, paramsForEmail);
+    }
+
+    private void tryProcessChargeAndEnableAccount(PersonalAccount account) {
+        if (!account.isActive()) {
+            // Ставим флаг активности для возможности списать средства
+            account.setActive(true);
+            // сразу списываем за текущий день
+            Boolean success = paymentChargesProcessorService.processingDailyServices(account);
+            if (success) {
+                accountHelper.enableAccount(account);
+            }
+        }
     }
 }

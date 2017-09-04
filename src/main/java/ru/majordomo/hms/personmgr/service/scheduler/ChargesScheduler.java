@@ -7,7 +7,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.event.account.AccountProcessChargesEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -53,8 +52,17 @@ public class ChargesScheduler {
     //Выполняем списания в 01:00:00 каждый день
     public void processCharges() {
         logger.info("Started processCharges");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
-            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessChargesEvent(account)));
+        List<PersonalAccount> personalAccounts = accountManager.findByActive(true);
+        if (personalAccounts != null) {
+            try {
+
+                personalAccounts.forEach(account -> publisher.publishEvent(new AccountProcessChargesEvent(account)));
+            } catch (Exception e) {
+                logger.error("Catching exception in publish events AccountProcessChargesEvent");
+                e.printStackTrace();
+            }
+        } else {
+            logger.error("Active accounts not found in daily charges.");
         }
         logger.info("Ended processCharges");
     }

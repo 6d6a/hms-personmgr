@@ -10,11 +10,13 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
@@ -31,15 +33,14 @@ import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.PromocodeType.GOOGLE;
 import static ru.majordomo.hms.personmgr.common.Utils.getBigDecimalFromUnexpectedInput;
 
@@ -60,6 +61,7 @@ public class AccountHelper {
     private final AccountOwnerManager accountOwnerManager;
     private final PlanRepository planRepository;
     private final AccountAbonementManager accountAbonementManager;
+    private final AccountServiceHelper accountServiceHelper;
 
     @Autowired
     public AccountHelper(
@@ -74,7 +76,8 @@ public class AccountHelper {
             PromocodeRepository promocodeRepository,
             AccountOwnerManager accountOwnerManager,
             PlanRepository planRepository,
-            AccountAbonementManager accountAbonementManager
+            AccountAbonementManager accountAbonementManager,
+            AccountServiceHelper accountServiceHelper
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -88,6 +91,7 @@ public class AccountHelper {
         this.accountOwnerManager = accountOwnerManager;
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -797,5 +801,60 @@ public class AccountHelper {
 
         publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
 
+    }
+
+    public Boolean hasActiveCredit(PersonalAccount account) {
+        if (account.isCredit()) {
+            //Если у аккаунта подключен кредит
+            LocalDateTime creditActivationDate = account.getCreditActivationDate();
+            //Проверяем что дата активации выставлена
+            if (creditActivationDate == null) {
+                // Далее дата активация выставляется в null, только при платеже, который вывел аккаунт из минуса
+                return true;
+            } else {
+                // Проверяем сколько он уже пользуется
+                if (creditActivationDate.isBefore(
+                        LocalDateTime.now().minus(Period.parse(account.getCreditPeriod())))) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+        } else {
+            return false;
+        }
+    }
+
+    /*
+     *  Устанавливает дату активации кредита, если она отсутствует
+     */
+
+    public void setCreditActivationDateIfNotSet(PersonalAccount account) {
+        if (account.getCreditActivationDate() == null) {
+            accountManager.setCreditActivationDate(account.getId(), LocalDateTime.now());
+        }
+    }
+
+    /*
+     *  Ставит active=false в accountService
+     *  Если это доп.квота, то кидает ивент на пересчет квоты
+     *  Остальные услуги, если требуеются  нужно добавлять индивидуально
+     */
+
+    public void disableAdditionalService(AccountService accountService) {
+        PersonalAccount account = accountManager.findOne(accountService.getPersonalAccountId());
+        accountServiceHelper.disableAccountService(account, accountService.getServiceId());
+        String paymentServiceOldId = accountService.getPaymentService().getOldId();
+        if (paymentServiceOldId.equals(ADDITIONAL_QUOTA_100_SERVICE_ID)) {
+            account.setAddQuotaIfOverquoted(false);
+            publisher.publishEvent(new AccountCheckQuotaEvent(account));
+//        } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
+//            TODO надо что - нибудь отправлять в rc - user чтобы отключить защиту у ящиков
+//            В rc -user никакого параметра для этого нет, нужно добавить
+//        } else if (paymentService.getId().equals(smsPaymentService.getId())) {
+//            Для SMS достаточно выключать сервис
+//            TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
+        }
+        this.saveHistoryForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
     }
 }
