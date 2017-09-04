@@ -7,18 +7,39 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.event.webSite.WebSiteCreatedEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
+
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 
 public class CommonAmqpController {
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
-    protected BusinessFlowDirector businessFlowDirector;
-    protected ProcessingBusinessActionRepository processingBusinessActionRepository;
+    BusinessFlowDirector businessFlowDirector;
+    ProcessingBusinessActionRepository processingBusinessActionRepository;
+    ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     protected PersonalAccountManager accountManager;
     protected ApplicationEventPublisher publisher;
+
+    protected String resourceName = "";
 
     @Autowired
     public void setBusinessFlowDirector(BusinessFlowDirector businessFlowDirector) {
@@ -33,6 +54,13 @@ public class CommonAmqpController {
     }
 
     @Autowired
+    public void setProcessingBusinessOperationRepository(
+            ProcessingBusinessOperationRepository processingBusinessOperationRepository
+    ) {
+        this.processingBusinessOperationRepository = processingBusinessOperationRepository;
+    }
+
+    @Autowired
     public void setAccountManager(PersonalAccountManager accountManager) {
         this.accountManager = accountManager;
     }
@@ -42,7 +70,7 @@ public class CommonAmqpController {
         this.publisher = publisher;
     }
 
-    protected String getResourceIdByObjRef(String url) {
+    private String getResourceIdByObjRef(String url) {
         try {
             URL processingUrl = new URL(url);
             String path = processingUrl.getPath();
@@ -53,6 +81,143 @@ public class CommonAmqpController {
             e.printStackTrace();
             logger.error("Got Exception in ru.majordomo.hms.personmgr.controller.amqp.CommonAmqpController.getResourceIdByObjRef " + e.getMessage());
             return null;
+        }
+    }
+
+    void handleCreateEventFromRc(SimpleServiceMessage message, Map<String, String> headers) {
+        String provider = headers.get("provider");
+        logger.debug("Received create message from " + provider + ": " + message.toString());
+
+        try {
+            State state = businessFlowDirector.processMessage(message);
+
+            processEventsByMessageStateForCreate(message, state);
+            saveAccountHistoryByMessageStateForCreate(message, state);
+            saveLogByMessageStateForCreate(message, state);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in handleCreateEventFromRc " + e.getMessage());
+        }
+    }
+
+    void handleUpdateEventFromRc(SimpleServiceMessage message, Map<String, String> headers) {
+        String provider = headers.get("provider");
+        logger.debug("Received update message from " + provider + ": " + message.toString());
+
+        try {
+            State state = businessFlowDirector.processMessage(message);
+
+            saveAccountHistoryByMessageStateForUpdate(message, state);
+            saveLogByMessageStateForUpdate(message, state);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in handleUpdateEventFromRc " + e.getMessage());
+        }
+    }
+
+    void handleDeleteEventFromRc(SimpleServiceMessage message, Map<String, String> headers) {
+        String provider = headers.get("provider");
+        logger.debug("Received delete message from " + provider + ": " + message.toString());
+
+        try {
+            State state = businessFlowDirector.processMessage(message);
+
+            saveAccountHistoryByMessageStateForDelete(message, state);
+            saveLogByMessageStateForDelete(message, state);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in handleDeleteEventFromRc " + e.getMessage());
+        }
+    }
+
+    private void saveAccountHistoryByMessageState(SimpleServiceMessage message, State state, String action) {
+        if (state.equals(State.PROCESSED)) {
+            ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+
+            if (businessAction != null) {
+                //Save history
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Заявка на " + action + " ресурса " +
+                        resourceName + " выполнена успешно (имя: " + message.getParam("name") + ")");
+                params.put(OPERATOR_KEY, "service");
+
+                publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
+            }
+        }
+    }
+
+    private void saveAccountHistoryByMessageStateForCreate(SimpleServiceMessage message, State state) {
+        saveAccountHistoryByMessageState(message, state, "создание");
+    }
+
+    private void saveAccountHistoryByMessageStateForUpdate(SimpleServiceMessage message, State state) {
+        saveAccountHistoryByMessageState(message, state, "обновление");
+    }
+
+    private void saveAccountHistoryByMessageStateForDelete(SimpleServiceMessage message, State state) {
+        saveAccountHistoryByMessageState(message, state, "удаление");
+    }
+
+
+    private void saveLogByMessageState(SimpleServiceMessage message, State state, String action) {
+        String logMessage = "ACTION_IDENTITY: " + message.getActionIdentity() +
+                " OPERATION_IDENTITY: " + message.getOperationIdentity() +
+                " " + action + " ресурса " + resourceName + " " + message.getAccountId();
+
+        switch (state) {
+            case PROCESSED:
+                logger.info(logMessage + " завершено успешно");
+            case ERROR:
+                logger.error(logMessage + " не удалось");
+        }
+    }
+
+    void saveLogByMessageStateForCreate(SimpleServiceMessage message, State state) {
+        saveLogByMessageState(message, state, "Создание");
+    }
+
+    private void saveLogByMessageStateForUpdate(SimpleServiceMessage message, State state) {
+        saveLogByMessageState(message, state, "Обновление");
+    }
+
+    private void saveLogByMessageStateForDelete(SimpleServiceMessage message, State state) {
+        saveLogByMessageState(message, state, "Удаление");
+    }
+
+    private void processEventsByMessageStateForCreate(SimpleServiceMessage message, State state) {
+        if (state.equals(State.PROCESSED)) {
+            ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+
+            if (businessAction != null) {
+                if (businessAction.getBusinessActionType().equals(BusinessActionType.WEB_SITE_CREATE_RC)) {
+                    PersonalAccount account = accountManager.findOne(message.getAccountId());
+
+                    SimpleServiceMessage mailMessage = new SimpleServiceMessage();
+                    mailMessage.setAccountId(account.getId());
+
+                    String resourceId = getResourceIdByObjRef(message.getObjRef());
+
+                    Map<String, String> params = new HashMap<>();
+                    params.put(RESOURCE_ID_KEY, resourceId);
+
+                    publisher.publishEvent(new WebSiteCreatedEvent(account, params));
+                }
+
+                if (businessAction.getBusinessActionType().equals(BusinessActionType.UNIX_ACCOUNT_CREATE_RC)) {
+                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
+
+                    ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                    if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
+                        businessOperation.setState(State.PROCESSED);
+                        processingBusinessOperationRepository.save(businessOperation);
+
+                        Map<String, String> params = new HashMap<>();
+                        params.put(PASSWORD_KEY, (String) businessOperation.getParam(PASSWORD_KEY));
+
+                        publisher.publishEvent(new AccountCreatedEvent(account, params));
+                    }
+                }
+            }
         }
     }
 }

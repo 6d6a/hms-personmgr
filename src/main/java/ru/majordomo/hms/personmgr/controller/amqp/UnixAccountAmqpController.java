@@ -6,38 +6,19 @@ import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.BusinessOperationType;
-import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
-
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
 
 @EnableRabbit
 @Service
 public class UnixAccountAmqpController extends CommonAmqpController {
-    private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
-
-    @Autowired
-    public UnixAccountAmqpController(
-            ProcessingBusinessOperationRepository processingBusinessOperationRepository
-    ) {
-        this.processingBusinessOperationRepository = processingBusinessOperationRepository;
+    public UnixAccountAmqpController() {
+        resourceName = "UNIX-аккаунт";
     }
 
     @RabbitListener(
@@ -56,48 +37,7 @@ public class UnixAccountAmqpController extends CommonAmqpController {
     )
 
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
-        String provider = headers.get("provider");
-        logger.debug("Received from " + provider + ": " + message.toString());
-
-        try {
-            State state = businessFlowDirector.processMessage(message);
-
-            if (state == State.PROCESSED) {
-                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
-
-                if (businessAction != null) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
-                    Map<String, String> paramsHistory;
-
-                    ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                    if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
-                        businessOperation.setState(State.PROCESSED);
-                        processingBusinessOperationRepository.save(businessOperation);
-
-                        Map<String, String> params = new HashMap<>();
-                        params.put(PASSWORD_KEY, (String) businessOperation.getParam(PASSWORD_KEY));
-
-                        publisher.publishEvent(new AccountCreatedEvent(account, params));
-
-                        paramsHistory = new HashMap<>();
-                        paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на первичное создание UNIX-аккаунта выполнена успешно (имя: " + message.getParam("name") + ")");
-                        paramsHistory.put(OPERATOR_KEY, "service");
-
-                        publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), paramsHistory));
-                    } else {
-                        //Save history
-                        paramsHistory = new HashMap<>();
-                        paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на создание UNIX-аккаунта выполнена успешно (имя: " + message.getParam("name") + ")");
-                        paramsHistory.put(OPERATOR_KEY, "service");
-
-                        publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), paramsHistory));
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Got Exception in UnixAccountAmqpController.create " + e.getMessage());
-        }
+        handleCreateEventFromRc(message, headers);
     }
 
     @RabbitListener(
@@ -115,28 +55,7 @@ public class UnixAccountAmqpController extends CommonAmqpController {
             )
     )
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
-        String provider = headers.get("provider");
-        logger.debug("Received update message from " + provider + ": " + message.toString());
-
-        try {
-            State state = businessFlowDirector.processMessage(message);
-
-            if (state.equals(State.PROCESSED)) {
-                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
-
-                if (businessAction != null) {
-                    //Save history
-                    Map<String, String> params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление UNIX-аккаунта выполнена успешно (имя: " + message.getParam("name") + ")");
-                    params.put(OPERATOR_KEY, "service");
-
-                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Got Exception in UnixAccountAmqpController.update " + e.getMessage());
-        }
+        handleUpdateEventFromRc(message, headers);
     }
 
     @RabbitListener(
@@ -154,27 +73,6 @@ public class UnixAccountAmqpController extends CommonAmqpController {
             )
     )
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
-        String provider = headers.get("provider");
-        logger.debug("Received delete message from " + provider + ": " + message.toString());
-
-        try {
-            State state = businessFlowDirector.processMessage(message);
-
-            if (state.equals(State.PROCESSED)) {
-                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
-
-                if (businessAction != null) {
-                    //Save history
-                    Map<String, String> params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление UNIX-аккаунта выполнена успешно (имя: " + message.getParam("name") + ")");
-                    params.put(OPERATOR_KEY, "service");
-
-                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Got Exception in UnixAccountAmqpController.delete " + e.getMessage());
-        }
+        handleDeleteEventFromRc(message, headers);
     }
 }

@@ -10,20 +10,17 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
-
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @EnableRabbit
 @Service
 public class DnsRecordAmqpController extends CommonAmqpController {
+    public DnsRecordAmqpController() {
+        resourceName = "днс-запись";
+    }
+
     @RabbitListener(
             bindings = @QueueBinding(
                     value = @Queue(
@@ -38,28 +35,7 @@ public class DnsRecordAmqpController extends CommonAmqpController {
             )
     )
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
-        String provider = headers.get("provider");
-        logger.debug("Received from " + provider + ": " + message.toString());
-
-        try {
-            State state = businessFlowDirector.processMessage(message);
-
-            if (state.equals(State.PROCESSED)) {
-                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
-
-                if (businessAction != null) {
-                    //Save history
-                    Map<String, String> params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Заявка на создание днс-записи выполнена успешно (имя: " + message.getParam("name") + ")");
-                    params.put(OPERATOR_KEY, "service");
-
-                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Got Exception in DnsRecordAmqpController.create " + e.getMessage());
-        }
+        handleCreateEventFromRc(message, headers);
     }
 
     @RabbitListener(
@@ -77,28 +53,7 @@ public class DnsRecordAmqpController extends CommonAmqpController {
             )
     )
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
-        String provider = headers.get("provider");
-        logger.debug("Received update message from " + provider + ": " + message.toString());
-
-        try {
-            State state = businessFlowDirector.processMessage(message);
-
-            if (state.equals(State.PROCESSED)) {
-                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
-
-                if (businessAction != null) {
-                    //Save history
-                    Map<String, String> params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление днс-записи выполнена успешно (имя: " + message.getParam("name") + ")");
-                    params.put(OPERATOR_KEY, "service");
-
-                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Got Exception in DnsRecordAmqpController.update " + e.getMessage());
-        }
+        handleUpdateEventFromRc(message, headers);
     }
 
     @RabbitListener(
@@ -116,27 +71,6 @@ public class DnsRecordAmqpController extends CommonAmqpController {
             )
     )
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
-        String provider = headers.get("provider");
-        logger.debug("Received delete message from " + provider + ": " + message.toString());
-
-        try {
-            State state = businessFlowDirector.processMessage(message);
-
-            if (state.equals(State.PROCESSED)) {
-                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
-
-                if (businessAction != null) {
-                    //Save history
-                    Map<String, String> params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление днс-записи выполнена успешно (имя: " + message.getParam("name") + ")");
-                    params.put(OPERATOR_KEY, "service");
-
-                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Got Exception in DnsRecordAmqpController.delete " + e.getMessage());
-        }
+        handleDeleteEventFromRc(message, headers);
     }
 }

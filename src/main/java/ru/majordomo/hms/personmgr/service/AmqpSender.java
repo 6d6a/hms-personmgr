@@ -7,19 +7,28 @@ import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 @Service
 public class AmqpSender {
-
     private final static Logger logger = LoggerFactory.getLogger(AmqpSender.class);
+    private final RabbitTemplate myRabbitTemplate;
+    private String applicationName;
+
+    @Value("${spring.application.name}")
+    public void setApplicationName(String applicationName) {
+        this.applicationName = applicationName;
+    }
+
     @Autowired
-    private RabbitTemplate myRabbitTemplate;
+    public AmqpSender(RabbitTemplate myRabbitTemplate) {
+        this.myRabbitTemplate = myRabbitTemplate;
+    }
 
     private Message createMessage(SimpleServiceMessage message, MessageProperties messageProperties) {
-
         return MessageBuilder
                 .withBody(message.toJson().getBytes())
                 .andProperties(messageProperties)
@@ -30,11 +39,23 @@ public class AmqpSender {
         logger.debug("send message by AmqpSender - exchange: " + exchange + " routingKey: " + routingKey + " message " + message.toString());
 
         myRabbitTemplate.setExchange(exchange);
+
         MessageProperties messageProperties = new MessageProperties();
-        messageProperties.setHeader("provider", "pm");
+        messageProperties.setHeader("provider", applicationName);
         messageProperties.setContentType("application/json");
+
         Message amqpMessage = createMessage(message, messageProperties);
+
         logger.debug(amqpMessage.toString());
+
         myRabbitTemplate.convertAndSend(routingKey, amqpMessage);
+
+        logger.info("ACTION_IDENTITY: " + message.getActionIdentity() +
+                " OPERATION_IDENTITY: " + message.getOperationIdentity() +
+                " Сообщение от: " + applicationName + " " +
+                "в exchange: " + exchange + " " +
+                "с routing key: " + routingKey + " " +
+                "отправлено." + " " +
+                "Вот оно: " + message.toString());
     }
 }
