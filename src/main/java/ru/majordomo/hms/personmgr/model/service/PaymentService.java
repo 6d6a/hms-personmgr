@@ -41,7 +41,7 @@ public class PaymentService extends BaseModel {
     private String oldId;
 
     @JsonIgnore
-    private int chargePriority;
+    private int chargePriority = 0;
 
     public int getChargePriority() {
         return chargePriority;
