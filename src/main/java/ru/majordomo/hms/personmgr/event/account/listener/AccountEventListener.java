@@ -437,6 +437,21 @@ public class AccountEventListener {
 
         if (accountStats.isEmpty()) {return;}
 
+        // Если в тот же день есть удаление абонемента, то отправлять уведомление не нужно
+        // причина выключения аккаунта - истекший абонемент
+        // после удаления абонемента начислилась услуга тарифа и была неудачная попытка списания,
+        // после чего аккаунт был выключен
+        List<AccountStat> accountStatsAbonementDelete = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
+                account.getId(),
+                AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE,
+                accountStats.get(0).getCreated().withHour(0).withMinute(0).withSecond(0)
+        );
+        if (!accountStatsAbonementDelete.isEmpty()
+                && accountStatsAbonementDelete.get(0).getCreated().toLocalDate().equals(
+                        accountStats.get(0).getCreated().toLocalDate())) {
+            return;
+        }
+
         int[] daysAgo = {1, 3, 5, 10, 15, 20};
         LocalDateTime dateFinish = accountStats.get(0).getCreated();
 
