@@ -10,7 +10,6 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -137,8 +136,8 @@ public class CommonAmqpController {
             if (businessAction != null) {
                 //Save history
                 Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Заявка на " + action + " ресурса " +
-                        resourceName + " выполнена успешно (имя: " + message.getParam("name") + ")");
+                params.put(HISTORY_MESSAGE_KEY, "Заявка на " + action + " ресурса '" +
+                        resourceName + "' выполнена успешно (имя: " + message.getParam("name") + ")");
                 params.put(OPERATOR_KEY, "service");
 
                 publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
@@ -189,33 +188,34 @@ public class CommonAmqpController {
             ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
             if (businessAction != null) {
-                if (businessAction.getBusinessActionType().equals(BusinessActionType.WEB_SITE_CREATE_RC)) {
-                    PersonalAccount account = accountManager.findOne(message.getAccountId());
+                PersonalAccount account = accountManager.findOne(message.getAccountId());
 
-                    SimpleServiceMessage mailMessage = new SimpleServiceMessage();
-                    mailMessage.setAccountId(account.getId());
+                Map<String, String> params = new HashMap<>();
 
-                    String resourceId = getResourceIdByObjRef(message.getObjRef());
+                switch (businessAction.getBusinessActionType()) {
+                    case WEB_SITE_CREATE_RC:
 
-                    Map<String, String> params = new HashMap<>();
-                    params.put(RESOURCE_ID_KEY, resourceId);
+                        SimpleServiceMessage mailMessage = new SimpleServiceMessage();
+                        mailMessage.setAccountId(account.getId());
 
-                    publisher.publishEvent(new WebSiteCreatedEvent(account, params));
-                }
+                        String resourceId = getResourceIdByObjRef(message.getObjRef());
 
-                if (businessAction.getBusinessActionType().equals(BusinessActionType.UNIX_ACCOUNT_CREATE_RC)) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
+                        params.put(RESOURCE_ID_KEY, resourceId);
 
-                    ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                    if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
-                        businessOperation.setState(State.PROCESSED);
-                        processingBusinessOperationRepository.save(businessOperation);
+                        publisher.publishEvent(new WebSiteCreatedEvent(account, params));
 
-                        Map<String, String> params = new HashMap<>();
-                        params.put(PASSWORD_KEY, (String) businessOperation.getParam(PASSWORD_KEY));
+                        break;
+                    case UNIX_ACCOUNT_CREATE_RC:
+                        ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
+                            businessOperation.setState(State.PROCESSED);
+                            processingBusinessOperationRepository.save(businessOperation);
 
-                        publisher.publishEvent(new AccountCreatedEvent(account, params));
-                    }
+                            params.put(PASSWORD_KEY, (String) businessOperation.getParam(PASSWORD_KEY));
+
+                            publisher.publishEvent(new AccountCreatedEvent(account, params));
+                        }
+                        break;
                 }
             }
         }
