@@ -79,5 +79,5 @@ public interface RcUserFeignClient {
     Domain findDomain(@RequestParam("name") String name);
 
     @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/account-move", consumes = "application/json")
-    Boolean moveAccount(@PathVariable("accountId") String accountId, @RequestParam("serverId") String serverId);
+    Boolean moveAccount(@PathVariable("accountId") String accountId, @RequestBody Map<String, String> message);
 }

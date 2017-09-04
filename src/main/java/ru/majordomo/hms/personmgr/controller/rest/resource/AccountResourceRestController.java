@@ -238,7 +238,9 @@ public class AccountResourceRestController extends CommonResourceRestController 
         }
 
         try {
-            Boolean success = rcUserFeignClient.moveAccount(accountId, desiredServerId);
+            Map<String, String> body = new HashMap<>();
+            body.put("serverId", desiredServerId);
+            Boolean success = rcUserFeignClient.moveAccount(accountId, body);
 
             if (success) {
                 String operator = request.getUserPrincipal().getName();
