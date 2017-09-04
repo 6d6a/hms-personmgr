@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -68,6 +69,7 @@ public class AccountAbonementRestController extends CommonRestController {
         return new ResponseEntity<>(accountAbonement, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('OPERATOR')")
     @RequestMapping(value = "/{accountAbonementId}", method = RequestMethod.PATCH)
     public ResponseEntity<Object> updateAccountAbonement(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -158,8 +160,6 @@ public class AccountAbonementRestController extends CommonRestController {
             throw new ParameterValidationException("abonementId field is required in requestBody");
         }
 
-        Boolean autorenew = requestBody.get("autorenew") != null ? Boolean.valueOf(requestBody.get("autorenew")) : false;
-
         Abonement abonement = abonementRepository.findOne(abonementId);
 
         if (abonement == null) {
@@ -171,7 +171,7 @@ public class AccountAbonementRestController extends CommonRestController {
         // Internal абонементы юзер не может заказывать
         if (!abonement.isInternal() && (currentAccountAbonement == null || currentAccountAbonement.getAbonement().getPeriod().equals("P14D"))) {
 
-            abonementService.addAbonement(account, abonementId, autorenew);
+            abonementService.addAbonement(account, abonementId, true);
 
             if (accountAbonementManager.findByPersonalAccountId(account.getId()) != null && planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
                 accountHelper.enableAccount(account);
