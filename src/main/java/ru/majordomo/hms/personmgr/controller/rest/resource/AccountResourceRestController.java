@@ -224,7 +224,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
     @RequestMapping(value = "/account/{accountId}/move", method = RequestMethod.POST)
     public Boolean moveAccount(
             @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
-            @RequestParam Map<String, String> params,
+            @RequestBody Map<String, String> params,
             SecurityContextHolderAwareRequestWrapper request,
             Authentication authentication
     ) {
