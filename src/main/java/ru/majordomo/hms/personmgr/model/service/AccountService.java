@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 
 import javax.validation.constraints.NotNull;
 
@@ -13,7 +14,7 @@ import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 @Document
-public class AccountService extends ModelBelongsToPersonalAccount {
+public class AccountService extends ModelBelongsToPersonalAccount implements Comparable<AccountService> {
     @NotNull
     @ObjectId(PaymentService.class)
     private String serviceId;
@@ -97,6 +98,19 @@ public class AccountService extends ModelBelongsToPersonalAccount {
         super();
         this.serviceId = paymentService.getId();
     }
+
+    @Override
+    public int compareTo(AccountService accountService) {
+        return (this.getPaymentService().getChargePriority() - accountService.getPaymentService().getChargePriority());
+    }
+
+    public static Comparator<AccountService> ChargePriorityComparator = new Comparator<AccountService>() {
+
+        @Override
+        public int compare(AccountService e1, AccountService e2) {
+            return e2.getPaymentService().getChargePriority() - e1.getPaymentService().getChargePriority();
+        }
+    };
 
     @Override
     public String toString() {

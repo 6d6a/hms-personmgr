@@ -32,7 +32,7 @@ public class AccountChargesEventListener {
         logger.debug("We got AccountProcessChargesEvent");
 
         try {
-            paymentChargesProcessorService.processCharge(account);
+            paymentChargesProcessorService.processingDailyServices(account);
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in ru.majordomo.hms.personmgr.event.account.listener.AccountChargesEventListener.onAccountProcessCharges " + e.getMessage());
