@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -68,6 +69,7 @@ public class AccountAbonementRestController extends CommonRestController {
         return new ResponseEntity<>(accountAbonement, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('OPERATOR')")
     @RequestMapping(value = "/{accountAbonementId}", method = RequestMethod.PATCH)
     public ResponseEntity<Object> updateAccountAbonement(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -77,19 +79,26 @@ public class AccountAbonementRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
+        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(
+                accountAbonementId, account.getId()
+        );
 
         if (!accountAbonement.getAbonement().isInternal()) {
-            Boolean autorenew = requestBody.get("autorenew") != null ? Boolean.valueOf(requestBody.get("autorenew")) : false;
-            accountAbonementManager.setAutorenew(accountAbonement.getId(), autorenew);
+            if (requestBody.get("autorenew") != null) {
+                Boolean autorenew = Boolean.valueOf(requestBody.get("autorenew"));
+                accountAbonementManager.setAutorenew(accountAbonement.getId(), autorenew);
 
-            //Save history
-            String operator = request.getUserPrincipal().getName();
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, (autorenew ? "Включено" : "Выключено")+ " автопродления абонемента");
-            params.put(OPERATOR_KEY, operator);
+                //Save history
+                String operator = request.getUserPrincipal().getName();
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY,
+                        (autorenew ? "Включено" : "Выключено") +
+                        " автопродление абонемента '" + accountAbonement.getAbonement().getName() + "'"
+                );
+                params.put(OPERATOR_KEY, operator);
 
-            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+                publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+            }
 
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
@@ -158,8 +167,6 @@ public class AccountAbonementRestController extends CommonRestController {
             throw new ParameterValidationException("abonementId field is required in requestBody");
         }
 
-        Boolean autorenew = requestBody.get("autorenew") != null ? Boolean.valueOf(requestBody.get("autorenew")) : false;
-
         Abonement abonement = abonementRepository.findOne(abonementId);
 
         if (abonement == null) {
@@ -171,7 +178,7 @@ public class AccountAbonementRestController extends CommonRestController {
         // Internal абонементы юзер не может заказывать
         if (!abonement.isInternal() && (currentAccountAbonement == null || currentAccountAbonement.getAbonement().getPeriod().equals("P14D"))) {
 
-            abonementService.addAbonement(account, abonementId, autorenew);
+            abonementService.addAbonement(account, abonementId, true);
 
             if (accountAbonementManager.findByPersonalAccountId(account.getId()) != null && planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
                 accountHelper.enableAccount(account);

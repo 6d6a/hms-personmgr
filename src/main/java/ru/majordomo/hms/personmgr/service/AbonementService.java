@@ -230,7 +230,7 @@ public class AbonementService {
                 parameters.put("balance", formatBigDecimalWithCurrency(balance));
                 parameters.put("cost", formatBigDecimalWithCurrency(abonementCost)); //Этот параметр передаётся, но не используется
                 parameters.put("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-                parameters.put("auto_renew", "включено");
+                parameters.put("auto_renew", accountAbonement.isAutorenew() ? "включено" : "выключено");
                 parameters.put("from", "noreply@majordomo.ru");
 
                 accountNotificationHelper.sendMail(account, "MajordomoVHAbNoMoneyProlong", 1, parameters);
@@ -260,8 +260,8 @@ public class AbonementService {
             BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
             String currentExpired = accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
 
-            // Если абонемент не бонусный (internal)
-            if (!accountAbonement.getAbonement().isInternal()) {
+            // Если абонемент не бонусный (internal) и стоит автопродление
+            if (!accountAbonement.getAbonement().isInternal() && accountAbonement.isAutorenew()) {
                     logger.debug("Abonement has autorenew option enabled");
 
                     if (balance.compareTo(abonementCost) >= 0) {
