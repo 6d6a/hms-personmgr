@@ -21,7 +21,6 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
