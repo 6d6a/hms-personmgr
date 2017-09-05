@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
@@ -51,7 +52,9 @@ public class AccountNotificationHelper {
         this.accountServiceHelper = accountServiceHelper;
     }
 
-    public String getCostAbonementForEmail(Plan plan) {return accountHelper.getCostAbonement(plan).setScale(2, BigDecimal.ROUND_DOWN).toString();}
+    public String getCostAbonementForEmail(Plan plan) {
+        return accountHelper.getCostAbonement(plan).setScale(2, BigDecimal.ROUND_DOWN).toString();
+    }
 
     public String getDomainForEmail(PersonalAccount account) {
 
@@ -62,7 +65,28 @@ public class AccountNotificationHelper {
         return "";
     }
 
-    public String getBalanceForEmail(PersonalAccount account) {return accountHelper.getBalance(account).setScale(2, BigDecimal.ROUND_DOWN).toString();}
+    public String getDomainForEmailWithPrefixString(PersonalAccount account) {
+
+        List<Domain> domains = accountHelper.getDomains(account);
+        if (!(domains.isEmpty())) {
+            String prefix = "";
+            if (domains.size() == 1) {
+                prefix = "На аккаунте размещен домен: ";
+            } else {
+                prefix = "На аккаунте размещены домены:<br>";
+            }
+            return prefix + domains.stream().map(Domain::getName).collect(Collectors.joining("<br>"));
+        }
+        return "";
+    }
+
+    public String getBalanceForEmail(PersonalAccount account) {
+        return formatBigDecimalForEmail(accountHelper.getBalance(account));
+    }
+
+    public String formatBigDecimalForEmail(BigDecimal number) {
+        return number.setScale(2, BigDecimal.ROUND_DOWN).toString();
+    }
 
     /*
      * отправим письмо на все ящики аккаунта
@@ -176,10 +200,7 @@ public class AccountNotificationHelper {
             LocalDateTime creditActivationDate = account.getCreditActivationDate();
             if (creditActivationDate == null) { creditActivationDate = LocalDateTime.now(); }
             LocalDate maxCreditActivationDate = LocalDateTime.now().minus(Period.parse(account.getCreditPeriod())).toLocalDate();
-            remainingDays = ((Long) ChronoUnit.DAYS.between(
-                    maxCreditActivationDate,
-                    creditActivationDate.toLocalDate()
-            )).intValue();
+            remainingDays = Utils.getDifferentInDaysBetweenDates(maxCreditActivationDate, creditActivationDate.toLocalDate());
         }
         return remainingDays;
     }

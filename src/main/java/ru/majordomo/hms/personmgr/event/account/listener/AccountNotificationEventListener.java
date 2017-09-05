@@ -3,7 +3,6 @@ package ru.majordomo.hms.personmgr.event.account.listener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -32,7 +31,6 @@ public class AccountNotificationEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountEventListener.class);
 
     private final AccountHelper accountHelper;
-    private final ApplicationEventPublisher publisher;
     private final AccountStatRepository accountStatRepository;
     private final PlanRepository planRepository;
     private final AccountNotificationHelper accountNotificationHelper;
@@ -41,14 +39,12 @@ public class AccountNotificationEventListener {
     @Autowired
     public AccountNotificationEventListener(
             AccountHelper accountHelper,
-            ApplicationEventPublisher publisher,
             AccountStatRepository accountStatRepository,
             PlanRepository planRepository,
             AccountNotificationHelper accountNotificationHelper,
             BizMailFeignClient bizMailFeignClient
     ) {
         this.accountHelper = accountHelper;
-        this.publisher = publisher;
         this.accountStatRepository = accountStatRepository;
         this.planRepository = planRepository;
         this.accountNotificationHelper = accountNotificationHelper;
@@ -60,7 +56,7 @@ public class AccountNotificationEventListener {
     public void sendNotificationsRemainingDaysEvent(AccountSendNotificationsRemainingDaysEvent event) {
         PersonalAccount account = event.getSource();
         Map<String, Object> params = event.getParams();
-        BigDecimal dailyCost = (BigDecimal) params.get("dailyCost");
+        BigDecimal dailyCost = (BigDecimal) params.get("daylyCost");
 
         // Уведомление о заканчивающихся средствах отправляются только активным аккаунтам или тем, у кого есть списания
         if (!account.isActive() || dailyCost.compareTo(BigDecimal.ZERO) == 0) { return;}
@@ -68,32 +64,45 @@ public class AccountNotificationEventListener {
         BigDecimal balance = accountHelper.getBalance(account);
         Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue();
         Integer remainingCreditDays = accountNotificationHelper.getRemainingDaysCreditPeriod(account);
+        List<Integer> days = Arrays.asList(7, 5, 3, 2, 1);
+        if (days.contains(remainingDays) || days.contains(remainingCreditDays)) {
+            Boolean hasActiveAbonement = accountHelper.hasActiveAbonement(account);
+            Boolean hasActiveCredit = accountHelper.hasActiveCredit(account);
+            String remainingDaysInString = Utils.pluralizef("%d день", "%d дня", "%d дней", remainingDays);
+            String remainingCreditDaysInString = Utils.pluralizef("%d день", "%d дня", "%d дней", remainingCreditDays);
+            Boolean balanceIsPositive = balance.compareTo(BigDecimal.ZERO) > 0;
 
-        //баланс отрицательный, пользователь ушел в минус с кредитом
-        if (balance.compareTo(BigDecimal.ZERO) < 0) {
-            if (Arrays.asList(7, 5, 3, 2, 1).contains(remainingDays)) {
-                HashMap<String, String> paramsForEmail = new HashMap<>();
-                paramsForEmail.put("acc_id", account.getName());
-                paramsForEmail.put("balance", accountNotificationHelper.getBalanceForEmail(account));
-                paramsForEmail.put("days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingCreditDays));
-                paramsForEmail.put("domains", accountNotificationHelper.getDomainForEmail(account));
-                accountNotificationHelper.sendMail(account, "HMSMajordomoVHCreditEnding", 10, paramsForEmail);
-            }
-        //Отправляем техническое уведомление на почту об окончании средств за 7, 5, 3, 2, 1 дней
-        } else if (Arrays.asList(7, 5, 3, 2, 1).contains(remainingDays)) {
-            Map<String, Object> paramsForEvent = new HashMap<>();
-            params.put("remainingDays", remainingDays);
-            publisher.publishEvent(new AccountNotifyRemainingDaysEvent(account, paramsForEvent));
-            //Отправим смс тем, у кого подключена услуга
-            if (Arrays.asList(5, 3, 1).contains(remainingDays)) {
-                if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(
-                        account, MailManagerMessageType.SMS_REMAINING_DAYS
-                )) {
-                    HashMap<String, String> paramsForSms = new HashMap<>();
-                    paramsForSms.put("remaining_days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
-                    paramsForSms.put("client_id", account.getAccountId());
-                    accountNotificationHelper.sendSms(account, "MajordomoRemainingDays", 10, paramsForSms);
-                }
+            String whatHappened = String.format("%s период хостинга на аккаунте %s истекает через %s.<br>",
+                    balanceIsPositive ? "Оплаченный" : "Кредитный",
+                    account.getName(),
+                    hasActiveCredit && !balanceIsPositive ? remainingCreditDaysInString : remainingDaysInString
+            );
+
+            String actionAfter = String.format("После истечения %s%s дополнительные платные услуги будут %s.<br>",
+                    balanceIsPositive ? "оплаченного периода" : "кредитного периода",
+                    hasActiveAbonement ? "" : " аккаунт и",
+                    hasActiveCredit && balanceIsPositive ? "работать в течение 14-дневного кредитного периода" : "отключены"
+            );
+
+            HashMap<String, String> paramsForEmail = new HashMap<>();
+            paramsForEmail.put("acc_id", account.getName());
+            paramsForEmail.put("what_happened", whatHappened);
+            paramsForEmail.put("action_after", actionAfter);
+            paramsForEmail.put("domains", accountNotificationHelper.getDomainForEmailWithPrefixString(account));
+            paramsForEmail.put("balance", accountNotificationHelper.formatBigDecimalForEmail(balance) + " руб.");
+            paramsForEmail.put("cost", accountNotificationHelper.getCostAbonementForEmail(planRepository.findOne(account.getPlanId())) + " руб/год.");
+            String apiName = "MajordomoHmsMoneySoonEnd";
+            accountNotificationHelper.sendMail(account, apiName, 10, paramsForEmail);
+        }
+//        Отправим смс тем, у кого подключена услуга
+        if (Arrays.asList(5, 3, 1).contains(remainingDays)) {
+            if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(
+                    account, MailManagerMessageType.SMS_REMAINING_DAYS
+            )) {
+                HashMap<String, String> paramsForSms = new HashMap<>();
+                paramsForSms.put("remaining_days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
+                paramsForSms.put("client_id", account.getAccountId());
+                accountNotificationHelper.sendSms(account, "MajordomoRemainingDays", 10, paramsForSms);
             }
         }
     }
@@ -103,7 +112,7 @@ public class AccountNotificationEventListener {
     public void onAccountSendInfoMailEvent(AccountSendInfoMailEvent event) {
         PersonalAccount account = event.getSource();
 
-        int accountAgeInDays = ((Long) ChronoUnit.DAYS.between(account.getCreated().toLocalDate(), LocalDate.now())).intValue();
+        int accountAgeInDays = Utils.getDifferentInDaysBetweenDates(account.getCreated().toLocalDate(), LocalDate.now());
 
         String apiName = null;
 
@@ -180,27 +189,27 @@ public class AccountNotificationEventListener {
         PersonalAccount account = event.getSource();
         logger.debug("We got AccountNotifyInactiveLongTimeEvent\n");
 
-        LocalDateTime deactivatedDate = account.getDeactivated();
+        LocalDateTime deactivatedDateTime = account.getDeactivated();
 
         List<AccountStatType> types = new ArrayList<>();
         types.add(AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
         types.add(AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE);
 
-        List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeInAndCreatedAfterOrderByCreatedDesc(
-                account.getId(), types, deactivatedDate.withHour(0).withMinute(0).withSecond(0));
+        AccountStat accountStat = accountStatRepository.findFirstByPersonalAccountIdAndTypeInAndCreatedAfterOrderByCreatedDesc(
+                account.getId(), types, deactivatedDateTime.withHour(0).withMinute(0).withSecond(0));
 
-        if (accountStats.isEmpty()
-                || !accountStats.get(0).getCreated().toLocalDate().isEqual(deactivatedDate.toLocalDate()))
-        {
-            return;
-        }
+        if (accountStat == null) { return; }
+
+        //Если НЕ СОВПАДАЕТ  дата деактивации и последняя запись в статистике по причине отключения
+        LocalDate deactivatedDate = deactivatedDateTime.toLocalDate();
+        if (!accountStat.getCreated().toLocalDate().isEqual(deactivatedDate)) { return; }
 
         int[] monthsAgo = {1, 2, 3, 6, 12};
 
         for (int months : monthsAgo) {
-            if (deactivatedDate.toLocalDate().isEqual(LocalDate.now().minusMonths(months))) {
+            if (deactivatedDate.isEqual(LocalDate.now().minusMonths(months))) {
                 accountNotificationHelper.sendInfoMail(account, "MajordomoHmsReturnClient");
-                //отправляем только одно письмо
+                //Если найдено совпадения, дальше проверять не надо
                 break;
             }
         }
@@ -216,31 +225,31 @@ public class AccountNotificationEventListener {
 
         if (account.isActive() || planRepository.findOne(account.getPlanId()).isAbonementOnly()) { return;}
 
-        List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
+        AccountStat accountStat = accountStatRepository.findFirstByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
                 account.getId(),
                 AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY,
                 LocalDateTime.now().minusDays(21)
         );
 
-        if (accountStats.isEmpty()) {return;}
+        if (accountStat == null) {return;}
 
         // Если в тот же день есть удаление абонемента, то отправлять уведомление не нужно
         // причина выключения аккаунта - истекший абонемент
         // после удаления абонемента начислилась услуга тарифа и была неудачная попытка списания,
         // после чего аккаунт был выключен
-        List<AccountStat> accountStatsAbonementDelete = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
+        AccountStat accountStatAbonementDelete = accountStatRepository.findFirstByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
                 account.getId(),
                 AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE,
-                accountStats.get(0).getCreated().withHour(0).withMinute(0).withSecond(0)
+                accountStat.getCreated().withHour(0).withMinute(0).withSecond(0)
         );
-        if (!accountStatsAbonementDelete.isEmpty()
-                && accountStatsAbonementDelete.get(0).getCreated().toLocalDate().equals(
-                accountStats.get(0).getCreated().toLocalDate())) {
+        if (accountStatAbonementDelete != null
+                && accountStatAbonementDelete.getCreated().toLocalDate().equals(
+                accountStat.getCreated().toLocalDate())) {
             return;
         }
 
         int[] daysAgo = {1, 3, 5, 10, 15, 20};
-        LocalDateTime dateFinish = accountStats.get(0).getCreated();
+        LocalDateTime dateFinish = accountStat.getCreated();
 
         LocalDate now = LocalDate.now();
 
@@ -251,24 +260,6 @@ public class AccountNotificationEventListener {
                 break;
             }
         }
-    }
-
-    @EventListener
-    @Async("threadPoolTaskExecutor")
-    public void onAccountNotifyRemainingDays(AccountNotifyRemainingDaysEvent event) {
-        PersonalAccount account = event.getSource();
-        Map<String, ?> params = event.getParams();
-
-        logger.debug("We got AccountNotifyRemainingDaysEvent");
-
-        Integer remainingDays = (Integer) params.get("remainingDays");
-
-        HashMap<String, String> parameters = new HashMap<>();
-        parameters.put("acc_id", account.getName());
-        parameters.put("days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
-        parameters.put("domains", accountNotificationHelper.getDomainForEmail(account));
-
-        accountNotificationHelper.sendMail(account, "MajordomoVHMoneyLowLevel", 10, parameters);
     }
 
     @EventListener
@@ -306,6 +297,16 @@ public class AccountNotificationEventListener {
         parameters.put("domains", accountNotificationHelper.getDomainForEmail(account));
 
         accountNotificationHelper.sendMail(account, "MajordomoVHQuotaDiscard", 10, parameters);
+    }
+
+    private HashMap<String, String> getParametersForVHLowLevelMoneyMail(PersonalAccount account, int remainingDays, BigDecimal balance) {
+        HashMap<String, String> params = new HashMap<>();
+        params.put("acc_id", account.getName());
+        params.put("domains", accountNotificationHelper.getDomainForEmailWithPrefixString(account));
+        params.put("balance", accountNotificationHelper.formatBigDecimalForEmail(balance));
+        params.put("days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
+        params.put("cost", accountNotificationHelper.getCostAbonementForEmail(planRepository.findOne(account.getPlanId())) + " руб/год.");
+        return params;
     }
 }
 
