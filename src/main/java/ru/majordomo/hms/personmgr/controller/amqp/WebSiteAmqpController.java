@@ -10,23 +10,17 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.event.webSite.WebSiteCreatedEvent;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
-
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 
 @EnableRabbit
 @Service
 public class WebSiteAmqpController extends CommonAmqpController  {
+    public WebSiteAmqpController() {
+        resourceName = "сайт";
+    }
+
     @RabbitListener(
             bindings = @QueueBinding(
                     value = @Queue(
@@ -42,36 +36,7 @@ public class WebSiteAmqpController extends CommonAmqpController  {
             )
     )
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
-        String provider = headers.get("provider");
-        logger.debug("Received create message from " + provider + ": " + message.toString());
-
-        try {
-            State state = businessFlowDirector.processMessage(message);
-
-            if (state == State.PROCESSED && message.getAccountId() != null) {
-                PersonalAccount account = accountManager.findOne(message.getAccountId());
-
-                SimpleServiceMessage mailMessage = new SimpleServiceMessage();
-                mailMessage.setAccountId(account.getId());
-
-                String resourceId = getResourceIdByObjRef(message.getObjRef());
-
-                Map<String, String> params = new HashMap<>();
-                params.put(RESOURCE_ID_KEY, resourceId);
-
-                publisher.publishEvent(new WebSiteCreatedEvent(account, params));
-
-                //Save history
-                Map<String, String> paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на создание сайта выполнена успешно (имя: " + message.getParam("name") + ")");
-                paramsHistory.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Got Exception in WebSiteAmqpController.create " + e.getMessage());
-        }
+        handleCreateEventFromRc(message, headers);
     }
 
     @RabbitListener(
@@ -89,28 +54,7 @@ public class WebSiteAmqpController extends CommonAmqpController  {
             )
     )
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
-        String provider = headers.get("provider");
-        logger.debug("Received update message from " + provider + ": " + message.toString());
-
-        try {
-            State state = businessFlowDirector.processMessage(message);
-
-            if (state.equals(State.PROCESSED)) {
-                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
-
-                if (businessAction != null) {
-                    //Save history
-                    Map<String, String> params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Заявка на обновление сайта выполнена успешно (имя: " + message.getParam("name") + ")");
-                    params.put(OPERATOR_KEY, "service");
-
-                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Got Exception in WebSiteAmqpController.update " + e.getMessage());
-        }
+        handleUpdateEventFromRc(message, headers);
     }
 
     @RabbitListener(
@@ -128,27 +72,6 @@ public class WebSiteAmqpController extends CommonAmqpController  {
             )
     )
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
-        String provider = headers.get("provider");
-        logger.debug("Received delete message from " + provider + ": " + message.toString());
-
-        try {
-            State state = businessFlowDirector.processMessage(message);
-
-            if (state.equals(State.PROCESSED)) {
-                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
-
-                if (businessAction != null) {
-                    //Save history
-                    Map<String, String> params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Заявка на удаление сайта выполнена успешно (имя: " + message.getParam("name") + ")");
-                    params.put(OPERATOR_KEY, "service");
-
-                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Got Exception in WebSiteAmqpController.delete " + e.getMessage());
-        }
+        handleDeleteEventFromRc(message, headers);
     }
 }

@@ -24,7 +24,6 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.service.*;
 
@@ -38,7 +37,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 public class AccountAmqpController extends CommonAmqpController {
     private final BusinessActionBuilder businessActionBuilder;
     private final PromocodeProcessor promocodeProcessor;
-    private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final AbonementService abonementService;
     private final AccountAbonementManager accountAbonementManager;
     private final PromotionRepository promotionRepository;
@@ -48,18 +46,17 @@ public class AccountAmqpController extends CommonAmqpController {
     public AccountAmqpController(
             BusinessActionBuilder businessActionBuilder,
             PromocodeProcessor promocodeProcessor,
-            ProcessingBusinessOperationRepository processingBusinessOperationRepository,
             AbonementService abonementService,
             AccountAbonementManager accountAbonementManager,
             PromotionRepository promotionRepository,
             AccountHelper accountHelper) {
         this.businessActionBuilder = businessActionBuilder;
         this.promocodeProcessor = promocodeProcessor;
-        this.processingBusinessOperationRepository = processingBusinessOperationRepository;
         this.abonementService = abonementService;
         this.accountAbonementManager = accountAbonementManager;
         this.promotionRepository = promotionRepository;
         this.accountHelper = accountHelper;
+        resourceName = "аккаунт";
     }
 
     @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.account.create",
@@ -138,6 +135,8 @@ public class AccountAmqpController extends CommonAmqpController {
                     }
                     break;
             }
+
+            saveLogByMessageStateForCreate(message, state);
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Got Exception in AccountAmqpController.create " + e.getMessage());
