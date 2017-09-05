@@ -581,7 +581,7 @@ public class PlanChangeService {
         accountAbonement.setPersonalAccountId(account.getId());
         accountAbonement.setCreated(LocalDateTime.now());
         accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
-        accountAbonement.setAutorenew(false);
+        accountAbonement.setAutorenew(true);
 
         accountAbonementManager.insert(accountAbonement);
 
