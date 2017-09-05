@@ -266,4 +266,18 @@ public class AccountServiceHelper {
             return null;
         }
     }
+
+    public BigDecimal getDaylyCostForServise(AccountService accountService) {
+        Integer daysInCurrentMonth = LocalDateTime.now().toLocalDate().lengthOfMonth();
+        BigDecimal cost = BigDecimal.ZERO;
+        switch (accountService.getPaymentService().getPaymentType()) {
+            case MONTH:
+                cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
+                break;
+            case DAY:
+                cost = accountService.getCost();
+                break;
+        }
+        return cost;
+    }
 }
