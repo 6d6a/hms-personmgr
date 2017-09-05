@@ -79,19 +79,26 @@ public class AccountAbonementRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
+        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(
+                accountAbonementId, account.getId()
+        );
 
         if (!accountAbonement.getAbonement().isInternal()) {
-            Boolean autorenew = requestBody.get("autorenew") != null ? Boolean.valueOf(requestBody.get("autorenew")) : false;
-            accountAbonementManager.setAutorenew(accountAbonement.getId(), autorenew);
+            if (requestBody.get("autorenew") != null) {
+                Boolean autorenew = Boolean.valueOf(requestBody.get("autorenew"));
+                accountAbonementManager.setAutorenew(accountAbonement.getId(), autorenew);
 
-            //Save history
-            String operator = request.getUserPrincipal().getName();
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, (autorenew ? "Включено" : "Выключено")+ " автопродления абонемента");
-            params.put(OPERATOR_KEY, operator);
+                //Save history
+                String operator = request.getUserPrincipal().getName();
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY,
+                        (autorenew ? "Включено" : "Выключено") +
+                        " автопродление абонемента '" + accountAbonement.getAbonement().getName() + "'"
+                );
+                params.put(OPERATOR_KEY, operator);
 
-            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+                publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+            }
 
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
