@@ -53,6 +53,8 @@ public interface PersonalAccountManager {
 
     List<PersonalAccount> findByActive(boolean active);
 
+    List<PersonalAccount> findByActiveIncludeId(boolean active);
+
     List<PersonalAccount> findByAccountIdContaining(String accountId);
 
     List<PersonalAccountWithNotificationsProjection> findWithNotifications();

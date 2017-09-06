@@ -27,15 +27,15 @@ public class AccountChargesEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onAccountProcessCharges(AccountProcessChargesEvent event) {
-        PersonalAccount account = event.getSource();
+        String accountId = event.getSource();
 
         logger.debug("We got AccountProcessChargesEvent");
 
         try {
-            paymentChargesProcessorService.processingDailyServices(account);
+            paymentChargesProcessorService.processingDailyServices(accountId);
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Exception in ru.majordomo.hms.personmgr.event.account.listener.AccountChargesEventListener.onAccountProcessCharges " + e.getMessage());
+            logger.error("Exception in AccountChargesEventListener.onAccountProcessCharges " + e.getMessage());
         }
     }
 }

@@ -56,11 +56,12 @@ public class ChargesScheduler {
     @SchedulerLock(name="processCharges")
     public void processCharges() {
         logger.info("Started processCharges");
-        List<PersonalAccount> personalAccounts = accountManager.findByActive(true);
-        if (personalAccounts != null) {
-            try {
+        List<PersonalAccount> personalAccounts = accountManager.findByActiveIncludeId(true);
+        if (personalAccounts != null && !personalAccounts.isEmpty()) {
+            logger.info("processCharges found " + personalAccounts.size() + " active accounts");
 
-                personalAccounts.forEach(account -> publisher.publishEvent(new AccountProcessChargesEvent(account)));
+            try {
+                personalAccounts.forEach(account -> publisher.publishEvent(new AccountProcessChargesEvent(account.getId())));
             } catch (Exception e) {
                 logger.error("Catching exception in publish events AccountProcessChargesEvent");
                 e.printStackTrace();

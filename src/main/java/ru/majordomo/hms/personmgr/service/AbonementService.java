@@ -55,7 +55,6 @@ public class AbonementService {
     private final AccountServiceHelper accountServiceHelper;
     private final ApplicationEventPublisher publisher;
     private final AccountStatHelper accountStatHelper;
-    private final FinFeignClient finFeignClient;
     private final AccountNotificationHelper accountNotificationHelper;
     private final PaymentChargesProcessorService paymentChargesProcessorService;
 
@@ -69,7 +68,6 @@ public class AbonementService {
             AccountServiceHelper accountServiceHelper,
             ApplicationEventPublisher publisher,
             AccountStatHelper accountStatHelper,
-            FinFeignClient finFeignClient,
             AccountNotificationHelper accountNotificationHelper,
             PaymentChargesProcessorService paymentChargesProcessorService
     ) {
@@ -79,7 +77,6 @@ public class AbonementService {
         this.accountServiceHelper = accountServiceHelper;
         this.publisher = publisher;
         this.accountStatHelper = accountStatHelper;
-        this.finFeignClient = finFeignClient;
         this.accountNotificationHelper = accountNotificationHelper;
         this.paymentChargesProcessorService = paymentChargesProcessorService;
     }
@@ -382,7 +379,7 @@ public class AbonementService {
         if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
             accountHelper.disableAccount(account);
         } else {
-            paymentChargesProcessorService.processingDailyServices(account);
+            paymentChargesProcessorService.processingDailyServices(account.getId());
         }
     }
 

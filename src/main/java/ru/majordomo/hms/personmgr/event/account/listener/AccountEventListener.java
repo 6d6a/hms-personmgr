@@ -585,7 +585,7 @@ public class AccountEventListener {
             // Ставим флаг активности для возможности списать средства
             account.setActive(true);
             // сразу списываем за текущий день
-            Boolean success = paymentChargesProcessorService.processingDailyServices(account);
+            Boolean success = paymentChargesProcessorService.processingDailyServices(account.getId());
             if (success) {
                 accountHelper.enableAccount(account);
             }

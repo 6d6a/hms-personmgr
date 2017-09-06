@@ -3,7 +3,6 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -26,7 +25,6 @@ public class PaymentChargesProcessorService {
     private final PersonalAccountManager accountManager;
     private final AccountServiceRepository accountServiceRepository;
     private final AccountHelper accountHelper;
-    private final ApplicationEventPublisher publisher;
     private final AccountStatHelper accountStatHelper;
     private final AccountNotificationHelper accountNotificationHelper;
     private final AccountServiceHelper accountServiceHelper;
@@ -36,7 +34,6 @@ public class PaymentChargesProcessorService {
             PersonalAccountManager accountManager,
             AccountServiceRepository accountServiceRepository,
             AccountHelper accountHelper,
-            ApplicationEventPublisher publisher,
             AccountStatHelper accountStatHelper,
             AccountServiceHelper accountServiceHelper,
             AccountNotificationHelper accountNotificationHelper
@@ -44,7 +41,6 @@ public class PaymentChargesProcessorService {
         this.accountManager = accountManager;
         this.accountServiceRepository = accountServiceRepository;
         this.accountHelper = accountHelper;
-        this.publisher = publisher;
         this.accountStatHelper = accountStatHelper;
         this.accountNotificationHelper = accountNotificationHelper;
         this.accountServiceHelper = accountServiceHelper;
@@ -52,10 +48,12 @@ public class PaymentChargesProcessorService {
 
     public void processCharge(String paymentAccountName) {
         PersonalAccount account = accountManager.findByName(paymentAccountName);
-        this.processingDailyServices(account);
+        this.processingDailyServices(account.getId());
     }
 
-    public Boolean processingDailyServices(PersonalAccount account) {
+    public Boolean processingDailyServices(String accountId) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
         Boolean success = this.chargeDailyServicesAndDisableItIfChargeFail(account);
         /*
          *  TODO нужно добавить afterProcessing для попытки включения выключенных по причине нехватки средств услуг

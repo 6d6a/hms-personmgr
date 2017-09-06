@@ -172,6 +172,11 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
+    public List<PersonalAccount> findByActiveIncludeId(boolean active) {
+        return repository.findByActiveIncludeId(active);
+    }
+
+    @Override
     public List<PersonalAccount> findByAccountIdContaining(String accountId) {
         List<PersonalAccount> accounts = repository.findByAccountIdContaining(accountId);
 
