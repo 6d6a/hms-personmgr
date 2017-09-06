@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service.scheduler;
 
+import net.javacrumbs.shedlock.core.SchedulerLock;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +40,7 @@ public class ChargesScheduler {
 
 
     //Выполняем реккуренты в 00:10:00 каждый день
+    @SchedulerLock(name="processRecurrents")
     public void processRecurrents() {
         logger.info("Started processRecurrents");
         try {
@@ -50,6 +53,7 @@ public class ChargesScheduler {
     }
 
     //Выполняем списания в 01:00:00 каждый день
+    @SchedulerLock(name="processCharges")
     public void processCharges() {
         logger.info("Started processCharges");
         List<PersonalAccount> personalAccounts = accountManager.findByActive(true);

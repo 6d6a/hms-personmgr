@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service.scheduler;
 
+import net.javacrumbs.shedlock.core.SchedulerLock;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +33,7 @@ public class QuotaScheduler {
         this.publisher = publisher;
     }
 
+    @SchedulerLock(name = "processQuotaChecks")
     public void processQuotaChecks() {
         logger.info("Started processQuotaChecks");
         try (Stream<PersonalAccount> personalAccountStream = accountManager.findByIdNotIn(Collections.singletonList(TECHNICAL_ACCOUNT_ID))) {

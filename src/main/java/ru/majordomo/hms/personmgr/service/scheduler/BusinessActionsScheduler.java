@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service.scheduler;
 
+import net.javacrumbs.shedlock.core.SchedulerLock;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,7 @@ public class BusinessActionsScheduler {
         this.publisher = publisher;
     }
 
+    @SchedulerLock(name = "cleanBusinessActions")
     public void cleanBusinessActions() {
         logger.info("Started cleanBusinessActions");
         try (Stream<ProcessingBusinessAction> businessActionStream = processingBusinessActionRepository
