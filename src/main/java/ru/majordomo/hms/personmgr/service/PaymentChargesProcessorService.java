@@ -9,10 +9,12 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountSendNotificationsRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -96,7 +98,9 @@ public class PaymentChargesProcessorService {
             if (accountHelper.getBalance(account).compareTo(BigDecimal.ZERO) < 0)
                 accountHelper.setCreditActivationDateIfNotSet(account);
             // Если были списания, то отправить уведомления
-            accountNotificationHelper.sendNotificationsRemainingDays(account, daylyCost);
+            HashMap<String, Object> params = new HashMap<>();
+            params.put("daylyCost", daylyCost);
+            publisher.publishEvent(new AccountSendNotificationsRemainingDaysEvent(account, params));
         }
         return true;
     }

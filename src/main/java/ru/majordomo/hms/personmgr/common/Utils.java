@@ -5,6 +5,8 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -122,5 +124,17 @@ public class Utils {
         }
 
         return bigDecimal;
+    }
+
+
+    /**
+     * get different in days between two dates
+     *
+     * @param startDate
+     * @param endDate
+     * @return
+     */
+    public static int getDifferentInDaysBetweenDates(LocalDate startDate, LocalDate endDate) {
+        return ((Long) ChronoUnit.DAYS.between(startDate, endDate)).intValue();
     }
 }
