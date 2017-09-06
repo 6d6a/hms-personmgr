@@ -18,6 +18,7 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -125,13 +126,13 @@ public class AccountNotificationEventListener {
 
                 case 4:
                     //если не регистрировал домен у нас
-                    List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
+                    AccountStat accountStat = accountStatRepository.findFirstByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
                             account.getId(),
                             AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN,
                             account.getCreated()
                     );
 
-                    if (accountStats.isEmpty()) {
+                    if (accountStat == null) {
                         apiName = "MajordomoHmsDomainVPodarok";
                     }
                     break;
@@ -247,17 +248,12 @@ public class AccountNotificationEventListener {
             return;
         }
 
-        int[] daysAgo = {1, 3, 5, 10, 15, 20};
-        LocalDateTime dateFinish = accountStat.getCreated();
+        List<Integer> daysAgo = Arrays.asList(1, 3, 5, 10, 15, 20);
+        LocalDate dateAccountDisableByNotEnoughMoney = accountStat.getCreated().toLocalDate();
+        Integer daysDifferent = Utils.getDifferentInDaysBetweenDates(dateAccountDisableByNotEnoughMoney, LocalDate.now());
 
-        LocalDate now = LocalDate.now();
-
-        for (int days : daysAgo) {
-            if (dateFinish.toLocalDate().isEqual(now.minusDays(days))) {
-                accountNotificationHelper.sendMailForDeactivatedAccount(account, dateFinish);
-                //отправляем только одно письмо
-                break;
-            }
+        if (daysAgo.contains(daysDifferent)) {
+            accountNotificationHelper.sendMailForDeactivatedAccount(account, dateAccountDisableByNotEnoughMoney);
         }
     }
 
@@ -296,16 +292,6 @@ public class AccountNotificationEventListener {
         parameters.put("domains", accountNotificationHelper.getDomainForEmail(account));
 
         accountNotificationHelper.sendMail(account, "MajordomoVHQuotaDiscard", 10, parameters);
-    }
-
-    private HashMap<String, String> getParametersForVHLowLevelMoneyMail(PersonalAccount account, int remainingDays, BigDecimal balance) {
-        HashMap<String, String> params = new HashMap<>();
-        params.put("acc_id", account.getName());
-        params.put("domains", accountNotificationHelper.getDomainForEmailWithPrefixString(account));
-        params.put("balance", accountNotificationHelper.formatBigDecimalForEmail(balance));
-        params.put("days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
-        params.put("cost", accountNotificationHelper.getCostAbonementForEmail(planRepository.findOne(account.getPlanId())) + " руб/год.");
-        return params;
     }
 }
 
