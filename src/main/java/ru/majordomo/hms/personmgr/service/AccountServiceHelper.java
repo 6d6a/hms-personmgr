@@ -4,7 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -238,6 +240,13 @@ public class AccountServiceHelper {
         return (accountSmsService != null && accountSmsService.isEnabled());
     }
 
+    public List<AccountService> getDaylyServicesToCharge(PersonalAccount account, LocalDate chargeDate) {
+        return getDaylyServicesToCharge(account, LocalDateTime.of(
+                chargeDate,
+                LocalTime.of(0, 0, 0, 0)
+                )
+        );
+    }
     public List<AccountService> getDaylyServicesToCharge(PersonalAccount account, LocalDateTime chargeDate) {
         List<AccountService> daylyServices = new ArrayList<>();
         List<AccountService> accountServices = account.getServices();

@@ -65,6 +65,7 @@ public class PaymentChargesProcessorService {
         //Не списываем с неактивных аккаунтов
         if (!account.isActive()) { return false; }
 
+        //TODO тут опять забыли наносекунды (могут попадаться сервисы которые уже оплачены)
         LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
         List<AccountService> accountServices = accountServiceHelper.getDaylyServicesToCharge(account, chargeDate);
         //Если списывать нечего
