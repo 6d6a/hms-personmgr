@@ -114,40 +114,38 @@ public class PaymentChargesProcessorService {
 
         BigDecimal cost = accountServiceHelper.getDaylyCostForServise(accountService);
 
-        if (cost.compareTo(BigDecimal.ZERO) == 0) { return true; }
+        if (cost.compareTo(BigDecimal.ZERO) <= 0) { return true; }
 
         LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
         PersonalAccount account = accountManager.findOne(accountService.getPersonalAccountId());
         Boolean forceCharge = accountHelper.hasActiveCredit(account);
         boolean success = false;
 
-        if (cost.compareTo(BigDecimal.ZERO) > 0) {
-            SimpleServiceMessage response = null;
+        SimpleServiceMessage response = null;
 
-            try {
-                logger.info("Send charge request in fin for PersonalAccount: " + account.getAccountId()
-                        + " name: " + account.getName()
-                        + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE_TIME)
-                        + " cost: " + cost
-                );
-                response = accountHelper.charge(account, accountService.getPaymentService(), cost, forceCharge);
-            } catch (ChargeException e) {
-                logger.debug("Error. Charge Processor returned ChargeException for service: " + accountService.toString());
-                return false;
-            } catch (Exception e) {
-                e.printStackTrace();
-                logger.error("Exception in ru.majordomo.hms.personmgr.service.PaymentChargesProcessorService.makeCharge " + e.getMessage());
-                return false;
-            }
+        try {
+            logger.info("Send charge request in fin for PersonalAccount: " + account.getAccountId()
+                    + " name: " + account.getName()
+                    + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE_TIME)
+                    + " cost: " + cost
+            );
+            response = accountHelper.charge(account, accountService.getPaymentService(), cost, forceCharge);
+        } catch (ChargeException e) {
+            logger.debug("Error. Charge Processor returned ChargeException for service: " + accountService.toString());
+            return false;
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.service.PaymentChargesProcessorService.makeCharge " + e.getMessage());
+            return false;
+        }
 
-            if (response != null && response.getParam("success") != null && ((boolean) response.getParam("success"))) {
-                accountService.setLastBilled(chargeDate);
-                accountServiceRepository.save(accountService);
-                success = true;
-                logger.debug("Success. Charge Processor returned true fo service: " + accountService.toString());
-            } else {
-                logger.debug("Error. Charge Processor returned false for service: " + accountService.toString());
-            }
+        if (response != null && response.getParam("success") != null && ((boolean) response.getParam("success"))) {
+            accountService.setLastBilled(chargeDate);
+            accountServiceRepository.save(accountService);
+            success = true;
+            logger.debug("Success. Charge Processor returned true fo service: " + accountService.toString());
+        } else {
+            logger.debug("Error. Charge Processor returned false for service: " + accountService.toString());
         }
         return success;
     }

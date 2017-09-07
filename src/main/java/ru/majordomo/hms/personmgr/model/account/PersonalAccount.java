@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.model.account;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.annotation.PersistenceConstructor;
@@ -81,6 +82,7 @@ public class PersonalAccount extends VersionedModel {
     private Map<AccountSetting, String> settings = new HashMap<>();
 
     @Valid
+    @JsonIgnore
     private List<AccountDiscount> discounts = new ArrayList<>();
 
     @Transient
