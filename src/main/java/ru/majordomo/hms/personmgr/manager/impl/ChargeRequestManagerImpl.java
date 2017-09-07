@@ -1,13 +1,18 @@
 package ru.majordomo.hms.personmgr.manager.impl;
 
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
+import ru.majordomo.hms.personmgr.model.charge.ChargeRequestItem;
 import ru.majordomo.hms.personmgr.repository.ChargeRequestRepository;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -103,6 +108,22 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
     @Override
     public List<ChargeRequest> findByChargeDateAndStatus(LocalDate chargeDate, ChargeRequest.Status status) {
         return repository.findByChargeDateAndStatus(chargeDate, status);
+    }
+
+    @Override
+    public List<ChargeRequest> getForProcess(LocalDate chargeDate, Integer limit) {
+        List<ChargeRequest> chargeRequests = new ArrayList<>();
+
+        Query query = new Query();
+        query.addCriteria(Criteria.where("status").is(ChargeRequestItem.Status.NEW).and("chargeDate").is(chargeDate));
+
+        Update update = new Update();
+        update.set("status", ChargeRequestItem.Status.PROCESSING);
+
+        for (int count = 0; count < limit; count++) {
+            chargeRequests.add(mongoOperations.findAndModify(query, update, ChargeRequest.class));
+        }
+        return chargeRequests;
     }
 
     private void checkById(String id) {

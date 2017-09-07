@@ -1,14 +1,19 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
+
 import ru.majordomo.hms.personmgr.event.account.CleanBusinessActionsEvent;
+import ru.majordomo.hms.personmgr.event.account.PrepareChargesEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessAccountDeactivatedSendMailEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargesEvent;
@@ -27,7 +32,10 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 public class SchedulerRestController extends CommonRestController {
     @PreAuthorize("hasRole('ADMIN')")
     @RequestMapping(value = "/scheduler/{scheduleAction}", method = RequestMethod.POST)
-    public ResponseEntity<Void> processScheduleAction(@PathVariable(value = "scheduleAction") String scheduleAction) {
+    public ResponseEntity<Void> processScheduleAction(
+            @PathVariable(value = "scheduleAction") String scheduleAction,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam(required = false) LocalDate date
+    ) {
         switch (scheduleAction) {
             case "clean_tokens":
                 publisher.publishEvent(new CleanTokensEvent());
@@ -77,8 +85,20 @@ public class SchedulerRestController extends CommonRestController {
                 publisher.publishEvent(new ProcessRecurrentsEvent());
 
                 break;
+            case "prepare_charges":
+                if (date != null) {
+                    publisher.publishEvent(new PrepareChargesEvent(date));
+                } else {
+                    publisher.publishEvent(new PrepareChargesEvent());
+                }
+
+                break;
             case "process_charges":
-                publisher.publishEvent(new ProcessChargesEvent());
+                if (date != null) {
+                    publisher.publishEvent(new ProcessChargesEvent(date));
+                } else {
+                    publisher.publishEvent(new ProcessChargesEvent());
+                }
 
                 break;
             default:

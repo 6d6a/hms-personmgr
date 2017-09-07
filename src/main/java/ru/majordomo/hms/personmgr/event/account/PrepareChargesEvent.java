@@ -4,15 +4,15 @@ import org.springframework.context.ApplicationEvent;
 
 import java.time.LocalDate;
 
-public class ProcessChargesEvent extends ApplicationEvent {
+public class PrepareChargesEvent extends ApplicationEvent {
     private LocalDate chargeDate = LocalDate.now();
 
-    public ProcessChargesEvent() {
-        super("Process Charges");
+    public PrepareChargesEvent() {
+        super("Prepare Charges");
     }
 
-    public ProcessChargesEvent(LocalDate chargeDate) {
-        super("Process Charges");
+    public PrepareChargesEvent(LocalDate chargeDate) {
+        super("Prepare Charges");
         this.chargeDate = chargeDate;
     }
 

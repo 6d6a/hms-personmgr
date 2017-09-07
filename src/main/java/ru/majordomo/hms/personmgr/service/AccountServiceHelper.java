@@ -240,14 +240,14 @@ public class AccountServiceHelper {
         return (accountSmsService != null && accountSmsService.isEnabled());
     }
 
-    public List<AccountService> getDaylyServicesToCharge(PersonalAccount account, LocalDate chargeDate) {
-        return getDaylyServicesToCharge(account, LocalDateTime.of(
+    public List<AccountService> getDailyServicesToCharge(PersonalAccount account, LocalDate chargeDate) {
+        return getDailyServicesToCharge(account, LocalDateTime.of(
                 chargeDate,
                 LocalTime.of(0, 0, 0, 0)
                 )
         );
     }
-    public List<AccountService> getDaylyServicesToCharge(PersonalAccount account, LocalDateTime chargeDate) {
+    public List<AccountService> getDailyServicesToCharge(PersonalAccount account, LocalDateTime chargeDate) {
         List<AccountService> daylyServices = new ArrayList<>();
         List<AccountService> accountServices = account.getServices();
         if (accountServices == null || accountServices.isEmpty()) { return daylyServices;}
@@ -276,8 +276,8 @@ public class AccountServiceHelper {
         }
     }
 
-    public BigDecimal getDaylyCostForServise(AccountService accountService) {
-        Integer daysInCurrentMonth = LocalDateTime.now().toLocalDate().lengthOfMonth();
+    public BigDecimal getDailyCostForService(AccountService accountService, LocalDate chargeDate) {
+        Integer daysInCurrentMonth = chargeDate.lengthOfMonth();
         BigDecimal cost = BigDecimal.ZERO;
         switch (accountService.getPaymentService().getPaymentType()) {
             case MONTH:

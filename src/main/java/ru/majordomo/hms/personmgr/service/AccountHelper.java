@@ -226,7 +226,6 @@ public class AccountHelper {
         return getDayCostByService(service, chargeDate);
     }
 
-    //TODO на самом деле сюда ещё должна быть возможность передать discountedService
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service) {
         BigDecimal amount = service.getCost();
 
@@ -237,7 +236,6 @@ public class AccountHelper {
         return charge(account, service, amount, false);
     }
 
-    //TODO на самом деле сюда ещё должна быть возможность передать discountedService
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount, Boolean forceCharge) {
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", service.getId());
@@ -252,6 +250,7 @@ public class AccountHelper {
             if (!(e instanceof FeignException) || ((FeignException) e).status() != 400 ) {
                 logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.charge " + e.getMessage());
                 e.printStackTrace();
+                throw e;
             }
             throw new ChargeException("ChargeException. Error when charging money." +
                     " Service cost is: " + service.getCost());

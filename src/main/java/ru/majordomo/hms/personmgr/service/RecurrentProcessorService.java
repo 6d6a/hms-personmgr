@@ -12,7 +12,6 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
-import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -30,12 +29,11 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @Service
 public class RecurrentProcessorService {
-    private final static Logger logger = LoggerFactory.getLogger(PaymentChargesProcessorService.class);
+    private final static Logger logger = LoggerFactory.getLogger(RecurrentProcessorService.class);
 
     private final AccountAbonementManager accountAbonementManager;
     private final AccountHelper accountHelper;
     private final PlanRepository planRepository;
-    private final PaymentServiceRepository paymentServiceRepository;
     private final RcUserFeignClient rcUserFeignClient;
     private final DomainTldService domainTldService;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
@@ -50,16 +48,15 @@ public class RecurrentProcessorService {
             AccountAbonementManager accountAbonementManager,
             AccountHelper accountHelper,
             PlanRepository planRepository,
-            PaymentServiceRepository paymentServiceRepository,
             RcUserFeignClient rcUserFeignClient,
             DomainTldService domainTldService,
             DomainRegistrarFeignClient domainRegistrarFeignClient,
             ApplicationEventPublisher publisher,
-            FinFeignClient finFeignClient) {
+            FinFeignClient finFeignClient
+    ) {
         this.accountAbonementManager = accountAbonementManager;
         this.accountHelper = accountHelper;
         this.planRepository = planRepository;
-        this.paymentServiceRepository = paymentServiceRepository;
         this.rcUserFeignClient = rcUserFeignClient;
         this.domainTldService = domainTldService;
         this.domainRegistrarFeignClient = domainRegistrarFeignClient;
