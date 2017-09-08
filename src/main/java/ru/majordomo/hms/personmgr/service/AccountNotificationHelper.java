@@ -57,7 +57,7 @@ public class AccountNotificationHelper {
     public String getDomainForEmail(PersonalAccount account) {
 
         List<Domain> domains = accountHelper.getDomains(account);
-        if (!(domains.isEmpty())) {
+        if (domains != null && !domains.isEmpty()) {
             return domains.stream().map(Domain::getName).collect(Collectors.joining("<br>"));
         }
         return "";

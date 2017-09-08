@@ -39,4 +39,6 @@ public interface ChargeRequestManager {
     List<ChargeRequest> findByChargeDateAndStatus(LocalDate chargeDate, ChargeRequest.Status status);
 
     List<ChargeRequest> getForProcess(LocalDate chargeDate, Integer limit);
+
+    List<ChargeRequest> getErrorsForProcess(LocalDate chargeDate, Integer limit);
 }

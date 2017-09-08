@@ -10,19 +10,27 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.event.account.AccountPrepareChargesEvent;
+import ru.majordomo.hms.personmgr.event.account.PrepareChargesEvent;
+import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
+import ru.majordomo.hms.personmgr.event.account.ProcessChargesEvent;
+import ru.majordomo.hms.personmgr.event.account.ProcessErrorChargesEvent;
 import ru.majordomo.hms.personmgr.service.ChargePreparer;
+import ru.majordomo.hms.personmgr.service.ChargeProcessor;
 
 @Component
 public class AccountChargesEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountChargesEventListener.class);
 
     private final ChargePreparer chargePreparer;
+    private final ChargeProcessor chargeProcessor;
 
     @Autowired
     public AccountChargesEventListener(
-            ChargePreparer chargePreparer
+            ChargePreparer chargePreparer,
+            ChargeProcessor chargeProcessor
     ) {
         this.chargePreparer = chargePreparer;
+        this.chargeProcessor = chargeProcessor;
     }
 
     @EventListener
@@ -40,5 +48,37 @@ public class AccountChargesEventListener {
                 logger.error("Exception in AccountChargesEventListener AccountPrepareChargesEvent " + e.getMessage());
             }
         }
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(PrepareChargesEvent event) {
+        logger.debug("We got PrepareChargesEvent");
+
+        chargePreparer.prepareCharges(event.getChargeDate());
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(ProcessChargesEvent event) {
+        logger.debug("We got ProcessChargesEvent");
+
+        chargeProcessor.processCharges(event.getChargeDate());
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(ProcessChargeEvent event) {
+        logger.debug("We got ProcessChargeEvent");
+
+        chargeProcessor.processChargeRequest(event.getSource());
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(ProcessErrorChargesEvent event) {
+        logger.debug("We got ProcessErrorChargesEvent");
+
+        chargeProcessor.processErrorCharges(event.getChargeDate());
     }
 }

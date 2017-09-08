@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.manager.impl;
 
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -12,8 +13,11 @@ import ru.majordomo.hms.personmgr.model.charge.ChargeRequestItem;
 import ru.majordomo.hms.personmgr.repository.ChargeRequestRepository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Component
 public class ChargeRequestManagerImpl implements ChargeRequestManager {
@@ -60,22 +64,31 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
 
     @Override
     public ChargeRequest save(ChargeRequest chargeRequest) {
-        return repository.save(chargeRequest);
+        return repository.save(setUpdated(chargeRequest));
     }
 
     @Override
     public List<ChargeRequest> save(Iterable<ChargeRequest> chargeRequests) {
-        return repository.save(chargeRequests);
+        return repository.save(
+                StreamSupport
+                        .stream(chargeRequests.spliterator(), false)
+                        .map(this::setUpdated)
+                        .collect(Collectors.toSet()));
     }
 
     @Override
     public ChargeRequest insert(ChargeRequest chargeRequest) {
-        return repository.insert(chargeRequest);
+        return repository.insert(setCreated(chargeRequest));
     }
 
     @Override
     public List<ChargeRequest> insert(Iterable<ChargeRequest> chargeRequests) {
-        return repository.insert(chargeRequests);
+        return repository.insert(
+                StreamSupport
+                        .stream(chargeRequests.spliterator(), false)
+                        .map(this::setCreated)
+                        .collect(Collectors.toSet())
+        );
     }
 
     @Override
@@ -119,9 +132,50 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
 
         Update update = new Update();
         update.set("status", ChargeRequestItem.Status.PROCESSING);
+        update.currentDate("updated");
 
         for (int count = 0; count < limit; count++) {
-            chargeRequests.add(mongoOperations.findAndModify(query, update, ChargeRequest.class));
+            ChargeRequest chargeRequest = mongoOperations.findAndModify(query, update, FindAndModifyOptions.options().returnNew(true), ChargeRequest.class);
+            if (chargeRequest != null) {
+                chargeRequests.add(chargeRequest);
+            } else {
+                break;
+            }
+        }
+        return chargeRequests;
+    }
+
+    @Override
+    public List<ChargeRequest> getErrorsForProcess(LocalDate chargeDate, Integer limit) {
+        LocalDateTime nowMinus30Minutes = LocalDateTime.now().minusMinutes(30);
+//        LocalDateTime nowMinus30Minutes = LocalDateTime.now().minusMinutes(1);
+
+        List<ChargeRequest> chargeRequests = new ArrayList<>();
+
+        Query query = new Query();
+        query.addCriteria(
+                new Criteria()
+                        .orOperator(
+                                Criteria
+                                        .where("status").is(ChargeRequestItem.Status.ERROR)
+                                        .and("chargeDate").is(chargeDate),
+                                Criteria
+                                        .where("status").is(ChargeRequestItem.Status.PROCESSING)
+                                        .and("chargeDate").is(chargeDate)
+                                        .and("updated").lt(nowMinus30Minutes)
+                        ));
+
+        Update update = new Update();
+        update.set("status", ChargeRequestItem.Status.PROCESSING);
+        update.currentDate("updated");
+
+        for (int count = 0; count < limit; count++) {
+            ChargeRequest chargeRequest = mongoOperations.findAndModify(query, update, FindAndModifyOptions.options().returnNew(true), ChargeRequest.class);
+            if (chargeRequest != null) {
+                chargeRequests.add(chargeRequest);
+            } else {
+                break;
+            }
         }
         return chargeRequests;
     }
@@ -130,5 +184,17 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
         if (!exists(id)) {
             throw new ResourceNotFoundException("ChargeRequest с id: " + id + " не найден");
         }
+    }
+
+    private ChargeRequest setCreated(ChargeRequest chargeRequest) {
+        chargeRequest.setCreated(LocalDateTime.now());
+
+        return chargeRequest;
+    }
+
+    private ChargeRequest setUpdated(ChargeRequest chargeRequest) {
+        chargeRequest.setUpdated(LocalDateTime.now());
+
+        return chargeRequest;
     }
 }

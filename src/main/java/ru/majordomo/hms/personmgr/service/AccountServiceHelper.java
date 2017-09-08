@@ -248,10 +248,10 @@ public class AccountServiceHelper {
         );
     }
     public List<AccountService> getDailyServicesToCharge(PersonalAccount account, LocalDateTime chargeDate) {
-        List<AccountService> daylyServices = new ArrayList<>();
+        List<AccountService> dailyServices = new ArrayList<>();
         List<AccountService> accountServices = account.getServices();
-        if (accountServices == null || accountServices.isEmpty()) { return daylyServices;}
-        daylyServices = accountServices.stream().filter(accountService ->
+        if (accountServices == null || accountServices.isEmpty()) { return dailyServices;}
+        dailyServices = accountServices.stream().filter(accountService ->
                 accountService.isEnabled()
                         && accountService.getPaymentService() != null
                         && (
@@ -260,7 +260,7 @@ public class AccountServiceHelper {
                 )
                         && accountService.getPaymentService().getCost().compareTo(BigDecimal.ZERO) > 0
         ).collect(Collectors.toList());
-        return daylyServices;
+        return dailyServices;
     }
 
     public String getPaymentServiceType(AccountService accountService) {

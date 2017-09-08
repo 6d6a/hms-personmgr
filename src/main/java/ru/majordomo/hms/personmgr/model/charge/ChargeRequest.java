@@ -13,6 +13,7 @@ import javax.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -24,6 +25,12 @@ public class ChargeRequest extends VersionedModelBelongsToPersonalAccount implem
     @NotNull
     @Indexed
     private Status status = Status.NEW;
+
+    @Indexed
+    private LocalDateTime created;
+
+    @Indexed
+    private LocalDateTime updated;
 
     @NotNull
     private Decimal128 amount = Decimal128.POSITIVE_ZERO;
@@ -44,6 +51,22 @@ public class ChargeRequest extends VersionedModelBelongsToPersonalAccount implem
     @Override
     public void setStatus(Status status) {
         this.status = status;
+    }
+
+    public LocalDateTime getCreated() {
+        return created;
+    }
+
+    public void setCreated(LocalDateTime created) {
+        this.created = created;
+    }
+
+    public LocalDateTime getUpdated() {
+        return updated;
+    }
+
+    public void setUpdated(LocalDateTime updated) {
+        this.updated = updated;
     }
 
     @Override

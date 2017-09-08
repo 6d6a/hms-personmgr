@@ -17,6 +17,7 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class ChargePreparer {
@@ -44,15 +45,24 @@ public class ChargePreparer {
     public void prepareCharges(LocalDate chargeDate) {
         logger.info("Started PrepareCharges for " + chargeDate);
         List<PersonalAccount> personalAccounts = accountManager.findByActiveIncludeId(true);
+        final AtomicInteger preparedChargesCount = new AtomicInteger(0);
+
         if (personalAccounts != null && !personalAccounts.isEmpty()) {
             logger.info("PrepareCharges found " + personalAccounts.size() + " active accounts");
 
             try {
-                personalAccounts.forEach(account -> publisher.publishEvent(new AccountPrepareChargesEvent(account.getId(), chargeDate)));
+                personalAccounts
+                        .stream()
+                        .filter(personalAccount -> !accountServiceHelper.getDailyServicesToCharge(personalAccount, chargeDate).isEmpty())
+                        .forEach(account -> {
+                            publisher.publishEvent(new AccountPrepareChargesEvent(account.getId(), chargeDate));
+                            preparedChargesCount.incrementAndGet();
+                        });
             } catch (Exception e) {
                 logger.error("Catching exception in publish events AccountPrepareChargesEvent");
                 e.printStackTrace();
             }
+            logger.info("PrepareCharges created " + preparedChargesCount + " records");
         } else {
             logger.error("Active accounts not found in daily charges.");
         }

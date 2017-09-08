@@ -10,8 +10,6 @@ import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.event.account.CleanBusinessActionsEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessAccountDeactivatedSendMailEvent;
-import ru.majordomo.hms.personmgr.event.account.PrepareChargesEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessChargesEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessDomainsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessExpiringAbonementsEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessExpiringDomainsEvent;
@@ -20,8 +18,6 @@ import ru.majordomo.hms.personmgr.event.account.ProcessNotifyInactiveLongTimeEve
 import ru.majordomo.hms.personmgr.event.account.ProcessQuotaChecksEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessRecurrentsEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessSendInfoMailEvent;
-import ru.majordomo.hms.personmgr.service.ChargePreparer;
-import ru.majordomo.hms.personmgr.service.ChargeProcessor;
 import ru.majordomo.hms.personmgr.service.scheduler.AbonementsScheduler;
 import ru.majordomo.hms.personmgr.service.scheduler.BusinessActionsScheduler;
 import ru.majordomo.hms.personmgr.service.scheduler.ChargesScheduler;
@@ -39,8 +35,7 @@ public class AccountScheduleEventListener {
     private final BusinessActionsScheduler businessActionsScheduler;
     private final AbonementsScheduler abonementsScheduler;
     private final ChargesScheduler chargesScheduler;
-    private final ChargePreparer chargePreparer;
-    private final ChargeProcessor chargeProcessor;
+
 
     @Autowired
     public AccountScheduleEventListener(
@@ -49,9 +44,7 @@ public class AccountScheduleEventListener {
             DomainsScheduler domainsScheduler,
             BusinessActionsScheduler businessActionsScheduler,
             AbonementsScheduler abonementsScheduler,
-            ChargesScheduler chargesScheduler,
-            ChargePreparer chargePreparer,
-            ChargeProcessor chargeProcessor
+            ChargesScheduler chargesScheduler
     ) {
         this.quotaScheduler = quotaScheduler;
         this.notificationScheduler = notificationScheduler;
@@ -59,8 +52,6 @@ public class AccountScheduleEventListener {
         this.businessActionsScheduler = businessActionsScheduler;
         this.abonementsScheduler = abonementsScheduler;
         this.chargesScheduler = chargesScheduler;
-        this.chargePreparer = chargePreparer;
-        this.chargeProcessor = chargeProcessor;
     }
 
     @EventListener
@@ -149,21 +140,5 @@ public class AccountScheduleEventListener {
         logger.debug("We got ProcessRecurrentsEvent");
 
         chargesScheduler.processRecurrents();
-    }
-
-    @EventListener
-    @Async("threadPoolTaskExecutor")
-    public void on(PrepareChargesEvent event) {
-        logger.debug("We got PrepareChargesEvent");
-
-        chargePreparer.prepareCharges(event.getChargeDate());
-    }
-
-    @EventListener
-    @Async("threadPoolTaskExecutor")
-    public void on(ProcessChargesEvent event) {
-        logger.debug("We got ProcessChargesEvent");
-
-        chargeProcessor.process(event.getChargeDate());
     }
 }

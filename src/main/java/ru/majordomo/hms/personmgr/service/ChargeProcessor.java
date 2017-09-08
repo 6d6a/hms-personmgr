@@ -1,13 +1,18 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.ChargeResult;
+import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
 import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -18,6 +23,10 @@ import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 
 @Service
 public class ChargeProcessor {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
+    private final int chargesProcessLimit = 1000;
+
     private final ChargeRequestManager chargeRequestManager;
     private final PersonalAccountManager accountManager;
     private final AccountServiceRepository accountServiceRepository;
@@ -26,6 +35,7 @@ public class ChargeProcessor {
     private final AccountNotificationHelper accountNotificationHelper;
     private final AccountStatHelper accountStatHelper;
     private final Charger charger;
+    private final ApplicationEventPublisher publisher;
 
     public ChargeProcessor(
             ChargeRequestManager chargeRequestManager,
@@ -35,7 +45,8 @@ public class ChargeProcessor {
             AccountHelper accountHelper,
             AccountNotificationHelper accountNotificationHelper,
             AccountStatHelper accountStatHelper,
-            Charger charger
+            Charger charger,
+            ApplicationEventPublisher publisher
     ) {
         this.chargeRequestManager = chargeRequestManager;
         this.accountManager = accountManager;
@@ -45,26 +56,45 @@ public class ChargeProcessor {
         this.accountNotificationHelper = accountNotificationHelper;
         this.accountStatHelper = accountStatHelper;
         this.charger = charger;
+        this.publisher = publisher;
     }
 
-    public void process() {
-        LocalDate chargeDate = LocalDate.now();
-        process(chargeDate);
+    public void processCharges(LocalDate chargeDate) {
+        logger.info("Started processCharges emitting events for " + chargeDate);
+
+        List<ChargeRequest> chargeRequests = chargeRequestManager.getForProcess(chargeDate, chargesProcessLimit);
+
+        logger.info("processCharges found " + chargeRequests.size() + " ChargeRequests (limit: " + chargesProcessLimit + ")");
+
+        chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest)));
+
+        logger.info("Ended PrepareCharges emitting events for " + chargeDate);
     }
 
-    public void process(LocalDate chargeDate) {
-        List<ChargeRequest> chargeRequests = chargeRequestManager.getForProcess(chargeDate, 500);
+    public void processErrorCharges(LocalDate chargeDate) {
+        logger.info("Started processErrorCharges emitting events for " + chargeDate);
 
-        for (ChargeRequest chargeRequest : chargeRequests) {
-            processChargeRequest(chargeRequest);
-        }
+        List<ChargeRequest> chargeRequests = chargeRequestManager.getErrorsForProcess(chargeDate, 1000);
+
+        logger.info("processErrorCharges found " + chargeRequests.size() + " ChargeRequests with errors (limit: " + chargesProcessLimit + ")");
+
+        chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest)));
+
+        logger.info("Ended processErrorCharges emitting events for " + chargeDate);
     }
 
     public ChargeResult processChargeRequest(ChargeRequest chargeRequest) {
         PersonalAccount account = accountManager.findOne(chargeRequest.getPersonalAccountId());
 
         BigDecimal dailyCost = BigDecimal.ZERO;
-        for(ChargeRequestItem chargeRequestItem : chargeRequest.getChargeRequests()) {
+        for(ChargeRequestItem chargeRequestItem : chargeRequest.getChargeRequests()
+                .stream()
+                .filter(chargeRequestItem ->
+                        chargeRequestItem.getStatus() == ChargeRequestItem.Status.NEW ||
+                        chargeRequestItem.getStatus() == ChargeRequestItem.Status.ERROR
+                )
+                .collect(Collectors.toSet())
+                ) {
             AccountService accountService =  accountServiceRepository.findOne(chargeRequestItem.getAccountServiceId());
 
             ChargeResult chargeResult = charger.makeCharge(accountService, chargeRequest.getChargeDate());
@@ -102,7 +132,8 @@ public class ChargeProcessor {
 
         return ChargeResult.success();
     }
-    /*
+
+    /**
      *  Выключает аккаунт
      *  пишет в статистику причину о нехватке средств
      *  отправляет письмо

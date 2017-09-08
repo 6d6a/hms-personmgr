@@ -18,6 +18,7 @@ import ru.majordomo.hms.personmgr.event.account.ProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessAccountDeactivatedSendMailEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargesEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessDomainsAutoRenewEvent;
+import ru.majordomo.hms.personmgr.event.account.ProcessErrorChargesEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessExpiringAbonementsEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessExpiringDomainsEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessNotifyExpiredAbonementsEvent;
@@ -98,6 +99,14 @@ public class SchedulerRestController extends CommonRestController {
                     publisher.publishEvent(new ProcessChargesEvent(date));
                 } else {
                     publisher.publishEvent(new ProcessChargesEvent());
+                }
+
+                break;
+            case "process_error_charges":
+                if (date != null) {
+                    publisher.publishEvent(new ProcessErrorChargesEvent(date));
+                } else {
+                    publisher.publishEvent(new ProcessErrorChargesEvent());
                 }
 
                 break;

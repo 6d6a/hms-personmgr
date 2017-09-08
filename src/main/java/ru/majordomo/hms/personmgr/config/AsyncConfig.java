@@ -22,7 +22,7 @@ public class AsyncConfig extends AsyncConfigurerSupport {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(5);
         executor.setMaxPoolSize(5);
-        executor.setThreadNamePrefix("Personmgr-Thread-");
+        executor.setThreadNamePrefix("PM-Thread-");
         executor.initialize();
         return executor;
     }
