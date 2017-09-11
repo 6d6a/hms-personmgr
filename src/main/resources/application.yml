@@ -45,9 +45,9 @@ spring:
     data:
         mongodb:
 #            uri: mongodb://personmgr:***REMOVED***@hms01.intr:27017,hms02.intr:27017,hms03.intr:27017/personmgr?replicaSet=hms-rs0
-            uri: mongodb://ci.intr:27017/personmgr
+#            uri: mongodb://ci.intr:27017/personmgr
             database: personmgr
-#            uri: mongodb://localhost:27017/personmgr
+            uri: mongodb://localhost:27017/personmgr
     rabbitmq:
 #        host: 172.16.104.98
         host: localhost

@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.account.AccountNotifyRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -17,12 +16,13 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -52,7 +52,9 @@ public class AccountNotificationHelper {
         this.accountServiceHelper = accountServiceHelper;
     }
 
-    public String getCostAbonementForEmail(Plan plan) {return accountHelper.getCostAbonement(plan).setScale(2, BigDecimal.ROUND_DOWN).toString();}
+    public String getCostAbonementForEmail(Plan plan) {
+        return accountHelper.getCostAbonement(plan).setScale(2, BigDecimal.ROUND_DOWN).toString();
+    }
 
     public String getDomainForEmail(PersonalAccount account) {
 
@@ -63,7 +65,28 @@ public class AccountNotificationHelper {
         return "";
     }
 
-    public String getBalanceForEmail(PersonalAccount account) {return accountHelper.getBalance(account).setScale(2, BigDecimal.ROUND_DOWN).toString();}
+    public String getDomainForEmailWithPrefixString(PersonalAccount account) {
+
+        List<Domain> domains = accountHelper.getDomains(account);
+        if (!(domains.isEmpty())) {
+            String prefix = "";
+            if (domains.size() == 1) {
+                prefix = "На аккаунте размещен домен: ";
+            } else {
+                prefix = "На аккаунте размещены домены:<br>";
+            }
+            return prefix + domains.stream().map(Domain::getName).collect(Collectors.joining("<br>"));
+        }
+        return "";
+    }
+
+    public String getBalanceForEmail(PersonalAccount account) {
+        return formatBigDecimalForEmail(accountHelper.getBalance(account));
+    }
+
+    public String formatBigDecimalForEmail(BigDecimal number) {
+        return number.setScale(2, BigDecimal.ROUND_DOWN).toString();
+    }
 
     /*
      * отправим письмо на все ящики аккаунта
@@ -92,10 +115,10 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailForDeactivatedAccount(PersonalAccount account) {
-        this.sendMailForDeactivatedAccount(account, LocalDateTime.now());
+        this.sendMailForDeactivatedAccount(account, LocalDate.now());
     }
 
-    public void sendMailForDeactivatedAccount(PersonalAccount account, LocalDateTime dateFinish) {
+    public void sendMailForDeactivatedAccount(PersonalAccount account, LocalDate dateFinish) {
         Plan plan = planRepository.findOne(account.getPlanId());
         BigDecimal costPerMonth = plan.getService().getCost().setScale(2, BigDecimal.ROUND_DOWN);
         HashMap<String, String> parameters = new HashMap<>();
@@ -163,25 +186,22 @@ public class AccountNotificationHelper {
         publisher.publishEvent(new SendSmsEvent(message));
     }
 
-    public void sendNotificationsRemainingDays(PersonalAccount account, BigDecimal dailyCost) {
-        BigDecimal balance = accountHelper.getBalance(account);
-        Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue();
-        if (remainingDays > 0 && account.isActive()) {
-            //Отправляем техническое уведомление на почту об окончании средств за 7, 5, 3, 2, 1 дней
-            if (Arrays.asList(7, 5, 3, 2, 1).contains(remainingDays)) {
-                Map<String, Object> params = new HashMap<>();
-                params.put("remainingDays", remainingDays);
-                publisher.publishEvent(new AccountNotifyRemainingDaysEvent(account, params));
-            }
-            //Отправим смс тем, у кого подключена услуга
-            if (Arrays.asList(5, 3, 1).contains(remainingDays)) {
-                if (this.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_REMAINING_DAYS)) {
-                    HashMap<String, String> parameters = new HashMap<>();
-                    parameters.put("remaining_days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
-                    parameters.put("client_id", account.getAccountId());
-                    this.sendSms(account, "MajordomoRemainingDays", 10, parameters);
-                }
-            }
+    /*
+     *  возвращает количество оставшихся дней кредитного периода
+     *  если кредита нет или кредитный период истёк, то вернет 0
+     *  если кредит еще не начался, то вернет весь срок кредита
+     */
+    public Integer getRemainingDaysCreditPeriod(PersonalAccount account) {
+        //Если кредита нет или он закончился, то 0 дней
+        Integer remainingDays = 0;
+        if (!accountHelper.hasActiveCredit(account)) {
+            return 0;
+        } else {
+            LocalDateTime creditActivationDate = account.getCreditActivationDate();
+            if (creditActivationDate == null) { creditActivationDate = LocalDateTime.now(); }
+            LocalDate maxCreditActivationDate = LocalDateTime.now().minus(Period.parse(account.getCreditPeriod())).toLocalDate();
+            remainingDays = Utils.getDifferentInDaysBetweenDates(maxCreditActivationDate, creditActivationDate.toLocalDate());
         }
+        return remainingDays;
     }
 }
