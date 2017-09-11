@@ -8,16 +8,20 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.event.account.AccountPrepareChargesEvent;
+import ru.majordomo.hms.personmgr.manager.BatchJobManager;
 import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.batch.BatchJob;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequestItem;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Service
 public class ChargePreparer {
@@ -27,41 +31,69 @@ public class ChargePreparer {
     private final ChargeRequestManager chargeRequestManager;
     private final PersonalAccountManager accountManager;
     private final AccountServiceHelper accountServiceHelper;
+    private final BatchJobManager batchJobManager;
 
     public ChargePreparer(
             ApplicationEventPublisher publisher,
             ChargeRequestManager chargeRequestManager,
             PersonalAccountManager accountManager,
-            AccountServiceHelper accountServiceHelper
+            AccountServiceHelper accountServiceHelper,
+            BatchJobManager batchJobManager
     ) {
         this.publisher = publisher;
         this.chargeRequestManager = chargeRequestManager;
         this.accountManager = accountManager;
         this.accountServiceHelper = accountServiceHelper;
+        this.batchJobManager = batchJobManager;
     }
 
     //Выполняем списания в 01:00:00 каждый день
     @SchedulerLock(name="prepareCharges")
-    public void prepareCharges(LocalDate chargeDate) {
+    public void prepareCharges(LocalDate chargeDate, String batchJobId) {
         logger.info("Started PrepareCharges for " + chargeDate);
+
         List<PersonalAccount> personalAccounts = accountManager.findByActiveIncludeId(true);
+
         final AtomicInteger preparedChargesCount = new AtomicInteger(0);
 
         if (personalAccounts != null && !personalAccounts.isEmpty()) {
+            batchJobManager.setCount(batchJobId, personalAccounts.size());
             logger.info("PrepareCharges found " + personalAccounts.size() + " active accounts");
 
             try {
-                personalAccounts
+//                List<CompletableFuture<Boolean>> futures =
+//                        personalAccounts.parallelStream()
+//                                .filter(personalAccount -> !accountServiceHelper.getDailyServicesToCharge(personalAccount, chargeDate).isEmpty())
+//                                .map(personalAccount -> CompletableFuture.supplyAsync(() -> prepareCharge(personalAccount.getId(), chargeDate) != null))
+//                                .collect(Collectors.toList());
+//
+//                futures.stream()
+//                                .map(CompletableFuture::isDone)
+//                                .forEach(result -> {if (result) { preparedChargesCount.incrementAndGet(); logger.info("PrepareCharges created " + preparedChargesCount + " records");}
+//                                });
+                personalAccounts = personalAccounts
                         .stream()
-                        .filter(personalAccount -> !accountServiceHelper.getDailyServicesToCharge(personalAccount, chargeDate).isEmpty())
-                        .forEach(account -> {
-                            publisher.publishEvent(new AccountPrepareChargesEvent(account.getId(), chargeDate));
-                            preparedChargesCount.incrementAndGet();
-                        });
+                        .filter(personalAccount -> {
+                            if (!accountServiceHelper.getDailyServicesToCharge(personalAccount, chargeDate).isEmpty()) {
+                                batchJobManager.incrementNeedToProcess(batchJobId);
+                                preparedChargesCount.incrementAndGet();
+
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        })
+                        .collect(Collectors.toList());
+
+                batchJobManager.setProcessingState(batchJobId);
+
+                personalAccounts
+                        .forEach(account -> publisher.publishEvent(new AccountPrepareChargesEvent(account.getId(), chargeDate, batchJobId)));
             } catch (Exception e) {
                 logger.error("Catching exception in publish events AccountPrepareChargesEvent");
                 e.printStackTrace();
             }
+
             logger.info("PrepareCharges created " + preparedChargesCount + " records");
         } else {
             logger.error("Active accounts not found in daily charges.");

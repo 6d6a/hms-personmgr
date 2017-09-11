@@ -14,6 +14,9 @@ import ru.majordomo.hms.personmgr.event.account.PrepareChargesEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargesEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessErrorChargesEvent;
+import ru.majordomo.hms.personmgr.manager.BatchJobManager;
+import ru.majordomo.hms.personmgr.model.batch.BatchJob;
+import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.service.ChargePreparer;
 import ru.majordomo.hms.personmgr.service.ChargeProcessor;
 
@@ -23,14 +26,17 @@ public class AccountChargesEventListener {
 
     private final ChargePreparer chargePreparer;
     private final ChargeProcessor chargeProcessor;
+    private final BatchJobManager batchJobManager;
 
     @Autowired
     public AccountChargesEventListener(
             ChargePreparer chargePreparer,
-            ChargeProcessor chargeProcessor
+            ChargeProcessor chargeProcessor,
+            BatchJobManager batchJobManager
     ) {
         this.chargePreparer = chargePreparer;
         this.chargeProcessor = chargeProcessor;
+        this.batchJobManager = batchJobManager;
     }
 
     @EventListener
@@ -39,7 +45,11 @@ public class AccountChargesEventListener {
         logger.debug("We got AccountPrepareChargesEvent");
 
         try {
-            chargePreparer.prepareCharge(event.getSource(), event.getChargeDate());
+            ChargeRequest chargeRequest = chargePreparer.prepareCharge(event.getSource(), event.getChargeDate());
+
+            if (chargeRequest != null) {
+                batchJobManager.incrementProcessed(event.getBatchJobId());
+            }
         } catch (Exception e) {
             if (e instanceof DuplicateKeyException) {
                 logger.error("DuplicateKeyException in AccountChargesEventListener AccountPrepareChargesEvent " + e.getMessage());

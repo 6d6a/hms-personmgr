@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.common.BatchProcessReport;
 import ru.majordomo.hms.personmgr.common.ChargeResult;
 import ru.majordomo.hms.personmgr.event.account.AccountSendNotificationsRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
@@ -61,8 +62,12 @@ public class ChargeProcessor {
         this.publisher = publisher;
     }
 
-    public void processCharges(LocalDate chargeDate) {
+    public BatchProcessReport processCharges(LocalDate chargeDate) {
+        BatchProcessReport report = new BatchProcessReport();
+
         logger.info("Started processCharges emitting events for " + chargeDate);
+
+        report.setProcessed(chargeRequestManager.countForProcess(chargeDate));
 
         List<ChargeRequest> chargeRequests = chargeRequestManager.getForProcess(chargeDate, chargesProcessLimit);
 
@@ -70,11 +75,19 @@ public class ChargeProcessor {
 
         chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest)));
 
-        logger.info("Ended PrepareCharges emitting events for " + chargeDate);
+        report.setProcessed(chargeRequests.size());
+
+        logger.info("Ended processCharges emitting events for " + chargeDate);
+
+        return report;
     }
 
-    public void processErrorCharges(LocalDate chargeDate) {
+    public BatchProcessReport processErrorCharges(LocalDate chargeDate) {
+        BatchProcessReport report = new BatchProcessReport();
+
         logger.info("Started processErrorCharges emitting events for " + chargeDate);
+
+        report.setProcessed(chargeRequestManager.countErrorsForProcess(chargeDate));
 
         List<ChargeRequest> chargeRequests = chargeRequestManager.getErrorsForProcess(chargeDate, 1000);
 
@@ -82,7 +95,11 @@ public class ChargeProcessor {
 
         chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest)));
 
+        report.setProcessed(chargeRequests.size());
+
         logger.info("Ended processErrorCharges emitting events for " + chargeDate);
+
+        return report;
     }
 
     public ChargeResult processChargeRequest(ChargeRequest chargeRequest) {

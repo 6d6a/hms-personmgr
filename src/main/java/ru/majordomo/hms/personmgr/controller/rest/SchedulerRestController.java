@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 
+import ru.majordomo.hms.personmgr.common.BatchProcessReport;
 import ru.majordomo.hms.personmgr.event.account.CleanBusinessActionsEvent;
 import ru.majordomo.hms.personmgr.event.account.PrepareChargesEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessAbonementsAutoRenewEvent;
@@ -28,14 +29,31 @@ import ru.majordomo.hms.personmgr.event.account.ProcessRecurrentsEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessSendInfoMailEvent;
 import ru.majordomo.hms.personmgr.event.token.CleanTokensEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.BatchJobManager;
+import ru.majordomo.hms.personmgr.model.batch.BatchJob;
+import ru.majordomo.hms.personmgr.service.ChargePreparer;
+import ru.majordomo.hms.personmgr.service.ChargeProcessor;
 
 @RestController
 public class SchedulerRestController extends CommonRestController {
+    private final ChargePreparer chargePreparer;
+    private final ChargeProcessor chargeProcessor;
+    private final BatchJobManager batchJobManager;
+
+    public SchedulerRestController(
+            ChargePreparer chargePreparer,
+            ChargeProcessor chargeProcessor,
+            BatchJobManager batchJobManager
+    ) {
+        this.chargePreparer = chargePreparer;
+        this.chargeProcessor = chargeProcessor;
+        this.batchJobManager = batchJobManager;
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @RequestMapping(value = "/scheduler/{scheduleAction}", method = RequestMethod.POST)
     public ResponseEntity<Void> processScheduleAction(
-            @PathVariable(value = "scheduleAction") String scheduleAction,
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam(required = false) LocalDate date
+            @PathVariable(value = "scheduleAction") String scheduleAction
     ) {
         switch (scheduleAction) {
             case "clean_tokens":
@@ -86,27 +104,71 @@ public class SchedulerRestController extends CommonRestController {
                 publisher.publishEvent(new ProcessRecurrentsEvent());
 
                 break;
+            default:
+                throw new ParameterValidationException("Неизвестный параметр scheduleAction");
+        }
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @RequestMapping(value = "/scheduler/jobs/{scheduleAction}", method = RequestMethod.POST)
+    public ResponseEntity<BatchJob> processScheduleActionWithReport(
+            @PathVariable(value = "scheduleAction") String scheduleAction,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam(required = false) LocalDate date,
+            @RequestParam(required = false, defaultValue = "false") boolean async
+    ) {
+        BatchJob batchJob = new BatchJob();
+        batchJob.setType(BatchJob.Type.PREPARE_CHARGES);
+
+        batchJobManager.insert(batchJob);
+
+        switch (scheduleAction) {
             case "prepare_charges":
-                if (date != null) {
-                    publisher.publishEvent(new PrepareChargesEvent(date));
+                if (async) {
+                    if (date != null) {
+                        publisher.publishEvent(new PrepareChargesEvent(date));
+                    } else {
+                        publisher.publishEvent(new PrepareChargesEvent());
+                    }
                 } else {
-                    publisher.publishEvent(new PrepareChargesEvent());
+                    if (date != null) {
+                        chargePreparer.prepareCharges(date, batchJob.getId());
+                    } else {
+                        chargePreparer.prepareCharges(LocalDate.now(), batchJob.getId());
+                    }
                 }
 
                 break;
             case "process_charges":
-                if (date != null) {
-                    publisher.publishEvent(new ProcessChargesEvent(date));
+                if (async) {
+                    if (date != null) {
+                        publisher.publishEvent(new ProcessChargesEvent(date));
+                    } else {
+                        publisher.publishEvent(new ProcessChargesEvent());
+                    }
                 } else {
-                    publisher.publishEvent(new ProcessChargesEvent());
+//                    if (date != null) {
+//                        report = chargeProcessor.processCharges(date);
+//                    } else {
+//                        report = chargeProcessor.processCharges(LocalDate.now());
+//                    }
                 }
 
                 break;
             case "process_error_charges":
-                if (date != null) {
-                    publisher.publishEvent(new ProcessErrorChargesEvent(date));
+                if (async) {
+                    if (date != null) {
+                        publisher.publishEvent(new ProcessErrorChargesEvent(date));
+                    } else {
+                        publisher.publishEvent(new ProcessErrorChargesEvent());
+                    }
                 } else {
-                    publisher.publishEvent(new ProcessErrorChargesEvent());
+//                    if (date != null) {
+//                        report = chargeProcessor.processErrorCharges(date);
+//                    } else {
+//                        report = chargeProcessor.processErrorCharges(LocalDate.now());
+//                    }
                 }
 
                 break;
@@ -114,6 +176,16 @@ public class SchedulerRestController extends CommonRestController {
                 throw new ParameterValidationException("Неизвестный параметр scheduleAction");
         }
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(batchJob, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @RequestMapping(value = "/scheduler/jobs/{id}", method = RequestMethod.GET)
+    public ResponseEntity<BatchJob> getJobReport(
+            @PathVariable(value = "id") String id
+    ) {
+        BatchJob job = batchJobManager.findOne(id);
+
+        return new ResponseEntity<>(job, HttpStatus.OK);
     }
 }

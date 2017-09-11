@@ -123,6 +123,15 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
         return repository.findByChargeDateAndStatus(chargeDate, status);
     }
 
+
+    @Override
+    public int countForProcess(LocalDate chargeDate) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("status").is(ChargeRequestItem.Status.NEW).and("chargeDate").is(chargeDate));
+
+        return (int) mongoOperations.count(query, ChargeRequest.class);
+    }
+
     @Override
     public List<ChargeRequest> getForProcess(LocalDate chargeDate, Integer limit) {
         List<ChargeRequest> chargeRequests = new ArrayList<>();
@@ -143,6 +152,27 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
             }
         }
         return chargeRequests;
+    }
+
+
+    @Override
+    public int countErrorsForProcess(LocalDate chargeDate) {
+        LocalDateTime nowMinus30Minutes = LocalDateTime.now().minusMinutes(30);
+
+        Query query = new Query();
+        query.addCriteria(
+                new Criteria()
+                        .orOperator(
+                                Criteria
+                                        .where("status").is(ChargeRequestItem.Status.ERROR)
+                                        .and("chargeDate").is(chargeDate),
+                                Criteria
+                                        .where("status").is(ChargeRequestItem.Status.PROCESSING)
+                                        .and("chargeDate").is(chargeDate)
+                                        .and("updated").lt(nowMinus30Minutes)
+                        ));
+
+        return (int) mongoOperations.count(query, ChargeRequest.class);
     }
 
     @Override
