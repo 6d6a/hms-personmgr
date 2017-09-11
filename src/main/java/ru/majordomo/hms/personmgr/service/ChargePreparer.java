@@ -12,14 +12,12 @@ import ru.majordomo.hms.personmgr.manager.BatchJobManager;
 import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.batch.BatchJob;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequestItem;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -61,27 +59,12 @@ public class ChargePreparer {
             logger.info("PrepareCharges found " + personalAccounts.size() + " active accounts");
 
             try {
-//                List<CompletableFuture<Boolean>> futures =
-//                        personalAccounts.parallelStream()
-//                                .filter(personalAccount -> !accountServiceHelper.getDailyServicesToCharge(personalAccount, chargeDate).isEmpty())
-//                                .map(personalAccount -> CompletableFuture.supplyAsync(() -> prepareCharge(personalAccount.getId(), chargeDate) != null))
-//                                .collect(Collectors.toList());
-//
-//                futures.stream()
-//                                .map(CompletableFuture::isDone)
-//                                .forEach(result -> {if (result) { preparedChargesCount.incrementAndGet(); logger.info("PrepareCharges created " + preparedChargesCount + " records");}
-//                                });
                 personalAccounts = personalAccounts
                         .stream()
-                        .filter(personalAccount -> {
-                            if (!accountServiceHelper.getDailyServicesToCharge(personalAccount, chargeDate).isEmpty()) {
-                                batchJobManager.incrementNeedToProcess(batchJobId);
-                                preparedChargesCount.incrementAndGet();
-
-                                return true;
-                            } else {
-                                return false;
-                            }
+                        .filter(personalAccount -> !accountServiceHelper.getDailyServicesToCharge(personalAccount, chargeDate).isEmpty())
+                        .peek(personalAccount -> {
+                            batchJobManager.incrementNeedToProcess(batchJobId);
+                            preparedChargesCount.incrementAndGet();
                         })
                         .collect(Collectors.toList());
 

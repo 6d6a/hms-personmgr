@@ -65,7 +65,7 @@ public class AccountChargesEventListener {
     public void on(PrepareChargesEvent event) {
         logger.debug("We got PrepareChargesEvent");
 
-        chargePreparer.prepareCharges(event.getChargeDate());
+        chargePreparer.prepareCharges(event.getChargeDate(), event.getBatchJobId());
     }
 
     @EventListener

@@ -23,10 +23,6 @@ public class AccountPrepareChargesEvent extends ApplicationEvent {
         return batchJobId;
     }
 
-    public void setBatchJobId(String batchJobId) {
-        this.batchJobId = batchJobId;
-    }
-
     public LocalDate getChargeDate() {
         return chargeDate;
     }

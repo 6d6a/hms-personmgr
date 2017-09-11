@@ -115,66 +115,46 @@ public class SchedulerRestController extends CommonRestController {
     @RequestMapping(value = "/scheduler/jobs/{scheduleAction}", method = RequestMethod.POST)
     public ResponseEntity<BatchJob> processScheduleActionWithReport(
             @PathVariable(value = "scheduleAction") String scheduleAction,
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam(required = false) LocalDate date,
-            @RequestParam(required = false, defaultValue = "false") boolean async
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam(required = false) LocalDate date
     ) {
         BatchJob batchJob = new BatchJob();
-        batchJob.setType(BatchJob.Type.PREPARE_CHARGES);
-
-        batchJobManager.insert(batchJob);
 
         switch (scheduleAction) {
             case "prepare_charges":
-                if (async) {
-                    if (date != null) {
-                        publisher.publishEvent(new PrepareChargesEvent(date));
-                    } else {
-                        publisher.publishEvent(new PrepareChargesEvent());
-                    }
+                batchJob.setType(BatchJob.Type.PREPARE_CHARGES);
+
+                if (date != null) {
+                    publisher.publishEvent(new PrepareChargesEvent(date, batchJob.getId()));
                 } else {
-                    if (date != null) {
-                        chargePreparer.prepareCharges(date, batchJob.getId());
-                    } else {
-                        chargePreparer.prepareCharges(LocalDate.now(), batchJob.getId());
-                    }
+                    publisher.publishEvent(new PrepareChargesEvent(batchJob.getId()));
                 }
 
                 break;
             case "process_charges":
-                if (async) {
-                    if (date != null) {
-                        publisher.publishEvent(new ProcessChargesEvent(date));
-                    } else {
-                        publisher.publishEvent(new ProcessChargesEvent());
-                    }
+                batchJob.setType(BatchJob.Type.PROCESS_CHARGES);
+
+                if (date != null) {
+                    publisher.publishEvent(new ProcessChargesEvent(date));
                 } else {
-//                    if (date != null) {
-//                        report = chargeProcessor.processCharges(date);
-//                    } else {
-//                        report = chargeProcessor.processCharges(LocalDate.now());
-//                    }
+                    publisher.publishEvent(new ProcessChargesEvent());
                 }
 
                 break;
             case "process_error_charges":
-                if (async) {
-                    if (date != null) {
-                        publisher.publishEvent(new ProcessErrorChargesEvent(date));
-                    } else {
-                        publisher.publishEvent(new ProcessErrorChargesEvent());
-                    }
+                batchJob.setType(BatchJob.Type.PROCESS_ERROR_CHARGES);
+
+                if (date != null) {
+                    publisher.publishEvent(new ProcessErrorChargesEvent(date));
                 } else {
-//                    if (date != null) {
-//                        report = chargeProcessor.processErrorCharges(date);
-//                    } else {
-//                        report = chargeProcessor.processErrorCharges(LocalDate.now());
-//                    }
+                    publisher.publishEvent(new ProcessErrorChargesEvent());
                 }
 
                 break;
             default:
                 throw new ParameterValidationException("Неизвестный параметр scheduleAction");
         }
+
+        batchJobManager.insert(batchJob);
 
         return new ResponseEntity<>(batchJob, HttpStatus.OK);
     }
