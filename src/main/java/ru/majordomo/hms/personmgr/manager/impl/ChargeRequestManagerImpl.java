@@ -125,26 +125,27 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
 
 
     @Override
-    public int countForProcess(LocalDate chargeDate) {
-        Query query = new Query();
-        query.addCriteria(Criteria.where("status").is(ChargeRequestItem.Status.NEW).and("chargeDate").is(chargeDate));
-
-        return (int) mongoOperations.count(query, ChargeRequest.class);
+    public int countNeedToProcessChargeRequests(LocalDate chargeDate) {
+        return (int) mongoOperations.count(getNeedToProcessChargeRequestsQuery(chargeDate), ChargeRequest.class);
     }
 
     @Override
-    public List<ChargeRequest> getForProcess(LocalDate chargeDate, Integer limit) {
-        List<ChargeRequest> chargeRequests = new ArrayList<>();
+    public List<ChargeRequest> getNeedToProcessChargeRequests(LocalDate chargeDate) {
+        int needToProcess = countNeedToProcessChargeRequests(chargeDate);
 
-        Query query = new Query();
-        query.addCriteria(Criteria.where("status").is(ChargeRequestItem.Status.NEW).and("chargeDate").is(chargeDate));
+        List<ChargeRequest> chargeRequests = new ArrayList<>();
 
         Update update = new Update();
         update.set("status", ChargeRequestItem.Status.PROCESSING);
         update.currentDate("updated");
 
-        for (int count = 0; count < limit; count++) {
-            ChargeRequest chargeRequest = mongoOperations.findAndModify(query, update, FindAndModifyOptions.options().returnNew(true), ChargeRequest.class);
+        for (int count = 0; count <= needToProcess; count++) {
+            ChargeRequest chargeRequest = mongoOperations.findAndModify(
+                    getNeedToProcessChargeRequestsQuery(chargeDate),
+                    update,
+                    FindAndModifyOptions.options().returnNew(true),
+                    ChargeRequest.class
+            );
             if (chargeRequest != null) {
                 chargeRequests.add(chargeRequest);
             } else {
@@ -156,51 +157,27 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
 
 
     @Override
-    public int countErrorsForProcess(LocalDate chargeDate) {
-        LocalDateTime nowMinus30Minutes = LocalDateTime.now().minusMinutes(30);
-
-        Query query = new Query();
-        query.addCriteria(
-                new Criteria()
-                        .orOperator(
-                                Criteria
-                                        .where("status").is(ChargeRequestItem.Status.ERROR)
-                                        .and("chargeDate").is(chargeDate),
-                                Criteria
-                                        .where("status").is(ChargeRequestItem.Status.PROCESSING)
-                                        .and("chargeDate").is(chargeDate)
-                                        .and("updated").lt(nowMinus30Minutes)
-                        ));
-
-        return (int) mongoOperations.count(query, ChargeRequest.class);
+    public int countChargeRequestsWithErrors(LocalDate chargeDate) {
+        return (int) mongoOperations.count(getChargeRequestsWithErrorsQuery(chargeDate), ChargeRequest.class);
     }
 
     @Override
-    public List<ChargeRequest> getErrorsForProcess(LocalDate chargeDate, Integer limit) {
-        LocalDateTime nowMinus30Minutes = LocalDateTime.now().minusMinutes(30);
-//        LocalDateTime nowMinus30Minutes = LocalDateTime.now().minusMinutes(1);
+    public List<ChargeRequest> getChargeRequestsWithErrors(LocalDate chargeDate) {
+        int needToProcess = countChargeRequestsWithErrors(chargeDate);
 
         List<ChargeRequest> chargeRequests = new ArrayList<>();
-
-        Query query = new Query();
-        query.addCriteria(
-                new Criteria()
-                        .orOperator(
-                                Criteria
-                                        .where("status").is(ChargeRequestItem.Status.ERROR)
-                                        .and("chargeDate").is(chargeDate),
-                                Criteria
-                                        .where("status").is(ChargeRequestItem.Status.PROCESSING)
-                                        .and("chargeDate").is(chargeDate)
-                                        .and("updated").lt(nowMinus30Minutes)
-                        ));
 
         Update update = new Update();
         update.set("status", ChargeRequestItem.Status.PROCESSING);
         update.currentDate("updated");
 
-        for (int count = 0; count < limit; count++) {
-            ChargeRequest chargeRequest = mongoOperations.findAndModify(query, update, FindAndModifyOptions.options().returnNew(true), ChargeRequest.class);
+        for (int count = 0; count <= needToProcess; count++) {
+            ChargeRequest chargeRequest = mongoOperations.findAndModify(
+                    getChargeRequestsWithErrorsQuery(chargeDate),
+                    update,
+                    FindAndModifyOptions.options().returnNew(true),
+                    ChargeRequest.class
+            );
             if (chargeRequest != null) {
                 chargeRequests.add(chargeRequest);
             } else {
@@ -226,5 +203,31 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
         chargeRequest.setUpdated(LocalDateTime.now());
 
         return chargeRequest;
+    }
+
+    private Query getChargeRequestsWithErrorsQuery(LocalDate chargeDate) {
+        LocalDateTime nowMinus30Minutes = LocalDateTime.now().minusMinutes(30);
+
+        Query query = new Query();
+        query.addCriteria(
+                new Criteria()
+                        .orOperator(
+                                Criteria
+                                        .where("status").is(ChargeRequestItem.Status.ERROR)
+                                        .and("chargeDate").is(chargeDate),
+                                Criteria
+                                        .where("status").is(ChargeRequestItem.Status.PROCESSING)
+                                        .and("chargeDate").is(chargeDate)
+                                        .and("updated").lt(nowMinus30Minutes)
+                        ));
+
+        return query;
+    }
+
+    private Query getNeedToProcessChargeRequestsQuery(LocalDate chargeDate) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("status").is(ChargeRequestItem.Status.NEW).and("chargeDate").is(chargeDate));
+
+        return query;
     }
 }

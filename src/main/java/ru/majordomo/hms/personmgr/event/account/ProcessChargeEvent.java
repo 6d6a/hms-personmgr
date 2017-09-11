@@ -2,17 +2,20 @@ package ru.majordomo.hms.personmgr.event.account;
 
 import org.springframework.context.ApplicationEvent;
 
-import java.time.LocalDate;
-
-import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
-
 public class ProcessChargeEvent extends ApplicationEvent {
-    public ProcessChargeEvent(ChargeRequest chargeRequest) {
-        super(chargeRequest);
+    private String batchJobId;
+
+    public ProcessChargeEvent(String chargeRequestId, String batchJobId) {
+        super(chargeRequestId);
+        this.batchJobId = batchJobId;
+    }
+
+    public String getBatchJobId() {
+        return batchJobId;
     }
 
     @Override
-    public ChargeRequest getSource() {
-        return (ChargeRequest) super.getSource();
+    public String getSource() {
+        return (String) super.getSource();
     }
 }

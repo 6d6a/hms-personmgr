@@ -15,7 +15,7 @@ import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargesEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessErrorChargesEvent;
 import ru.majordomo.hms.personmgr.manager.BatchJobManager;
-import ru.majordomo.hms.personmgr.model.batch.BatchJob;
+import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.service.ChargePreparer;
 import ru.majordomo.hms.personmgr.service.ChargeProcessor;
@@ -27,16 +27,19 @@ public class AccountChargesEventListener {
     private final ChargePreparer chargePreparer;
     private final ChargeProcessor chargeProcessor;
     private final BatchJobManager batchJobManager;
+    private final ChargeRequestManager chargeRequestManager;
 
     @Autowired
     public AccountChargesEventListener(
             ChargePreparer chargePreparer,
             ChargeProcessor chargeProcessor,
-            BatchJobManager batchJobManager
+            BatchJobManager batchJobManager,
+            ChargeRequestManager chargeRequestManager
     ) {
         this.chargePreparer = chargePreparer;
         this.chargeProcessor = chargeProcessor;
         this.batchJobManager = batchJobManager;
+        this.chargeRequestManager = chargeRequestManager;
     }
 
     @EventListener
@@ -73,7 +76,7 @@ public class AccountChargesEventListener {
     public void on(ProcessChargesEvent event) {
         logger.debug("We got ProcessChargesEvent");
 
-        chargeProcessor.processCharges(event.getChargeDate());
+        chargeProcessor.processCharges(event.getChargeDate(), event.getBatchJobId());
     }
 
     @EventListener
@@ -81,7 +84,12 @@ public class AccountChargesEventListener {
     public void on(ProcessChargeEvent event) {
         logger.debug("We got ProcessChargeEvent");
 
-        chargeProcessor.processChargeRequest(event.getSource());
+        ChargeRequest chargeRequest = chargeRequestManager.findOne(event.getSource());
+
+        if (chargeRequest != null) {
+            chargeProcessor.processChargeRequest(chargeRequest);
+            batchJobManager.incrementProcessed(event.getBatchJobId());
+        }
     }
 
     @EventListener
@@ -89,6 +97,6 @@ public class AccountChargesEventListener {
     public void on(ProcessErrorChargesEvent event) {
         logger.debug("We got ProcessErrorChargesEvent");
 
-        chargeProcessor.processErrorCharges(event.getChargeDate());
+        chargeProcessor.processErrorCharges(event.getChargeDate(), event.getBatchJobId());
     }
 }

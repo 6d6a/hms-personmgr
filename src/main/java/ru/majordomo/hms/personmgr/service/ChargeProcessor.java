@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
+import net.javacrumbs.shedlock.core.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -12,10 +13,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.BatchProcessReport;
 import ru.majordomo.hms.personmgr.common.ChargeResult;
 import ru.majordomo.hms.personmgr.event.account.AccountSendNotificationsRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
+import ru.majordomo.hms.personmgr.manager.BatchJobManager;
 import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -28,8 +29,6 @@ import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 public class ChargeProcessor {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final int chargesProcessLimit = 1000;
-
     private final ChargeRequestManager chargeRequestManager;
     private final PersonalAccountManager accountManager;
     private final AccountServiceRepository accountServiceRepository;
@@ -39,6 +38,7 @@ public class ChargeProcessor {
     private final AccountStatHelper accountStatHelper;
     private final Charger charger;
     private final ApplicationEventPublisher publisher;
+    private final BatchJobManager batchJobManager;
 
     public ChargeProcessor(
             ChargeRequestManager chargeRequestManager,
@@ -49,7 +49,8 @@ public class ChargeProcessor {
             AccountNotificationHelper accountNotificationHelper,
             AccountStatHelper accountStatHelper,
             Charger charger,
-            ApplicationEventPublisher publisher
+            ApplicationEventPublisher publisher,
+            BatchJobManager batchJobManager
     ) {
         this.chargeRequestManager = chargeRequestManager;
         this.accountManager = accountManager;
@@ -60,46 +61,41 @@ public class ChargeProcessor {
         this.accountStatHelper = accountStatHelper;
         this.charger = charger;
         this.publisher = publisher;
+        this.batchJobManager = batchJobManager;
     }
 
-    public BatchProcessReport processCharges(LocalDate chargeDate) {
-        BatchProcessReport report = new BatchProcessReport();
-
+    @SchedulerLock(name="processCharges")
+    public void processCharges(LocalDate chargeDate, String batchJobId) {
         logger.info("Started processCharges emitting events for " + chargeDate);
 
-        report.setProcessed(chargeRequestManager.countForProcess(chargeDate));
+        int needToProcess = chargeRequestManager.countNeedToProcessChargeRequests(chargeDate);
+        batchJobManager.setCount(batchJobId, needToProcess);
+        batchJobManager.setNeedToProcess(batchJobId, needToProcess);
 
-        List<ChargeRequest> chargeRequests = chargeRequestManager.getForProcess(chargeDate, chargesProcessLimit);
+        List<ChargeRequest> chargeRequests = chargeRequestManager.getNeedToProcessChargeRequests(chargeDate);
 
-        logger.info("processCharges found " + chargeRequests.size() + " ChargeRequests (limit: " + chargesProcessLimit + ")");
+        logger.info("processCharges found " + chargeRequests.size() + " ChargeRequests ");
 
-        chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest)));
-
-        report.setProcessed(chargeRequests.size());
+        chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest.getId(), batchJobId)));
 
         logger.info("Ended processCharges emitting events for " + chargeDate);
-
-        return report;
     }
 
-    public BatchProcessReport processErrorCharges(LocalDate chargeDate) {
-        BatchProcessReport report = new BatchProcessReport();
-
+    @SchedulerLock(name="processErrorCharges")
+    public void processErrorCharges(LocalDate chargeDate, String batchJobId) {
         logger.info("Started processErrorCharges emitting events for " + chargeDate);
 
-        report.setProcessed(chargeRequestManager.countErrorsForProcess(chargeDate));
+        int needToProcess = chargeRequestManager.countChargeRequestsWithErrors(chargeDate);
+        batchJobManager.setCount(batchJobId, needToProcess);
+        batchJobManager.setNeedToProcess(batchJobId, needToProcess);
 
-        List<ChargeRequest> chargeRequests = chargeRequestManager.getErrorsForProcess(chargeDate, 1000);
+        List<ChargeRequest> chargeRequests = chargeRequestManager.getChargeRequestsWithErrors(chargeDate);
 
-        logger.info("processErrorCharges found " + chargeRequests.size() + " ChargeRequests with errors (limit: " + chargesProcessLimit + ")");
+        logger.info("processErrorCharges found " + chargeRequests.size() + " ChargeRequests with errors");
 
-        chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest)));
-
-        report.setProcessed(chargeRequests.size());
+        chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest.getId(), batchJobId)));
 
         logger.info("Ended processErrorCharges emitting events for " + chargeDate);
-
-        return report;
     }
 
     public ChargeResult processChargeRequest(ChargeRequest chargeRequest) {
@@ -112,8 +108,7 @@ public class ChargeProcessor {
                         chargeRequestItem.getStatus() == ChargeRequestItem.Status.NEW ||
                         chargeRequestItem.getStatus() == ChargeRequestItem.Status.ERROR
                 )
-                .collect(Collectors.toSet())
-                ) {
+                .collect(Collectors.toSet())) {
             AccountService accountService =  accountServiceRepository.findOne(chargeRequestItem.getAccountServiceId());
 
             ChargeResult chargeResult = charger.makeCharge(accountService, chargeRequest.getChargeDate());

@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 
-import ru.majordomo.hms.personmgr.common.BatchProcessReport;
 import ru.majordomo.hms.personmgr.event.account.CleanBusinessActionsEvent;
 import ru.majordomo.hms.personmgr.event.account.PrepareChargesEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessAbonementsAutoRenewEvent;
@@ -134,9 +133,9 @@ public class SchedulerRestController extends CommonRestController {
                 batchJob.setType(BatchJob.Type.PROCESS_CHARGES);
 
                 if (date != null) {
-                    publisher.publishEvent(new ProcessChargesEvent(date));
+                    publisher.publishEvent(new ProcessChargesEvent(date, batchJob.getId()));
                 } else {
-                    publisher.publishEvent(new ProcessChargesEvent());
+                    publisher.publishEvent(new ProcessChargesEvent(batchJob.getId()));
                 }
 
                 break;
@@ -144,9 +143,9 @@ public class SchedulerRestController extends CommonRestController {
                 batchJob.setType(BatchJob.Type.PROCESS_ERROR_CHARGES);
 
                 if (date != null) {
-                    publisher.publishEvent(new ProcessErrorChargesEvent(date));
+                    publisher.publishEvent(new ProcessErrorChargesEvent(date, batchJob.getId()));
                 } else {
-                    publisher.publishEvent(new ProcessErrorChargesEvent());
+                    publisher.publishEvent(new ProcessErrorChargesEvent(batchJob.getId()));
                 }
 
                 break;

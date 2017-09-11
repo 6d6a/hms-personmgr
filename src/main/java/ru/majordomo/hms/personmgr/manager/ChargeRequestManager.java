@@ -38,11 +38,11 @@ public interface ChargeRequestManager {
 
     List<ChargeRequest> findByChargeDateAndStatus(LocalDate chargeDate, ChargeRequest.Status status);
 
-    int countForProcess(LocalDate chargeDate);
+    int countNeedToProcessChargeRequests(LocalDate chargeDate);
 
-    List<ChargeRequest> getForProcess(LocalDate chargeDate, Integer limit);
+    List<ChargeRequest> getNeedToProcessChargeRequests(LocalDate chargeDate);
 
-    int countErrorsForProcess(LocalDate chargeDate);
+    int countChargeRequestsWithErrors(LocalDate chargeDate);
 
-    List<ChargeRequest> getErrorsForProcess(LocalDate chargeDate, Integer limit);
+    List<ChargeRequest> getChargeRequestsWithErrors(LocalDate chargeDate);
 }
