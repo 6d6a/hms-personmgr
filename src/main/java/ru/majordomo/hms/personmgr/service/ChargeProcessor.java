@@ -7,11 +7,13 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.ChargeResult;
+import ru.majordomo.hms.personmgr.event.account.AccountSendNotificationsRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
 import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -119,7 +121,9 @@ public class ChargeProcessor {
             if (accountHelper.getBalance(account).compareTo(BigDecimal.ZERO) < 0)
                 accountHelper.setCreditActivationDateIfNotSet(account);
             // Если были списания, то отправить уведомления
-            accountNotificationHelper.sendNotificationsRemainingDays(account, dailyCost);
+            HashMap<String, Object> params = new HashMap<>();
+            params.put("daylyCost", dailyCost);
+            publisher.publishEvent(new AccountSendNotificationsRemainingDaysEvent(account, params));
         }
 
         if (chargeRequest.getChargeRequests().stream().anyMatch(chargeRequestItem -> chargeRequestItem.getStatus() == ChargeRequestItem.Status.ERROR)) {
