@@ -69,7 +69,7 @@ public class PaymentChargesProcessorService {
         //Не списываем с неактивных аккаунтов
         if (!account.isActive()) { return false; }
 
-        LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
         List<AccountService> accountServices = accountServiceHelper.getDaylyServicesToCharge(account, chargeDate);
         //Если списывать нечего
         if (accountServices.isEmpty()) { return true; }
@@ -133,11 +133,11 @@ public class PaymentChargesProcessorService {
                 response = accountHelper.charge(account, accountService.getPaymentService(), cost, forceCharge);
             } catch (ChargeException e) {
                 logger.debug("Error. Charge Processor returned ChargeException for service: " + accountService.toString());
-                return false;
+                throw e;
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("Exception in ru.majordomo.hms.personmgr.service.PaymentChargesProcessorService.makeCharge " + e.getMessage());
-                return false;
+                throw e;
             }
 
             if (response != null && response.getParam("success") != null && ((boolean) response.getParam("success"))) {
