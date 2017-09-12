@@ -57,6 +57,16 @@ public interface PersonalAccountManager {
 
     List<PersonalAccount> findByAccountIdContaining(String accountId);
 
+    List<String> findAllAccountIds();
+
+    List<String> findAccountIdsByIdNotIn(List<String> ids);
+
+    List<String> findAccountIdsByActive(boolean active);
+
+    List<String> findAccountIdsByActiveAndDeactivatedAfter(boolean active, LocalDateTime deactivated);
+
+    List<String> findAccountIdsByActiveAndNotificationsIn(MailManagerMessageType notificationType);
+
     List<PersonalAccountWithNotificationsProjection> findWithNotifications();
 
     PersonalAccountWithNotificationsProjection findOneByAccountIdWithNotifications(String accountId);

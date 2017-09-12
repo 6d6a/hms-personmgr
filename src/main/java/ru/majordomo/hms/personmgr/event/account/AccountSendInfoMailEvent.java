@@ -1,16 +1,14 @@
 package ru.majordomo.hms.personmgr.event.account;
 
 import org.springframework.context.ApplicationEvent;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 public class AccountSendInfoMailEvent extends ApplicationEvent {
-
-    public AccountSendInfoMailEvent(PersonalAccount source) {
-        super(source);
+    public AccountSendInfoMailEvent(String accountId) {
+        super(accountId);
     }
 
     @Override
-    public PersonalAccount getSource() {
-        return (PersonalAccount) super.getSource();
+    public String getSource() {
+        return (String) super.getSource();
     }
 }

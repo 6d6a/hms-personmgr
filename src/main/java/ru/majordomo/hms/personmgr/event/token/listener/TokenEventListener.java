@@ -32,7 +32,7 @@ public class TokenEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onTokenDeleteEvent(TokenDeleteEvent event) {
-        Token token = event.getSource();
+        Token token = tokenHelper.getToken(event.getSource());
 
         logger.debug("We got TokenDeleteEvent");
 

@@ -15,6 +15,7 @@ import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.stream.Stream;
 
 @Component
@@ -37,9 +38,8 @@ public class NotificationScheduler {
     @SchedulerLock(name = "processAccountDeactivatedSendMail")
     public void processAccountDeactivatedSendMail() {
         logger.info("Started processAccountDeactivatedSendMail");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findByActive(false).stream()) {
-            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountDeactivatedSendMailEvent(account)));
-        }
+        List<String> personalAccountIds = accountManager.findAccountIdsByActive(false);
+        personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountDeactivatedSendMailEvent(accountId)));
         logger.info("Ended processAccountDeactivatedSendMail");
     }
 
@@ -47,9 +47,8 @@ public class NotificationScheduler {
     @SchedulerLock(name = "processNotifyInactiveLongTime")
     public  void processNotifyInactiveLongTime() {
         logger.info("Started processNotifyInactiveLongTime");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findByActiveAndDeactivatedAfter(false, LocalDateTime.now().minusMonths(13))) {
-            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountNotifyInactiveLongTimeEvent(account)));
-        }
+        List<String> personalAccountIds = accountManager.findAccountIdsByActiveAndDeactivatedAfter(false, LocalDateTime.now().minusMonths(13));
+        personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountNotifyInactiveLongTimeEvent(accountId)));
         logger.info("Ended processNotifyInactiveLongTime");
     }
 
@@ -57,9 +56,8 @@ public class NotificationScheduler {
     @SchedulerLock(name = "processSendInfoMail")
     public  void processSendInfoMail() {
         logger.info("Started processSendInfoMail");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findByNotificationsEquals(MailManagerMessageType.EMAIL_NEWS)) {
-            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountSendInfoMailEvent(account)));
-        }
+        List<String> personalAccountIds = accountManager.findAccountIdsByActiveAndNotificationsIn(MailManagerMessageType.EMAIL_NEWS);
+        personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountSendInfoMailEvent(accountId)));
         logger.info("Ended processSendInfoMail");
     }
 }

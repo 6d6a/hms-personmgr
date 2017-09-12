@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.manager;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.model.batch.BatchJob;
@@ -28,6 +29,8 @@ public interface BatchJobManager {
     BatchJob findOne(String id);
 
     List<BatchJob> findAll();
+
+    BatchJob findByRunDateAndTypeOrderByCreatedAsc(LocalDate runDate, BatchJob.Type type);
 
     void setProcessingState(String id);
 

@@ -658,7 +658,8 @@ public class AccountHelper {
                 ).collect(Collectors.toList()).get(0).getService().getCost();
     }
 
-    public boolean hasActiveAbonement(PersonalAccount account) {
+    public boolean hasActiveAbonement(String accountId) {
+        PersonalAccount account = accountManager.findOne(accountId);
         return !accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getId(), LocalDateTime.now()).isEmpty();
     }
 
@@ -812,12 +813,11 @@ public class AccountHelper {
                 return true;
             } else {
                 // Проверяем сколько он уже пользуется
-                if (creditActivationDate.isBefore(
-                        LocalDateTime.now().minus(Period.parse(account.getCreditPeriod())))) {
-                    return false;
-                } else {
-                    return true;
-                }
+                return !creditActivationDate.isBefore(
+                        LocalDateTime
+                                .now()
+                                .minus(Period.parse(account.getCreditPeriod()))
+                );
             }
         } else {
             return false;
@@ -846,7 +846,7 @@ public class AccountHelper {
         String paymentServiceOldId = accountService.getPaymentService().getOldId();
         if (paymentServiceOldId.equals(ADDITIONAL_QUOTA_100_SERVICE_ID)) {
             account.setAddQuotaIfOverquoted(false);
-            publisher.publishEvent(new AccountCheckQuotaEvent(account));
+            publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
 //        } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
 //            TODO надо что - нибудь отправлять в rc - user чтобы отключить защиту у ящиков
 //            В rc -user никакого параметра для этого нет, нужно добавить

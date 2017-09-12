@@ -37,7 +37,7 @@ public class BusinessActionsScheduler {
         try (Stream<ProcessingBusinessAction> businessActionStream = processingBusinessActionRepository
                 .findByCreatedDateBeforeOrderByCreatedDateAsc(LocalDateTime.now().minusDays(1L))
         ) {
-            businessActionStream.forEach(action -> publisher.publishEvent(new ProcessingBusinessActionCleanEvent(action)));
+            businessActionStream.forEach(action -> publisher.publishEvent(new ProcessingBusinessActionCleanEvent(action.getId())));
         }
         logger.info("Ended cleanBusinessActions");
     }

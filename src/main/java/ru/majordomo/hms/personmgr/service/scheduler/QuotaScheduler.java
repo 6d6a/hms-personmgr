@@ -9,11 +9,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
-import java.util.stream.Stream;
+import java.util.List;
 
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 import static ru.majordomo.hms.personmgr.common.Constants.TECHNICAL_ACCOUNT_ID;
 
@@ -36,9 +35,8 @@ public class QuotaScheduler {
     @SchedulerLock(name = "processQuotaChecks")
     public void processQuotaChecks() {
         logger.info("Started processQuotaChecks");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findByIdNotIn(Collections.singletonList(TECHNICAL_ACCOUNT_ID))) {
-            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountCheckQuotaEvent(account)));
-        }
+        List<String> personalAccountIds = accountManager.findAccountIdsByIdNotIn(Collections.singletonList(TECHNICAL_ACCOUNT_ID));
+        personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountCheckQuotaEvent(accountId)));
         logger.info("Ended processQuotaChecks");
     }
 }

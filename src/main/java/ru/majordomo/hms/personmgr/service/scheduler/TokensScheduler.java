@@ -34,7 +34,7 @@ public class TokensScheduler {
         try (Stream<Token> tokenStream = tokenRepository.findByCreatedBeforeOrderByCreatedDateAsc(
                 LocalDateTime.now().minusDays(1L))
         ) {
-            tokenStream.forEach(token -> publisher.publishEvent(new TokenDeleteEvent(token)));
+            tokenStream.forEach(token -> publisher.publishEvent(new TokenDeleteEvent(token.getId())));
         }
         logger.info("Ended cleanTokens");
     }

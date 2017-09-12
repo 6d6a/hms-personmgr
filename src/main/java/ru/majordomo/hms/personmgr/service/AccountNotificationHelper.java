@@ -68,7 +68,7 @@ public class AccountNotificationHelper {
     public String getDomainForEmailWithPrefixString(PersonalAccount account) {
 
         List<Domain> domains = accountHelper.getDomains(account);
-        if (!(domains.isEmpty())) {
+        if (domains != null && !domains.isEmpty()) {
             String prefix = "";
             if (domains.size() == 1) {
                 prefix = "На аккаунте размещен домен: ";

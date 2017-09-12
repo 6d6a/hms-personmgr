@@ -14,15 +14,15 @@ import ru.majordomo.hms.personmgr.service.FinFeignClient;
 import ru.majordomo.hms.personmgr.service.RecurrentProcessorService;
 
 @Component
-public class ChargesScheduler {
-    private final static Logger logger = LoggerFactory.getLogger(ChargesScheduler.class);
+public class RecurrentsScheduler {
+    private final static Logger logger = LoggerFactory.getLogger(RecurrentsScheduler.class);
 
     private final PersonalAccountManager accountManager;
     private final FinFeignClient finFeignClient;
     private final RecurrentProcessorService recurrentProcessorService;
 
     @Autowired
-    public ChargesScheduler(
+    public RecurrentsScheduler(
             PersonalAccountManager accountManager,
             FinFeignClient finFeignClient,
             RecurrentProcessorService recurrentProcessorService

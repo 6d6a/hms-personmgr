@@ -8,13 +8,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-import java.util.stream.Stream;
+import java.util.List;
 
 import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessNotifyExpiredAbonementsEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 
 @Component
@@ -39,32 +38,32 @@ public class AbonementsScheduler {
     //Выполняем обработку абонементов с истекающим сроком действия в 00:32:00 каждый день
     @SchedulerLock(name = "processExpiringAbonements")
     public void processExpiringAbonements() {
-        logger.debug("Started processExpiringAbonements");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
-            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessExpiringAbonementsEvent(account)));
-        }
-        logger.debug("Ended processExpiringAbonements");
+        logger.info("Started processExpiringAbonements");
+        List<String> personalAccountIds = accountManager.findAllAccountIds();
+        personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountProcessExpiringAbonementsEvent(accountId)));
+        logger.info("Ended processExpiringAbonements");
     }
 
     //Выполняем обработку абонементов с истекающим сроком действия в 01:32:00 каждый день
     @SchedulerLock(name = "processAbonementAutoRenew")
     public void processAbonementsAutoRenew() {
-        logger.debug("Started processAbonementsAutoRenew");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()) {
-            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessAbonementsAutoRenewEvent(account)));
-        }
-        logger.debug("Ended processAbonementsAutoRenew");
+        logger.info("Started processAbonementsAutoRenew");
+        List<String> personalAccountIds = accountManager.findAllAccountIds();
+        personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountProcessAbonementsAutoRenewEvent(accountId)));
+        logger.info("Ended processAbonementsAutoRenew");
     }
 
     //Выполняем отправку писем истекшим абонементом в 02:42:00 каждый день
     @SchedulerLock(name = "processNotifyExpiredAbonements")
     public void processNotifyExpiredAbonements() {
-        logger.debug("Started processNotifyExpiredAbonements");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findAllStream()
-                .filter(account -> !accountHelper.hasActiveAbonement(account)))
-        {
-            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountProcessNotifyExpiredAbonementsEvent(account)));
-        }
-        logger.debug("Ended processNotifyExpiredAbonements");
+        logger.info("Started processNotifyExpiredAbonements");
+        List<String> personalAccountIds = accountManager.findAllAccountIds();
+        personalAccountIds
+                .stream()
+                .filter(accountId -> !accountHelper.hasActiveAbonement(accountId))
+                .forEach(accountId -> publisher.publishEvent(new AccountProcessNotifyExpiredAbonementsEvent(accountId)))
+        ;
+
+        logger.info("Ended processNotifyExpiredAbonements");
     }
 }

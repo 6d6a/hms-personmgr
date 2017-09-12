@@ -20,7 +20,7 @@ import ru.majordomo.hms.personmgr.event.account.ProcessRecurrentsEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessSendInfoMailEvent;
 import ru.majordomo.hms.personmgr.service.scheduler.AbonementsScheduler;
 import ru.majordomo.hms.personmgr.service.scheduler.BusinessActionsScheduler;
-import ru.majordomo.hms.personmgr.service.scheduler.ChargesScheduler;
+import ru.majordomo.hms.personmgr.service.scheduler.RecurrentsScheduler;
 import ru.majordomo.hms.personmgr.service.scheduler.DomainsScheduler;
 import ru.majordomo.hms.personmgr.service.scheduler.NotificationScheduler;
 import ru.majordomo.hms.personmgr.service.scheduler.QuotaScheduler;
@@ -34,7 +34,7 @@ public class AccountScheduleEventListener {
     private final DomainsScheduler domainsScheduler;
     private final BusinessActionsScheduler businessActionsScheduler;
     private final AbonementsScheduler abonementsScheduler;
-    private final ChargesScheduler chargesScheduler;
+    private final RecurrentsScheduler recurrentsScheduler;
 
 
     @Autowired
@@ -44,14 +44,14 @@ public class AccountScheduleEventListener {
             DomainsScheduler domainsScheduler,
             BusinessActionsScheduler businessActionsScheduler,
             AbonementsScheduler abonementsScheduler,
-            ChargesScheduler chargesScheduler
+            RecurrentsScheduler recurrentsScheduler
     ) {
         this.quotaScheduler = quotaScheduler;
         this.notificationScheduler = notificationScheduler;
         this.domainsScheduler = domainsScheduler;
         this.businessActionsScheduler = businessActionsScheduler;
         this.abonementsScheduler = abonementsScheduler;
-        this.chargesScheduler = chargesScheduler;
+        this.recurrentsScheduler = recurrentsScheduler;
     }
 
     @EventListener
@@ -139,6 +139,6 @@ public class AccountScheduleEventListener {
     public void on(ProcessRecurrentsEvent event) {
         logger.debug("We got ProcessRecurrentsEvent");
 
-        chargesScheduler.processRecurrents();
+        recurrentsScheduler.processRecurrents();
     }
 }

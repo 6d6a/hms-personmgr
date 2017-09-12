@@ -10,6 +10,7 @@ import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.event.account.*;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
@@ -18,7 +19,6 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
-import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -35,6 +35,7 @@ public class AccountNotificationEventListener {
     private final PlanRepository planRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     private final BizMailFeignClient bizMailFeignClient;
+    private final PersonalAccountManager personalAccountManager;
 
     @Autowired
     public AccountNotificationEventListener(
@@ -42,13 +43,15 @@ public class AccountNotificationEventListener {
             AccountStatRepository accountStatRepository,
             PlanRepository planRepository,
             AccountNotificationHelper accountNotificationHelper,
-            BizMailFeignClient bizMailFeignClient
+            BizMailFeignClient bizMailFeignClient,
+            PersonalAccountManager personalAccountManager
     ) {
         this.accountHelper = accountHelper;
         this.accountStatRepository = accountStatRepository;
         this.planRepository = planRepository;
         this.accountNotificationHelper = accountNotificationHelper;
         this.bizMailFeignClient = bizMailFeignClient;
+        this.personalAccountManager = personalAccountManager;
     }
 
     @EventListener
@@ -66,7 +69,7 @@ public class AccountNotificationEventListener {
         Integer remainingCreditDays = accountNotificationHelper.getRemainingDaysCreditPeriod(account);
         List<Integer> days = Arrays.asList(7, 5, 3, 2, 1);
         if (days.contains(remainingDays) || days.contains(remainingCreditDays)) {
-            Boolean hasActiveAbonement = accountHelper.hasActiveAbonement(account);
+            Boolean hasActiveAbonement = accountHelper.hasActiveAbonement(account.getId());
             Boolean hasActiveCredit = accountHelper.hasActiveCredit(account);
             String remainingDaysInString = Utils.pluralizef("%d день", "%d дня", "%d дней", remainingDays);
             String remainingCreditDaysInString = Utils.pluralizef("%d день", "%d дня", "%d дней", remainingCreditDays);
@@ -110,7 +113,7 @@ public class AccountNotificationEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onAccountSendInfoMailEvent(AccountSendInfoMailEvent event) {
-        PersonalAccount account = event.getSource();
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
         int accountAgeInDays = Utils.getDifferentInDaysBetweenDates(account.getCreated().toLocalDate(), LocalDate.now());
 
@@ -186,7 +189,7 @@ public class AccountNotificationEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onAccountNotifyInactiveLongTimeEvent(AccountNotifyInactiveLongTimeEvent event) {
-        PersonalAccount account = event.getSource();
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
         logger.debug("We got AccountNotifyInactiveLongTimeEvent\n");
 
         LocalDateTime deactivatedDateTime = account.getDeactivated();
@@ -219,7 +222,7 @@ public class AccountNotificationEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onAccountDeactivatedSendMailEvent(AccountDeactivatedSendMailEvent event) {
-        PersonalAccount account = event.getSource();
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
         logger.debug("We got AccountDeactivatedSendMailEvent\n");
 

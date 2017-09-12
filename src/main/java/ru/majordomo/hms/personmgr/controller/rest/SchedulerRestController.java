@@ -111,41 +111,63 @@ public class SchedulerRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @RequestMapping(value = "/scheduler/jobs/{scheduleAction}", method = RequestMethod.POST)
-    public ResponseEntity<BatchJob> processScheduleActionWithReport(
+    @RequestMapping(value = "/scheduler/jobs/{scheduleAction}/start", method = RequestMethod.POST)
+    public ResponseEntity<BatchJob> startScheduleActionWithBatchJob(
             @PathVariable(value = "scheduleAction") String scheduleAction,
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam(required = false) LocalDate date
     ) {
-        BatchJob batchJob = new BatchJob();
+        if (date == null) {
+            date = LocalDate.now();
+        }
+
+        BatchJob batchJob;
 
         switch (scheduleAction) {
             case "prepare_charges":
-                batchJob.setType(BatchJob.Type.PREPARE_CHARGES);
+                batchJob = batchJobManager.findByRunDateAndTypeOrderByCreatedAsc(date, BatchJob.Type.PREPARE_CHARGES);
 
-                if (date != null) {
-                    publisher.publishEvent(new PrepareChargesEvent(date, batchJob.getId()));
+                if (batchJob != null) {
+                    break;
                 } else {
-                    publisher.publishEvent(new PrepareChargesEvent(batchJob.getId()));
+                    batchJob = new BatchJob();
+                    batchJob.setRunDate(date);
+                    batchJob.setType(BatchJob.Type.PREPARE_CHARGES);
+
+                    batchJobManager.insert(batchJob);
+
+                    publisher.publishEvent(new PrepareChargesEvent(date, batchJob.getId()));
                 }
 
                 break;
             case "process_charges":
-                batchJob.setType(BatchJob.Type.PROCESS_CHARGES);
+                batchJob = batchJobManager.findByRunDateAndTypeOrderByCreatedAsc(date, BatchJob.Type.PROCESS_CHARGES);
 
-                if (date != null) {
-                    publisher.publishEvent(new ProcessChargesEvent(date, batchJob.getId()));
+                if (batchJob != null) {
+                    break;
                 } else {
-                    publisher.publishEvent(new ProcessChargesEvent(batchJob.getId()));
+                    batchJob = new BatchJob();
+                    batchJob.setRunDate(date);
+                    batchJob.setType(BatchJob.Type.PROCESS_CHARGES);
+
+                    batchJobManager.insert(batchJob);
+
+                    publisher.publishEvent(new ProcessChargesEvent(date, batchJob.getId()));
                 }
 
                 break;
             case "process_error_charges":
-                batchJob.setType(BatchJob.Type.PROCESS_ERROR_CHARGES);
+                batchJob = batchJobManager.findByRunDateAndTypeOrderByCreatedAsc(date, BatchJob.Type.PROCESS_ERROR_CHARGES);
 
-                if (date != null) {
-                    publisher.publishEvent(new ProcessErrorChargesEvent(date, batchJob.getId()));
+                if (batchJob != null) {
+                    break;
                 } else {
-                    publisher.publishEvent(new ProcessErrorChargesEvent(batchJob.getId()));
+                    batchJob = new BatchJob();
+                    batchJob.setRunDate(date);
+                    batchJob.setType(BatchJob.Type.PROCESS_ERROR_CHARGES);
+
+                    batchJobManager.insert(batchJob);
+
+                    publisher.publishEvent(new ProcessErrorChargesEvent(date, batchJob.getId()));
                 }
 
                 break;
@@ -153,18 +175,6 @@ public class SchedulerRestController extends CommonRestController {
                 throw new ParameterValidationException("Неизвестный параметр scheduleAction");
         }
 
-        batchJobManager.insert(batchJob);
-
         return new ResponseEntity<>(batchJob, HttpStatus.OK);
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @RequestMapping(value = "/scheduler/jobs/{id}", method = RequestMethod.GET)
-    public ResponseEntity<BatchJob> getJobReport(
-            @PathVariable(value = "id") String id
-    ) {
-        BatchJob job = batchJobManager.findOne(id);
-
-        return new ResponseEntity<>(job, HttpStatus.OK);
     }
 }

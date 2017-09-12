@@ -5,7 +5,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.aggregation.MatchOperation;
+import org.springframework.data.mongodb.core.aggregation.ProjectionOperation;
 import org.springframework.data.mongodb.core.aggregation.TypedAggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -14,7 +17,9 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -27,6 +32,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.project;
 import static ru.majordomo.hms.personmgr.common.AccountSetting.ADD_QUOTA_IF_OVERQUOTED;
@@ -190,6 +196,107 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     @Override
     public Stream<PersonalAccount> findAllStream() {
         return repository.findAllStream();
+    }
+
+    @Override
+    public List<String> findAllAccountIds() {
+        ProjectionOperation project = project("_id");
+
+        Aggregation aggregation = newAggregation(
+                project
+        );
+
+        AggregationResults<String> result = mongoOperations.aggregate(
+                aggregation, "personalAccount", String.class
+        );
+
+        return result.getMappedResults();
+    }
+
+    @Override
+    public List<String> findAccountIdsByIdNotIn(List<String> ids) {
+        MatchOperation match = match(
+                Criteria.where("_id")
+                        .nin(ids)
+        );
+
+        ProjectionOperation project = project("_id");
+
+        Aggregation aggregation = newAggregation(
+                match,
+                project
+        );
+
+        AggregationResults<String> result = mongoOperations.aggregate(
+                aggregation, "personalAccount", String.class
+        );
+
+        return result.getMappedResults();
+    }
+
+    @Override
+    public List<String> findAccountIdsByActive(boolean active) {
+        MatchOperation match = match(
+                Criteria.where("active")
+                        .is(active)
+        );
+
+        ProjectionOperation project = project("_id");
+
+        Aggregation aggregation = newAggregation(
+                match,
+                project
+        );
+
+        AggregationResults<String> result = mongoOperations.aggregate(
+                aggregation, "personalAccount", String.class
+        );
+
+        return result.getMappedResults();
+    }
+
+    @Override
+    public List<String> findAccountIdsByActiveAndDeactivatedAfter(boolean active, LocalDateTime deactivated) {
+        MatchOperation match = match(
+                Criteria.where("active")
+                        .is(active)
+                        .and("deactivated")
+                        .gt(Date.from(deactivated.toInstant(ZoneOffset.ofHours(3))))
+        );
+
+        ProjectionOperation project = project("_id");
+
+        Aggregation aggregation = newAggregation(
+                match,
+                project
+        );
+
+        AggregationResults<String> result = mongoOperations.aggregate(
+                aggregation, "personalAccount", String.class
+        );
+
+        return result.getMappedResults();
+    }
+
+    @Override
+    public List<String> findAccountIdsByActiveAndNotificationsIn(MailManagerMessageType notificationType) {
+        MatchOperation match = match(
+                Criteria.where("notifications")
+                        .in(notificationType)
+        );
+
+        ProjectionOperation project = project("_id");
+
+        Aggregation aggregation = newAggregation(
+                match,
+                project
+        );
+
+        AggregationResults<String> result = mongoOperations.aggregate(
+                aggregation, "personalAccount", String.class
+        );
+
+        return result.getMappedResults();
     }
 
     @Override

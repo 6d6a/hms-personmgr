@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.model.batch;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import javax.validation.constraints.NotNull;
@@ -11,6 +12,10 @@ import ru.majordomo.hms.personmgr.model.VersionedModel;
 
 @Document
 public class BatchJob extends VersionedModel {
+    @Indexed
+    @NotNull
+    private LocalDate runDate;
+
     @Indexed
     private LocalDateTime created;
 
@@ -26,6 +31,14 @@ public class BatchJob extends VersionedModel {
     private int count = 0;
     private int needToProcess = 0;
     private int processed = 0;
+
+    public LocalDate getRunDate() {
+        return runDate;
+    }
+
+    public void setRunDate(LocalDate runDate) {
+        this.runDate = runDate;
+    }
 
     public LocalDateTime getCreated() {
         return created;
@@ -86,7 +99,8 @@ public class BatchJob extends VersionedModel {
     @Override
     public String toString() {
         return "BatchJob{" +
-                "created=" + created +
+                "runDate=" + runDate +
+                ", created=" + created +
                 ", updated=" + updated +
                 ", type=" + type +
                 ", state=" + state +

@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -101,11 +102,18 @@ public class BatchJobManagerImpl implements BatchJobManager {
     }
 
     @Override
+    public BatchJob findByRunDateAndTypeOrderByCreatedAsc(LocalDate runDate, BatchJob.Type type) {
+        return repository.findByRunDateAndTypeOrderByCreatedAsc(runDate, type);
+    }
+
+    @Override
     public void setProcessingState(String id) {
         checkById(id);
 
         Query query = new Query(new Criteria("_id").is(id));
-        Update update = new Update().set("state", BatchJob.State.PROCESSING);
+        Update update = new Update()
+                .set("state", BatchJob.State.PROCESSING)
+                .currentDate("updated");
 
         mongoOperations.updateFirst(query, update, BatchJob.class);
     }
@@ -115,7 +123,9 @@ public class BatchJobManagerImpl implements BatchJobManager {
         checkById(id);
 
         Query query = new Query(new Criteria("_id").is(id));
-        Update update = new Update().set("needToProcess", needToProcess);
+        Update update = new Update()
+                .set("needToProcess", needToProcess)
+                .currentDate("updated");
 
         mongoOperations.updateFirst(query, update, BatchJob.class);
     }
@@ -125,7 +135,9 @@ public class BatchJobManagerImpl implements BatchJobManager {
         checkById(id);
 
         Query query = new Query(new Criteria("_id").is(id));
-        Update update = new Update().set("count", count);
+        Update update = new Update()
+                .set("count", count)
+                .currentDate("updated");
 
         mongoOperations.updateFirst(query, update, BatchJob.class);
     }
@@ -140,7 +152,9 @@ public class BatchJobManagerImpl implements BatchJobManager {
         checkById(id);
 
         Query query = new Query(new Criteria("_id").is(id));
-        Update update = new Update().inc("needToProcess", count);
+        Update update = new Update()
+                .inc("needToProcess", count)
+                .currentDate("updated");
 
         mongoOperations.updateFirst(query, update, BatchJob.class);
 
@@ -157,7 +171,9 @@ public class BatchJobManagerImpl implements BatchJobManager {
         checkById(id);
 
         Query query = new Query(new Criteria("_id").is(id));
-        Update update = new Update().inc("processed", count);
+        Update update = new Update()
+                .inc("processed", count)
+                .currentDate("updated");
 
         mongoOperations.updateFirst(query, update, BatchJob.class);
 
@@ -169,7 +185,9 @@ public class BatchJobManagerImpl implements BatchJobManager {
 
         if (batchJob.getProcessed() == batchJob.getNeedToProcess()) {
             Query query = new Query(new Criteria("_id").is(id));
-            Update update = new Update().set("state", BatchJob.State.FINISHED);
+            Update update = new Update()
+                    .set("state", BatchJob.State.FINISHED)
+                    .currentDate("updated");
 
             mongoOperations.updateFirst(query, update, BatchJob.class);
         }
