@@ -22,12 +22,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
@@ -206,11 +208,11 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
                 project
         );
 
-        AggregationResults<String> result = mongoOperations.aggregate(
-                aggregation, "personalAccount", String.class
+        AggregationResults<BaseModel> result = mongoOperations.aggregate(
+                aggregation, "personalAccount", BaseModel.class
         );
 
-        return result.getMappedResults();
+        return result.getMappedResults().stream().map(BaseModel::getId).collect(Collectors.toList());
     }
 
     @Override
@@ -227,11 +229,11 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
                 project
         );
 
-        AggregationResults<String> result = mongoOperations.aggregate(
-                aggregation, "personalAccount", String.class
+        AggregationResults<BaseModel> result = mongoOperations.aggregate(
+                aggregation, "personalAccount", BaseModel.class
         );
 
-        return result.getMappedResults();
+        return result.getMappedResults().stream().map(BaseModel::getId).collect(Collectors.toList());
     }
 
     @Override
@@ -248,11 +250,11 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
                 project
         );
 
-        AggregationResults<String> result = mongoOperations.aggregate(
-                aggregation, "personalAccount", String.class
+        AggregationResults<BaseModel> result = mongoOperations.aggregate(
+                aggregation, "personalAccount", BaseModel.class
         );
 
-        return result.getMappedResults();
+        return result.getMappedResults().stream().map(BaseModel::getId).collect(Collectors.toList());
     }
 
     @Override
@@ -271,11 +273,11 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
                 project
         );
 
-        AggregationResults<String> result = mongoOperations.aggregate(
-                aggregation, "personalAccount", String.class
+        AggregationResults<BaseModel> result = mongoOperations.aggregate(
+                aggregation, "personalAccount", BaseModel.class
         );
 
-        return result.getMappedResults();
+        return result.getMappedResults().stream().map(BaseModel::getId).collect(Collectors.toList());
     }
 
     @Override
@@ -292,11 +294,11 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
                 project
         );
 
-        AggregationResults<String> result = mongoOperations.aggregate(
-                aggregation, "personalAccount", String.class
+        AggregationResults<BaseModel> result = mongoOperations.aggregate(
+                aggregation, "personalAccount", BaseModel.class
         );
 
-        return result.getMappedResults();
+        return result.getMappedResults().stream().map(BaseModel::getId).collect(Collectors.toList());
     }
 
     @Override
