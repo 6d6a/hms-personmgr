@@ -69,7 +69,7 @@ public class PaymentChargesProcessorService {
         //Не списываем с неактивных аккаунтов
         if (!account.isActive()) { return false; }
 
-        LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
         List<AccountService> accountServices = accountServiceHelper.getDaylyServicesToCharge(account, chargeDate);
         //Если списывать нечего
         if (accountServices.isEmpty()) { return true; }
