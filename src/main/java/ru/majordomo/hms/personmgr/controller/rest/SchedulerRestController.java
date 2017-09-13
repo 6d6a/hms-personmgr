@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import ru.majordomo.hms.personmgr.event.account.CleanBusinessActionsEvent;
 import ru.majordomo.hms.personmgr.event.account.PrepareChargesEvent;
@@ -126,9 +127,7 @@ public class SchedulerRestController extends CommonRestController {
             case "prepare_charges":
                 batchJob = batchJobManager.findByRunDateAndTypeOrderByCreatedAsc(date, BatchJob.Type.PREPARE_CHARGES);
 
-                if (batchJob != null) {
-                    break;
-                } else {
+                if (batchJob == null || (batchJob.getUpdated().isBefore(LocalDateTime.now().minusHours(2)) && batchJob.getState() != BatchJob.State.FINISHED)) {
                     batchJob = new BatchJob();
                     batchJob.setRunDate(date);
                     batchJob.setType(BatchJob.Type.PREPARE_CHARGES);
@@ -142,9 +141,7 @@ public class SchedulerRestController extends CommonRestController {
             case "process_charges":
                 batchJob = batchJobManager.findByRunDateAndTypeOrderByCreatedAsc(date, BatchJob.Type.PROCESS_CHARGES);
 
-                if (batchJob != null) {
-                    break;
-                } else {
+                if (batchJob == null || (batchJob.getUpdated().isBefore(LocalDateTime.now().minusHours(2)) && batchJob.getState() != BatchJob.State.FINISHED)) {
                     batchJob = new BatchJob();
                     batchJob.setRunDate(date);
                     batchJob.setType(BatchJob.Type.PROCESS_CHARGES);
@@ -158,9 +155,7 @@ public class SchedulerRestController extends CommonRestController {
             case "process_error_charges":
                 batchJob = batchJobManager.findByRunDateAndTypeOrderByCreatedAsc(date, BatchJob.Type.PROCESS_ERROR_CHARGES);
 
-                if (batchJob != null) {
-                    break;
-                } else {
+                if (batchJob == null || (batchJob.getUpdated().isBefore(LocalDateTime.now().minusHours(2)) && batchJob.getState() != BatchJob.State.FINISHED)) {
                     batchJob = new BatchJob();
                     batchJob.setRunDate(date);
                     batchJob.setType(BatchJob.Type.PROCESS_ERROR_CHARGES);

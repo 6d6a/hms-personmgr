@@ -76,7 +76,7 @@ public class BatchJobManagerImpl implements BatchJobManager {
 
     @Override
     public BatchJob insert(BatchJob batchJob) {
-        return repository.insert(setCreated(batchJob));
+        return repository.insert(setUpdated(setCreated(batchJob)));
     }
 
     @Override
@@ -85,6 +85,7 @@ public class BatchJobManagerImpl implements BatchJobManager {
                 StreamSupport
                         .stream(batchJobs.spliterator(), false)
                         .map(this::setCreated)
+                        .map(this::setUpdated)
                         .collect(Collectors.toSet())
         );
     }
