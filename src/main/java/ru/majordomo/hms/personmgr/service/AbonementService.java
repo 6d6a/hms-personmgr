@@ -387,7 +387,7 @@ public class AbonementService {
             accountHelper.disableAccount(account);
         } else {
             // После добавления сервиса тарифа нужно получить аккаунт заново,
-            // так как услуги в processeingDailyServices получаются из PersonalAccount
+            // так как услуги в processingDailyServices получаются из PersonalAccount
             account = accountManager.findOne(account.getId());
             paymentChargesProcessorService.processingDailyServices(account);
         }
