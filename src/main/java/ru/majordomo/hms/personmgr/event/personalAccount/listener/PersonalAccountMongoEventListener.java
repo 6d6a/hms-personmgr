@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -41,6 +42,8 @@ public class PersonalAccountMongoEventListener extends AbstractMongoEventListene
         }
 
         List<AccountService> accountServiceList = personalAccount.getServices();
+        List<AccountService> accountServiceListAfterDiscountConvert = new ArrayList<>();
+        accountServiceListAfterDiscountConvert.addAll(accountServiceList);
 
         if (personalAccount.getServices() != null && personalAccount.getDiscounts() != null) {
             for (AccountService accountService : personalAccount.getServices()) {
@@ -51,15 +54,15 @@ public class PersonalAccountMongoEventListener extends AbstractMongoEventListene
                     Discount discount = accountDiscount.getDiscount();
                     for (String serviceId : discount.getServiceIds()) {
                         if (accountService.getServiceId().equals(serviceId)) {
-                            accountServiceList.remove(accountService);
-                            accountServiceList.add(new DiscountedService(service, discount));
+                            accountServiceListAfterDiscountConvert.remove(accountService);
+                            accountServiceListAfterDiscountConvert.add(new DiscountedService(service, discount));
 
                             break;
                         }
                     }
                 }
             }
-            personalAccount.setServices(accountServiceList);
+            personalAccount.setServices(accountServiceListAfterDiscountConvert);
         }
     }
 }
