@@ -22,7 +22,6 @@ import java.util.Arrays;
 
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.ChargeResult;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
@@ -31,7 +30,6 @@ import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
-import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
@@ -56,8 +54,6 @@ public class AbonementService {
     private final ApplicationEventPublisher publisher;
     private final AccountStatHelper accountStatHelper;
     private final AccountNotificationHelper accountNotificationHelper;
-    private final ChargePreparer chargePreparer;
-    private final ChargeProcessor chargeProcessor;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -69,9 +65,7 @@ public class AbonementService {
             AccountServiceHelper accountServiceHelper,
             ApplicationEventPublisher publisher,
             AccountStatHelper accountStatHelper,
-            AccountNotificationHelper accountNotificationHelper,
-            ChargePreparer chargePreparer,
-            ChargeProcessor chargeProcessor
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
@@ -80,8 +74,6 @@ public class AbonementService {
         this.publisher = publisher;
         this.accountStatHelper = accountStatHelper;
         this.accountNotificationHelper = accountNotificationHelper;
-        this.chargePreparer = chargePreparer;
-        this.chargeProcessor = chargeProcessor;
     }
 
     /**
@@ -169,12 +161,14 @@ public class AbonementService {
 
         //Ну вообще-то должен быть только один Абонемент)
         accountAbonements.forEach(accountAbonement -> {
+            if (accountAbonement.getAbonement() == null
+                    || accountAbonement.getAbonement().getService() == null
+                    || accountAbonement.getAbonement().getService().getCost() == null) {
+                logger.error("We found accountAbonement with null abonement or service or cost: " + accountAbonement);
+                return;
+            }
 
             BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
-
-            if (accountAbonements.isEmpty()) {
-                logger.debug("Not found expiring abonements for accountId: " + account.getId());
-            }
 
             logger.debug("We found expiring abonement: " + accountAbonement);
 
@@ -382,15 +376,7 @@ public class AbonementService {
         if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
             accountHelper.disableAccount(account);
         } else {
-            ChargeRequest chargeRequest = chargePreparer.prepareCharge(account.getId());
-
-            if (chargeRequest != null) {
-                ChargeResult chargeResult = chargeProcessor.processChargeRequest(chargeRequest);
-
-                if (chargeResult.isSuccess()) {
-                    accountHelper.enableAccount(account);
-                }
-            }
+            accountHelper.prepareAndProcessChargeRequest(account.getId());
         }
     }
 

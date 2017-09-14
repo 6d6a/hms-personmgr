@@ -78,7 +78,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
 
     @Override
     public ChargeRequest insert(ChargeRequest chargeRequest) {
-        return repository.insert(setCreated(chargeRequest));
+        return repository.insert(setUpdated(setCreated(chargeRequest)));
     }
 
     @Override
@@ -87,6 +87,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
                 StreamSupport
                         .stream(chargeRequests.spliterator(), false)
                         .map(this::setCreated)
+                        .map(this::setUpdated)
                         .collect(Collectors.toSet())
         );
     }

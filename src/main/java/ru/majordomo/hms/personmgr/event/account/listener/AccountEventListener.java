@@ -14,7 +14,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.ChargeResult;
 import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.*;
@@ -25,7 +24,6 @@ import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
-import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
@@ -56,9 +54,6 @@ public class AccountEventListener {
     private final PersonalAccountManager accountManager;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountNotificationHelper accountNotificationHelper;
-    private final BizMailFeignClient bizMailFeignClient;
-    private final ChargePreparer chargePreparer;
-    private final ChargeProcessor chargeProcessor;
 
     @Autowired
     public AccountEventListener(
@@ -74,10 +69,7 @@ public class AccountEventListener {
             AbonementService abonementService,
             PersonalAccountManager accountManager,
             AccountAbonementManager accountAbonementManager,
-            AccountNotificationHelper accountNotificationHelper,
-            BizMailFeignClient bizMailFeignClient,
-            ChargePreparer chargePreparer,
-            ChargeProcessor chargeProcessor
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -92,9 +84,6 @@ public class AccountEventListener {
         this.accountManager = accountManager;
         this.accountAbonementManager = accountAbonementManager;
         this.accountNotificationHelper = accountNotificationHelper;
-        this.bizMailFeignClient = bizMailFeignClient;
-        this.chargePreparer = chargePreparer;
-        this.chargeProcessor = chargeProcessor;
     }
 
     @EventListener
@@ -353,7 +342,7 @@ public class AccountEventListener {
                 if (accountAbonement == null) {
                     try {
                         abonementService.addAbonement(account, addAbonementId, true);
-                        accountHelper.enableAccount(account);
+                        accountHelper.enableAccount(account.getId());
                     } catch (Exception e) {
                         logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
                         e.printStackTrace();
@@ -391,15 +380,7 @@ public class AccountEventListener {
             // Ставим флаг активности для возможности списать средства
             account.setActive(true);
             // сразу списываем за текущий день
-            ChargeRequest chargeRequest = chargePreparer.prepareCharge(account.getId());
-
-            if (chargeRequest != null) {
-                ChargeResult chargeResult = chargeProcessor.processChargeRequest(chargeRequest);
-
-                if (chargeResult.isSuccess()) {
-                    accountHelper.enableAccount(account);
-                }
-            }
+            accountHelper.prepareAndProcessChargeRequest(account.getId());
         }
     }
 }
