@@ -38,8 +38,6 @@ public class AmqpSender {
     public void send(String exchange, String routingKey, SimpleServiceMessage message) {
         logger.debug("send message by AmqpSender - exchange: " + exchange + " routingKey: " + routingKey + " message " + message.toString());
 
-        myRabbitTemplate.setExchange(exchange);
-
         MessageProperties messageProperties = new MessageProperties();
         messageProperties.setHeader("provider", applicationName);
         messageProperties.setContentType("application/json");
@@ -48,7 +46,7 @@ public class AmqpSender {
 
         logger.debug(amqpMessage.toString());
 
-        myRabbitTemplate.convertAndSend(routingKey, amqpMessage);
+        myRabbitTemplate.convertAndSend(exchange, routingKey, amqpMessage);
 
         logger.info("ACTION_IDENTITY: " + message.getActionIdentity() +
                 " OPERATION_IDENTITY: " + message.getOperationIdentity() +
