@@ -133,7 +133,7 @@ public class PaymentChargesProcessorService {
                 response = accountHelper.charge(account, accountService.getPaymentService(), cost, forceCharge);
             } catch (ChargeException e) {
                 logger.debug("Error. Charge Processor returned ChargeException for service: " + accountService.toString());
-                throw e;
+                return false;
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("Exception in ru.majordomo.hms.personmgr.service.PaymentChargesProcessorService.makeCharge " + e.getMessage());
