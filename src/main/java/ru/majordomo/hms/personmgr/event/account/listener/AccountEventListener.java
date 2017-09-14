@@ -54,6 +54,7 @@ public class AccountEventListener {
     private final PersonalAccountManager accountManager;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountNotificationHelper accountNotificationHelper;
+    private final ChargeHelper chargeHelper;
 
     @Autowired
     public AccountEventListener(
@@ -69,7 +70,8 @@ public class AccountEventListener {
             AbonementService abonementService,
             PersonalAccountManager accountManager,
             AccountAbonementManager accountAbonementManager,
-            AccountNotificationHelper accountNotificationHelper
+            AccountNotificationHelper accountNotificationHelper,
+            ChargeHelper chargeHelper
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -84,6 +86,7 @@ public class AccountEventListener {
         this.accountManager = accountManager;
         this.accountAbonementManager = accountAbonementManager;
         this.accountNotificationHelper = accountNotificationHelper;
+        this.chargeHelper = chargeHelper;
     }
 
     @EventListener
@@ -380,7 +383,7 @@ public class AccountEventListener {
             // Ставим флаг активности для возможности списать средства
             account.setActive(true);
             // сразу списываем за текущий день
-            accountHelper.prepareAndProcessChargeRequest(account.getId());
+            chargeHelper.prepareAndProcessChargeRequest(account.getId());
         }
     }
 }

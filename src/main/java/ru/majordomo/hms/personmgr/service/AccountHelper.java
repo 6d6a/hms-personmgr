@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.service;
 
-import com.mongodb.DuplicateKeyException;
-
 import feign.FeignException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +15,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.ChargeResult;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
@@ -31,7 +28,6 @@ import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
@@ -66,8 +62,6 @@ public class AccountHelper {
     private final PlanRepository planRepository;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountServiceHelper accountServiceHelper;
-    private final ChargePreparer chargePreparer;
-    private final ChargeProcessor chargeProcessor;
 
     @Autowired
     public AccountHelper(
@@ -83,9 +77,7 @@ public class AccountHelper {
             AccountOwnerManager accountOwnerManager,
             PlanRepository planRepository,
             AccountAbonementManager accountAbonementManager,
-            AccountServiceHelper accountServiceHelper,
-            ChargePreparer chargePreparer,
-            ChargeProcessor chargeProcessor
+            AccountServiceHelper accountServiceHelper
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -100,8 +92,6 @@ public class AccountHelper {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
         this.accountServiceHelper = accountServiceHelper;
-        this.chargePreparer = chargePreparer;
-        this.chargeProcessor = chargeProcessor;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -866,27 +856,5 @@ public class AccountHelper {
 //            TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
         }
         this.saveHistoryForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
-    }
-
-    public void prepareAndProcessChargeRequest(String accountId) {
-        try {
-            ChargeRequest chargeRequest = chargePreparer.prepareCharge(accountId);
-
-            if (chargeRequest != null) {
-                ChargeResult chargeResult = chargeProcessor.processChargeRequest(chargeRequest);
-
-                if (chargeResult.isSuccess()) {
-                    enableAccount(accountId);
-                }
-            }
-        } catch (Exception e) {
-            if (e instanceof DuplicateKeyException) {
-                //Уже был запрос на списание за сегодня
-                logger.error("DuplicateKeyException in AccountChargesEventListener AccountPrepareChargesEvent " + e.getMessage());
-            } else {
-                e.printStackTrace();
-                logger.error("Exception in AccountChargesEventListener AccountPrepareChargesEvent " + e.getMessage());
-            }
-        }
     }
 }

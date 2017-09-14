@@ -54,6 +54,7 @@ public class AbonementService {
     private final ApplicationEventPublisher publisher;
     private final AccountStatHelper accountStatHelper;
     private final AccountNotificationHelper accountNotificationHelper;
+    private final ChargeHelper chargeHelper;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -65,7 +66,8 @@ public class AbonementService {
             AccountServiceHelper accountServiceHelper,
             ApplicationEventPublisher publisher,
             AccountStatHelper accountStatHelper,
-            AccountNotificationHelper accountNotificationHelper
+            AccountNotificationHelper accountNotificationHelper,
+            ChargeHelper chargeHelper
     ) {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
@@ -74,6 +76,7 @@ public class AbonementService {
         this.publisher = publisher;
         this.accountStatHelper = accountStatHelper;
         this.accountNotificationHelper = accountNotificationHelper;
+        this.chargeHelper = chargeHelper;
     }
 
     /**
@@ -376,7 +379,7 @@ public class AbonementService {
         if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
             accountHelper.disableAccount(account);
         } else {
-            accountHelper.prepareAndProcessChargeRequest(account.getId());
+            chargeHelper.prepareAndProcessChargeRequest(account.getId());
         }
     }
 
