@@ -29,6 +29,7 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -58,6 +59,7 @@ public class AbonementService {
     private final FinFeignClient finFeignClient;
     private final AccountNotificationHelper accountNotificationHelper;
     private final PaymentChargesProcessorService paymentChargesProcessorService;
+    private final PersonalAccountManager accountManager;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -71,7 +73,8 @@ public class AbonementService {
             AccountStatHelper accountStatHelper,
             FinFeignClient finFeignClient,
             AccountNotificationHelper accountNotificationHelper,
-            PaymentChargesProcessorService paymentChargesProcessorService
+            PaymentChargesProcessorService paymentChargesProcessorService,
+            PersonalAccountManager accountManager
     ) {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
@@ -82,6 +85,7 @@ public class AbonementService {
         this.finFeignClient = finFeignClient;
         this.accountNotificationHelper = accountNotificationHelper;
         this.paymentChargesProcessorService = paymentChargesProcessorService;
+        this.accountManager = accountManager;
     }
 
     /**
@@ -382,6 +386,9 @@ public class AbonementService {
         if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
             accountHelper.disableAccount(account);
         } else {
+            // После добавления сервиса тарифа нужно получить аккаунт заново,
+            // так как услуги в processeingDailyServices получаются из PersonalAccount
+            account = accountManager.findOne(account.getId());
             paymentChargesProcessorService.processingDailyServices(account);
         }
     }
