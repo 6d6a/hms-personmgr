@@ -76,6 +76,8 @@ public class ChargeProcessor {
 
         logger.info("processCharges found " + chargeRequests.size() + " ChargeRequests ");
 
+        batchJobManager.setProcessingState(batchJobId);
+
         chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest.getId(), batchJobId)));
 
         logger.info("Ended processCharges emitting events for " + chargeDate);
@@ -92,6 +94,8 @@ public class ChargeProcessor {
         List<ChargeRequest> chargeRequests = chargeRequestManager.getChargeRequestsWithErrors(chargeDate);
 
         logger.info("processErrorCharges found " + chargeRequests.size() + " ChargeRequests with errors");
+
+        batchJobManager.setProcessingState(batchJobId);
 
         chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest.getId(), batchJobId)));
 

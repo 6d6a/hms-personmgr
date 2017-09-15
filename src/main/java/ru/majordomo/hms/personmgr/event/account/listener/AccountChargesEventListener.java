@@ -87,6 +87,7 @@ public class AccountChargesEventListener {
         ChargeRequest chargeRequest = chargeRequestManager.findOne(event.getSource());
 
         if (chargeRequest != null) {
+            logger.info("Processing ChargeRequest with id " + event.getSource());
             chargeProcessor.processChargeRequest(chargeRequest);
             batchJobManager.incrementProcessed(event.getBatchJobId());
         }

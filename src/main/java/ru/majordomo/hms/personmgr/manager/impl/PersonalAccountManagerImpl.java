@@ -284,7 +284,7 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     public List<String> findAccountIdsByActiveAndNotificationsIn(MailManagerMessageType notificationType) {
         MatchOperation match = match(
                 Criteria.where("notifications")
-                        .in(notificationType)
+                        .in(notificationType.name())
         );
 
         ProjectionOperation project = project("_id");
