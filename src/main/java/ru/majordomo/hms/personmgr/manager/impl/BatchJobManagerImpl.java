@@ -103,8 +103,8 @@ public class BatchJobManagerImpl implements BatchJobManager {
     }
 
     @Override
-    public BatchJob findByRunDateAndTypeOrderByCreatedAsc(LocalDate runDate, BatchJob.Type type) {
-        return repository.findByRunDateAndTypeOrderByCreatedAsc(runDate, type);
+    public BatchJob findByRunDateAndTypeOrderByCreatedDesc(LocalDate runDate, BatchJob.Type type) {
+        return repository.findByRunDateAndTypeOrderByCreatedDesc(runDate, type);
     }
 
     @Override

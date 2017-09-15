@@ -30,7 +30,7 @@ public interface BatchJobManager {
 
     List<BatchJob> findAll();
 
-    BatchJob findByRunDateAndTypeOrderByCreatedAsc(LocalDate runDate, BatchJob.Type type);
+    BatchJob findByRunDateAndTypeOrderByCreatedDesc(LocalDate runDate, BatchJob.Type type);
 
     void setProcessingState(String id);
 
