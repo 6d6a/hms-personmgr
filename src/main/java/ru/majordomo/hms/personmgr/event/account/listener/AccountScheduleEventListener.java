@@ -15,7 +15,6 @@ import ru.majordomo.hms.personmgr.event.account.ProcessExpiringAbonementsEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessExpiringDomainsEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessNotifyExpiredAbonementsEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessNotifyInactiveLongTimeEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessQuotaChecksEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessRecurrentsEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessSendInfoMailEvent;
 import ru.majordomo.hms.personmgr.service.scheduler.AbonementsScheduler;
@@ -23,13 +22,11 @@ import ru.majordomo.hms.personmgr.service.scheduler.BusinessActionsScheduler;
 import ru.majordomo.hms.personmgr.service.scheduler.RecurrentsScheduler;
 import ru.majordomo.hms.personmgr.service.scheduler.DomainsScheduler;
 import ru.majordomo.hms.personmgr.service.scheduler.NotificationScheduler;
-import ru.majordomo.hms.personmgr.service.scheduler.QuotaScheduler;
 
 @Component
 public class AccountScheduleEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountScheduleEventListener.class);
 
-    private final QuotaScheduler quotaScheduler;
     private final NotificationScheduler notificationScheduler;
     private final DomainsScheduler domainsScheduler;
     private final BusinessActionsScheduler businessActionsScheduler;
@@ -39,27 +36,17 @@ public class AccountScheduleEventListener {
 
     @Autowired
     public AccountScheduleEventListener(
-            QuotaScheduler quotaScheduler,
             NotificationScheduler notificationScheduler,
             DomainsScheduler domainsScheduler,
             BusinessActionsScheduler businessActionsScheduler,
             AbonementsScheduler abonementsScheduler,
             RecurrentsScheduler recurrentsScheduler
     ) {
-        this.quotaScheduler = quotaScheduler;
         this.notificationScheduler = notificationScheduler;
         this.domainsScheduler = domainsScheduler;
         this.businessActionsScheduler = businessActionsScheduler;
         this.abonementsScheduler = abonementsScheduler;
         this.recurrentsScheduler = recurrentsScheduler;
-    }
-
-    @EventListener
-    @Async("threadPoolTaskExecutor")
-    public void on(ProcessQuotaChecksEvent event) {
-        logger.debug("We got ProcessQuotaChecksEvent");
-
-        quotaScheduler.processQuotaChecks();
     }
 
     @EventListener
