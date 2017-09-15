@@ -63,7 +63,7 @@ public class Charger {
             );
             response = accountHelper.charge(account, accountService.getPaymentService(), cost, forceCharge);
         } catch (ChargeException e) {
-            logger.debug("Error. accountHelper.charge returned ChargeException for service: " + accountService.toString());
+            logger.info("Error. accountHelper.charge returned ChargeException for service: " + accountService.toString());
             return ChargeResult.error();
         } catch (Exception e) {
             e.printStackTrace();
@@ -74,10 +74,10 @@ public class Charger {
         if (response != null && response.getParam("success") != null && ((boolean) response.getParam("success"))) {
             accountService.setLastBilled(chargeDateTime);
             accountServiceRepository.save(accountService);
-            logger.debug("Success. Charge Processor returned true fo service: " + accountService.toString());
+            logger.info("Success. Charge Processor returned true fo service: " + accountService.toString());
             return ChargeResult.success();
         } else {
-            logger.debug("Error. Charge Processor returned false for service: " + accountService.toString());
+            logger.info("Error. Charge Processor returned false for service: " + accountService.toString());
         }
 
         return ChargeResult.error();

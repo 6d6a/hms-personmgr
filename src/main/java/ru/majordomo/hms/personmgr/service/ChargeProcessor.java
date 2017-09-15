@@ -122,7 +122,12 @@ public class ChargeProcessor {
             } else if (!chargeResult.isSuccess() && !chargeResult.isGotException()) {
                 switch (accountServiceHelper.getPaymentServiceType(accountService)) {
                     case "PLAN":
-                        disableAndNotifyAccountByReasonNotEnoughMoney(account);
+                        try {
+                            disableAndNotifyAccountByReasonNotEnoughMoney(account);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            chargeRequest.setStatus(ChargeRequestItem.Status.ERROR);
+                        }
                         return chargeResult;
                     case "ADDITIONAL_SERVICE":
                     default:
