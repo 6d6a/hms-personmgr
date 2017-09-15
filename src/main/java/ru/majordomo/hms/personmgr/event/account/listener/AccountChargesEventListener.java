@@ -55,6 +55,7 @@ public class AccountChargesEventListener {
             }
         } catch (Exception e) {
             if (e instanceof DuplicateKeyException) {
+                batchJobManager.incrementProcessed(event.getBatchJobId());
                 logger.error("DuplicateKeyException in AccountChargesEventListener AccountPrepareChargesEvent " + e.getMessage());
             } else {
                 e.printStackTrace();
