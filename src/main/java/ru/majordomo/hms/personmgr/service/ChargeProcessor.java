@@ -133,9 +133,16 @@ public class ChargeProcessor {
                 chargeRequestItem.setStatus(ChargeRequestItem.Status.ERROR);
             }
         }
+
         if (dailyCost.compareTo(BigDecimal.ZERO) > 0) {
-            if (accountHelper.getBalance(account).compareTo(BigDecimal.ZERO) < 0)
-                accountHelper.setCreditActivationDateIfNotSet(account);
+            try {
+                if (accountHelper.getBalance(account).compareTo(BigDecimal.ZERO) < 0) {
+                    accountHelper.setCreditActivationDateIfNotSet(account);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                chargeRequest.setStatus(ChargeRequestItem.Status.ERROR);
+            }
             // Если были списания, то отправить уведомления
             HashMap<String, Object> params = new HashMap<>();
             params.put("daylyCost", dailyCost);
@@ -165,6 +172,6 @@ public class ChargeProcessor {
             default:
                 accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
         }
-        accountNotificationHelper.sendMailForDeactivatedAccount(account);
+        accountNotificationHelper.sendMailForDeactivatedAccount(account, LocalDate.now());
     }
 }

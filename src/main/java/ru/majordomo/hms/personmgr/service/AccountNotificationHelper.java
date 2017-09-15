@@ -114,10 +114,6 @@ public class AccountNotificationHelper {
         publisher.publishEvent(new SendMailEvent(message));
     }
 
-    public void sendMailForDeactivatedAccount(PersonalAccount account) {
-        this.sendMailForDeactivatedAccount(account, LocalDate.now());
-    }
-
     public void sendMailForDeactivatedAccount(PersonalAccount account, LocalDate dateFinish) {
         Plan plan = planRepository.findOne(account.getPlanId());
         BigDecimal costPerMonth = plan.getService().getCost().setScale(2, BigDecimal.ROUND_DOWN);

@@ -39,10 +39,6 @@ public class Charger {
         this.accountServiceRepository = accountServiceRepository;
     }
 
-    ChargeResult makeCharge(AccountService accountService) {
-        return makeCharge(accountService, LocalDate.now());
-    }
-
     /*
             результат списания за услугу, полученный от finansier
             Значение по-умолчанию true, на случай если
