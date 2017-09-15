@@ -126,8 +126,13 @@ public class ChargeProcessor {
                             disableAndNotifyAccountByReasonNotEnoughMoney(account);
                         } catch (Exception e) {
                             e.printStackTrace();
-                            chargeRequest.setStatus(ChargeRequestItem.Status.ERROR);
                         }
+
+                        chargeRequestItem.setStatus(ChargeRequestItem.Status.SKIPPED);
+                        chargeRequest.setStatus(ChargeRequestItem.Status.CHARGED);
+
+                        chargeRequestManager.save(chargeRequest);
+
                         return chargeResult;
                     case "ADDITIONAL_SERVICE":
                     default:
