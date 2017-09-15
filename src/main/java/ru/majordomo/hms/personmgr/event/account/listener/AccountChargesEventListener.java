@@ -1,11 +1,10 @@
 package ru.majordomo.hms.personmgr.event.account.listener;
 
-import com.mongodb.DuplicateKeyException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -54,7 +53,7 @@ public class AccountChargesEventListener {
                 batchJobManager.incrementProcessed(event.getBatchJobId());
             }
         } catch (Exception e) {
-            if (e instanceof DuplicateKeyException) {
+            if (e instanceof DuplicateKeyException || e instanceof com.mongodb.DuplicateKeyException) {
                 batchJobManager.incrementProcessed(event.getBatchJobId());
                 logger.error("DuplicateKeyException in AccountChargesEventListener AccountPrepareChargesEvent " + e.getMessage());
             } else {
