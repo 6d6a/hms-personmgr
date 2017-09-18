@@ -260,6 +260,11 @@ public class AccountServiceHelper {
                 )
                         && accountService.getPaymentService().getCost().compareTo(BigDecimal.ZERO) > 0
         ).collect(Collectors.toList());
+
+        //сортируем в порядке убывания paymentService.chargePriority
+        //в начало попадет сервис с тарифом
+        accountServices.sort(AccountService.ChargePriorityComparator);
+
         return dailyServices;
     }
 

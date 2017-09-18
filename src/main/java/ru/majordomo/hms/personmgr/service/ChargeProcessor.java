@@ -80,6 +80,8 @@ public class ChargeProcessor {
 
         chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest.getId(), batchJobId)));
 
+        batchJobManager.updateStateToFinishedIfNeeded(batchJobId);
+
         logger.info("Ended processCharges emitting events for " + chargeDate);
     }
 
@@ -98,6 +100,8 @@ public class ChargeProcessor {
         batchJobManager.setProcessingState(batchJobId);
 
         chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest.getId(), batchJobId)));
+
+        batchJobManager.updateStateToFinishedIfNeeded(batchJobId);
 
         logger.info("Ended processErrorCharges emitting events for " + chargeDate);
     }

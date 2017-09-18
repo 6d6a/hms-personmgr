@@ -181,7 +181,8 @@ public class BatchJobManagerImpl implements BatchJobManager {
         updateStateToFinishedIfNeeded(id);
     }
 
-    private void updateStateToFinishedIfNeeded(String id) {
+    @Override
+    public void updateStateToFinishedIfNeeded(String id) {
         BatchJob batchJob = repository.findOne(id);
 
         if (batchJob.getProcessed() == batchJob.getNeedToProcess()) {

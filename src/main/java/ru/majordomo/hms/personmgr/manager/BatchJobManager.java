@@ -45,4 +45,6 @@ public interface BatchJobManager {
     void incrementProcessed(String id);
 
     void incrementProcessed(String id, int count);
+
+    void updateStateToFinishedIfNeeded(String id);
 }

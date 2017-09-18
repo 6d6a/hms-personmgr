@@ -81,6 +81,9 @@ public class ChargePreparer {
         } else {
             logger.error("Active accounts not found in daily charges.");
         }
+
+        batchJobManager.updateStateToFinishedIfNeeded(batchJobId);
+
         logger.info("Ended PrepareCharges for " + chargeDate);
     }
 
