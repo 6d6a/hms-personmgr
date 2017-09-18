@@ -11,7 +11,9 @@ import ru.majordomo.hms.personmgr.repository.DiscountRepository;
 import ru.majordomo.hms.personmgr.service.DiscountServiceHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @PreAuthorize("hasRole('ADMIN')")
@@ -50,4 +52,17 @@ public class DiscountController {
         discountServiceHelper.addDiscountToAccount(accountId, discountId);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping(value = "/percent")
+    public ResponseEntity<Discount> createDiscountPercent(
+            @RequestBody Map<String, Object> requestBody
+    ) {
+        return ResponseEntity.ok(discountServiceHelper.createDiscountPercent(
+                requestBody.containsKey("id") ? (String) requestBody.get("id") : null,
+                (String) requestBody.get("name"),
+                (BigDecimal) requestBody.get("discountRate"),
+                (Integer) requestBody.get("usageCountLimit")
+        ));
+    }
+
 }

@@ -35,13 +35,6 @@ public class DiscountServiceHelper {
        this.discountRepository = discountRepository;
     }
 
-    private void createDiscountAndAddItToAccount() {
-        String discountName = "sfjkajsdfj";
-        createDiscountPercent(discountName, BigDecimal.valueOf(100), 10);
-        Discount discountFromDB = discountRepository.findByName(discountName);
-        addDiscountToAccount("acc_id", discountFromDB.getId());
-    }
-
     public void addDiscountToAccount(String accountId, String discountId) {
 
         AccountDiscount accountDiscount = new AccountDiscount();
@@ -54,12 +47,14 @@ public class DiscountServiceHelper {
     }
 
 
-    public Discount createDiscountPercent(String name, BigDecimal discountRate, int usageCountLimit) {
+    public Discount createDiscountPercent(String id, String name, BigDecimal discountRate, int usageCountLimit) {
+
         Discount discount = new DiscountPercent();
         List<PaymentService> services = paymentServiceRepository.findByPaymentType(ServicePaymentType.MONTH);
         List<String> serviceIdsList = new ArrayList<>();
         services.forEach(s -> serviceIdsList.add(s.getId()));
 
+        if (id != null) { discount.setId(id); }
         discount.setServiceIds(serviceIdsList);
         discount.setName(name);
         discount.setAmount(discountRate);
