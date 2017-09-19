@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -54,7 +55,7 @@ public class AccountEventListener {
     private final PersonalAccountManager accountManager;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountNotificationHelper accountNotificationHelper;
-    private final PaymentChargesProcessorService paymentChargesProcessorService;
+    private final ChargeHelper chargeHelper;
 
     @Autowired
     public AccountEventListener(
@@ -71,7 +72,7 @@ public class AccountEventListener {
             PersonalAccountManager accountManager,
             AccountAbonementManager accountAbonementManager,
             AccountNotificationHelper accountNotificationHelper,
-            PaymentChargesProcessorService paymentChargesProcessorService
+            ChargeHelper chargeHelper
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -86,7 +87,7 @@ public class AccountEventListener {
         this.accountManager = accountManager;
         this.accountAbonementManager = accountAbonementManager;
         this.accountNotificationHelper = accountNotificationHelper;
-        this.paymentChargesProcessorService = paymentChargesProcessorService;
+        this.chargeHelper = chargeHelper;
     }
 
     @EventListener
@@ -380,13 +381,8 @@ public class AccountEventListener {
 
     private void tryProcessChargeAndEnableAccount(PersonalAccount account) {
         if (!account.isActive()) {
-            // Ставим флаг активности для возможности списать средства
-            account.setActive(true);
             // сразу списываем за текущий день
-            Boolean success = paymentChargesProcessorService.processingDailyServices(account);
-            if (success) {
-                accountHelper.enableAccount(account);
-            }
+            chargeHelper.prepareAndProcessChargeRequest(account.getId(), LocalDate.now());
         }
     }
 }

@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
@@ -30,7 +32,16 @@ public class MailManagerEventListener {
 
         logger.debug("We got SendMailEvent");
 
-        mailManager.sendEmail(message);
+        try {
+            mailManager.send(message, MailManager.UrlKey.SEND_EMAIL);
+        } catch (HttpClientErrorException e) {
+            logger.error("mail not sent: " + message + " exception: " + e.getMessage()+ " " + e.getResponseBodyAsString());
+            e.printStackTrace();
+        } catch (Exception e) {
+            logger.error("mail not sent: " + message + " exception: " + e.getMessage());
+            e.printStackTrace();
+        }
+
         logger.debug("mail sent: " + message);
     }
 
@@ -39,7 +50,16 @@ public class MailManagerEventListener {
     public void onSendSms(SendSmsEvent event) {
         SimpleServiceMessage message = event.getSource();
 
-        mailManager.sendSms(message);
+        try {
+            mailManager.send(message, MailManager.UrlKey.SEND_SMS);
+        } catch (HttpClientErrorException e) {
+            logger.error("sms not sent: " + message + " exception: " + e.getMessage()+ " " + e.getResponseBodyAsString());
+            e.printStackTrace();
+        } catch (Exception e) {
+            logger.error("sms not sent: " + message + " exception: " + e.getMessage());
+            e.printStackTrace();
+        }
+
         logger.debug("sms sent: " + message);
     }
 }

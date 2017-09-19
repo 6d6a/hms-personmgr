@@ -4,7 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -238,11 +240,18 @@ public class AccountServiceHelper {
         return (accountSmsService != null && accountSmsService.isEnabled());
     }
 
-    public List<AccountService> getDaylyServicesToCharge(PersonalAccount account, LocalDateTime chargeDate) {
-        List<AccountService> daylyServices = new ArrayList<>();
+    public List<AccountService> getDailyServicesToCharge(PersonalAccount account, LocalDate chargeDate) {
+        return getDailyServicesToCharge(account, LocalDateTime.of(
+                chargeDate,
+                LocalTime.of(0, 0, 0, 0)
+                )
+        );
+    }
+    public List<AccountService> getDailyServicesToCharge(PersonalAccount account, LocalDateTime chargeDate) {
+        List<AccountService> dailyServices = new ArrayList<>();
         List<AccountService> accountServices = account.getServices();
-        if (accountServices == null || accountServices.isEmpty()) { return daylyServices;}
-        daylyServices = accountServices.stream().filter(accountService ->
+        if (accountServices == null || accountServices.isEmpty()) { return dailyServices;}
+        dailyServices = accountServices.stream().filter(accountService ->
                 accountService.isEnabled()
                         && accountService.getPaymentService() != null
                         && (
@@ -251,7 +260,12 @@ public class AccountServiceHelper {
                 )
                         && accountService.getPaymentService().getCost().compareTo(BigDecimal.ZERO) > 0
         ).collect(Collectors.toList());
-        return daylyServices;
+
+        //сортируем в порядке убывания paymentService.chargePriority
+        //в начало попадет сервис с тарифом
+        accountServices.sort(AccountService.ChargePriorityComparator);
+
+        return dailyServices;
     }
 
     public String getPaymentServiceType(AccountService accountService) {
@@ -267,8 +281,8 @@ public class AccountServiceHelper {
         }
     }
 
-    public BigDecimal getDaylyCostForServise(AccountService accountService) {
-        Integer daysInCurrentMonth = LocalDateTime.now().toLocalDate().lengthOfMonth();
+    public BigDecimal getDailyCostForService(AccountService accountService, LocalDate chargeDate) {
+        Integer daysInCurrentMonth = chargeDate.lengthOfMonth();
         BigDecimal cost = BigDecimal.ZERO;
         switch (accountService.getPaymentService().getPaymentType()) {
             case MONTH:

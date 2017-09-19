@@ -1,17 +1,14 @@
 package ru.majordomo.hms.personmgr.event.account;
 
 import org.springframework.context.ApplicationEvent;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 public class AccountDeactivatedSendMailEvent extends ApplicationEvent {
-
-    public AccountDeactivatedSendMailEvent(PersonalAccount source) {
-        super(source);
+    public AccountDeactivatedSendMailEvent(String accountId) {
+        super(accountId);
     }
 
     @Override
-    public PersonalAccount getSource() {
-        return (PersonalAccount) super.getSource();
+    public String getSource() {
+        return (String) super.getSource();
     }
-
 }

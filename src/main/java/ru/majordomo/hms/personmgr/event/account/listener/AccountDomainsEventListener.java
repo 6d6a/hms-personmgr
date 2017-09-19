@@ -15,6 +15,7 @@ import ru.majordomo.hms.personmgr.event.account.AccountDomainAutoRenewCompletedE
 import ru.majordomo.hms.personmgr.event.account.AccountProcessDomainsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringDomainsEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.DomainService;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
@@ -31,22 +32,25 @@ public class AccountDomainsEventListener {
     private final DomainService domainService;
     private final ApplicationEventPublisher publisher;
     private final RcUserFeignClient rcUserFeignClient;
+    private final PersonalAccountManager personalAccountManager;
 
     @Autowired
     public AccountDomainsEventListener(
             DomainService domainService,
             ApplicationEventPublisher publisher,
-            RcUserFeignClient rcUserFeignClient
+            RcUserFeignClient rcUserFeignClient,
+            PersonalAccountManager personalAccountManager
     ) {
         this.domainService = domainService;
         this.publisher = publisher;
         this.rcUserFeignClient = rcUserFeignClient;
+        this.personalAccountManager = personalAccountManager;
     }
 
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onAccountProcessExpiringDomainsEvent(AccountProcessExpiringDomainsEvent event) {
-        PersonalAccount account = event.getSource();
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
         logger.debug("We got AccountProcessExpiringDomainsEvent");
 
@@ -61,7 +65,7 @@ public class AccountDomainsEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onAccountProcessDomainsAutoRenewEvent(AccountProcessDomainsAutoRenewEvent event) {
-        PersonalAccount account = event.getSource();
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
         logger.debug("We got AccountProcessDomainsAutoRenewEvent");
 
