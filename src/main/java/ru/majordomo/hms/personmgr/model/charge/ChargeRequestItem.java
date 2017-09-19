@@ -3,8 +3,6 @@ package ru.majordomo.hms.personmgr.model.charge;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-import org.bson.types.Decimal128;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -16,9 +14,9 @@ import java.time.LocalDate;
                 name = "charge_request")
 })
 public interface ChargeRequestItem {
-    ChargeRequest.Status getStatus();
+    Status getStatus();
 
-    void setStatus(ChargeRequest.Status status);
+    void setStatus(Status status);
 
     BigDecimal getAmount();
 
@@ -32,11 +30,4 @@ public interface ChargeRequestItem {
 
     void setChargeDate(LocalDate chargeDate);
 
-    enum Status {
-        NEW,
-        PROCESSING,
-        CHARGED,
-        SKIPPED,
-        ERROR
-    }
 }

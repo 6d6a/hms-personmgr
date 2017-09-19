@@ -9,7 +9,7 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
-import ru.majordomo.hms.personmgr.model.charge.ChargeRequestItem;
+import ru.majordomo.hms.personmgr.model.charge.Status;
 import ru.majordomo.hms.personmgr.repository.ChargeRequestRepository;
 
 import java.time.LocalDate;
@@ -120,7 +120,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
     }
 
     @Override
-    public List<ChargeRequest> findByChargeDateAndStatus(LocalDate chargeDate, ChargeRequest.Status status) {
+    public List<ChargeRequest> findByChargeDateAndStatus(LocalDate chargeDate, Status status) {
         return repository.findByChargeDateAndStatus(chargeDate, status);
     }
 
@@ -137,7 +137,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
         List<ChargeRequest> chargeRequests = new ArrayList<>();
 
         Update update = new Update();
-        update.set("status", ChargeRequestItem.Status.PROCESSING);
+        update.set("status", Status.PROCESSING);
         update.currentDate("updated");
 
         for (int count = 0; count <= needToProcess; count++) {
@@ -169,7 +169,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
         List<ChargeRequest> chargeRequests = new ArrayList<>();
 
         Update update = new Update();
-        update.set("status", ChargeRequestItem.Status.PROCESSING);
+        update.set("status", Status.PROCESSING);
         update.currentDate("updated");
 
         for (int count = 0; count <= needToProcess; count++) {
@@ -214,10 +214,10 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
                 new Criteria()
                         .orOperator(
                                 Criteria
-                                        .where("status").is(ChargeRequestItem.Status.ERROR)
+                                        .where("status").is(Status.ERROR)
                                         .and("chargeDate").is(chargeDate),
                                 Criteria
-                                        .where("status").is(ChargeRequestItem.Status.PROCESSING)
+                                        .where("status").is(Status.PROCESSING)
                                         .and("chargeDate").is(chargeDate)
                                         .and("updated").lt(nowMinus30Minutes)
                         ));
@@ -227,7 +227,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
 
     private Query getNeedToProcessChargeRequestsQuery(LocalDate chargeDate) {
         Query query = new Query();
-        query.addCriteria(Criteria.where("status").is(ChargeRequestItem.Status.NEW).and("chargeDate").is(chargeDate));
+        query.addCriteria(Criteria.where("status").is(Status.NEW).and("chargeDate").is(chargeDate));
 
         return query;
     }

@@ -22,6 +22,7 @@ import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequestItem;
+import ru.majordomo.hms.personmgr.model.charge.Status;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 
@@ -113,8 +114,8 @@ public class ChargeProcessor {
         for(ChargeRequestItem chargeRequestItem : chargeRequest.getChargeRequests()
                 .stream()
                 .filter(chargeRequestItem ->
-                        chargeRequestItem.getStatus() == ChargeRequestItem.Status.NEW ||
-                        chargeRequestItem.getStatus() == ChargeRequestItem.Status.ERROR
+                        chargeRequestItem.getStatus() == Status.NEW ||
+                        chargeRequestItem.getStatus() == Status.ERROR
                 )
                 .collect(Collectors.toSet())) {
             AccountService accountService =  accountServiceRepository.findOne(chargeRequestItem.getAccountServiceId());
@@ -122,7 +123,7 @@ public class ChargeProcessor {
             ChargeResult chargeResult = charger.makeCharge(accountService, chargeRequest.getChargeDate());
             if (chargeResult.isSuccess()) {
                 dailyCost = dailyCost.add(accountServiceHelper.getDailyCostForService(accountService, chargeRequest.getChargeDate()));
-                chargeRequestItem.setStatus(ChargeRequestItem.Status.CHARGED);
+                chargeRequestItem.setStatus(Status.CHARGED);
             } else if (!chargeResult.isSuccess() && !chargeResult.isGotException()) {
                 switch (accountServiceHelper.getPaymentServiceType(accountService)) {
                     case "PLAN":
@@ -132,8 +133,8 @@ public class ChargeProcessor {
                             e.printStackTrace();
                         }
 
-                        chargeRequestItem.setStatus(ChargeRequestItem.Status.SKIPPED);
-                        chargeRequest.setStatus(ChargeRequestItem.Status.CHARGED);
+                        chargeRequestItem.setStatus(Status.SKIPPED);
+                        chargeRequest.setStatus(Status.CHARGED);
 
                         chargeRequestManager.save(chargeRequest);
 
@@ -142,9 +143,9 @@ public class ChargeProcessor {
                     default:
                         accountHelper.disableAdditionalService(accountService);
                 }
-                chargeRequestItem.setStatus(ChargeRequestItem.Status.SKIPPED);
+                chargeRequestItem.setStatus(Status.SKIPPED);
             } else {
-                chargeRequestItem.setStatus(ChargeRequestItem.Status.ERROR);
+                chargeRequestItem.setStatus(Status.ERROR);
             }
         }
 
@@ -155,7 +156,7 @@ public class ChargeProcessor {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                chargeRequest.setStatus(ChargeRequestItem.Status.ERROR);
+                chargeRequest.setStatus(Status.ERROR);
             }
             // Если были списания, то отправить уведомления
             HashMap<String, Object> params = new HashMap<>();
@@ -163,10 +164,10 @@ public class ChargeProcessor {
             publisher.publishEvent(new AccountSendNotificationsRemainingDaysEvent(account, params));
         }
 
-        if (chargeRequest.getChargeRequests().stream().anyMatch(chargeRequestItem -> chargeRequestItem.getStatus() == ChargeRequestItem.Status.ERROR)) {
-            chargeRequest.setStatus(ChargeRequestItem.Status.ERROR);
+        if (chargeRequest.getChargeRequests().stream().anyMatch(chargeRequestItem -> chargeRequestItem.getStatus() == Status.ERROR)) {
+            chargeRequest.setStatus(Status.ERROR);
         } else {
-            chargeRequest.setStatus(ChargeRequestItem.Status.CHARGED);
+            chargeRequest.setStatus(Status.CHARGED);
         }
 
         chargeRequestManager.save(chargeRequest);
