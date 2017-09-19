@@ -79,7 +79,7 @@ public class DiscountServiceHelper {
                     discount.setName((String) keyValue.get(key));
                     break;
                 case "amount":
-                    discount.setAmount(new BigDecimal((String) keyValue.get(key)));
+                    discount.setAmount(new BigDecimal((Integer) keyValue.get(key)));
                     break;
                 case "active":
                     discount.setActive(true);
