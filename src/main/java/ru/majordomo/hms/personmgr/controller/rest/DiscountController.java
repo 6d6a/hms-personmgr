@@ -60,7 +60,7 @@ public class DiscountController {
         return ResponseEntity.ok(discountServiceHelper.createDiscountPercent(
                 requestBody.containsKey("id") ? (String) requestBody.get("id") : null,
                 (String) requestBody.get("name"),
-                (BigDecimal) requestBody.get("discountRate"),
+                (BigDecimal) requestBody.get("amount"),
                 (Integer) requestBody.get("usageCountLimit")
         ));
     }

@@ -42,12 +42,15 @@ public class DiscountServiceHelper {
         accountDiscount.setCreated(LocalDateTime.now());
 
         PersonalAccount account = accountManager.findByAccountId(accountId);
+
+        if (account.getDiscounts().stream().anyMatch(d -> d.getDiscountId().equals(discountId))) { return; }
+
         account.addDiscount(accountDiscount);
         accountManager.save(account);
     }
 
 
-    public Discount createDiscountPercent(String id, String name, BigDecimal discountRate, int usageCountLimit) {
+    public Discount createDiscountPercent(String id, String name, BigDecimal amount, int usageCountLimit) {
 
         Discount discount = new DiscountPercent();
         List<PaymentService> services = paymentServiceRepository.findByPaymentType(ServicePaymentType.MONTH);
@@ -57,7 +60,7 @@ public class DiscountServiceHelper {
         if (id != null) { discount.setId(id); }
         discount.setServiceIds(serviceIdsList);
         discount.setName(name);
-        discount.setAmount(discountRate);
+        discount.setAmount(amount);
         discount.setActive(true);
         discount.setUsageCountLimit(usageCountLimit);
         discountRepository.save(discount);
