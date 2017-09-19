@@ -399,6 +399,10 @@ public class AccountHelper {
         switchAccountActiveState(account, true);
     }
 
+    public void enableAccount(PersonalAccount account) {
+        switchAccountActiveState(account, true);
+    }
+
     public void switchAccountActiveState(PersonalAccount account, Boolean state) {
         saveHistoryForOperatorService(account, "Аккаунт " + (state ? "включен" : "выключен"));
 

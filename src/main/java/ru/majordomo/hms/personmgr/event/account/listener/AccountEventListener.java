@@ -345,7 +345,7 @@ public class AccountEventListener {
                 if (accountAbonement == null) {
                     try {
                         abonementService.addAbonement(account, addAbonementId, true);
-                        accountHelper.enableAccount(account.getId());
+                        accountHelper.enableAccount(account);
                     } catch (Exception e) {
                         logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
                         e.printStackTrace();
