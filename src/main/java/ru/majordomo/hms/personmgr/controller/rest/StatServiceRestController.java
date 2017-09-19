@@ -4,29 +4,26 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-//import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
 
 @RestController
+@PreAuthorize("hasRole('ADMIN')")
 @RequestMapping({"/pm/stat"})
 public class StatServiceRestController {
-//    private final PersonalAccountManager accountManager;
     private final MongoOperations mongoOperations;
 
     public StatServiceRestController(
-//            PersonalAccountManager accountManager,
             MongoOperations mongoOperations
     ) {
-//        this.accountManager = accountManager;
         this.mongoOperations = mongoOperations;
     }
 
