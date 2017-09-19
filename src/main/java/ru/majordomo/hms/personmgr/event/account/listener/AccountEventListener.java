@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -380,10 +381,8 @@ public class AccountEventListener {
 
     private void tryProcessChargeAndEnableAccount(PersonalAccount account) {
         if (!account.isActive()) {
-            // Ставим флаг активности для возможности списать средства
-            account.setActive(true);
             // сразу списываем за текущий день
-            chargeHelper.prepareAndProcessChargeRequest(account.getId());
+            chargeHelper.prepareAndProcessChargeRequest(account.getId(), LocalDate.now());
         }
     }
 }

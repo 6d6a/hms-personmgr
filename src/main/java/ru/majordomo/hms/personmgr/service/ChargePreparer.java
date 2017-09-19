@@ -87,15 +87,15 @@ public class ChargePreparer {
         logger.info("Ended PrepareCharges for " + chargeDate);
     }
 
-    public ChargeRequest prepareCharge(String accountId) {
-        return prepareCharge(accountId,  LocalDate.now());
+    public ChargeRequest prepareCharge(String accountId, LocalDate chargeDate) {
+        return prepareCharge(accountId,  chargeDate, false);
     }
 
-    public ChargeRequest prepareCharge(String accountId, LocalDate chargeDate) {
+    public ChargeRequest prepareCharge(String accountId, LocalDate chargeDate, boolean chargeFromInactive) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        //Не списываем с неактивных аккаунтов
-        if (!account.isActive()) { return null; }
+        //Не списываем с неактивных аккаунтов если это не требуется указанием параметра chargeFromInactive
+        if (!chargeFromInactive && !account.isActive()) { return null; }
 
         List<AccountService> accountServices = accountServiceHelper.getDailyServicesToCharge(account, chargeDate);
 

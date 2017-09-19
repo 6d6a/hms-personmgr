@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+
 import ru.majordomo.hms.personmgr.common.ChargeResult;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 
@@ -27,9 +29,9 @@ public class ChargeHelper {
         this.accountHelper = accountHelper;
     }
 
-    public void prepareAndProcessChargeRequest(String accountId) {
+    public void prepareAndProcessChargeRequest(String accountId, LocalDate chargeDate) {
         try {
-            ChargeRequest chargeRequest = chargePreparer.prepareCharge(accountId);
+            ChargeRequest chargeRequest = chargePreparer.prepareCharge(accountId, chargeDate, true);
 
             if (chargeRequest != null) {
                 ChargeResult chargeResult = chargeProcessor.processChargeRequest(chargeRequest);
