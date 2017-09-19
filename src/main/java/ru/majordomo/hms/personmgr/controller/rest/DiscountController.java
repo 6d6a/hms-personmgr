@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.DiscountType;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.discount.Discount;
-import ru.majordomo.hms.personmgr.model.discount.DiscountPercent;
 import ru.majordomo.hms.personmgr.repository.DiscountRepository;
 import ru.majordomo.hms.personmgr.service.DiscountServiceHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
