@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,23 +33,22 @@ import ru.majordomo.hms.personmgr.event.token.CleanTokensEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.BatchJobManager;
 import ru.majordomo.hms.personmgr.model.batch.BatchJob;
-import ru.majordomo.hms.personmgr.service.ChargePreparer;
-import ru.majordomo.hms.personmgr.service.ChargeProcessor;
 
 @RestController
+@RefreshScope
 public class SchedulerRestController extends CommonRestController {
-    private final ChargePreparer chargePreparer;
-    private final ChargeProcessor chargeProcessor;
     private final BatchJobManager batchJobManager;
+    private int waitForDeadJobHours;
 
     public SchedulerRestController(
-            ChargePreparer chargePreparer,
-            ChargeProcessor chargeProcessor,
             BatchJobManager batchJobManager
     ) {
-        this.chargePreparer = chargePreparer;
-        this.chargeProcessor = chargeProcessor;
         this.batchJobManager = batchJobManager;
+    }
+
+    @Value("${batch_job.wait_for_dead_job_hours}")
+    public void setWaitForDeadJobHours(int waitForDeadJobHours) {
+        this.waitForDeadJobHours = waitForDeadJobHours;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -127,7 +128,9 @@ public class SchedulerRestController extends CommonRestController {
             case "prepare_charges":
                 batchJob = batchJobManager.findByRunDateAndTypeOrderByCreatedDesc(date, BatchJob.Type.PREPARE_CHARGES);
 
-                if (batchJob == null || (batchJob.getUpdated().isBefore(LocalDateTime.now().minusHours(2)) && batchJob.getState() != BatchJob.State.FINISHED)) {
+                if (batchJob == null ||
+                        (batchJob.getUpdated().isBefore(LocalDateTime.now().minusHours(waitForDeadJobHours)) &&
+                                batchJob.getState() != BatchJob.State.FINISHED)) {
                     batchJob = new BatchJob();
                     batchJob.setRunDate(date);
                     batchJob.setType(BatchJob.Type.PREPARE_CHARGES);
@@ -141,7 +144,9 @@ public class SchedulerRestController extends CommonRestController {
             case "process_charges":
                 batchJob = batchJobManager.findByRunDateAndTypeOrderByCreatedDesc(date, BatchJob.Type.PROCESS_CHARGES);
 
-                if (batchJob == null || (batchJob.getUpdated().isBefore(LocalDateTime.now().minusHours(2)) && batchJob.getState() != BatchJob.State.FINISHED)) {
+                if (batchJob == null ||
+                        (batchJob.getUpdated().isBefore(LocalDateTime.now().minusHours(waitForDeadJobHours)) &&
+                                batchJob.getState() != BatchJob.State.FINISHED)) {
                     batchJob = new BatchJob();
                     batchJob.setRunDate(date);
                     batchJob.setType(BatchJob.Type.PROCESS_CHARGES);
@@ -155,7 +160,9 @@ public class SchedulerRestController extends CommonRestController {
             case "process_error_charges":
                 batchJob = batchJobManager.findByRunDateAndTypeOrderByCreatedDesc(date, BatchJob.Type.PROCESS_ERROR_CHARGES);
 
-                if (batchJob == null || (batchJob.getUpdated().isBefore(LocalDateTime.now().minusHours(2)) && batchJob.getState() != BatchJob.State.FINISHED)) {
+                if (batchJob == null ||
+                        (batchJob.getUpdated().isBefore(LocalDateTime.now().minusHours(waitForDeadJobHours))
+                                && batchJob.getState() != BatchJob.State.FINISHED)) {
                     batchJob = new BatchJob();
                     batchJob.setRunDate(date);
                     batchJob.setType(BatchJob.Type.PROCESS_ERROR_CHARGES);
