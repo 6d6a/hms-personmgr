@@ -8,13 +8,15 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.ChargeResult;
-import ru.majordomo.hms.personmgr.event.account.AccountSendNotificationsRemainingDaysEvent;
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.event.account.AccountSendMailNotificationRemainingDaysEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountSendSmsNotificationRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
 import ru.majordomo.hms.personmgr.manager.BatchJobManager;
 import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
@@ -159,9 +161,7 @@ public class ChargeProcessor {
                 chargeRequest.setStatus(Status.ERROR);
             }
             // Если были списания, то отправить уведомления
-            HashMap<String, Object> params = new HashMap<>();
-            params.put("daylyCost", dailyCost);
-            publisher.publishEvent(new AccountSendNotificationsRemainingDaysEvent(account, params));
+            notifyAccountRemainingDays(account, dailyCost);
         }
 
         if (chargeRequest.getChargeRequests().stream().anyMatch(chargeRequestItem -> chargeRequestItem.getStatus() == Status.ERROR)) {
@@ -188,5 +188,41 @@ public class ChargeProcessor {
                 accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
         }
         accountNotificationHelper.sendMailForDeactivatedAccount(account, LocalDate.now());
+    }
+
+    private void notifyAccountRemainingDays(PersonalAccount account, BigDecimal dailyCost) {
+        // Уведомление о заканчивающихся средствах отправляются только активным аккаунтам или тем, у кого есть списания
+        if (!account.isActive() || dailyCost.compareTo(BigDecimal.ZERO) == 0) { return;}
+
+        BigDecimal balance = accountHelper.getBalance(account);
+        int remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue();
+        int remainingCreditDays = accountNotificationHelper.getRemainingDaysCreditPeriod(account);
+        boolean hasActiveAbonement = accountHelper.hasActiveAbonement(account.getId());
+        boolean hasActiveCredit = accountHelper.hasActiveCredit(account);
+        boolean balanceIsPositive = balance.compareTo(BigDecimal.ZERO) > 0;
+
+        List<Integer> days = Arrays.asList(7, 5, 3, 2, 1);
+
+        if (days.contains(remainingDays) || days.contains(remainingCreditDays)) {
+            publisher.publishEvent(
+                    new AccountSendMailNotificationRemainingDaysEvent(
+                            account.getId(),
+                            remainingDays,
+                            remainingCreditDays,
+                            hasActiveAbonement,
+                            hasActiveCredit,
+                            balanceIsPositive,
+                            balance
+                    )
+            );
+        }
+
+        //        Отправим смс тем, у кого подключена услуга
+        if (Arrays.asList(5, 3, 1).contains(remainingDays) &&
+                accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(
+                        account,
+                        MailManagerMessageType.SMS_REMAINING_DAYS)) {
+            publisher.publishEvent(new AccountSendSmsNotificationRemainingDaysEvent(account.getId(), remainingDays));
+        }
     }
 }

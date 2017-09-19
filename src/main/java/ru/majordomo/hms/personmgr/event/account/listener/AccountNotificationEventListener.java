@@ -56,58 +56,53 @@ public class AccountNotificationEventListener {
 
     @EventListener
     @Async("threadPoolTaskExecutor")
-    public void sendNotificationsRemainingDaysEvent(AccountSendNotificationsRemainingDaysEvent event) {
-        PersonalAccount account = event.getSource();
-        Map<String, Object> params = event.getParams();
-        BigDecimal dailyCost = (BigDecimal) params.get("daylyCost");
+    public void on(AccountSendMailNotificationRemainingDaysEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
-        // Уведомление о заканчивающихся средствах отправляются только активным аккаунтам или тем, у кого есть списания
-        if (!account.isActive() || dailyCost.compareTo(BigDecimal.ZERO) == 0) { return;}
+        BigDecimal balance = event.getBalance();
+        int remainingDays = event.getRemainingDays();
+        int remainingCreditDays = event.getRemainingCreditDays();
+        boolean hasActiveAbonement = event.isHasActiveAbonement();
+        boolean hasActiveCredit = event.isHasActiveCredit();
+        boolean balanceIsPositive = event.isBalanceIsPositive();
 
-        BigDecimal balance = accountHelper.getBalance(account);
-        Integer remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue();
-        Integer remainingCreditDays = accountNotificationHelper.getRemainingDaysCreditPeriod(account);
-        List<Integer> days = Arrays.asList(7, 5, 3, 2, 1);
-        if (days.contains(remainingDays) || days.contains(remainingCreditDays)) {
-            Boolean hasActiveAbonement = accountHelper.hasActiveAbonement(account.getId());
-            Boolean hasActiveCredit = accountHelper.hasActiveCredit(account);
-            String remainingDaysInString = Utils.pluralizef("%d день", "%d дня", "%d дней", remainingDays);
-            String remainingCreditDaysInString = Utils.pluralizef("%d день", "%d дня", "%d дней", remainingCreditDays);
-            Boolean balanceIsPositive = balance.compareTo(BigDecimal.ZERO) > 0;
+        String remainingDaysInString = Utils.pluralizef("%d день", "%d дня", "%d дней", remainingDays);
+        String remainingCreditDaysInString = Utils.pluralizef("%d день", "%d дня", "%d дней", remainingCreditDays);
 
-            String whatHappened = String.format("%s период хостинга на аккаунте %s истекает через %s.<br>",
-                    balanceIsPositive ? "Оплаченный" : "Кредитный",
-                    account.getName(),
-                    hasActiveCredit && !balanceIsPositive ? remainingCreditDaysInString : remainingDaysInString
-            );
+        String whatHappened = String.format("%s период хостинга на аккаунте %s истекает через %s.<br>",
+                balanceIsPositive ? "Оплаченный" : "Кредитный",
+                account.getName(),
+                hasActiveCredit && !balanceIsPositive ? remainingCreditDaysInString : remainingDaysInString
+        );
 
-            String actionAfter = String.format("После истечения %s%s дополнительные платные услуги будут %s.<br>",
-                    balanceIsPositive ? "оплаченного периода" : "кредитного периода",
-                    hasActiveAbonement ? "" : " аккаунт и",
-                    hasActiveCredit && balanceIsPositive ? "работать в течение 14-дневного кредитного периода" : "отключены"
-            );
+        String actionAfter = String.format("После истечения %s%s дополнительные платные услуги будут %s.<br>",
+                balanceIsPositive ? "оплаченного периода" : "кредитного периода",
+                hasActiveAbonement ? "" : " аккаунт и",
+                hasActiveCredit && balanceIsPositive ? "работать в течение 14-дневного кредитного периода" : "отключены"
+        );
 
-            HashMap<String, String> paramsForEmail = new HashMap<>();
-            paramsForEmail.put("acc_id", account.getName());
-            paramsForEmail.put("what_happened", whatHappened);
-            paramsForEmail.put("action_after", actionAfter);
-            paramsForEmail.put("domains", accountNotificationHelper.getDomainForEmailWithPrefixString(account));
-            paramsForEmail.put("balance", accountNotificationHelper.formatBigDecimalForEmail(balance) + " руб.");
-            paramsForEmail.put("cost", accountNotificationHelper.getCostAbonementForEmail(planRepository.findOne(account.getPlanId())) + " руб/год.");
-            String apiName = "MajordomoHmsMoneySoonEnd";
-            accountNotificationHelper.sendMail(account, apiName, 10, paramsForEmail);
-        }
-//        Отправим смс тем, у кого подключена услуга
-        if (Arrays.asList(5, 3, 1).contains(remainingDays)) {
-            if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(
-                    account, MailManagerMessageType.SMS_REMAINING_DAYS
-            )) {
-                HashMap<String, String> paramsForSms = new HashMap<>();
-                paramsForSms.put("remaining_days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
-                paramsForSms.put("client_id", account.getAccountId());
-                accountNotificationHelper.sendSms(account, "MajordomoRemainingDays", 10, paramsForSms);
-            }
-        }
+        HashMap<String, String> paramsForEmail = new HashMap<>();
+        paramsForEmail.put("acc_id", account.getName());
+        paramsForEmail.put("what_happened", whatHappened);
+        paramsForEmail.put("action_after", actionAfter);
+        paramsForEmail.put("domains", accountNotificationHelper.getDomainForEmailWithPrefixString(account));
+        paramsForEmail.put("balance", accountNotificationHelper.formatBigDecimalForEmail(balance) + " руб.");
+        paramsForEmail.put("cost", accountNotificationHelper.getCostAbonementForEmail(planRepository.findOne(account.getPlanId())) + " руб/год.");
+        String apiName = "MajordomoHmsMoneySoonEnd";
+        accountNotificationHelper.sendMail(account, apiName, 10, paramsForEmail);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountSendSmsNotificationRemainingDaysEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        int remainingDays = event.getRemainingDays();
+
+        HashMap<String, String> paramsForSms = new HashMap<>();
+        paramsForSms.put("remaining_days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
+        paramsForSms.put("client_id", account.getAccountId());
+        accountNotificationHelper.sendSms(account, "MajordomoRemainingDays", 10, paramsForSms);
     }
 
     @EventListener
