@@ -104,13 +104,8 @@ public class AccountService extends ModelBelongsToPersonalAccount implements Com
         return (this.getPaymentService().getChargePriority() - accountService.getPaymentService().getChargePriority());
     }
 
-    public static Comparator<AccountService> ChargePriorityComparator = new Comparator<AccountService>() {
-
-        @Override
-        public int compare(AccountService e1, AccountService e2) {
-            return e2.getPaymentService().getChargePriority() - e1.getPaymentService().getChargePriority();
-        }
-    };
+    public static Comparator<AccountService> ChargePriorityComparator =
+            (e1, e2) -> e2.getPaymentService().getChargePriority() - e1.getPaymentService().getChargePriority();
 
     @Override
     public String toString() {

@@ -53,7 +53,19 @@ public interface PersonalAccountManager {
 
     List<PersonalAccount> findByActive(boolean active);
 
+    List<PersonalAccount> findByActiveIncludeId(boolean active);
+
     List<PersonalAccount> findByAccountIdContaining(String accountId);
+
+    List<String> findAllAccountIds();
+
+    List<String> findAccountIdsByIdNotIn(List<String> ids);
+
+    List<String> findAccountIdsByActive(boolean active);
+
+    List<String> findAccountIdsByActiveAndDeactivatedAfter(boolean active, LocalDateTime deactivated);
+
+    List<String> findAccountIdsByActiveAndNotificationsIn(MailManagerMessageType notificationType);
 
     List<PersonalAccountWithNotificationsProjection> findWithNotifications();
 

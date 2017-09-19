@@ -35,6 +35,10 @@ public class TokenHelper {
         return generateToken(account, type, null);
     }
 
+    public Token findOne(String id) {
+        return repository.findOne(id);
+    }
+
     public Token getToken(String id) {
         return repository.findByIdAndDeletedIsNull(id);
     }

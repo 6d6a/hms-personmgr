@@ -1,11 +1,11 @@
 package ru.majordomo.hms.personmgr.service.scheduler;
 
 import net.javacrumbs.shedlock.core.SchedulerLock;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.event.account.AccountDeactivatedSendMailEvent;
@@ -15,6 +15,7 @@ import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.stream.Stream;
 
 @Component
@@ -34,35 +35,29 @@ public class NotificationScheduler {
     }
 
     //Выполняем отправку писем отключенным аккаунтам в 03:00:00 каждый день
-    @Scheduled(cron = "0 0 3 * * *")
     @SchedulerLock(name = "processAccountDeactivatedSendMail")
     public void processAccountDeactivatedSendMail() {
-        logger.debug("Started processNotifyExpiredAbonements");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findByActive(false).stream()) {
-            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountDeactivatedSendMailEvent(account)));
-        }
-        logger.debug("Ended processNotifyExpiredAbonements");
+        logger.info("Started processAccountDeactivatedSendMail");
+        List<String> personalAccountIds = accountManager.findAccountIdsByActive(false);
+        personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountDeactivatedSendMailEvent(accountId)));
+        logger.info("Ended processAccountDeactivatedSendMail");
     }
 
     //Для неактивных аккаунтов отправляем письма для возврата клиентов
-    @Scheduled(cron = "0 10 3 * * *")
     @SchedulerLock(name = "processNotifyInactiveLongTime")
     public  void processNotifyInactiveLongTime() {
-        logger.debug("Started processNotifyInactiveLongTime");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findByActiveAndDeactivatedAfter(false, LocalDateTime.now().minusMonths(13))) {
-            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountNotifyInactiveLongTimeEvent(account)));
-        }
-        logger.debug("Ended processNotifyInactiveLongTime");
+        logger.info("Started processNotifyInactiveLongTime");
+        List<String> personalAccountIds = accountManager.findAccountIdsByActiveAndDeactivatedAfter(false, LocalDateTime.now().minusMonths(13));
+        personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountNotifyInactiveLongTimeEvent(accountId)));
+        logger.info("Ended processNotifyInactiveLongTime");
     }
 
     //Информационная рассылка
-    @Scheduled(cron = "0 20 3 * * *")
     @SchedulerLock(name = "processSendInfoMail")
     public  void processSendInfoMail() {
-        logger.debug("Started processSendInfoMail");
-        try (Stream<PersonalAccount> personalAccountStream = accountManager.findByNotificationsEquals(MailManagerMessageType.EMAIL_NEWS)) {
-            personalAccountStream.forEach(account -> publisher.publishEvent(new AccountSendInfoMailEvent(account)));
-        }
-        logger.debug("Ended processSendInfoMail");
+        logger.info("Started processSendInfoMail");
+        List<String> personalAccountIds = accountManager.findAccountIdsByActiveAndNotificationsIn(MailManagerMessageType.EMAIL_NEWS);
+        personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountSendInfoMailEvent(accountId)));
+        logger.info("Ended processSendInfoMail");
     }
 }

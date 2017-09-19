@@ -226,7 +226,6 @@ public class AccountHelper {
         return getDayCostByService(service, chargeDate);
     }
 
-    //TODO на самом деле сюда ещё должна быть возможность передать discountedService
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service) {
         BigDecimal amount = service.getCost();
 
@@ -237,7 +236,6 @@ public class AccountHelper {
         return charge(account, service, amount, false);
     }
 
-    //TODO на самом деле сюда ещё должна быть возможность передать discountedService
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount, Boolean forceCharge) {
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", service.getId());
@@ -252,6 +250,7 @@ public class AccountHelper {
             if (!(e instanceof FeignException) || ((FeignException) e).status() != 400 ) {
                 logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.charge " + e.getMessage());
                 e.printStackTrace();
+                throw e;
             }
             throw new ChargeException("ChargeException. Error when charging money." +
                     " Service cost is: " + service.getCost());
@@ -395,15 +394,22 @@ public class AccountHelper {
         switchAccountActiveState(account, false);
     }
 
+    public void enableAccount(String accountId) {
+        PersonalAccount account = accountManager.findOne(accountId);
+        switchAccountActiveState(account, true);
+    }
+
     public void enableAccount(PersonalAccount account) {
         switchAccountActiveState(account, true);
     }
 
     public void switchAccountActiveState(PersonalAccount account, Boolean state) {
-        saveHistoryForOperatorService(account, "Аккаунт " + (state ? "включен" : "выключен"));
+        if (account.isActive() != state) {
+            saveHistoryForOperatorService(account, "Аккаунт " + (state ? "включен" : "выключен"));
 
-        accountManager.setActive(account.getId(), state);
-        switchAccountResources(account, state);
+            accountManager.setActive(account.getId(), state);
+            switchAccountResources(account, state);
+        }
     }
 
     public void switchAccountResources(PersonalAccount account, Boolean state) {
@@ -659,7 +665,8 @@ public class AccountHelper {
                 ).collect(Collectors.toList()).get(0).getService().getCost();
     }
 
-    public boolean hasActiveAbonement(PersonalAccount account) {
+    public boolean hasActiveAbonement(String accountId) {
+        PersonalAccount account = accountManager.findOne(accountId);
         return !accountAbonementManager.findByPersonalAccountIdAndExpiredAfter(account.getId(), LocalDateTime.now()).isEmpty();
     }
 
@@ -813,12 +820,11 @@ public class AccountHelper {
                 return true;
             } else {
                 // Проверяем сколько он уже пользуется
-                if (creditActivationDate.isBefore(
-                        LocalDateTime.now().minus(Period.parse(account.getCreditPeriod())))) {
-                    return false;
-                } else {
-                    return true;
-                }
+                return !creditActivationDate.isBefore(
+                        LocalDateTime
+                                .now()
+                                .minus(Period.parse(account.getCreditPeriod()))
+                );
             }
         } else {
             return false;
@@ -847,7 +853,7 @@ public class AccountHelper {
         String paymentServiceOldId = accountService.getPaymentService().getOldId();
         if (paymentServiceOldId.equals(ADDITIONAL_QUOTA_100_SERVICE_ID)) {
             account.setAddQuotaIfOverquoted(false);
-            publisher.publishEvent(new AccountCheckQuotaEvent(account));
+            publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
 //        } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
 //            TODO надо что - нибудь отправлять в rc - user чтобы отключить защиту у ящиков
 //            В rc -user никакого параметра для этого нет, нужно добавить
