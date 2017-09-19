@@ -40,9 +40,9 @@ public interface ChargeRequestManager {
 
     int countNeedToProcessChargeRequests(LocalDate chargeDate);
 
-    List<ChargeRequest> getNeedToProcessChargeRequests(LocalDate chargeDate);
+    List<ChargeRequest> pullNeedToProcessChargeRequests(LocalDate chargeDate);
 
     int countChargeRequestsWithErrors(LocalDate chargeDate);
 
-    List<ChargeRequest> getChargeRequestsWithErrors(LocalDate chargeDate);
+    List<ChargeRequest> pullChargeRequestsWithErrors(LocalDate chargeDate);
 }

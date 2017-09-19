@@ -131,7 +131,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
     }
 
     @Override
-    public List<ChargeRequest> getNeedToProcessChargeRequests(LocalDate chargeDate) {
+    public List<ChargeRequest> pullNeedToProcessChargeRequests(LocalDate chargeDate) {
         int needToProcess = countNeedToProcessChargeRequests(chargeDate);
 
         List<ChargeRequest> chargeRequests = new ArrayList<>();
@@ -163,7 +163,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
     }
 
     @Override
-    public List<ChargeRequest> getChargeRequestsWithErrors(LocalDate chargeDate) {
+    public List<ChargeRequest> pullChargeRequestsWithErrors(LocalDate chargeDate) {
         int needToProcess = countChargeRequestsWithErrors(chargeDate);
 
         List<ChargeRequest> chargeRequests = new ArrayList<>();

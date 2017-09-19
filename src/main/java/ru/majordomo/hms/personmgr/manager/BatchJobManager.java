@@ -32,7 +32,9 @@ public interface BatchJobManager {
 
     BatchJob findByRunDateAndTypeOrderByCreatedDesc(LocalDate runDate, BatchJob.Type type);
 
-    void setProcessingState(String id);
+    void setStateToProcessing(String id);
+
+    void setStateToFinished(String id);
 
     void setNeedToProcess(String id, int needToProcess);
 
@@ -46,5 +48,5 @@ public interface BatchJobManager {
 
     void incrementProcessed(String id, int count);
 
-    void updateStateToFinishedIfNeeded(String id);
+    void setStateToFinishedIfNeeded(String id);
 }

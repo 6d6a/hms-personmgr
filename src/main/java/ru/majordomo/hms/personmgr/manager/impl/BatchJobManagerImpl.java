@@ -108,7 +108,7 @@ public class BatchJobManagerImpl implements BatchJobManager {
     }
 
     @Override
-    public void setProcessingState(String id) {
+    public void setStateToProcessing(String id) {
         checkById(id);
 
         Query query = new Query(new Criteria("_id").is(id));
@@ -118,6 +118,19 @@ public class BatchJobManagerImpl implements BatchJobManager {
 
         mongoOperations.updateFirst(query, update, BatchJob.class);
     }
+
+    @Override
+    public void setStateToFinished(String id) {
+        checkById(id);
+
+        Query query = new Query(new Criteria("_id").is(id));
+        Update update = new Update()
+                .set("state", BatchJob.State.FINISHED)
+                .currentDate("updated");
+
+        mongoOperations.updateFirst(query, update, BatchJob.class);
+    }
+
 
     @Override
     public void setNeedToProcess(String id, int needToProcess) {
@@ -159,7 +172,7 @@ public class BatchJobManagerImpl implements BatchJobManager {
 
         mongoOperations.updateFirst(query, update, BatchJob.class);
 
-        updateStateToFinishedIfNeeded(id);
+        setStateToFinishedIfNeeded(id);
     }
 
     @Override
@@ -178,20 +191,15 @@ public class BatchJobManagerImpl implements BatchJobManager {
 
         mongoOperations.updateFirst(query, update, BatchJob.class);
 
-        updateStateToFinishedIfNeeded(id);
+        setStateToFinishedIfNeeded(id);
     }
 
     @Override
-    public void updateStateToFinishedIfNeeded(String id) {
-        BatchJob batchJob = repository.findOne(id);
+    public void setStateToFinishedIfNeeded(String id) {
+        BatchJob batchJob = findOne(id);
 
         if (batchJob.getProcessed() == batchJob.getNeedToProcess()) {
-            Query query = new Query(new Criteria("_id").is(id));
-            Update update = new Update()
-                    .set("state", BatchJob.State.FINISHED)
-                    .currentDate("updated");
-
-            mongoOperations.updateFirst(query, update, BatchJob.class);
+            setStateToFinished(id);
         }
     }
 

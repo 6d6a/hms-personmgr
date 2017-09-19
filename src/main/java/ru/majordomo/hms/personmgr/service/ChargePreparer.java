@@ -68,7 +68,7 @@ public class ChargePreparer {
                         })
                         .collect(Collectors.toList());
 
-                batchJobManager.setProcessingState(batchJobId);
+                batchJobManager.setStateToProcessing(batchJobId);
 
                 personalAccounts
                         .forEach(account -> publisher.publishEvent(new AccountPrepareChargesEvent(account.getId(), chargeDate, batchJobId)));
@@ -82,7 +82,7 @@ public class ChargePreparer {
             logger.error("Active accounts not found in daily charges.");
         }
 
-        batchJobManager.updateStateToFinishedIfNeeded(batchJobId);
+        batchJobManager.setStateToFinishedIfNeeded(batchJobId);
 
         logger.info("Ended PrepareCharges for " + chargeDate);
     }

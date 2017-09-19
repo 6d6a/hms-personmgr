@@ -72,15 +72,15 @@ public class ChargeProcessor {
         batchJobManager.setCount(batchJobId, needToProcess);
         batchJobManager.setNeedToProcess(batchJobId, needToProcess);
 
-        List<ChargeRequest> chargeRequests = chargeRequestManager.getNeedToProcessChargeRequests(chargeDate);
+        List<ChargeRequest> chargeRequests = chargeRequestManager.pullNeedToProcessChargeRequests(chargeDate);
 
         logger.info("processCharges found " + chargeRequests.size() + " ChargeRequests ");
 
-        batchJobManager.setProcessingState(batchJobId);
+        batchJobManager.setStateToProcessing(batchJobId);
 
         chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest.getId(), batchJobId)));
 
-        batchJobManager.updateStateToFinishedIfNeeded(batchJobId);
+        batchJobManager.setStateToFinishedIfNeeded(batchJobId);
 
         logger.info("Ended processCharges emitting events for " + chargeDate);
     }
@@ -93,15 +93,15 @@ public class ChargeProcessor {
         batchJobManager.setCount(batchJobId, needToProcess);
         batchJobManager.setNeedToProcess(batchJobId, needToProcess);
 
-        List<ChargeRequest> chargeRequests = chargeRequestManager.getChargeRequestsWithErrors(chargeDate);
+        List<ChargeRequest> chargeRequests = chargeRequestManager.pullChargeRequestsWithErrors(chargeDate);
 
         logger.info("processErrorCharges found " + chargeRequests.size() + " ChargeRequests with errors");
 
-        batchJobManager.setProcessingState(batchJobId);
+        batchJobManager.setStateToProcessing(batchJobId);
 
         chargeRequests.forEach(chargeRequest -> publisher.publishEvent(new ProcessChargeEvent(chargeRequest.getId(), batchJobId)));
 
-        batchJobManager.updateStateToFinishedIfNeeded(batchJobId);
+        batchJobManager.setStateToFinishedIfNeeded(batchJobId);
 
         logger.info("Ended processErrorCharges emitting events for " + chargeDate);
     }
