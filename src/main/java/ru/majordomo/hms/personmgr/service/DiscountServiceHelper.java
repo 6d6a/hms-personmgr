@@ -2,16 +2,17 @@ package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.personmgr.common.DiscountType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.discount.AccountDiscount;
-import ru.majordomo.hms.personmgr.model.discount.Discount;
-import ru.majordomo.hms.personmgr.model.discount.DiscountPercent;
+import ru.majordomo.hms.personmgr.model.discount.*;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.DiscountRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,7 +36,13 @@ public class DiscountServiceHelper {
        this.discountRepository = discountRepository;
     }
 
-    public void addDiscountToAccount(String accountId, String discountId) {
+    public void addDiscountToAccount(String accountId, List<String> discountIds) {
+        discountIds.forEach(d -> addDiscountToAccount(accountId, d));
+    }
+
+    public void addDiscountToAccount(
+            String accountId,
+            @NotNull @ObjectId(Discount.class) String discountId) {
 
         AccountDiscount accountDiscount = new AccountDiscount();
         accountDiscount.setDiscountId(discountId);
@@ -50,20 +57,29 @@ public class DiscountServiceHelper {
     }
 
 
-    public Discount createDiscountPercent(String id, String name, BigDecimal amount, int usageCountLimit) {
+    public Discount createDiscount(DiscountType discountType, Discount discount) {
 
-        Discount discount = new DiscountPercent();
-        List<PaymentService> services = paymentServiceRepository.findByPaymentType(ServicePaymentType.MONTH);
-        List<String> serviceIdsList = new ArrayList<>();
-        services.forEach(s -> serviceIdsList.add(s.getId()));
+        Discount newDiscount;
+        switch (discountType) {
+            case EXACT_COST:
+                newDiscount = new DiscountExactCost();
+                break;
+            case ABSOLUTE:
+                newDiscount = new DiscountAbsolute();
+                break;
+            default:
+            case PERCENT:
+                newDiscount = new DiscountPercent();
+                break;
+        }
 
-        if (id != null) { discount.setId(id); }
-        discount.setServiceIds(serviceIdsList);
-        discount.setName(name);
-        discount.setAmount(amount);
-        discount.setActive(true);
-        discount.setUsageCountLimit(usageCountLimit);
-        discountRepository.save(discount);
-        return discount;
+        newDiscount.setServiceIds(discount.getServiceIds());
+        newDiscount.setName(discount.getName());
+        newDiscount.setAmount(discount.getAmount());
+        newDiscount.setActive(true);
+        newDiscount.setUsageCountLimit(discount.getUsageCountLimit());
+        discountRepository.save(newDiscount);
+
+        return discountRepository.findByName(discount.getName());
     }
 }
