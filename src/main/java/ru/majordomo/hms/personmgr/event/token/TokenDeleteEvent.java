@@ -1,17 +1,14 @@
 package ru.majordomo.hms.personmgr.event.token;
 
-
 import org.springframework.context.ApplicationEvent;
 
-import ru.majordomo.hms.personmgr.model.token.Token;
-
 public class TokenDeleteEvent extends ApplicationEvent {
-    public TokenDeleteEvent(Token source) {
-        super(source);
+    public TokenDeleteEvent(String tokenId) {
+        super(tokenId);
     }
 
     @Override
-    public Token getSource() {
-        return (Token) super.getSource();
+    public String getSource() {
+        return (String) super.getSource();
     }
 }

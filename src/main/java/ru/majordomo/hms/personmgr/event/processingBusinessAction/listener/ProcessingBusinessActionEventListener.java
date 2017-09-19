@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.event.processingBusinessAction.ProcessingBusinessActionCleanEvent;
 import ru.majordomo.hms.personmgr.event.processingBusinessAction.ProcessingBusinessActionNewEvent;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
 @Component
@@ -17,18 +18,21 @@ public class ProcessingBusinessActionEventListener {
     private final static Logger logger = LoggerFactory.getLogger(ProcessingBusinessActionEventListener.class);
 
     private final BusinessFlowDirector businessFlowDirector;
+    private final ProcessingBusinessActionRepository processingBusinessActionRepository;
 
     @Autowired
     public ProcessingBusinessActionEventListener(
-            BusinessFlowDirector businessFlowDirector
+            BusinessFlowDirector businessFlowDirector,
+            ProcessingBusinessActionRepository processingBusinessActionRepository
     ) {
         this.businessFlowDirector = businessFlowDirector;
+        this.processingBusinessActionRepository = processingBusinessActionRepository;
     }
 
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onCleanProcessingBusinessAction(ProcessingBusinessActionCleanEvent event) {
-        ProcessingBusinessAction action = event.getSource();
+        ProcessingBusinessAction action = processingBusinessActionRepository.findOne(event.getSource());
 
         logger.debug("We got ProcessingBusinessActionCleanEvent");
 

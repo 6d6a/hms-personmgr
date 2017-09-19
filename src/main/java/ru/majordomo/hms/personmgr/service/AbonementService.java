@@ -8,6 +8,7 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
@@ -22,14 +23,11 @@ import java.util.Arrays;
 
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
-import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -56,10 +54,8 @@ public class AbonementService {
     private final AccountServiceHelper accountServiceHelper;
     private final ApplicationEventPublisher publisher;
     private final AccountStatHelper accountStatHelper;
-    private final FinFeignClient finFeignClient;
     private final AccountNotificationHelper accountNotificationHelper;
-    private final PaymentChargesProcessorService paymentChargesProcessorService;
-    private final PersonalAccountManager accountManager;
+    private final ChargeHelper chargeHelper;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -71,10 +67,8 @@ public class AbonementService {
             AccountServiceHelper accountServiceHelper,
             ApplicationEventPublisher publisher,
             AccountStatHelper accountStatHelper,
-            FinFeignClient finFeignClient,
             AccountNotificationHelper accountNotificationHelper,
-            PaymentChargesProcessorService paymentChargesProcessorService,
-            PersonalAccountManager accountManager
+            ChargeHelper chargeHelper
     ) {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
@@ -82,10 +76,8 @@ public class AbonementService {
         this.accountServiceHelper = accountServiceHelper;
         this.publisher = publisher;
         this.accountStatHelper = accountStatHelper;
-        this.finFeignClient = finFeignClient;
         this.accountNotificationHelper = accountNotificationHelper;
-        this.paymentChargesProcessorService = paymentChargesProcessorService;
-        this.accountManager = accountManager;
+        this.chargeHelper = chargeHelper;
     }
 
     /**
@@ -173,12 +165,14 @@ public class AbonementService {
 
         //Ну вообще-то должен быть только один Абонемент)
         accountAbonements.forEach(accountAbonement -> {
+            if (accountAbonement.getAbonement() == null
+                    || accountAbonement.getAbonement().getService() == null
+                    || accountAbonement.getAbonement().getService().getCost() == null) {
+                logger.error("We found accountAbonement with null abonement or service or cost: " + accountAbonement);
+                return;
+            }
 
             BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
-
-            if (accountAbonements.isEmpty()) {
-                logger.debug("Not found expiring abonements for accountId: " + account.getId());
-            }
 
             logger.debug("We found expiring abonement: " + accountAbonement);
 
@@ -386,10 +380,7 @@ public class AbonementService {
         if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
             accountHelper.disableAccount(account);
         } else {
-            // После добавления сервиса тарифа нужно получить аккаунт заново,
-            // так как услуги в processingDailyServices получаются из PersonalAccount
-            account = accountManager.findOne(account.getId());
-            paymentChargesProcessorService.processingDailyServices(account);
+            chargeHelper.prepareAndProcessChargeRequest(account.getId(), LocalDate.now());
         }
     }
 

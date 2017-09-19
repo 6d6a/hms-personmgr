@@ -209,7 +209,7 @@ public class PersonalAccountRestController extends CommonRestController {
         accountOwner.setContactInfo(contactInfo);
         accountOwnerManager.save(accountOwner);
 
-        publisher.publishEvent(new TokenDeleteEvent(token));
+        publisher.publishEvent(new TokenDeleteEvent(token.getId()));
 
         SimpleServiceMessage message = createSuccessResponse("Email-адреса владельца аккаунта успешно изменены. ");
         return new ResponseEntity<>(
@@ -341,7 +341,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         publisher.publishEvent(new AccountPasswordRecoverConfirmedEvent(account, params));
 
-        publisher.publishEvent(new TokenDeleteEvent(token));
+        publisher.publishEvent(new TokenDeleteEvent(token.getId()));
 
         SimpleServiceMessage message = createSuccessResponse("Пароль успешно восстановлен. " +
                 "Новый пароль отправлен на контактный e-mail владельца аккаунта.");
@@ -450,7 +450,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
             //Установим новую квоту, начислим услуги и тд.
             account.setAddQuotaIfOverquoted(addQuotaIfOverquoted);
-            publisher.publishEvent(new AccountCheckQuotaEvent(account));
+            publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
 
             //Save history
             String operator = request.getUserPrincipal().getName();

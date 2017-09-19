@@ -14,6 +14,7 @@ import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRene
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessNotifyExpiredAbonementsEvent;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -26,7 +27,6 @@ import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +42,7 @@ public class AccountAbonementsEventListener {
     private final PlanRepository planRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     private final AccountAbonementManager accountAbonementManager;
+    private final PersonalAccountManager personalAccountManager;
 
     @Autowired
     public AccountAbonementsEventListener(
@@ -51,7 +52,8 @@ public class AccountAbonementsEventListener {
             ApplicationEventPublisher publisher,
             PlanRepository planRepository,
             AccountNotificationHelper accountNotificationHelper,
-            AccountAbonementManager accountAbonementManager
+            AccountAbonementManager accountAbonementManager,
+            PersonalAccountManager personalAccountManager
     ) {
         this.abonementService = abonementService;
         this.accountHelper = accountHelper;
@@ -60,12 +62,13 @@ public class AccountAbonementsEventListener {
         this.planRepository = planRepository;
         this.accountNotificationHelper = accountNotificationHelper;
         this.accountAbonementManager = accountAbonementManager;
+        this.personalAccountManager = personalAccountManager;
     }
 
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onAccountProcessExpiringAbonementsEvent(AccountProcessExpiringAbonementsEvent event) {
-        PersonalAccount account = event.getSource();
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
         logger.debug("We got AccountProcessExpiringAbonementsEvent");
 
@@ -80,7 +83,7 @@ public class AccountAbonementsEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onAccountProcessAbonementsAutoRenewEvent(AccountProcessAbonementsAutoRenewEvent event) {
-        PersonalAccount account = event.getSource();
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
         logger.debug("We got AccountProcessAbonementsAutoRenewEvent");
 
@@ -95,7 +98,7 @@ public class AccountAbonementsEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onAccountProccessNotifyExpiredAbonementEvent(AccountProcessNotifyExpiredAbonementsEvent event){
-        PersonalAccount account = event.getSource();
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
         logger.debug("We got AccountProcessNotifyExpiredAbonementsEvent");
 

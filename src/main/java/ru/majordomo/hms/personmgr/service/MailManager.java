@@ -6,6 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
@@ -22,7 +25,7 @@ public class MailManager {
 
     private static final HashMap<UrlKey, String> URL_MAP;
 
-    private enum UrlKey {
+    public enum UrlKey {
         LOGIN,
         SEND_EMAIL,
         SEND_SMS
@@ -70,53 +73,34 @@ public class MailManager {
                 entity,
                 HashMap.class
         );
-        token = (String) someResponse.getBody().get("token");
+        token = someResponse != null && someResponse.getBody() != null ? (String) someResponse.getBody().get("token") : null;
         headers.set("Authorization", "Bearer " + token);
         logger.debug("Token for mailManager: " + token);
         return token;
     }
 
-    public HashMap sendEmail(SimpleServiceMessage message) {
-        return send(message, UrlKey.SEND_EMAIL);
+    @Recover
+    public void recoverSend(HttpClientErrorException e, SimpleServiceMessage message, UrlKey urlKey) {
+        logger.info("Recovering from HttpClientErrorException: " + e.getMessage());
+        unSetToken();
+        send(message, urlKey);
     }
 
-    public HashMap sendSms(SimpleServiceMessage message) {
-        return send(message, UrlKey.SEND_SMS);
-    }
-
-    private HashMap send(SimpleServiceMessage message, UrlKey urlKey) {
+    @Retryable(include = {HttpClientErrorException.class}, backoff = @Backoff(delay = 1000))
+    public void send(SimpleServiceMessage message, UrlKey urlKey) {
         checkToken();
         HttpEntity entity = new HttpEntity<>(message.getParams(), headers);
         logger.debug("HttpEntity in mailManager " + urlKey.name() + ": " + entity.toString());
 
-        HashMap<String, String> responseBody = new HashMap<>();
-
-        try {
-            ResponseEntity<HashMap> response = restTemplate.postForEntity(
-                    URL_ROOT + URL_MAP.get(urlKey),
-                    entity,
-                    HashMap.class
-            );
-
-            return response.getBody();
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-                unSetToken();
-                send(message, urlKey);
-            } else {
-                e.printStackTrace();
-                logger.error("Exception in ru.majordomo.hms.personmgr.service.MailManager.send #1 " + e.getMessage() + " " + e.getResponseBodyAsString());
-            }
-        } catch (RestClientException e) {
-            e.printStackTrace();
-            logger.error("Exception in ru.majordomo.hms.personmgr.service.MailManager.send #2 " + e.getMessage());
-        }
-
-        return responseBody;
+        restTemplate.postForEntity(
+                URL_ROOT + URL_MAP.get(urlKey),
+                entity,
+                HashMap.class
+        );
     }
 
     private void checkToken() {
-        if (token.equals("")) {
+        if (token == null || token.equals("")) {
             getToken();
         }
     }

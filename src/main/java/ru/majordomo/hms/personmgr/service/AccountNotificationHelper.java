@@ -59,7 +59,7 @@ public class AccountNotificationHelper {
     public String getDomainForEmail(PersonalAccount account) {
 
         List<Domain> domains = accountHelper.getDomains(account);
-        if (!(domains.isEmpty())) {
+        if (domains != null && !domains.isEmpty()) {
             return domains.stream().map(Domain::getName).collect(Collectors.joining("<br>"));
         }
         return "";
@@ -68,7 +68,7 @@ public class AccountNotificationHelper {
     public String getDomainForEmailWithPrefixString(PersonalAccount account) {
 
         List<Domain> domains = accountHelper.getDomains(account);
-        if (!(domains.isEmpty())) {
+        if (domains != null && !domains.isEmpty()) {
             String prefix = "";
             if (domains.size() == 1) {
                 prefix = "На аккаунте размещен домен: ";
@@ -112,10 +112,6 @@ public class AccountNotificationHelper {
         }
 
         publisher.publishEvent(new SendMailEvent(message));
-    }
-
-    public void sendMailForDeactivatedAccount(PersonalAccount account) {
-        this.sendMailForDeactivatedAccount(account, LocalDate.now());
     }
 
     public void sendMailForDeactivatedAccount(PersonalAccount account, LocalDate dateFinish) {
