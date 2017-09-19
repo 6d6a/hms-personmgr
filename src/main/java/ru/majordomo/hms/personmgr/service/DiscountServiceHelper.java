@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.DiscountType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.discount.*;
@@ -17,6 +18,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class DiscountServiceHelper {
@@ -46,29 +48,47 @@ public class DiscountServiceHelper {
         accountManager.save(account);
     }
 
-    public Discount createDiscount(DiscountType discountType, Discount discount) {
+    public void createDiscount(DiscountType discountType, Map<String, Object> keyValue) {
 
-        Discount newDiscount;
+        Discount discount;
         switch (discountType) {
             case EXACT_COST:
-                newDiscount = new DiscountExactCost();
+                discount = new DiscountExactCost();
                 break;
             case ABSOLUTE:
-                newDiscount = new DiscountAbsolute();
+                discount = new DiscountAbsolute();
                 break;
             default:
             case PERCENT:
-                newDiscount = new DiscountPercent();
+                discount = new DiscountPercent();
                 break;
         }
 
-        newDiscount.setServiceIds(discount.getServiceIds());
-        newDiscount.setName(discount.getName());
-        newDiscount.setAmount(discount.getAmount());
-        newDiscount.setActive(true);
-        newDiscount.setUsageCountLimit(discount.getUsageCountLimit());
-        discountRepository.save(newDiscount);
-
-        return discountRepository.findByName(discount.getName());
+        for(String key: keyValue.keySet()) {
+            switch (key) {
+                case "id":
+                    discount.setId((String) keyValue.get(key));
+                    if (discountRepository.exists(discount.getId())) {
+                        throw new ParameterValidationException("Discount с таким id уже существует");
+                    }
+                    break;
+                case "serviceIds":
+                    discount.setServiceIds((List<String>) keyValue.get(key));
+                    break;
+                case "name":
+                    discount.setName((String) keyValue.get(key));
+                    break;
+                case "amount":
+                    discount.setAmount(new BigDecimal((String) keyValue.get(key)));
+                    break;
+                case "active":
+                    discount.setActive(true);
+                    break;
+                case "usageCountLimit":
+                    discount.setUsageCountLimit((Integer) keyValue.get(key));
+                    break;
+            }
+        }
+        discountRepository.insert(discount);
     }
 }

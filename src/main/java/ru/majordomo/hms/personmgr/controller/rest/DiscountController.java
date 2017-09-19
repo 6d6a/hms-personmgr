@@ -7,11 +7,13 @@ import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.DiscountType;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.discount.Discount;
+import ru.majordomo.hms.personmgr.model.discount.DiscountPercent;
 import ru.majordomo.hms.personmgr.repository.DiscountRepository;
 import ru.majordomo.hms.personmgr.service.DiscountServiceHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @PreAuthorize("hasRole('ADMIN')")
@@ -51,10 +53,11 @@ public class DiscountController {
     }
 
     @PostMapping("/discounts/{type}")
-    public ResponseEntity<Discount> createDiscount(
-            @RequestBody Discount discount,
-            @PathVariable DiscountType type
+    public ResponseEntity<Void> createDiscount(
+            @RequestBody Map<String, Object> keyValue,
+            @PathVariable String type
     ) {
-        return ResponseEntity.ok(discountServiceHelper.createDiscount(type, discount));
+        discountServiceHelper.createDiscount(DiscountType.fromString(type), keyValue);
+        return ResponseEntity.ok().build();
     }
 }
