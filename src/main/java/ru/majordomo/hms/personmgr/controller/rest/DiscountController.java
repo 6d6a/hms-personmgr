@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import ru.majordomo.hms.personmgr.common.DiscountType;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.discount.Discount;
 import ru.majordomo.hms.personmgr.repository.DiscountRepository;
@@ -12,7 +11,6 @@ import ru.majordomo.hms.personmgr.service.DiscountServiceHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @PreAuthorize("hasRole('ADMIN')")
