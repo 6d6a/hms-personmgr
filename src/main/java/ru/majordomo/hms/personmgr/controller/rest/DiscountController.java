@@ -51,12 +51,12 @@ public class DiscountController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/discounts/{type}")
+    @PostMapping("/discounts")
     public ResponseEntity<Void> createDiscount(
-            @RequestBody Map<String, Object> keyValue,
-            @PathVariable String type
+            @RequestBody Discount discount
     ) {
-        discountServiceHelper.createDiscount(DiscountType.fromString(type), keyValue);
+        discount.unSetId();
+        discountRepository.save(discount);
         return ResponseEntity.ok().build();
     }
 }
