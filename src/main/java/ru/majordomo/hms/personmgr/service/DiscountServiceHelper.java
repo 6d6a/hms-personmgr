@@ -22,40 +22,29 @@ import java.util.List;
 public class DiscountServiceHelper {
 
     private final PersonalAccountManager accountManager;
-    private final PaymentServiceRepository paymentServiceRepository;
     private final DiscountRepository discountRepository;
 
     @Autowired
     DiscountServiceHelper(
             PersonalAccountManager accountManager,
-            PaymentServiceRepository paymentServiceRepository,
             DiscountRepository discountRepository
     ) {
        this.accountManager = accountManager;
-       this.paymentServiceRepository = paymentServiceRepository;
        this.discountRepository = discountRepository;
     }
 
     public void addDiscountToAccount(String accountId, List<String> discountIds) {
-        discountIds.forEach(d -> addDiscountToAccount(accountId, d));
-    }
-
-    public void addDiscountToAccount(
-            String accountId,
-            @NotNull @ObjectId(Discount.class) String discountId) {
-
-        AccountDiscount accountDiscount = new AccountDiscount();
-        accountDiscount.setDiscountId(discountId);
-        accountDiscount.setCreated(LocalDateTime.now());
-
         PersonalAccount account = accountManager.findByAccountId(accountId);
-
-        if (account.getDiscounts().stream().anyMatch(d -> d.getDiscountId().equals(discountId))) { return; }
-
-        account.addDiscount(accountDiscount);
+        discountIds.forEach(discountId -> {
+            if (account.getDiscounts().stream().noneMatch(d -> d.getDiscountId().equals(discountId))) {
+                AccountDiscount accountDiscount = new AccountDiscount();
+                accountDiscount.setDiscountId(discountId);
+                accountDiscount.setCreated(LocalDateTime.now());
+                account.addDiscount(accountDiscount);
+            }
+        });
         accountManager.save(account);
     }
-
 
     public Discount createDiscount(DiscountType discountType, Discount discount) {
 

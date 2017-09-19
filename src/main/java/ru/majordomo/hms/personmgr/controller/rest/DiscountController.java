@@ -43,10 +43,10 @@ public class DiscountController {
 
     @PostMapping("/{accountId}/account/discounts")
     public ResponseEntity<Void> addDiscountToAccount(
-            @RequestBody List<String> requestBody,
+            @RequestBody List<@ObjectId(Discount.class) String> discountIds,
             @ObjectId(PersonalAccount.class) @PathVariable String accountId
     ) {
-        discountServiceHelper.addDiscountToAccount(accountId, requestBody);
+        discountServiceHelper.addDiscountToAccount(accountId, discountIds);
         return ResponseEntity.ok().build();
     }
 
