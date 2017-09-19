@@ -40,6 +40,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.Utils.planChangeComparator;
 
 @Service
+@Deprecated
 public class PlanChangeService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

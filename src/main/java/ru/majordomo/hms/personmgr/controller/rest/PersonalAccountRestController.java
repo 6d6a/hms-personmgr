@@ -79,6 +79,7 @@ public class PersonalAccountRestController extends CommonRestController {
     private final NotificationRepository notificationRepository;
     private final AccountServiceRepository accountServiceRepository;
     private final AccountServiceHelper accountServiceHelper;
+    private final PlanChangeFactory planChangeFactory;
 
     @Autowired
     public PersonalAccountRestController(
@@ -91,7 +92,8 @@ public class PersonalAccountRestController extends CommonRestController {
             TokenHelper tokenHelper,
             NotificationRepository notificationRepository,
             AccountServiceRepository accountServiceRepository,
-            AccountServiceHelper accountServiceHelper
+            AccountServiceHelper accountServiceHelper,
+            PlanChangeFactory planChangeFactory
     ) {
         this.planRepository = planRepository;
         this.accountOwnerManager = accountOwnerManager;
@@ -103,6 +105,7 @@ public class PersonalAccountRestController extends CommonRestController {
         this.notificationRepository = notificationRepository;
         this.accountServiceRepository = accountServiceRepository;
         this.accountServiceHelper = accountServiceHelper;
+        this.planChangeFactory = planChangeFactory;
     }
 
     @RequestMapping(value = "/accounts",
@@ -152,7 +155,20 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        planChangeService.changePlan(account, planId, planChangeAgreement);
+        Plan currentPlan = planRepository.findOne(account.getPlanId());
+        Plan newPlan = planRepository.findOne(planId);
+
+        PlanChangeProcessor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(currentPlan, newPlan);
+        planChangeProcessor.setAccount(account);
+        planChangeProcessor.process();
+        PlanChangeAgreement planChangeAgreementToCompare = planChangeProcessor.isPlanChangeAllowed();
+
+        if (planChangeAgreementToCompare.equals(planChangeAgreement) && planChangeAgreement.getNeedToFeelBalance().compareTo(BigDecimal.ZERO) <= 0) {
+            planChangeProcessor.setDecline(true);
+            planChangeProcessor.process();
+        } else {
+            return new ResponseEntity<>(HttpStatus.CONFLICT);
+        }
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -165,9 +181,18 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        PlanChangeAgreement planChangeAgreement = planChangeService.changePlan(account, planId, null);
+        Plan currentPlan = planRepository.findOne(account.getPlanId());
+        Plan newPlan = planRepository.findOne(planId);
 
-        if (planChangeAgreement.getNeedToFeelBalance().compareTo(BigDecimal.ZERO) != 0) {
+        PlanChangeProcessor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(currentPlan, newPlan);
+        planChangeProcessor.setAccount(account);
+        planChangeProcessor.process();
+        PlanChangeAgreement planChangeAgreement = planChangeProcessor.isPlanChangeAllowed();
+
+        if (!planChangeAgreement.getPlanChangeAllowed()) {
+            return new ResponseEntity<>(planChangeAgreement, HttpStatus.FORBIDDEN);
+            //Ошибки хранятся в planChangeAgreement.getErrors()
+        } else if (planChangeAgreement.getNeedToFeelBalance().compareTo(BigDecimal.ZERO) != 0) {
             return new ResponseEntity<>(planChangeAgreement, HttpStatus.ACCEPTED); // 202 Accepted
         } else {
             return new ResponseEntity<>(planChangeAgreement, HttpStatus.OK);
