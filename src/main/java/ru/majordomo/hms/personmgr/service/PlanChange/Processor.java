@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service;
+package ru.majordomo.hms.personmgr.service.PlanChange;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,6 +6,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
@@ -17,6 +18,7 @@ import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
+import ru.majordomo.hms.personmgr.service.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -32,7 +34,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Utils.planChangeComparator;
 
-public abstract class PlanChangeProcessor {
+public abstract class Processor {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -52,16 +54,17 @@ public abstract class PlanChangeProcessor {
     private PersonalAccount account;
     private Plan currentPlan;
     private Plan newPlan;
-    private Boolean decline = false;
+    private Boolean planChangeRequired = false;
     private Boolean newAbonementRequired = false;
+    private Boolean onlyDeleteAbonement = false;
     private BigDecimal cashBackAmount = BigDecimal.ZERO;
 
-    PlanChangeProcessor(Plan currentPlan, Plan newPlan) {
+    Processor(Plan currentPlan, Plan newPlan) {
         this.currentPlan = currentPlan;
         this.newPlan = newPlan;
     }
 
-    public void setFinFeignClient(FinFeignClient finFeignClient) {
+    void setFinFeignClient(FinFeignClient finFeignClient) {
         this.finFeignClient = finFeignClient;
     }
 
@@ -121,13 +124,20 @@ public abstract class PlanChangeProcessor {
         this.accountStatRepository = accountStatRepository;
     }
 
-
-    public Boolean getDecline() {
-        return decline;
+    public Boolean getOnlyDeleteAbonement() {
+        return onlyDeleteAbonement;
     }
 
-    public void setDecline(Boolean decline) {
-        this.decline = decline;
+    public void setOnlyDeleteAbonement(Boolean onlyDeleteAbonement) {
+        this.onlyDeleteAbonement = onlyDeleteAbonement;
+    }
+
+    public Boolean getPlanChangeRequired() {
+        return planChangeRequired;
+    }
+
+    public void setPlanChangeRequired(Boolean planChangeRequired) {
+        this.planChangeRequired = planChangeRequired;
     }
 
     public PersonalAccount getAccount() {
@@ -190,7 +200,6 @@ public abstract class PlanChangeProcessor {
     public PlanChangeAgreement isPlanChangeAllowed() {
 
         PlanChangeAgreement planChangeAgreement = new PlanChangeAgreement();
-        planChangeAgreement.setPlanChangeAllowed(false);
 
         if (account == null) {
             planChangeAgreement.addError("Аккаунт не найден");
@@ -208,9 +217,13 @@ public abstract class PlanChangeProcessor {
         }
 
         BigDecimal balance = accountHelper.getBalance(account);
+        planChangeAgreement.setBalance(balance);
+        planChangeAgreement.setBalanceAfterOperation(balance);
 
-        if (cashBackAmount.compareTo(BigDecimal.ZERO) != 0) {
-            planChangeAgreement.setDelta(cashBackAmount);
+        BigDecimal tempCashBackAmount = hulkCashBackAmount();
+
+        if (tempCashBackAmount.compareTo(BigDecimal.ZERO) != 0) {
+            planChangeAgreement.setDelta(tempCashBackAmount);
             planChangeAgreement.setBalanceChanges(true);
         }
 
@@ -231,20 +244,23 @@ public abstract class PlanChangeProcessor {
                 return planChangeAgreement;
             }
 
-            // Проверим не менялся ли тариф в последний месяц
-            if (!checkLastMonthPlanChange(planChangeAgreement)) {
-                return planChangeAgreement;
-            }
-
             // При отрицательном балансе нельзя менять тариф
             if (balance.compareTo(BigDecimal.ZERO) < 0) {
                 planChangeAgreement.addError("Баланс аккаунта отрицательный");
                 return planChangeAgreement;
             }
 
+            // Проверим не менялся ли тариф в последний месяц
+            if (!checkLastMonthPlanChange(planChangeAgreement)) {
+                return planChangeAgreement;
+            }
+
+            BigDecimal newBalanceAfterCashBack = balance.add(tempCashBackAmount);
+            planChangeAgreement.setBalanceAfterOperation(newBalanceAfterCashBack);
+
             if (needToAddAbonement()) {
 
-                BigDecimal newBalanceAfterCashBack = balance.add(cashBackAmount);
+                planChangeAgreement.setBalanceChanges(true);
 
                 if (newBalanceAfterCashBack.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) {
                     // Денег на новый абонемент не хватает
@@ -252,6 +268,10 @@ public abstract class PlanChangeProcessor {
                             newPlan.getNotInternalAbonement().getService().getCost().subtract(newBalanceAfterCashBack)
                     );
                 }
+
+                planChangeAgreement.setBalanceAfterOperation(
+                        newBalanceAfterCashBack.subtract(newPlan.getNotInternalAbonement().getService().getCost())
+                );
             }
         }
 
@@ -271,31 +291,30 @@ public abstract class PlanChangeProcessor {
             return planChangeAgreement;
         }
 
-        planChangeAgreement.setPlanChangeAllowed(true);
+        if (planChangeAgreement.getErrors().isEmpty()
+                && planChangeAgreement.getNeedToFeelBalance().compareTo(BigDecimal.ZERO) <= 0) {
+            planChangeAgreement.setPlanChangeAllowed(true);
+        }
         return planChangeAgreement;
     }
 
     final public void process() {
         if (account == null) {
-            //TODO Exception?
+            throw new ParameterValidationException("Аккаунт не найден");
         }
-        hulkCashBackAmount();
-        setNewAbonementRequired(needToAddAbonement());
-        if (decline) {
+        setCashBackAmount(hulkCashBackAmount());
+        if (planChangeRequired && onlyDeleteAbonement) {
+            throw new ParameterValidationException("Некорректно определены параметры");
+        }
+        if (planChangeRequired) {
+            setNewAbonementRequired(needToAddAbonement());
             deleteServices();
             replaceServices();
             addServices();
             postProcess();
         }
-    }
-
-    final public void processOnlyAbonementDelete() {
-        if (account == null) {
-            //TODO Exception?
-        }
-        hulkCashBackAmount();
-        setNewAbonementRequired(false);
-        if (decline) {
+        if (onlyDeleteAbonement) {
+            setNewAbonementRequired(false);
             deleteServices();
             addServices();
         }
@@ -303,9 +322,9 @@ public abstract class PlanChangeProcessor {
 
     // ДЕНЬГИ
 
-    void executeCashBackPayment() {
+    void executeCashBackPayment(Boolean forceCharge) {
         //Начислить деньги
-        if (getCashBackAmount().compareTo(BigDecimal.ZERO) > 0) {
+        if (cashBackAmount.compareTo(BigDecimal.ZERO) > 0) {
             Map<String, Object> payment = new HashMap<>();
             payment.put("accountId", account.getName());
             payment.put("paymentTypeId", BONUS_PAYMENT_TYPE_ID);
@@ -317,13 +336,12 @@ public abstract class PlanChangeProcessor {
                 finFeignClient.addPayment(payment);
             } catch (Exception e) {
                 e.printStackTrace();
-                logger.error("Exception in ru.majordomo.hms.personmgr.service." +
-                        "PlanChangeService.processNotAbonementOnlyPlans #1 " + e.getMessage());
-                //TODO throw new Exception("Произошла ошибка");
+                logger.error("[PlanChangeProcessor] Exception in executeCashBackPayment: " + e.getMessage());
+                throw new ParameterValidationException("Произошла ошибка при отказе от абонемента");
             }
         } else if (cashBackAmount.compareTo(BigDecimal.ZERO) < 0) {
             //Списать деньги
-            accountHelper.charge(account, currentPlan.getService(), cashBackAmount.abs());
+            accountHelper.charge(account, currentPlan.getService(), cashBackAmount.abs(), forceCharge);
         }
     }
 
@@ -515,6 +533,14 @@ public abstract class PlanChangeProcessor {
 
     void deletePlanService() {
         accountServiceHelper.deleteAccountServiceById(account, currentPlan.getServiceId());
+    }
+
+    void addServiceById(String serviceId) {
+        accountServiceHelper.addAccountService(account, serviceId);
+    }
+
+    Boolean accountHasService(String serviceId) {
+        return accountServiceHelper.accountHasService(account, serviceId);
     }
 
     /**

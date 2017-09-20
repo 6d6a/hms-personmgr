@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service;
+package ru.majordomo.hms.personmgr.service.PlanChange;
 
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -9,11 +9,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 
-public class PlanChangeRegularToRegular extends PlanChangeProcessor {
+public class RegularToRegular extends Processor {
 
     private LocalDateTime freeTestAbonementExpired;
 
-    PlanChangeRegularToRegular(Plan currentPlan, Plan newPlan) {
+    RegularToRegular(Plan currentPlan, Plan newPlan) {
         super(currentPlan, newPlan);
     }
 
@@ -55,7 +55,6 @@ public class PlanChangeRegularToRegular extends PlanChangeProcessor {
         }
 
         // delta может быть как отрицательной (будет списано), так и положительной (будет начислено)
-        setCashBackAmount(delta);
         return delta;
     }
 
@@ -77,9 +76,9 @@ public class PlanChangeRegularToRegular extends PlanChangeProcessor {
             return;
         }
 
-        executeCashBackPayment();
-
         deleteRegularAbonement();
+
+        executeCashBackPayment(false);
     }
 
     @Override

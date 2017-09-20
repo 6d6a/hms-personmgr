@@ -1,24 +1,14 @@
-package ru.majordomo.hms.personmgr.service;
+package ru.majordomo.hms.personmgr.service.PlanChange;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.Period;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
-import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PAYMENT_TYPE_ID;
+public class RegularToAbonement extends Processor {
 
-public class PlanChangeRegularToAbonement extends PlanChangeProcessor {
-
-    PlanChangeRegularToAbonement(Plan currentPlan, Plan newPlan) {
+    RegularToAbonement(Plan currentPlan, Plan newPlan) {
         super(currentPlan, newPlan);
     }
 

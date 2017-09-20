@@ -6,10 +6,11 @@ import java.util.List;
 
 public class PlanChangeAgreement {
     private BigDecimal balance;
-    private BigDecimal delta;
-    private BigDecimal needToFeelBalance;
-    private Boolean balanceChanges;
-    private Boolean isPlanChangeAllowed;
+    private BigDecimal balanceAfterOperation;
+    private BigDecimal delta = BigDecimal.ZERO;
+    private BigDecimal needToFeelBalance = BigDecimal.ZERO;
+    private Boolean balanceChanges = false;
+    private Boolean isPlanChangeAllowed = false;
     private List<String> errors = new ArrayList<>();
 
     public BigDecimal getBalance() {
@@ -18,6 +19,14 @@ public class PlanChangeAgreement {
 
     public void setBalance(BigDecimal balance) {
         this.balance = balance;
+    }
+
+    public BigDecimal getBalanceAfterOperation() {
+        return balanceAfterOperation;
+    }
+
+    public void setBalanceAfterOperation(BigDecimal balanceAfterOperation) {
+        this.balanceAfterOperation = balanceAfterOperation;
     }
 
     public BigDecimal getDelta() {
@@ -68,6 +77,7 @@ public class PlanChangeAgreement {
     public String toString() {
         return "PlanChangeAgreement{" +
                 "balance=" + balance +
+                "balance=" + balanceAfterOperation +
                 "delta=" + delta +
                 "needToFeelBalance=" + needToFeelBalance +
                 "balanceChanges=" + balanceChanges +
@@ -84,6 +94,8 @@ public class PlanChangeAgreement {
         PlanChangeAgreement that = (PlanChangeAgreement) o;
 
         if (getBalance() != null ? !(getBalance().compareTo(that.getBalance()) == 0) : that.getBalance() != null)
+            return false;
+        if (getBalanceAfterOperation() != null ? !(getBalanceAfterOperation().compareTo(that.getBalanceAfterOperation()) == 0) : that.getBalanceAfterOperation() != null)
             return false;
         if (getDelta() != null ? !(getDelta().compareTo(that.getDelta()) == 0) : that.getDelta() != null)
             return false;
