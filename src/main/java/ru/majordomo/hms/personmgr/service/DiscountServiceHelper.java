@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.discount.*;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.DiscountedService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,5 +34,21 @@ public class DiscountServiceHelper {
             }
         });
         accountManager.save(account);
+    }
+
+    public DiscountedService getDiscountedService(List<AccountDiscount> accountDiscounts, AccountService accountService) {
+        for (AccountDiscount accountDiscount : accountDiscounts) {
+            Discount discount = accountDiscount.getDiscount();
+            for (String serviceId : discount.getServiceIds()) {
+                if (accountService.getServiceId().equals(serviceId)) {
+                    DiscountedService discountedService = new DiscountedService(accountService.getPaymentService(), discount);
+                    discountedService.setId(accountService.getId());
+
+                    return discountedService;
+                }
+            }
+        }
+
+        return null;
     }
 }
