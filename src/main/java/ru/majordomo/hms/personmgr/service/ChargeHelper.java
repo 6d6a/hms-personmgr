@@ -37,17 +37,15 @@ public class ChargeHelper {
     public void prepareAndProcessChargeRequest(String accountId, LocalDate chargeDate) {
         ChargeRequest chargeRequest = null;
         try {
+            chargeRequest = chargeRequestManager.findByPersonalAccountIdAndChargeDate(accountId, chargeDate);
+            if (chargeRequest != null && chargeRequest.getStatus() != Status.NEW && chargeRequest.getStatus() != Status.PROCESSING) {
+                chargeRequestManager.delete(chargeRequest);
+            }
+
             chargeRequest = chargePreparer.prepareCharge(accountId, chargeDate, true);
         } catch (Exception e) {
             if (e instanceof org.springframework.dao.DuplicateKeyException || e instanceof DuplicateKeyException) {
-                //найден
                 logger.error("DuplicateKeyException in prepareAndProcessChargeRequest " + e.getMessage());
-                chargeRequest = chargeRequestManager.findByPersonalAccountIdAndChargeDate(accountId, chargeDate);
-                if (chargeRequest != null && chargeRequest.getStatus() != Status.NEW && chargeRequest.getStatus() != Status.PROCESSING) {
-                    chargeRequestManager.delete(chargeRequest);
-                }
-
-                chargeRequest = chargePreparer.prepareCharge(accountId, chargeDate, true);
             } else {
                 e.printStackTrace();
                 logger.error("Exception in prepareAndProcessChargeRequest " + e.getMessage());
