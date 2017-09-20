@@ -33,7 +33,7 @@ public interface ChargeRequestManager {
 
     List<ChargeRequest> findByPersonalAccountId(String personalAccountId);
 
-    List<ChargeRequest> findByPersonalAccountIdAndChargeDate(String personalAccountId, LocalDate chargeDate);
+    ChargeRequest findByPersonalAccountIdAndChargeDate(String personalAccountId, LocalDate chargeDate);
 
     List<ChargeRequest> findByChargeDate(LocalDate chargeDate);
 
