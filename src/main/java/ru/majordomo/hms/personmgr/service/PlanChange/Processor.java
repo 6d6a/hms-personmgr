@@ -221,6 +221,8 @@ public abstract class Processor {
         planChangeAgreement.setBalanceAfterOperation(balance);
 
         BigDecimal tempCashBackAmount = hulkCashBackAmount();
+        BigDecimal newBalanceAfterCashBack = balance.add(tempCashBackAmount);
+        planChangeAgreement.setBalanceAfterOperation(newBalanceAfterCashBack);
 
         if (tempCashBackAmount.compareTo(BigDecimal.ZERO) != 0) {
             planChangeAgreement.setDelta(tempCashBackAmount);
@@ -254,9 +256,6 @@ public abstract class Processor {
             if (!checkLastMonthPlanChange(planChangeAgreement)) {
                 return planChangeAgreement;
             }
-
-            BigDecimal newBalanceAfterCashBack = balance.add(tempCashBackAmount);
-            planChangeAgreement.setBalanceAfterOperation(newBalanceAfterCashBack);
 
             if (needToAddAbonement()) {
 
