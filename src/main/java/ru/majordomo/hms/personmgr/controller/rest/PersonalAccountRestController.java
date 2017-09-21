@@ -154,13 +154,11 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
         String operator = request.getUserPrincipal().getName();
-
-        Plan currentPlan = planRepository.findOne(account.getPlanId());
         Plan newPlan = planRepository.findOne(planId);
 
         Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
         planChangeProcessor.setOperator(operator);
-        planChangeProcessor.setReqestPlanChangeAgreement(planChangeAgreement);
+        planChangeProcessor.setRequestPlanChangeAgreement(planChangeAgreement);
 
         planChangeProcessor.process();
 
@@ -174,8 +172,6 @@ public class PersonalAccountRestController extends CommonRestController {
             @PathVariable(value = "planId") String planId
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
-
-        Plan currentPlan = planRepository.findOne(account.getPlanId());
         Plan newPlan = planRepository.findOne(planId);
 
         Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);

@@ -24,6 +24,7 @@ import ru.majordomo.hms.personmgr.service.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +59,7 @@ public abstract class Processor {
     private Plan newPlan;
     private Boolean newAbonementRequired;
     private BigDecimal cashBackAmount;
-    private PlanChangeAgreement reqestPlanChangeAgreement;
+    private PlanChangeAgreement requestPlanChangeAgreement;
     private String operator = "operator";
 
     Processor(PersonalAccount account, Plan newPlan) {
@@ -149,8 +150,8 @@ public abstract class Processor {
         return newAbonementRequired;
     }
 
-    public void setReqestPlanChangeAgreement(PlanChangeAgreement reqestPlanChangeAgreement) {
-        this.reqestPlanChangeAgreement = reqestPlanChangeAgreement;
+    public void setRequestPlanChangeAgreement(PlanChangeAgreement requestPlanChangeAgreement) {
+        this.requestPlanChangeAgreement = requestPlanChangeAgreement;
     }
 
     public void setOperator(String operator) {
@@ -297,11 +298,11 @@ public abstract class Processor {
             throw new ParameterValidationException("Аккаунт не найден");
         }
 
-        if (!reqestPlanChangeAgreement.equals(isPlanChangeAllowed())) {
+        if (!requestPlanChangeAgreement.equals(isPlanChangeAllowed())) {
             throw new ParameterValidationException("Произошла ошибка при смене тарифа");
         }
 
-        if (!reqestPlanChangeAgreement.getPlanChangeAllowed()) {
+        if (!requestPlanChangeAgreement.getPlanChangeAllowed()) {
             throw new ParameterValidationException("Смена тарифа запрещена");
         }
     }
@@ -470,8 +471,11 @@ public abstract class Processor {
 
         if (accountStats != null && !accountStats.isEmpty()) {
             if (currentPlan.getService().getCost().compareTo(newPlan.getService().getCost()) > 0) {
+
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
                 planChangeAgreement.addError("Смена тарифного плана на меньший " +
-                        "по стоимости возможна не чаще 1 раза в месяц");
+                        "по стоимости возможна не чаще 1 раза в месяц. Последняя дата смены плана: " + accountStats.get(0).getCreated().format(formatter));
                 return false;
             }
         }
