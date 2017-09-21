@@ -6,9 +6,11 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.*;
 
 @Service
@@ -26,6 +28,7 @@ public class Factory {
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHelper accountHelper;
     private final ApplicationEventPublisher publisher;
+    private final PlanRepository planRepository;
 
     @Autowired
     public Factory(
@@ -40,7 +43,8 @@ public class Factory {
             AccountQuotaService accountQuotaService,
             AccountServiceHelper accountServiceHelper,
             AccountHelper accountHelper,
-            ApplicationEventPublisher publisher
+            ApplicationEventPublisher publisher,
+            PlanRepository planRepository
     ) {
         this.finFeignClient = finFeignClient;
         this.accountAbonementManager = accountAbonementManager;
@@ -54,18 +58,21 @@ public class Factory {
         this.accountServiceHelper = accountServiceHelper;
         this.accountHelper = accountHelper;
         this.publisher = publisher;
+        this.planRepository = planRepository;
     }
 
-    public Processor createPlanChangeProcessor(Plan currentPlan, Plan newPlan) {
+    public Processor createPlanChangeProcessor(PersonalAccount account, Plan newPlan) {
+
+        Plan currentPlan = planRepository.findOne(account.getPlanId());
 
         if (newPlan == null) {
             if (currentPlan.isAbonementOnly()) {
-                DeclineOnlyOnAbonement processor = new DeclineOnlyOnAbonement(currentPlan, null);
+                DeclineOnlyOnAbonement processor = new DeclineOnlyOnAbonement(account, null);
                 setAllRequirements(processor);
 
                 return processor;
             } else {
-                DeclineOnlyOnRegular processor = new DeclineOnlyOnRegular(currentPlan, null);
+                DeclineOnlyOnRegular processor = new DeclineOnlyOnRegular(account, null);
                 setAllRequirements(processor);
 
                 return processor;
@@ -76,19 +83,19 @@ public class Factory {
             throw new NotImplementedException();
         }
         else if (currentPlan.isAbonementOnly() && !newPlan.isAbonementOnly()) {
-            AbonementToRegular processor = new AbonementToRegular(currentPlan, newPlan);
+            AbonementToRegular processor = new AbonementToRegular(account, newPlan);
             setAllRequirements(processor);
 
             return processor;
         }
         else if (!currentPlan.isAbonementOnly() && newPlan.isAbonementOnly()) {
-            RegularToAbonement processor = new RegularToAbonement(currentPlan, newPlan);
+            RegularToAbonement processor = new RegularToAbonement(account, newPlan);
             setAllRequirements(processor);
 
             return processor;
         }
         else {
-            RegularToRegular processor = new RegularToRegular(currentPlan, newPlan);
+            RegularToRegular processor = new RegularToRegular(account, newPlan);
             setAllRequirements(processor);
 
             return processor;
@@ -110,5 +117,6 @@ public class Factory {
         processor.setPublisher(publisher);
         processor.setAccountHistoryService(accountHistoryService);
         processor.setFinFeignClient(finFeignClient);
+        processor.setPlanRepository(planRepository);
     }
 }

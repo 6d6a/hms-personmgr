@@ -149,23 +149,20 @@ public class PersonalAccountRestController extends CommonRestController {
     public ResponseEntity<Object> changeAccountPlan(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "planId") String planId,
-            @RequestBody PlanChangeAgreement planChangeAgreement
+            @RequestBody PlanChangeAgreement planChangeAgreement,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
+        String operator = request.getUserPrincipal().getName();
 
         Plan currentPlan = planRepository.findOne(account.getPlanId());
         Plan newPlan = planRepository.findOne(planId);
 
-        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(currentPlan, newPlan);
-        planChangeProcessor.setAccount(account);
-        PlanChangeAgreement planChangeAgreementToCompare = planChangeProcessor.isPlanChangeAllowed();
+        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
+        planChangeProcessor.setOperator(operator);
+        planChangeProcessor.setReqestPlanChangeAgreement(planChangeAgreement);
 
-        if (planChangeAgreementToCompare.equals(planChangeAgreement) && planChangeAgreement.getPlanChangeAllowed()) {
-            planChangeProcessor.setPlanChangeRequired(true);
-            planChangeProcessor.process();
-        } else {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
+        planChangeProcessor.process();
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -181,8 +178,7 @@ public class PersonalAccountRestController extends CommonRestController {
         Plan currentPlan = planRepository.findOne(account.getPlanId());
         Plan newPlan = planRepository.findOne(planId);
 
-        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(currentPlan, newPlan);
-        planChangeProcessor.setAccount(account);
+        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
         PlanChangeAgreement planChangeAgreement = planChangeProcessor.isPlanChangeAllowed();
 
         if (!planChangeAgreement.getErrors().isEmpty()) {

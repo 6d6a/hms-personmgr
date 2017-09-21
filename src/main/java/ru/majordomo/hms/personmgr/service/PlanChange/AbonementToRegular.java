@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.service.PlanChange;
 
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 
 import java.math.BigDecimal;
@@ -12,8 +13,8 @@ import static java.time.temporal.ChronoUnit.DAYS;
 
 public class AbonementToRegular extends Processor {
 
-    AbonementToRegular(Plan currentPlan, Plan newPlan) {
-        super(currentPlan, newPlan);
+    AbonementToRegular(PersonalAccount account, Plan newPlan) {
+        super(account, newPlan);
     }
 
     @Override
@@ -22,15 +23,11 @@ public class AbonementToRegular extends Processor {
     }
 
     @Override
-    public BigDecimal hulkCashBackAmount() {
+    public BigDecimal calcCashBackAmount() {
 
         AccountAbonement accountAbonement = getAccountAbonementManager().findByPersonalAccountId(getAccount().getId());
 
-        if (accountAbonement == null) {
-            return BigDecimal.ZERO;
-        }
-
-        if (accountAbonement.getAbonement().isInternal()) {
+        if (accountAbonement == null || accountAbonement.getAbonement().isInternal()) {
             return BigDecimal.ZERO;
         }
 
@@ -79,24 +76,6 @@ public class AbonementToRegular extends Processor {
             addPlanService();
         }
 
-    }
-
-    @Override
-    public void postProcess() {
-        //Укажем новый тариф
-        getAccountManager().setPlanId(getAccount().getId(), getNewPlan().getId());
-
-        //Разрешён ли сертификат на новом тарифе
-        sslCertAllowed();
-
-        //При необходимости отправляем письмо в саппорт
-        supportNotification();
-
-        //Сохраним статистику смены тарифа
-        saveStat();
-
-        //Сохраним историю аккаунта
-        saveHistory();
     }
 
 }

@@ -159,9 +159,9 @@ public class AccountAbonementRestController extends CommonRestController {
         return new ResponseEntity<>(accountAbonements, HttpStatus.OK);
     }
 
-    @PreAuthorize("hasRole('OPERATOR')")
+    @PreAuthorize("hasAuthority('DELETE_ACCOUNT_ABONEMENT')")
     @RequestMapping(value = "", method = RequestMethod.DELETE)
-    public ResponseEntity<Page<AccountAbonement>> getAccountAbonements(
+    public ResponseEntity<Page<AccountAbonement>> deleteAccountAbonements(
             @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -169,10 +169,8 @@ public class AccountAbonementRestController extends CommonRestController {
 
         Plan currentPlan = planRepository.findOne(account.getPlanId());
 
-        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(currentPlan, null);
-        planChangeProcessor.setAccount(account);
+        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, null);
 
-        planChangeProcessor.setOnlyDeleteAbonement(true);
         planChangeProcessor.process();
 
         //Save history

@@ -18,6 +18,7 @@ import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.*;
 
 import java.math.BigDecimal;
@@ -50,18 +51,29 @@ public abstract class Processor {
     private ApplicationEventPublisher publisher;
     private AccountHistoryService accountHistoryService;
     private FinFeignClient finFeignClient;
+    private PlanRepository planRepository;
 
     private PersonalAccount account;
     private Plan currentPlan;
     private Plan newPlan;
-    private Boolean planChangeRequired = false;
-    private Boolean newAbonementRequired = false;
-    private Boolean onlyDeleteAbonement = false;
-    private BigDecimal cashBackAmount = BigDecimal.ZERO;
+    private Boolean newAbonementRequired;
+    private BigDecimal cashBackAmount;
+    private PlanChangeAgreement reqestPlanChangeAgreement;
+    private String operator = "operator";
 
-    Processor(Plan currentPlan, Plan newPlan) {
-        this.currentPlan = currentPlan;
+    Processor(PersonalAccount account, Plan newPlan) {
+        this.account = account;
         this.newPlan = newPlan;
+
+        this.cashBackAmount = calcCashBackAmount();
+        this.newAbonementRequired = needToAddAbonement();
+    }
+
+    //Services
+
+    void setPlanRepository(PlanRepository planRepository) {
+        this.planRepository = planRepository;
+        this.currentPlan = planRepository.findOne(account.getId());
     }
 
     void setFinFeignClient(FinFeignClient finFeignClient) {
@@ -74,10 +86,6 @@ public abstract class Processor {
 
     void setPublisher(ApplicationEventPublisher publisher) {
         this.publisher = publisher;
-    }
-
-    PersonalAccountManager getAccountManager() {
-        return accountManager;
     }
 
     void setAccountManager(PersonalAccountManager accountManager) {
@@ -124,69 +132,40 @@ public abstract class Processor {
         this.accountStatRepository = accountStatRepository;
     }
 
-    public Boolean getOnlyDeleteAbonement() {
-        return onlyDeleteAbonement;
-    }
-
-    public void setOnlyDeleteAbonement(Boolean onlyDeleteAbonement) {
-        this.onlyDeleteAbonement = onlyDeleteAbonement;
-    }
-
-    public Boolean getPlanChangeRequired() {
-        return planChangeRequired;
-    }
-
-    public void setPlanChangeRequired(Boolean planChangeRequired) {
-        this.planChangeRequired = planChangeRequired;
-    }
-
-    public PersonalAccount getAccount() {
+    //Getters and setters
+    PersonalAccount getAccount() {
         return account;
     }
 
-    public void setAccount(PersonalAccount account) {
-        this.account = account;
-    }
-
-    public Plan getCurrentPlan() {
+    Plan getCurrentPlan() {
         return currentPlan;
     }
 
-    public void setCurrentPlan(Plan currentPlan) {
-        this.currentPlan = currentPlan;
-    }
-
-    public Plan getNewPlan() {
+    Plan getNewPlan() {
         return newPlan;
     }
 
-    public void setNewPlan(Plan newPlan) {
-        this.newPlan = newPlan;
-    }
-
-    public Boolean getNewAbonementRequired() {
+    Boolean getNewAbonementRequired() {
         return newAbonementRequired;
     }
 
-    public void setNewAbonementRequired(Boolean newAbonementRequired) {
-        this.newAbonementRequired = newAbonementRequired;
+    public void setReqestPlanChangeAgreement(PlanChangeAgreement reqestPlanChangeAgreement) {
+        this.reqestPlanChangeAgreement = reqestPlanChangeAgreement;
     }
 
-    public BigDecimal getCashBackAmount() {
-        return cashBackAmount;
+    public void setOperator(String operator) {
+        this.operator = operator;
     }
 
-    public void setCashBackAmount(BigDecimal cashBackAmount) {
-        this.cashBackAmount = cashBackAmount;
-    }
-
+    //Methods
     abstract Boolean needToAddAbonement();
 
-    abstract BigDecimal hulkCashBackAmount();
+    abstract BigDecimal calcCashBackAmount();
 
     abstract void deleteServices();
 
-    private void replaceServices() {
+    void replaceServices() {
+
         replaceSmsNotificationsService();
         processFtpUserService();
         processWebSiteService();
@@ -195,7 +174,23 @@ public abstract class Processor {
 
     abstract void addServices();
 
-    abstract void postProcess();
+    void postProcess() {
+
+        //Укажем новый тариф
+        accountManager.setPlanId(getAccount().getId(), getNewPlan().getId());
+
+        //Разрешён ли сертификат на новом тарифе
+        sslCertAllowed();
+
+        //При необходимости отправляем письмо в саппорт
+        supportNotification();
+
+        //Сохраним статистику смены тарифа
+        saveStat();
+
+        //Сохраним историю аккаунта
+        saveHistory();
+    }
 
     public PlanChangeAgreement isPlanChangeAllowed() {
 
@@ -220,12 +215,11 @@ public abstract class Processor {
         planChangeAgreement.setBalance(balance);
         planChangeAgreement.setBalanceAfterOperation(balance);
 
-        BigDecimal tempCashBackAmount = hulkCashBackAmount();
-        BigDecimal newBalanceAfterCashBack = balance.add(tempCashBackAmount);
+        BigDecimal newBalanceAfterCashBack = balance.add(cashBackAmount);
         planChangeAgreement.setBalanceAfterOperation(newBalanceAfterCashBack);
 
-        if (tempCashBackAmount.compareTo(BigDecimal.ZERO) != 0) {
-            planChangeAgreement.setDelta(tempCashBackAmount);
+        if (cashBackAmount.compareTo(BigDecimal.ZERO) != 0) {
+            planChangeAgreement.setDelta(cashBackAmount);
             planChangeAgreement.setBalanceChanges(true);
         }
 
@@ -257,7 +251,7 @@ public abstract class Processor {
                 return planChangeAgreement;
             }
 
-            if (needToAddAbonement()) {
+            if (newAbonementRequired) {
 
                 planChangeAgreement.setBalanceChanges(true);
 
@@ -297,27 +291,31 @@ public abstract class Processor {
         return planChangeAgreement;
     }
 
-    final public void process() {
+    void preValidate() {
+
         if (account == null) {
             throw new ParameterValidationException("Аккаунт не найден");
         }
-        setCashBackAmount(hulkCashBackAmount());
-        if (planChangeRequired && onlyDeleteAbonement) {
-            throw new ParameterValidationException("Некорректно определены параметры");
+
+        if (!reqestPlanChangeAgreement.equals(isPlanChangeAllowed())) {
+            throw new ParameterValidationException("Произошла ошибка при смене тарифа");
         }
-        if (planChangeRequired) {
-            setNewAbonementRequired(needToAddAbonement());
-            deleteServices();
-            replaceServices();
-            addServices();
-            postProcess();
-        }
-        if (onlyDeleteAbonement) {
-            setNewAbonementRequired(false);
-            deleteServices();
-            addServices();
+
+        if (!reqestPlanChangeAgreement.getPlanChangeAllowed()) {
+            throw new ParameterValidationException("Смена тарифа запрещена");
         }
     }
+
+    final public void process() {
+
+        preValidate();
+        deleteServices();
+        replaceServices();
+        addServices();
+        postProcess();
+    }
+
+    //Additions
 
     // ДЕНЬГИ
 
@@ -598,7 +596,7 @@ public abstract class Processor {
     /**
      * Сохраним в статистику об изменении тарифного плана
      */
-    void saveStat() {
+    private void saveStat() {
         AccountStat accountStat = new AccountStat();
         accountStat.setPersonalAccountId(account.getId());
         accountStat.setCreated(LocalDateTime.now());
@@ -616,18 +614,18 @@ public abstract class Processor {
     /**
      * Сохраним в историю запись об изменении тарифного плана
      */
-    void saveHistory() {
+    private void saveHistory() {
         accountHistoryService.addMessage(account.getId(), "Произведена смена тарифа с " +
-                currentPlan.getName() + " на " + newPlan.getName(), "operator");
+                currentPlan.getName() + " на " + newPlan.getName(), operator);
     }
 
-    void supportNotification() {
+    private void supportNotification() {
         if (isFromRegularToBusiness()) {
             publisher.publishEvent(new AccountNotifySupportOnChangePlanEvent(account));
         }
     }
 
-    void sslCertAllowed() {
+    private void sslCertAllowed() {
         if (!newPlan.isSslCertificateAllowed()) {
 
             accountHelper.disableAllSslCertificates(account);
@@ -635,7 +633,7 @@ public abstract class Processor {
             //Запишем в историю клиента
             Map<String, String> historyParams = new HashMap<>();
             historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отключны SSL сертификаты в соответствии с тарифным планом");
-            historyParams.put(OPERATOR_KEY, "service");
+            historyParams.put(OPERATOR_KEY, operator);
 
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
         }
@@ -650,7 +648,7 @@ public abstract class Processor {
             Map<String, String> historyParams = new HashMap<>();
             historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отключен кредит в связи " +
                     "с переходом на тариф с обязательным абонементом");
-            historyParams.put(OPERATOR_KEY, "service");
+            historyParams.put(OPERATOR_KEY, operator);
 
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
         }

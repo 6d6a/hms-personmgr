@@ -2,14 +2,15 @@ package ru.majordomo.hms.personmgr.service.PlanChange;
 
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 
 import java.math.BigDecimal;
 
 public class RegularToAbonement extends Processor {
 
-    RegularToAbonement(Plan currentPlan, Plan newPlan) {
-        super(currentPlan, newPlan);
+    RegularToAbonement(PersonalAccount account, Plan newPlan) {
+        super(account, newPlan);
     }
 
     @Override
@@ -18,7 +19,7 @@ public class RegularToAbonement extends Processor {
     }
 
     @Override
-    public BigDecimal hulkCashBackAmount() {
+    public BigDecimal calcCashBackAmount() {
         // С активным абонементом нельзя переходить на Парковку (Если только это не тестовый)
         return BigDecimal.ZERO;
     }
@@ -52,23 +53,10 @@ public class RegularToAbonement extends Processor {
 
     @Override
     public void postProcess() {
-        //Укажем новый тариф
-        getAccountManager().setPlanId(getAccount().getId(), getNewPlan().getId());
+        super.postProcess();
 
         //Выключить кредит
         disableCredit();
-
-        //Разрешён ли сертификат на новом тарифе
-        sslCertAllowed();
-
-        //При необходимости отправляем письмо в саппорт
-        supportNotification();
-
-        //Сохраним статистику смены тарифа
-        saveStat();
-
-        //Сохраним историю аккаунта
-        saveHistory();
     }
 
 }

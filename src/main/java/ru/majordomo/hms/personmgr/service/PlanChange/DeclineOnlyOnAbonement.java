@@ -1,18 +1,27 @@
 package ru.majordomo.hms.personmgr.service.PlanChange;
 
 import org.apache.commons.lang.NotImplementedException;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 
 public class DeclineOnlyOnAbonement extends AbonementToRegular {
 
-    DeclineOnlyOnAbonement(Plan currentPlan, Plan newPlan) {
-        super(currentPlan, newPlan);
+    DeclineOnlyOnAbonement(PersonalAccount account, Plan newPlan) {
+        super(account, newPlan);
     }
 
     @Override
     public Boolean needToAddAbonement() {
-        throw new NotImplementedException();
+        return false;
+    }
+
+    @Override
+    void preValidate() {
+        if (getAccount() == null) {
+            throw new ParameterValidationException("Аккаунт не найден");
+        }
     }
 
     @Override
@@ -38,8 +47,9 @@ public class DeclineOnlyOnAbonement extends AbonementToRegular {
     }
 
     @Override
-    public void postProcess() {
-        throw new NotImplementedException();
-    }
+    void postProcess() {}
+
+    @Override
+    void replaceServices() {}
 
 }
