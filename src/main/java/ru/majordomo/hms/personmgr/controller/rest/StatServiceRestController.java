@@ -7,10 +7,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.counter.AbonementCounter;
+import ru.majordomo.hms.personmgr.model.counter.PlanCounter;
+import ru.majordomo.hms.personmgr.service.StatServiceHelper;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
+
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
@@ -20,11 +25,14 @@ import static org.springframework.data.mongodb.core.query.Query.query;
 @RequestMapping({"/pm/stat"})
 public class StatServiceRestController {
     private final MongoOperations mongoOperations;
+    private final StatServiceHelper statServiceHelper;
 
     public StatServiceRestController(
-            MongoOperations mongoOperations
+            MongoOperations mongoOperations,
+            StatServiceHelper statServiceHelper
     ) {
         this.mongoOperations = mongoOperations;
+        this.statServiceHelper = statServiceHelper;
     }
 
     @RequestMapping(value = "/count/all-accounts", method = RequestMethod.GET)
@@ -36,14 +44,32 @@ public class StatServiceRestController {
     @RequestMapping(value = "/registration-by-date", method = RequestMethod.GET)
     public ResponseEntity<Long> getAccountCount(
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            @RequestParam(value = "date") LocalDate date
+            @RequestParam(value = "date", required = false) LocalDate date
     ) {
+
+        if (date == null) { date = LocalDate.now(); }
+
         return new ResponseEntity<>(
                 mongoOperations.count(
                         query(where("created")
-                                .gt(LocalDateTime.of(date, LocalTime.MIN))
-                                .lt(LocalDateTime.of(date, LocalTime.MAX))),
+                                .gte(LocalDateTime.of(date, LocalTime.MIN))
+                                .lte(LocalDateTime.of(date, LocalTime.MAX))),
                         PersonalAccount.class
                 ), HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/plan", method = RequestMethod.GET)
+    public ResponseEntity<List<PlanCounter>> getCountsActiveAccountGroupByPlan() {
+        return ResponseEntity.ok(statServiceHelper.getAllPlanCounters());
+    }
+
+    @GetMapping("/plan/abonement")
+    public ResponseEntity<List<AbonementCounter>> getAbonementCounter(){
+        return ResponseEntity.ok(statServiceHelper.getAbonementCounters());
+    }
+
+    @GetMapping("/plan/daily")
+    public ResponseEntity<List<PlanCounter>> getCountsActiveAccountGroupByDailyPlan() {
+        return ResponseEntity.ok(statServiceHelper.getDailyPlanCounters());
     }
 }
