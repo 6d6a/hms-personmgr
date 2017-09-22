@@ -46,13 +46,6 @@ public class StatServiceHelper {
     }
 
     public List<PlanCounter> getPlanCountersFilterByAbonementOnlyPlan(Boolean withoutFilter) {
-        //        db.getCollection('personalAccount').aggregate(
-        //                {$match: {"active": true}},
-        //        {$project: {planId: 1, "_id":0, count: {$add: [1]}}}
-        //        ,{$group: {_id: "$planId", "sum":{$sum: "$count"}}}
-        //        ,{$sort: {sum:-1}}
-        //)
-
         MatchOperation match = match(Criteria.where("active").is(true));
 
         ProjectionOperation project = project("planId");
@@ -91,17 +84,6 @@ public class StatServiceHelper {
     //Выполняется дольше 17 секунд
     public List<AbonementCounter> getAbonementCounters() {
 
-        /*db.getCollection('plan').aggregate({$unwind:"$abonementIds"}
-        ,{$project:{abonementIds:1,name:1}}
-        ,{$lookup:{from: "accountAbonement",
-               localField: "abonementIds",
-               foreignField: "abonementId",
-               as: "accountAbonements"}}
-        ,{$project:{abonementIds:1, name:1, "count": { $size: "$accountAbonements" }}}
-//        ,{$group:{_id:"$_id", "count":{$sum:"$count"}}}
-        ,{$sort: {"count":-1}}
-        )*/
-
         UnwindOperation unwind = unwind("abonementIds");
         ProjectionOperation project = project("abonementIds", "name");
 
@@ -114,25 +96,16 @@ public class StatServiceHelper {
         ProjectionOperation countProject = project("name")
                 .and("accountAbonements").size().as("count")
                 .and("abonementIds").as("abonementId")
-//                .and("id").as("planId")
                 ;
 
-//  GroupOperation group = group("_id").sum("count").as("count");
         SortOperation sort = sort(new Sort(Sort.Direction.DESC, "count"));
-//        ProjectionOperation finalProject = project().andExclude("_id");
-
-//        ProjectionOperation finalProject = project("count", "name")
-//                .and("abonementIds").as("abonementId");
-
 
         Aggregation aggregation = newAggregation(
                 unwind,
                 project,
                 lookup,
                 countProject,
-//                group,
-                sort/*,
-                finalProject*/
+                sort
         );
 
         AggregationResults<AbonementCounter> abonementCounters = mongoOperations.aggregate(
@@ -160,15 +133,6 @@ public class StatServiceHelper {
 
         return abonementCountersByPlanAndAbonement;
     }
-
-    /*public List<PlanCounter> getAllPlanCounters() {
-        return this.getPlanCounters(
-                "personalAccount",
-                "planId",
-                "active",
-                true
-        );
-    }*/
 
     public List<PlanCounter> getDailyPlanCounters() {
         //все аккаунты с дневными списаниями и абонементами
