@@ -23,10 +23,13 @@ import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.PlanChange.Factory;
+import ru.majordomo.hms.personmgr.service.PlanChange.Processor;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -42,6 +45,7 @@ public class AccountAbonementRestController extends CommonRestController {
     private final AbonementService abonementService;
     private final PlanRepository planRepository;
     private final AccountHelper accountHelper;
+    private final Factory planChangeFactory;
 
     @Autowired
     public AccountAbonementRestController(
@@ -49,12 +53,14 @@ public class AccountAbonementRestController extends CommonRestController {
             AbonementService abonementService,
             AbonementRepository abonementRepository,
             PlanRepository planRepository,
-            AccountHelper accountHelper) {
+            AccountHelper accountHelper,
+            Factory planChangeFactory) {
         this.accountAbonementManager = accountAbonementManager;
         this.abonementService = abonementService;
         this.abonementRepository = abonementRepository;
         this.planRepository = planRepository;
         this.accountHelper = accountHelper;
+        this.planChangeFactory = planChangeFactory;
     }
 
     @RequestMapping(value = "/{accountAbonementId}", method = RequestMethod.GET)
@@ -151,6 +157,31 @@ public class AccountAbonementRestController extends CommonRestController {
         }
 
         return new ResponseEntity<>(accountAbonements, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAuthority('DELETE_ACCOUNT_ABONEMENT')")
+    @RequestMapping(value = "", method = RequestMethod.DELETE)
+    public ResponseEntity<Page<AccountAbonement>> deleteAccountAbonements(
+            @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Plan currentPlan = planRepository.findOne(account.getPlanId());
+
+        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, null);
+
+        planChangeProcessor.process();
+
+        //Save history
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Произведен отказ от абонемента");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
