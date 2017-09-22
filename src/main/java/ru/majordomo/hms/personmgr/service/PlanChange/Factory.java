@@ -118,5 +118,7 @@ public class Factory {
         processor.setAccountHistoryService(accountHistoryService);
         processor.setFinFeignClient(finFeignClient);
         processor.setPlanRepository(planRepository);
+
+        processor.postConstruct();
     }
 }

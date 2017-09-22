@@ -65,7 +65,10 @@ public abstract class Processor {
     Processor(PersonalAccount account, Plan newPlan) {
         this.account = account;
         this.newPlan = newPlan;
+    }
 
+    void postConstruct() {
+        this.currentPlan = planRepository.findOne(account.getPlanId());
         this.cashBackAmount = calcCashBackAmount();
         this.newAbonementRequired = needToAddAbonement();
     }
@@ -74,7 +77,6 @@ public abstract class Processor {
 
     void setPlanRepository(PlanRepository planRepository) {
         this.planRepository = planRepository;
-        this.currentPlan = planRepository.findOne(account.getId());
     }
 
     void setFinFeignClient(FinFeignClient finFeignClient) {
@@ -533,7 +535,7 @@ public abstract class Processor {
     }
 
     void deletePlanService() {
-        accountServiceHelper.deleteAccountServiceById(account, currentPlan.getServiceId());
+        accountServiceHelper.deleteAccountServiceByServiceId(account, currentPlan.getServiceId());
     }
 
     void addServiceById(String serviceId) {
