@@ -22,7 +22,7 @@ import static org.springframework.data.mongodb.core.query.Query.query;
 
 @RestController
 @PreAuthorize("hasRole('ADMIN')")
-@RequestMapping({"/pm/stat"})
+@RequestMapping({"/stat"})
 public class StatServiceRestController {
     private final MongoOperations mongoOperations;
     private final StatServiceHelper statServiceHelper;
