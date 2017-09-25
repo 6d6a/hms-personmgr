@@ -297,7 +297,6 @@ public class AccountServiceRestController extends CommonRestController {
                     .collect(Collectors.toList())
             ;
 
-            logger.info("accountServices: " + accountServices);
             if (accountServices
                     .stream()
                     .noneMatch(accountService1 -> accountService1.getServiceId().equals(plan.getServiceId()))
