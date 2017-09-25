@@ -160,6 +160,10 @@ public abstract class Processor {
         this.operator = operator;
     }
 
+    public BigDecimal getCashBackAmount() {
+        return cashBackAmount;
+    }
+
     //Methods
     abstract Boolean needToAddAbonement();
 
