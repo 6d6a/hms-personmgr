@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.discount.Discount;
 import ru.majordomo.hms.personmgr.repository.DiscountRepository;
@@ -15,7 +14,6 @@ import java.util.List;
 
 @RestController
 @PreAuthorize("hasRole('ADMIN')")
-@RequestMapping({"/discounts"})
 public class DiscountController {
     private final DiscountRepository discountRepository;
     private final DiscountServiceHelper discountServiceHelper;
@@ -29,25 +27,34 @@ public class DiscountController {
         this.discountServiceHelper = discountServiceHelper;
     }
 
-    @RequestMapping(value = "/{discountId}", method = RequestMethod.GET)
+    @GetMapping("/discounts/{discountId}")
     public ResponseEntity<Discount> getDiscount(
             @ObjectId(Discount.class) @PathVariable(value = "discountId") String discountId
     ) {
         return ResponseEntity.ok(discountRepository.findOne(discountId));
     }
 
-    @RequestMapping(value = "", method = RequestMethod.GET)
+    @GetMapping("/discounts")
     public ResponseEntity<List<Discount>> getAll(
     ) {
         return ResponseEntity.ok(discountRepository.findAll());
     }
 
-    @PostMapping(value = "{discountId}/account/{accountId}")
+    @PostMapping("/{accountId}/account/discounts")
     public ResponseEntity<Void> addDiscountToAccount(
-            @ObjectId(Discount.class) @PathVariable(value = "discountId") String discountId,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+            @RequestBody List<@ObjectId(Discount.class) String> discountIds,
+            @ObjectId(PersonalAccount.class) @PathVariable String accountId
     ) {
-        discountServiceHelper.addDiscountToAccount(accountId, discountId);
+        discountServiceHelper.addDiscountToAccount(accountId, discountIds);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/discounts")
+    public ResponseEntity<Void> createDiscount(
+            @RequestBody Discount discount
+    ) {
+        discount.unSetId();
+        discountRepository.save(discount);
         return ResponseEntity.ok().build();
     }
 }

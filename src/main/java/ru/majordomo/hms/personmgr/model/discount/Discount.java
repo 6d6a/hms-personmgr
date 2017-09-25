@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.model.discount;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.math.BigDecimal;
@@ -14,7 +15,17 @@ import ru.majordomo.hms.personmgr.validation.ObjectIdList;
 /**
  * Discount
  */
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
+              include = JsonTypeInfo.As.PROPERTY,
+              property = "type")
+@JsonSubTypes({
+                    @JsonSubTypes.Type(value = DiscountPercent.class,
+                                name = "percent"),
+                    @JsonSubTypes.Type(value = DiscountAbsolute.class,
+                                name = "absolute"),
+                    @JsonSubTypes.Type(value = DiscountExactCost.class,
+                                name = "exact_cost")
+              })
 public abstract class Discount extends BaseModel {
     @NotNull
     private String name;

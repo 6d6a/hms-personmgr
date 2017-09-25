@@ -53,7 +53,8 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.PlanChangeService;
+import ru.majordomo.hms.personmgr.service.PlanChange.Factory;
+import ru.majordomo.hms.personmgr.service.PlanChange.Processor;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.service.TokenHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
@@ -71,7 +72,6 @@ import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
 public class PersonalAccountRestController extends CommonRestController {
     private final PlanRepository planRepository;
     private final AccountOwnerManager accountOwnerManager;
-    private final PlanChangeService planChangeService;
     private final RcUserFeignClient rcUserFeignClient;
     private final ApplicationEventPublisher publisher;
     private final AccountHelper accountHelper;
@@ -79,23 +79,23 @@ public class PersonalAccountRestController extends CommonRestController {
     private final NotificationRepository notificationRepository;
     private final AccountServiceRepository accountServiceRepository;
     private final AccountServiceHelper accountServiceHelper;
+    private final Factory planChangeFactory;
 
     @Autowired
     public PersonalAccountRestController(
             PlanRepository planRepository,
             AccountOwnerManager accountOwnerManager,
-            PlanChangeService planChangeService,
             RcUserFeignClient rcUserFeignClient,
             ApplicationEventPublisher publisher,
             AccountHelper accountHelper,
             TokenHelper tokenHelper,
             NotificationRepository notificationRepository,
             AccountServiceRepository accountServiceRepository,
-            AccountServiceHelper accountServiceHelper
+            AccountServiceHelper accountServiceHelper,
+            Factory planChangeFactory
     ) {
         this.planRepository = planRepository;
         this.accountOwnerManager = accountOwnerManager;
-        this.planChangeService = planChangeService;
         this.rcUserFeignClient = rcUserFeignClient;
         this.publisher = publisher;
         this.accountHelper = accountHelper;
@@ -103,6 +103,7 @@ public class PersonalAccountRestController extends CommonRestController {
         this.notificationRepository = notificationRepository;
         this.accountServiceRepository = accountServiceRepository;
         this.accountServiceHelper = accountServiceHelper;
+        this.planChangeFactory = planChangeFactory;
     }
 
     @RequestMapping(value = "/accounts",
@@ -148,11 +149,18 @@ public class PersonalAccountRestController extends CommonRestController {
     public ResponseEntity<Object> changeAccountPlan(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "planId") String planId,
-            @RequestBody PlanChangeAgreement planChangeAgreement
+            @RequestBody PlanChangeAgreement planChangeAgreement,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
+        String operator = request.getUserPrincipal().getName();
+        Plan newPlan = planRepository.findOne(planId);
 
-        planChangeService.changePlan(account, planId, planChangeAgreement);
+        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
+        planChangeProcessor.setOperator(operator);
+        planChangeProcessor.setRequestPlanChangeAgreement(planChangeAgreement);
+
+        planChangeProcessor.process();
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -164,10 +172,15 @@ public class PersonalAccountRestController extends CommonRestController {
             @PathVariable(value = "planId") String planId
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
+        Plan newPlan = planRepository.findOne(planId);
 
-        PlanChangeAgreement planChangeAgreement = planChangeService.changePlan(account, planId, null);
+        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
+        PlanChangeAgreement planChangeAgreement = planChangeProcessor.isPlanChangeAllowed();
 
-        if (planChangeAgreement.getNeedToFeelBalance().compareTo(BigDecimal.ZERO) != 0) {
+        if (!planChangeAgreement.getErrors().isEmpty()) {
+            return new ResponseEntity<>(planChangeAgreement, HttpStatus.FORBIDDEN);
+            //Ошибки хранятся в planChangeAgreement.getErrors()
+        } else if (planChangeAgreement.getNeedToFeelBalance().compareTo(BigDecimal.ZERO) != 0) {
             return new ResponseEntity<>(planChangeAgreement, HttpStatus.ACCEPTED); // 202 Accepted
         } else {
             return new ResponseEntity<>(planChangeAgreement, HttpStatus.OK);

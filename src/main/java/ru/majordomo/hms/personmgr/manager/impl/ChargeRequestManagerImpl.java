@@ -110,7 +110,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
     }
 
     @Override
-    public List<ChargeRequest> findByPersonalAccountIdAndChargeDate(String personalAccountId, LocalDate chargeDate) {
+    public ChargeRequest findByPersonalAccountIdAndChargeDate(String personalAccountId, LocalDate chargeDate) {
         return repository.findByPersonalAccountIdAndChargeDate(personalAccountId, chargeDate);
     }
 

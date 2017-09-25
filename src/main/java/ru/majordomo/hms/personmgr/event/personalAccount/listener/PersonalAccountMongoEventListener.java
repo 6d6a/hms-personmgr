@@ -15,17 +15,22 @@ import ru.majordomo.hms.personmgr.model.discount.AccountDiscount;
 import ru.majordomo.hms.personmgr.model.discount.Discount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.DiscountedService;
-import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.service.DiscountServiceHelper;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 @Component
 public class PersonalAccountMongoEventListener extends AbstractMongoEventListener<PersonalAccount> {
     private final MongoOperations mongoOperations;
+    private final DiscountServiceHelper discountServiceHelper;
 
     @Autowired
-    public PersonalAccountMongoEventListener(MongoOperations mongoOperations) {
+    public PersonalAccountMongoEventListener(
+            MongoOperations mongoOperations,
+            DiscountServiceHelper discountServiceHelper
+    ) {
         this.mongoOperations = mongoOperations;
+        this.discountServiceHelper = discountServiceHelper;
     }
 
     @Override
@@ -47,19 +52,11 @@ public class PersonalAccountMongoEventListener extends AbstractMongoEventListene
 
         if (personalAccount.getServices() != null && personalAccount.getDiscounts() != null) {
             for (AccountService accountService : personalAccount.getServices()) {
-                PaymentService service = mongoOperations.findById(accountService.getServiceId(), PaymentService.class);
-                accountService.setPaymentService(service);
+                DiscountedService discountedService = discountServiceHelper.getDiscountedService(personalAccount.getDiscounts(), accountService);
 
-                for (AccountDiscount accountDiscount : personalAccount.getDiscounts()) {
-                    Discount discount = accountDiscount.getDiscount();
-                    for (String serviceId : discount.getServiceIds()) {
-                        if (accountService.getServiceId().equals(serviceId)) {
-                            accountServiceListAfterDiscountConvert.remove(accountService);
-                            accountServiceListAfterDiscountConvert.add(new DiscountedService(service, discount));
-
-                            break;
-                        }
-                    }
+                if (discountedService != null) {
+                    accountServiceListAfterDiscountConvert.remove(accountService);
+                    accountServiceListAfterDiscountConvert.add(discountedService);
                 }
             }
             personalAccount.setServices(accountServiceListAfterDiscountConvert);

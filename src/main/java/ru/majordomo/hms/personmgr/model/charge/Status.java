@@ -5,5 +5,6 @@ public enum Status {
     PROCESSING,
     CHARGED,
     SKIPPED,
-    ERROR
+    ERROR,
+    FINISHED
 }

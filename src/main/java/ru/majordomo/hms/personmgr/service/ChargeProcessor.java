@@ -26,6 +26,7 @@ import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequestItem;
 import ru.majordomo.hms.personmgr.model.charge.Status;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.DiscountedService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 
 @Service
@@ -42,6 +43,7 @@ public class ChargeProcessor {
     private final Charger charger;
     private final ApplicationEventPublisher publisher;
     private final BatchJobManager batchJobManager;
+    private final DiscountServiceHelper discountServiceHelper;
 
     public ChargeProcessor(
             ChargeRequestManager chargeRequestManager,
@@ -53,7 +55,8 @@ public class ChargeProcessor {
             AccountStatHelper accountStatHelper,
             Charger charger,
             ApplicationEventPublisher publisher,
-            BatchJobManager batchJobManager
+            BatchJobManager batchJobManager,
+            DiscountServiceHelper discountServiceHelper
     ) {
         this.chargeRequestManager = chargeRequestManager;
         this.accountManager = accountManager;
@@ -65,6 +68,7 @@ public class ChargeProcessor {
         this.charger = charger;
         this.publisher = publisher;
         this.batchJobManager = batchJobManager;
+        this.discountServiceHelper = discountServiceHelper;
     }
 
     @SchedulerLock(name="processCharges")
@@ -122,6 +126,12 @@ public class ChargeProcessor {
                 .collect(Collectors.toSet())) {
             AccountService accountService =  accountServiceRepository.findOne(chargeRequestItem.getAccountServiceId());
 
+            DiscountedService discountedService = discountServiceHelper.getDiscountedService(account.getDiscounts(), accountService);
+
+            if (discountedService != null) {
+                accountService = discountedService;
+            }
+
             ChargeResult chargeResult = charger.makeCharge(accountService, chargeRequest.getChargeDate());
             if (chargeResult.isSuccess()) {
                 dailyCost = dailyCost.add(accountServiceHelper.getDailyCostForService(accountService, chargeRequest.getChargeDate()));
@@ -136,7 +146,7 @@ public class ChargeProcessor {
                         }
 
                         chargeRequestItem.setStatus(Status.SKIPPED);
-                        chargeRequest.setStatus(Status.CHARGED);
+                        chargeRequest.setStatus(Status.SKIPPED);
 
                         chargeRequestManager.save(chargeRequest);
 
@@ -167,7 +177,7 @@ public class ChargeProcessor {
         if (chargeRequest.getChargeRequests().stream().anyMatch(chargeRequestItem -> chargeRequestItem.getStatus() == Status.ERROR)) {
             chargeRequest.setStatus(Status.ERROR);
         } else {
-            chargeRequest.setStatus(Status.CHARGED);
+            chargeRequest.setStatus(Status.FINISHED);
         }
 
         chargeRequestManager.save(chargeRequest);
