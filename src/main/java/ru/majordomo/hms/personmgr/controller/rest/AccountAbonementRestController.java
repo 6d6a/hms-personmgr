@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -167,8 +168,6 @@ public class AccountAbonementRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        Plan currentPlan = planRepository.findOne(account.getPlanId());
-
         Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, null);
 
         planChangeProcessor.process();
@@ -182,6 +181,20 @@ public class AccountAbonementRestController extends CommonRestController {
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAuthority('DELETE_ACCOUNT_ABONEMENT')")
+    @RequestMapping(value = "/cashback", method = RequestMethod.GET)
+    public ResponseEntity<BigDecimal> getCashBackAmount(
+            @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, null);
+
+        BigDecimal cashback = planChangeProcessor.getCashBackAmount();
+
+        return new ResponseEntity<>(cashback, HttpStatus.OK);
     }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
