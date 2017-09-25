@@ -224,7 +224,7 @@ public class AccountAbonementRestController extends CommonRestController {
 
             abonementService.addAbonement(account, abonementId, true);
 
-            if (accountAbonementManager.findByPersonalAccountId(account.getId()) != null && planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
+            if (accountAbonementManager.findByPersonalAccountId(account.getId()) != null) {
                 accountHelper.enableAccount(account);
             }
 
