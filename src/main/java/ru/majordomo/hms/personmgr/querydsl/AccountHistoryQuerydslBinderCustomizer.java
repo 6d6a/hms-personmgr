@@ -1,11 +1,13 @@
 package ru.majordomo.hms.personmgr.querydsl;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.StringExpression;
 
 import org.springframework.data.querydsl.binding.QuerydslBinderCustomizer;
 import org.springframework.data.querydsl.binding.QuerydslBindings;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Iterator;
 
 import ru.majordomo.hms.personmgr.model.account.QAccountHistory;
@@ -21,9 +23,23 @@ public class AccountHistoryQuerydslBinderCustomizer implements QuerydslBinderCus
             LocalDateTime firstDate = it.next();
             if (it.hasNext()) {
                 LocalDateTime secondDate = it.next();
-                return path.after(firstDate).and(path.before(secondDate));
+                BooleanBuilder builder = new BooleanBuilder();
+                return builder
+                        .andAnyOf(
+                                path.after(firstDate)
+                                        .and(path.before(secondDate)),
+                                path.eq(firstDate)
+                                        .or(path.eq(secondDate))
+                        );
             } else {
-                return path.after(firstDate);
+                BooleanBuilder builder = new BooleanBuilder();
+                return builder
+                        .andAnyOf(
+                                path.after(firstDate.with(LocalTime.MIN))
+                                        .and(path.before(firstDate.with(LocalTime.MAX))),
+                                path.eq(firstDate.with(LocalTime.MIN))
+                                        .or(path.eq(firstDate.with(LocalTime.MAX)))
+                        );
             }
         });
     }
