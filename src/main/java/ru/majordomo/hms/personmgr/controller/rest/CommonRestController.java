@@ -155,6 +155,12 @@ public class CommonRestController {
                 if (accountServices == null || accountServices.isEmpty()) {
                     throw new ParameterValidationException("Услуга анти-спам не подключена");
                 }
+
+                accountServices.forEach(item-> {
+                    if (!item.isEnabled()){
+                        throw new ParameterValidationException("Услуга анти-спам не подключена");
+                    }
+                });
             }
 
         });
