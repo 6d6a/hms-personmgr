@@ -4,9 +4,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -15,20 +17,32 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 public class CommonRestController {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected PersonalAccountManager accountManager;
     protected ApplicationEventPublisher publisher;
+    private PaymentServiceRepository paymentServiceRepository;
+    private AccountServiceRepository accountServiceRepository;
 
     @Autowired
-    public void setAccountManager(PersonalAccountManager accountManager) {
+    public void setAccountManager(
+            PersonalAccountManager accountManager,
+            PaymentServiceRepository paymentServiceRepository,
+            AccountServiceRepository accountServiceRepository
+    ) {
         this.accountManager = accountManager;
+        this.paymentServiceRepository = paymentServiceRepository;
+        this.accountServiceRepository = accountServiceRepository;
     }
 
     @Autowired
@@ -113,6 +127,32 @@ public class CommonRestController {
                 logger.debug("Changing '" + param + "' property is forbidden. Only role '" + role + "' allowed to edit.");
                 params.remove(param);
             }
+        });
+    }
+
+    protected void checkParamsForServicesOnUpdate(
+            Map<String, Object> params,
+            PersonalAccount account
+    ) {
+        params.forEach((k,v) -> {
+            //Антиспам
+            if (k.equals(MAILBOX_ANTISPAM_FIELD) && (Boolean) v) {
+                //Проверяем что у аккаунта есть услуга анти-спам
+                PaymentService paymentService = paymentServiceRepository.findByOldId(ANTI_SPAM_SERVICE_ID);
+
+                if (paymentService == null) {
+                    throw new ParameterValidationException("Услуга анти-спам не найдена");
+                }
+
+                List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(
+                        account.getId(), paymentService.getId()
+                );
+
+                if (accountServices == null || accountServices.isEmpty()) {
+                    throw new ParameterValidationException("Услуга анти-спам не подключена");
+                }
+            }
+
         });
     }
 
