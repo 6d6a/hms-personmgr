@@ -31,17 +31,21 @@ public class CommonRestController {
 
     protected PersonalAccountManager accountManager;
     protected ApplicationEventPublisher publisher;
-    private PaymentServiceRepository paymentServiceRepository;
-    private AccountServiceRepository accountServiceRepository;
+    protected PaymentServiceRepository paymentServiceRepository;
+    protected AccountServiceRepository accountServiceRepository;
 
     @Autowired
-    public void setAccountManager(
-            PersonalAccountManager accountManager,
-            PaymentServiceRepository paymentServiceRepository,
-            AccountServiceRepository accountServiceRepository
-    ) {
+    public void setAccountManager(PersonalAccountManager accountManager) {
         this.accountManager = accountManager;
+    }
+
+    @Autowired
+    public void setPaymentServiceRepository(PaymentServiceRepository paymentServiceRepository) {
         this.paymentServiceRepository = paymentServiceRepository;
+    }
+
+    @Autowired
+    public void setAccountServiceRepository(AccountServiceRepository accountServiceRepository) {
         this.accountServiceRepository = accountServiceRepository;
     }
 
