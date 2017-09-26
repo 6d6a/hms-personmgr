@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,11 +24,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
-import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
@@ -52,23 +55,26 @@ public class AccountServiceRestController extends CommonRestController {
 
     private final AccountServiceRepository accountServiceRepository;
     private final PaymentServiceRepository serviceRepository;
-    private final PlanRepository planRepository;
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHelper accountHelper;
+    private final AccountAbonementManager accountAbonementManager;
+    private final PlanRepository planRepository;
 
     @Autowired
     public AccountServiceRestController(
             AccountServiceRepository accountServiceRepository,
             PaymentServiceRepository serviceRepository,
-            PlanRepository planRepository,
             AccountServiceHelper accountServiceHelper,
-            AccountHelper accountHelper
+            AccountHelper accountHelper,
+            AccountAbonementManager accountAbonementManager,
+            PlanRepository planRepository
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.serviceRepository = serviceRepository;
-        this.planRepository = planRepository;
         this.accountServiceHelper = accountServiceHelper;
         this.accountHelper = accountHelper;
+        this.accountAbonementManager = accountAbonementManager;
+        this.planRepository = planRepository;
     }
 
     @RequestMapping(value = "/{accountId}/account-service/{accountServiceId}",
@@ -101,6 +107,7 @@ public class AccountServiceRestController extends CommonRestController {
         return new ResponseEntity<>(accountServices, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('MANAGE_SERVICES')")
     @RequestMapping(value = "/{accountId}/account-service",
                     method = RequestMethod.POST)
     public ResponseEntity<SimpleServiceMessage> addService(
@@ -256,6 +263,7 @@ public class AccountServiceRestController extends CommonRestController {
         return new ResponseEntity<>(this.createSuccessResponse("accountService " + (enabled ? "enabled" : "disabled") + " for anti-spam"), HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('MANAGE_SERVICES')")
     @RequestMapping(value = "/{accountId}/account-service/{accountServiceId}",
                     method = RequestMethod.DELETE)
     public ResponseEntity<Object> delete(
@@ -267,10 +275,36 @@ public class AccountServiceRestController extends CommonRestController {
 
         AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndId(account.getId(), accountServiceId);
 
-        String serviceName = null;
+        String serviceName;
 
         if (accountService != null) {
             serviceName = accountService.getName();
+        } else {
+            throw new ParameterValidationException("Услуга с Id " + accountServiceId + " не найдена на аккаунте " + accountId);
+        }
+
+        AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+
+        if (currentAccountAbonement == null || (currentAccountAbonement.getExpired() != null
+                && currentAccountAbonement.getExpired().isBefore(LocalDateTime.now()))) {
+            List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountId(account.getId());
+
+            Plan plan = planRepository.findOne(account.getPlanId());
+
+            accountServices = accountServices
+                    .stream()
+                    .filter(accountService1 -> !accountService1.getId().equals(accountServiceId))
+                    .collect(Collectors.toList())
+            ;
+
+            if (accountServices
+                    .stream()
+                    .noneMatch(accountService1 -> accountService1.getServiceId().equals(plan.getServiceId()))
+                    ) {
+                throw new ParameterValidationException("Услуга с Id " + accountServiceId +
+                        " является 'Тарифным планом' для аккаунта '"  + accountId +
+                        "' и не может быть удалена если на аккаунте нет абонемента");
+            }
         }
 
         accountServiceHelper.deleteAccountServiceById(account, accountServiceId);
@@ -279,7 +313,7 @@ public class AccountServiceRestController extends CommonRestController {
             //Save history
             String operator = request.getUserPrincipal().getName();
             Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Произведено удаление услуги " + serviceName);
+            params.put(HISTORY_MESSAGE_KEY, "Произведено удаление услуги '" + serviceName + "', id: " + accountServiceId);
             params.put(OPERATOR_KEY, operator);
 
             publisher.publishEvent(new AccountHistoryEvent(accountId, params));

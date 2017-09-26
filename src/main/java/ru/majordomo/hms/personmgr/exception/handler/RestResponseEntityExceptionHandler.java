@@ -73,7 +73,6 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
 
     @ExceptionHandler(
             {
-                    ParameterValidationException.class,
                     DataIntegrityViolationException.class,
                     LowBalanceException.class,
                     DomainNotAvailableException.class,
@@ -85,6 +84,23 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             final WebRequest request
     ) {
         ex.printStackTrace();
+        final ErrorMessage bodyOfResponse = new ErrorMessage(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                new HashMap<>()
+        );
+        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler(
+            {
+                    ParameterValidationException.class
+            }
+    )
+    public ResponseEntity<Object> handleBadRequestWithParameterValidationException(
+            final ParameterValidationException ex,
+            final WebRequest request
+    ) {
         final ErrorMessage bodyOfResponse = new ErrorMessage(
                 HttpStatus.BAD_REQUEST.value(),
                 ex.getMessage(),
