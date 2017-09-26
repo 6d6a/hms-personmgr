@@ -16,16 +16,18 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 public class AmqpSender {
     private final static Logger logger = LoggerFactory.getLogger(AmqpSender.class);
     private final RabbitTemplate myRabbitTemplate;
-    private String applicationName;
-
-    @Value("${spring.application.name}")
-    public void setApplicationName(String applicationName) {
-        this.applicationName = applicationName;
-    }
+    private String instanceName;
+    private String fullApplicationName;
 
     @Autowired
-    public AmqpSender(RabbitTemplate myRabbitTemplate) {
+    public AmqpSender(
+            RabbitTemplate myRabbitTemplate,
+            @Value("${spring.application.name}") String applicationName,
+            @Value("${hms.instance_name}") String instanceName
+    ) {
         this.myRabbitTemplate = myRabbitTemplate;
+        this.instanceName = instanceName;
+        this.fullApplicationName = instanceName + "." + applicationName;
     }
 
     private Message createMessage(SimpleServiceMessage message, MessageProperties messageProperties) {
@@ -36,10 +38,12 @@ public class AmqpSender {
     }
 
     public void send(String exchange, String routingKey, SimpleServiceMessage message) {
+        routingKey = instanceName + "." + routingKey;
+
         logger.debug("send message by AmqpSender - exchange: " + exchange + " routingKey: " + routingKey + " message " + message.toString());
 
         MessageProperties messageProperties = new MessageProperties();
-        messageProperties.setHeader("provider", applicationName);
+        messageProperties.setHeader("provider", fullApplicationName);
         messageProperties.setContentType("application/json");
 
         Message amqpMessage = createMessage(message, messageProperties);
@@ -50,7 +54,7 @@ public class AmqpSender {
 
         logger.info("ACTION_IDENTITY: " + message.getActionIdentity() +
                 " OPERATION_IDENTITY: " + message.getOperationIdentity() +
-                " Сообщение от: " + applicationName + " " +
+                " Сообщение от: " + fullApplicationName + " " +
                 "в exchange: " + exchange + " " +
                 "с routing key: " + routingKey + " " +
                 "отправлено." + " " +
