@@ -1,7 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
 import org.springframework.amqp.core.ExchangeTypes;
-import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
@@ -32,7 +31,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
-@EnableRabbit
 @Service
 public class AccountAmqpController extends CommonAmqpController {
     private final BusinessActionBuilder businessActionBuilder;
@@ -59,12 +57,7 @@ public class AccountAmqpController extends CommonAmqpController {
         resourceName = "аккаунт";
     }
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.account.create",
-                                                            durable = "true",
-                                                            autoDelete = "false"),
-                                             exchange = @Exchange(value = "account.create",
-                                                                  type = ExchangeTypes.TOPIC),
-                                             key = "pm"))
+    @RabbitListener(queues = "account.create")
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());

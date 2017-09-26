@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import java.util.Map;
 
-@EnableRabbit
 @Service
 public class ResourceArchiveAmqpController extends CommonAmqpController {
     public ResourceArchiveAmqpController() {

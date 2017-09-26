@@ -20,7 +20,6 @@ import java.util.Map;
 import static ru.majordomo.hms.personmgr.common.Constants.CREDIT_PAYMENT_TYPE_KIND;
 import static ru.majordomo.hms.personmgr.common.Constants.REAL_PAYMENT_TYPE_KIND;
 
-@EnableRabbit
 @Service
 public class PaymentAmqpController extends CommonAmqpController  {
 

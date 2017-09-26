@@ -1,7 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
 import org.springframework.amqp.core.ExchangeTypes;
-import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
@@ -19,7 +18,6 @@ import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
-@EnableRabbit
 @Service
 public class AccountHistoryAmqpController extends CommonAmqpController {
     private final AccountHistoryService accountHistoryService;

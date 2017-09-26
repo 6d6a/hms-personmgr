@@ -1,7 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
 import org.springframework.amqp.core.ExchangeTypes;
-import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
@@ -14,7 +13,6 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
-@EnableRabbit
 @Service
 public class WebSiteAmqpController extends CommonAmqpController  {
     public WebSiteAmqpController() {

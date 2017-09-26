@@ -1,7 +1,7 @@
 package ru.majordomo.hms.personmgr.config;
 
-
-import org.springframework.amqp.core.AmqpAdmin;
+import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.RabbitListenerConfigurer;
 import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
@@ -18,6 +18,7 @@ import org.springframework.messaging.handler.annotation.support.DefaultMessageHa
 import org.springframework.retry.interceptor.RetryOperationsInterceptor;
 
 @Configuration
+@EnableRabbit
 public class RabbitMqConfig implements RabbitListenerConfigurer {
 
     @Value("${spring.rabbitmq.host}")
@@ -28,6 +29,13 @@ public class RabbitMqConfig implements RabbitListenerConfigurer {
 
     @Value("${spring.rabbitmq.password}")
     private String rabbitPassword;
+
+
+    @Value("${spring.application.name}")
+    private String applicationName;
+
+    @Value("${hms.instance_name}")
+    private String instanceName;
 
     @Bean
     public ConnectionFactory connectionFactory() {
@@ -63,7 +71,31 @@ public class RabbitMqConfig implements RabbitListenerConfigurer {
     RetryOperationsInterceptor interceptor() {
         return RetryInterceptorBuilder.stateless()
                 .maxAttempts(3)
-                .recoverer(new RepublishMessageRecoverer(rabbitTemplate(), "pm", "error"))
+                .recoverer(
+                        new RepublishMessageRecoverer(
+                                rabbitTemplate(),
+                                instanceName + "." + applicationName,
+                                "error"
+                        )
+                )
                 .build();
+    }
+
+    @Bean
+    public TopicExchange accountCreateExchange() {
+        return new TopicExchange("account.create", true, false);
+    }
+
+    @Bean
+    public Queue accountCreateQueue() {
+        return new Queue("account.create", true, false, false);
+    }
+
+    @Bean
+    public Binding b1() {
+        return BindingBuilder
+                .bind(accountCreateQueue())
+                .to(accountCreateExchange())
+                .with(instanceName + "." + applicationName);
     }
 }
