@@ -412,6 +412,24 @@ public class AccountHelper {
         }
     }
 
+    public void switchOffAntiSpamForMailboxes(PersonalAccount account) {
+
+        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+        for (Mailbox mailbox : mailboxes) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", mailbox.getId());
+            message.addParam("antiSpamEnabled", false);
+
+            businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на выключение анти-спама у почтового ящика '" + mailbox.getName() + "' в связи с отключением услуги";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
     public void switchAccountResources(PersonalAccount account, Boolean state) {
         try {
 
@@ -854,9 +872,13 @@ public class AccountHelper {
         if (paymentServiceOldId.equals(ADDITIONAL_QUOTA_100_SERVICE_ID)) {
             account.setAddQuotaIfOverquoted(false);
             publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
-//        } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
-//            TODO надо что - нибудь отправлять в rc - user чтобы отключить защиту у ящиков
-//            В rc -user никакого параметра для этого нет, нужно добавить
+        } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
+            try {
+                switchOffAntiSpamForMailboxes(account);
+            } catch (Exception e) {
+                e.printStackTrace();
+                logger.error("Switch account Mailboxes anti-spam failed");
+            }
 //        } else if (paymentService.getId().equals(smsPaymentService.getId())) {
 //            Для SMS достаточно выключать сервис
 //            TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp

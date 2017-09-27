@@ -54,6 +54,8 @@ public class MailboxResourceRestController extends CommonResourceRestController 
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), MAILBOX_POST, authentication);
         }
 
+        checkParamsForServicesOnUpdate(message.getParams(), accountManager.findOne(accountId));
+
         ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_CREATE, BusinessActionType.MAILBOX_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
@@ -92,6 +94,8 @@ public class MailboxResourceRestController extends CommonResourceRestController 
         } else {
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), MAILBOX_PATCH, authentication);
         }
+
+        checkParamsForServicesOnUpdate(message.getParams(), accountManager.findOne(accountId));
 
         ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_UPDATE, BusinessActionType.MAILBOX_UPDATE_RC, message);
 

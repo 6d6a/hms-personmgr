@@ -54,6 +54,7 @@ public class Constants {
     public static final String ACTIVE_PLAN_NAME_WITHOUT_FREE_DOMAIN = "Старт";
     public static final String MAILING_TYPE_INFO = "info";
     public static final String MAILING_TYPE_TECH = "tech";
+    public static final String MAILBOX_ANTISPAM_FIELD = "antiSpamEnabled";
 
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;
