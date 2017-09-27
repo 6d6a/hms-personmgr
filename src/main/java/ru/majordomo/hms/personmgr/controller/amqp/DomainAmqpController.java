@@ -1,9 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.springframework.amqp.core.ExchangeTypes;
-import org.springframework.amqp.rabbit.annotation.Exchange;
-import org.springframework.amqp.rabbit.annotation.Queue;
-import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.Headers;
@@ -25,6 +21,9 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.service.AccountStatHelper;
 
 import static ru.majordomo.hms.personmgr.common.Constants.AUTO_RENEW_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DOMAIN_CREATE;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DOMAIN_DELETE;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DOMAIN_UPDATE;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
@@ -44,20 +43,7 @@ public class DomainAmqpController extends CommonAmqpController {
         resourceName = "домен";
     }
 
-    @RabbitListener(
-            bindings = @QueueBinding(
-                    value = @Queue(
-                            value = "pm.domain.create",
-                            durable = "true",
-                            autoDelete = "false"
-                    ),
-                    exchange = @Exchange(
-                            value = "domain.create",
-                            type = ExchangeTypes.TOPIC
-                    ),
-                    key = "pm"
-            )
-    )
+    @RabbitListener(queues = "${spring.application.name}" + "." + DOMAIN_CREATE)
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
@@ -102,20 +88,7 @@ public class DomainAmqpController extends CommonAmqpController {
         }
     }
 
-    @RabbitListener(
-            bindings = @QueueBinding(
-                    value = @Queue(
-                            value = "pm.domain.update",
-                            durable = "true",
-                            autoDelete = "false"
-                    ),
-                    exchange = @Exchange(
-                            value = "domain.update",
-                            type = ExchangeTypes.TOPIC
-                    ),
-                    key = "pm"
-            )
-    )
+    @RabbitListener(queues = "${spring.application.name}" + "." + DOMAIN_UPDATE)
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received update message from " + provider + ": " + message.toString());
@@ -168,20 +141,7 @@ public class DomainAmqpController extends CommonAmqpController {
         }
     }
 
-    @RabbitListener(
-            bindings = @QueueBinding(
-                    value = @Queue(
-                            value = "pm.domain.delete",
-                            durable = "true",
-                            autoDelete = "false"
-                    ),
-                    exchange = @Exchange(
-                            value = "domain.delete",
-                            type = ExchangeTypes.TOPIC
-                    ),
-                    key = "pm"
-            )
-    )
+    @RabbitListener(queues = "${spring.application.name}" + "." + DOMAIN_DELETE)
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleDeleteEventFromRc(message, headers);
     }

@@ -1,9 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.springframework.amqp.core.ExchangeTypes;
-import org.springframework.amqp.rabbit.annotation.Exchange;
-import org.springframework.amqp.rabbit.annotation.Queue;
-import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.Headers;
@@ -28,6 +24,9 @@ import ru.majordomo.hms.personmgr.service.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF;
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.ACCOUNT_CREATE;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.ACCOUNT_DELETE;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.ACCOUNT_UPDATE;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
@@ -57,17 +56,19 @@ public class AccountAmqpController extends CommonAmqpController {
         resourceName = "аккаунт";
     }
 
-    @RabbitListener(queues = "account.create")
+    @RabbitListener(queues = "${spring.application.name}" + "." + ACCOUNT_CREATE)
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
+
+        String realProviderName = provider.replaceAll("^" + instanceName + "\\.", "");
 
         try {
             State state = businessFlowDirector.processMessage(message);
 
             ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
 
-            switch (provider) {
+            switch (realProviderName) {
                 case "si":
                     if (state == State.PROCESSED) {
 //                        if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
@@ -136,12 +137,7 @@ public class AccountAmqpController extends CommonAmqpController {
         }
     }
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.account.update",
-                                                            durable = "true",
-                                                            autoDelete = "false"),
-                                             exchange = @Exchange(value = "account.update",
-                                                                  type = ExchangeTypes.TOPIC),
-                                             key = "pm"))
+    @RabbitListener(queues = "${spring.application.name}" + "." + ACCOUNT_UPDATE)
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received update message from " + provider + ": " + message.toString());
@@ -149,12 +145,7 @@ public class AccountAmqpController extends CommonAmqpController {
         State state = businessFlowDirector.processMessage(message);
     }
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.account.delete",
-                                                            durable = "true",
-                                                            autoDelete = "false"),
-                                             exchange = @Exchange(value = "account.delete",
-                                                                  type = ExchangeTypes.TOPIC),
-                                             key = "pm"))
+    @RabbitListener(queues = "${spring.application.name}" + "." + ACCOUNT_DELETE)
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received delete message from " + provider + ": " + message.toString());

@@ -41,7 +41,7 @@ public class CommonAmqpController {
 
     protected String resourceName = "";
 
-    protected String fullApplicationName;
+    protected String instanceName;
 
     @Autowired
     public void setBusinessFlowDirector(BusinessFlowDirector businessFlowDirector) {
@@ -72,11 +72,10 @@ public class CommonAmqpController {
         this.publisher = publisher;
     }
 
-    public void setFullApplicationName(
-            @Value("${spring.application.name}") String applicationName,
+    public void setInstanceName(
             @Value("${hms.instance_name}") String instanceName
     ) {
-        this.fullApplicationName = instanceName + "." + applicationName;
+        this.instanceName = instanceName;
     }
 
     private String getResourceIdByObjRef(String url) {

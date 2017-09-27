@@ -30,7 +30,10 @@ public class AmqpSender {
         this.fullApplicationName = instanceName + "." + applicationName;
     }
 
-    private Message createMessage(SimpleServiceMessage message, MessageProperties messageProperties) {
+    private Message createMessage(
+            SimpleServiceMessage message,
+            MessageProperties messageProperties
+    ) {
         return MessageBuilder
                 .withBody(message.toJson().getBytes())
                 .andProperties(messageProperties)
@@ -38,9 +41,12 @@ public class AmqpSender {
     }
 
     public void send(String exchange, String routingKey, SimpleServiceMessage message) {
-        routingKey = instanceName + "." + routingKey;
+        if (!routingKey.startsWith(instanceName + ".")) {
+            routingKey = instanceName + "." + routingKey;
+        }
 
-        logger.debug("send message by AmqpSender - exchange: " + exchange + " routingKey: " + routingKey + " message " + message.toString());
+        logger.debug("send message by AmqpSender - exchange: " + exchange +
+                " routingKey: " + routingKey + " message " + message.toString());
 
         MessageProperties messageProperties = new MessageProperties();
         messageProperties.setHeader("provider", fullApplicationName);

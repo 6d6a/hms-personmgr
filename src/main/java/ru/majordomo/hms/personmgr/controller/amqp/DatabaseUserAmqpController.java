@@ -1,9 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.springframework.amqp.core.ExchangeTypes;
-import org.springframework.amqp.rabbit.annotation.Exchange;
-import org.springframework.amqp.rabbit.annotation.Queue;
-import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -13,47 +9,27 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_USER_CREATE;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_USER_DELETE;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_USER_UPDATE;
+
 @Service
 public class DatabaseUserAmqpController extends CommonAmqpController {
     public DatabaseUserAmqpController() {
         resourceName = "пользователь баз данных";
     }
 
-    @RabbitListener(
-            bindings = @QueueBinding(
-                    value = @Queue(
-                            value = "pm.database-user.create",
-                            durable = "true",
-                            autoDelete = "false"
-                    ),
-                    exchange = @Exchange(
-                            value = "database-user.create",
-                            type = ExchangeTypes.TOPIC
-                    ),
-                    key = "pm"
-            )
-    )
+    @RabbitListener(queues = "${spring.application.name}" + "." + DATABASE_USER_CREATE)
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleCreateEventFromRc(message, headers);
     }
 
-    @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(value = "pm.database-user.update",
-                           durable = "true",
-                           autoDelete = "false"),
-            exchange = @Exchange(value = "database-user.update",
-                                 type = ExchangeTypes.TOPIC),
-            key = "pm"))
+    @RabbitListener(queues = "${spring.application.name}" + "." + DATABASE_USER_UPDATE)
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleUpdateEventFromRc(message, headers);
     }
 
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "pm.database-user.delete",
-                                                            durable = "true",
-                                                            autoDelete = "false"),
-                                             exchange = @Exchange(value = "database-user.delete",
-                                                                  type = ExchangeTypes.TOPIC),
-                                             key = "pm"))
+    @RabbitListener(queues = "${spring.application.name}" + "." + DATABASE_USER_DELETE)
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleDeleteEventFromRc(message, headers);
     }

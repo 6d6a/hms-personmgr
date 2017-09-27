@@ -17,6 +17,11 @@ import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.handler.annotation.support.DefaultMessageHandlerMethodFactory;
 import org.springframework.retry.interceptor.RetryOperationsInterceptor;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.ALL_EXCHANGES;
+
 @Configuration
 @EnableRabbit
 public class RabbitMqConfig implements RabbitListenerConfigurer {
@@ -82,20 +87,41 @@ public class RabbitMqConfig implements RabbitListenerConfigurer {
     }
 
     @Bean
-    public TopicExchange accountCreateExchange() {
-        return new TopicExchange("account.create", true, false);
+    public List<Exchange> exchanges() {
+        List<Exchange> exchanges = new ArrayList<>();
+
+        for (String exchangeName : ALL_EXCHANGES) {
+            exchanges.add(new TopicExchange(exchangeName));
+        }
+
+        return exchanges;
     }
 
     @Bean
-    public Queue accountCreateQueue() {
-        return new Queue("account.create", true, false, false);
+    public List<Queue> queues() {
+        List<Queue> queues = new ArrayList<>();
+
+        for (String exchangeName : ALL_EXCHANGES) {
+            queues.add(new Queue(applicationName + "." + exchangeName));
+        }
+
+        return queues;
     }
 
     @Bean
-    public Binding b1() {
-        return BindingBuilder
-                .bind(accountCreateQueue())
-                .to(accountCreateExchange())
-                .with(instanceName + "." + applicationName);
+    public List<Binding> bindings() {
+        List<Binding> bindings = new ArrayList<>();
+
+        for (String exchangeName : ALL_EXCHANGES) {
+            bindings.add(new Binding(
+                    applicationName + "." + exchangeName,
+                    Binding.DestinationType.QUEUE,
+                    exchangeName,
+                    instanceName + "." + applicationName,
+                    null
+            ));
+        }
+
+        return bindings;
     }
 }
