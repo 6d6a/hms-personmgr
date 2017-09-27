@@ -110,7 +110,8 @@ public class AccountHistoryRestController extends CommonRestController {
             SecurityContextHolderAwareRequestWrapper request
     ) {
         String historyMessage = requestBody.get("historyMessage");
-        String operator = request.getUserPrincipal().getName();
+        String operator = requestBody.get("operator");
+        operator = (operator == null || operator.equals("")) ? request.getUserPrincipal().getName() : operator;
 
         if (historyMessage != null && operator != null) {
             accountHistoryService.addMessage(accountId, historyMessage, operator);
