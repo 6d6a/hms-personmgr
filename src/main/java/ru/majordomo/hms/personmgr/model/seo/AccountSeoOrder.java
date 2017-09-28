@@ -9,8 +9,8 @@ import java.time.LocalDateTime;
 import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.validation.DomainName;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
-import ru.majordomo.hms.rc.user.resources.validation.DomainName;
 
 @Document
 public class AccountSeoOrder extends ModelBelongsToPersonalAccount {
