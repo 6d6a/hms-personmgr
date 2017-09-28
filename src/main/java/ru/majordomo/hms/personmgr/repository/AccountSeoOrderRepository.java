@@ -12,7 +12,7 @@ public interface AccountSeoOrderRepository extends MongoRepository<AccountSeoOrd
     List<AccountSeoOrder> findBySeoId(@Param("seoId") String seoId);
     List<AccountSeoOrder> findByDomainName(@Param("domainName") String domainName);
     List<AccountSeoOrder> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
-    AccountSeoOrder findByPersonalAccountIdAndDomainNameAndCreatedAfter(
+    List<AccountSeoOrder> findByPersonalAccountIdAndDomainNameAndCreatedAfter(
             @Param("personalAccountId") String personalAccountId,
             @Param("domainName") String domainName,
             @Param("created") LocalDateTime created

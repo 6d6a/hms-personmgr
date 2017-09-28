@@ -118,18 +118,20 @@ public class SeoRestController extends CommonRestController {
         LocalDateTime now = LocalDateTime.now();
         now = now.minusDays(1L);
 
-        AccountSeoOrder order = accountSeoOrderRepository.findByPersonalAccountIdAndDomainNameAndCreatedAfter(account.getId(), domainName, now);
+        List<AccountSeoOrder> orders = accountSeoOrderRepository.findByPersonalAccountIdAndDomainNameAndCreatedAfter(account.getId(), domainName, now);
 
-        if(order != null && order.getSeo().getType() == seo.getType()){
-            return new ResponseEntity<>(
-                    this.createErrorResponse("Заказ на услугу SEO для домена '" + domainName + "' уже был получен ранее"),
-                    HttpStatus.BAD_REQUEST
-            );
+        if(orders != null && !orders.isEmpty()) {
+            if (orders.stream().anyMatch(accountSeoOrder -> accountSeoOrder.getSeo().getType() == seo.getType())) {
+                return new ResponseEntity<>(
+                        this.createErrorResponse("Заказ на услугу SEO для домена '" + domainName + "' уже был получен ранее"),
+                        HttpStatus.BAD_REQUEST
+                );
+            }
         }
 
         accountHelper.checkBalance(account, seo.getService());
 
-        order = new AccountSeoOrder();
+        AccountSeoOrder order = new AccountSeoOrder();
         order.setPersonalAccountId(account.getId());
         order.setCreated(LocalDateTime.now());
         order.setDomainName(domainName);
