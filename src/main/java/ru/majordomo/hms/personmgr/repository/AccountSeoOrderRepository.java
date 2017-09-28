@@ -10,7 +10,11 @@ import ru.majordomo.hms.personmgr.model.seo.AccountSeoOrder;
 
 public interface AccountSeoOrderRepository extends MongoRepository<AccountSeoOrder, String> {
     List<AccountSeoOrder> findBySeoId(@Param("seoId") String seoId);
-    List<AccountSeoOrder> findByWebSiteId(@Param("webSiteId") String webSiteId);
+    List<AccountSeoOrder> findByDomainName(@Param("domainName") String domainName);
     List<AccountSeoOrder> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
-    AccountSeoOrder findByPersonalAccountIdAndWebSiteIdAndCreatedAfter(@Param("personalAccountId") String personalAccountId, @Param("webSiteId") String webSiteId, @Param("created") LocalDateTime created);
+    AccountSeoOrder findByPersonalAccountIdAndDomainNameAndCreatedAfter(
+            @Param("personalAccountId") String personalAccountId,
+            @Param("domainName") String domainName,
+            @Param("created") LocalDateTime created
+    );
 }

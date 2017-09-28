@@ -4,19 +4,17 @@ import org.springframework.context.ApplicationEvent;
 
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-
 public class SeoOrderedEvent extends ApplicationEvent {
     private Map<String, ?> params;
 
-    public SeoOrderedEvent(PersonalAccount source, Map<String, ?> params) {
-        super(source);
+    public SeoOrderedEvent(String accountId, Map<String, ?> params) {
+        super(accountId);
         this.params = params;
     }
 
     @Override
-    public PersonalAccount getSource() {
-        return (PersonalAccount) super.getSource();
+    public String getSource() {
+        return (String) super.getSource();
     }
 
     public Map<String, ?> getParams() {

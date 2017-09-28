@@ -107,7 +107,7 @@ public class CommonRestController {
         for (String field : requiredParams) {
             if (params.get(field) == null) {
                 logger.debug("No " + field + " property found in request");
-                throw new ParameterValidationException("No " + field + " property found in request");
+                throw new ParameterValidationException("В запросе не передан обязательный параметр '" + field + "'");
             }
         }
     }
@@ -116,7 +116,7 @@ public class CommonRestController {
         paramsWithRoles.forEach((param, role) -> {
             if (params.get(param) != null && request.getAuthorities().stream().noneMatch(ga -> ga.getAuthority().equals(role))) {
                 logger.debug("Changing '" + param + "' property is forbidden. Only role '" + role + "' allowed to edit.");
-                throw new ParameterWithRoleSecurityException("Changing '" + param + "' property is forbidden");
+                throw new ParameterWithRoleSecurityException("Изменение параметра '" + param + "' запрещено");
             }
         });
     }

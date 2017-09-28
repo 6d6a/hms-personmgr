@@ -1,6 +1,6 @@
 package ru.majordomo.hms.personmgr.model.seo;
 
-import org.springframework.data.annotation.PersistenceConstructor;
+import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -10,6 +10,7 @@ import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
+import ru.majordomo.hms.rc.user.resources.validation.DomainName;
 
 @Document
 public class AccountSeoOrder extends ModelBelongsToPersonalAccount {
@@ -17,26 +18,15 @@ public class AccountSeoOrder extends ModelBelongsToPersonalAccount {
     private LocalDateTime created;
 
     @ObjectId(Seo.class)
+    @NotNull
     private String seoId;
 
-    @NotNull
-    private String webSiteId;
+    @NotBlank
+    @DomainName
+    private String domainName;
 
     @Transient
     private Seo seo;
-
-    public AccountSeoOrder() {
-    }
-
-    @PersistenceConstructor
-    public AccountSeoOrder(String id, String personalAccountId, LocalDateTime created, String seoId, String webSiteId) {
-        super();
-        this.setId(id);
-        this.setPersonalAccountId(personalAccountId);
-        this.created = created;
-        this.seoId = seoId;
-        this.webSiteId = webSiteId;
-    }
 
     public LocalDateTime getCreated() {
         return created;
@@ -54,12 +44,12 @@ public class AccountSeoOrder extends ModelBelongsToPersonalAccount {
         this.seoId = seoId;
     }
 
-    public String getWebSiteId() {
-        return webSiteId;
+    public String getDomainName() {
+        return domainName;
     }
 
-    public void setWebSiteId(String webSiteId) {
-        this.webSiteId = webSiteId;
+    public void setDomainName(String domainName) {
+        this.domainName = domainName;
     }
 
     public Seo getSeo() {
@@ -75,7 +65,7 @@ public class AccountSeoOrder extends ModelBelongsToPersonalAccount {
         return "AccountSeoOrder{" +
                 "created=" + created +
                 ", seoId='" + seoId + '\'' +
-                ", webSiteId='" + webSiteId + '\'' +
+                ", domainName='" + domainName + '\'' +
                 ", seo=" + seo +
                 "} " + super.toString();
     }

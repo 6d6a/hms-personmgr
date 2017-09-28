@@ -39,6 +39,7 @@ public class Constants {
     public static final String SERVICE_MONEY_RETURN_PREFIX = "service_money_return_";
     public static final String SERVICE_MONEY_TRANSFER_PREFIX = "service_money_transfer_";
     public static final String RESOURCE_ID_KEY = "resourceId";
+    public static final String DOMAIN_NAME_KEY = "domainName";
     public static final String ACCOUNT_ID_KEY = "accountId";
     public static final String PASSWORD_KEY = "password";
     public static final String TOKEN_KEY = "token";
