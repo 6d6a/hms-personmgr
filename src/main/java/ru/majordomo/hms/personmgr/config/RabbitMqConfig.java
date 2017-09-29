@@ -79,7 +79,7 @@ public class RabbitMqConfig implements RabbitListenerConfigurer {
                 .recoverer(
                         new RepublishMessageRecoverer(
                                 rabbitTemplate(),
-                                instanceName + "." + instanceName + "." + applicationName,
+                                instanceName + "." + applicationName,
                                 "error"
                         )
                 )
