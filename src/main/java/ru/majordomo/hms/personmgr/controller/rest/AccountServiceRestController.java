@@ -17,10 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
@@ -34,6 +31,7 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
+import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
@@ -59,6 +57,7 @@ public class AccountServiceRestController extends CommonRestController {
     private final AccountHelper accountHelper;
     private final AccountAbonementManager accountAbonementManager;
     private final PlanRepository planRepository;
+    private final NotificationRepository notificationRepository;
 
     @Autowired
     public AccountServiceRestController(
@@ -67,7 +66,8 @@ public class AccountServiceRestController extends CommonRestController {
             AccountServiceHelper accountServiceHelper,
             AccountHelper accountHelper,
             AccountAbonementManager accountAbonementManager,
-            PlanRepository planRepository
+            PlanRepository planRepository,
+            NotificationRepository notificationRepository
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.serviceRepository = serviceRepository;
@@ -75,6 +75,7 @@ public class AccountServiceRestController extends CommonRestController {
         this.accountHelper = accountHelper;
         this.accountAbonementManager = accountAbonementManager;
         this.planRepository = planRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     @RequestMapping(value = "/{accountId}/account-service/{accountServiceId}",
@@ -180,8 +181,16 @@ public class AccountServiceRestController extends CommonRestController {
         Boolean enabled = (Boolean) requestBody.get(ENABLED_KEY);
 
         if (enabled) {
+
+            List<MailManagerMessageType> notificationsCanUse = new ArrayList<>();
+            notificationRepository.findAll()
+                    .forEach(n -> {
+                        if (n.isActive()) { notificationsCanUse.add(n.getType());}
+                    });
+
             Set<MailManagerMessageType> smsNotifications = account.getNotifications().stream()
-                    .filter(mailManagerMessageType -> mailManagerMessageType.name().startsWith("SMS_"))
+                    .filter(mailManagerMessageType -> mailManagerMessageType.name().startsWith("SMS_")
+                            && notificationsCanUse.contains(mailManagerMessageType))
                     .collect(Collectors.toSet());
 
             boolean smsNotificationsEmpty = smsNotifications.isEmpty();
