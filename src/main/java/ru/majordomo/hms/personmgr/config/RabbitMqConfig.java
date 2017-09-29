@@ -114,7 +114,7 @@ public class RabbitMqConfig implements RabbitListenerConfigurer {
 
         for (String exchangeName : ALL_EXCHANGES) {
             bindings.add(new Binding(
-                    applicationName + "." + exchangeName,
+                    instanceName + "." + applicationName + "." + exchangeName,
                     Binding.DestinationType.QUEUE,
                     exchangeName,
                     instanceName + "." + applicationName,
