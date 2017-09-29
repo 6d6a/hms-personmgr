@@ -215,7 +215,7 @@ public class AccountNotificationHelper {
                 .map(Notification::getType).collect(Collectors.toList());
     }
 
-    public boolean accountHasActiveSmsNotifications(PersonalAccount account) {
+    public boolean hasAnyActiveSmsNotifications(PersonalAccount account) {
         List<MailManagerMessageType> activeNotificationTypes = this.getActiveMailManagerMessageTypes();
 
         return account.getNotifications().stream()

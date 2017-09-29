@@ -22,7 +22,7 @@ public class Notification extends BaseModel {
     @JsonView(Views.Internal.class)
     private String apiName;
 
-    @JsonIgnore
+    @JsonView(Views.Internal.class)
     private boolean active = true;
 
     public Notification() {

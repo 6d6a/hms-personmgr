@@ -181,14 +181,14 @@ public class AccountServiceRestController extends CommonRestController {
 
         if (enabled) {
 
-            boolean accountHasAnyActiveSmsNotifications = accountNotificationHelper.accountHasActiveSmsNotifications(account);
+            boolean emptySmsNotifications = !accountNotificationHelper.hasAnyActiveSmsNotifications(account);
 
             boolean phoneInvalid = account.getSmsPhoneNumber() == null || !phoneValid(account.getSmsPhoneNumber());
-            if (accountHasAnyActiveSmsNotifications || phoneInvalid) {
+            if (emptySmsNotifications || phoneInvalid) {
                 String message;
-                if (accountHasAnyActiveSmsNotifications && phoneInvalid) {
+                if (emptySmsNotifications && phoneInvalid) {
                     message = "Выберите хотя бы один вид уведомлений и укажите корректный номер телефона.";
-                } else if (accountHasAnyActiveSmsNotifications) {
+                } else if (emptySmsNotifications) {
                     message = "Выберите хотя бы один вид уведомлений.";
                 } else {
                     message = "Укажите корректный номер телефона.";
