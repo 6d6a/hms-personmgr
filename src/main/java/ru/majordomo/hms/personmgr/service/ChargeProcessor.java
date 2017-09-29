@@ -228,7 +228,7 @@ public class ChargeProcessor {
         }
 
         //        Отправим смс тем, у кого подключена услуга
-        if (Arrays.asList(5, 3, 1).contains(remainingDays) &&
+        if (Arrays.asList(5, 1).contains(remainingDays) &&
                 accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(
                         account,
                         MailManagerMessageType.SMS_REMAINING_DAYS)) {

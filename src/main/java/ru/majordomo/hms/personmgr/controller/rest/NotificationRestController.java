@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
@@ -74,6 +75,6 @@ public class NotificationRestController extends CommonRestController {
     private ResponseEntity<List<Notification>> findAll() {
         List<Notification> notifications = notificationRepository.findAll();
 
-        return new ResponseEntity<>(notifications, HttpStatus.OK);
+        return new ResponseEntity<>(notifications.stream().filter(Notification::isActive).collect(Collectors.toList()), HttpStatus.OK);
     }
 }

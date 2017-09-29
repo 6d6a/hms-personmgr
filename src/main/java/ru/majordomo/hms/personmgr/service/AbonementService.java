@@ -23,6 +23,7 @@ import java.util.Arrays;
 
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
@@ -39,9 +40,8 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.*;
-import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_MESSAGE_SEND;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
+import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_ABONEMENT_EXPIRING;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
 @Service
@@ -178,7 +178,8 @@ public class AbonementService {
 
             BigDecimal balance = accountHelper.getBalance(account);
 
-            Boolean sendMessage = false;
+            Boolean needSendEmail = false;
+            Boolean needSendSms = false;
 
             // Высчитываем предполагаемую месячную стоимость аккаунта
             Integer daysInCurrentMonth =  LocalDateTime.now().toLocalDate().lengthOfMonth();
@@ -201,37 +202,54 @@ public class AbonementService {
                 }
             }
 
-            if (!plan.isAbonementOnly() && balance.compareTo(monthCost) < 0) {
-                if (balance.compareTo(abonementCost) < 0) {
-                    sendMessage = true;
-                }
-            } else if (plan.isAbonementOnly() && balance.compareTo(abonementCost) < 0) {
-                sendMessage = true;
+
+
+            if (
+                    (balance.compareTo(abonementCost) < 0
+                        && !plan.isAbonementOnly()
+                        && balance.compareTo(monthCost) < 0
+                    )
+                        || plan.isAbonementOnly()
+            ) {
+                    needSendEmail = true;
             }
 
             long daysToExpired = DAYS.between(LocalDateTime.now(), accountAbonement.getExpired());
 
-            if (sendMessage && Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_MESSAGE_SEND).contains(daysToExpired)) {
-                logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
+//            if (needSendEmail && Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired)) {
+//                logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
+//
+//                List<Domain> domains = accountHelper.getDomains(account);
+//                List<String> domainNames = new ArrayList<>();
+//                for (Domain domain: domains) {
+//                    domainNames.add(domain.getName());
+//                }
+//
+//                //Отправим письмо
+//                HashMap<String, String> parameters = new HashMap<>();
+//                parameters.put("client_id", account.getAccountId());
+//                parameters.put("acc_id", account.getName());
+//                parameters.put("domains", String.join("<br>", domainNames));
+//                parameters.put("balance", formatBigDecimalWithCurrency(balance));
+//                parameters.put("cost", formatBigDecimalWithCurrency(abonementCost)); //Этот параметр передаётся, но не используется
+//                parameters.put("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+//                parameters.put("auto_renew", accountAbonement.isAutorenew() ? "включено" : "выключено");
+//                parameters.put("from", "noreply@majordomo.ru");
+//
+//                accountNotificationHelper.sendMail(account, "MajordomoVHAbNoMoneyProlong", 1, parameters);
+//            }
 
-                List<Domain> domains = accountHelper.getDomains(account);
-                List<String> domainNames = new ArrayList<>();
-                for (Domain domain: domains) {
-                    domainNames.add(domain.getName());
-                }
-
-                //Отправим письмо
-                HashMap<String, String> parameters = new HashMap<>();
-                parameters.put("client_id", account.getAccountId());
-                parameters.put("acc_id", account.getName());
-                parameters.put("domains", String.join("<br>", domainNames));
-                parameters.put("balance", formatBigDecimalWithCurrency(balance));
-                parameters.put("cost", formatBigDecimalWithCurrency(abonementCost)); //Этот параметр передаётся, но не используется
-                parameters.put("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-                parameters.put("auto_renew", accountAbonement.isAutorenew() ? "включено" : "выключено");
-                parameters.put("from", "noreply@majordomo.ru");
-
-                accountNotificationHelper.sendMail(account, "MajordomoVHAbNoMoneyProlong", 1, parameters);
+            if (
+                    (!accountAbonement.isAutorenew() || balance.compareTo(abonementCost) < 0)
+                    && accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, SMS_ABONEMENT_EXPIRING)
+                    && Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND).contains(daysToExpired)
+            ) {
+                // Aбонемент на аккаунте #acc_id# истекает через #remaining_days#
+                HashMap<String, String> paramsForSms = new HashMap<>();
+                paramsForSms.put("acc_id", account.getName());
+                paramsForSms.put("client_id", account.getAccountId());
+                paramsForSms.put("remaining_days", Utils.pluralizef("%d день", "%d дня", "%d дней", ((Long) daysToExpired).intValue()));
+                accountNotificationHelper.sendSms(account, "HmsMajordomoAbonementExpiring", 5, paramsForSms);
             }
         });
     }

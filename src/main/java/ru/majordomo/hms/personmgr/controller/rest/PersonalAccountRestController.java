@@ -535,19 +535,27 @@ public class PersonalAccountRestController extends CommonRestController {
             method = RequestMethod.PATCH)
     public ResponseEntity<Object> setNotifications(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Set<MailManagerMessageType> notifications,
+            @RequestBody Set<MailManagerMessageType> newUserNotifications,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
         Set<MailManagerMessageType> oldNotifications = account.getNotifications();
 
-        accountManager.setNotifications(accountId, notifications);
+        List<MailManagerMessageType> notificationsCanUse = new ArrayList<>();
+        notificationRepository.findAll()
+                .forEach(n -> {
+                    if (n.isActive()) { notificationsCanUse.add(n.getType());}
+                });
+
+        newUserNotifications = newUserNotifications.stream().filter(n -> notificationsCanUse.contains(n)).collect(Collectors.toSet());
+
+        accountManager.setNotifications(accountId, newUserNotifications);
 
         //Save history
         String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + notifications + "]");
+        params.put(HISTORY_MESSAGE_KEY, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + newUserNotifications + "]");
         params.put(OPERATOR_KEY, operator);
 
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));

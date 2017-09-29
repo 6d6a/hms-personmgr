@@ -520,7 +520,8 @@ public class DomainService {
 
             //Если подключено СМС-уведомление, то также отправим его
             //Отправляем SMS за ... дней до истечения
-            int days = 3;
+            // https://redmine.intr/issues/8168
+            /*int days = 3;
             if (domains.stream().filter(
                     domain -> domain.getRegSpec().getPaidTill().equals(LocalDate.now().plusDays(days))).collect(Collectors.toList())
                     .isEmpty())
@@ -532,7 +533,7 @@ public class DomainService {
                 parameters.put("domain", (domains.size() > 1) ? "истекающих доменов" : ("домена " + domains.get(0).getName()));
                 parameters.put("acc_id", account.getName());
                 accountNotificationHelper.sendSms(account, "HMSMajordomoNoMoneyToAutoRenewDomain", 10, parameters);
-            }
+            }*/
         }
 
     }

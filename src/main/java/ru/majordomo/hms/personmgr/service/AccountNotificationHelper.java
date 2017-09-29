@@ -11,7 +11,9 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
@@ -38,18 +40,21 @@ public class AccountNotificationHelper {
     private final PlanRepository planRepository;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
+    private final NotificationRepository notificationRepository;
 
     @Autowired
     public AccountNotificationHelper(
             ApplicationEventPublisher publisher,
             PlanRepository planRepository,
             AccountHelper accountHelper,
-            AccountServiceHelper accountServiceHelper
+            AccountServiceHelper accountServiceHelper,
+            NotificationRepository notificationRepository
     ) {
         this.publisher = publisher;
         this.planRepository = planRepository;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
+        this.notificationRepository = notificationRepository;
     }
 
     public String getCostAbonementForEmail(Plan plan) {
@@ -136,7 +141,14 @@ public class AccountNotificationHelper {
     }
 
     public boolean hasActiveSmsNotificationsAndMessageType(PersonalAccount account, MailManagerMessageType messageType) {
-        return (account.hasNotification(messageType) && accountServiceHelper.hasSmsNotifications(account));
+        Notification notification = notificationRepository.findByType(messageType);
+
+        return (
+                account.hasNotification(messageType)
+                && notification != null
+                && notification.isActive()
+                && accountServiceHelper.hasSmsNotifications(account)
+        );
     }
 
     public void sendSms(PersonalAccount account, String apiName, int priority) {
