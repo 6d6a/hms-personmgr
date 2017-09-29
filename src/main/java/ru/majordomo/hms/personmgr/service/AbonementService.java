@@ -216,28 +216,28 @@ public class AbonementService {
 
             long daysToExpired = DAYS.between(LocalDateTime.now(), accountAbonement.getExpired());
 
-//            if (needSendEmail && Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired)) {
-//                logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
-//
-//                List<Domain> domains = accountHelper.getDomains(account);
-//                List<String> domainNames = new ArrayList<>();
-//                for (Domain domain: domains) {
-//                    domainNames.add(domain.getName());
-//                }
-//
-//                //Отправим письмо
-//                HashMap<String, String> parameters = new HashMap<>();
-//                parameters.put("client_id", account.getAccountId());
-//                parameters.put("acc_id", account.getName());
-//                parameters.put("domains", String.join("<br>", domainNames));
-//                parameters.put("balance", formatBigDecimalWithCurrency(balance));
-//                parameters.put("cost", formatBigDecimalWithCurrency(abonementCost)); //Этот параметр передаётся, но не используется
-//                parameters.put("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-//                parameters.put("auto_renew", accountAbonement.isAutorenew() ? "включено" : "выключено");
-//                parameters.put("from", "noreply@majordomo.ru");
-//
-//                accountNotificationHelper.sendMail(account, "MajordomoVHAbNoMoneyProlong", 1, parameters);
-//            }
+            if (needSendEmail && Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired)) {
+                logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
+
+                List<Domain> domains = accountHelper.getDomains(account);
+                List<String> domainNames = new ArrayList<>();
+                for (Domain domain: domains) {
+                    domainNames.add(domain.getName());
+                }
+
+                //Отправим письмо
+                HashMap<String, String> parameters = new HashMap<>();
+                parameters.put("client_id", account.getAccountId());
+                parameters.put("acc_id", account.getName());
+                parameters.put("domains", String.join("<br>", domainNames));
+                parameters.put("balance", formatBigDecimalWithCurrency(balance));
+                parameters.put("cost", formatBigDecimalWithCurrency(abonementCost)); //Этот параметр передаётся, но не используется
+                parameters.put("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                parameters.put("auto_renew", accountAbonement.isAutorenew() ? "включено" : "выключено");
+                parameters.put("from", "noreply@majordomo.ru");
+
+                accountNotificationHelper.sendMail(account, "MajordomoVHAbNoMoneyProlong", 1, parameters);
+            }
 
             if (
                     (!accountAbonement.isAutorenew() || balance.compareTo(abonementCost) < 0)
