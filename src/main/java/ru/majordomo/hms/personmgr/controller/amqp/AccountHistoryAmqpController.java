@@ -24,7 +24,7 @@ public class AccountHistoryAmqpController extends CommonAmqpController {
         this.accountHistoryService = accountHistoryService;
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + ACCOUNT_HISTORY)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + ACCOUNT_HISTORY)
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());

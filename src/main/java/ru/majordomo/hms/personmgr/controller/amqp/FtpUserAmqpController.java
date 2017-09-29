@@ -19,17 +19,17 @@ public class FtpUserAmqpController extends CommonAmqpController {
         resourceName = "FTP-пользователь";
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + FTP_USER_CREATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + FTP_USER_CREATE)
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleCreateEventFromRc(message, headers);
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + FTP_USER_UPDATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + FTP_USER_UPDATE)
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleUpdateEventFromRc(message, headers);
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + FTP_USER_DELETE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + FTP_USER_DELETE)
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleDeleteEventFromRc(message, headers);
     }

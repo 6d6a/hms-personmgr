@@ -19,17 +19,17 @@ public class WebSiteAmqpController extends CommonAmqpController  {
         resourceName = "сайт";
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + WEBSITE_CREATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + WEBSITE_CREATE)
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleCreateEventFromRc(message, headers);
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + WEBSITE_UPDATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + WEBSITE_UPDATE)
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleUpdateEventFromRc(message, headers);
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + WEBSITE_DELETE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + WEBSITE_DELETE)
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleDeleteEventFromRc(message, headers);
     }

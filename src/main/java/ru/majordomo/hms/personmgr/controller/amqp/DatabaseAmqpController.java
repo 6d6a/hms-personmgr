@@ -20,17 +20,17 @@ public class DatabaseAmqpController extends CommonAmqpController {
         resourceName = "база данных";
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + DATABASE_CREATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DATABASE_CREATE)
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleCreateEventFromRc(message, headers);
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + DATABASE_UPDATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DATABASE_UPDATE)
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleUpdateEventFromRc(message, headers);
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + DATABASE_DELETE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DATABASE_DELETE)
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleDeleteEventFromRc(message, headers);
     }

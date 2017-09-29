@@ -56,7 +56,7 @@ public class AccountAmqpController extends CommonAmqpController {
         resourceName = "аккаунт";
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + ACCOUNT_CREATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + ACCOUNT_CREATE)
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
@@ -137,7 +137,7 @@ public class AccountAmqpController extends CommonAmqpController {
         }
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + ACCOUNT_UPDATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + ACCOUNT_UPDATE)
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received update message from " + provider + ": " + message.toString());
@@ -145,7 +145,7 @@ public class AccountAmqpController extends CommonAmqpController {
         State state = businessFlowDirector.processMessage(message);
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + ACCOUNT_DELETE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + ACCOUNT_DELETE)
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received delete message from " + provider + ": " + message.toString());

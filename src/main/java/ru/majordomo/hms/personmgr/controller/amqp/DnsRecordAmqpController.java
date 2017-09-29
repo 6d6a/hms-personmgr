@@ -19,17 +19,17 @@ public class DnsRecordAmqpController extends CommonAmqpController {
         resourceName = "днс-запись";
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + DNS_RECORD_CREATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DNS_RECORD_CREATE)
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleCreateEventFromRc(message, headers);
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + DNS_RECORD_UPDATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DNS_RECORD_UPDATE)
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleUpdateEventFromRc(message, headers);
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + DNS_RECORD_DELETE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DNS_RECORD_DELETE)
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleDeleteEventFromRc(message, headers);
     }

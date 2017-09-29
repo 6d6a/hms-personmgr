@@ -43,7 +43,7 @@ public class DomainAmqpController extends CommonAmqpController {
         resourceName = "домен";
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + DOMAIN_CREATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DOMAIN_CREATE)
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
@@ -88,7 +88,7 @@ public class DomainAmqpController extends CommonAmqpController {
         }
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + DOMAIN_UPDATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DOMAIN_UPDATE)
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received update message from " + provider + ": " + message.toString());
@@ -141,7 +141,7 @@ public class DomainAmqpController extends CommonAmqpController {
         }
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + DOMAIN_DELETE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DOMAIN_DELETE)
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleDeleteEventFromRc(message, headers);
     }

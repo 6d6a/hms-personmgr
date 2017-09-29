@@ -32,7 +32,7 @@ public class PaymentAmqpController extends CommonAmqpController  {
         this.accountNotificationHelper = accountNotificationHelper;
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + PAYMENT_CREATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + PAYMENT_CREATE)
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received payment create message from " + provider + ": " + message.toString());

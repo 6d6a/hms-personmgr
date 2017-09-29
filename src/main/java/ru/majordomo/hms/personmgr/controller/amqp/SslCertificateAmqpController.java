@@ -19,17 +19,17 @@ public class SslCertificateAmqpController extends CommonAmqpController {
         resourceName = "SSL-сертификат";
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + SSL_CERTIFICATE_CREATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + SSL_CERTIFICATE_CREATE)
     public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleCreateEventFromRc(message, headers);
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + SSL_CERTIFICATE_UPDATE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + SSL_CERTIFICATE_UPDATE)
     public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleUpdateEventFromRc(message, headers);
     }
 
-    @RabbitListener(queues = "${spring.application.name}" + "." + SSL_CERTIFICATE_DELETE)
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + SSL_CERTIFICATE_DELETE)
     public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleDeleteEventFromRc(message, headers);
     }
