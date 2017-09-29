@@ -20,7 +20,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -31,10 +30,10 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
-import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -57,7 +56,7 @@ public class AccountServiceRestController extends CommonRestController {
     private final AccountHelper accountHelper;
     private final AccountAbonementManager accountAbonementManager;
     private final PlanRepository planRepository;
-    private final NotificationRepository notificationRepository;
+    private final AccountNotificationHelper accountNotificationHelper;
 
     @Autowired
     public AccountServiceRestController(
@@ -67,7 +66,7 @@ public class AccountServiceRestController extends CommonRestController {
             AccountHelper accountHelper,
             AccountAbonementManager accountAbonementManager,
             PlanRepository planRepository,
-            NotificationRepository notificationRepository
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.serviceRepository = serviceRepository;
@@ -75,7 +74,7 @@ public class AccountServiceRestController extends CommonRestController {
         this.accountHelper = accountHelper;
         this.accountAbonementManager = accountAbonementManager;
         this.planRepository = planRepository;
-        this.notificationRepository = notificationRepository;
+        this.accountNotificationHelper = accountNotificationHelper;
     }
 
     @RequestMapping(value = "/{accountId}/account-service/{accountServiceId}",
@@ -182,31 +181,20 @@ public class AccountServiceRestController extends CommonRestController {
 
         if (enabled) {
 
-            List<MailManagerMessageType> notificationsCanUse = new ArrayList<>();
-            notificationRepository.findAll()
-                    .forEach(n -> {
-                        if (n.isActive()) { notificationsCanUse.add(n.getType());}
-                    });
+            boolean accountHasAnyActiveSmsNotifications = accountNotificationHelper.accountHasActiveSmsNotifications(account);
 
-            Set<MailManagerMessageType> smsNotifications = account.getNotifications().stream()
-                    .filter(mailManagerMessageType -> mailManagerMessageType.name().startsWith("SMS_")
-                            && notificationsCanUse.contains(mailManagerMessageType))
-                    .collect(Collectors.toSet());
-
-            boolean smsNotificationsEmpty = smsNotifications.isEmpty();
             boolean phoneInvalid = account.getSmsPhoneNumber() == null || !phoneValid(account.getSmsPhoneNumber());
-            if (smsNotificationsEmpty || phoneInvalid) {
+            if (accountHasAnyActiveSmsNotifications || phoneInvalid) {
                 String message;
-                if (smsNotificationsEmpty && phoneInvalid) {
+                if (accountHasAnyActiveSmsNotifications && phoneInvalid) {
                     message = "Выберите хотя бы один вид уведомлений и укажите корректный номер телефона.";
-                } else if (smsNotificationsEmpty) {
+                } else if (accountHasAnyActiveSmsNotifications) {
                     message = "Выберите хотя бы один вид уведомлений.";
                 } else {
                     message = "Укажите корректный номер телефона.";
                 }
                 throw new ParameterValidationException(message);
             }
-
         }
 
         PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());

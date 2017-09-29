@@ -77,9 +77,9 @@ public class PersonalAccountRestController extends CommonRestController {
     private final AccountHelper accountHelper;
     private final TokenHelper tokenHelper;
     private final NotificationRepository notificationRepository;
-    private final AccountServiceRepository accountServiceRepository;
     private final AccountServiceHelper accountServiceHelper;
     private final Factory planChangeFactory;
+    private final AccountNotificationHelper accountNotificationHelper;
 
     @Autowired
     public PersonalAccountRestController(
@@ -92,7 +92,8 @@ public class PersonalAccountRestController extends CommonRestController {
             NotificationRepository notificationRepository,
             AccountServiceRepository accountServiceRepository,
             AccountServiceHelper accountServiceHelper,
-            Factory planChangeFactory
+            Factory planChangeFactory,
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.planRepository = planRepository;
         this.accountOwnerManager = accountOwnerManager;
@@ -104,6 +105,7 @@ public class PersonalAccountRestController extends CommonRestController {
         this.accountServiceRepository = accountServiceRepository;
         this.accountServiceHelper = accountServiceHelper;
         this.planChangeFactory = planChangeFactory;
+        this.accountNotificationHelper = accountNotificationHelper;
     }
 
     @RequestMapping(value = "/accounts",
@@ -542,11 +544,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         Set<MailManagerMessageType> oldNotifications = account.getNotifications();
 
-        List<MailManagerMessageType> notificationsCanUse = new ArrayList<>();
-        notificationRepository.findAll()
-                .forEach(n -> {
-                    if (n.isActive()) { notificationsCanUse.add(n.getType());}
-                });
+        List<MailManagerMessageType> notificationsCanUse = accountNotificationHelper.getActiveMailManagerMessageTypes();
 
         newUserNotifications = newUserNotifications.stream().filter(n -> notificationsCanUse.contains(n)).collect(Collectors.toSet());
 

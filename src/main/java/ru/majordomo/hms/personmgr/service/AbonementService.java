@@ -202,8 +202,6 @@ public class AbonementService {
                 }
             }
 
-
-
             if (
                     (balance.compareTo(abonementCost) < 0
                         && !plan.isAbonementOnly()
@@ -244,7 +242,6 @@ public class AbonementService {
                     && accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, SMS_ABONEMENT_EXPIRING)
                     && Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND).contains(daysToExpired)
             ) {
-                // Aбонемент на аккаунте #acc_id# истекает через #remaining_days#
                 HashMap<String, String> paramsForSms = new HashMap<>();
                 paramsForSms.put("acc_id", account.getName());
                 paramsForSms.put("client_id", account.getAccountId());

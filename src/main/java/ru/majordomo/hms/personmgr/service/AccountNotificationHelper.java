@@ -141,12 +141,9 @@ public class AccountNotificationHelper {
     }
 
     public boolean hasActiveSmsNotificationsAndMessageType(PersonalAccount account, MailManagerMessageType messageType) {
-        Notification notification = notificationRepository.findByType(messageType);
-
         return (
                 account.hasNotification(messageType)
-                && notification != null
-                && notification.isActive()
+                && notificationRepository.findByTypeAndActive(messageType, true) != null
                 && accountServiceHelper.hasSmsNotifications(account)
         );
     }
@@ -211,5 +208,18 @@ public class AccountNotificationHelper {
             remainingDays = Utils.getDifferentInDaysBetweenDates(maxCreditActivationDate, creditActivationDate.toLocalDate());
         }
         return remainingDays;
+    }
+
+    public List<MailManagerMessageType> getActiveMailManagerMessageTypes() {
+        return notificationRepository.findByActive(true).stream()
+                .map(Notification::getType).collect(Collectors.toList());
+    }
+
+    public boolean accountHasActiveSmsNotifications(PersonalAccount account) {
+        List<MailManagerMessageType> activeNotificationTypes = this.getActiveMailManagerMessageTypes();
+
+        return account.getNotifications().stream()
+                .anyMatch(mailManagerMessageType -> mailManagerMessageType.name().startsWith("SMS_")
+                        && activeNotificationTypes.contains(mailManagerMessageType));
     }
 }
