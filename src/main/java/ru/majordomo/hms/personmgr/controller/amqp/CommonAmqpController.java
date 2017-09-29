@@ -72,9 +72,8 @@ public class CommonAmqpController {
         this.publisher = publisher;
     }
 
-    public void setInstanceName(
-            @Value("${hms.instance_name}") String instanceName
-    ) {
+    @Value("${hms.instance.name}")
+    public void setInstanceName(String instanceName) {
         this.instanceName = instanceName;
     }
 

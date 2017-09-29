@@ -23,7 +23,7 @@ public class AmqpSender {
     public AmqpSender(
             RabbitTemplate myRabbitTemplate,
             @Value("${spring.application.name}") String applicationName,
-            @Value("${hms.instance_name}") String instanceName
+            @Value("${hms.instance.name}") String instanceName
     ) {
         this.myRabbitTemplate = myRabbitTemplate;
         this.instanceName = instanceName;

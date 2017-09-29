@@ -39,7 +39,7 @@ public class RabbitMqConfig implements RabbitListenerConfigurer {
     @Value("${spring.application.name}")
     private String applicationName;
 
-    @Value("${hms.instance_name}")
+    @Value("${hms.instance.name}")
     private String instanceName;
 
     @Bean
@@ -79,7 +79,7 @@ public class RabbitMqConfig implements RabbitListenerConfigurer {
                 .recoverer(
                         new RepublishMessageRecoverer(
                                 rabbitTemplate(),
-                                instanceName + "." + applicationName,
+                                instanceName + "." + instanceName + "." + applicationName,
                                 "error"
                         )
                 )
@@ -102,7 +102,7 @@ public class RabbitMqConfig implements RabbitListenerConfigurer {
         List<Queue> queues = new ArrayList<>();
 
         for (String exchangeName : ALL_EXCHANGES) {
-            queues.add(new Queue(applicationName + "." + exchangeName));
+            queues.add(new Queue(instanceName + "." + applicationName + "." + exchangeName));
         }
 
         return queues;

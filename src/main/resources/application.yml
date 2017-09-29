@@ -101,4 +101,5 @@ batch_job:
     wait_for_dead_job_hours: 2
 
 hms:
-    instance_name: ci
+    instance:
+        name: ci
