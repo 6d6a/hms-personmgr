@@ -39,7 +39,7 @@ public class RequiredField {
         ));
 
         ACCOUNT_SEO_ORDER_CREATE.addAll(Arrays.asList(
-                "webSiteId",
+                "domainName",
                 "seoType"
         ));
 

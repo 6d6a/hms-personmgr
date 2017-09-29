@@ -32,6 +32,8 @@ import ru.majordomo.hms.personmgr.manager.impl.PersonalAccountManagerImpl;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanPropertyLimit;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
+import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.PlanBuilder;
 
@@ -50,6 +52,12 @@ public class PlanRestControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean(name="paymentServiceRepository")
+    private PaymentServiceRepository paymentServiceRepository;
+
+    @MockBean(name="accountServiceRepository")
+    private AccountServiceRepository accountServiceRepository;
 
     @MockBean(name="planRepository")
     private PlanRepository planRepository;

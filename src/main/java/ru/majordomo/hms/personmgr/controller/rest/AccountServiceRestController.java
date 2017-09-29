@@ -252,6 +252,10 @@ public class AccountServiceRestController extends CommonRestController {
 
         processCustomService(account, paymentService, enabled);
 
+        if (!enabled) {
+            accountHelper.switchOffAntiSpamForMailboxes(account);
+        }
+
         //Save history
         String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();

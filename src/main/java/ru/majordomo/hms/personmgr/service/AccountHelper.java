@@ -42,6 +42,7 @@ import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.PromocodeType.GOOGLE;
+import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 import static ru.majordomo.hms.personmgr.common.Utils.getBigDecimalFromUnexpectedInput;
 
 @Service
@@ -128,11 +129,11 @@ public class AccountHelper {
             balance = finFeignClient.getBalance(account.getId());
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.getBalance #1 " + e.getMessage());
+            logger.error("Exception in AccountHelper.getBalance #1 " + e.getMessage());
         }
 
         if (balance == null) {
-            throw new ResourceNotFoundException("Account balance not found.");
+            throw new ResourceNotFoundException("Не найден баланс аккаунта");
         }
 
         BigDecimal available;
@@ -141,7 +142,7 @@ public class AccountHelper {
             available = getBigDecimalFromUnexpectedInput(balance.get("available"));
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.getBalance #2 " + e.getMessage());
+            logger.error("Exception in AccountHelper.getBalance #2 " + e.getMessage());
             available = BigDecimal.ZERO;
         }
 
@@ -160,7 +161,7 @@ public class AccountHelper {
             domains = rcUserFeignClient.getDomains(account.getId());
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.getDomains " + e.getMessage());
+            logger.error("Exception in AccountHelper.getDomains " + e.getMessage());
         }
 
         return domains;
@@ -176,7 +177,7 @@ public class AccountHelper {
 
         if (available.compareTo(BigDecimal.ZERO) < 0) {
             throw new LowBalanceException("Баланс аккаунта отрицательный: "
-                    + available.toPlainString());
+                    + formatBigDecimalWithCurrency(available));
         }
     }
 
@@ -189,8 +190,9 @@ public class AccountHelper {
         BigDecimal available = getBalance(account);
 
         if (available.compareTo(service.getCost()) < 0) {
-            throw new LowBalanceException("Account balance is too low for specified service. " +
-                    "Current balance is: " + available.toPlainString() + " service cost is: " + service.getCost());
+            throw new LowBalanceException("Баланс аккаунта недостаточен для заказа услуги. " +
+                    "Текущий баланс: " + formatBigDecimalWithCurrency(available) +
+                    ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
         }
     }
 
@@ -208,8 +210,8 @@ public class AccountHelper {
             BigDecimal available = getBalance(account);
 
             if (available.compareTo(dayCost) < 0) {
-                throw new LowBalanceException("Account balance is too low for specified service. " +
-                        "Current balance is: " + available.toPlainString() + " service oneDayCost is: " + dayCost);
+                throw new LowBalanceException("Баланс аккаунта недостаточен для заказа услуги. " +
+                        "Текущий баланс: " + formatBigDecimalWithCurrency(available) + " стоимость услуги за 1 день: " + formatBigDecimalWithCurrency(dayCost));
             }
         }
     }
@@ -248,17 +250,17 @@ public class AccountHelper {
             response = finFeignClient.charge(account.getId(), paymentOperation);
         } catch (Exception e) {
             if (!(e instanceof FeignException) || ((FeignException) e).status() != 400 ) {
-                logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.charge " + e.getMessage());
+                logger.error("Exception in AccountHelper.charge " + e.getMessage());
                 e.printStackTrace();
                 throw e;
             }
-            throw new ChargeException("ChargeException. Error when charging money." +
-                    " Service cost is: " + service.getCost());
+            throw new ChargeException("Произошла ошибка при списании средств." +
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
-            throw new ChargeException("Account balance is too low for specified service. " +
-                    " Service cost is: " + service.getCost());
+            throw new ChargeException("Баланс аккаунта недостаточен для заказа услуги. " +
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
         }
 
         return response;
@@ -275,14 +277,14 @@ public class AccountHelper {
             response = finFeignClient.block(account.getId(), paymentOperation);
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.block " + e.getMessage());
-            throw new ChargeException("ChargeException. Error when blocking money." +
-                    " Service cost is: " + service.getCost());
+            logger.error("Exception in AccountHelper.block " + e.getMessage());
+            throw new ChargeException("Произошла ошибка при блокировке средств." +
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
-            throw new ChargeException("Account balance is too low for specified service. " +
-                    " Service cost is: " + service.getCost());
+            throw new ChargeException("Баланс аккаунта недостаточен для заказа услуги. " +
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
         }
 
         return response;
@@ -298,11 +300,11 @@ public class AccountHelper {
             response = siFeignClient.changePassword(account.getId(), params);
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Exception in ru.majordomo.hms.personmgr.service.AccountHelper.changePassword " + e.getMessage());
+            logger.error("Exception in AccountHelper.changePassword " + e.getMessage());
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
-            throw new InternalApiException("Account password not changed. ");
+            throw new InternalApiException("Ошибка. Пароль не изменен.");
         }
 
         return response;
@@ -409,6 +411,24 @@ public class AccountHelper {
 
             accountManager.setActive(account.getId(), state);
             switchAccountResources(account, state);
+        }
+    }
+
+    public void switchOffAntiSpamForMailboxes(PersonalAccount account) {
+
+        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+        for (Mailbox mailbox : mailboxes) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", mailbox.getId());
+            message.addParam("antiSpamEnabled", false);
+
+            businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на выключение анти-спама у почтового ящика '" + mailbox.getName() + "' в связи с отключением услуги";
+            saveHistoryForOperatorService(account, historyMessage);
         }
     }
 
@@ -854,9 +874,13 @@ public class AccountHelper {
         if (paymentServiceOldId.equals(ADDITIONAL_QUOTA_100_SERVICE_ID)) {
             account.setAddQuotaIfOverquoted(false);
             publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
-//        } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
-//            TODO надо что - нибудь отправлять в rc - user чтобы отключить защиту у ящиков
-//            В rc -user никакого параметра для этого нет, нужно добавить
+        } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
+            try {
+                switchOffAntiSpamForMailboxes(account);
+            } catch (Exception e) {
+                e.printStackTrace();
+                logger.error("Switch account Mailboxes anti-spam failed");
+            }
 //        } else if (paymentService.getId().equals(smsPaymentService.getId())) {
 //            Для SMS достаточно выключать сервис
 //            TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp

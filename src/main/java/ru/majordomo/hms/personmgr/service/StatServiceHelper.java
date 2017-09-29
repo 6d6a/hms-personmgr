@@ -14,7 +14,10 @@ import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
@@ -66,11 +69,15 @@ public class StatServiceHelper {
         List<PlanCounter> all = mongoOperations.aggregate(
                 aggregation, "personalAccount", PlanCounter.class).getMappedResults();
 
+        List<Plan> planList = planRepository.findAll();
+        Map<String, Plan> planMap = planList.stream().collect(Collectors.toMap(Plan::getId, x->x));
+
         all.forEach(counter -> {
-                    Plan plan = planRepository.findOne(counter.getPlanId());
+                    Plan plan = planMap.get(counter.getPlanId());
                     if (withoutFilter || !plan.isAbonementOnly()) {
                         counter.unSetId();
                         counter.setName(plan.getName());
+                        counter.setActive(plan.isActive());
                         result.add(counter);
                     }
                 }
@@ -85,7 +92,7 @@ public class StatServiceHelper {
     public List<AbonementCounter> getAbonementCounters() {
 
         UnwindOperation unwind = unwind("abonementIds");
-        ProjectionOperation project = project("abonementIds", "name");
+        ProjectionOperation project = project("abonementIds", "name", "active");
 
         LookupOperation lookup = lookup(
                 "accountAbonement",
@@ -93,7 +100,7 @@ public class StatServiceHelper {
                 "abonementId",
                 "accountAbonements");
 
-        ProjectionOperation countProject = project("name")
+        ProjectionOperation countProject = project("name", "active")
                 .and("accountAbonements").size().as("count")
                 .and("abonementIds").as("abonementId")
                 ;
@@ -116,13 +123,16 @@ public class StatServiceHelper {
 
         List<AbonementCounter> abonementCountersByPlanAndAbonement = abonementCounters.getMappedResults();
 
+        List<Abonement> abonements = abonementRepository.findAll();
+        Map<String, Abonement> abonementMap = abonements.stream().collect(Collectors.toMap(Abonement::getId, x->x));
+
         for (AbonementCounter counter: abonementCountersByPlanAndAbonement
                 ) {
 
             counter.setPlanId(counter.getId());
             counter.unSetId();
 
-            Abonement abonement = abonementRepository.findOne(counter.getAbonementId());
+            Abonement abonement = abonementMap.get(counter.getAbonementId());
 
             if (abonement != null) {
                 counter.setInternal(abonement.isInternal());
