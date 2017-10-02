@@ -12,14 +12,10 @@ import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.dto.AbonementCounter;
 import ru.majordomo.hms.personmgr.dto.PlanCounter;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -190,14 +186,10 @@ public class StatServiceHelper {
         )
         */
 
-        boolean active = true;
-
         MatchOperation match = match(
                 Criteria.where("enabled")
-                        .is(active)
+                        .is(true)
                         .and("quantity").gte(1)
-                        // не работает
-                        // .and("lastBilled").gte(LocalDateTime.of(LocalDate.now(), LocalTime.MIN))
                         .and("personalAccountId").in(accountIds)
         );
 
@@ -216,6 +208,53 @@ public class StatServiceHelper {
                 "serviceId").count().as("count")
                 .first("serviceId").as("resourceId")
                 .first("plan").as("plan");
+
+        SortOperation sort = sort(Sort.Direction.DESC,"count");
+
+        Aggregation aggregation = newAggregation(
+                match,
+                lookup,
+                project,
+                planFilter,
+                group,
+                sort
+        );
+
+        List<ResourceCounter> accountServiceCounters = mongoOperations.aggregate(
+                aggregation, "accountService", ResourceCounter.class
+        ).getMappedResults();
+
+        accountServiceCounters.forEach(element -> element.setName(paymentServiceRepository.findOne(element.getResourceId()).getName()));
+
+        return accountServiceCounters;
+    }
+
+    public List<ResourceCounter> getQuantityForActiveAccountService() {
+        List<String> accountIds = accountManager.findAccountIdsByActive(true);
+
+        MatchOperation match = match(
+                Criteria.where("enabled")
+                        .is(true)
+                        .and("quantity").gte(1)
+                        .and("personalAccountId").in(accountIds)
+        );
+
+        LookupOperation lookup = lookup(
+                "plan",
+                "serviceId",
+                "serviceId",
+                "plan");
+
+        ProjectionOperation project = project("serviceId", "quantity")
+                .and("plan").size().as("plan");
+
+        MatchOperation planFilter = match(Criteria.where("plan").is(0));
+
+        GroupOperation group = group(
+                "serviceId")
+                .first("serviceId").as("resourceId")
+                .first("plan").as("plan")
+                .sum("quantity").as("count");
 
         SortOperation sort = sort(Sort.Direction.DESC,"count");
 

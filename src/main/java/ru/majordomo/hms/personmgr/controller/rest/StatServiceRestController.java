@@ -75,7 +75,12 @@ public class StatServiceRestController {
     }
 
     @GetMapping("/account-service")
-    public ResponseEntity<List<ResourceCounter>> getAccountServiceCounter() {
+    public ResponseEntity<List<ResourceCounter>> getActiveAccountServiceCounters() {
         return ResponseEntity.ok(statServiceHelper.getActiveAccountServiceCounters());
+    }
+
+    @GetMapping("/account-service/quantity")
+    public ResponseEntity<List<ResourceCounter>> getQuantityForActiveAccountService() {
+        return ResponseEntity.ok(statServiceHelper.getQuantityForActiveAccountService());
     }
 }
