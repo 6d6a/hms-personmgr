@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.model.counter;
+package ru.majordomo.hms.personmgr.dto;
 
 import ru.majordomo.hms.personmgr.model.BaseModel;
 

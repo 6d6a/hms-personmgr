@@ -6,9 +6,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import ru.majordomo.hms.personmgr.dto.ResourceCounter;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.counter.AbonementCounter;
-import ru.majordomo.hms.personmgr.model.counter.PlanCounter;
+import ru.majordomo.hms.personmgr.dto.AbonementCounter;
+import ru.majordomo.hms.personmgr.dto.PlanCounter;
 import ru.majordomo.hms.personmgr.service.StatServiceHelper;
 
 import java.time.LocalDate;
@@ -71,5 +72,10 @@ public class StatServiceRestController {
     @GetMapping("/plan/daily")
     public ResponseEntity<List<PlanCounter>> getCountsActiveAccountGroupByDailyPlan() {
         return ResponseEntity.ok(statServiceHelper.getDailyPlanCounters());
+    }
+
+    @GetMapping("/account-service")
+    public ResponseEntity<List<ResourceCounter>> getAccountServiceCounter() {
+        return ResponseEntity.ok(statServiceHelper.getActiveAccountServiceCounters());
     }
 }

@@ -6,15 +6,21 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.personmgr.dto.ResourceCounter;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
-import ru.majordomo.hms.personmgr.model.counter.AbonementCounter;
-import ru.majordomo.hms.personmgr.model.counter.PlanCounter;
+import ru.majordomo.hms.personmgr.dto.AbonementCounter;
+import ru.majordomo.hms.personmgr.dto.PlanCounter;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -28,16 +34,22 @@ public class StatServiceHelper {
     private final MongoOperations mongoOperations;
     private final AbonementRepository abonementRepository;
     private final PlanRepository planRepository;
+    private final PersonalAccountManager accountManager;
+    private final PaymentServiceRepository paymentServiceRepository;
 
     @Autowired
     public StatServiceHelper(
             MongoOperations mongoOperations,
             AbonementRepository abonementRepository,
-            PlanRepository planRepository
+            PlanRepository planRepository,
+            PersonalAccountManager accountManager,
+            PaymentServiceRepository paymentServiceRepository
     ) {
         this.mongoOperations = mongoOperations;
         this.abonementRepository = abonementRepository;
         this.planRepository = planRepository;
+        this.accountManager = accountManager;
+        this.paymentServiceRepository = paymentServiceRepository;
     }
 
     public List<PlanCounter> getAllPlanCounters() {
@@ -161,5 +173,67 @@ public class StatServiceHelper {
         );
 
         return all;
+    }
+
+    public List<ResourceCounter> getActiveAccountServiceCounters() {
+        List<String> accountIds = accountManager.findAccountIdsByActive(true);
+
+        // Получаем количество включенных услуг без количества одновременно подключенных на одном аккаунте
+
+        /*
+        db.getCollection('accountService').aggregate(
+        {$lookup:{from:"plan", localField:"serviceId", foreignField: "serviceId", as: "plan"}}
+        ,{$project:{"serviceId":"$serviceId","plan":{$size:"$plan"}}}
+        ,{$match:{"plan":0}}
+        ,{$addFields:{count:1, serviceId:"$serviceId"}}
+        ,{$group:{_id:"$serviceId", "count":{$sum:"$count"}}}
+        )
+        */
+
+        boolean active = true;
+
+        MatchOperation match = match(
+                Criteria.where("enabled")
+                        .is(active)
+                        .and("quantity").gte(1)
+                        // не работает
+                        // .and("lastBilled").gte(LocalDateTime.of(LocalDate.now(), LocalTime.MIN))
+                        .and("personalAccountId").in(accountIds)
+        );
+
+        LookupOperation lookup = lookup(
+                "plan",
+                "serviceId",
+                "serviceId",
+                "plan");
+
+        ProjectionOperation project = project("serviceId")
+                .and("plan").size().as("plan");
+
+        MatchOperation planFilter = match(Criteria.where("plan").is(0));
+
+        GroupOperation group = group(
+                "serviceId").count().as("count")
+                .first("serviceId").as("resourceId")
+                .first("plan").as("plan");
+
+        SortOperation sort = sort(Sort.Direction.DESC,"count");
+
+        Aggregation aggregation = newAggregation(
+                match,
+                lookup,
+                project,
+                planFilter,
+                group,
+                sort
+        );
+
+        List<ResourceCounter> accountServiceCounters = mongoOperations.aggregate(
+                aggregation, "accountService", ResourceCounter.class
+        ).getMappedResults();
+
+        accountServiceCounters.forEach(element -> element.setName(paymentServiceRepository.findOne(element.getResourceId()).getName()));
+
+        return accountServiceCounters;
     }
 }
