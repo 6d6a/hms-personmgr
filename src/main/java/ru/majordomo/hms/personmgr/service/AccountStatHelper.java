@@ -23,14 +23,14 @@ public class AccountStatHelper {
         this.accountStatRepository = accountStatRepository;
     }
 
-    public void add(String accountId, AccountStatType type) {
-        this.add(accountId, type, null);
+    public void add(String id, AccountStatType type) {
+        this.add(id, type, null);
     }
 
-    public void add(String personalAccountId, AccountStatType type, Map<String, String> data) {
+    public void add(String id, AccountStatType type, Map<String, String> data) {
 
         AccountStat accountStat = new AccountStat();
-        accountStat.setPersonalAccountId(personalAccountId);
+        accountStat.setPersonalAccountId(id);
         accountStat.setCreated(LocalDateTime.now());
         accountStat.setType(type);
         if (data != null) {

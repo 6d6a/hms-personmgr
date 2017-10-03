@@ -27,9 +27,6 @@ import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
-import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_AUTO_RENEW_DOMAIN;
-import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN;
-import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_MANUAL_RENEW_DOMAIN;
 
 @Service
 public class StatServiceHelper {
@@ -100,8 +97,6 @@ public class StatServiceHelper {
 
         return result;
     }
-
-
 
     //Выполняется дольше 17 секунд
     public List<AbonementCounter> getAbonementCounters() {
@@ -180,18 +175,6 @@ public class StatServiceHelper {
 
     public List<ResourceCounter> getActiveAccountServiceCounters() {
         List<String> accountIds = accountManager.findAccountIdsByActive(true);
-
-        // Получаем количество включенных услуг без количества одновременно подключенных на одном аккаунте
-
-        /*
-        db.getCollection('accountService').aggregate(
-        {$lookup:{from:"plan", localField:"serviceId", foreignField: "serviceId", as: "plan"}}
-        ,{$project:{"serviceId":"$serviceId","plan":{$size:"$plan"}}}
-        ,{$match:{"plan":0}}
-        ,{$addFields:{count:1, serviceId:"$serviceId"}}
-        ,{$group:{_id:"$serviceId", "count":{$sum:"$count"}}}
-        )
-        */
 
         MatchOperation match = match(
                 Criteria.where("enabled")

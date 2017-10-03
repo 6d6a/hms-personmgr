@@ -14,7 +14,6 @@ public class ResourceCounter extends StatCounter {
         this.resourceId = resourceId;
     }
 
-
     public String getName() {
         return name;
     }
