@@ -214,7 +214,7 @@ public class DomainService {
                     domainNotProlong.add(domain);
                 }
 
-                SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRenewService());
+                SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRenewService(), true);
 
                 String documentNumber = (String) blockResult.getParam("documentNumber");
 
@@ -408,7 +408,7 @@ public class DomainService {
 
         if (!isFreeDomain) {
             accountHelper.checkBalance(account, domainTld.getRegistrationService());
-            SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRegistrationService());
+            SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRegistrationService(), true);
             String documentNumber = (String) blockResult.getParam("documentNumber");
             message.addParam("documentNumber", documentNumber);
         }
