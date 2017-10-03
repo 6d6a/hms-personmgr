@@ -206,6 +206,7 @@ public class DomainService {
                 }
                 try {
                     accountHelper.checkBalance(account, domainTld.getRenewService());
+                    accountHelper.checkBalanceWithoutBonus(account, domainTld.getRenewService());
                 } catch (LowBalanceException e) {
                     //Если денег не хватает
                     //Запишем попытку в историю клиента
@@ -408,6 +409,7 @@ public class DomainService {
 
         if (!isFreeDomain) {
             accountHelper.checkBalance(account, domainTld.getRegistrationService());
+            accountHelper.checkBalanceWithoutBonus(account, domainTld.getRegistrationService());
             SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRegistrationService(), true);
             String documentNumber = (String) blockResult.getParam("documentNumber");
             message.addParam("documentNumber", documentNumber);

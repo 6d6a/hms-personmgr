@@ -150,6 +150,39 @@ public class AccountHelper {
     }
 
     /**
+     * Получим баланс
+     *
+     * @param account Аккаунт
+     */
+    public BigDecimal getBonusBalance(PersonalAccount account) {
+        Map<String, Object> balance = null;
+
+        try {
+            balance = finFeignClient.getBalance(account.getId());
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Exception in AccountHelper.getBalance #1 " + e.getMessage());
+        }
+
+        if (balance == null) {
+            throw new ResourceNotFoundException("Не найден баланс аккаунта");
+        }
+
+        BigDecimal available;
+
+        try {
+            Map<String, Map<String, Object>> datMap = (Map<String, Map<String, Object>>) balance.get("balance");
+            available = getBigDecimalFromUnexpectedInput(datMap.get("BONUS").get("available"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Exception in AccountHelper.getBalance #2 " + e.getMessage());
+            available = BigDecimal.ZERO;
+        }
+
+        return available;
+    }
+
+    /**
      * Получаем домены
      *
      * @param account Аккаунт
@@ -192,6 +225,22 @@ public class AccountHelper {
         if (available.compareTo(service.getCost()) < 0) {
             throw new LowBalanceException("Баланс аккаунта недостаточен для заказа услуги. " +
                     "Текущий баланс: " + formatBigDecimalWithCurrency(available) +
+                    ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
+        }
+    }
+
+    /**
+     * @param account Аккаунт
+     */
+    public void checkBalanceWithoutBonus(PersonalAccount account, PaymentService service) {
+
+        BigDecimal available = getBalance(account);
+
+        BigDecimal bonusBalanceAvailable = getBonusBalance(account);
+
+        if (available.subtract(bonusBalanceAvailable).compareTo(service.getCost()) < 0) {
+            throw new LowBalanceException("Бонусные средства недоступны для этой операции. " +
+                    "Текущий баланс без учёта бонусных средств: " + formatBigDecimalWithCurrency(available.subtract(bonusBalanceAvailable)) +
                     ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
         }
     }
