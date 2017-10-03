@@ -231,18 +231,19 @@ public class AccountHelper {
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service) {
         BigDecimal amount = service.getCost();
 
-        return charge(account, service, amount, false);
+        return charge(account, service, amount, false, false);
     }
 
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount) {
-        return charge(account, service, amount, false);
+        return charge(account, service, amount, false, false);
     }
 
-    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount, Boolean forceCharge) {
+    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount, Boolean forceCharge, Boolean bonusChargeProhibited) {
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", service.getId());
         paymentOperation.put("amount", amount);
         paymentOperation.put("forceCharge", forceCharge);
+        paymentOperation.put("bonusChargeProhibited", bonusChargeProhibited);
 
         SimpleServiceMessage response;
 
@@ -266,11 +267,16 @@ public class AccountHelper {
         return response;
     }
 
-    //TODO на самом деле сюда ещё должна быть возможность передать discountedService
     public SimpleServiceMessage block(PersonalAccount account, PaymentService service) {
+        return block(account, service, false);
+    }
+
+    //TODO на самом деле сюда ещё должна быть возможность передать discountedService
+    public SimpleServiceMessage block(PersonalAccount account, PaymentService service, Boolean bonusChargeProhibited) {
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", service.getId());
         paymentOperation.put("amount", service.getCost());
+        paymentOperation.put("bonusChargeProhibited", bonusChargeProhibited);
 
         SimpleServiceMessage response;
         try {
