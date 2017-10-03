@@ -15,6 +15,7 @@ import ru.majordomo.hms.personmgr.service.StatServiceHelper;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
@@ -82,5 +83,32 @@ public class StatServiceRestController {
     @GetMapping("/account-service/quantity")
     public ResponseEntity<List<ResourceCounter>> getQuantityForActiveAccountService() {
         return ResponseEntity.ok(statServiceHelper.getQuantityForActiveAccountService());
+    }
+
+    @GetMapping("/domain/register")
+    public ResponseEntity<List<ResourceCounter>> getDomainRegistrationCounters(
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false) LocalDate date
+    ) {
+        if (date == null) { date = LocalDate.now(); }
+        return ResponseEntity.ok(statServiceHelper.getDomainRegistrationCounters(date));
+    }
+
+    @GetMapping("/domain/register/between-dates")
+    public ResponseEntity<List<ResourceCounter>> getDomainRegistrationCounters(
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam LocalDate start,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false) LocalDate end
+    ) {
+        List<ResourceCounter> result = new ArrayList<>();
+
+        if (end == null) { end = LocalDate.now(); }
+
+        while (start.isBefore(end)) {
+            result.addAll(statServiceHelper.getDomainRegistrationCounters(start));
+            start = start.plusDays(1);
+        }
+        return ResponseEntity.ok(result);
     }
 }

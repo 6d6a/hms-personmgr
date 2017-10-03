@@ -372,7 +372,7 @@ public class AbonementService {
         Map<String, String> data = new HashMap<>();
         data.put("expireEnd", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         data.put("abonementId", accountAbonement.getAbonementId());
-        accountStatHelper.add(account, reason, data);
+        accountStatHelper.add(account.getId(), reason, data);
 
         //Создаем AccountService с выбранным тарифом
         addPlanServicesAfterAbonementExpire(account);

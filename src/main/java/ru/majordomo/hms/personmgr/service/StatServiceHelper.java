@@ -16,13 +16,16 @@ import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
+import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN;
 
 @Service
 public class StatServiceHelper {
@@ -274,5 +277,49 @@ public class StatServiceHelper {
         accountServiceCounters.forEach(element -> element.setName(paymentServiceRepository.findOne(element.getResourceId()).getName()));
 
         return accountServiceCounters;
+    }
+
+    public List<ResourceCounter> getDomainRegistrationCounters(LocalDate date) {
+
+        LocalDateTime startDateTime = LocalDateTime.of(date, LocalTime.MIN);
+        LocalDateTime endDateTime = LocalDateTime.of(date, LocalTime.MAX);
+
+        MatchOperation match = match(
+                Criteria.where("created")
+                        .gte(Date.from(startDateTime.toInstant(ZoneOffset.ofHours(3))))
+                        .lte(Date.from(endDateTime.toInstant(ZoneOffset.ofHours(3))))
+                        .and("type").is(VIRTUAL_HOSTING_REGISTER_DOMAIN.name())
+        );
+
+        ProjectionOperation project = project()
+                .and("data.domainName").as("name");
+
+        Aggregation aggregation = newAggregation(
+                match,
+                project
+        );
+
+        List<ResourceCounter> accountServiceCounters = mongoOperations.aggregate(
+                aggregation, "accountStat", ResourceCounter.class
+        ).getMappedResults();
+
+        Map<String, ResourceCounter> tldMap = new HashMap<>();
+        List<ResourceCounter> result = new ArrayList<>();
+        for(ResourceCounter element: accountServiceCounters) {
+            String[] splitDomain = element.getName().split("\\.", 2);
+            String tld = splitDomain[1];
+            element.setResourceId(tld);
+            if (!tldMap.containsKey(tld)) {
+                ResourceCounter counter = new ResourceCounter();
+                counter.setResourceId(tld);
+                counter.setDateTime(LocalDateTime.of(date, LocalTime.MIN));
+                counter.setCount(1);
+                tldMap.put(tld, counter);
+                result.add(counter);
+            } else {
+                tldMap.get(tld).countPlusOne();
+            }
+        }
+        return result;
     }
 }

@@ -82,7 +82,7 @@ public class DomainAmqpController extends CommonAmqpController {
                             HashMap<String, String> data = new HashMap<>();
                             data.put("personId", (String) businessAction.getParam("personId"));
                             data.put("domainName", domainName);
-                            accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN, data);
+                            accountStatHelper.add(account.getId(), AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN, data);
                         }
                     }
 
@@ -137,6 +137,7 @@ public class DomainAmqpController extends CommonAmqpController {
                             && (Boolean) businessAction.getParam("renew")
                             ) {
                         String renewAction = "продление";
+                        String statDataAutoRenew = "false";
 
                         if (businessAction.getParam(AUTO_RENEW_KEY) != null &&
                                 (Boolean) businessAction.getParam(AUTO_RENEW_KEY)
@@ -146,7 +147,14 @@ public class DomainAmqpController extends CommonAmqpController {
 
                             publisher.publishEvent(new AccountDomainAutoRenewCompletedEvent(businessAction.getPersonalAccountId(), params));
                             renewAction = "автопродление";
+                            statDataAutoRenew = "true";
                         }
+
+                        HashMap<String, String> statData = new HashMap<>();
+                        statData.put("autoRenew", statDataAutoRenew);
+                        statData.put("personId", (String) businessAction.getParam("personId"));
+                        statData.put("domainName", domainName);
+                        accountStatHelper.add(message.getAccountId(), AccountStatType.VIRTUAL_HOSTING_DOMAIN_RENEW, statData);
 
                         //Save history
                         paramsHistory = new HashMap<>();
