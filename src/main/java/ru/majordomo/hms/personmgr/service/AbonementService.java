@@ -179,7 +179,7 @@ public class AbonementService {
             BigDecimal balance = accountHelper.getBalance(account);
 
             // Высчитываем предполагаемую месячную стоимость аккаунта
-            Integer daysInCurrentMonth =  LocalDateTime.now().toLocalDate().lengthOfMonth();
+            Integer daysInCurrentMonth = LocalDateTime.now().toLocalDate().lengthOfMonth();
             Plan plan = planRepository.findOne(account.getPlanId());
             PaymentService planAccountService = plan.getService();
             BigDecimal monthCost = planAccountService.getCost();
@@ -200,19 +200,16 @@ public class AbonementService {
             }
 
 
-
             long daysToExpired = DAYS.between(LocalDateTime.now(), accountAbonement.getExpired());
 
             Boolean needSendEmail = false;
 
             boolean notEnoughMoneyForAbonement = balance.compareTo(abonementCost) < 0;
             boolean notEnoughMoneyForMonth = balance.compareTo(monthCost) < 0;
-            boolean todayIsDayForSending = Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired);
+            boolean todayIsDayForSendingEmail = Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired);
 
-            if (todayIsDayForSending && notEnoughMoneyForAbonement) {
-                if (plan.isAbonementOnly()) {
-                    needSendEmail = true;
-                } else if (notEnoughMoneyForMonth && !plan.isAbonementOnly()) {
+            if (todayIsDayForSendingEmail && notEnoughMoneyForAbonement) {
+                if (plan.isAbonementOnly() || notEnoughMoneyForMonth) {
                     needSendEmail = true;
                 }
             }
@@ -240,16 +237,16 @@ public class AbonementService {
                 accountNotificationHelper.sendMail(account, "MajordomoVHAbNoMoneyProlong", 1, parameters);
             }
 
-            if (
-                    (!accountAbonement.isAutorenew() || notEnoughMoneyForAbonement)
-                    && accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, SMS_ABONEMENT_EXPIRING)
-                    && Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND).contains(daysToExpired)
-            ) {
-                HashMap<String, String> paramsForSms = new HashMap<>();
-                paramsForSms.put("acc_id", account.getName());
-                paramsForSms.put("client_id", account.getAccountId());
-                paramsForSms.put("remaining_days", Utils.pluralizef("%d день", "%d дня", "%d дней", ((Long) daysToExpired).intValue()));
-                accountNotificationHelper.sendSms(account, "HmsMajordomoAbonementExpiring", 5, paramsForSms);
+            if (!accountAbonement.isAutorenew() || notEnoughMoneyForAbonement) {
+                if (accountNotificationHelper.isSubscribedToSmsType(account, SMS_ABONEMENT_EXPIRING)
+                        && Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND).contains(daysToExpired))
+                {
+                    HashMap<String, String> paramsForSms = new HashMap<>();
+                    paramsForSms.put("acc_id", account.getName());
+                    paramsForSms.put("client_id", account.getAccountId());
+                    paramsForSms.put("remaining_days", Utils.pluralizef("%d день", "%d дня", "%d дней", ((Long) daysToExpired).intValue()));
+                    accountNotificationHelper.sendSms(account, "HmsMajordomoAbonementExpiring", 5, paramsForSms);
+                }
             }
         });
     }

@@ -129,7 +129,7 @@ public class DomainService {
             Integer daysBeforeExpiredForSms = 5;
 
             //Нужно ли отправлять SMS
-            Boolean sendSms = accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING);
+            Boolean sendSms = accountNotificationHelper.isSubscribedToSmsType(account, MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING);
 
             int daysBeforeExpired;
 

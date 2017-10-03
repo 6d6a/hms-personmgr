@@ -141,7 +141,7 @@ public class AccountNotificationHelper {
         this.sendMail(account, apiName, 1, parameters);
     }
 
-    public boolean hasActiveSmsNotificationsAndMessageType(PersonalAccount account, MailManagerMessageType messageType) {
+    public boolean isSubscribedToSmsType(PersonalAccount account, MailManagerMessageType messageType) {
         return (
                 account.hasNotification(messageType)
                 && notificationRepository.findByTypeAndActive(messageType, true) != null
