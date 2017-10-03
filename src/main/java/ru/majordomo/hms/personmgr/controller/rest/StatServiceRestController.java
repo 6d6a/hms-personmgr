@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import ru.majordomo.hms.personmgr.dto.DomainCounter;
 import ru.majordomo.hms.personmgr.dto.ResourceCounter;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.dto.AbonementCounter;
@@ -28,6 +29,10 @@ import static org.springframework.data.mongodb.core.query.Query.query;
 public class StatServiceRestController {
     private final MongoOperations mongoOperations;
     private final StatServiceHelper statServiceHelper;
+
+    private enum DomainActionType {
+        register, manualrenew, autorenew
+    }
 
     public StatServiceRestController(
             MongoOperations mongoOperations,
@@ -85,28 +90,77 @@ public class StatServiceRestController {
         return ResponseEntity.ok(statServiceHelper.getQuantityForActiveAccountService());
     }
 
-    @GetMapping("/domain/register")
-    public ResponseEntity<List<ResourceCounter>> getDomainRegistrationCounters(
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            @RequestParam(required = false) LocalDate date
-    ) {
-        if (date == null) { date = LocalDate.now(); }
-        return ResponseEntity.ok(statServiceHelper.getDomainRegistrationCounters(date));
-    }
+//    @GetMapping("/domain/register")
+//    public ResponseEntity<List<ResourceCounter>> getDomainRegistrationCounters(
+//            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+//            @RequestParam(required = false) LocalDate start,
+//            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+//            @RequestParam(required = false) LocalDate end
+//    ) {
+//        List<ResourceCounter> result = new ArrayList<>();
+//
+//        if (end == null) { end = LocalDate.now(); }
+//        if (start == null) { start = end.minusDays(1); }
+//
+//        while (start.isBefore(end)) {
+//            result.addAll(statServiceHelper.getDomainRegistrationCounters(start));
+//            start = start.plusDays(1);
+//        }
+//        return ResponseEntity.ok(result);
+//    }
 
-    @GetMapping("/domain/register/between-dates")
-    public ResponseEntity<List<ResourceCounter>> getDomainRegistrationCounters(
+    @GetMapping("/domain/register")
+    public ResponseEntity<List<ResourceCounter>> getDomainCountersByType(
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            @RequestParam LocalDate start,
+            @RequestParam(required = false) LocalDate start,
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             @RequestParam(required = false) LocalDate end
     ) {
         List<ResourceCounter> result = new ArrayList<>();
 
         if (end == null) { end = LocalDate.now(); }
+        if (start == null) { start = end.minusDays(1); }
 
         while (start.isBefore(end)) {
             result.addAll(statServiceHelper.getDomainRegistrationCounters(start));
+            start = start.plusDays(1);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/domain/auto-renew")
+    public ResponseEntity<List<ResourceCounter>> getAutoRenewDomainCounters(
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false) LocalDate start,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false) LocalDate end
+    ) {
+        List<ResourceCounter> result = new ArrayList<>();
+
+        if (end == null) { end = LocalDate.now(); }
+        if (start == null) { start = end.minusDays(1); }
+
+        while (start.isBefore(end)) {
+            result.addAll(statServiceHelper.getDomainAutoRenewCounters(start));
+            start = start.plusDays(1);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/domain/manual-renew")
+    public ResponseEntity<List<DomainCounter>> getAutoManualDomainCounters(
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false) LocalDate start,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false) LocalDate end
+    ) {
+        List<DomainCounter> result = new ArrayList<>();
+
+        if (end == null) { end = LocalDate.now(); }
+        if (start == null) { start = end.minusDays(1); }
+
+        while (start.isBefore(end)) {
+            result.addAll(statServiceHelper.getDomainManualRenewCounters(start));
             start = start.plusDays(1);
         }
         return ResponseEntity.ok(result);

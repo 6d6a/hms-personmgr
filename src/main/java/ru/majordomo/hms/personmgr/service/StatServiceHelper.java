@@ -6,6 +6,8 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.dto.DomainCounter;
 import ru.majordomo.hms.personmgr.dto.ResourceCounter;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
@@ -25,7 +27,9 @@ import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
+import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_AUTO_RENEW_DOMAIN;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN;
+import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_MANUAL_RENEW_DOMAIN;
 
 @Service
 public class StatServiceHelper {
@@ -279,8 +283,19 @@ public class StatServiceHelper {
         return accountServiceCounters;
     }
 
-    public List<ResourceCounter> getDomainRegistrationCounters(LocalDate date) {
+    public List<DomainCounter> getDomainRegistrationCounters(LocalDate date) {
+        return getDomainCountersByDateAndStatType(date, VIRTUAL_HOSTING_REGISTER_DOMAIN);
+    }
 
+    public List<DomainCounter> getDomainManualRenewCounters(LocalDate date) {
+        return getDomainCountersByDateAndStatType(date, VIRTUAL_HOSTING_MANUAL_RENEW_DOMAIN);
+    }
+
+    public List<DomainCounter> getDomainAutoRenewCounters(LocalDate date) {
+        return getDomainCountersByDateAndStatType(date, VIRTUAL_HOSTING_AUTO_RENEW_DOMAIN);
+    }
+
+    private List<DomainCounter> getDomainCountersByDateAndStatType(LocalDate date, AccountStatType type) {
         LocalDateTime startDateTime = LocalDateTime.of(date, LocalTime.MIN);
         LocalDateTime endDateTime = LocalDateTime.of(date, LocalTime.MAX);
 
@@ -288,38 +303,63 @@ public class StatServiceHelper {
                 Criteria.where("created")
                         .gte(Date.from(startDateTime.toInstant(ZoneOffset.ofHours(3))))
                         .lte(Date.from(endDateTime.toInstant(ZoneOffset.ofHours(3))))
-                        .and("type").is(VIRTUAL_HOSTING_REGISTER_DOMAIN.name())
+                        .and("type").is(type.name())
         );
 
         ProjectionOperation project = project()
-                .and("data.domainName").as("name");
+                .and("data.domainName").as("name")
+                .and("created").as("dateTime");
 
         Aggregation aggregation = newAggregation(
                 match,
                 project
         );
 
-        List<ResourceCounter> accountServiceCounters = mongoOperations.aggregate(
-                aggregation, "accountStat", ResourceCounter.class
+        List<DomainCounter> accountServiceCounters = mongoOperations.aggregate(
+                aggregation, "accountStat", DomainCounter.class
         ).getMappedResults();
 
-        Map<String, ResourceCounter> tldMap = new HashMap<>();
-        List<ResourceCounter> result = new ArrayList<>();
-        for(ResourceCounter element: accountServiceCounters) {
+        List<DomainCounter> result = groupDomainListToCounterByTld(accountServiceCounters);
+
+        return setNameByStatTypeForDomainCounters(result, type);
+    }
+
+    private List<DomainCounter> groupDomainListToCounterByTld(List<DomainCounter> domainList) {
+        Map<String, DomainCounter> tldMap = new HashMap<>();
+        List<DomainCounter> result = new ArrayList<>();
+        for(DomainCounter element: domainList) {
             String[] splitDomain = element.getName().split("\\.", 2);
             String tld = splitDomain[1];
             element.setResourceId(tld);
             if (!tldMap.containsKey(tld)) {
-                ResourceCounter counter = new ResourceCounter();
-                counter.setResourceId(tld);
-                counter.setDateTime(LocalDateTime.of(date, LocalTime.MIN));
-                counter.setCount(1);
-                tldMap.put(tld, counter);
-                result.add(counter);
+                element.setResourceId(tld);
+                element.setDateTime(LocalDateTime.of(element.getDateTime().toLocalDate(), LocalTime.MIN));
+                element.setCount(1);
+                tldMap.put(tld, element);
+                result.add(element);
             } else {
                 tldMap.get(tld).countPlusOne();
             }
         }
         return result;
+    }
+
+    private List<DomainCounter> setNameByStatTypeForDomainCounters(List<DomainCounter> list, AccountStatType type) {
+        for(DomainCounter counter: list) {
+            String action = "";
+            switch (type){
+                case VIRTUAL_HOSTING_AUTO_RENEW_DOMAIN:
+                    action = "Автопродление домена в зоне .";
+                    break;
+                case VIRTUAL_HOSTING_MANUAL_RENEW_DOMAIN:
+                    action = "Ручное продление домена в зоне .";
+                    break;
+                case VIRTUAL_HOSTING_REGISTER_DOMAIN:
+                    action = "Регистрация домена в зоне .";
+                    break;
+            }
+            counter.setName(action + counter.getResourceId());
+        }
+        return list;
     }
 }

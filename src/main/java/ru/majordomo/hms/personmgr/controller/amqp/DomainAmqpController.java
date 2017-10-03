@@ -25,6 +25,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.service.AccountStatHelper;
 
+import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_AUTO_RENEW_DOMAIN;
 import static ru.majordomo.hms.personmgr.common.Constants.AUTO_RENEW_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
@@ -137,7 +138,7 @@ public class DomainAmqpController extends CommonAmqpController {
                             && (Boolean) businessAction.getParam("renew")
                             ) {
                         String renewAction = "продление";
-                        String statDataAutoRenew = "false";
+                        boolean statDataAutoRenew = false;
 
                         if (businessAction.getParam(AUTO_RENEW_KEY) != null &&
                                 (Boolean) businessAction.getParam(AUTO_RENEW_KEY)
@@ -147,14 +148,16 @@ public class DomainAmqpController extends CommonAmqpController {
 
                             publisher.publishEvent(new AccountDomainAutoRenewCompletedEvent(businessAction.getPersonalAccountId(), params));
                             renewAction = "автопродление";
-                            statDataAutoRenew = "true";
+                            statDataAutoRenew = true;
                         }
 
                         HashMap<String, String> statData = new HashMap<>();
-                        statData.put("autoRenew", statDataAutoRenew);
                         statData.put("personId", (String) businessAction.getParam("personId"));
                         statData.put("domainName", domainName);
-                        accountStatHelper.add(message.getAccountId(), AccountStatType.VIRTUAL_HOSTING_DOMAIN_RENEW, statData);
+                        accountStatHelper.add(
+                                message.getAccountId(),
+                                statDataAutoRenew ? VIRTUAL_HOSTING_AUTO_RENEW_DOMAIN : AccountStatType.VIRTUAL_HOSTING_MANUAL_RENEW_DOMAIN,
+                                statData);
 
                         //Save history
                         paramsHistory = new HashMap<>();
