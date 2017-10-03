@@ -178,9 +178,6 @@ public class AbonementService {
 
             BigDecimal balance = accountHelper.getBalance(account);
 
-            Boolean needSendEmail = false;
-            Boolean needSendSms = false;
-
             // Высчитываем предполагаемую месячную стоимость аккаунта
             Integer daysInCurrentMonth =  LocalDateTime.now().toLocalDate().lengthOfMonth();
             Plan plan = planRepository.findOne(account.getPlanId());
@@ -202,19 +199,25 @@ public class AbonementService {
                 }
             }
 
-            if (
-                    (balance.compareTo(abonementCost) < 0
-                        && !plan.isAbonementOnly()
-                        && balance.compareTo(monthCost) < 0
-                    )
-                        || plan.isAbonementOnly()
-            ) {
-                    needSendEmail = true;
-            }
+
 
             long daysToExpired = DAYS.between(LocalDateTime.now(), accountAbonement.getExpired());
 
-            if (needSendEmail && Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired)) {
+            Boolean needSendEmail = false;
+
+            boolean notEnoughMoneyForAbonement = balance.compareTo(abonementCost) < 0;
+            boolean notEnoughMoneyForMonth = balance.compareTo(monthCost) < 0;
+            boolean todayIsDayForSending = Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired);
+
+            if (todayIsDayForSending && notEnoughMoneyForAbonement) {
+                if (plan.isAbonementOnly()) {
+                    needSendEmail = true;
+                } else if (notEnoughMoneyForMonth && !plan.isAbonementOnly()) {
+                    needSendEmail = true;
+                }
+            }
+
+            if (needSendEmail) {
                 logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
 
                 List<Domain> domains = accountHelper.getDomains(account);
@@ -238,7 +241,7 @@ public class AbonementService {
             }
 
             if (
-                    (!accountAbonement.isAutorenew() || balance.compareTo(abonementCost) < 0)
+                    (!accountAbonement.isAutorenew() || notEnoughMoneyForAbonement)
                     && accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, SMS_ABONEMENT_EXPIRING)
                     && Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND).contains(daysToExpired)
             ) {

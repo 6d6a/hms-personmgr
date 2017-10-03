@@ -537,23 +537,23 @@ public class PersonalAccountRestController extends CommonRestController {
             method = RequestMethod.PATCH)
     public ResponseEntity<Object> setNotifications(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Set<MailManagerMessageType> newUserNotifications,
+            @RequestBody Set<MailManagerMessageType> notifications,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
         Set<MailManagerMessageType> oldNotifications = account.getNotifications();
 
-        List<MailManagerMessageType> notificationsCanUse = accountNotificationHelper.getActiveMailManagerMessageTypes();
+        List<MailManagerMessageType> activeNotifications = accountNotificationHelper.getActiveMailManagerMessageTypes();
 
-        newUserNotifications = newUserNotifications.stream().filter(n -> notificationsCanUse.contains(n)).collect(Collectors.toSet());
+        Set<MailManagerMessageType> filteredNotifications = notifications.stream().filter(n -> activeNotifications.contains(n)).collect(Collectors.toSet());
 
-        accountManager.setNotifications(accountId, newUserNotifications);
+        accountManager.setNotifications(accountId, filteredNotifications);
 
         //Save history
         String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + newUserNotifications + "]");
+        params.put(HISTORY_MESSAGE_KEY, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + filteredNotifications + "]");
         params.put(OPERATOR_KEY, operator);
 
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));

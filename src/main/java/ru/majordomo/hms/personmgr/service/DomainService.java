@@ -518,22 +518,22 @@ public class DomainService {
 
             accountNotificationHelper.sendMail(account, "HMSVHNomoneyDomainProlong", 10, parameters);
 
-            //Если подключено СМС-уведомление, то также отправим его
-            //Отправляем SMS за ... дней до истечения
-            // https://redmine.intr/issues/8168
-            /*int days = 3;
-            if (domains.stream().filter(
-                    domain -> domain.getRegSpec().getPaidTill().equals(LocalDate.now().plusDays(days))).collect(Collectors.toList())
-                    .isEmpty())
-            if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN)) {
-
-                parameters = new HashMap<>();
-                parameters.put("client_id", account.getAccountId());
-                //Текст SMS изменяется в зависимости от количества доменов, требующих продления
-                parameters.put("domain", (domains.size() > 1) ? "истекающих доменов" : ("домена " + domains.get(0).getName()));
-                parameters.put("acc_id", account.getName());
-                accountNotificationHelper.sendSms(account, "HMSMajordomoNoMoneyToAutoRenewDomain", 10, parameters);
-            }*/
+//            //Если подключено СМС-уведомление, то также отправим его
+//            //Отправляем SMS за ... дней до истечения
+//            // не отправляем sms https://redmine.intr/issues/8168
+//            int days = 3;
+//            if (domains.stream().filter(
+//                    domain -> domain.getRegSpec().getPaidTill().equals(LocalDate.now().plusDays(days))).collect(Collectors.toList())
+//                    .isEmpty())
+//            if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN)) {
+//
+//                parameters = new HashMap<>();
+//                parameters.put("client_id", account.getAccountId());
+//                //Текст SMS изменяется в зависимости от количества доменов, требующих продления
+//                parameters.put("domain", (domains.size() > 1) ? "истекающих доменов" : ("домена " + domains.get(0).getName()));
+//                parameters.put("acc_id", account.getName());
+//                accountNotificationHelper.sendSms(account, "HMSMajordomoNoMoneyToAutoRenewDomain", 10, parameters);
+//            }
         }
 
     }

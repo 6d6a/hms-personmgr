@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -215,7 +216,7 @@ public class AccountNotificationHelper {
                 .map(Notification::getType).collect(Collectors.toList());
     }
 
-    public boolean hasAnyActiveSmsNotifications(PersonalAccount account) {
+    public boolean hasActiveSmsNotifications(PersonalAccount account) {
         List<MailManagerMessageType> activeNotificationTypes = this.getActiveMailManagerMessageTypes();
 
         return account.getNotifications().stream()
