@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.dto.DomainCounter;
 import ru.majordomo.hms.personmgr.dto.ResourceCounter;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -90,79 +91,40 @@ public class StatServiceRestController {
         return ResponseEntity.ok(statServiceHelper.getQuantityForActiveAccountService());
     }
 
-//    @GetMapping("/domain/register")
-//    public ResponseEntity<List<ResourceCounter>> getDomainRegistrationCounters(
-//            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-//            @RequestParam(required = false) LocalDate start,
-//            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-//            @RequestParam(required = false) LocalDate end
-//    ) {
-//        List<ResourceCounter> result = new ArrayList<>();
-//
-//        if (end == null) { end = LocalDate.now(); }
-//        if (start == null) { start = end.minusDays(1); }
-//
-//        while (start.isBefore(end)) {
-//            result.addAll(statServiceHelper.getDomainRegistrationCounters(start));
-//            start = start.plusDays(1);
-//        }
-//        return ResponseEntity.ok(result);
-//    }
-
-    @GetMapping("/domain/register")
-    public ResponseEntity<List<ResourceCounter>> getDomainCountersByType(
+    @GetMapping("/domain")
+    public ResponseEntity<List<DomainCounter>> getDomainCountersByType(
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             @RequestParam(required = false) LocalDate start,
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            @RequestParam(required = false) LocalDate end
+            @RequestParam(required = false) LocalDate end,
+            @RequestParam DomainActionType type
     ) {
-        List<ResourceCounter> result = new ArrayList<>();
+
+        AccountStatType statType = getAccountStatTypeFromDomainActionType(type);
+        if (statType == null) { return ResponseEntity.badRequest().build(); }
 
         if (end == null) { end = LocalDate.now(); }
         if (start == null) { start = end.minusDays(1); }
 
-        while (start.isBefore(end)) {
-            result.addAll(statServiceHelper.getDomainRegistrationCounters(start));
-            start = start.plusDays(1);
-        }
-        return ResponseEntity.ok(result);
-    }
-
-    @GetMapping("/domain/auto-renew")
-    public ResponseEntity<List<ResourceCounter>> getAutoRenewDomainCounters(
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            @RequestParam(required = false) LocalDate start,
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            @RequestParam(required = false) LocalDate end
-    ) {
-        List<ResourceCounter> result = new ArrayList<>();
-
-        if (end == null) { end = LocalDate.now(); }
-        if (start == null) { start = end.minusDays(1); }
-
-        while (start.isBefore(end)) {
-            result.addAll(statServiceHelper.getDomainAutoRenewCounters(start));
-            start = start.plusDays(1);
-        }
-        return ResponseEntity.ok(result);
-    }
-
-    @GetMapping("/domain/manual-renew")
-    public ResponseEntity<List<DomainCounter>> getAutoManualDomainCounters(
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            @RequestParam(required = false) LocalDate start,
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            @RequestParam(required = false) LocalDate end
-    ) {
         List<DomainCounter> result = new ArrayList<>();
 
-        if (end == null) { end = LocalDate.now(); }
-        if (start == null) { start = end.minusDays(1); }
-
         while (start.isBefore(end)) {
-            result.addAll(statServiceHelper.getDomainManualRenewCounters(start));
+            result.addAll(statServiceHelper.getDomainCountersByDateAndStatType(start, statType));
             start = start.plusDays(1);
         }
         return ResponseEntity.ok(result);
+    }
+
+    private AccountStatType getAccountStatTypeFromDomainActionType(DomainActionType type) {
+        switch (type){
+            case manualrenew:
+                return AccountStatType.VIRTUAL_HOSTING_MANUAL_RENEW_DOMAIN;
+            case autorenew:
+                return AccountStatType.VIRTUAL_HOSTING_AUTO_RENEW_DOMAIN;
+            case register:
+                return AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN;
+            default:
+                return null;
+        }
     }
 }

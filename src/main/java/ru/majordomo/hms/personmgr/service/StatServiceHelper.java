@@ -283,19 +283,7 @@ public class StatServiceHelper {
         return accountServiceCounters;
     }
 
-    public List<DomainCounter> getDomainRegistrationCounters(LocalDate date) {
-        return getDomainCountersByDateAndStatType(date, VIRTUAL_HOSTING_REGISTER_DOMAIN);
-    }
-
-    public List<DomainCounter> getDomainManualRenewCounters(LocalDate date) {
-        return getDomainCountersByDateAndStatType(date, VIRTUAL_HOSTING_MANUAL_RENEW_DOMAIN);
-    }
-
-    public List<DomainCounter> getDomainAutoRenewCounters(LocalDate date) {
-        return getDomainCountersByDateAndStatType(date, VIRTUAL_HOSTING_AUTO_RENEW_DOMAIN);
-    }
-
-    private List<DomainCounter> getDomainCountersByDateAndStatType(LocalDate date, AccountStatType type) {
+    public List<DomainCounter> getDomainCountersByDateAndStatType(LocalDate date, AccountStatType type) {
         LocalDateTime startDateTime = LocalDateTime.of(date, LocalTime.MIN);
         LocalDateTime endDateTime = LocalDateTime.of(date, LocalTime.MAX);
 
@@ -315,16 +303,16 @@ public class StatServiceHelper {
                 project
         );
 
-        List<DomainCounter> accountServiceCounters = mongoOperations.aggregate(
+        List<DomainCounter> domains = mongoOperations.aggregate(
                 aggregation, "accountStat", DomainCounter.class
         ).getMappedResults();
 
-        List<DomainCounter> result = groupDomainListToCounterByTld(accountServiceCounters);
+        List<DomainCounter> result = groupByTld(domains);
 
-        return setNameByStatTypeForDomainCounters(result, type);
+        return setNameByStatType(result, type);
     }
 
-    private List<DomainCounter> groupDomainListToCounterByTld(List<DomainCounter> domainList) {
+    private List<DomainCounter> groupByTld(List<DomainCounter> domainList) {
         Map<String, DomainCounter> tldMap = new HashMap<>();
         List<DomainCounter> result = new ArrayList<>();
         for(DomainCounter element: domainList) {
@@ -332,6 +320,7 @@ public class StatServiceHelper {
             String tld = splitDomain[1];
             element.setResourceId(tld);
             if (!tldMap.containsKey(tld)) {
+                element.unSetId();
                 element.setResourceId(tld);
                 element.setDateTime(LocalDateTime.of(element.getDateTime().toLocalDate(), LocalTime.MIN));
                 element.setCount(1);
@@ -344,7 +333,7 @@ public class StatServiceHelper {
         return result;
     }
 
-    private List<DomainCounter> setNameByStatTypeForDomainCounters(List<DomainCounter> list, AccountStatType type) {
+    private List<DomainCounter> setNameByStatType(List<DomainCounter> list, AccountStatType type) {
         for(DomainCounter counter: list) {
             String action = "";
             switch (type){
