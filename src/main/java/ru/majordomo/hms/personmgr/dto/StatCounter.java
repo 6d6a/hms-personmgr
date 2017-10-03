@@ -19,7 +19,7 @@ public class StatCounter extends BaseModel{
     }
 
     public void countPlusOne() {
-        count = count + 1;
+        count++;
     }
 
     public LocalDateTime getDateTime() {
