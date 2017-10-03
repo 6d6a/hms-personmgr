@@ -171,7 +171,8 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
             if (!isFreeDomain) {
                 accountHelper.checkBalance(account, paymentService);
-                SimpleServiceMessage blockResult = accountHelper.block(account, paymentService);
+                accountHelper.checkBalanceWithoutBonus(account, paymentService);
+                SimpleServiceMessage blockResult = accountHelper.block(account, paymentService, true);
                 String documentNumber = (String) blockResult.getParam("documentNumber");
                 message.addParam("documentNumber", documentNumber);
             }
@@ -231,8 +232,9 @@ public class DomainResourceRestController extends CommonResourceRestController {
             }
 
             accountHelper.checkBalance(account, domainTld.getRenewService());
+            accountHelper.checkBalanceWithoutBonus(account, domainTld.getRenewService());
 
-            SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRenewService());
+            SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRenewService(), true);
 
             String documentNumber = (String) blockResult.getParam("documentNumber");
             message.addParam("documentNumber", documentNumber);
