@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
 import org.springframework.amqp.core.ExchangeTypes;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
@@ -28,7 +29,7 @@ public class DatabaseAmqpController extends CommonAmqpController {
                                              exchange = @Exchange(value = "database.create",
                                                                   type = ExchangeTypes.TOPIC),
                                              key = "pm"))
-    public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
+    public void create(Message amqpMessage, @Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleCreateEventFromRc(message, headers);
     }
 
@@ -38,7 +39,7 @@ public class DatabaseAmqpController extends CommonAmqpController {
                                              exchange = @Exchange(value = "database.update",
                                                                   type = ExchangeTypes.TOPIC),
                                              key = "pm"))
-    public void update(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
+    public void update(Message amqpMessage, @Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleUpdateEventFromRc(message, headers);
     }
 
@@ -48,7 +49,7 @@ public class DatabaseAmqpController extends CommonAmqpController {
                                              exchange = @Exchange(value = "database.delete",
                                                                   type = ExchangeTypes.TOPIC),
                                              key = "pm"))
-    public void delete(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
+    public void delete(Message amqpMessage, @Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleDeleteEventFromRc(message, headers);
     }
 }
