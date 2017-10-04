@@ -483,7 +483,7 @@ public class AccountHelper {
             businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на" + (state ? "включение" : "отключение") + "анти-спама у почтового ящика '"
-                    + mailbox.getName() + "' в связи с " + (state ? "включением" : "отключением") + " услуги";
+                    + mailbox.getFullName() + "' в связи с " + (state ? "включением" : "отключением") + " услуги";
             saveHistoryForOperatorService(account, historyMessage);
         }
     }
@@ -546,7 +546,7 @@ public class AccountHelper {
 
                 businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
-                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getName() + "'";
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getFullName() + "'";
                 saveHistoryForOperatorService(account, historyMessage);
             }
 
@@ -841,7 +841,7 @@ public class AccountHelper {
             businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
-                    " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getName() + "'";
+                    " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getFullName() + "'";
             saveHistoryForOperatorService(account, historyMessage);
 
 
