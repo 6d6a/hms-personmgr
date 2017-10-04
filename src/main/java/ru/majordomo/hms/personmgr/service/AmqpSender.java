@@ -2,10 +2,10 @@ package ru.majordomo.hms.personmgr.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -15,7 +15,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 @Service
 public class AmqpSender {
     private final static Logger logger = LoggerFactory.getLogger(AmqpSender.class);
-    private final RabbitTemplate myRabbitTemplate;
+    private final AmqpTemplate amqpTemplate;
     private String applicationName;
 
     @Value("${spring.application.name}")
@@ -24,8 +24,8 @@ public class AmqpSender {
     }
 
     @Autowired
-    public AmqpSender(RabbitTemplate myRabbitTemplate) {
-        this.myRabbitTemplate = myRabbitTemplate;
+    public AmqpSender(AmqpTemplate amqpTemplate) {
+        this.amqpTemplate = amqpTemplate;
     }
 
     private Message createMessage(SimpleServiceMessage message, MessageProperties messageProperties) {
@@ -46,7 +46,7 @@ public class AmqpSender {
 
         logger.debug(amqpMessage.toString());
 
-        myRabbitTemplate.convertAndSend(exchange, routingKey, amqpMessage);
+        amqpTemplate.send(exchange, routingKey, amqpMessage);
 
         logger.info("ACTION_IDENTITY: " + message.getActionIdentity() +
                 " OPERATION_IDENTITY: " + message.getOperationIdentity() +

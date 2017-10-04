@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
 import org.springframework.amqp.core.ExchangeTypes;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.Headers;
@@ -47,7 +48,7 @@ public class PaymentAmqpController extends CommonAmqpController  {
                     key = "pm"
             )
     )
-    public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
+    public void create(Message amqpMessage, @Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received payment create message from " + provider + ": " + message.toString());
 

@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
 import org.springframework.amqp.core.ExchangeTypes;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
@@ -35,7 +36,7 @@ public class AccountHistoryAmqpController extends CommonAmqpController {
                                              exchange = @Exchange(value = "account-history",
                                                                   type = ExchangeTypes.TOPIC),
                                              key = "pm"))
-    public void create(@Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
+    public void create(Message amqpMessage, @Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received from " + provider + ": " + message.toString());
 
