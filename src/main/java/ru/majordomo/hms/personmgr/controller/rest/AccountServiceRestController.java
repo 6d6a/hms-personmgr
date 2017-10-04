@@ -30,18 +30,16 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.discount.AccountDiscount;
-import ru.majordomo.hms.personmgr.model.discount.Discount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.DiscountedService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
-import ru.majordomo.hms.personmgr.repository.DiscountRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
+import ru.majordomo.hms.personmgr.service.DiscountServiceHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.ANTI_SPAM_SERVICE_ID;
@@ -63,7 +61,7 @@ public class AccountServiceRestController extends CommonRestController {
     private final AccountHelper accountHelper;
     private final AccountAbonementManager accountAbonementManager;
     private final PlanRepository planRepository;
-    private final DiscountRepository discountRepository;
+    private final DiscountServiceHelper discountServiceHelper;
 
     @Autowired
     public AccountServiceRestController(
@@ -73,7 +71,7 @@ public class AccountServiceRestController extends CommonRestController {
             AccountHelper accountHelper,
             AccountAbonementManager accountAbonementManager,
             PlanRepository planRepository,
-            DiscountRepository discountRepository
+            DiscountServiceHelper discountServiceHelper
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.serviceRepository = serviceRepository;
@@ -81,7 +79,7 @@ public class AccountServiceRestController extends CommonRestController {
         this.accountHelper = accountHelper;
         this.accountAbonementManager = accountAbonementManager;
         this.planRepository = planRepository;
-        this.discountRepository = discountRepository;
+        this.discountServiceHelper = discountServiceHelper;
     }
 
     @RequestMapping(value = "/{accountId}/account-service/{accountServiceId}",
@@ -352,46 +350,6 @@ public class AccountServiceRestController extends CommonRestController {
     }
 
     private void processCustomService(PersonalAccount account, PaymentService paymentService, Boolean enable) {
-        if (enable) {
-            if (accountServiceHelper.accountHasService(account, paymentService.getId())) {
-                List<AccountService> accountServices = accountServiceHelper.getAccountServices(account, paymentService.getId());
-
-                if (accountServices.size() > 1) {
-                    throw new ParameterValidationException("Account has more than one AccountService with serviceId " + paymentService.getId());
-                }
-
-                //включаем и при необходимости списываем бабло
-                accountServiceHelper.enableAccountService(account, paymentService.getId());
-
-                AccountService currentService = accountServices.get(0);
-
-                if (currentService.getLastBilled() == null || currentService.getLastBilled().toLocalDate().compareTo(LocalDate.now()) < 0) {
-                    accountHelper.checkBalance(account, paymentService, true);
-
-                    BigDecimal dayCost = accountHelper.getDayCostByService(paymentService);
-
-                    accountHelper.charge(account, paymentService, dayCost);
-
-                    accountServiceHelper.setLastBilledAccountService(account, paymentService.getId());
-                }
-            } else {
-                //добавляем услугу, списываем деньги
-                accountHelper.checkBalance(account, paymentService, true);
-
-                BigDecimal dayCost = accountHelper.getDayCostByService(paymentService);
-
-                accountHelper.charge(account, paymentService, dayCost);
-
-                accountServiceHelper.addAccountService(account, paymentService.getId());
-
-                accountServiceHelper.setLastBilledAccountService(account, paymentService.getId());
-            }
-        } else {
-            disableCustomService(account, paymentService);
-        }
-    }
-
-    private void refactorProcessCustomService(PersonalAccount account, PaymentService paymentService, Boolean enable) {
         boolean accountHasService = accountServiceHelper.accountHasService(account, paymentService.getId());
         if (enable) {
             enableCustomService(account, paymentService, accountHasService);
@@ -425,16 +383,15 @@ public class AccountServiceRestController extends CommonRestController {
     private void chargeMoneyAndAddService(PersonalAccount account, PaymentService paymentService, boolean accountHasService) {
         //добавляем услугу, списываем деньги
         accountHelper.checkBalance(account, paymentService, true);
-        BigDecimal dayCost = accountHelper.getDayCostByService(paymentService);
-//        for (AccountDiscount accountDiscount : account.getDiscounts()) {
-//            Discount discount = discountRepository.findOne(accountDiscount.getDiscountId());
-//            for (String serviceId : discount.getServiceIds()) {
-//                if (serviceId.equals(paymentService.getId())) {
-//                    DiscountedService discountedService = discountServiceHelper.getDiscountedService(account.getDiscounts(), accountService);
-//                }
-//            }
-//        }
-        accountHelper.charge(account, paymentService, dayCost);
+
+        BigDecimal dayCost = this.getDailyCost(account, paymentService);
+
+        if (dayCost.compareTo(BigDecimal.ZERO) > 0) {
+            logger.debug("account [" + account + "] dailyCost for service [" + paymentService + "] = " + dayCost);
+            accountHelper.charge(account, paymentService, dayCost);
+        } else {
+            logger.debug("account [" + account + "] dailyCost for service [" + paymentService + "] <= 0 ");
+        }
 
         if (!accountHasService) { accountServiceHelper.addAccountService(account, paymentService.getId()); }
 
@@ -454,5 +411,23 @@ public class AccountServiceRestController extends CommonRestController {
         if (accountServices.size() > 1) {
             throw new ParameterValidationException("Account has more than one AccountService with serviceId " + paymentServiceId);
         }
+    }
+
+    private BigDecimal getDailyCost(PersonalAccount account, PaymentService paymentService) {
+        BigDecimal dayCost;
+
+        try {
+            DiscountedService discountedService = discountServiceHelper.getDiscountedService(account.getDiscounts(), paymentService);
+            if (discountedService != null) {
+                dayCost = accountServiceHelper.getDailyCostForService(discountedService);
+            } else {
+                dayCost = accountHelper.getDayCostByService(paymentService);
+            }
+        } catch (Exception e) {
+            logger.error("Catch exception with getCost in AccountServiceRestController for paymentService " + paymentService + " and account " + account);
+            e.printStackTrace();
+            dayCost = accountHelper.getDayCostByService(paymentService);
+        }
+        return dayCost;
     }
 }
