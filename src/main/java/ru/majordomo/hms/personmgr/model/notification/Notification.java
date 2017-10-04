@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.model.notification;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonView;
 
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -20,6 +21,9 @@ public class Notification extends BaseModel {
 
     @JsonView(Views.Internal.class)
     private String apiName;
+
+    @JsonView(Views.Internal.class)
+    private boolean active = true;
 
     public Notification() {
     }
@@ -68,5 +72,13 @@ public class Notification extends BaseModel {
                 ", name='" + name + '\'' +
                 ", apiName='" + apiName + '\'' +
                 "} " + super.toString();
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

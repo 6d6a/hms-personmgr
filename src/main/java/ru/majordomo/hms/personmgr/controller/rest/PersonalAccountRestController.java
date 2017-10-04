@@ -77,9 +77,9 @@ public class PersonalAccountRestController extends CommonRestController {
     private final AccountHelper accountHelper;
     private final TokenHelper tokenHelper;
     private final NotificationRepository notificationRepository;
-    private final AccountServiceRepository accountServiceRepository;
     private final AccountServiceHelper accountServiceHelper;
     private final Factory planChangeFactory;
+    private final AccountNotificationHelper accountNotificationHelper;
 
     @Autowired
     public PersonalAccountRestController(
@@ -92,7 +92,8 @@ public class PersonalAccountRestController extends CommonRestController {
             NotificationRepository notificationRepository,
             AccountServiceRepository accountServiceRepository,
             AccountServiceHelper accountServiceHelper,
-            Factory planChangeFactory
+            Factory planChangeFactory,
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.planRepository = planRepository;
         this.accountOwnerManager = accountOwnerManager;
@@ -104,6 +105,7 @@ public class PersonalAccountRestController extends CommonRestController {
         this.accountServiceRepository = accountServiceRepository;
         this.accountServiceHelper = accountServiceHelper;
         this.planChangeFactory = planChangeFactory;
+        this.accountNotificationHelper = accountNotificationHelper;
     }
 
     @RequestMapping(value = "/accounts",
@@ -542,12 +544,16 @@ public class PersonalAccountRestController extends CommonRestController {
 
         Set<MailManagerMessageType> oldNotifications = account.getNotifications();
 
-        accountManager.setNotifications(accountId, notifications);
+        List<MailManagerMessageType> activeNotifications = accountNotificationHelper.getActiveMailManagerMessageTypes();
+
+        Set<MailManagerMessageType> filteredNotifications = notifications.stream().filter(n -> activeNotifications.contains(n)).collect(Collectors.toSet());
+
+        accountManager.setNotifications(accountId, filteredNotifications);
 
         //Save history
         String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + notifications + "]");
+        params.put(HISTORY_MESSAGE_KEY, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + filteredNotifications + "]");
         params.put(OPERATOR_KEY, operator);
 
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));

@@ -17,13 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -38,6 +34,7 @@ import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.service.DiscountServiceHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
@@ -61,6 +58,7 @@ public class AccountServiceRestController extends CommonRestController {
     private final AccountHelper accountHelper;
     private final AccountAbonementManager accountAbonementManager;
     private final PlanRepository planRepository;
+    private final AccountNotificationHelper accountNotificationHelper;
     private final DiscountServiceHelper discountServiceHelper;
 
     @Autowired
@@ -71,6 +69,7 @@ public class AccountServiceRestController extends CommonRestController {
             AccountHelper accountHelper,
             AccountAbonementManager accountAbonementManager,
             PlanRepository planRepository,
+            AccountNotificationHelper accountNotificationHelper,
             DiscountServiceHelper discountServiceHelper
     ) {
         this.accountServiceRepository = accountServiceRepository;
@@ -79,6 +78,7 @@ public class AccountServiceRestController extends CommonRestController {
         this.accountHelper = accountHelper;
         this.accountAbonementManager = accountAbonementManager;
         this.planRepository = planRepository;
+        this.accountNotificationHelper = accountNotificationHelper;
         this.discountServiceHelper = discountServiceHelper;
     }
 
@@ -185,11 +185,9 @@ public class AccountServiceRestController extends CommonRestController {
         Boolean enabled = (Boolean) requestBody.get(ENABLED_KEY);
 
         if (enabled) {
-            Set<MailManagerMessageType> smsNotifications = account.getNotifications().stream()
-                    .filter(mailManagerMessageType -> mailManagerMessageType.name().startsWith("SMS_"))
-                    .collect(Collectors.toSet());
 
-            boolean smsNotificationsEmpty = smsNotifications.isEmpty();
+            boolean smsNotificationsEmpty = !accountNotificationHelper.hasActiveSmsNotifications(account);
+
             boolean phoneInvalid = account.getSmsPhoneNumber() == null || !phoneValid(account.getSmsPhoneNumber());
             if (smsNotificationsEmpty || phoneInvalid) {
                 String message;
@@ -202,7 +200,6 @@ public class AccountServiceRestController extends CommonRestController {
                 }
                 throw new ParameterValidationException(message);
             }
-
         }
 
         PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());

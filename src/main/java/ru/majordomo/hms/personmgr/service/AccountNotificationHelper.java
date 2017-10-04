@@ -11,7 +11,9 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
@@ -21,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -38,18 +41,21 @@ public class AccountNotificationHelper {
     private final PlanRepository planRepository;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
+    private final NotificationRepository notificationRepository;
 
     @Autowired
     public AccountNotificationHelper(
             ApplicationEventPublisher publisher,
             PlanRepository planRepository,
             AccountHelper accountHelper,
-            AccountServiceHelper accountServiceHelper
+            AccountServiceHelper accountServiceHelper,
+            NotificationRepository notificationRepository
     ) {
         this.publisher = publisher;
         this.planRepository = planRepository;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
+        this.notificationRepository = notificationRepository;
     }
 
     public String getCostAbonementForEmail(Plan plan) {
@@ -135,8 +141,12 @@ public class AccountNotificationHelper {
         this.sendMail(account, apiName, 1, parameters);
     }
 
-    public boolean hasActiveSmsNotificationsAndMessageType(PersonalAccount account, MailManagerMessageType messageType) {
-        return (account.hasNotification(messageType) && accountServiceHelper.hasSmsNotifications(account));
+    public boolean isSubscribedToSmsType(PersonalAccount account, MailManagerMessageType messageType) {
+        return (
+                account.hasNotification(messageType)
+                && notificationRepository.findByTypeAndActive(messageType, true) != null
+                && accountServiceHelper.hasSmsNotifications(account)
+        );
     }
 
     public void sendSms(PersonalAccount account, String apiName, int priority) {
@@ -199,5 +209,18 @@ public class AccountNotificationHelper {
             remainingDays = Utils.getDifferentInDaysBetweenDates(maxCreditActivationDate, creditActivationDate.toLocalDate());
         }
         return remainingDays;
+    }
+
+    public List<MailManagerMessageType> getActiveMailManagerMessageTypes() {
+        return notificationRepository.findByActive(true).stream()
+                .map(Notification::getType).collect(Collectors.toList());
+    }
+
+    public boolean hasActiveSmsNotifications(PersonalAccount account) {
+        List<MailManagerMessageType> activeNotificationTypes = this.getActiveMailManagerMessageTypes();
+
+        return account.getNotifications().stream()
+                .anyMatch(mailManagerMessageType -> mailManagerMessageType.name().startsWith("SMS_")
+                        && activeNotificationTypes.contains(mailManagerMessageType));
     }
 }

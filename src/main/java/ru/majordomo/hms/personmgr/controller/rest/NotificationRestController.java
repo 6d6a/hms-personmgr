@@ -42,7 +42,7 @@ public class NotificationRestController extends CommonRestController {
     @JsonView(Views.Public.class)
     @RequestMapping(value = "/{accountId}/notifications", method = RequestMethod.GET)
     public ResponseEntity<List<Notification>> getAll() {
-        return findAll();
+        return ResponseEntity.ok(notificationRepository.findByActive(true));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -58,7 +58,7 @@ public class NotificationRestController extends CommonRestController {
     @PreAuthorize("hasRole('ADMIN')")
     @RequestMapping(value = "/notifications", method = RequestMethod.GET)
     public ResponseEntity<List<Notification>> getAllInternal() {
-        return findAll();
+        return ResponseEntity.ok(notificationRepository.findAll());
     }
 
     private ResponseEntity<Notification> findOne(String notificationId) {
@@ -69,11 +69,5 @@ public class NotificationRestController extends CommonRestController {
         }
 
         return new ResponseEntity<>(notification, HttpStatus.OK);
-    }
-
-    private ResponseEntity<List<Notification>> findAll() {
-        List<Notification> notifications = notificationRepository.findAll();
-
-        return new ResponseEntity<>(notifications, HttpStatus.OK);
     }
 }
