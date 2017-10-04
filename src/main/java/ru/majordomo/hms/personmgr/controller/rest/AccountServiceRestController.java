@@ -30,10 +30,14 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.discount.AccountDiscount;
+import ru.majordomo.hms.personmgr.model.discount.Discount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.DiscountedService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
+import ru.majordomo.hms.personmgr.repository.DiscountRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
@@ -59,6 +63,7 @@ public class AccountServiceRestController extends CommonRestController {
     private final AccountHelper accountHelper;
     private final AccountAbonementManager accountAbonementManager;
     private final PlanRepository planRepository;
+    private final DiscountRepository discountRepository;
 
     @Autowired
     public AccountServiceRestController(
@@ -67,7 +72,8 @@ public class AccountServiceRestController extends CommonRestController {
             AccountServiceHelper accountServiceHelper,
             AccountHelper accountHelper,
             AccountAbonementManager accountAbonementManager,
-            PlanRepository planRepository
+            PlanRepository planRepository,
+            DiscountRepository discountRepository
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.serviceRepository = serviceRepository;
@@ -75,6 +81,7 @@ public class AccountServiceRestController extends CommonRestController {
         this.accountHelper = accountHelper;
         this.accountAbonementManager = accountAbonementManager;
         this.planRepository = planRepository;
+        this.discountRepository = discountRepository;
     }
 
     @RequestMapping(value = "/{accountId}/account-service/{accountServiceId}",
@@ -382,15 +389,72 @@ public class AccountServiceRestController extends CommonRestController {
                 accountServiceHelper.setLastBilledAccountService(account, paymentService.getId());
             }
         } else {
-            if (accountServiceHelper.accountHasService(account, paymentService.getId())) {
-                List<AccountService> accountServices = accountServiceHelper.getAccountServices(account, paymentService.getId());
+            disableCustomService(account, paymentService);
+        }
+    }
 
-                if (accountServices.size() > 1) {
-                    throw new ParameterValidationException("Account has more than one AccountService with serviceId " + paymentService.getId());
-                }
-                //выключаем
-                accountServiceHelper.disableAccountService(account, paymentService.getId());
+    private void refactorProcessCustomService(PersonalAccount account, PaymentService paymentService, Boolean enable) {
+        boolean accountHasService = accountServiceHelper.accountHasService(account, paymentService.getId());
+        if (enable) {
+            enableCustomService(account, paymentService, accountHasService);
+        } else {
+            if (accountHasService) {
+                disableCustomService(account, paymentService);
             }
+        }
+    }
+
+    private void enableCustomService(PersonalAccount account, PaymentService paymentService, boolean accountHasService){
+        if (accountHasService) {
+
+            AccountService currentService = getAccountServiceByPaymentServiceId(account, paymentService.getId());
+
+            if (currentService.getLastBilled() == null || currentService.getLastBilled().toLocalDate().compareTo(LocalDate.now()) < 0) {
+                chargeMoneyAndAddService(account, paymentService, accountHasService);
+            }
+            accountServiceHelper.enableAccountService(account, paymentService.getId());
+
+        } else {
+            chargeMoneyAndAddService(account, paymentService, accountHasService);
+        }
+    }
+
+    private void disableCustomService(PersonalAccount account, PaymentService paymentService){
+        checkAccountHasOneServiceWithId(account, paymentService.getId());
+        accountServiceHelper.disableAccountService(account, paymentService.getId());
+    }
+
+    private void chargeMoneyAndAddService(PersonalAccount account, PaymentService paymentService, boolean accountHasService) {
+        //добавляем услугу, списываем деньги
+        accountHelper.checkBalance(account, paymentService, true);
+        BigDecimal dayCost = accountHelper.getDayCostByService(paymentService);
+//        for (AccountDiscount accountDiscount : account.getDiscounts()) {
+//            Discount discount = discountRepository.findOne(accountDiscount.getDiscountId());
+//            for (String serviceId : discount.getServiceIds()) {
+//                if (serviceId.equals(paymentService.getId())) {
+//                    DiscountedService discountedService = discountServiceHelper.getDiscountedService(account.getDiscounts(), accountService);
+//                }
+//            }
+//        }
+        accountHelper.charge(account, paymentService, dayCost);
+
+        if (!accountHasService) { accountServiceHelper.addAccountService(account, paymentService.getId()); }
+
+        accountServiceHelper.setLastBilledAccountService(account, paymentService.getId());
+    }
+
+    private AccountService getAccountServiceByPaymentServiceId(PersonalAccount account, String paymentServiceId) {
+        List<AccountService> accountServices = accountServiceHelper.getAccountServices(account, paymentServiceId);
+        if (accountServices.size() > 1) {
+            throw new ParameterValidationException("Account has more than one AccountService with serviceId " + paymentServiceId);
+        }
+        return accountServices.get(0);
+    }
+
+    private void checkAccountHasOneServiceWithId(PersonalAccount account, String paymentServiceId) {
+        List<AccountService> accountServices = accountServiceHelper.getAccountServices(account, paymentServiceId);
+        if (accountServices.size() > 1) {
+            throw new ParameterValidationException("Account has more than one AccountService with serviceId " + paymentServiceId);
         }
     }
 }
