@@ -469,7 +469,7 @@ public class AccountHelper {
         }
     }
 
-    public void switchOffAntiSpamForMailboxes(PersonalAccount account) {
+    public void switchAntiSpamForMailboxes(PersonalAccount account, Boolean state) {
 
         Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
 
@@ -478,11 +478,12 @@ public class AccountHelper {
             message.setParams(new HashMap<>());
             message.setAccountId(account.getId());
             message.addParam("resourceId", mailbox.getId());
-            message.addParam("antiSpamEnabled", false);
+            message.addParam("antiSpamEnabled", state);
 
             businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
-            String historyMessage = "Отправлена заявка на выключение анти-спама у почтового ящика '" + mailbox.getName() + "' в связи с отключением услуги";
+            String historyMessage = "Отправлена заявка на" + (state ? "включение" : "отключение") + "анти-спама у почтового ящика '"
+                    + mailbox.getFullName() + "' в связи с " + (state ? "включением" : "отключением") + " услуги";
             saveHistoryForOperatorService(account, historyMessage);
         }
     }
@@ -545,7 +546,7 @@ public class AccountHelper {
 
                 businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
-                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getName() + "'";
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getFullName() + "'";
                 saveHistoryForOperatorService(account, historyMessage);
             }
 
@@ -840,7 +841,7 @@ public class AccountHelper {
             businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
-                    " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getName() + "'";
+                    " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getFullName() + "'";
             saveHistoryForOperatorService(account, historyMessage);
 
 
@@ -931,7 +932,7 @@ public class AccountHelper {
             publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
         } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
             try {
-                switchOffAntiSpamForMailboxes(account);
+                switchAntiSpamForMailboxes(account, false);
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("Switch account Mailboxes anti-spam failed");
