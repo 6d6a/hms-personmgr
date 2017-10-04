@@ -6,17 +6,23 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.dto.DomainCounter;
+import ru.majordomo.hms.personmgr.dto.ResourceCounter;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
-import ru.majordomo.hms.personmgr.model.counter.AbonementCounter;
-import ru.majordomo.hms.personmgr.model.counter.PlanCounter;
+import ru.majordomo.hms.personmgr.dto.AbonementCounter;
+import ru.majordomo.hms.personmgr.dto.PlanCounter;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
@@ -28,16 +34,22 @@ public class StatServiceHelper {
     private final MongoOperations mongoOperations;
     private final AbonementRepository abonementRepository;
     private final PlanRepository planRepository;
+    private final PersonalAccountManager accountManager;
+    private final PaymentServiceRepository paymentServiceRepository;
 
     @Autowired
     public StatServiceHelper(
             MongoOperations mongoOperations,
             AbonementRepository abonementRepository,
-            PlanRepository planRepository
+            PlanRepository planRepository,
+            PersonalAccountManager accountManager,
+            PaymentServiceRepository paymentServiceRepository
     ) {
         this.mongoOperations = mongoOperations;
         this.abonementRepository = abonementRepository;
         this.planRepository = planRepository;
+        this.accountManager = accountManager;
+        this.paymentServiceRepository = paymentServiceRepository;
     }
 
     public List<PlanCounter> getAllPlanCounters() {
@@ -85,8 +97,6 @@ public class StatServiceHelper {
 
         return result;
     }
-
-
 
     //Выполняется дольше 17 секунд
     public List<AbonementCounter> getAbonementCounters() {
@@ -161,5 +171,167 @@ public class StatServiceHelper {
         );
 
         return all;
+    }
+
+    public List<ResourceCounter> getActiveAccountServiceCounters() {
+        List<String> accountIds = accountManager.findAccountIdsByActive(true);
+
+        MatchOperation match = match(
+                Criteria.where("enabled")
+                        .is(true)
+                        .and("quantity").gte(1)
+                        .and("personalAccountId").in(accountIds)
+        );
+
+        LookupOperation lookup = lookup(
+                "plan",
+                "serviceId",
+                "serviceId",
+                "plan");
+
+        ProjectionOperation project = project("serviceId")
+                .and("plan").size().as("plan");
+
+        MatchOperation planFilter = match(Criteria.where("plan").is(0));
+
+        GroupOperation group = group(
+                "serviceId").count().as("count")
+                .first("serviceId").as("resourceId")
+                .first("plan").as("plan");
+
+        SortOperation sort = sort(Sort.Direction.DESC,"count");
+
+        Aggregation aggregation = newAggregation(
+                match,
+                lookup,
+                project,
+                planFilter,
+                group,
+                sort
+        );
+
+        List<ResourceCounter> accountServiceCounters = mongoOperations.aggregate(
+                aggregation, "accountService", ResourceCounter.class
+        ).getMappedResults();
+
+        accountServiceCounters.forEach(element -> element.setName(paymentServiceRepository.findOne(element.getResourceId()).getName()));
+
+        return accountServiceCounters;
+    }
+
+    public List<ResourceCounter> getQuantityForActiveAccountService() {
+        List<String> accountIds = accountManager.findAccountIdsByActive(true);
+
+        MatchOperation match = match(
+                Criteria.where("enabled")
+                        .is(true)
+                        .and("quantity").gte(1)
+                        .and("personalAccountId").in(accountIds)
+        );
+
+        LookupOperation lookup = lookup(
+                "plan",
+                "serviceId",
+                "serviceId",
+                "plan");
+
+        ProjectionOperation project = project("serviceId", "quantity")
+                .and("plan").size().as("plan");
+
+        MatchOperation planFilter = match(Criteria.where("plan").is(0));
+
+        GroupOperation group = group(
+                "serviceId")
+                .first("serviceId").as("resourceId")
+                .first("plan").as("plan")
+                .sum("quantity").as("count");
+
+        SortOperation sort = sort(Sort.Direction.DESC,"count");
+
+        Aggregation aggregation = newAggregation(
+                match,
+                lookup,
+                project,
+                planFilter,
+                group,
+                sort
+        );
+
+        List<ResourceCounter> accountServiceCounters = mongoOperations.aggregate(
+                aggregation, "accountService", ResourceCounter.class
+        ).getMappedResults();
+
+        accountServiceCounters.forEach(element -> element.setName(paymentServiceRepository.findOne(element.getResourceId()).getName()));
+
+        return accountServiceCounters;
+    }
+
+    public List<DomainCounter> getDomainCountersByDateAndStatType(LocalDate date, AccountStatType type) {
+        LocalDateTime startDateTime = LocalDateTime.of(date, LocalTime.MIN);
+        LocalDateTime endDateTime = LocalDateTime.of(date, LocalTime.MAX);
+
+        MatchOperation match = match(
+                Criteria.where("created")
+                        .gte(Date.from(startDateTime.toInstant(ZoneOffset.ofHours(3))))
+                        .lte(Date.from(endDateTime.toInstant(ZoneOffset.ofHours(3))))
+                        .and("type").is(type.name())
+        );
+
+        ProjectionOperation project = project()
+                .and("data.domainName").as("name")
+                .and("created").as("dateTime");
+
+        Aggregation aggregation = newAggregation(
+                match,
+                project
+        );
+
+        List<DomainCounter> domains = mongoOperations.aggregate(
+                aggregation, "accountStat", DomainCounter.class
+        ).getMappedResults();
+
+        List<DomainCounter> result = groupByTld(domains);
+
+        return setNameByStatType(result, type);
+    }
+
+    private List<DomainCounter> groupByTld(List<DomainCounter> domainList) {
+        Map<String, DomainCounter> tldMap = new HashMap<>();
+        List<DomainCounter> result = new ArrayList<>();
+        for(DomainCounter element: domainList) {
+            String[] splitDomain = element.getName().split("\\.", 2);
+            String tld = splitDomain[1];
+            element.setResourceId(tld);
+            if (!tldMap.containsKey(tld)) {
+                element.unSetId();
+                element.setResourceId(tld);
+                element.setDateTime(LocalDateTime.of(element.getDateTime().toLocalDate(), LocalTime.MIN));
+                element.setCount(1);
+                tldMap.put(tld, element);
+                result.add(element);
+            } else {
+                tldMap.get(tld).countPlusOne();
+            }
+        }
+        return result;
+    }
+
+    private List<DomainCounter> setNameByStatType(List<DomainCounter> list, AccountStatType type) {
+        for(DomainCounter counter: list) {
+            String action = "";
+            switch (type){
+                case VIRTUAL_HOSTING_AUTO_RENEW_DOMAIN:
+                    action = "Автопродление домена в зоне .";
+                    break;
+                case VIRTUAL_HOSTING_MANUAL_RENEW_DOMAIN:
+                    action = "Ручное продление домена в зоне .";
+                    break;
+                case VIRTUAL_HOSTING_REGISTER_DOMAIN:
+                    action = "Регистрация домена в зоне .";
+                    break;
+            }
+            counter.setName(action + counter.getResourceId());
+        }
+        return list;
     }
 }

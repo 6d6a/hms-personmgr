@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.model.counter;
+package ru.majordomo.hms.personmgr.dto;
 
 public class PlanCounter extends StatCounter{
     private String planId;

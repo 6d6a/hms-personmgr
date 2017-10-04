@@ -150,6 +150,39 @@ public class AccountHelper {
     }
 
     /**
+     * Получим баланс
+     *
+     * @param account Аккаунт
+     */
+    public BigDecimal getBonusBalance(PersonalAccount account) {
+        Map<String, Object> balance = null;
+
+        try {
+            balance = finFeignClient.getBalance(account.getId());
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Exception in AccountHelper.getBalance #1 " + e.getMessage());
+        }
+
+        if (balance == null) {
+            throw new ResourceNotFoundException("Не найден баланс аккаунта");
+        }
+
+        BigDecimal available;
+
+        try {
+            Map<String, Map<String, Object>> datMap = (Map<String, Map<String, Object>>) balance.get("balance");
+            available = getBigDecimalFromUnexpectedInput(datMap.get("BONUS").get("available"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Exception in AccountHelper.getBalance #2 " + e.getMessage());
+            available = BigDecimal.ZERO;
+        }
+
+        return available;
+    }
+
+    /**
      * Получаем домены
      *
      * @param account Аккаунт
@@ -197,6 +230,22 @@ public class AccountHelper {
     }
 
     /**
+     * @param account Аккаунт
+     */
+    public void checkBalanceWithoutBonus(PersonalAccount account, PaymentService service) {
+
+        BigDecimal available = getBalance(account);
+
+        BigDecimal bonusBalanceAvailable = getBonusBalance(account);
+
+        if (available.subtract(bonusBalanceAvailable).compareTo(service.getCost()) < 0) {
+            throw new LowBalanceException("Бонусные средства недоступны для этой операции. " +
+                    "Текущий баланс без учёта бонусных средств: " + formatBigDecimalWithCurrency(available.subtract(bonusBalanceAvailable)) +
+                    ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
+        }
+    }
+
+    /**
      * Проверим хватает ли баланса на один день услуги
      *
      * @param account Аккаунт
@@ -231,18 +280,19 @@ public class AccountHelper {
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service) {
         BigDecimal amount = service.getCost();
 
-        return charge(account, service, amount, false);
+        return charge(account, service, amount, false, false);
     }
 
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount) {
-        return charge(account, service, amount, false);
+        return charge(account, service, amount, false, false);
     }
 
-    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount, Boolean forceCharge) {
+    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount, Boolean forceCharge, Boolean bonusChargeProhibited) {
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", service.getId());
         paymentOperation.put("amount", amount);
         paymentOperation.put("forceCharge", forceCharge);
+        paymentOperation.put("bonusChargeProhibited", bonusChargeProhibited);
 
         SimpleServiceMessage response;
 
@@ -266,11 +316,16 @@ public class AccountHelper {
         return response;
     }
 
-    //TODO на самом деле сюда ещё должна быть возможность передать discountedService
     public SimpleServiceMessage block(PersonalAccount account, PaymentService service) {
+        return block(account, service, false);
+    }
+
+    //TODO на самом деле сюда ещё должна быть возможность передать discountedService
+    public SimpleServiceMessage block(PersonalAccount account, PaymentService service, Boolean bonusChargeProhibited) {
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", service.getId());
         paymentOperation.put("amount", service.getCost());
+        paymentOperation.put("bonusChargeProhibited", bonusChargeProhibited);
 
         SimpleServiceMessage response;
         try {
@@ -414,7 +469,7 @@ public class AccountHelper {
         }
     }
 
-    public void switchOffAntiSpamForMailboxes(PersonalAccount account) {
+    public void switchAntiSpamForMailboxes(PersonalAccount account, Boolean state) {
 
         Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
 
@@ -423,11 +478,12 @@ public class AccountHelper {
             message.setParams(new HashMap<>());
             message.setAccountId(account.getId());
             message.addParam("resourceId", mailbox.getId());
-            message.addParam("antiSpamEnabled", false);
+            message.addParam("antiSpamEnabled", state);
 
             businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
-            String historyMessage = "Отправлена заявка на выключение анти-спама у почтового ящика '" + mailbox.getName() + "' в связи с отключением услуги";
+            String historyMessage = "Отправлена заявка на" + (state ? "включение" : "отключение") + "анти-спама у почтового ящика '"
+                    + mailbox.getFullName() + "' в связи с " + (state ? "включением" : "отключением") + " услуги";
             saveHistoryForOperatorService(account, historyMessage);
         }
     }
@@ -490,7 +546,7 @@ public class AccountHelper {
 
                 businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
-                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getName() + "'";
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getFullName() + "'";
                 saveHistoryForOperatorService(account, historyMessage);
             }
 
@@ -785,7 +841,7 @@ public class AccountHelper {
             businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
-                    " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getName() + "'";
+                    " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getFullName() + "'";
             saveHistoryForOperatorService(account, historyMessage);
 
 
@@ -876,7 +932,7 @@ public class AccountHelper {
             publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
         } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
             try {
-                switchOffAntiSpamForMailboxes(account);
+                switchAntiSpamForMailboxes(account, false);
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("Switch account Mailboxes anti-spam failed");

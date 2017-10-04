@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.model.counter;
+package ru.majordomo.hms.personmgr.dto;
 
 public class AbonementCounter extends PlanCounter{
     private boolean internal;

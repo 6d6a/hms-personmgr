@@ -195,7 +195,7 @@ public class ChargeProcessor {
         switch (account.getAccountType()) {
             case VIRTUAL_HOSTING:
             default:
-                accountStatHelper.add(account, AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
+                accountStatHelper.add(account.getId(), AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
         }
         accountNotificationHelper.sendMailForDeactivatedAccount(account, LocalDate.now());
     }

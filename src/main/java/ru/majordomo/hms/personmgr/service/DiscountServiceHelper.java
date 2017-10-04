@@ -7,6 +7,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.discount.*;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.DiscountedService;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -49,6 +50,18 @@ public class DiscountServiceHelper {
             }
         }
 
+        return null;
+    }
+
+    public DiscountedService getDiscountedService(List<AccountDiscount> accountDiscounts, PaymentService paymentService) {
+        for (AccountDiscount accountDiscount : accountDiscounts) {
+            Discount discount = accountDiscount.getDiscount();
+            for (String serviceId : discount.getServiceIds()) {
+                if (serviceId.equals(paymentService.getId())) {
+                    return new DiscountedService(paymentService, discount);
+                }
+            }
+        }
         return null;
     }
 }
