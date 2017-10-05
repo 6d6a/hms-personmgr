@@ -1,6 +1,7 @@
 eureka:
     instance:
-        prefer-ip-address: true
+        metadata-map:
+            management.port: ${management.port:18080}
 spring:
     application:
         name: pm
