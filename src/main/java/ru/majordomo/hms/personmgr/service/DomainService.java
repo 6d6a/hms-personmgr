@@ -4,23 +4,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -30,6 +28,8 @@ import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -52,6 +52,7 @@ public class DomainService {
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountHelper accountHelper;
     private final DomainTldService domainTldService;
+    private final DomainTldRepository domainTldRepository;
     private final BusinessActionBuilder businessActionBuilder;
     private final ApplicationEventPublisher publisher;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
@@ -62,6 +63,7 @@ public class DomainService {
     private final PromotionRepository promotionRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     private final AccountServiceHelper accountServiceHelper;
+    private final PersonalAccountRepository personalAccountRepository;
 
     @Autowired
     public DomainService(
@@ -77,7 +79,9 @@ public class DomainService {
             BusinessOperationBuilder businessOperationBuilder,
             PromotionRepository promotionRepository,
             AccountNotificationHelper accountNotificationHelper,
-            AccountServiceHelper accountServiceHelper
+            AccountServiceHelper accountServiceHelper,
+            DomainTldRepository domainTldRepository,
+            PersonalAccountRepository personalAccountRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
@@ -92,6 +96,8 @@ public class DomainService {
         this.promotionRepository = promotionRepository;
         this.accountNotificationHelper = accountNotificationHelper;
         this.accountServiceHelper = accountServiceHelper;
+        this.domainTldRepository = domainTldRepository;
+        this.personalAccountRepository = personalAccountRepository;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -234,11 +240,50 @@ public class DomainService {
         notifyForDomainNoProlongNoMoney(account, domainNotProlong);
     }
 
-    public void check(String domainName) {
+    public void checkBlacklist(String domainName, String accountId) {
+
+        PersonalAccount account = personalAccountRepository.findOne(accountId);
+
+        DomainSeparator domain;
+
+        try {
+            domain = new DomainSeparator(domainName, domainTldRepository);
+        } catch (ParameterValidationException e) {
+            e.printStackTrace();
+            throw new DomainNotAvailableException("Произошла ошибка. Домен: " + domainName + " не может быть добавлен.");
+        }
+
         if (blackListService.domainExistsInControlBlackList(domainName)) {
             logger.debug("domain: " + domainName + " exists in control BlackList");
             throw new DomainNotAvailableException("Домен: " + domainName + " уже присутствует в системе и не может быть добавлен.");
         }
+
+        if (blackListService.domainExistsInControlBlackList(domain.getTopLevelDomain())) {
+
+            List<Domain> domains = accountHelper.getDomains(account);
+            if (domains != null) {
+                Boolean existOnAccount = false;
+                for (Domain d : domains) {
+                    if (d.getName().equals(domain.getTopLevelDomain())) {
+                        existOnAccount = true;
+                    }
+                }
+                if (!existOnAccount) {
+                    logger.debug("domain: " + domainName + " exists in control BlackList");
+                    throw new DomainNotAvailableException("Домен: " + domain.getTopLevelDomain() + " уже присутствует " +
+                            "в системе и не может быть добавлен.");
+                }
+            } else {
+                logger.debug("domain: " + domainName + " exists in control BlackList");
+                throw new DomainNotAvailableException("Домен: " + domain.getTopLevelDomain() + " не может быть добавлен.");
+            }
+
+        }
+    }
+
+    public void check(String domainName, String accountId) {
+
+        checkBlacklist(domainName, accountId);
 
         getDomainTld(domainName);
 
