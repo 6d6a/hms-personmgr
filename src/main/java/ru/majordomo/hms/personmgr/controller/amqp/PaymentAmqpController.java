@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
-import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,9 +18,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static ru.majordomo.hms.personmgr.common.Constants.CREDIT_PAYMENT_TYPE_KIND;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.PAYMENT_CREATE;
 import static ru.majordomo.hms.personmgr.common.Constants.REAL_PAYMENT_TYPE_KIND;
 
-@EnableRabbit
 @Service
 public class PaymentAmqpController extends CommonAmqpController  {
 
@@ -34,20 +33,7 @@ public class PaymentAmqpController extends CommonAmqpController  {
         this.accountNotificationHelper = accountNotificationHelper;
     }
 
-    @RabbitListener(
-            bindings = @QueueBinding(
-                    value = @Queue(
-                            value = "pm.payment.create",
-                            durable = "true",
-                            autoDelete = "false"
-                    ),
-                    exchange = @Exchange(
-                            value = "payment.create",
-                            type = ExchangeTypes.TOPIC
-                    ),
-                    key = "pm"
-            )
-    )
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + PAYMENT_CREATE)
     public void create(Message amqpMessage, @Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received payment create message from " + provider + ": " + message.toString());

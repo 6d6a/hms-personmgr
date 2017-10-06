@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.controller.amqp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.net.MalformedURLException;
@@ -40,6 +41,8 @@ public class CommonAmqpController {
 
     protected String resourceName = "";
 
+    protected String instanceName;
+
     @Autowired
     public void setBusinessFlowDirector(BusinessFlowDirector businessFlowDirector) {
         this.businessFlowDirector = businessFlowDirector;
@@ -67,6 +70,11 @@ public class CommonAmqpController {
     @Autowired
     public void setPublisher(ApplicationEventPublisher publisher) {
         this.publisher = publisher;
+    }
+
+    @Value("${hms.instance.name}")
+    public void setInstanceName(String instanceName) {
+        this.instanceName = instanceName;
     }
 
     private String getResourceIdByObjRef(String url) {
