@@ -83,11 +83,6 @@ public class StatServiceRestController {
         return ResponseEntity.ok(statServiceHelper.getActiveAccountServiceCounters());
     }
 
-//    @GetMapping("/account-service/quantity")
-//    public ResponseEntity<List<ResourceCounter>> getQuantityForActiveAccountService() {
-//        return ResponseEntity.ok(statServiceHelper.getQuantityForActiveAccountService());
-//    }
-
     @GetMapping("/domain")
     public ResponseEntity<List<DomainCounter>> getDomainCountersByType(
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)

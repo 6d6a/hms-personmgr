@@ -222,53 +222,6 @@ public class StatServiceHelper {
         return accountServiceCounters;
     }
 
-//    public List<ResourceCounter> getQuantityForActiveAccountService() {
-//        List<String> accountIds = accountManager.findAccountIdsByActive(true);
-//
-//        MatchOperation match = match(
-//                Criteria.where("enabled")
-//                        .is(true)
-//                        .and("quantity").gte(1)
-//                        .and("personalAccountId").in(accountIds)
-//        );
-//
-//        LookupOperation lookup = lookup(
-//                "plan",
-//                "serviceId",
-//                "serviceId",
-//                "plan");
-//
-//        ProjectionOperation project = project("serviceId", "quantity")
-//                .and("plan").size().as("plan");
-//
-//        MatchOperation planFilter = match(Criteria.where("plan").is(0));
-//
-//        GroupOperation group = group(
-//                "serviceId")
-//                .first("serviceId").as("resourceId")
-//                .first("plan").as("plan")
-//                .sum("quantity").as("count");
-//
-//        SortOperation sort = sort(Sort.Direction.DESC,"count");
-//
-//        Aggregation aggregation = newAggregation(
-//                match,
-//                lookup,
-//                project,
-//                planFilter,
-//                group,
-//                sort
-//        );
-//
-//        List<ResourceCounter> accountServiceCounters = mongoOperations.aggregate(
-//                aggregation, "accountService", ResourceCounter.class
-//        ).getMappedResults();
-//
-//        accountServiceCounters.forEach(element -> element.setName(paymentServiceRepository.findOne(element.getResourceId()).getName()));
-//
-//        return accountServiceCounters;
-//    }
-
     public List<DomainCounter> getDomainCountersByDateAndStatType(LocalDate date, AccountStatType type) {
         LocalDateTime startDateTime = LocalDateTime.of(date, LocalTime.MIN);
         LocalDateTime endDateTime = LocalDateTime.of(date, LocalTime.MAX);
