@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoOperations;
@@ -7,12 +9,9 @@ import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.dto.DomainCounter;
-import ru.majordomo.hms.personmgr.dto.ResourceCounter;
+import ru.majordomo.hms.personmgr.dto.*;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
-import ru.majordomo.hms.personmgr.dto.AbonementCounter;
-import ru.majordomo.hms.personmgr.dto.PlanCounter;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
@@ -27,10 +26,12 @@ import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_NAME_KEY;
 
 @Service
 public class StatServiceHelper {
 
+    private final Logger logger = LoggerFactory.getLogger(StatServiceHelper.class);
     private final MongoOperations mongoOperations;
     private final AbonementRepository abonementRepository;
     private final PlanRepository planRepository;
@@ -173,7 +174,7 @@ public class StatServiceHelper {
         return all;
     }
 
-    public List<ResourceCounter> getActiveAccountServiceCounters() {
+    public List<AccountServiceCounter> getActiveAccountServiceCounters() {
         List<String> accountIds = accountManager.findAccountIdsByActive(true);
 
         MatchOperation match = match(
@@ -190,61 +191,16 @@ public class StatServiceHelper {
                 "plan");
 
         ProjectionOperation project = project("serviceId")
-                .and("plan").size().as("plan");
-
-        MatchOperation planFilter = match(Criteria.where("plan").is(0));
-
-        GroupOperation group = group(
-                "serviceId").count().as("count")
-                .first("serviceId").as("resourceId")
-                .first("plan").as("plan");
-
-        SortOperation sort = sort(Sort.Direction.DESC,"count");
-
-        Aggregation aggregation = newAggregation(
-                match,
-                lookup,
-                project,
-                planFilter,
-                group,
-                sort
-        );
-
-        List<ResourceCounter> accountServiceCounters = mongoOperations.aggregate(
-                aggregation, "accountService", ResourceCounter.class
-        ).getMappedResults();
-
-        accountServiceCounters.forEach(element -> element.setName(paymentServiceRepository.findOne(element.getResourceId()).getName()));
-
-        return accountServiceCounters;
-    }
-
-    public List<ResourceCounter> getQuantityForActiveAccountService() {
-        List<String> accountIds = accountManager.findAccountIdsByActive(true);
-
-        MatchOperation match = match(
-                Criteria.where("enabled")
-                        .is(true)
-                        .and("quantity").gte(1)
-                        .and("personalAccountId").in(accountIds)
-        );
-
-        LookupOperation lookup = lookup(
-                "plan",
-                "serviceId",
-                "serviceId",
-                "plan");
-
-        ProjectionOperation project = project("serviceId", "quantity")
-                .and("plan").size().as("plan");
+                .and("plan").size().as("plan")
+                .and("quantity").as("quantity");
 
         MatchOperation planFilter = match(Criteria.where("plan").is(0));
 
         GroupOperation group = group(
                 "serviceId")
+                .count().as("count")
                 .first("serviceId").as("resourceId")
-                .first("plan").as("plan")
-                .sum("quantity").as("count");
+                .sum("quantity").as("quantity");
 
         SortOperation sort = sort(Sort.Direction.DESC,"count");
 
@@ -257,8 +213,8 @@ public class StatServiceHelper {
                 sort
         );
 
-        List<ResourceCounter> accountServiceCounters = mongoOperations.aggregate(
-                aggregation, "accountService", ResourceCounter.class
+        List<AccountServiceCounter> accountServiceCounters = mongoOperations.aggregate(
+                aggregation, "accountService", AccountServiceCounter.class
         ).getMappedResults();
 
         accountServiceCounters.forEach(element -> element.setName(paymentServiceRepository.findOne(element.getResourceId()).getName()));
@@ -278,7 +234,7 @@ public class StatServiceHelper {
         );
 
         ProjectionOperation project = project()
-                .and("data.domainName").as("name")
+                .and("data." + DOMAIN_NAME_KEY).as("name")
                 .and("created").as("dateTime");
 
         Aggregation aggregation = newAggregation(
@@ -299,18 +255,23 @@ public class StatServiceHelper {
         Map<String, DomainCounter> tldMap = new HashMap<>();
         List<DomainCounter> result = new ArrayList<>();
         for(DomainCounter element: domainList) {
-            String[] splitDomain = element.getName().split("\\.", 2);
-            String tld = splitDomain[1];
-            element.setResourceId(tld);
-            if (!tldMap.containsKey(tld)) {
-                element.unSetId();
+            try {
+                String[] splitDomain = element.getName().split("\\.", 2);
+                String tld = splitDomain[1];
                 element.setResourceId(tld);
-                element.setDateTime(LocalDateTime.of(element.getDateTime().toLocalDate(), LocalTime.MIN));
-                element.setCount(1);
-                tldMap.put(tld, element);
-                result.add(element);
-            } else {
-                tldMap.get(tld).countPlusOne();
+                if (!tldMap.containsKey(tld)) {
+                    element.unSetId();
+                    element.setResourceId(tld);
+                    element.setDateTime(LocalDateTime.of(element.getDateTime().toLocalDate(), LocalTime.MIN));
+                    element.setCount(1);
+                    tldMap.put(tld, element);
+                    result.add(element);
+                } else {
+                    tldMap.get(tld).countPlusOne();
+                }
+            } catch (Exception e) {
+                logger.error("Catch exception in StatServiceHelper.groupByTld with DomainCounter :" + element);
+                e.printStackTrace();
             }
         }
         return result;

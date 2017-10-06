@@ -21,16 +21,14 @@ import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountDomainAutoRenewCompletedEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.event.accountStat.AccountStatDomainUpdateEvent;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.service.AccountStatHelper;
 
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_AUTO_RENEW_DOMAIN;
-import static ru.majordomo.hms.personmgr.common.Constants.AUTO_RENEW_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @EnableRabbit
 @Service
@@ -83,7 +81,8 @@ public class DomainAmqpController extends CommonAmqpController {
                         if ((Boolean) businessAction.getParam("register")) {
                             HashMap<String, String> data = new HashMap<>();
                             data.put("personId", (String) businessAction.getParam("personId"));
-                            data.put("domainName", domainName);
+                            data.put(DOMAIN_NAME_KEY, domainName);
+                            data.put(ACCOUNT_ID_KEY, message.getAccountId());
                             accountStatHelper.add(account.getId(), AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN, data);
                         }
                     }
@@ -131,7 +130,7 @@ public class DomainAmqpController extends CommonAmqpController {
                 ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
                 if (businessAction != null) {
-                    String domainName = (String) businessAction.getParam("name");
+                    String domainName = (String) message.getParam(NAME_KEY);
 
                     Map<String, String> paramsHistory;
                     if (businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_UPDATE_RC)
@@ -152,13 +151,8 @@ public class DomainAmqpController extends CommonAmqpController {
                             statDataAutoRenew = true;
                         }
 
-                        HashMap<String, String> statData = new HashMap<>();
-                        statData.put("personId", (String) businessAction.getParam("personId"));
-                        statData.put("domainName", domainName);
-                        accountStatHelper.add(
-                                message.getAccountId(),
-                                statDataAutoRenew ? VIRTUAL_HOSTING_AUTO_RENEW_DOMAIN : AccountStatType.VIRTUAL_HOSTING_MANUAL_RENEW_DOMAIN,
-                                statData);
+                        message.addParam(AUTO_RENEW_KEY, statDataAutoRenew);
+                        publisher.publishEvent(new AccountStatDomainUpdateEvent(message));
 
                         //Save history
                         paramsHistory = new HashMap<>();

@@ -42,6 +42,7 @@ public class Constants {
     public static final String DOMAIN_NAME_KEY = "domainName";
     public static final String ACCOUNT_ID_KEY = "accountId";
     public static final String PASSWORD_KEY = "password";
+    public static final String NAME_KEY = "name";
     public static final String TOKEN_KEY = "token";
     public static final String IP_KEY = "ip";
     public static final String SERVICE_NAME_KEY = "serviceName";
