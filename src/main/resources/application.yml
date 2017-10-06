@@ -47,8 +47,7 @@ spring:
 #            uri: mongodb://personmgr:***REMOVED***@hms01.intr:27017,hms02.intr:27017,hms03.intr:27017/personmgr?replicaSet=hms-rs0
 #            uri: mongodb://ci.intr:27017/personmgr
             database: personmgr
-#            uri: mongodb://localhost:27017/personmgr
-            uri: mongodb://172.16.103.188:27017/personmgr
+            uri: mongodb://localhost:27017/personmgr
     rabbitmq:
 #        host: 172.16.104.98
         host: localhost
@@ -93,13 +92,3 @@ mail_manager:
 si_oauth:
     serviceUsername: service
     servicePassword: ***REMOVED***
-
-blacklist:
-    control_url: http://78.108.80.183:8080/control
-
-batch_job:
-    wait_for_dead_job_hours: 2
-
-hms:
-    instance:
-        name: ci
