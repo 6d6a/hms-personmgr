@@ -64,6 +64,7 @@ public class DomainService {
     private final AccountNotificationHelper accountNotificationHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final PersonalAccountRepository personalAccountRepository;
+    private final DomainSeparator domainSeparator;
 
     @Autowired
     public DomainService(
@@ -81,7 +82,8 @@ public class DomainService {
             AccountNotificationHelper accountNotificationHelper,
             AccountServiceHelper accountServiceHelper,
             DomainTldRepository domainTldRepository,
-            PersonalAccountRepository personalAccountRepository
+            PersonalAccountRepository personalAccountRepository,
+            DomainSeparator domainSeparator
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
@@ -98,6 +100,7 @@ public class DomainService {
         this.accountServiceHelper = accountServiceHelper;
         this.domainTldRepository = domainTldRepository;
         this.personalAccountRepository = personalAccountRepository;
+        this.domainSeparator = domainSeparator;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -244,13 +247,11 @@ public class DomainService {
 
         PersonalAccount account = personalAccountRepository.findOne(accountId);
 
-        DomainSeparator domain;
+        domainSeparator.separateDomain(domainName);
 
-        try {
-            domain = new DomainSeparator(domainName, domainTldRepository);
-        } catch (ParameterValidationException e) {
-            e.printStackTrace();
-            throw new DomainNotAvailableException("Произошла ошибка. Домен: " + domainName + " не может быть добавлен.");
+        if (domainSeparator.isDomainEligibleToAdd() == null || !domainSeparator.isDomainEligibleToAdd()) {
+            logger.debug("domain: " + domainName + " error validating domain");
+            throw new DomainNotAvailableException("Домен: " + domainName + " не может быть добавлен.");
         }
 
         if (blackListService.domainExistsInControlBlackList(domainName)) {
@@ -258,24 +259,24 @@ public class DomainService {
             throw new DomainNotAvailableException("Домен: " + domainName + " уже присутствует в системе и не может быть добавлен.");
         }
 
-        if (blackListService.domainExistsInControlBlackList(domain.getTopLevelDomain())) {
+        if (blackListService.domainExistsInControlBlackList(domainSeparator.getTopLevelDomain())) {
 
             List<Domain> domains = accountHelper.getDomains(account);
             if (domains != null) {
                 Boolean existOnAccount = false;
                 for (Domain d : domains) {
-                    if (d.getName().equals(domain.getTopLevelDomain())) {
+                    if (d.getName().equals(domainSeparator.getTopLevelDomain())) {
                         existOnAccount = true;
                     }
                 }
                 if (!existOnAccount) {
                     logger.debug("domain: " + domainName + " exists in control BlackList");
-                    throw new DomainNotAvailableException("Домен: " + domain.getTopLevelDomain() + " уже присутствует " +
+                    throw new DomainNotAvailableException("Домен: " + domainSeparator.getTopLevelDomain() + " уже присутствует " +
                             "в системе и не может быть добавлен.");
                 }
             } else {
                 logger.debug("domain: " + domainName + " exists in control BlackList");
-                throw new DomainNotAvailableException("Домен: " + domain.getTopLevelDomain() + " не может быть добавлен.");
+                throw new DomainNotAvailableException("Домен: " + domainSeparator.getTopLevelDomain() + " не может быть добавлен.");
             }
 
         }
