@@ -156,7 +156,7 @@ public class DomainAmqpController extends CommonAmqpController {
 
                         //Save history
                         paramsHistory = new HashMap<>();
-                        paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на " + renewAction + " домена " + domainName + " выполнена успешно (имя: " + domainName + ")");
+                        paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на " + renewAction + " домена выполнена успешно (имя: " + domainName + ")");
                         paramsHistory.put(OPERATOR_KEY, "service");
 
                         publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), paramsHistory));
