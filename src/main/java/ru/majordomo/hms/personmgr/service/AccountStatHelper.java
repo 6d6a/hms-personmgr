@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 
 import java.time.LocalDateTime;
@@ -37,5 +36,9 @@ public class AccountStatHelper {
             accountStat.setData(data);
         }
         accountStatRepository.save(accountStat);
+    }
+
+    public boolean recordExist(String accountId, AccountStatType type) {
+        return  (accountStatRepository.findOneByPersonalAccountIdAndType(accountId, type) != null);
     }
 }
