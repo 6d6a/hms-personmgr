@@ -167,16 +167,54 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('FORCE_PLAN_CHANGE')")
+    @RequestMapping(value = "/{accountId}/force-plan/{planId}",
+            method = RequestMethod.POST)
+    public ResponseEntity<Object> forceChangeAccountPlan(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @PathVariable(value = "planId") String planId,
+            @RequestBody PlanChangeAgreement planChangeAgreement,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+        String operator = request.getUserPrincipal().getName();
+        Plan newPlan = planRepository.findOne(planId);
+
+        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
+        planChangeProcessor.setOperator(operator);
+        planChangeProcessor.setRequestPlanChangeAgreement(planChangeAgreement);
+        planChangeProcessor.setIgnoreRestricts(true);
+
+        planChangeProcessor.process();
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @RequestMapping(value = "/{accountId}/plan-check/{planId}",
                     method = RequestMethod.POST)
-    public ResponseEntity<PlanChangeAgreement> changeAccountPlanCheck(
+    public ResponseEntity<PlanChangeAgreement> accountPlanCheck(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "planId") String planId
     ) {
+        return planCheck(accountId, planId, false);
+    }
+
+    @PreAuthorize("hasAuthority('FORCE_PLAN_CHANGE')")
+    @RequestMapping(value = "/{accountId}/force-plan-check/{planId}",
+            method = RequestMethod.POST)
+    public ResponseEntity<PlanChangeAgreement> forceAccountPlanCheck(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @PathVariable(value = "planId") String planId
+    ) {
+        return planCheck(accountId, planId, true);
+    }
+
+    private ResponseEntity<PlanChangeAgreement> planCheck(String accountId, String planId, Boolean ignoreRestricts) {
         PersonalAccount account = accountManager.findOne(accountId);
         Plan newPlan = planRepository.findOne(planId);
 
         Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
+        planChangeProcessor.setIgnoreRestricts(ignoreRestricts);
         PlanChangeAgreement planChangeAgreement = planChangeProcessor.isPlanChangeAllowed();
 
         if (!planChangeAgreement.getErrors().isEmpty()) {

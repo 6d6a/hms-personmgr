@@ -79,7 +79,7 @@ public class RegularToRegular extends Processor {
 
         deleteRegularAbonement();
 
-        executeCashBackPayment(false);
+        executeCashBackPayment(getIgnoreRestricts());
     }
 
     @Override

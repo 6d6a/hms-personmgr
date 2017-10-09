@@ -60,7 +60,7 @@ public class AbonementToRegular extends Processor {
 
         deleteRegularAbonement();
 
-        executeCashBackPayment(false);
+        executeCashBackPayment(getIgnoreRestricts());
     }
 
     @Override
