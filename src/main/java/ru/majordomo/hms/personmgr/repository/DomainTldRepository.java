@@ -15,7 +15,7 @@ public interface DomainTldRepository extends MongoRepository<DomainTld, String> 
     Page<DomainTld> findByRegistrar(@Param("registrar") DomainRegistrar registrar, Pageable pageable);
     DomainTld findByTldAndRegistrar(@Param("tld") String tld, @Param("registrar") DomainRegistrar registrar);
     DomainTld findByTldAndActive(@Param("tld") String tld, @Param("active") boolean active);
-    List<DomainTld> findByTld(@Param("tld") String tld);
+    Page<DomainTld> findByTld(@Param("tld") String tld, Pageable pageable);
     Page<DomainTld> findByActive(@Param("active") boolean active, Pageable pageable);
     List<DomainTld> findAllByActive(@Param("active") boolean active);
     Page<DomainTld> findByVariablePrice(@Param("variablePrice") boolean variablePrice, Pageable pageable);
