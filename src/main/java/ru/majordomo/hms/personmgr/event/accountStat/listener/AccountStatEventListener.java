@@ -4,7 +4,9 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.accountStat.AccountStatCheckFirstPaymentEvent;
 import ru.majordomo.hms.personmgr.event.accountStat.AccountStatDomainUpdateEvent;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
@@ -55,5 +57,28 @@ public class AccountStatEventListener {
                 accountId,
                 statDataAutoRenew ? VIRTUAL_HOSTING_AUTO_RENEW_DOMAIN : AccountStatType.VIRTUAL_HOSTING_MANUAL_RENEW_DOMAIN,
                 statData);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountStatCheckFirstPaymentEvent(AccountStatCheckFirstPaymentEvent event) {
+        SimpleServiceMessage message = event.getSource();
+        String accountId = message.getAccountId();
+
+        //Если запись уже существует, то ничего не делаем, иначе сохраним инфу по первому платежу
+        if (accountStatHelper.exist(accountId, AccountStatType.VIRTUAL_HOSTING_FIRST_REAL_PAYMENT)) {
+            return;
+        }
+
+        HashMap<String, String> statData = new HashMap<>();
+        statData.put(ACCOUNT_ID_KEY, accountId);
+        statData.put(AMOUNT_KEY, Utils.getBigDecimalFromUnexpectedInput(message.getParam(AMOUNT_KEY)).toString());
+        statData.put("paymentTypeId", (String) message.getParam("paymentTypeId"));
+
+        accountStatHelper.add(
+                accountId,
+                AccountStatType.VIRTUAL_HOSTING_FIRST_REAL_PAYMENT,
+                statData);
+
     }
 }
