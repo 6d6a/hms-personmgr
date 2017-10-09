@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
 import com.google.common.net.InternetDomainName;
+import feign.FeignException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -242,6 +243,31 @@ public class DomainService {
         notifyForDomainNoProlongNoMoney(account, domainNotProlong);
     }
 
+    private List<Domain> getDomainsByName(String domainName) {
+
+        List<Domain> domains = new ArrayList<>();
+
+        try {
+            domains.add(rcUserFeignClient.findDomain(domainName));
+        } catch (Exception e) {
+            if (!(e instanceof FeignException) || ((FeignException) e).status() != 404 ) {
+                e.printStackTrace();
+                throw e;
+            }
+        }
+
+        try {
+            domains.add(rcUserFeignClient.findDomain(IDN.toASCII(domainName)));
+        } catch (Exception e) {
+            if (!(e instanceof FeignException) || ((FeignException) e).status() != 404 ) {
+                e.printStackTrace();
+                throw e;
+            }
+        }
+
+        return domains;
+    }
+
     public void checkBlacklist(String domainName, String accountId) {
 
         domainName = IDN.toUnicode(domainName);
@@ -251,18 +277,16 @@ public class DomainService {
         String topPrivateDomainName = IDN.toUnicode(domain.topPrivateDomain().toString());
 
         //Full domain check
-        if (rcUserFeignClient.findDomain(domainName) != null
-                || rcUserFeignClient.findDomain(IDN.toASCII(domainName)) != null
-                || blackListService.domainExistsInControlBlackList(domainName)) {
+        List<Domain> domainsByName = getDomainsByName(domainName);
+        if (!domainsByName.isEmpty() || blackListService.domainExistsInControlBlackList(domainName)) {
             logger.debug("domain: " + domainName + " exists in control BlackList");
             throw new DomainNotAvailableException("Домен: " + domainName + " уже присутствует в системе и не может быть добавлен.");
         }
 
         //Top private domain check
+        domainsByName = getDomainsByName(topPrivateDomainName);
         if (!domainName.equals(topPrivateDomainName)
-                && (rcUserFeignClient.findDomain(topPrivateDomainName) != null
-                || rcUserFeignClient.findDomain(IDN.toASCII(topPrivateDomainName)) != null
-                || blackListService.domainExistsInControlBlackList(topPrivateDomainName))) {
+                && (!domainsByName.isEmpty() || blackListService.domainExistsInControlBlackList(topPrivateDomainName))) {
 
             Boolean existOnAccount = false;
 
@@ -270,7 +294,7 @@ public class DomainService {
 
             if (domains != null) {
                 for (Domain d : domains) {
-                    if (d.getName().equals(IDN.toUnicode(topPrivateDomainName)) || d.getName().equals(IDN.toASCII(topPrivateDomainName))) {
+                    if (d.getName().equals(topPrivateDomainName) || d.getName().equals(IDN.toASCII(topPrivateDomainName))) {
                         existOnAccount = true;
                         break;
                     }
