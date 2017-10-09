@@ -39,7 +39,7 @@ public class AccountStatHelper {
         accountStatRepository.save(accountStat);
     }
 
-    public boolean recordExist(String accountId, AccountStatType type) {
+    public boolean exist(String accountId, AccountStatType type) {
         return  accountStatRepository.existsByPersonalAccountIdAndType(accountId, type);
     }
 }

@@ -66,7 +66,7 @@ public class AccountStatEventListener {
         String accountId = message.getAccountId();
 
         //Если запись уже существует, то ничего не делаем, иначе сохраним инфу по первому платежу
-        if (accountStatHelper.recordExist(accountId, AccountStatType.VIRTUAL_HOSTING_FIRST_REAL_PAYMENT)) {
+        if (accountStatHelper.exist(accountId, AccountStatType.VIRTUAL_HOSTING_FIRST_REAL_PAYMENT)) {
             return;
         }
 
