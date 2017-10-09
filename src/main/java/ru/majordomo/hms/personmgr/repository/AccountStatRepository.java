@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.repository;
 
+import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -37,7 +38,7 @@ public interface AccountStatRepository extends MongoRepository<AccountStat, Stri
             @Param("created") LocalDateTime created
     );
 
-    AccountStat findOneByPersonalAccountIdAndType(
+    boolean existsByPersonalAccountIdAndType(
             @Param("personalAccountId") String personalAccountId,
             @Param("type") AccountStatType type
     );

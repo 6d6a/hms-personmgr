@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
@@ -39,6 +40,6 @@ public class AccountStatHelper {
     }
 
     public boolean recordExist(String accountId, AccountStatType type) {
-        return  (accountStatRepository.findOneByPersonalAccountIdAndType(accountId, type) != null);
+        return  accountStatRepository.existsByPersonalAccountIdAndType(accountId, type);
     }
 }
