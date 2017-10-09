@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
+import com.google.common.net.InternetDomainName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +8,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.net.IDN;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjuster;
@@ -64,7 +66,6 @@ public class DomainService {
     private final AccountNotificationHelper accountNotificationHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final PersonalAccountRepository personalAccountRepository;
-    private final DomainSeparator domainSeparator;
 
     @Autowired
     public DomainService(
@@ -82,8 +83,7 @@ public class DomainService {
             AccountNotificationHelper accountNotificationHelper,
             AccountServiceHelper accountServiceHelper,
             DomainTldRepository domainTldRepository,
-            PersonalAccountRepository personalAccountRepository,
-            DomainSeparator domainSeparator
+            PersonalAccountRepository personalAccountRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
@@ -100,7 +100,6 @@ public class DomainService {
         this.accountServiceHelper = accountServiceHelper;
         this.domainTldRepository = domainTldRepository;
         this.personalAccountRepository = personalAccountRepository;
-        this.domainSeparator = domainSeparator;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -245,40 +244,44 @@ public class DomainService {
 
     public void checkBlacklist(String domainName, String accountId) {
 
+        domainName = IDN.toUnicode(domainName);
+
         PersonalAccount account = personalAccountRepository.findOne(accountId);
+        InternetDomainName domain = InternetDomainName.from(domainName);
+        String topPrivateDomainName = IDN.toUnicode(domain.topPrivateDomain().toString());
 
-        domainSeparator.separateDomain(domainName);
-
-        if (domainSeparator.isDomainEligibleToAdd() == null || !domainSeparator.isDomainEligibleToAdd()) {
-            logger.debug("domain: " + domainName + " error validating domain");
-            throw new DomainNotAvailableException("Домен: " + domainName + " не может быть добавлен.");
-        }
-
-        if (blackListService.domainExistsInControlBlackList(domainName)) {
+        //Full domain check
+        if (rcUserFeignClient.findDomain(domainName) != null
+                || rcUserFeignClient.findDomain(IDN.toASCII(domainName)) != null
+                || blackListService.domainExistsInControlBlackList(domainName)) {
             logger.debug("domain: " + domainName + " exists in control BlackList");
             throw new DomainNotAvailableException("Домен: " + domainName + " уже присутствует в системе и не может быть добавлен.");
         }
 
-        if (blackListService.domainExistsInControlBlackList(domainSeparator.getTopLevelDomain())) {
+        //Top private domain check
+        if (!domainName.equals(topPrivateDomainName)
+                && (rcUserFeignClient.findDomain(topPrivateDomainName) != null
+                || rcUserFeignClient.findDomain(IDN.toASCII(topPrivateDomainName)) != null
+                || blackListService.domainExistsInControlBlackList(topPrivateDomainName))) {
+
+            Boolean existOnAccount = false;
 
             List<Domain> domains = accountHelper.getDomains(account);
+
             if (domains != null) {
-                Boolean existOnAccount = false;
                 for (Domain d : domains) {
-                    if (d.getName().equals(domainSeparator.getTopLevelDomain())) {
+                    if (d.getName().equals(IDN.toUnicode(topPrivateDomainName)) || d.getName().equals(IDN.toASCII(topPrivateDomainName))) {
                         existOnAccount = true;
+                        break;
                     }
                 }
-                if (!existOnAccount) {
-                    logger.debug("domain: " + domainName + " exists in control BlackList");
-                    throw new DomainNotAvailableException("Домен: " + domainSeparator.getTopLevelDomain() + " уже присутствует " +
-                            "в системе и не может быть добавлен.");
-                }
-            } else {
-                logger.debug("domain: " + domainName + " exists in control BlackList");
-                throw new DomainNotAvailableException("Домен: " + domainSeparator.getTopLevelDomain() + " не может быть добавлен.");
             }
 
+            if (!existOnAccount) {
+                logger.debug("domain: " + domainName + " exists in control BlackList");
+                throw new DomainNotAvailableException("Домен: " + domain.topPrivateDomain().toString() + " уже присутствует " +
+                        "в системе и не может быть добавлен.");
+            }
         }
     }
 
