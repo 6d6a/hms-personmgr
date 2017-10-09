@@ -104,7 +104,7 @@ public class CartManagerImplTest {
 
         Mockito
                 .doNothing()
-                .when(domainService).check(domainName1);
+                .when(domainService).check(domainName1, accountId1);
 
         Mockito
                 .when(domainService.buy(anyString(), any(DomainCartItem.class), anyListOf(AccountPromotion.class), any()))

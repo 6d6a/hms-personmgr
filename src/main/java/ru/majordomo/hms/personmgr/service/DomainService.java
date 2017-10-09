@@ -1,26 +1,27 @@
 package ru.majordomo.hms.personmgr.service;
 
+import com.google.common.net.InternetDomainName;
+import feign.FeignException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.net.IDN;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -30,6 +31,8 @@ import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -52,6 +55,7 @@ public class DomainService {
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountHelper accountHelper;
     private final DomainTldService domainTldService;
+    private final DomainTldRepository domainTldRepository;
     private final BusinessActionBuilder businessActionBuilder;
     private final ApplicationEventPublisher publisher;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
@@ -62,6 +66,7 @@ public class DomainService {
     private final PromotionRepository promotionRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     private final AccountServiceHelper accountServiceHelper;
+    private final PersonalAccountRepository personalAccountRepository;
 
     @Autowired
     public DomainService(
@@ -77,7 +82,9 @@ public class DomainService {
             BusinessOperationBuilder businessOperationBuilder,
             PromotionRepository promotionRepository,
             AccountNotificationHelper accountNotificationHelper,
-            AccountServiceHelper accountServiceHelper
+            AccountServiceHelper accountServiceHelper,
+            DomainTldRepository domainTldRepository,
+            PersonalAccountRepository personalAccountRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
@@ -92,6 +99,8 @@ public class DomainService {
         this.promotionRepository = promotionRepository;
         this.accountNotificationHelper = accountNotificationHelper;
         this.accountServiceHelper = accountServiceHelper;
+        this.domainTldRepository = domainTldRepository;
+        this.personalAccountRepository = personalAccountRepository;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -234,11 +243,75 @@ public class DomainService {
         notifyForDomainNoProlongNoMoney(account, domainNotProlong);
     }
 
-    public void check(String domainName) {
-        if (blackListService.domainExistsInControlBlackList(domainName)) {
+    private List<Domain> getDomainsByName(String domainName) {
+
+        List<Domain> domains = new ArrayList<>();
+
+        try {
+            domains.add(rcUserFeignClient.findDomain(domainName));
+        } catch (Exception e) {
+            if (!(e instanceof FeignException) || ((FeignException) e).status() != 404 ) {
+                e.printStackTrace();
+                throw e;
+            }
+        }
+
+        try {
+            domains.add(rcUserFeignClient.findDomain(IDN.toASCII(domainName)));
+        } catch (Exception e) {
+            if (!(e instanceof FeignException) || ((FeignException) e).status() != 404 ) {
+                e.printStackTrace();
+                throw e;
+            }
+        }
+
+        return domains;
+    }
+
+    public void checkBlacklist(String domainName, String accountId) {
+
+        domainName = IDN.toUnicode(domainName);
+
+        PersonalAccount account = personalAccountRepository.findOne(accountId);
+        InternetDomainName domain = InternetDomainName.from(domainName);
+        String topPrivateDomainName = IDN.toUnicode(domain.topPrivateDomain().toString());
+
+        //Full domain check
+        List<Domain> domainsByName = getDomainsByName(domainName);
+        if (!domainsByName.isEmpty() || blackListService.domainExistsInControlBlackList(domainName)) {
             logger.debug("domain: " + domainName + " exists in control BlackList");
             throw new DomainNotAvailableException("Домен: " + domainName + " уже присутствует в системе и не может быть добавлен.");
         }
+
+        //Top private domain check
+        domainsByName = getDomainsByName(topPrivateDomainName);
+        if (!domainName.equals(topPrivateDomainName)
+                && (!domainsByName.isEmpty() || blackListService.domainExistsInControlBlackList(topPrivateDomainName))) {
+
+            Boolean existOnAccount = false;
+
+            List<Domain> domains = accountHelper.getDomains(account);
+
+            if (domains != null) {
+                for (Domain d : domains) {
+                    if (d.getName().equals(topPrivateDomainName) || d.getName().equals(IDN.toASCII(topPrivateDomainName))) {
+                        existOnAccount = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!existOnAccount) {
+                logger.debug("domain: " + domainName + " exists in control BlackList");
+                throw new DomainNotAvailableException("Домен: " + domain.topPrivateDomain().toString() + " уже присутствует " +
+                        "в системе и не может быть добавлен.");
+            }
+        }
+    }
+
+    public void check(String domainName, String accountId) {
+
+        checkBlacklist(domainName, accountId);
 
         getDomainTld(domainName);
 

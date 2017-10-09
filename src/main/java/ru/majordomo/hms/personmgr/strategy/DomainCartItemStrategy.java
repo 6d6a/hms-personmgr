@@ -31,7 +31,7 @@ public class DomainCartItemStrategy implements CartItemStrategy {
 
     @Override
     public ProcessingBusinessAction buy(CartItem domain) {
-        domainService.check(domain.getName());
+        domainService.check(domain.getName(), accountId);
          return domainService.buy(accountId, (DomainCartItem) domain, originalAccountPromotions, domain.getAccountPromotion());
     }
 
@@ -43,7 +43,7 @@ public class DomainCartItemStrategy implements CartItemStrategy {
 
     @Override
     public void check(CartItem domain) {
-        domainService.check(domain.getName());
+        domainService.check(domain.getName(), accountId);
     }
 
     public void reloadAccountPromotions() {

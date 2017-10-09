@@ -16,6 +16,7 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -49,7 +50,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountPromotionManager accountPromotionManager;
     private final PromocodeActionRepository promocodeActionRepository;
-    private final BlackListService blackListService;
+    private final DomainService domainService;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
 
     @Autowired
@@ -59,7 +60,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
             RcUserFeignClient rcUserFeignClient,
             AccountPromotionManager accountPromotionManager,
             PromocodeActionRepository promocodeActionRepository,
-            BlackListService blackListService,
+            DomainService domainService,
             DomainRegistrarFeignClient domainRegistrarFeignClient
     ) {
         this.domainTldService = domainTldService;
@@ -67,7 +68,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountPromotionManager = accountPromotionManager;
         this.promocodeActionRepository = promocodeActionRepository;
-        this.blackListService = blackListService;
+        this.domainService = domainService;
         this.domainRegistrarFeignClient = domainRegistrarFeignClient;
     }
 
@@ -96,8 +97,9 @@ public class DomainResourceRestController extends CommonResourceRestController {
         domainName = domainName.toLowerCase();
         message.addParam("name", domainName);
 
-        if (blackListService.domainExistsInControlBlackList(domainName)) {
-            logger.debug("domain: " + domainName + " exists in control BlackList");
+        try {
+            domainService.checkBlacklist(domainName, accountId);
+        } catch (DomainNotAvailableException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return this.createErrorResponse("Домен: " + domainName + " уже присутствует в системе и не может быть добавлен.");
         }
