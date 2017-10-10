@@ -11,4 +11,4 @@ spring:
                 enabled: true
             fail-fast: true
     profiles:
-        active: default
+        active: dev
