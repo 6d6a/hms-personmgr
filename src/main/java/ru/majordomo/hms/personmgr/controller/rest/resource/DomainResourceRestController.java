@@ -32,6 +32,7 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
+import java.net.IDN;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -96,6 +97,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
         String domainName = (String) message.getParam("name");
         domainName = domainName.toLowerCase();
+        domainName = IDN.toUnicode(domainName);
         message.addParam("name", domainName);
 
         String parentDomainId = (String) message.getParam("parentDomainId");
