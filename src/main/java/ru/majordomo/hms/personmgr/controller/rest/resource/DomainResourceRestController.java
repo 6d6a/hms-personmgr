@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
@@ -96,6 +97,22 @@ public class DomainResourceRestController extends CommonResourceRestController {
         String domainName = (String) message.getParam("name");
         domainName = domainName.toLowerCase();
         message.addParam("name", domainName);
+
+        String parentDomainId = (String) message.getParam("parentDomainId");
+        if (parentDomainId != null && !parentDomainId.equals("")) {
+            try {
+                Domain parentDomain = rcUserFeignClient.getDomain(accountId, parentDomainId);
+
+                domainName = domainName.substring(domainName.length() - 1).equals(".") ?
+                        domainName + parentDomain.getName() : domainName + "." + parentDomain.getName();
+            } catch (Exception e) {
+                if (!(e instanceof FeignException) || ((FeignException) e).status() != 404 ) {
+                    e.printStackTrace();
+                    throw e;
+                }
+                return this.createErrorResponse("Домен c ID: " + parentDomainId + " не найден на аккаунте.");
+            }
+        }
 
         try {
             domainService.checkBlacklist(domainName, accountId);
