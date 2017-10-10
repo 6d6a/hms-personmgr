@@ -6,13 +6,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -20,11 +17,11 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
-import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
@@ -164,18 +161,28 @@ public class AccountAbonementRestController extends CommonRestController {
     @RequestMapping(value = "", method = RequestMethod.DELETE)
     public ResponseEntity<Page<AccountAbonement>> deleteAccountAbonements(
             @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            @RequestParam(defaultValue = "true") boolean refund,
+            Authentication authentication
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, null);
+        if (!refund) {
+            if (authentication.getAuthorities().stream()
+                    .noneMatch(ga -> ga.getAuthority().equals("DELETE_ABONEMENT_WITHOUT_REFUND"))
+                    ) {
+                throw new ParameterWithRoleSecurityException("Недостаточно прав для удаления абонемента без возврата средств.");
+            }
+        }
+
+        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, null, refund);
 
         planChangeProcessor.process();
 
         //Save history
         String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Произведен отказ от абонемента");
+        params.put(HISTORY_MESSAGE_KEY, "Произведен отказ от абонемента" + (refund ? " с возвратом средств" : " без возврата средств"));
         params.put(OPERATOR_KEY, operator);
 
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));
