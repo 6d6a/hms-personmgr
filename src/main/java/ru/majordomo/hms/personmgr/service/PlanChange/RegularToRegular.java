@@ -93,7 +93,12 @@ public class RegularToRegular extends Processor {
             }
 
             Abonement abonement = getNewPlan().getNotInternalAbonement();
-            getAccountHelper().charge(getAccount(), abonement.getService());
+            getAccountHelper().charge(
+                    getAccount(), abonement.getService(),
+                    abonement.getService().getCost(),
+                    getIgnoreRestricts(),
+                    false
+            );
             addAccountAbonement(abonement);
 
         } else {
