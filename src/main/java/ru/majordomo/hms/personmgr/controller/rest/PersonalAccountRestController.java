@@ -170,6 +170,7 @@ public class PersonalAccountRestController extends CommonRestController {
     @PreAuthorize("hasAuthority('FORCE_PLAN_CHANGE')")
     @RequestMapping(value = "/{accountId}/force-plan/{planId}",
             method = RequestMethod.POST)
+    //При недостатке средств на аккаунте пользователя для смены аккаунта - списание происходит в кредит
     public ResponseEntity<Object> forceChangeAccountPlan(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "planId") String planId,
@@ -202,6 +203,7 @@ public class PersonalAccountRestController extends CommonRestController {
     @PreAuthorize("hasAuthority('FORCE_PLAN_CHANGE')")
     @RequestMapping(value = "/{accountId}/force-plan-check/{planId}",
             method = RequestMethod.POST)
+    //При недостатке средств на аккаунте пользователя для смены аккаунта - списание происходит в кредит
     public ResponseEntity<PlanChangeAgreement> forceAccountPlanCheck(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "planId") String planId
