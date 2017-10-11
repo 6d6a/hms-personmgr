@@ -61,6 +61,7 @@ public abstract class Processor {
     private BigDecimal cashBackAmount;
     private PlanChangeAgreement requestPlanChangeAgreement;
     private String operator = "operator";
+    private Boolean ignoreRestricts = false;
 
     Processor(PersonalAccount account, Plan newPlan) {
         this.account = account;
@@ -164,6 +165,14 @@ public abstract class Processor {
         return cashBackAmount;
     }
 
+    public void setIgnoreRestricts(Boolean ignoreRestricts) {
+        this.ignoreRestricts = ignoreRestricts;
+    }
+
+    Boolean getIgnoreRestricts() {
+        return ignoreRestricts;
+    }
+
     //Methods
     abstract Boolean needToAddAbonement();
 
@@ -213,7 +222,7 @@ public abstract class Processor {
             return planChangeAgreement;
         }
 
-        if (!newPlan.isActive()) {
+        if (!newPlan.isActive() && !ignoreRestricts) {
             planChangeAgreement.addError("На выбранный тарифный план переход невозможен");
             return planChangeAgreement;
         }
@@ -233,29 +242,31 @@ public abstract class Processor {
         // На бесплатном тестовом абонементе можно менять тариф туда сюда без ограничений
         if (!hasFreeTestAbonement(accountAbonementManager.findByPersonalAccountId(account.getId()))) {
 
-            // С бизнеса можно только на бизнес
-            if (!checkBusinessPlan(planChangeAgreement)) {
-                return planChangeAgreement;
-            }
+            if (!ignoreRestricts) {
+                // С бизнеса можно только на бизнес
+                if (!checkBusinessPlan(planChangeAgreement)) {
+                    return planChangeAgreement;
+                }
 
-            // Если есть абонемент - можно перейти только на тариф большей ежемесячной стоимостью
-            if (!checkPlanCostWithActiveAbonement(planChangeAgreement)) {
-                return planChangeAgreement;
-            }
+                // Если есть абонемент - можно перейти только на тариф большей ежемесячной стоимостью
+                if (!checkPlanCostWithActiveAbonement(planChangeAgreement)) {
+                    return planChangeAgreement;
+                }
 
-            if (!checkBonusAbonements(planChangeAgreement)) {
-                return planChangeAgreement;
-            }
+                if (!checkBonusAbonements(planChangeAgreement)) {
+                    return planChangeAgreement;
+                }
 
-            // При отрицательном балансе нельзя менять тариф
-            if (balance.compareTo(BigDecimal.ZERO) < 0) {
-                planChangeAgreement.addError("Баланс аккаунта отрицательный");
-                return planChangeAgreement;
-            }
+                // При отрицательном балансе нельзя менять тариф
+                if (balance.compareTo(BigDecimal.ZERO) < 0) {
+                    planChangeAgreement.addError("Баланс аккаунта отрицательный");
+                    return planChangeAgreement;
+                }
 
-            // Проверим не менялся ли тариф в последний месяц
-            if (!checkLastMonthPlanChange(planChangeAgreement)) {
-                return planChangeAgreement;
+                // Проверим не менялся ли тариф в последний месяц
+                if (!checkLastMonthPlanChange(planChangeAgreement)) {
+                    return planChangeAgreement;
+                }
             }
 
             if (newAbonementRequired) {
@@ -289,6 +300,10 @@ public abstract class Processor {
 
         if (!isDatabaseLimitsOk || !isFtpUserLimitsOk || !isWebSiteLimitsOk || !isQuotaLimitsOk) {
             return planChangeAgreement;
+        }
+
+        if (ignoreRestricts) {
+            planChangeAgreement.setNeedToFeelBalance(BigDecimal.ZERO);
         }
 
         if (planChangeAgreement.getErrors().isEmpty()
