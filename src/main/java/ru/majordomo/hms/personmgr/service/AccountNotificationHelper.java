@@ -30,6 +30,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
 
 @Service
@@ -110,11 +111,11 @@ public class AccountNotificationHelper {
 
         message.setAccountId(account.getId());
         message.setParams(new HashMap<>());
-        message.addParam("email", email);
-        message.addParam("api_name", apiName);
-        message.addParam("priority", priority);
+        message.addParam(EMAIL_KEY, email);
+        message.addParam(API_NAME_KEY, apiName);
+        message.addParam(PRIORITY_KEY, priority);
         if (parameters != null) {
-            message.addParam("parametrs", parameters);
+            message.addParam(PARAMETRS_KEY, parameters);
         }
 
         publisher.publishEvent(new SendMailEvent(message));
@@ -137,7 +138,7 @@ public class AccountNotificationHelper {
     public void sendInfoMail(PersonalAccount account, String apiName) {
         HashMap<String, String> parameters = new HashMap<>();
 
-        parameters.put("client_id", account.getAccountId());
+        parameters.put(CLIENT_ID_KEY, account.getAccountId());
         this.sendMail(account, apiName, 1, parameters);
     }
 
@@ -181,13 +182,13 @@ public class AccountNotificationHelper {
         message.setAccountId(account.getId());
         message.setParams(new HashMap<>());
         message.addParam("phone", smsPhoneForMailManager);
-        message.addParam("api_name", apiName);
-        message.addParam("priority", priority);
+        message.addParam(API_NAME_KEY, apiName);
+        message.addParam(PRIORITY_KEY, priority);
         if (parameters != null && !parameters.isEmpty()) {
-            message.addParam("parametrs", parameters);
+            message.addParam(PARAMETRS_KEY, parameters);
         } else {
             parameters = new HashMap<>();
-            parameters.put("client_id", account.getId());
+            parameters.put(CLIENT_ID_KEY, account.getId());
         }
         publisher.publishEvent(new SendSmsEvent(message));
     }
