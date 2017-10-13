@@ -57,15 +57,15 @@ public interface PersonalAccountManager {
 
     List<PersonalAccount> findByAccountIdContaining(String accountId);
 
-    List<String> findAllAccountIds();
+    List<String> findAllNotDeletedAccountIds();
 
-    List<String> findAccountIdsByIdNotIn(List<String> ids);
+    List<String> findAccountIdsByIdNotInAndNotDeleted(List<String> ids);
 
-    List<String> findAccountIdsByActive(boolean active);
+    List<String> findAccountIdsByActiveAndNotDeleted(boolean active);
 
-    List<String> findAccountIdsByActiveAndDeactivatedAfter(boolean active, LocalDateTime deactivated);
+    List<String> findAccountIdsByActiveAndDeactivatedAfterAndNotDeleted(boolean active, LocalDateTime deactivated);
 
-    List<String> findAccountIdsByActiveAndNotificationsIn(MailManagerMessageType notificationType);
+    List<String> findAccountIdsByActiveAndNotificationsInAndNotDeleted(MailManagerMessageType notificationType);
 
     List<PersonalAccountWithNotificationsProjection> findWithNotifications();
 
@@ -88,6 +88,8 @@ public interface PersonalAccountManager {
     void setOwnerPersonId(String accountId, String personId);
 
     void setPlanId(String accountId, String planId);
+
+    void setDeleted(String id, boolean delete);
 
     void setAccountNew(String accountId, Boolean accountNew);
 

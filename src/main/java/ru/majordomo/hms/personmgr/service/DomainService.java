@@ -21,7 +21,6 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.LowBalanceException;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -31,8 +30,6 @@ import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
-import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
-import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -55,7 +52,6 @@ public class DomainService {
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountHelper accountHelper;
     private final DomainTldService domainTldService;
-    private final DomainTldRepository domainTldRepository;
     private final BusinessActionBuilder businessActionBuilder;
     private final ApplicationEventPublisher publisher;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
@@ -65,8 +61,6 @@ public class DomainService {
     private final BusinessOperationBuilder businessOperationBuilder;
     private final PromotionRepository promotionRepository;
     private final AccountNotificationHelper accountNotificationHelper;
-    private final AccountServiceHelper accountServiceHelper;
-    private final PersonalAccountRepository personalAccountRepository;
 
     @Autowired
     public DomainService(
@@ -81,10 +75,7 @@ public class DomainService {
             AccountPromotionManager accountPromotionManager,
             BusinessOperationBuilder businessOperationBuilder,
             PromotionRepository promotionRepository,
-            AccountNotificationHelper accountNotificationHelper,
-            AccountServiceHelper accountServiceHelper,
-            DomainTldRepository domainTldRepository,
-            PersonalAccountRepository personalAccountRepository
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
@@ -98,9 +89,6 @@ public class DomainService {
         this.businessOperationBuilder = businessOperationBuilder;
         this.promotionRepository = promotionRepository;
         this.accountNotificationHelper = accountNotificationHelper;
-        this.accountServiceHelper = accountServiceHelper;
-        this.domainTldRepository = domainTldRepository;
-        this.personalAccountRepository = personalAccountRepository;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -272,7 +260,7 @@ public class DomainService {
 
         domainName = IDN.toUnicode(domainName);
 
-        PersonalAccount account = personalAccountRepository.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
         InternetDomainName domain = InternetDomainName.from(domainName);
         String topPrivateDomainName = IDN.toUnicode(domain.topPrivateDomain().toString());
 

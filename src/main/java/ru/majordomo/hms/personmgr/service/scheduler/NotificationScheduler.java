@@ -12,11 +12,9 @@ import ru.majordomo.hms.personmgr.event.account.AccountDeactivatedSendMailEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyInactiveLongTimeEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSendInfoMailEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Stream;
 
 @Component
 public class NotificationScheduler {
@@ -38,7 +36,7 @@ public class NotificationScheduler {
     @SchedulerLock(name = "processAccountDeactivatedSendMail")
     public void processAccountDeactivatedSendMail() {
         logger.info("Started processAccountDeactivatedSendMail");
-        List<String> personalAccountIds = accountManager.findAccountIdsByActive(false);
+        List<String> personalAccountIds = accountManager.findAccountIdsByActiveAndNotDeleted(false);
         personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountDeactivatedSendMailEvent(accountId)));
         logger.info("Ended processAccountDeactivatedSendMail");
     }
@@ -47,7 +45,7 @@ public class NotificationScheduler {
     @SchedulerLock(name = "processNotifyInactiveLongTime")
     public  void processNotifyInactiveLongTime() {
         logger.info("Started processNotifyInactiveLongTime");
-        List<String> personalAccountIds = accountManager.findAccountIdsByActiveAndDeactivatedAfter(false, LocalDateTime.now().minusMonths(13));
+        List<String> personalAccountIds = accountManager.findAccountIdsByActiveAndDeactivatedAfterAndNotDeleted(false, LocalDateTime.now().minusMonths(13));
         personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountNotifyInactiveLongTimeEvent(accountId)));
         logger.info("Ended processNotifyInactiveLongTime");
     }
@@ -56,7 +54,7 @@ public class NotificationScheduler {
     @SchedulerLock(name = "processSendInfoMail")
     public  void processSendInfoMail() {
         logger.info("Started processSendInfoMail");
-        List<String> personalAccountIds = accountManager.findAccountIdsByActiveAndNotificationsIn(MailManagerMessageType.EMAIL_NEWS);
+        List<String> personalAccountIds = accountManager.findAccountIdsByActiveAndNotificationsInAndNotDeleted(MailManagerMessageType.EMAIL_NEWS);
         personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountSendInfoMailEvent(accountId)));
         logger.info("Ended processSendInfoMail");
     }
