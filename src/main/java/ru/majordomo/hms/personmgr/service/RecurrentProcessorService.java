@@ -73,9 +73,8 @@ public class RecurrentProcessorService {
         Boolean accountIsOnArchivePlan = !planRepository.findOne(account.getPlanId()).isActive();
 
         try {
-
-            // Реккуренты только на активных тарифных планах
-            if (!accountIsOnArchivePlan) {
+            // Реккуренты только на активных тарифных планах и не удаленных аккаунтах
+            if (!accountIsOnArchivePlan && account.getDeleted() == null) {
 
                 // --- ДОМЕНЫ ---
                 //Ищем paidTill начиная с 25 дней до текущей даты

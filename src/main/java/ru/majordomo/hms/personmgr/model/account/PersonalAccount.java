@@ -73,6 +73,12 @@ public class PersonalAccount extends VersionedModel {
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime deactivated;
 
+    @JsonFormat
+            (shape = JsonFormat.Shape.STRING,
+             pattern = "yyyy-MM-dd HH:mm:ss")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime deleted;
+
     @NotNull
     @Indexed
     private AccountType accountType;
@@ -119,29 +125,6 @@ public class PersonalAccount extends VersionedModel {
         this.deactivated = deactivated;
     }
 
-    public PersonalAccount(
-            String accountId,
-            String clientId,
-            String planId,
-            String name,
-            AccountType accountType,
-            List<AccountDiscount> discounts,
-            boolean active,
-            LocalDateTime created,
-            LocalDateTime deactivated
-    ) {
-        super();
-        this.accountId = accountId;
-        this.clientId = clientId;
-        this.planId = planId;
-        this.name = name;
-        this.accountType = accountType;
-        this.discounts = discounts;
-        this.active = active;
-        this.created = created;
-        this.deactivated = deactivated;
-    }
-
     public String getName() {
         return name;
     }
@@ -172,6 +155,14 @@ public class PersonalAccount extends VersionedModel {
 
     public void setDeactivated(LocalDateTime deactivated) {
         this.deactivated = deactivated;
+    }
+
+    public LocalDateTime getDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(LocalDateTime deleted) {
+        this.deleted = deleted;
     }
 
     public AccountType getAccountType() {
@@ -400,26 +391,6 @@ public class PersonalAccount extends VersionedModel {
         return this.settings.get(name) != null ? LocalDateTime.parse(this.settings.get(name), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : null;
     }
 
-    public void setSettingByName(AccountSetting name, Object value) {
-        if (value == null) {
-            this.removeSettingByName(name);
-        } else if (value instanceof Integer) {
-            setIntegerSettingByName(name, (Integer) value);
-        } else if (value instanceof Boolean) {
-            setBooleanSettingByName(name, (Boolean) value);
-        } else if (value instanceof String) {
-            setStringSettingByName(name, (String) value);
-        } else if (value instanceof LocalDateTime) {
-            setLocalDateTimeSettingByName(name, (LocalDateTime) value);
-        } else {
-            throw new IllegalArgumentException("AccountSetting value must be one of Integer, Boolean or String");
-        }
-    }
-
-    public void removeSettingByName(AccountSetting name) {
-        this.settings.remove(name);
-    }
-
     @Override
     public String toString() {
         return "PersonalAccount{" +
@@ -430,12 +401,13 @@ public class PersonalAccount extends VersionedModel {
                 ", active=" + active +
                 ", created=" + created +
                 ", deactivated=" + deactivated +
+                ", deleted=" + deleted +
                 ", accountType=" + accountType +
                 ", notifications=" + notifications +
                 ", settings=" + settings +
                 ", discounts=" + discounts +
                 ", services=" + services +
-                ", ownerPersonId=" + ownerPersonId +
+                ", ownerPersonId='" + ownerPersonId + '\'' +
                 "} " + super.toString();
     }
 }

@@ -34,7 +34,7 @@ public class DomainsScheduler {
     @SchedulerLock(name = "processExpiringDomains")
     public void processExpiringDomains() {
         logger.info("Started processExpiringDomains");
-        List<String> personalAccountIds = accountManager.findAllAccountIds();
+        List<String> personalAccountIds = accountManager.findAllNotDeletedAccountIds();
         personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountProcessExpiringDomainsEvent(accountId)));
         logger.info("Ended processExpiringDomains");
     }
@@ -43,7 +43,7 @@ public class DomainsScheduler {
     @SchedulerLock(name = "processDomainsAutoRenew")
     public void processDomainsAutoRenew() {
         logger.info("Started processDomainsAutoRenew");
-        List<String> personalAccountIds = accountManager.findAllAccountIds();
+        List<String> personalAccountIds = accountManager.findAllNotDeletedAccountIds();
         personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountProcessDomainsAutoRenewEvent(accountId)));
         logger.info("Ended processDomainsAutoRenew");
     }

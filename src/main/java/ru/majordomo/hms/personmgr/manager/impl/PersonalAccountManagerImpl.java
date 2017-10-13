@@ -201,10 +201,20 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
-    public List<String> findAllAccountIds() {
+    public List<String> findAllNotDeletedAccountIds() {
+        MatchOperation match = match(
+                new Criteria()
+                        .orOperator(
+                                Criteria
+                                        .where("deleted").exists(false),
+                                Criteria
+                                        .where("deleted").is(null)
+                        )
+        );
         ProjectionOperation project = project("_id");
 
         Aggregation aggregation = newAggregation(
+                match,
                 project
         );
 
@@ -216,10 +226,20 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
-    public List<String> findAccountIdsByIdNotIn(List<String> ids) {
+    public List<String> findAccountIdsByIdNotInAndNotDeleted(List<String> ids) {
         MatchOperation match = match(
-                Criteria.where("_id")
-                        .nin(ids)
+                new Criteria()
+                        .andOperator(
+                                new Criteria()
+                                        .orOperator(
+                                                Criteria
+                                                        .where("deleted").exists(false),
+                                                Criteria
+                                                        .where("deleted").is(null)
+                                        ),
+                                Criteria
+                                        .where("_id").nin(ids)
+                        )
         );
 
         ProjectionOperation project = project("_id");
@@ -237,10 +257,20 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
-    public List<String> findAccountIdsByActive(boolean active) {
+    public List<String> findAccountIdsByActiveAndNotDeleted(boolean active) {
         MatchOperation match = match(
-                Criteria.where("active")
-                        .is(active)
+                new Criteria()
+                        .andOperator(
+                                new Criteria()
+                                        .orOperator(
+                                                Criteria
+                                                        .where("deleted").exists(false),
+                                                Criteria
+                                                        .where("deleted").is(null)
+                                        ),
+                                Criteria.where("active")
+                                        .is(active)
+                        )
         );
 
         ProjectionOperation project = project("_id");
@@ -258,12 +288,22 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
-    public List<String> findAccountIdsByActiveAndDeactivatedAfter(boolean active, LocalDateTime deactivated) {
+    public List<String> findAccountIdsByActiveAndDeactivatedAfterAndNotDeleted(boolean active, LocalDateTime deactivated) {
         MatchOperation match = match(
-                Criteria.where("active")
-                        .is(active)
-                        .and("deactivated")
-                        .gt(Date.from(deactivated.toInstant(ZoneOffset.ofHours(3))))
+                new Criteria()
+                        .andOperator(
+                                new Criteria()
+                                        .orOperator(
+                                                Criteria
+                                                        .where("deleted").exists(false),
+                                                Criteria
+                                                        .where("deleted").is(null)
+                                        ),
+                                Criteria.where("active")
+                                        .is(active)
+                                        .and("deactivated")
+                                        .gt(Date.from(deactivated.toInstant(ZoneOffset.ofHours(3))))
+                        )
         );
 
         ProjectionOperation project = project("_id");
@@ -281,10 +321,20 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
-    public List<String> findAccountIdsByActiveAndNotificationsIn(MailManagerMessageType notificationType) {
+    public List<String> findAccountIdsByActiveAndNotificationsInAndNotDeleted(MailManagerMessageType notificationType) {
         MatchOperation match = match(
-                Criteria.where("notifications")
-                        .in(notificationType.name())
+                new Criteria()
+                        .andOperator(
+                                new Criteria()
+                                        .orOperator(
+                                                Criteria
+                                                        .where("deleted").exists(false),
+                                                Criteria
+                                                        .where("deleted").is(null)
+                                        ),
+                                Criteria.where("notifications")
+                                        .in(notificationType.name())
+                        )
         );
 
         ProjectionOperation project = project("_id");
@@ -316,7 +366,7 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     @Override
     public PersonalAccountWithNotificationsProjection findOneByAccountIdWithNotifications(String accountId) {
         Query query = new Query(new Criteria("accountId").is(accountId));
-        query.fields().include("notifications").include("accountId");
+        query.fields().include("notifications").include("accountId").include("deleted");
 
         return mongoOperations.findOne(query, PersonalAccountWithNotificationsProjection.class, "personalAccount");
     }
@@ -380,6 +430,21 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
 
         Query query = new Query(new Criteria("_id").is(id));
         Update update = new Update().set("planId", planId);
+
+        mongoOperations.updateFirst(query, update, PersonalAccount.class);
+    }
+
+    @Override
+    public void setDeleted(String id, boolean delete) {
+        checkById(id);
+
+        Query query = new Query(new Criteria("_id").is(id));
+        Update update;
+        if (delete) {
+            update = new Update().currentDate("deleted");
+        } else {
+            update = new Update().unset("deleted");
+        }
 
         mongoOperations.updateFirst(query, update, PersonalAccount.class);
     }

@@ -17,4 +17,7 @@ public interface SiFeignClient {
 
     @RequestMapping(method = RequestMethod.POST, value = "/web-access-accounts/{accountId}/change_password", consumes = "application/json")
     SimpleServiceMessage changePassword(@PathVariable("accountId") String accountId, Map<String, String> params);
+
+    @RequestMapping(method = RequestMethod.POST, value = "/web-access-accounts/{accountId}/delete", consumes = "application/json")
+    SimpleServiceMessage toggleDelete(@PathVariable("accountId") String accountId, Map<String, String> params);
 }

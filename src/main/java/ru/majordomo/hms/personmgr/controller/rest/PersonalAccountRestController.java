@@ -80,6 +80,7 @@ public class PersonalAccountRestController extends CommonRestController {
     private final AccountServiceHelper accountServiceHelper;
     private final Factory planChangeFactory;
     private final AccountNotificationHelper accountNotificationHelper;
+    private final SiFeignClient siFeignClient;
 
     @Autowired
     public PersonalAccountRestController(
@@ -93,8 +94,8 @@ public class PersonalAccountRestController extends CommonRestController {
             AccountServiceRepository accountServiceRepository,
             AccountServiceHelper accountServiceHelper,
             Factory planChangeFactory,
-            AccountNotificationHelper accountNotificationHelper
-    ) {
+            AccountNotificationHelper accountNotificationHelper,
+            SiFeignClient siFeignClient) {
         this.planRepository = planRepository;
         this.accountOwnerManager = accountOwnerManager;
         this.rcUserFeignClient = rcUserFeignClient;
@@ -102,6 +103,7 @@ public class PersonalAccountRestController extends CommonRestController {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
         this.notificationRepository = notificationRepository;
+        this.siFeignClient = siFeignClient;
         this.accountServiceRepository = accountServiceRepository;
         this.accountServiceHelper = accountServiceHelper;
         this.planChangeFactory = planChangeFactory;
@@ -340,7 +342,7 @@ public class PersonalAccountRestController extends CommonRestController {
             }
         }
 
-        if (account != null) {
+        if (account != null && account.getDeleted() == null) {
             String ip = getClientIP(request);
 
             Map<String, String> params = new HashMap<>();
@@ -586,7 +588,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         List<MailManagerMessageType> activeNotifications = accountNotificationHelper.getActiveMailManagerMessageTypes();
 
-        Set<MailManagerMessageType> filteredNotifications = notifications.stream().filter(n -> activeNotifications.contains(n)).collect(Collectors.toSet());
+        Set<MailManagerMessageType> filteredNotifications = notifications.stream().filter(activeNotifications::contains).collect(Collectors.toSet());
 
         accountManager.setNotifications(accountId, filteredNotifications);
 
@@ -651,7 +653,7 @@ public class PersonalAccountRestController extends CommonRestController {
         PersonalAccountWithNotificationsProjection account = accountManager.findOneByAccountIdWithNotifications(accountId);
 
         Map<String, Boolean> isSubscribedResult = new HashMap<>();
-        isSubscribedResult.put("is_subscribed", account.hasNotification(MailManagerMessageType.EMAIL_NEWS));
+        isSubscribedResult.put("is_subscribed", account.getDeleted() == null && account.hasNotification(MailManagerMessageType.EMAIL_NEWS));
 
         return new ResponseEntity<>(isSubscribedResult, HttpStatus.OK);
     }
@@ -670,6 +672,38 @@ public class PersonalAccountRestController extends CommonRestController {
         String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();
         params.put(HISTORY_MESSAGE_KEY, "Аккаунт " + (!account.isActive() ? "включен" : "выключен"));
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAuthority('MANAGE_ACCOUNT_DELETED')")
+    @RequestMapping(value = "/{accountId}/account/toggle_deleted",
+                    method = RequestMethod.POST)
+    public ResponseEntity<Object> toggleDeleted(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Boolean delete = account.getDeleted() == null;
+
+        Map<String, String> requestParams = new HashMap<>();
+        requestParams.put(DELETE_KEY, delete.toString());
+
+        SimpleServiceMessage siResponse = siFeignClient.toggleDelete(account.getId(), requestParams);
+
+        if (siResponse.getParam("success") == null || !((boolean) siResponse.getParam("success"))) {
+            throw new ParameterValidationException("Не удалось удалить логин для входа в КП. Ошибка: " + siResponse.getParam(ERROR_MESSAGE_KEY));
+        }
+
+        accountManager.setDeleted(accountId, account.getDeleted() == null);
+
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Аккаунт " + (account.getDeleted() == null ? "удален" : "воскрешен"));
         params.put(OPERATOR_KEY, operator);
 
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));
