@@ -7,25 +7,27 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
+import ru.majordomo.hms.personmgr.common.message.NotificationServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.rc.user.resources.*;
+import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -43,6 +45,7 @@ public class AccountNotificationHelper {
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final NotificationRepository notificationRepository;
+    private final PersonalAccountManager accountManager;
 
     @Autowired
     public AccountNotificationHelper(
@@ -50,13 +53,15 @@ public class AccountNotificationHelper {
             PlanRepository planRepository,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
-            NotificationRepository notificationRepository
+            NotificationRepository notificationRepository,
+            PersonalAccountManager accountManager
     ) {
         this.publisher = publisher;
         this.planRepository = planRepository;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
         this.notificationRepository = notificationRepository;
+        this.accountManager = accountManager;
     }
 
     public String getCostAbonementForEmail(Plan plan) {
@@ -95,16 +100,46 @@ public class AccountNotificationHelper {
         return number.setScale(2, BigDecimal.ROUND_DOWN).toString();
     }
 
+    public void sendNotification(NotificationServiceMessage message) {
+
+        PersonalAccount account = accountManager.findOne(message.getAccountId());
+
+        if (account == null) {
+            throw new ParameterValidationException("Catch exception in onEmailProxyEvent. Аккаунт с id " + message.getAccountId() + " не найден");
+        }
+
+        switch (message.getNotificationType()){
+            case EMAIL:
+                this.sendMail(
+                        account,
+                        message.getApiName(),
+                        message.getPriority(),
+                        message.getParams()
+                );
+                break;
+            case SMS:
+                this.sendSms(
+                        account,
+                        message.getApiName(),
+                        message.getPriority(),
+                        message.getParams()
+                );
+                break;
+            default:
+                logger.error("Not implemented NotificationType " + message.getNotificationType());
+        }
+    }
+
     /*
      * отправим письмо на все ящики аккаунта
      * по умолчанию приоритет 5
      */
 
-    public void sendMail(PersonalAccount account, String apiName, HashMap<String, String> parameters) {
+    public void sendMail(PersonalAccount account, String apiName, Map<String, String> parameters) {
         this.sendMail(account, apiName, 5, parameters);
     }
 
-    public void sendMail(PersonalAccount account, String apiName, int priority, HashMap<String, String> parameters) {
+    public void sendMail(PersonalAccount account, String apiName, int priority, Map<String, String> parameters) {
 
         String email = accountHelper.getEmail(account);
         SimpleServiceMessage message = new SimpleServiceMessage();
@@ -124,7 +159,7 @@ public class AccountNotificationHelper {
     public void sendMailForDeactivatedAccount(PersonalAccount account, LocalDate dateFinish) {
         Plan plan = planRepository.findOne(account.getPlanId());
         BigDecimal costPerMonth = plan.getService().getCost().setScale(2, BigDecimal.ROUND_DOWN);
-        HashMap<String, String> parameters = new HashMap<>();
+        Map<String, String> parameters = new HashMap<>();
 
         parameters.put("acc_id", account.getName());
         parameters.put("date_finish", dateFinish.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
@@ -136,7 +171,7 @@ public class AccountNotificationHelper {
     }
 
     public void sendInfoMail(PersonalAccount account, String apiName) {
-        HashMap<String, String> parameters = new HashMap<>();
+        Map<String, String> parameters = new HashMap<>();
 
         parameters.put(CLIENT_ID_KEY, account.getAccountId());
         this.sendMail(account, apiName, 1, parameters);
@@ -154,7 +189,7 @@ public class AccountNotificationHelper {
         sendSms(account, apiName, priority, null);
     }
 
-    public void sendSms(PersonalAccount account, String apiName, int priority, HashMap<String, String> parameters) {
+    public void sendSms(PersonalAccount account, String apiName, int priority, Map<String, String> parameters) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         String smsPhone = account.getSmsPhoneNumber();
         if (smsPhone == null || smsPhone.equals("")) {
