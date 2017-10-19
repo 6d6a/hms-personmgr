@@ -34,7 +34,7 @@ public interface PersonalAccountRepository extends MongoRepository<PersonalAccou
     List<PersonalAccount> findByActive(@Param("active") boolean active);
     Page<PersonalAccount> findByActive(@Param("active") boolean active, Pageable pageable);
 
-    @Query(value="{'active' : ?0}", fields="{_id : 1}")
+    @Query(value="{'active' : ?0, $or: [{'deleted': {$exists: false}}, {'deleted' : null}]}", fields="{_id : 1}")
     List<PersonalAccount> findByActiveIncludeId(boolean active);
 
     @Query("{}")

@@ -175,7 +175,7 @@ public class StatServiceHelper {
     }
 
     public List<AccountServiceCounter> getActiveAccountServiceCounters() {
-        List<String> accountIds = accountManager.findAccountIdsByActive(true);
+        List<String> accountIds = accountManager.findAccountIdsByActiveAndNotDeleted(true);
 
         MatchOperation match = match(
                 Criteria.where("enabled")

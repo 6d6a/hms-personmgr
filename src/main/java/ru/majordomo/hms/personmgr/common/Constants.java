@@ -46,6 +46,8 @@ public class Constants {
     public static final String TOKEN_KEY = "token";
     public static final String TYPE_KEY = "type";
     public static final String ACC_ID_KEY = "acc_id";
+    public static final String DELETE_KEY = "delete";
+    public static final String ERROR_MESSAGE_KEY = "errorMessage";
     public static final String IP_KEY = "ip";
     public static final String CLIENT_ID_KEY = "client_id";
     public static final String EMAIL_KEY = "email";
