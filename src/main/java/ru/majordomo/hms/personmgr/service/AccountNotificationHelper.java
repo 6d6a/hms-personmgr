@@ -7,7 +7,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
-import ru.majordomo.hms.personmgr.common.message.NotificationServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
@@ -37,6 +36,9 @@ import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
 
 @Service
 public class AccountNotificationHelper {
+
+    private static final String EMAIL = "EMAIL";
+    private static final String SMS = "SMS";
 
     private final static Logger logger = LoggerFactory.getLogger(AccountNotificationHelper.class);
 
@@ -100,33 +102,54 @@ public class AccountNotificationHelper {
         return number.setScale(2, BigDecimal.ROUND_DOWN).toString();
     }
 
-    public void sendNotification(NotificationServiceMessage message) {
+    public void sendNotification(SimpleServiceMessage message) {
 
         PersonalAccount account = accountManager.findOne(message.getAccountId());
 
         if (account == null) {
-            throw new ParameterValidationException("Catch exception in onEmailProxyEvent. Аккаунт с id " + message.getAccountId() + " не найден");
+            throw new ParameterValidationException(this.getClass().getSimpleName() + " Аккаунт с id " + message.getAccountId() + " не найден");
         }
 
-        switch (message.getNotificationType()){
+        Map<String, Object> params = message.getParams();
+        if (params == null || params.isEmpty()) {
+            throw  new ParameterValidationException(this.getClass().getSimpleName() + " Отсутствуют необходимые параметры params " + message);
+        }
+
+        Map<String, String> paramsForMailManager;
+
+        if (params.containsKey(PARAMETRS_KEY) && params.get(PARAMETRS_KEY) != null) {
+            paramsForMailManager = (Map<String, String>) params.get(PARAMETRS_KEY);
+        } else {
+            paramsForMailManager = new HashMap<>();
+        }
+
+        paramsForMailManager.put(CLIENT_ID_KEY, account.getAccountId());
+        paramsForMailManager.put(ACC_ID_KEY, account.getName());
+
+        int priority = 5;
+        if (params.containsKey(PRIORITY_KEY)) { priority = (Integer) params.get(PRIORITY_KEY); }
+
+        String apiName = (String) params.get(API_NAME_KEY);
+
+        switch ((String) params.get(TYPE_KEY)){
             case EMAIL:
                 this.sendMail(
                         account,
-                        message.getApiName(),
-                        message.getPriority(),
-                        message.getParams()
+                        apiName,
+                        priority,
+                        paramsForMailManager
                 );
                 break;
             case SMS:
                 this.sendSms(
                         account,
-                        message.getApiName(),
-                        message.getPriority(),
-                        message.getParams()
+                        apiName,
+                        priority,
+                        paramsForMailManager
                 );
                 break;
             default:
-                logger.error("Not implemented NotificationType " + message.getNotificationType());
+                throw  new ParameterValidationException("Not implemented NotificationType " + params.get(TYPE_KEY));
         }
     }
 

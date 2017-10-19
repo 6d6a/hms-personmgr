@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.Views;
-import ru.majordomo.hms.personmgr.common.message.NotificationServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
@@ -77,7 +76,7 @@ public class NotificationRestController extends CommonRestController {
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/notifications/send-to-client")
     public ResponseEntity<SimpleServiceMessage> sendNotificationFromServiceToMailManager(
-            @RequestBody NotificationServiceMessage message
+            @RequestBody SimpleServiceMessage message
     ) {
         accountNotificationHelper.sendNotification(message);
         return ResponseEntity.ok().build();
