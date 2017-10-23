@@ -355,8 +355,7 @@ public abstract class Processor {
                 finFeignClient.addPayment(payment);
                 accountHistoryService.addMessage(
                         account.getId(),
-                        "При смене тарифа с " + currentPlan.getName() +
-                                " на " + newPlan.getName() + " начислено " + cashBackAmount + " руб.",
+                        "Возврат средств при отказе от абонемента: " + cashBackAmount + " руб.",
                         operator);
             } catch (Exception e) {
                 e.printStackTrace();
