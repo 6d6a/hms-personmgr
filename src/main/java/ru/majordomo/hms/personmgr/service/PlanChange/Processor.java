@@ -353,6 +353,11 @@ public abstract class Processor {
 
             try {
                 finFeignClient.addPayment(payment);
+                accountHistoryService.addMessage(
+                        account.getId(),
+                        "При смене тарифа с " + currentPlan.getName() +
+                                " на " + newPlan.getName() + " начислено " + cashBackAmount + " руб.",
+                        operator);
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("[PlanChangeProcessor] Exception in executeCashBackPayment: " + e.getMessage());
