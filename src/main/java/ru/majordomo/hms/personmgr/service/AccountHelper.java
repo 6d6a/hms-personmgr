@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -280,19 +281,21 @@ public class AccountHelper {
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service) {
         BigDecimal amount = service.getCost();
 
-        return charge(account, service, amount, false, false);
+        return charge(account, service, amount, false, false, LocalDateTime.now());
     }
 
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount) {
-        return charge(account, service, amount, false, false);
+        return charge(account, service, amount, false, false, LocalDateTime.now());
     }
 
-    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount, Boolean forceCharge, Boolean bonusChargeProhibited) {
+    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount, Boolean forceCharge, Boolean bonusChargeProhibited, LocalDateTime chargeDate) {
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", service.getId());
         paymentOperation.put("amount", amount);
         paymentOperation.put("forceCharge", forceCharge);
         paymentOperation.put("bonusChargeProhibited", bonusChargeProhibited);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        paymentOperation.put("chargeDate", chargeDate.format(formatter));
 
         SimpleServiceMessage response;
 
