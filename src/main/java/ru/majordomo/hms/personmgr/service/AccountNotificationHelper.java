@@ -10,30 +10,35 @@ import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.rc.user.resources.*;
+import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
 
 @Service
 public class AccountNotificationHelper {
+
+    private static final String EMAIL = "EMAIL";
+    private static final String SMS = "SMS";
 
     private final static Logger logger = LoggerFactory.getLogger(AccountNotificationHelper.class);
 
@@ -42,6 +47,7 @@ public class AccountNotificationHelper {
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final NotificationRepository notificationRepository;
+    private final PersonalAccountManager accountManager;
 
     @Autowired
     public AccountNotificationHelper(
@@ -49,13 +55,15 @@ public class AccountNotificationHelper {
             PlanRepository planRepository,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
-            NotificationRepository notificationRepository
+            NotificationRepository notificationRepository,
+            PersonalAccountManager accountManager
     ) {
         this.publisher = publisher;
         this.planRepository = planRepository;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
         this.notificationRepository = notificationRepository;
+        this.accountManager = accountManager;
     }
 
     public String getCostAbonementForEmail(Plan plan) {
@@ -94,27 +102,78 @@ public class AccountNotificationHelper {
         return number.setScale(2, BigDecimal.ROUND_DOWN).toString();
     }
 
+    public void sendNotification(SimpleServiceMessage message) {
+
+        PersonalAccount account = accountManager.findOne(message.getAccountId());
+
+        if (account == null) {
+            throw new ParameterValidationException(this.getClass().getSimpleName() + " Аккаунт с id " + message.getAccountId() + " не найден");
+        }
+
+        Map<String, Object> params = message.getParams();
+        if (params == null || params.isEmpty()) {
+            throw  new ParameterValidationException(this.getClass().getSimpleName() + " Отсутствуют необходимые параметры params " + message);
+        }
+
+        Map<String, String> paramsForMailManager;
+
+        if (params.containsKey(PARAMETRS_KEY) && params.get(PARAMETRS_KEY) != null) {
+            paramsForMailManager = (Map<String, String>) params.get(PARAMETRS_KEY);
+        } else {
+            paramsForMailManager = new HashMap<>();
+        }
+
+        paramsForMailManager.put(CLIENT_ID_KEY, account.getAccountId());
+        paramsForMailManager.put(ACC_ID_KEY, account.getName());
+
+        int priority = 5;
+        if (params.containsKey(PRIORITY_KEY)) { priority = (Integer) params.get(PRIORITY_KEY); }
+
+        String apiName = (String) params.get(API_NAME_KEY);
+
+        switch ((String) params.get(TYPE_KEY)){
+            case EMAIL:
+                this.sendMail(
+                        account,
+                        apiName,
+                        priority,
+                        paramsForMailManager
+                );
+                break;
+            case SMS:
+                this.sendSms(
+                        account,
+                        apiName,
+                        priority,
+                        paramsForMailManager
+                );
+                break;
+            default:
+                throw  new ParameterValidationException("Not implemented NotificationType " + params.get(TYPE_KEY));
+        }
+    }
+
     /*
      * отправим письмо на все ящики аккаунта
      * по умолчанию приоритет 5
      */
 
-    public void sendMail(PersonalAccount account, String apiName, HashMap<String, String> parameters) {
+    public void sendMail(PersonalAccount account, String apiName, Map<String, String> parameters) {
         this.sendMail(account, apiName, 5, parameters);
     }
 
-    public void sendMail(PersonalAccount account, String apiName, int priority, HashMap<String, String> parameters) {
+    public void sendMail(PersonalAccount account, String apiName, int priority, Map<String, String> parameters) {
 
         String email = accountHelper.getEmail(account);
         SimpleServiceMessage message = new SimpleServiceMessage();
 
         message.setAccountId(account.getId());
         message.setParams(new HashMap<>());
-        message.addParam("email", email);
-        message.addParam("api_name", apiName);
-        message.addParam("priority", priority);
+        message.addParam(EMAIL_KEY, email);
+        message.addParam(API_NAME_KEY, apiName);
+        message.addParam(PRIORITY_KEY, priority);
         if (parameters != null) {
-            message.addParam("parametrs", parameters);
+            message.addParam(PARAMETRS_KEY, parameters);
         }
 
         publisher.publishEvent(new SendMailEvent(message));
@@ -123,7 +182,7 @@ public class AccountNotificationHelper {
     public void sendMailForDeactivatedAccount(PersonalAccount account, LocalDate dateFinish) {
         Plan plan = planRepository.findOne(account.getPlanId());
         BigDecimal costPerMonth = plan.getService().getCost().setScale(2, BigDecimal.ROUND_DOWN);
-        HashMap<String, String> parameters = new HashMap<>();
+        Map<String, String> parameters = new HashMap<>();
 
         parameters.put("acc_id", account.getName());
         parameters.put("date_finish", dateFinish.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
@@ -135,9 +194,9 @@ public class AccountNotificationHelper {
     }
 
     public void sendInfoMail(PersonalAccount account, String apiName) {
-        HashMap<String, String> parameters = new HashMap<>();
+        Map<String, String> parameters = new HashMap<>();
 
-        parameters.put("client_id", account.getAccountId());
+        parameters.put(CLIENT_ID_KEY, account.getAccountId());
         this.sendMail(account, apiName, 1, parameters);
     }
 
@@ -153,7 +212,7 @@ public class AccountNotificationHelper {
         sendSms(account, apiName, priority, null);
     }
 
-    public void sendSms(PersonalAccount account, String apiName, int priority, HashMap<String, String> parameters) {
+    public void sendSms(PersonalAccount account, String apiName, int priority, Map<String, String> parameters) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         String smsPhone = account.getSmsPhoneNumber();
         if (smsPhone == null || smsPhone.equals("")) {
@@ -181,13 +240,13 @@ public class AccountNotificationHelper {
         message.setAccountId(account.getId());
         message.setParams(new HashMap<>());
         message.addParam("phone", smsPhoneForMailManager);
-        message.addParam("api_name", apiName);
-        message.addParam("priority", priority);
+        message.addParam(API_NAME_KEY, apiName);
+        message.addParam(PRIORITY_KEY, priority);
         if (parameters != null && !parameters.isEmpty()) {
-            message.addParam("parametrs", parameters);
+            message.addParam(PARAMETRS_KEY, parameters);
         } else {
             parameters = new HashMap<>();
-            parameters.put("client_id", account.getId());
+            parameters.put(CLIENT_ID_KEY, account.getId());
         }
         publisher.publishEvent(new SendSmsEvent(message));
     }

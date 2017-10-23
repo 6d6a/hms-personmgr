@@ -7,7 +7,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;

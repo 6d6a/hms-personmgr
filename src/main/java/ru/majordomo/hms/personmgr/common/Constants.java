@@ -44,9 +44,16 @@ public class Constants {
     public static final String PASSWORD_KEY = "password";
     public static final String NAME_KEY = "name";
     public static final String TOKEN_KEY = "token";
+    public static final String TYPE_KEY = "type";
+    public static final String ACC_ID_KEY = "acc_id";
     public static final String DELETE_KEY = "delete";
     public static final String ERROR_MESSAGE_KEY = "errorMessage";
     public static final String IP_KEY = "ip";
+    public static final String CLIENT_ID_KEY = "client_id";
+    public static final String EMAIL_KEY = "email";
+    public static final String PRIORITY_KEY = "priority";
+    public static final String PARAMETRS_KEY = "parametrs";
+    public static final String API_NAME_KEY = "api_name";
     public static final String SERVICE_NAME_KEY = "serviceName";
     public static final String DOMAINS_KEY = "domains";
     public static final String HISTORY_MESSAGE_KEY = "historyMessage";

@@ -7,28 +7,30 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.Views;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
+import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 @RestController
 @Validated
 public class NotificationRestController extends CommonRestController {
     private final NotificationRepository notificationRepository;
+    private final AccountNotificationHelper accountNotificationHelper;
 
     @Autowired
     public NotificationRestController(
-            NotificationRepository notificationRepository
+            NotificationRepository notificationRepository,
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.notificationRepository = notificationRepository;
+        this.accountNotificationHelper = accountNotificationHelper;
     }
 
     @JsonView(Views.Public.class)
@@ -69,5 +71,14 @@ public class NotificationRestController extends CommonRestController {
         }
 
         return new ResponseEntity<>(notification, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/notifications/send-to-client")
+    public ResponseEntity<SimpleServiceMessage> sendNotificationFromServiceToMailManager(
+            @RequestBody SimpleServiceMessage message
+    ) {
+        accountNotificationHelper.sendNotification(message);
+        return ResponseEntity.ok().build();
     }
 }
