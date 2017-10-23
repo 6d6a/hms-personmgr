@@ -353,6 +353,10 @@ public abstract class Processor {
 
             try {
                 finFeignClient.addPayment(payment);
+                accountHistoryService.addMessage(
+                        account.getId(),
+                        "Возврат средств при отказе от абонемента: " + cashBackAmount + " руб.",
+                        operator);
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("[PlanChangeProcessor] Exception in executeCashBackPayment: " + e.getMessage());
