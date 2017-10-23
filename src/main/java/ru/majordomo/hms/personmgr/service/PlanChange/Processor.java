@@ -360,7 +360,7 @@ public abstract class Processor {
             }
         } else if (cashBackAmount.compareTo(BigDecimal.ZERO) < 0) {
             //Списать деньги
-            accountHelper.charge(account, currentPlan.getService(), cashBackAmount.abs(), forceCharge, false);
+            accountHelper.charge(account, currentPlan.getService(), cashBackAmount.abs(), forceCharge, false, LocalDateTime.now());
         }
     }
 

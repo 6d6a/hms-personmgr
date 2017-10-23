@@ -97,7 +97,8 @@ public class RegularToRegular extends Processor {
                     getAccount(), abonement.getService(),
                     abonement.getService().getCost(),
                     getIgnoreRestricts(),
-                    false
+                    false,
+                    LocalDateTime.now()
             );
             addAccountAbonement(abonement);
 
