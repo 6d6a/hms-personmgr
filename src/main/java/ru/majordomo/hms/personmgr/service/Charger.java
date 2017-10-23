@@ -72,7 +72,7 @@ public class Charger {
         }
 
         if (response != null && response.getParam("success") != null && ((boolean) response.getParam("success"))) {
-            if (accountService.getLastBilled().isBefore(chargeDateTime)) {
+            if (accountService.getLastBilled() == null || accountService.getLastBilled().isBefore(chargeDateTime)) {
                 accountService.setLastBilled(chargeDateTime);
             }
             accountServiceRepository.save(accountService);
