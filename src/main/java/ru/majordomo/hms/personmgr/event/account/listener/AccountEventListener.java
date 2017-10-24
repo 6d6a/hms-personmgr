@@ -258,7 +258,7 @@ public class AccountEventListener {
             }
 
             // Проверка даты создания аккаунта
-            if (account.getCreated().isBefore(accountForPartnerBonus.getCreated().plusYears(1))) {
+            if (account.getCreated().isAfter(LocalDateTime.now().minusYears(1))) {
                 // Все условия выполнены
 
                 BigDecimal percent = new BigDecimal(BONUS_PARTNER_PERCENT);
