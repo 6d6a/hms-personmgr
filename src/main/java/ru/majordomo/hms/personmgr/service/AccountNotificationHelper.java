@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
@@ -48,6 +49,7 @@ public class AccountNotificationHelper {
     private final AccountServiceHelper accountServiceHelper;
     private final NotificationRepository notificationRepository;
     private final PersonalAccountManager accountManager;
+    private final String finEmail;
 
     @Autowired
     public AccountNotificationHelper(
@@ -56,7 +58,8 @@ public class AccountNotificationHelper {
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
             NotificationRepository notificationRepository,
-            PersonalAccountManager accountManager
+            PersonalAccountManager accountManager,
+            @Value("${mail_manager.department.fin}") String finEmail
     ) {
         this.publisher = publisher;
         this.planRepository = planRepository;
@@ -64,6 +67,7 @@ public class AccountNotificationHelper {
         this.accountServiceHelper = accountServiceHelper;
         this.notificationRepository = notificationRepository;
         this.accountManager = accountManager;
+        this.finEmail = finEmail;
     }
 
     public String getCostAbonementForEmail(Plan plan) {
@@ -281,5 +285,28 @@ public class AccountNotificationHelper {
         return account.getNotifications().stream()
                 .anyMatch(mailManagerMessageType -> mailManagerMessageType.name().startsWith("SMS_")
                         && activeNotificationTypes.contains(mailManagerMessageType));
+    }
+
+    public void sendEmailToFinDepartment(String apiName, String personalAccountId, Map<String, String> parameters){
+        this.sendInternalEmail(finEmail, apiName, personalAccountId, 10, parameters);
+    }
+
+    public void sendInternalEmail(String departmentEmail, String apiName, String personalAccountId, int priority, Map<String, String> parameters){
+        SimpleServiceMessage message = new SimpleServiceMessage();
+
+        message.setAccountId(personalAccountId);
+        message.setParams(new HashMap<>());
+        message.addParam(EMAIL_KEY, departmentEmail);
+        message.addParam(API_NAME_KEY, apiName);
+        message.addParam(PRIORITY_KEY, priority);
+
+        if (parameters == null || parameters.isEmpty()) {
+            parameters = new HashMap<>();
+            parameters.put(CLIENT_ID_KEY, message.getAccountId());
+        }
+
+        message.addParam(PARAMETRS_KEY, parameters);
+
+        publisher.publishEvent(new SendMailEvent(message));
     }
 }

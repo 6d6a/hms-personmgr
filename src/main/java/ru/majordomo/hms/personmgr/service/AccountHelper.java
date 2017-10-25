@@ -108,6 +108,16 @@ public class AccountHelper {
         return clientEmails;
     }
 
+    public AccountOwner getOwnerByPersonalAccountId(String personalAccountId){
+        return accountOwnerManager.findOneByPersonalAccountId(personalAccountId);
+    }
+
+    public AccountOwner.Type getOwnerType(String personalAccountId){
+        AccountOwner accountOwner = getOwnerByPersonalAccountId(personalAccountId);
+        if (accountOwner == null) {throw  new ResourceNotFoundException("Не найден владелец аккаунта с personalAccountId " + personalAccountId); }
+        return accountOwner.getType();
+    }
+
     public List<String> getEmails(PersonalAccount account) {
         AccountOwner currentOwner = accountOwnerManager.findOneByPersonalAccountId(account.getId());
 
