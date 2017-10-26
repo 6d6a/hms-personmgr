@@ -133,6 +133,21 @@ public class AccountEventListener {
 
     @EventListener
     @Async("threadPoolTaskExecutor")
+    public void onAccountNotifyFinOnChangeAbonementEvent(AccountNotifyFinOnChangeAbonementEvent event) {
+        PersonalAccount account = event.getSource();
+
+        logger.debug("We got AccountNotifyFinOnChangeAbonementEvent");
+
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getName());
+        parameters.put("type", accountHelper.getOwnerType(account.getId()).name());
+
+        accountNotificationHelper.sendEmailToFinDepartment("HmsVHMajordomoCompanyChangeAbonement", account.getId(), parameters);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
     public void onAccountPasswordRecover(AccountPasswordRecoverEvent event) {
         PersonalAccount account = event.getSource();
         Map<String, ?> params = event.getParams();

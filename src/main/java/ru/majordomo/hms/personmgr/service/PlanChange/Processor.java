@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -11,6 +12,7 @@ import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -62,6 +64,7 @@ public abstract class Processor {
     private PlanChangeAgreement requestPlanChangeAgreement;
     private String operator = "operator";
     private Boolean ignoreRestricts = false;
+    private Boolean changeAbonementToAbonement;
 
     Processor(PersonalAccount account, Plan newPlan) {
         this.account = account;
@@ -72,6 +75,7 @@ public abstract class Processor {
         this.currentPlan = planRepository.findOne(account.getPlanId());
         this.cashBackAmount = calcCashBackAmount();
         this.newAbonementRequired = needToAddAbonement();
+        this.changeAbonementToAbonement = getChangeAbonementToAbonement();
     }
 
     //Services
@@ -176,6 +180,12 @@ public abstract class Processor {
     //Methods
     abstract Boolean needToAddAbonement();
 
+    private Boolean getChangeAbonementToAbonement() {
+        AccountAbonement accountAbonement = getAccountAbonementManager().findByPersonalAccountId(getAccount().getId());
+
+        return accountAbonement != null && getNewAbonementRequired();
+    }
+
     abstract BigDecimal calcCashBackAmount();
 
     abstract void deleteServices();
@@ -200,6 +210,9 @@ public abstract class Processor {
 
         //При необходимости отправляем письмо в саппорт
         supportNotification();
+
+        //При необходимости отправляем письмо в фин-отдел
+        finNotification();
 
         //Сохраним статистику смены тарифа
         saveStat();
@@ -403,6 +416,27 @@ public abstract class Processor {
         } else {
             return true;
         }
+    }
+
+    /**
+     * Является ли это сменой одного абонемента на другой с владельцем юр-лицом или ИП
+     */
+    private boolean isCompanyChangeAbonementToAbonement() {
+        AccountOwner accountOwner = accountHelper.getOwnerByPersonalAccountId(account.getId());
+
+        if (accountOwner == null) { return false;}
+
+        if (!accountOwner.getType().equals(AccountOwner.Type.COMPANY)
+                && !accountOwner.getType().equals(AccountOwner.Type.BUDGET_COMPANY)
+        ) {
+            return false;
+        }
+
+        return isChangeAbonementToAbonement();
+    }
+
+    protected boolean isChangeAbonementToAbonement() {
+        return changeAbonementToAbonement;
     }
 
     /**
@@ -651,6 +685,12 @@ public abstract class Processor {
     private void supportNotification() {
         if (isFromRegularToBusiness()) {
             publisher.publishEvent(new AccountNotifySupportOnChangePlanEvent(account));
+        }
+    }
+
+    private void finNotification() {
+        if (isCompanyChangeAbonementToAbonement()) {
+            publisher.publishEvent(new AccountNotifyFinOnChangeAbonementEvent(account));
         }
     }
 
