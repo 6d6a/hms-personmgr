@@ -7,13 +7,10 @@ import org.jongo.MongoCollection;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import ru.majordomo.hms.personmgr.dto.ClassWithListProperty;
+import ru.majordomo.hms.personmgr.dto.IdsContainer;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 @Service
 public class JongoManager {
@@ -30,10 +27,10 @@ public class JongoManager {
 
         MongoCollection balanceCollection = this.jongo.getCollection("accountAbonement");
 
-        Aggregate.ResultsIterator<ClassWithListProperty> resultsIterator = balanceCollection
+        Aggregate.ResultsIterator<IdsContainer> resultsIterator = balanceCollection
                 .aggregate("{$match:{}}")
                 .and("{$group:{_id:\"class\",ids:{$addToSet:\"$personalAccountId\"}}}")
-                .as(ClassWithListProperty.class);
+                .as(IdsContainer.class);
 
 
         List<String> ids = new ArrayList<>();
@@ -52,12 +49,12 @@ public class JongoManager {
                 .and("{$lookup:{from:\"plan\",localField:\"serviceId\",foreignField:\"serviceId\",as:\"planService\"}}")
                 .and("{$match:{planService:{$exists:1}}}")
                 .and("{$group:{_id:\"class\",ids:{$addToSet:\"$personalAccountId\"}}}");
-        Aggregate.ResultsIterator resultsIterator = aggregate.as(ClassWithListProperty.class);
+        Aggregate.ResultsIterator resultsIterator = aggregate.as(IdsContainer.class);
 
         List<String> ids = new ArrayList<>();
 
         while (resultsIterator.hasNext()) {
-            ClassWithListProperty element = (ClassWithListProperty) resultsIterator.next();
+            IdsContainer element = (IdsContainer) resultsIterator.next();
             ids = element.getIds();
         }
         return ids;
@@ -66,10 +63,10 @@ public class JongoManager {
     public List<String> getPlanServiceIds(){
         MongoCollection balanceCollection = this.jongo.getCollection("plan");
 
-        Aggregate.ResultsIterator<ClassWithListProperty> resultsIterator = balanceCollection.aggregate(
+        Aggregate.ResultsIterator<IdsContainer> resultsIterator = balanceCollection.aggregate(
                 "{$match:{}}")
                 .and("{$group:{_id:\"class\",ids:{$addToSet:\"$serviceId\"}}}")
-                .as(ClassWithListProperty.class);
+                .as(IdsContainer.class);
 
 
         List<String> planIds = new ArrayList<>();
@@ -86,18 +83,18 @@ public class JongoManager {
 //
 //        Aggregate aggregate = balanceCollection
 //                .aggregate("{$match:{active:true}}")
-//                .and("{$group:{_id:\"class\",ids:{$addToSet:\"$_id\"}}}");
-//        Aggregate.ResultsIterator resultsIterator = aggregate.as(ClassWithListProperty.class);
+//                // не работает
+//                /*{ $project:{ stringId:{ $concat: [ ObjectId().str ] }}}*/
+//                .and("{$group:{_id:'class',ids:{$addToSet:'$_id'}}}");
+//        Aggregate.ResultsIterator<IdsContainer> resultsIterator = aggregate.as(IdsContainer.class);
 //
 //        List<String> ids = new ArrayList<>();
 //
 //        while (resultsIterator.hasNext()) {
-//            ClassWithListProperty element = (ClassWithListProperty) resultsIterator.next();
+//            IdsContainer element = resultsIterator.next();
 //            ids = element.getIds();
 //        }
 //
-//        List<String> result = new ArrayList<>();
-//        ids.forEach(e -> result.add(e.toString()));
 //        return ids;
 //    }
 }

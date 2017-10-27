@@ -2,7 +2,7 @@ package ru.majordomo.hms.personmgr.dto;
 
 import java.util.List;
 
-public class ClassWithListProperty {
+public class IdsContainer {
     private List<String> ids;
 
     public List<String> getIds() {
