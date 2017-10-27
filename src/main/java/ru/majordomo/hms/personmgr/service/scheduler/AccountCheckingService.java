@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.service.scheduler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -42,7 +43,7 @@ public class AccountCheckingService {
         this.jongoManager = jongoManager;
     }
 
-//    @Scheduled(initialDelay = 10000, fixedDelay = 6000000)
+    //    @Scheduled(initialDelay = 10000, fixedDelay = 6000000)
     public void checkAbonementsWithServices() {
         logger.info("[checkAbonementsWithServices] Started");
         List<AccountAbonement> accountAbonements = accountAbonementManager.findAll();
@@ -50,7 +51,7 @@ public class AccountCheckingService {
         logger.info("[checkAbonementsWithServices] Ended");
     }
 
-//    @Scheduled(initialDelay = 10000, fixedDelay = 6000000)
+    //    @Scheduled(initialDelay = 10000, fixedDelay = 6000000)
     public void checkAccountsWithoutServices() {
         logger.info("[checkAccountsWithoutServices] Started");
         List<PersonalAccount> accounts = personalAccountManager.findAll();
@@ -58,17 +59,17 @@ public class AccountCheckingService {
         logger.info("[checkAccountsWithoutServices] Ended");
     }
 
-//    @Scheduled(initialDelay = 10000, fixedDelay = 6000000)
+    //    @Scheduled(initialDelay = 10000, fixedDelay = 6000000)
     public void doShit() {
         logger.info("[doShit] Started");
         List<Plan> plans = planRepository.findAll();
         plans.parallelStream()
                 .filter(plan -> {
-                    VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
+                            VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
 
-                    return planProperties.getSitesLimit().getFreeLimit() != -1;
-                }
-        ).forEach(this::doShit);
+                            return planProperties.getSitesLimit().getFreeLimit() != -1;
+                        }
+                ).forEach(this::doShit);
         logger.info("[doShit] Ended");
     }
 
@@ -135,5 +136,19 @@ public class AccountCheckingService {
         logger.info("accountWithoutServiceAndAbonement " + accountWithoutServiceAndAbonement.size());
 
         return accountWithoutServiceAndAbonement;
+    }
+
+    public List<String> getAccountIdsWithMoreThanOnePlanService(boolean accountActiveState) {
+        List<String> activeAndDisabledAccountIds = jongoManager.getAccountIdsWithMoreThanOnePlanService();
+
+        if (accountActiveState) {
+
+            List<String> activeAccountIds = personalAccountManager.findAccountIdsByActiveAndNotDeleted(true);
+
+            return activeAndDisabledAccountIds.stream()
+                    .filter(id -> activeAccountIds.contains(id)).collect(Collectors.toList());
+        } else {
+            return activeAndDisabledAccountIds;
+        }
     }
 }

@@ -27,18 +27,11 @@ public class JongoManager {
 
         MongoCollection collection = this.jongo.getCollection("accountAbonement");
 
-        Aggregate.ResultsIterator<IdsContainer> resultsIterator = collection
+        Aggregate aggregate = collection
                 .aggregate("{$match:{}}")
-                .and("{$group:{_id:\"class\",ids:{$addToSet:\"$personalAccountId\"}}}")
-                .as(IdsContainer.class);
+                .and("{$group:{_id:'class',ids:{$addToSet:'$personalAccountId'}}}");
 
-
-        List<String> ids = new ArrayList<>();
-
-        while (resultsIterator.hasNext()) {
-            ids = resultsIterator.next().getIds();
-        }
-        return ids;
+        return getIds(aggregate);
     }
 
     public List<String> getAccountIdWithPlanService(){
@@ -46,35 +39,45 @@ public class JongoManager {
 
         Aggregate aggregate = collection
                 .aggregate("{$match:{enabled:true}}")
-                .and("{$lookup:{from:\"plan\",localField:\"serviceId\",foreignField:\"serviceId\",as:\"planService\"}}")
-                .and("{$match:{planService:{$exists:1}}}")
-                .and("{$group:{_id:\"class\",ids:{$addToSet:\"$personalAccountId\"}}}");
-        Aggregate.ResultsIterator resultsIterator = aggregate.as(IdsContainer.class);
+                .and("{$lookup:{from:'plan',localField:'serviceId',foreignField:'serviceId',as:'planService'}}")
+                .and("{$match:{planService:{$size:1}}}")
+                .and("{$group:{_id:'class',ids:{$addToSet:'$personalAccountId'}}}");
 
-        List<String> ids = new ArrayList<>();
-
-        while (resultsIterator.hasNext()) {
-            IdsContainer element = (IdsContainer) resultsIterator.next();
-            ids = element.getIds();
-        }
-        return ids;
+        return getIds(aggregate);
     }
 
     public List<String> getPlanServiceIds(){
         MongoCollection collection = this.jongo.getCollection("plan");
 
-        Aggregate.ResultsIterator<IdsContainer> resultsIterator = collection.aggregate(
+        Aggregate aggregate = collection.aggregate(
                 "{$match:{}}")
-                .and("{$group:{_id:\"class\",ids:{$addToSet:\"$serviceId\"}}}")
-                .as(IdsContainer.class);
+                .and("{$group:{_id:'class',ids:{$addToSet:'$serviceId'}}}");
 
+        return getIds(aggregate);
+    }
 
-        List<String> planIds = new ArrayList<>();
+    public List<String> getAccountIdsWithMoreThanOnePlanService(){
+        MongoCollection collection = this.jongo.getCollection("accountService");
 
-        while (resultsIterator.hasNext()) {
-            planIds = resultsIterator.next().getIds();
+        Aggregate aggregate = collection
+                .aggregate("{$match:{enabled:true}}")
+                .and("{$lookup:{from:'plan',localField:'serviceId',foreignField:'serviceId',as:'planService'}}")
+                .and("{$match:{planService:{$size:1}}}")
+                .and("{$group:{_id:'$personalAccountId', class:{$first:'$_class'}, quantity:{$sum:'$quantity'}}}")
+                .and("{$match:{quantity:{$gt:1}}}")
+                .and("{$group:{_id:'class',ids:{$addToSet:'$_id'}}}");
+
+        return getIds(aggregate);
+    }
+
+    private List<String> getIds(Aggregate aggregate){
+        Aggregate.ResultsIterator<IdsContainer> resultsIterator = aggregate.as(IdsContainer.class);
+
+        if (resultsIterator.hasNext()) {
+            return resultsIterator.next().getIds();
+        } else {
+            return new ArrayList<>();
         }
-        return planIds;
     }
 
     // не получается избавиться от ObjectId
@@ -86,16 +89,8 @@ public class JongoManager {
 //                // не работает
 //                /*{ $project:{ stringId:{ $concat: [ ObjectId().str ] }}}*/
 //                .and("{$group:{_id:'class',ids:{$addToSet:'$_id'}}}");
-//        Aggregate.ResultsIterator<IdsContainer> resultsIterator = aggregate.as(IdsContainer.class);
 //
-//        List<String> ids = new ArrayList<>();
-//
-//        while (resultsIterator.hasNext()) {
-//            IdsContainer element = resultsIterator.next();
-//            ids = element.getIds();
-//        }
-//
-//        return ids;
+//        return getIds(aggregate);
 //    }
 }
 
