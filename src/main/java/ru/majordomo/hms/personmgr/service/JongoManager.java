@@ -25,9 +25,9 @@ public class JongoManager {
 
     public List<String> getAccountIdsWithAbonement() {
 
-        MongoCollection balanceCollection = this.jongo.getCollection("accountAbonement");
+        MongoCollection collection = this.jongo.getCollection("accountAbonement");
 
-        Aggregate.ResultsIterator<IdsContainer> resultsIterator = balanceCollection
+        Aggregate.ResultsIterator<IdsContainer> resultsIterator = collection
                 .aggregate("{$match:{}}")
                 .and("{$group:{_id:\"class\",ids:{$addToSet:\"$personalAccountId\"}}}")
                 .as(IdsContainer.class);
@@ -42,9 +42,9 @@ public class JongoManager {
     }
 
     public List<String> getAccountIdWithPlanService(){
-        MongoCollection balanceCollection = this.jongo.getCollection("accountService");
+        MongoCollection collection = this.jongo.getCollection("accountService");
 
-        Aggregate aggregate = balanceCollection
+        Aggregate aggregate = collection
                 .aggregate("{$match:{enabled:true}}")
                 .and("{$lookup:{from:\"plan\",localField:\"serviceId\",foreignField:\"serviceId\",as:\"planService\"}}")
                 .and("{$match:{planService:{$exists:1}}}")
@@ -61,9 +61,9 @@ public class JongoManager {
     }
 
     public List<String> getPlanServiceIds(){
-        MongoCollection balanceCollection = this.jongo.getCollection("plan");
+        MongoCollection collection = this.jongo.getCollection("plan");
 
-        Aggregate.ResultsIterator<IdsContainer> resultsIterator = balanceCollection.aggregate(
+        Aggregate.ResultsIterator<IdsContainer> resultsIterator = collection.aggregate(
                 "{$match:{}}")
                 .and("{$group:{_id:\"class\",ids:{$addToSet:\"$serviceId\"}}}")
                 .as(IdsContainer.class);
@@ -79,9 +79,9 @@ public class JongoManager {
 
     // не получается избавиться от ObjectId
 //    public List<String> getActiveAccountIds() {
-//        MongoCollection balanceCollection = this.jongo.getCollection("personalAccount");
+//        MongoCollection collection = this.jongo.getCollection("personalAccount");
 //
-//        Aggregate aggregate = balanceCollection
+//        Aggregate aggregate = collection
 //                .aggregate("{$match:{active:true}}")
 //                // не работает
 //                /*{ $project:{ stringId:{ $concat: [ ObjectId().str ] }}}*/
