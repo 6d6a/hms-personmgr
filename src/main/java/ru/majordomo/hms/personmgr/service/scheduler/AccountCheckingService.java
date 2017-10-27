@@ -2,13 +2,13 @@ package ru.majordomo.hms.personmgr.service.scheduler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -18,6 +18,7 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
+import ru.majordomo.hms.personmgr.service.JongoManager;
 
 @Service
 public class AccountCheckingService {
@@ -26,17 +27,20 @@ public class AccountCheckingService {
     private final AccountAbonementManager accountAbonementManager;
     private final PlanRepository planRepository;
     private final AccountServiceHelper accountServiceHelper;
+    private final JongoManager jongoManager;
 
     public AccountCheckingService(
             PersonalAccountManager personalAccountManager,
             AccountAbonementManager accountAbonementManager,
             PlanRepository planRepository,
-            AccountServiceHelper accountServiceHelper
+            AccountServiceHelper accountServiceHelper,
+            JongoManager jongoManager
     ) {
         this.personalAccountManager = personalAccountManager;
         this.accountAbonementManager = accountAbonementManager;
         this.planRepository = planRepository;
         this.accountServiceHelper = accountServiceHelper;
+        this.jongoManager = jongoManager;
     }
 
 //    @Scheduled(initialDelay = 10000, fixedDelay = 6000000)
@@ -109,5 +113,28 @@ public class AccountCheckingService {
             logger.info("[doShit] found Plan : "
                     + plan.getName() + " id: " + plan.getId());
         }
+    }
+
+    public List<String> findAccountIdWithoutPlanServiceAndAbonement() {
+
+        List<String> activeAccountIds = personalAccountManager.findAccountIdsByActiveAndNotDeleted(true);
+        logger.info("activeAccountIds " + activeAccountIds.size());
+
+        List<String> activeAndDisabledAccountIdsWithPlanService = jongoManager.getAccountIdWithPlanService();
+        logger.info("activeAndDisabledAccountIdsWithPlanService " + activeAndDisabledAccountIdsWithPlanService.size());
+
+        List<String> accountIdWithoutPlanService = activeAccountIds
+                .stream()
+                .filter(id -> !activeAndDisabledAccountIdsWithPlanService.contains(id))
+                .collect(Collectors.toList());
+        logger.info("accountIdWithoutPlanService " + accountIdWithoutPlanService.size());
+
+        List<String> accountIdsWithAbonement = jongoManager.getAccountIdsWithAbonement();
+        logger.info("accountAbonementsIds " + accountIdsWithAbonement.size());
+        List<String> accountWithoutServiceAndAbonement = accountIdWithoutPlanService.stream().filter(e -> !accountIdsWithAbonement.contains(e)).collect(Collectors.toList());
+
+        logger.info("accountWithoutServiceAndAbonement " + accountWithoutServiceAndAbonement.size());
+
+        return accountWithoutServiceAndAbonement;
     }
 }
