@@ -14,7 +14,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/promocode")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('PROMOCODE_CREATE')")
 public class PromocodeRestController {
 
     private final PromocodeProcessor promocodeProcessor;
@@ -39,7 +39,7 @@ public class PromocodeRestController {
     }
 
     private Promocode generatePromocodeByParams(Map<String, String> message) {
-        if (message.get("plan").equals("unlimeted")) {
+        if (message.get("plan").equals("unlimited")) {
             if (message.get("period").equals("P1M")) {
                 return promocodeProcessor.generatePromocodeUnlimitedOneMonth();
             }
@@ -49,7 +49,7 @@ public class PromocodeRestController {
             }
         } else if (message.get("plan").equals("parking")) {
             if (message.get("period").equals("P3M")) {
-                return promocodeProcessor.generatePromocodeUnlimitedThreeMonth();
+                return promocodeProcessor.generatePromocodeParkingThreeMonth();
             }
         }
 
