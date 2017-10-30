@@ -80,6 +80,16 @@ public class JongoManager {
         }
     }
 
+    public List<String> getAccountIdsWithAbonementExpiredNull() {
+            MongoCollection collection = this.jongo.getCollection("accountAbonement");
+
+            Aggregate aggregate = collection
+                    .aggregate("{$match:{expired:null}}")
+                    .and("{$group:{_id:'class',ids:{$addToSet:'$personalAccountId'}}}");
+
+            return getIds(aggregate);
+    }
+
     // не получается избавиться от ObjectId
 //    public List<String> getActiveAccountIds() {
 //        MongoCollection collection = this.jongo.getCollection("personalAccount");

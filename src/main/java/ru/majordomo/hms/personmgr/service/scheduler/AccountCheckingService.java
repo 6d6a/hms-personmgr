@@ -151,4 +151,14 @@ public class AccountCheckingService {
             return activeAndDisabledAccountIds;
         }
     }
+
+    public List<String> getAccountIdsWithAbonementExpiredNull() {
+        return jongoManager.getAccountIdsWithAbonementExpiredNull();
+    }
+
+    public List<String> getAccountIdsWithAbonementAndPlan() {
+        List<String> withAbonement = jongoManager.getAccountIdsWithAbonement();
+        List<String> withPlan = jongoManager.getAccountIdWithPlanService();
+        return withPlan.stream().filter(id -> withAbonement.contains(id)).collect(Collectors.toList());
+    }
 }

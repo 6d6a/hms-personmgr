@@ -118,6 +118,10 @@ public class AccountHelper {
         return new ArrayList<>();
     }
 
+    public AccountOwner getOwner(PersonalAccount account){
+        return accountOwnerManager.findOneByPersonalAccountId(account.getId());
+    }
+
     /**
      * Получим баланс
      *

@@ -36,4 +36,14 @@ public class AccountCheckingServiceRestController {
     ){
         return ResponseEntity.ok(accountCheckingService.getAccountIdsWithMoreThanOnePlanService(accountActiveState));
     }
+
+    @GetMapping("/account-with-abonement-expired-null")
+    public ResponseEntity<List<String>> getAccountIdsWithAbonementExpiredNull(){
+        return ResponseEntity.ok(accountCheckingService.getAccountIdsWithAbonementExpiredNull());
+    }
+
+    @GetMapping("/account-with-abonement-and-plan")
+    public ResponseEntity<List<String>> getAccountIdsWithAbonementAndPlan(){
+        return ResponseEntity.ok(accountCheckingService.getAccountIdsWithAbonementAndPlan());
+    }
 }
