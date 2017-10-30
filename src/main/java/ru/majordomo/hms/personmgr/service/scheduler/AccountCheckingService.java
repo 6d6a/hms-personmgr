@@ -43,7 +43,6 @@ public class AccountCheckingService {
         this.jongoManager = jongoManager;
     }
 
-    //    @Scheduled(initialDelay = 10000, fixedDelay = 6000000)
     public void checkAbonementsWithServices() {
         logger.info("[checkAbonementsWithServices] Started");
         List<AccountAbonement> accountAbonements = accountAbonementManager.findAll();
@@ -51,7 +50,6 @@ public class AccountCheckingService {
         logger.info("[checkAbonementsWithServices] Ended");
     }
 
-    //    @Scheduled(initialDelay = 10000, fixedDelay = 6000000)
     public void checkAccountsWithoutServices() {
         logger.info("[checkAccountsWithoutServices] Started");
         List<PersonalAccount> accounts = personalAccountManager.findAll();
@@ -59,17 +57,16 @@ public class AccountCheckingService {
         logger.info("[checkAccountsWithoutServices] Ended");
     }
 
-    //    @Scheduled(initialDelay = 10000, fixedDelay = 6000000)
     public void doShit() {
         logger.info("[doShit] Started");
         List<Plan> plans = planRepository.findAll();
         plans.parallelStream()
                 .filter(plan -> {
-                            VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
+                    VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
 
-                            return planProperties.getSitesLimit().getFreeLimit() != -1;
-                        }
-                ).forEach(this::doShit);
+                    return planProperties.getSitesLimit().getFreeLimit() != -1;
+                }
+        ).forEach(this::doShit);
         logger.info("[doShit] Ended");
     }
 
