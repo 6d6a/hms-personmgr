@@ -14,7 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/promocode")
-@PreAuthorize("hasRole('PROMOCODE_CREATE')")
 public class PromocodeRestController {
 
     private final PromocodeProcessor promocodeProcessor;
