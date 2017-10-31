@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
@@ -42,6 +43,39 @@ public class PromocodeProcessor {
     private final AccountHelper accountHelper;
     private final UnknownPromocodeRepository unknownPromocodeRepository;
     protected final ApplicationEventPublisher publisher;
+
+    private final List<String> badWordPatterns = Arrays.asList(
+            "FUCK",
+            "CUNT",
+            "WANK",
+            "WANG",
+            "PISS",
+            "COCK",
+            "SHIT",
+            "TWAT",
+            "TITS",
+            "FART",
+            "HELL",
+            "MUFF",
+            "DICK",
+            "KNOB",
+            "ARSE",
+            "SHAG",
+            "TOSS",
+            "SLUT",
+            "TURD",
+            "SLAG",
+            "CRAP",
+            "POOP",
+            "BUTT",
+            "FECK",
+            "BOOB",
+            "JISM",
+            "JIZZ",
+            "PHAT",
+            ".?HUI.?",
+            ".?HYI.?"
+    );
 
     @Autowired
     public PromocodeProcessor(
@@ -205,11 +239,11 @@ public class PromocodeProcessor {
         while (code == null) {
             switch (type) {
                 case PARTNER:
-                    code = generateNewCode();
+                    code = generateNewPartnerCode();
                     break;
 
                 case BONUS:
-                    code = generateNewCode();
+                    code = generateNewBonusCode();
                     break;
 
                 default:
@@ -222,8 +256,34 @@ public class PromocodeProcessor {
         return code;
     }
 
-    private String generateNewCode() {
+    private boolean isBadWord(String code) {
+        for (String badWord: badWordPatterns) {
+            if(Pattern.compile(badWord).matcher(code).matches()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String generateNewPartnerCode() {
         return RandomStringUtils.randomAlphabetic(3).toUpperCase() + RandomStringUtils.randomNumeric(6);
+    }
+
+    private String generateNewBonusCode() {
+
+        List<String> paths = new ArrayList<>();
+
+        int pathCount = 3;
+        int i = 0;
+        while (i < pathCount) {
+            String path = RandomStringUtils.random(4).toUpperCase();
+            if (!isBadWord(path)) {
+                i++;
+                paths.add(path);
+            }
+        }
+
+        return String.join("-", paths);
     }
 
     private void processPartnerPromocodeActions(PersonalAccount account, AccountPromocode accountPromocode) {
