@@ -9,10 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.Pattern;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
@@ -28,11 +26,7 @@ import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.repository.*;
 
-import static ru.majordomo.hms.personmgr.common.Constants.FREE_DOMAIN_PROMOTION;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PROMOCODE_ACTION_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PAYMENT_TYPE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @Service
 public class PromocodeProcessor {
@@ -49,6 +43,39 @@ public class PromocodeProcessor {
     private final AccountHelper accountHelper;
     private final UnknownPromocodeRepository unknownPromocodeRepository;
     protected final ApplicationEventPublisher publisher;
+
+    private final List<String> badWordPatterns = Arrays.asList(
+            "FUCK",
+            "CUNT",
+            "WANK",
+            "WANG",
+            "PISS",
+            "COCK",
+            "SHIT",
+            "TWAT",
+            "TITS",
+            "FART",
+            "HELL",
+            "MUFF",
+            "DICK",
+            "KNOB",
+            "ARSE",
+            "SHAG",
+            "TOSS",
+            "SLUT",
+            "TURD",
+            "SLAG",
+            "CRAP",
+            "POOP",
+            "BUTT",
+            "FECK",
+            "BOOB",
+            "JISM",
+            "JIZZ",
+            "PHAT",
+            ".?HUI.?",
+            ".?HYI.?"
+    );
 
     @Autowired
     public PromocodeProcessor(
@@ -121,7 +148,7 @@ public class PromocodeProcessor {
 
                 //Save history
                 paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Клиент зарегистрирован с использованием партнресвкого промокода '" + promocodeString + "'");
+                paramsHistory.put(HISTORY_MESSAGE_KEY, "Клиент зарегистрирован с использованием партнёрского промокода '" + promocodeString + "'");
                 paramsHistory.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.PromocodeProcessor.processPromocode");
 
                 publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
@@ -132,7 +159,7 @@ public class PromocodeProcessor {
             case BONUS:
                 logger.debug("Found BONUS promocode instance with code: " + promocodeString);
 
-                //Если уже кто-то такой имеет промокод
+                //Если кто-то уже использовал промокод
                 accountPromocode = accountPromocodeRepository.findOneByPromocodeId(promocode.getId());
                 if (accountPromocode != null) {
                     logger.debug("Client trying to use already used code: " + promocodeString);
@@ -165,21 +192,23 @@ public class PromocodeProcessor {
     }
 
     public void generatePartnerPromocode(PersonalAccount account) {
-        Promocode promocode = new Promocode();
-        String code = null;
+        Promocode promocode = generatePromocode(PromocodeType.PARTNER, PARTNER_PROMOCODE_ACTION_ID);
+        this.addAccountPromocode(account, promocode);
+    }
 
-        while (code == null) {
-            code = generateNewCode(PromocodeType.PARTNER);
-        }
+    public Promocode generatePromocodeUnlimitedOneMonth() {
+        return generatePromocode(PromocodeType.BONUS, BONUS_UNLIMITED_1_M_PROMOCODE_ACTION_ID);
+    }
 
-        promocode.setCode(code);
-        promocode.setActive(true);
-        promocode.setCreatedDate(LocalDate.now());
-        promocode.setType(PromocodeType.PARTNER);
-        promocode.setActionIds(Collections.singletonList(PARTNER_PROMOCODE_ACTION_ID));
+    public Promocode generatePromocodeUnlimitedThreeMonth() {
+        return generatePromocode(PromocodeType.BONUS, BONUS_UNLIMITED_3_M_PROMOCODE_ACTION_ID);
+    }
 
-        promocodeRepository.save(promocode);
+    public Promocode generatePromocodeParkingThreeMonth() {
+        return generatePromocode(PromocodeType.BONUS, BONUS_PARKING_3_M_PROMOCODE_ACTION_ID);
+    }
 
+    private void addAccountPromocode(PersonalAccount account, Promocode promocode) {
         AccountPromocode accountPromocode = new AccountPromocode();
         accountPromocode.setPromocodeId(promocode.getId());
         accountPromocode.setOwnedByAccount(true);
@@ -189,22 +218,62 @@ public class PromocodeProcessor {
         accountPromocodeRepository.save(accountPromocode);
     }
 
+    private Promocode generatePromocode(PromocodeType type, String actionId) {
+        Promocode promocode = new Promocode();
+        String code = generateNewCode(type);
+
+        promocode.setCode(code);
+        promocode.setActive(true);
+        promocode.setCreatedDate(LocalDate.now());
+        promocode.setType(type);
+        promocode.setActionIds(Collections.singletonList(actionId));
+
+        promocodeRepository.save(promocode);
+
+        return promocode;
+    }
+
     private String generateNewCode(PromocodeType type) {
         String code = null;
-        switch (type) {
-            case PARTNER:
-                code = RandomStringUtils.randomAlphabetic(3).toUpperCase() + RandomStringUtils.randomNumeric(6);
 
-                break;
-            case BONUS:
-                break;
+        while (code == null) {
+            switch (type) {
+                case PARTNER:
+                    code = RandomStringUtils.randomAlphabetic(3).toUpperCase() + RandomStringUtils.randomNumeric(6);
+                    break;
+
+                case BONUS:
+                    List<String> paths = new ArrayList<>();
+
+                    int pathCount = 3;
+                    int i = 0;
+                    while (i < pathCount) {
+                        String path = RandomStringUtils.randomAlphanumeric(4).toUpperCase();
+                        if (!isBadWord(path)) {
+                            i++;
+                            paths.add(path);
+                        }
+                    }
+                    code = String.join("-", paths);
+                    break;
+
+                default:
+                    throw new ParameterValidationException(type.name() + " not implemented in generateNewCode");
+            }
+
+            code = promocodeRepository.findByCode(code) == null ? code : null;
         }
 
-        if (code != null) {
-            return promocodeRepository.findByCode(code) == null ? code : null;
-        }
+        return code;
+    }
 
-        return null;
+    private boolean isBadWord(String code) {
+        for (String badWord: badWordPatterns) {
+            if(Pattern.compile(badWord).matcher(code).matches()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void processPartnerPromocodeActions(PersonalAccount account, AccountPromocode accountPromocode) {
