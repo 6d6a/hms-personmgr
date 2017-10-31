@@ -239,15 +239,26 @@ public class PromocodeProcessor {
         while (code == null) {
             switch (type) {
                 case PARTNER:
-                    code = generateNewPartnerCode();
+                    code = RandomStringUtils.randomAlphabetic(3).toUpperCase() + RandomStringUtils.randomNumeric(6);
                     break;
 
                 case BONUS:
-                    code = generateNewBonusCode();
+                    List<String> paths = new ArrayList<>();
+
+                    int pathCount = 3;
+                    int i = 0;
+                    while (i < pathCount) {
+                        String path = RandomStringUtils.randomAlphanumeric(4).toUpperCase();
+                        if (!isBadWord(path)) {
+                            i++;
+                            paths.add(path);
+                        }
+                    }
+                    code = String.join("-", paths);
                     break;
 
                 default:
-                    throw new ParameterValidationException(type.name() + " not implemented in generateNewCode()");
+                    throw new ParameterValidationException(type.name() + " not implemented in generateNewCode");
             }
 
             code = promocodeRepository.findByCode(code) == null ? code : null;
@@ -263,27 +274,6 @@ public class PromocodeProcessor {
             }
         }
         return false;
-    }
-
-    private String generateNewPartnerCode() {
-        return RandomStringUtils.randomAlphabetic(3).toUpperCase() + RandomStringUtils.randomNumeric(6);
-    }
-
-    private String generateNewBonusCode() {
-
-        List<String> paths = new ArrayList<>();
-
-        int pathCount = 3;
-        int i = 0;
-        while (i < pathCount) {
-            String path = RandomStringUtils.randomAlphanumeric(4).toUpperCase();
-            if (!isBadWord(path)) {
-                i++;
-                paths.add(path);
-            }
-        }
-
-        return String.join("-", paths);
     }
 
     private void processPartnerPromocodeActions(PersonalAccount account, AccountPromocode accountPromocode) {
