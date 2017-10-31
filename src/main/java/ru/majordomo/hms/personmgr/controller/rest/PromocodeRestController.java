@@ -26,6 +26,7 @@ public class PromocodeRestController {
         this.promocodeProcessor = promocodeProcessor;
     }
 
+    @PreAuthorize("hasAuthority('CREATE_PROMOCODE')")
     @PostMapping("/bonus/generate")
     public ResponseEntity<Map<String, String>> generateNewPromocode(
         @RequestBody Map<String, String> message
