@@ -276,7 +276,7 @@ public class PromocodeProcessor {
         int pathCount = 3;
         int i = 0;
         while (i < pathCount) {
-            String path = RandomStringUtils.random(4).toUpperCase();
+            String path = RandomStringUtils.randomAlphanumeric(4).toUpperCase();
             if (!isBadWord(path)) {
                 i++;
                 paths.add(path);
