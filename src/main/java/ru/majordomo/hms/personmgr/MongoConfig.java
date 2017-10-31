@@ -85,4 +85,9 @@ public class MongoConfig extends AbstractMongoConfiguration {
         methodValidationPostProcessor.setValidator(validator());
         return methodValidationPostProcessor;
     }
+
+    @Bean("jongoMongoClient")
+    public MongoClient jongoMongoClient() throws Exception {
+        return new MongoClient(new MongoClientURI(mongodbUri));
+    }
 }
