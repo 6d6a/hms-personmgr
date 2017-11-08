@@ -61,7 +61,7 @@ public class Charger {
                     + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE)
                     + " cost: " + cost
             );
-            response = accountHelper.charge(account, accountService.getPaymentService(), cost, forceCharge, false);
+            response = accountHelper.charge(account, accountService.getPaymentService(), cost, forceCharge, false, chargeDateTime);
         } catch (ChargeException e) {
             logger.info("Error. accountHelper.charge returned ChargeException for service: " + accountService.toString());
             return ChargeResult.error();
@@ -72,7 +72,9 @@ public class Charger {
         }
 
         if (response != null && response.getParam("success") != null && ((boolean) response.getParam("success"))) {
-            accountService.setLastBilled(chargeDateTime);
+            if (accountService.getLastBilled() == null || accountService.getLastBilled().isBefore(chargeDateTime)) {
+                accountService.setLastBilled(chargeDateTime);
+            }
             accountServiceRepository.save(accountService);
             logger.info("Success. Charge Processor returned true fo service: " + accountService.toString());
             return ChargeResult.success();

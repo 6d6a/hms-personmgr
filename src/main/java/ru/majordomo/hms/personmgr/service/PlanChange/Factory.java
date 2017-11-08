@@ -62,20 +62,38 @@ public class Factory {
     }
 
     public Processor createPlanChangeProcessor(PersonalAccount account, Plan newPlan) {
+        return this.createPlanChangeProcessor(account, newPlan, true);
+    }
+
+    public Processor createPlanChangeProcessor(PersonalAccount account, Plan newPlan, boolean refund) {
 
         Plan currentPlan = planRepository.findOne(account.getPlanId());
 
         if (newPlan == null) {
             if (currentPlan.isAbonementOnly()) {
-                DeclineOnlyOnAbonement processor = new DeclineOnlyOnAbonement(account, null);
-                setAllRequirements(processor);
+                if (refund) {
+                    DeclineOnlyOnAbonement processor = new DeclineOnlyOnAbonement(account, null);
+                    setAllRequirements(processor);
 
-                return processor;
+                    return processor;
+                } else {
+                    DeclineOnlyOnAbonementWithoutRefund processor = new DeclineOnlyOnAbonementWithoutRefund(account, null);
+                    setAllRequirements(processor);
+
+                    return processor;
+                }
             } else {
-                DeclineOnlyOnRegular processor = new DeclineOnlyOnRegular(account, null);
-                setAllRequirements(processor);
+                if (refund) {
+                    DeclineOnlyOnRegular processor = new DeclineOnlyOnRegular(account, null);
+                    setAllRequirements(processor);
 
-                return processor;
+                    return processor;
+                } else {
+                    DeclineOnlyOnRegularWithoutRefund processor = new DeclineOnlyOnRegularWithoutRefund(account, null);
+                    setAllRequirements(processor);
+
+                    return processor;
+                }
             }
         }
 

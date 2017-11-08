@@ -7,11 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.dto.DomainCounter;
-import ru.majordomo.hms.personmgr.dto.ResourceCounter;
+import ru.majordomo.hms.personmgr.dto.*;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.dto.AbonementCounter;
-import ru.majordomo.hms.personmgr.dto.PlanCounter;
 import ru.majordomo.hms.personmgr.service.StatServiceHelper;
 
 import java.time.LocalDate;
@@ -82,13 +79,8 @@ public class StatServiceRestController {
     }
 
     @GetMapping("/account-service")
-    public ResponseEntity<List<ResourceCounter>> getActiveAccountServiceCounters() {
+    public ResponseEntity<List<AccountServiceCounter>> getActiveAccountServiceCounters() {
         return ResponseEntity.ok(statServiceHelper.getActiveAccountServiceCounters());
-    }
-
-    @GetMapping("/account-service/quantity")
-    public ResponseEntity<List<ResourceCounter>> getQuantityForActiveAccountService() {
-        return ResponseEntity.ok(statServiceHelper.getQuantityForActiveAccountService());
     }
 
     @GetMapping("/domain")

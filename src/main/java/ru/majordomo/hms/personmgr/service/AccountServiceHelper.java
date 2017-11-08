@@ -281,6 +281,10 @@ public class AccountServiceHelper {
         }
     }
 
+    public BigDecimal getDailyCostForService(AccountService accountService) {
+        return this.getDailyCostForService(accountService, LocalDate.now());
+    }
+
     public BigDecimal getDailyCostForService(AccountService accountService, LocalDate chargeDate) {
         Integer daysInCurrentMonth = chargeDate.lengthOfMonth();
         BigDecimal cost = BigDecimal.ZERO;

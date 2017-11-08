@@ -1,20 +1,20 @@
 package ru.majordomo.hms.personmgr.service;
 
+import com.google.common.net.InternetDomainName;
+import feign.FeignException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.net.IDN;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -61,7 +61,6 @@ public class DomainService {
     private final BusinessOperationBuilder businessOperationBuilder;
     private final PromotionRepository promotionRepository;
     private final AccountNotificationHelper accountNotificationHelper;
-    private final AccountServiceHelper accountServiceHelper;
 
     @Autowired
     public DomainService(
@@ -76,8 +75,7 @@ public class DomainService {
             AccountPromotionManager accountPromotionManager,
             BusinessOperationBuilder businessOperationBuilder,
             PromotionRepository promotionRepository,
-            AccountNotificationHelper accountNotificationHelper,
-            AccountServiceHelper accountServiceHelper
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
@@ -91,7 +89,6 @@ public class DomainService {
         this.businessOperationBuilder = businessOperationBuilder;
         this.promotionRepository = promotionRepository;
         this.accountNotificationHelper = accountNotificationHelper;
-        this.accountServiceHelper = accountServiceHelper;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -129,7 +126,7 @@ public class DomainService {
             Integer daysBeforeExpiredForSms = 5;
 
             //Нужно ли отправлять SMS
-            Boolean sendSms = accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING);
+            Boolean sendSms = accountNotificationHelper.isSubscribedToSmsType(account, MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING);
 
             int daysBeforeExpired;
 
@@ -234,11 +231,75 @@ public class DomainService {
         notifyForDomainNoProlongNoMoney(account, domainNotProlong);
     }
 
-    public void check(String domainName) {
-        if (blackListService.domainExistsInControlBlackList(domainName)) {
+    private List<Domain> getDomainsByName(String domainName) {
+
+        List<Domain> domains = new ArrayList<>();
+
+        try {
+            domains.add(rcUserFeignClient.findDomain(domainName));
+        } catch (Exception e) {
+            if (!(e instanceof FeignException) || ((FeignException) e).status() != 404 ) {
+                e.printStackTrace();
+                throw e;
+            }
+        }
+
+        try {
+            domains.add(rcUserFeignClient.findDomain(IDN.toASCII(domainName)));
+        } catch (Exception e) {
+            if (!(e instanceof FeignException) || ((FeignException) e).status() != 404 ) {
+                e.printStackTrace();
+                throw e;
+            }
+        }
+
+        return domains;
+    }
+
+    public void checkBlacklist(String domainName, String accountId) {
+
+        domainName = IDN.toUnicode(domainName);
+
+        PersonalAccount account = accountManager.findOne(accountId);
+        InternetDomainName domain = InternetDomainName.from(domainName);
+        String topPrivateDomainName = IDN.toUnicode(domain.topPrivateDomain().toString());
+
+        //Full domain check
+        List<Domain> domainsByName = getDomainsByName(domainName);
+        if (!domainsByName.isEmpty() || blackListService.domainExistsInControlBlackList(domainName)) {
             logger.debug("domain: " + domainName + " exists in control BlackList");
             throw new DomainNotAvailableException("Домен: " + domainName + " уже присутствует в системе и не может быть добавлен.");
         }
+
+        //Top private domain check
+        domainsByName = getDomainsByName(topPrivateDomainName);
+        if (!domainName.equals(topPrivateDomainName)
+                && (!domainsByName.isEmpty() || blackListService.domainExistsInControlBlackList(topPrivateDomainName))) {
+
+            Boolean existOnAccount = false;
+
+            List<Domain> domains = accountHelper.getDomains(account);
+
+            if (domains != null) {
+                for (Domain d : domains) {
+                    if (d.getName().equals(topPrivateDomainName) || d.getName().equals(IDN.toASCII(topPrivateDomainName))) {
+                        existOnAccount = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!existOnAccount) {
+                logger.debug("domain: " + domainName + " exists in control BlackList");
+                throw new DomainNotAvailableException("Домен: " + domain.topPrivateDomain().toString() + " уже присутствует " +
+                        "в системе и не может быть добавлен.");
+            }
+        }
+    }
+
+    public void check(String domainName, String accountId) {
+
+        checkBlacklist(domainName, accountId);
 
         getDomainTld(domainName);
 
@@ -520,21 +581,22 @@ public class DomainService {
 
             accountNotificationHelper.sendMail(account, "HMSVHNomoneyDomainProlong", 10, parameters);
 
-            //Если подключено СМС-уведомление, то также отправим его
-            //Отправляем SMS за ... дней до истечения
-            int days = 3;
-            if (domains.stream().filter(
-                    domain -> domain.getRegSpec().getPaidTill().equals(LocalDate.now().plusDays(days))).collect(Collectors.toList())
-                    .isEmpty())
-            if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN)) {
-
-                parameters = new HashMap<>();
-                parameters.put("client_id", account.getAccountId());
-                //Текст SMS изменяется в зависимости от количества доменов, требующих продления
-                parameters.put("domain", (domains.size() > 1) ? "истекающих доменов" : ("домена " + domains.get(0).getName()));
-                parameters.put("acc_id", account.getName());
-                accountNotificationHelper.sendSms(account, "HMSMajordomoNoMoneyToAutoRenewDomain", 10, parameters);
-            }
+//            //Если подключено СМС-уведомление, то также отправим его
+//            //Отправляем SMS за ... дней до истечения
+//            // не отправляем sms https://redmine.intr/issues/8168
+//            int days = 3;
+//            if (domains.stream().filter(
+//                    domain -> domain.getRegSpec().getPaidTill().equals(LocalDate.now().plusDays(days))).collect(Collectors.toList())
+//                    .isEmpty())
+//            if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN)) {
+//
+//                parameters = new HashMap<>();
+//                parameters.put("client_id", account.getAccountId());
+//                //Текст SMS изменяется в зависимости от количества доменов, требующих продления
+//                parameters.put("domain", (domains.size() > 1) ? "истекающих доменов" : ("домена " + domains.get(0).getName()));
+//                parameters.put("acc_id", account.getName());
+//                accountNotificationHelper.sendSms(account, "HMSMajordomoNoMoneyToAutoRenewDomain", 10, parameters);
+//            }
         }
 
     }

@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -11,6 +12,7 @@ import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -61,6 +63,8 @@ public abstract class Processor {
     private BigDecimal cashBackAmount;
     private PlanChangeAgreement requestPlanChangeAgreement;
     private String operator = "operator";
+    private Boolean ignoreRestricts = false;
+    private Boolean changeAbonementToAbonement;
 
     Processor(PersonalAccount account, Plan newPlan) {
         this.account = account;
@@ -71,6 +75,7 @@ public abstract class Processor {
         this.currentPlan = planRepository.findOne(account.getPlanId());
         this.cashBackAmount = calcCashBackAmount();
         this.newAbonementRequired = needToAddAbonement();
+        this.changeAbonementToAbonement = getChangeAbonementToAbonement();
     }
 
     //Services
@@ -164,8 +169,22 @@ public abstract class Processor {
         return cashBackAmount;
     }
 
+    public void setIgnoreRestricts(Boolean ignoreRestricts) {
+        this.ignoreRestricts = ignoreRestricts;
+    }
+
+    Boolean getIgnoreRestricts() {
+        return ignoreRestricts;
+    }
+
     //Methods
     abstract Boolean needToAddAbonement();
+
+    private Boolean getChangeAbonementToAbonement() {
+        AccountAbonement accountAbonement = getAccountAbonementManager().findByPersonalAccountId(getAccount().getId());
+
+        return accountAbonement != null && getNewAbonementRequired();
+    }
 
     abstract BigDecimal calcCashBackAmount();
 
@@ -192,6 +211,9 @@ public abstract class Processor {
         //При необходимости отправляем письмо в саппорт
         supportNotification();
 
+        //При необходимости отправляем письмо в фин-отдел
+        finNotification();
+
         //Сохраним статистику смены тарифа
         saveStat();
 
@@ -213,7 +235,7 @@ public abstract class Processor {
             return planChangeAgreement;
         }
 
-        if (!newPlan.isActive()) {
+        if (!newPlan.isActive() && !ignoreRestricts) {
             planChangeAgreement.addError("На выбранный тарифный план переход невозможен");
             return planChangeAgreement;
         }
@@ -233,29 +255,31 @@ public abstract class Processor {
         // На бесплатном тестовом абонементе можно менять тариф туда сюда без ограничений
         if (!hasFreeTestAbonement(accountAbonementManager.findByPersonalAccountId(account.getId()))) {
 
-            // С бизнеса можно только на бизнес
-            if (!checkBusinessPlan(planChangeAgreement)) {
-                return planChangeAgreement;
-            }
+            if (!ignoreRestricts) {
+                // С бизнеса можно только на бизнес
+                if (!checkBusinessPlan(planChangeAgreement)) {
+                    return planChangeAgreement;
+                }
 
-            // Если есть абонемент - можно перейти только на тариф большей ежемесячной стоимостью
-            if (!checkPlanCostWithActiveAbonement(planChangeAgreement)) {
-                return planChangeAgreement;
-            }
+                // Если есть абонемент - можно перейти только на тариф большей ежемесячной стоимостью
+                if (!checkPlanCostWithActiveAbonement(planChangeAgreement)) {
+                    return planChangeAgreement;
+                }
 
-            if (!checkBonusAbonements(planChangeAgreement)) {
-                return planChangeAgreement;
-            }
+                if (!checkBonusAbonements(planChangeAgreement)) {
+                    return planChangeAgreement;
+                }
 
-            // При отрицательном балансе нельзя менять тариф
-            if (balance.compareTo(BigDecimal.ZERO) < 0) {
-                planChangeAgreement.addError("Баланс аккаунта отрицательный");
-                return planChangeAgreement;
-            }
+                // При отрицательном балансе нельзя менять тариф
+                if (balance.compareTo(BigDecimal.ZERO) < 0) {
+                    planChangeAgreement.addError("Баланс аккаунта отрицательный");
+                    return planChangeAgreement;
+                }
 
-            // Проверим не менялся ли тариф в последний месяц
-            if (!checkLastMonthPlanChange(planChangeAgreement)) {
-                return planChangeAgreement;
+                // Проверим не менялся ли тариф в последний месяц
+                if (!checkLastMonthPlanChange(planChangeAgreement)) {
+                    return planChangeAgreement;
+                }
             }
 
             if (newAbonementRequired) {
@@ -289,6 +313,10 @@ public abstract class Processor {
 
         if (!isDatabaseLimitsOk || !isFtpUserLimitsOk || !isWebSiteLimitsOk || !isQuotaLimitsOk) {
             return planChangeAgreement;
+        }
+
+        if (ignoreRestricts) {
+            planChangeAgreement.setNeedToFeelBalance(BigDecimal.ZERO);
         }
 
         if (planChangeAgreement.getErrors().isEmpty()
@@ -338,6 +366,10 @@ public abstract class Processor {
 
             try {
                 finFeignClient.addPayment(payment);
+                accountHistoryService.addMessage(
+                        account.getId(),
+                        "Возврат средств при отказе от абонемента: " + cashBackAmount + " руб.",
+                        operator);
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("[PlanChangeProcessor] Exception in executeCashBackPayment: " + e.getMessage());
@@ -345,7 +377,7 @@ public abstract class Processor {
             }
         } else if (cashBackAmount.compareTo(BigDecimal.ZERO) < 0) {
             //Списать деньги
-            accountHelper.charge(account, currentPlan.getService(), cashBackAmount.abs(), forceCharge, false);
+            accountHelper.charge(account, currentPlan.getService(), cashBackAmount.abs(), forceCharge, false, LocalDateTime.now());
         }
     }
 
@@ -384,6 +416,27 @@ public abstract class Processor {
         } else {
             return true;
         }
+    }
+
+    /**
+     * Является ли это сменой одного абонемента на другой с владельцем юр-лицом или ИП
+     */
+    private boolean isCompanyChangeAbonementToAbonement() {
+        AccountOwner accountOwner = accountHelper.getOwnerByPersonalAccountId(account.getId());
+
+        if (accountOwner == null) { return false;}
+
+        if (!accountOwner.getType().equals(AccountOwner.Type.COMPANY)
+                && !accountOwner.getType().equals(AccountOwner.Type.BUDGET_COMPANY)
+        ) {
+            return false;
+        }
+
+        return isChangeAbonementToAbonement();
+    }
+
+    protected boolean isChangeAbonementToAbonement() {
+        return changeAbonementToAbonement;
     }
 
     /**
@@ -632,6 +685,12 @@ public abstract class Processor {
     private void supportNotification() {
         if (isFromRegularToBusiness()) {
             publisher.publishEvent(new AccountNotifySupportOnChangePlanEvent(account));
+        }
+    }
+
+    private void finNotification() {
+        if (isCompanyChangeAbonementToAbonement()) {
+            publisher.publishEvent(new AccountNotifyFinOnChangeAbonementEvent(account));
         }
     }
 

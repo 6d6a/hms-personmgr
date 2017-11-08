@@ -39,7 +39,7 @@ public class AbonementsScheduler {
     @SchedulerLock(name = "processExpiringAbonements")
     public void processExpiringAbonements() {
         logger.info("Started processExpiringAbonements");
-        List<String> personalAccountIds = accountManager.findAllAccountIds();
+        List<String> personalAccountIds = accountManager.findAllNotDeletedAccountIds();
         personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountProcessExpiringAbonementsEvent(accountId)));
         logger.info("Ended processExpiringAbonements");
     }
@@ -48,7 +48,7 @@ public class AbonementsScheduler {
     @SchedulerLock(name = "processAbonementAutoRenew")
     public void processAbonementsAutoRenew() {
         logger.info("Started processAbonementsAutoRenew");
-        List<String> personalAccountIds = accountManager.findAllAccountIds();
+        List<String> personalAccountIds = accountManager.findAllNotDeletedAccountIds();
         personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountProcessAbonementsAutoRenewEvent(accountId)));
         logger.info("Ended processAbonementsAutoRenew");
     }
@@ -57,7 +57,7 @@ public class AbonementsScheduler {
     @SchedulerLock(name = "processNotifyExpiredAbonements")
     public void processNotifyExpiredAbonements() {
         logger.info("Started processNotifyExpiredAbonements");
-        List<String> personalAccountIds = accountManager.findAllAccountIds();
+        List<String> personalAccountIds = accountManager.findAllNotDeletedAccountIds();
         personalAccountIds
                 .stream()
                 .filter(accountId -> !accountHelper.hasActiveAbonement(accountId))

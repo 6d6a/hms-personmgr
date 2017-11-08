@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
@@ -16,6 +17,7 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -30,6 +32,7 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
+import java.net.IDN;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -49,7 +52,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountPromotionManager accountPromotionManager;
     private final PromocodeActionRepository promocodeActionRepository;
-    private final BlackListService blackListService;
+    private final DomainService domainService;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
 
     @Autowired
@@ -59,7 +62,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
             RcUserFeignClient rcUserFeignClient,
             AccountPromotionManager accountPromotionManager,
             PromocodeActionRepository promocodeActionRepository,
-            BlackListService blackListService,
+            DomainService domainService,
             DomainRegistrarFeignClient domainRegistrarFeignClient
     ) {
         this.domainTldService = domainTldService;
@@ -67,7 +70,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountPromotionManager = accountPromotionManager;
         this.promocodeActionRepository = promocodeActionRepository;
-        this.blackListService = blackListService;
+        this.domainService = domainService;
         this.domainRegistrarFeignClient = domainRegistrarFeignClient;
     }
 
@@ -94,10 +97,28 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
         String domainName = (String) message.getParam("name");
         domainName = domainName.toLowerCase();
+        domainName = IDN.toUnicode(domainName);
         message.addParam("name", domainName);
 
-        if (blackListService.domainExistsInControlBlackList(domainName)) {
-            logger.debug("domain: " + domainName + " exists in control BlackList");
+        String parentDomainId = (String) message.getParam("parentDomainId");
+        if (parentDomainId != null && !parentDomainId.equals("")) {
+            try {
+                Domain parentDomain = rcUserFeignClient.getDomain(accountId, parentDomainId);
+
+                domainName = domainName.substring(domainName.length() - 1).equals(".") ?
+                        domainName + parentDomain.getName() : domainName + "." + parentDomain.getName();
+            } catch (Exception e) {
+                if (!(e instanceof FeignException) || ((FeignException) e).status() != 404 ) {
+                    e.printStackTrace();
+                    throw e;
+                }
+                return this.createErrorResponse("Домен c ID: " + parentDomainId + " не найден на аккаунте.");
+            }
+        }
+
+        try {
+            domainService.checkBlacklist(domainName, accountId);
+        } catch (DomainNotAvailableException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return this.createErrorResponse("Домен: " + domainName + " уже присутствует в системе и не может быть добавлен.");
         }

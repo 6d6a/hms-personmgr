@@ -6,6 +6,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public class RegularToAbonement extends Processor {
 
@@ -45,7 +46,13 @@ public class RegularToAbonement extends Processor {
         if (getNewAbonementRequired()) {
 
             Abonement abonement = getNewPlan().getNotInternalAbonement();
-            getAccountHelper().charge(getAccount(), abonement.getService());
+            getAccountHelper().charge(
+                    getAccount(), abonement.getService(),
+                    abonement.getService().getCost(),
+                    getIgnoreRestricts(),
+                    false,
+                    LocalDateTime.now()
+            );
             addAccountAbonement(abonement);
 
         }

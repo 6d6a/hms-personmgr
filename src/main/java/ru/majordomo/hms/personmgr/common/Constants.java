@@ -43,14 +43,25 @@ public class Constants {
     public static final String DOMAIN_NAME_KEY = "domainName";
     public static final String ACCOUNT_ID_KEY = "accountId";
     public static final String PASSWORD_KEY = "password";
+    public static final String NAME_KEY = "name";
     public static final String TOKEN_KEY = "token";
+    public static final String TYPE_KEY = "type";
+    public static final String ACC_ID_KEY = "acc_id";
+    public static final String DELETE_KEY = "delete";
+    public static final String ERROR_MESSAGE_KEY = "errorMessage";
     public static final String IP_KEY = "ip";
+    public static final String CLIENT_ID_KEY = "client_id";
+    public static final String EMAIL_KEY = "email";
+    public static final String PRIORITY_KEY = "priority";
+    public static final String PARAMETRS_KEY = "parametrs";
+    public static final String API_NAME_KEY = "api_name";
     public static final String SERVICE_NAME_KEY = "serviceName";
     public static final String DOMAINS_KEY = "domains";
     public static final String HISTORY_MESSAGE_KEY = "historyMessage";
     public static final String OPERATOR_KEY = "operator";
     public static final String AUTO_RENEW_KEY = "autoRenew";
     public static final String ENABLED_KEY = "enabled";
+    public static final String AMOUNT_KEY = "amount";
     public static final String FREE_DOMAIN_PROMOTION = "free_domain";
     public static final String DOMAIN_DISCOUNT_RU_RF = "domain_discount_ru_rf";
     public static final String ACTIVE_PLAN_NAME_WITHOUT_FREE_DOMAIN = "Старт";
@@ -112,7 +123,8 @@ public class Constants {
     //Услуги которые могут быть бесплатными
     public static final Set<Integer> OPTIONALLY_FREE_SERVICE_IDS = new HashSet<>();
 
-    public static final Long[] DAYS_FOR_ABONEMENT_EXPIRED_MESSAGE_SEND = {13L, 7L, 3L, 2L, 1L};
+    public static final Long[] DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND = {13L, 7L, 3L, 2L, 1L};
+    public static final Long[] DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND = {5L, 1L};
 
     public static final String PARTNER_PROMOCODE_ACTION_ID = "57f3c4b8038d8a6054409853";
     public static final String BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID = "57f3c4b8038d8a6054409854";

@@ -80,6 +80,7 @@ public class AccountCommentRestController extends CommonRestController {
         String commentMessage = requestBody.get("message");
 
         AccountComment accountComment = new AccountComment();
+        accountComment.setPersonalAccountId(account.getId());
         accountComment.setMessage(commentMessage);
         accountComment.setOperator(request.getUserPrincipal().getName());
 

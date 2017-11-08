@@ -60,7 +60,7 @@ public class AbonementToRegular extends Processor {
 
         deleteRegularAbonement();
 
-        executeCashBackPayment(false);
+        executeCashBackPayment(getIgnoreRestricts());
     }
 
     @Override
@@ -69,7 +69,13 @@ public class AbonementToRegular extends Processor {
         if (getNewAbonementRequired()) {
 
             Abonement abonement = getNewPlan().getNotInternalAbonement();
-            getAccountHelper().charge(getAccount(), abonement.getService());
+            getAccountHelper().charge(
+                    getAccount(), abonement.getService(),
+                    abonement.getService().getCost(),
+                    getIgnoreRestricts(),
+                    false,
+                    LocalDateTime.now()
+            );
             addAccountAbonement(abonement);
 
         } else {

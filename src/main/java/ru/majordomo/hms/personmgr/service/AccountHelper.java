@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -107,6 +108,16 @@ public class AccountHelper {
         return clientEmails;
     }
 
+    public AccountOwner getOwnerByPersonalAccountId(String personalAccountId){
+        return accountOwnerManager.findOneByPersonalAccountId(personalAccountId);
+    }
+
+    public AccountOwner.Type getOwnerType(String personalAccountId){
+        AccountOwner accountOwner = getOwnerByPersonalAccountId(personalAccountId);
+        if (accountOwner == null) {throw  new ResourceNotFoundException("Не найден владелец аккаунта с personalAccountId " + personalAccountId); }
+        return accountOwner.getType();
+    }
+
     public List<String> getEmails(PersonalAccount account) {
         AccountOwner currentOwner = accountOwnerManager.findOneByPersonalAccountId(account.getId());
 
@@ -115,6 +126,10 @@ public class AccountHelper {
         }
 
         return new ArrayList<>();
+    }
+
+    public AccountOwner getOwner(PersonalAccount account){
+        return accountOwnerManager.findOneByPersonalAccountId(account.getId());
     }
 
     /**
@@ -280,19 +295,21 @@ public class AccountHelper {
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service) {
         BigDecimal amount = service.getCost();
 
-        return charge(account, service, amount, false, false);
+        return charge(account, service, amount, false, false, LocalDateTime.now());
     }
 
     public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount) {
-        return charge(account, service, amount, false, false);
+        return charge(account, service, amount, false, false, LocalDateTime.now());
     }
 
-    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount, Boolean forceCharge, Boolean bonusChargeProhibited) {
+    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount, Boolean forceCharge, Boolean bonusChargeProhibited, LocalDateTime chargeDate) {
         Map<String, Object> paymentOperation = new HashMap<>();
         paymentOperation.put("serviceId", service.getId());
         paymentOperation.put("amount", amount);
         paymentOperation.put("forceCharge", forceCharge);
         paymentOperation.put("bonusChargeProhibited", bonusChargeProhibited);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        paymentOperation.put("chargeDate", chargeDate.format(formatter));
 
         SimpleServiceMessage response;
 
@@ -469,7 +486,7 @@ public class AccountHelper {
         }
     }
 
-    public void switchOffAntiSpamForMailboxes(PersonalAccount account) {
+    public void switchAntiSpamForMailboxes(PersonalAccount account, Boolean state) {
 
         Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
 
@@ -478,11 +495,12 @@ public class AccountHelper {
             message.setParams(new HashMap<>());
             message.setAccountId(account.getId());
             message.addParam("resourceId", mailbox.getId());
-            message.addParam("antiSpamEnabled", false);
+            message.addParam("antiSpamEnabled", state);
 
             businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
-            String historyMessage = "Отправлена заявка на выключение анти-спама у почтового ящика '" + mailbox.getName() + "' в связи с отключением услуги";
+            String historyMessage = "Отправлена заявка на" + (state ? "включение" : "отключение") + "анти-спама у почтового ящика '"
+                    + mailbox.getFullName() + "' в связи с " + (state ? "включением" : "отключением") + " услуги";
             saveHistoryForOperatorService(account, historyMessage);
         }
     }
@@ -545,7 +563,7 @@ public class AccountHelper {
 
                 businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
-                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getName() + "'";
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getFullName() + "'";
                 saveHistoryForOperatorService(account, historyMessage);
             }
 
@@ -840,7 +858,7 @@ public class AccountHelper {
             businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
-                    " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getName() + "'";
+                    " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getFullName() + "'";
             saveHistoryForOperatorService(account, historyMessage);
 
 
@@ -931,7 +949,7 @@ public class AccountHelper {
             publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
         } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
             try {
-                switchOffAntiSpamForMailboxes(account);
+                switchAntiSpamForMailboxes(account, false);
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("Switch account Mailboxes anti-spam failed");

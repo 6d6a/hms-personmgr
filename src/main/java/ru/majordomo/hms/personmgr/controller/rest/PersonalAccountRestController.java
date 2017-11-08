@@ -77,9 +77,10 @@ public class PersonalAccountRestController extends CommonRestController {
     private final AccountHelper accountHelper;
     private final TokenHelper tokenHelper;
     private final NotificationRepository notificationRepository;
-    private final AccountServiceRepository accountServiceRepository;
     private final AccountServiceHelper accountServiceHelper;
     private final Factory planChangeFactory;
+    private final AccountNotificationHelper accountNotificationHelper;
+    private final SiFeignClient siFeignClient;
 
     @Autowired
     public PersonalAccountRestController(
@@ -92,8 +93,9 @@ public class PersonalAccountRestController extends CommonRestController {
             NotificationRepository notificationRepository,
             AccountServiceRepository accountServiceRepository,
             AccountServiceHelper accountServiceHelper,
-            Factory planChangeFactory
-    ) {
+            Factory planChangeFactory,
+            AccountNotificationHelper accountNotificationHelper,
+            SiFeignClient siFeignClient) {
         this.planRepository = planRepository;
         this.accountOwnerManager = accountOwnerManager;
         this.rcUserFeignClient = rcUserFeignClient;
@@ -101,9 +103,11 @@ public class PersonalAccountRestController extends CommonRestController {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
         this.notificationRepository = notificationRepository;
+        this.siFeignClient = siFeignClient;
         this.accountServiceRepository = accountServiceRepository;
         this.accountServiceHelper = accountServiceHelper;
         this.planChangeFactory = planChangeFactory;
+        this.accountNotificationHelper = accountNotificationHelper;
     }
 
     @RequestMapping(value = "/accounts",
@@ -165,16 +169,56 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('FORCE_PLAN_CHANGE')")
+    @RequestMapping(value = "/{accountId}/force-plan/{planId}",
+            method = RequestMethod.POST)
+    //При недостатке средств на аккаунте пользователя для смены аккаунта - списание происходит в кредит
+    public ResponseEntity<Object> forceChangeAccountPlan(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @PathVariable(value = "planId") String planId,
+            @RequestBody PlanChangeAgreement planChangeAgreement,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+        String operator = request.getUserPrincipal().getName();
+        Plan newPlan = planRepository.findOne(planId);
+
+        Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
+        planChangeProcessor.setOperator(operator);
+        planChangeProcessor.setRequestPlanChangeAgreement(planChangeAgreement);
+        planChangeProcessor.setIgnoreRestricts(true);
+
+        planChangeProcessor.process();
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @RequestMapping(value = "/{accountId}/plan-check/{planId}",
                     method = RequestMethod.POST)
-    public ResponseEntity<PlanChangeAgreement> changeAccountPlanCheck(
+    public ResponseEntity<PlanChangeAgreement> accountPlanCheck(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "planId") String planId
     ) {
+        return planCheck(accountId, planId, false);
+    }
+
+    @PreAuthorize("hasAuthority('FORCE_PLAN_CHANGE')")
+    @RequestMapping(value = "/{accountId}/force-plan-check/{planId}",
+            method = RequestMethod.POST)
+    //При недостатке средств на аккаунте пользователя для смены аккаунта - списание происходит в кредит
+    public ResponseEntity<PlanChangeAgreement> forceAccountPlanCheck(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @PathVariable(value = "planId") String planId
+    ) {
+        return planCheck(accountId, planId, true);
+    }
+
+    private ResponseEntity<PlanChangeAgreement> planCheck(String accountId, String planId, Boolean ignoreRestricts) {
         PersonalAccount account = accountManager.findOne(accountId);
         Plan newPlan = planRepository.findOne(planId);
 
         Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
+        planChangeProcessor.setIgnoreRestricts(ignoreRestricts);
         PlanChangeAgreement planChangeAgreement = planChangeProcessor.isPlanChangeAllowed();
 
         if (!planChangeAgreement.getErrors().isEmpty()) {
@@ -298,7 +342,7 @@ public class PersonalAccountRestController extends CommonRestController {
             }
         }
 
-        if (account != null) {
+        if (account != null && account.getDeleted() == null) {
             String ip = getClientIP(request);
 
             Map<String, String> params = new HashMap<>();
@@ -542,12 +586,16 @@ public class PersonalAccountRestController extends CommonRestController {
 
         Set<MailManagerMessageType> oldNotifications = account.getNotifications();
 
-        accountManager.setNotifications(accountId, notifications);
+        List<MailManagerMessageType> activeNotifications = accountNotificationHelper.getActiveMailManagerMessageTypes();
+
+        Set<MailManagerMessageType> filteredNotifications = notifications.stream().filter(activeNotifications::contains).collect(Collectors.toSet());
+
+        accountManager.setNotifications(accountId, filteredNotifications);
 
         //Save history
         String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + notifications + "]");
+        params.put(HISTORY_MESSAGE_KEY, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + filteredNotifications + "]");
         params.put(OPERATOR_KEY, operator);
 
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));
@@ -605,7 +653,7 @@ public class PersonalAccountRestController extends CommonRestController {
         PersonalAccountWithNotificationsProjection account = accountManager.findOneByAccountIdWithNotifications(accountId);
 
         Map<String, Boolean> isSubscribedResult = new HashMap<>();
-        isSubscribedResult.put("is_subscribed", account.hasNotification(MailManagerMessageType.EMAIL_NEWS));
+        isSubscribedResult.put("is_subscribed", account.getDeleted() == null && account.hasNotification(MailManagerMessageType.EMAIL_NEWS));
 
         return new ResponseEntity<>(isSubscribedResult, HttpStatus.OK);
     }
@@ -624,6 +672,38 @@ public class PersonalAccountRestController extends CommonRestController {
         String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();
         params.put(HISTORY_MESSAGE_KEY, "Аккаунт " + (!account.isActive() ? "включен" : "выключен"));
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAuthority('MANAGE_ACCOUNT_DELETED')")
+    @RequestMapping(value = "/{accountId}/account/toggle_deleted",
+                    method = RequestMethod.POST)
+    public ResponseEntity<Object> toggleDeleted(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Boolean delete = account.getDeleted() == null;
+
+        Map<String, String> requestParams = new HashMap<>();
+        requestParams.put(DELETE_KEY, delete.toString());
+
+        SimpleServiceMessage siResponse = siFeignClient.toggleDelete(account.getId(), requestParams);
+
+        if (siResponse.getParam("success") == null || !((boolean) siResponse.getParam("success"))) {
+            throw new ParameterValidationException("Не удалось удалить логин для входа в КП. Ошибка: " + siResponse.getParam(ERROR_MESSAGE_KEY));
+        }
+
+        accountManager.setDeleted(accountId, account.getDeleted() == null);
+
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Аккаунт " + (account.getDeleted() == null ? "удален" : "воскрешен"));
         params.put(OPERATOR_KEY, operator);
 
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));

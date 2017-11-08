@@ -11,12 +11,14 @@ import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountPromotionProcessByPaymentCreatedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSwitchByPaymentCreatedEvent;
+import ru.majordomo.hms.personmgr.event.accountStat.AccountStatCheckFirstPaymentEvent;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static ru.majordomo.hms.personmgr.common.Constants.AMOUNT_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.CREDIT_PAYMENT_TYPE_KIND;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.PAYMENT_CREATE;
 import static ru.majordomo.hms.personmgr.common.Constants.REAL_PAYMENT_TYPE_KIND;
@@ -55,19 +57,20 @@ public class PaymentAmqpController extends CommonAmqpController  {
 
             if (account != null) {
                 Map<String, Object> paramsForPublisher = new HashMap<>();
-                paramsForPublisher.put("amount", message.getParam("amount"));
+                paramsForPublisher.put(AMOUNT_KEY, message.getParam(AMOUNT_KEY));
 
                 // P.S. У этого эвента делэй в 10 секунд
                 publisher.publishEvent(new AccountPromotionProcessByPaymentCreatedEvent(account, paramsForPublisher));
+                publisher.publishEvent(new AccountStatCheckFirstPaymentEvent(message));
 
                 try {
                     //Если подключено СМС-уведомление, то также отправим его
-                    if (accountNotificationHelper.hasActiveSmsNotificationsAndMessageType(account, MailManagerMessageType.SMS_NEW_PAYMENT)) {
+                    if (accountNotificationHelper.isSubscribedToSmsType(account, MailManagerMessageType.SMS_NEW_PAYMENT)) {
 
                         HashMap<String, String> paramsForSms = new HashMap<>();
                         paramsForSms.put("client_id", account.getAccountId());
                         paramsForSms.put("acc_id", account.getName());
-                        paramsForSms.put("add_sum", Utils.formatBigDecimalWithCurrency(Utils.getBigDecimalFromUnexpectedInput(message.getParam("amount"))));
+                        paramsForSms.put("add_sum", Utils.formatBigDecimalWithCurrency(Utils.getBigDecimalFromUnexpectedInput(message.getParam(AMOUNT_KEY))));
 
                         accountNotificationHelper.sendSms(account, "MajordomoHMSNewPayment", 10, paramsForSms);
                     }
