@@ -1,7 +1,7 @@
 package ru.majordomo.hms.personmgr.config;
 
-
-import org.springframework.amqp.core.AmqpAdmin;
+import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.RabbitListenerConfigurer;
 import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
@@ -17,7 +17,13 @@ import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.handler.annotation.support.DefaultMessageHandlerMethodFactory;
 import org.springframework.retry.interceptor.RetryOperationsInterceptor;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.ALL_EXCHANGES;
+
 @Configuration
+@EnableRabbit
 public class RabbitMqConfig implements RabbitListenerConfigurer {
 
     @Value("${spring.rabbitmq.host}")
@@ -28,6 +34,13 @@ public class RabbitMqConfig implements RabbitListenerConfigurer {
 
     @Value("${spring.rabbitmq.password}")
     private String rabbitPassword;
+
+
+    @Value("${spring.application.name}")
+    private String applicationName;
+
+    @Value("${hms.instance.name}")
+    private String instanceName;
 
     @Bean
     public ConnectionFactory connectionFactory() {
@@ -63,7 +76,52 @@ public class RabbitMqConfig implements RabbitListenerConfigurer {
     RetryOperationsInterceptor interceptor() {
         return RetryInterceptorBuilder.stateless()
                 .maxAttempts(3)
-                .recoverer(new RepublishMessageRecoverer(rabbitTemplate(), "pm", "error"))
+                .recoverer(
+                        new RepublishMessageRecoverer(
+                                rabbitTemplate(),
+                                instanceName + "." + applicationName,
+                                "error"
+                        )
+                )
                 .build();
+    }
+
+    @Bean
+    public List<Exchange> exchanges() {
+        List<Exchange> exchanges = new ArrayList<>();
+
+        for (String exchangeName : ALL_EXCHANGES) {
+            exchanges.add(new TopicExchange(exchangeName));
+        }
+
+        return exchanges;
+    }
+
+    @Bean
+    public List<Queue> queues() {
+        List<Queue> queues = new ArrayList<>();
+
+        for (String exchangeName : ALL_EXCHANGES) {
+            queues.add(new Queue(instanceName + "." + applicationName + "." + exchangeName));
+        }
+
+        return queues;
+    }
+
+    @Bean
+    public List<Binding> bindings() {
+        List<Binding> bindings = new ArrayList<>();
+
+        for (String exchangeName : ALL_EXCHANGES) {
+            bindings.add(new Binding(
+                    instanceName + "." + applicationName + "." + exchangeName,
+                    Binding.DestinationType.QUEUE,
+                    exchangeName,
+                    instanceName + "." + applicationName,
+                    null
+            ));
+        }
+
+        return bindings;
     }
 }
