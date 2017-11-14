@@ -68,6 +68,7 @@ public class Constants {
     public static final String MAILING_TYPE_INFO = "info";
     public static final String MAILING_TYPE_TECH = "tech";
     public static final String MAILBOX_ANTISPAM_FIELD = "antiSpamEnabled";
+    public static final String WEB_SITE_ID_KEY = "webSiteId";
 
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;
@@ -285,6 +286,8 @@ public class Constants {
         public static final String WEBSITE_UPDATE = "website.update";
         public static final String WEBSITE_DELETE = "website.delete";
 
+        public static final String APS_CAT_INSTALL = "apscat.install";
+
         public static Set<String> ALL_EXCHANGES;
 
         static {
@@ -326,7 +329,8 @@ public class Constants {
                     UNIX_ACCOUNT_DELETE,
                     WEBSITE_CREATE,
                     WEBSITE_UPDATE,
-                    WEBSITE_DELETE
+                    WEBSITE_DELETE,
+                    APS_CAT_INSTALL
             ));
         }
     }

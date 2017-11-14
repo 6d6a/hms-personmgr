@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -19,10 +21,14 @@ import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
+import ru.majordomo.hms.personmgr.service.BusinessActionBuilder;
+import ru.majordomo.hms.personmgr.service.BusinessOperationBuilder;
+import ru.majordomo.hms.personmgr.service.PlanCheckerService;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 
@@ -33,6 +39,9 @@ public class CommonRestController {
     protected ApplicationEventPublisher publisher;
     protected PaymentServiceRepository paymentServiceRepository;
     protected AccountServiceRepository accountServiceRepository;
+    protected BusinessActionBuilder businessActionBuilder;
+    protected BusinessOperationBuilder businessOperationBuilder;
+    protected PlanCheckerService planCheckerService;
 
     @Autowired
     public void setAccountManager(PersonalAccountManager accountManager) {
@@ -52,6 +61,21 @@ public class CommonRestController {
     @Autowired
     public void setPublisher(ApplicationEventPublisher publisher) {
         this.publisher = publisher;
+    }
+
+    @Autowired
+    public void setPlanCheckerService(PlanCheckerService planCheckerService) {
+        this.planCheckerService = planCheckerService;
+    }
+
+    @Autowired
+    public void setBusinessActionBuilder(BusinessActionBuilder businessActionBuilder) {
+        this.businessActionBuilder = businessActionBuilder;
+    }
+
+    @Autowired
+    public void setBusinessOperationBuilder(BusinessOperationBuilder businessOperationBuilder) {
+        this.businessOperationBuilder = businessOperationBuilder;
     }
 
     private SimpleServiceMessage createResponse() {
@@ -172,5 +196,11 @@ public class CommonRestController {
         params.put(HISTORY_MESSAGE_KEY, message);
         params.put(OPERATOR_KEY, operator);
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+    }
+
+    protected ProcessingBusinessAction process(BusinessOperationType operationType, BusinessActionType actionType, SimpleServiceMessage message) {
+        ProcessingBusinessOperation processingBusinessOperation = businessOperationBuilder.build(operationType, message);
+
+        return businessActionBuilder.build(actionType, message, processingBusinessOperation);
     }
 }

@@ -8,6 +8,7 @@ import java.util.Set;
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.ENABLED_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.WEB_SITE_ID_KEY;
 
 public class RequiredField {
     public static final Set<String> ACCOUNT_CREATE = new HashSet<>();
@@ -21,6 +22,10 @@ public class RequiredField {
     public static final Set<String> ACCOUNT_PASSWORD_CHANGE = new HashSet<>();
 
     public static final Set<String> ACCOUNT_PASSWORD_RECOVER = new HashSet<>();
+
+    public static final Set<String> APP_INSTALL = new HashSet<>();
+
+    public static final Set<String> APP_INSTALL_FULL = new HashSet<>();
 
     static {
         ACCOUNT_CREATE.addAll(Arrays.asList(
@@ -41,6 +46,19 @@ public class RequiredField {
         ACCOUNT_SEO_ORDER_CREATE.addAll(Arrays.asList(
                 "domainName",
                 "seoType"
+        ));
+
+        APP_INSTALL.addAll(Arrays.asList(
+                WEB_SITE_ID_KEY,
+                "appId"
+        ));
+
+        APP_INSTALL_FULL.addAll(APP_INSTALL);
+
+        APP_INSTALL_FULL.addAll(Arrays.asList(
+                "databaseId",
+                "databaseUserId",
+                "databaseUserPassword"
         ));
 
         ACCOUNT_PASSWORD_CHANGE.addAll(Collections.singletonList(

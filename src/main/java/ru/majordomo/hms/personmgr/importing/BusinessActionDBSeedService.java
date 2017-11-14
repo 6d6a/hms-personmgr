@@ -80,6 +80,8 @@ public class BusinessActionDBSeedService {
         this.seedResourceArchiveUpdateActions();
         this.seedResourceArchiveDeleteActions();
 
+        this.seedApsCatInstallActions();
+
         logger.debug("BusinessAction found with findAll():");
         logger.debug("-------------------------------");
 
@@ -797,6 +799,26 @@ public class BusinessActionDBSeedService {
         amqpMessageDestination = new AmqpMessageDestination();
         amqpMessageDestination.setExchange("resource-archive.delete");
         amqpMessageDestination.setRoutingKey("rc.user");
+
+        action.setDestination(amqpMessageDestination);
+
+        action.setPriority(1);
+
+        businessActionRepository.save(action);
+    }
+
+    private void seedApsCatInstallActions() {
+        BusinessAction action;
+        AmqpMessageDestination amqpMessageDestination;
+
+        //DnsRecord delete
+        action = new BusinessAction();
+        action.setBusinessActionType(BusinessActionType.APP_INSTALL_APSCAT);
+        action.setName("ApsCat install");
+
+        amqpMessageDestination = new AmqpMessageDestination();
+        amqpMessageDestination.setExchange("apscat.install");
+        amqpMessageDestination.setRoutingKey("apscat");
 
         action.setDestination(amqpMessageDestination);
 

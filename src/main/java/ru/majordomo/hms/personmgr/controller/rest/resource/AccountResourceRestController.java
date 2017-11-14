@@ -20,6 +20,7 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
@@ -41,7 +42,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_CREATE;
 
 @RestController
-public class AccountResourceRestController extends CommonResourceRestController {
+public class AccountResourceRestController extends CommonRestController {
     private final SequenceCounterService sequenceCounterService;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final PlanRepository planRepository;

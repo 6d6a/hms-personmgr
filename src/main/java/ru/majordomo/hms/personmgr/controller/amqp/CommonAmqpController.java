@@ -202,6 +202,8 @@ public class CommonAmqpController {
 
                 Map<String, String> params = new HashMap<>();
 
+                ProcessingBusinessOperation businessOperation;
+
                 switch (businessAction.getBusinessActionType()) {
                     case WEB_SITE_CREATE_RC:
 
@@ -215,8 +217,9 @@ public class CommonAmqpController {
                         publisher.publishEvent(new WebSiteCreatedEvent(account, params));
 
                         break;
+
                     case UNIX_ACCOUNT_CREATE_RC:
-                        ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
                         if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
                             businessOperation.setState(State.PROCESSED);
                             processingBusinessOperationRepository.save(businessOperation);
@@ -224,6 +227,19 @@ public class CommonAmqpController {
                             params.put(PASSWORD_KEY, (String) businessOperation.getParam(PASSWORD_KEY));
 
                             publisher.publishEvent(new AccountCreatedEvent(account, params));
+                        }
+                        break;
+
+                    case DATABASE_USER_CREATE_RC:
+                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        if (businessOperation != null && businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
+                            //TODO Create DB {"name":"b***_***","type":"MYSQL","databaseUserIds":[""],"serviceId":""}
+//                            businessOperation.setState(State.PROCESSED);
+//                            processingBusinessOperationRepository.save(businessOperation);
+//
+//                            params.put(PASSWORD_KEY, (String) businessOperation.getParam(PASSWORD_KEY));
+//
+//                            publisher.publishEvent(new AccountCreatedEvent(account, params));
                         }
                         break;
                 }
