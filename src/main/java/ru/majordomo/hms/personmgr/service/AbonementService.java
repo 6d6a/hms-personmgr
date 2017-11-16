@@ -100,7 +100,9 @@ public class AbonementService {
 
         Abonement abonement = checkAbonementAllownes(account, plan, abonementId, accountHasFree14DaysAbonement);
 
-        accountHelper.charge(account, abonement.getService());
+        if (abonement.getService().getCost().compareTo(BigDecimal.ZERO) > 0) {
+            accountHelper.charge(account, abonement.getService());
+        }
 
         AccountAbonement accountAbonement = new AccountAbonement();
         accountAbonement.setAbonementId(abonementId);
