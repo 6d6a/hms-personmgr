@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -122,7 +123,7 @@ public class AccountServiceRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        checkRequiredParams(requestBody, ACCOUNT_SERVICE_CREATE);
+        Utils.checkRequiredParams(requestBody, ACCOUNT_SERVICE_CREATE);
 
         String paymentServiceId = (String) requestBody.get("paymentServiceId");
 
@@ -180,7 +181,7 @@ public class AccountServiceRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        checkRequiredParams(requestBody, ACCOUNT_SERVICE_ENABLE);
+        Utils.checkRequiredParams(requestBody, ACCOUNT_SERVICE_ENABLE);
 
         Boolean enabled = (Boolean) requestBody.get(ENABLED_KEY);
 
@@ -246,7 +247,7 @@ public class AccountServiceRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        checkRequiredParams(requestBody, ACCOUNT_SERVICE_ENABLE);
+        Utils.checkRequiredParams(requestBody, ACCOUNT_SERVICE_ENABLE);
 
         Boolean enabled = (Boolean) requestBody.get(ENABLED_KEY);
 

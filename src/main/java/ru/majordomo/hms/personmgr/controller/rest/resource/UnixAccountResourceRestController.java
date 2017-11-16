@@ -70,7 +70,7 @@ public class UnixAccountResourceRestController extends CommonRestController {
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), UNIX_ACCOUNT_POST, authentication);
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.UNIX_ACCOUNT_CREATE, BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.UNIX_ACCOUNT_CREATE, BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -109,7 +109,7 @@ public class UnixAccountResourceRestController extends CommonRestController {
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), UNIX_ACCOUNT_PATCH, authentication);
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.UNIX_ACCOUNT_UPDATE, BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.UNIX_ACCOUNT_UPDATE, BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -137,7 +137,7 @@ public class UnixAccountResourceRestController extends CommonRestController {
 
         logger.debug("Deleting unix account with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.UNIX_ACCOUNT_DELETE, BusinessActionType.UNIX_ACCOUNT_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.UNIX_ACCOUNT_DELETE, BusinessActionType.UNIX_ACCOUNT_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

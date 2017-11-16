@@ -55,7 +55,7 @@ public class AccountHelper {
     private final FinFeignClient finFeignClient;
     private final SiFeignClient siFeignClient;
     private final AccountPromotionManager accountPromotionManager;
-    private final BusinessActionBuilder businessActionBuilder;
+    private final BusinessHelper businessHelper;
     private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
     private final AccountPromocodeRepository accountPromocodeRepository;
@@ -71,7 +71,7 @@ public class AccountHelper {
             FinFeignClient finFeignClient,
             SiFeignClient siFeignClient,
             AccountPromotionManager accountPromotionManager,
-            BusinessActionBuilder businessActionBuilder,
+            BusinessHelper businessHelper,
             PersonalAccountManager accountManager,
             ApplicationEventPublisher publisher,
             AccountPromocodeRepository accountPromocodeRepository,
@@ -85,7 +85,7 @@ public class AccountHelper {
         this.finFeignClient = finFeignClient;
         this.siFeignClient = siFeignClient;
         this.accountPromotionManager = accountPromotionManager;
-        this.businessActionBuilder = businessActionBuilder;
+        this.businessHelper = businessHelper;
         this.accountManager = accountManager;
         this.publisher = publisher;
         this.accountPromocodeRepository = accountPromocodeRepository;
@@ -497,7 +497,7 @@ public class AccountHelper {
             message.addParam("resourceId", mailbox.getId());
             message.addParam("antiSpamEnabled", state);
 
-            businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
+            businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на" + (state ? "включение" : "отключение") + "анти-спама у почтового ящика '"
                     + mailbox.getFullName() + "' в связи с " + (state ? "включением" : "отключением") + " услуги";
@@ -517,7 +517,7 @@ public class AccountHelper {
                 message.addParam("resourceId", webSite.getId());
                 message.addParam("switchedOn", state);
 
-                businessActionBuilder.build(BusinessActionType.WEB_SITE_UPDATE_RC, message);
+                businessHelper.buildAction(BusinessActionType.WEB_SITE_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " сайта '" + webSite.getName() + "'";
                 saveHistoryForOperatorService(account, historyMessage);
@@ -539,7 +539,7 @@ public class AccountHelper {
                 message.addParam("resourceId", databaseUser.getId());
                 message.addParam("switchedOn", state);
 
-                businessActionBuilder.build(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
+                businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " пользователя базы данных '" + databaseUser.getName() + "'";
                 saveHistoryForOperatorService(account, historyMessage);
@@ -561,7 +561,7 @@ public class AccountHelper {
                 message.addParam("resourceId", mailbox.getId());
                 message.addParam("switchedOn", state);
 
-                businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
+                businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getFullName() + "'";
                 saveHistoryForOperatorService(account, historyMessage);
@@ -583,7 +583,7 @@ public class AccountHelper {
                 message.addParam("resourceId", domain.getId());
                 message.addParam("switchedOn", state);
 
-                businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, message);
+                businessHelper.buildAction(BusinessActionType.DOMAIN_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " домена '" + domain.getName() + "'";
                 saveHistoryForOperatorService(account, historyMessage);
@@ -605,7 +605,7 @@ public class AccountHelper {
                 message.addParam("resourceId", ftpUser.getId());
                 message.addParam("switchedOn", state);
 
-                businessActionBuilder.build(BusinessActionType.FTP_USER_UPDATE_RC, message);
+                businessHelper.buildAction(BusinessActionType.FTP_USER_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " FTP-пользователя '" + ftpUser.getName() + "'";
                 saveHistoryForOperatorService(account, historyMessage);
@@ -627,7 +627,7 @@ public class AccountHelper {
                 message.addParam("resourceId", unixAccount.getId());
                 message.addParam("switchedOn", state);
 
-                businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
+                businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " UNIX-аккаунта '" + unixAccount.getName() + "'";
                 saveHistoryForOperatorService(account, historyMessage);
@@ -693,7 +693,7 @@ public class AccountHelper {
                     message.addParam("resourceId", unixAccount.getId());
                     message.addParam("quota", quotaInBytes);
 
-                    businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
+                    businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
                     String historyMessage = "Отправлена заявка на установку новой квоты в значение '" + quotaInBytes +
                             " байт' для UNIX-аккаунта '" + unixAccount.getName() + "'";
@@ -717,7 +717,7 @@ public class AccountHelper {
             message.setAccountId(account.getId());
             message.addParam("resourceId", sslCertificate.getId());
 
-            businessActionBuilder.build(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
+            businessHelper.buildAction(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
 
             String historyMessage = "Отправлена заявка на выключение SSL сертификата '" + sslCertificate.getName() + "'";
             saveHistoryForOperatorService(account, historyMessage);
@@ -834,7 +834,7 @@ public class AccountHelper {
             message.addParam("resourceId", unixAccount.getId());
             message.addParam("writable", state);
 
-            businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
+            businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
                     " возможности записывать данные (writable) для UNIX-аккаунта '" + unixAccount.getName() + "'";
@@ -855,7 +855,7 @@ public class AccountHelper {
             message.addParam("resourceId", mailbox.getId());
             message.addParam("writable", state);
 
-            businessActionBuilder.build(BusinessActionType.MAILBOX_UPDATE_RC, message);
+            businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
                     " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getFullName() + "'";
@@ -877,7 +877,7 @@ public class AccountHelper {
             message.addParam("resourceId", database.getId());
             message.addParam("writable", state);
 
-            businessActionBuilder.build(BusinessActionType.DATABASE_UPDATE_RC, message);
+            businessHelper.buildAction(BusinessActionType.DATABASE_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
                     " возможности записывать данные (writable) для базы данных '" + database.getName() + "'";

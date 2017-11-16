@@ -57,7 +57,7 @@ public class MailboxResourceRestController extends CommonRestController {
 
         checkParamsForServicesOnUpdate(message.getParams(), accountManager.findOne(accountId));
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_CREATE, BusinessActionType.MAILBOX_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.MAILBOX_CREATE, BusinessActionType.MAILBOX_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -98,7 +98,7 @@ public class MailboxResourceRestController extends CommonRestController {
 
         checkParamsForServicesOnUpdate(message.getParams(), accountManager.findOne(accountId));
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_UPDATE, BusinessActionType.MAILBOX_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.MAILBOX_UPDATE, BusinessActionType.MAILBOX_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -126,7 +126,7 @@ public class MailboxResourceRestController extends CommonRestController {
 
         logger.debug("Deleting mailbox with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.MAILBOX_DELETE, BusinessActionType.MAILBOX_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.MAILBOX_DELETE, BusinessActionType.MAILBOX_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

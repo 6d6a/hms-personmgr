@@ -6,6 +6,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.ENABLED_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEB_SITE_ID_KEY;
@@ -56,9 +59,9 @@ public class RequiredField {
         APP_INSTALL_FULL.addAll(APP_INSTALL);
 
         APP_INSTALL_FULL.addAll(Arrays.asList(
-                "databaseId",
-                "databaseUserId",
-                "databaseUserPassword"
+                DATABASE_ID_KEY,
+                DATABASE_USER_ID_KEY,
+                DATABASE_USER_PASSWORD_KEY
         ));
 
         ACCOUNT_PASSWORD_CHANGE.addAll(Collections.singletonList(

@@ -1,10 +1,10 @@
 package ru.majordomo.hms.personmgr.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.processingBusinessAction.ProcessingBusinessActionNewEvent;
@@ -14,25 +14,56 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
+import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 
 @Service
-public class BusinessActionBuilder {
+public class BusinessHelper {
+    private final ProcessingBusinessOperationRepository operationRepository;
     private final BusinessActionRepository businessActionRepository;
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
     private final ApplicationEventPublisher publisher;
 
-    @Autowired
-    public BusinessActionBuilder(
+    public BusinessHelper(
+            ProcessingBusinessOperationRepository operationRepository,
             BusinessActionRepository businessActionRepository,
             ProcessingBusinessActionRepository processingBusinessActionRepository,
-            ApplicationEventPublisher publisher) {
+            ApplicationEventPublisher publisher
+    ) {
+        this.operationRepository = operationRepository;
         this.businessActionRepository = businessActionRepository;
         this.processingBusinessActionRepository = processingBusinessActionRepository;
         this.publisher = publisher;
     }
 
+    public ProcessingBusinessAction buildActionAndOperation(
+            BusinessOperationType operationType,
+            BusinessActionType actionType,
+            SimpleServiceMessage message
+    ) {
+        ProcessingBusinessOperation processingBusinessOperation = buildOperation(operationType, message);
 
-    public ProcessingBusinessAction build(
+        return buildActionByOperation(actionType, message, processingBusinessOperation);
+    }
+
+    public ProcessingBusinessOperation buildOperation(BusinessOperationType operationType, SimpleServiceMessage message) {
+        ProcessingBusinessOperation operation = new ProcessingBusinessOperation();
+
+        operation.setPersonalAccountId(message.getAccountId());
+        operation.setState(State.PROCESSING);
+        operation.setParams(message.getParams());
+        operation.setType(operationType);
+
+        String nameInParams = (String) message.getParam("name");
+        if (nameInParams != null) {
+            operation.addPublicParam("name", nameInParams);
+        }
+
+        operationRepository.save(operation);
+
+        return operation;
+    }
+
+    public ProcessingBusinessAction buildAction(
             BusinessActionType businessActionType,
             SimpleServiceMessage message
     ) {
@@ -58,12 +89,12 @@ public class BusinessActionBuilder {
         return processingBusinessAction;
     }
 
-    public ProcessingBusinessAction build(
+    public ProcessingBusinessAction buildActionByOperation(
             BusinessActionType businessActionType,
             SimpleServiceMessage message,
             ProcessingBusinessOperation operation
     ) {
-        ProcessingBusinessAction action = build(businessActionType, message);
+        ProcessingBusinessAction action = buildAction(businessActionType, message);
         action.setOperationId(operation.getId());
 
         processingBusinessActionRepository.save(action);

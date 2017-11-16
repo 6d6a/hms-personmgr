@@ -19,6 +19,7 @@ import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
@@ -51,7 +52,6 @@ public class AccountResourceRestController extends CommonRestController {
     private final AccountOwnerManager accountOwnerManager;
     private final PlanLimitsService planLimitsService;
     private final SiFeignClient siFeignClient;
-    private final BusinessOperationBuilder businessOperationBuilder;
     private final RcUserFeignClient rcUserFeignClient;
 
     @Autowired
@@ -64,7 +64,6 @@ public class AccountResourceRestController extends CommonRestController {
             AccountOwnerManager accountOwnerManager,
             PlanLimitsService planLimitsService,
             SiFeignClient siFeignClient,
-            BusinessOperationBuilder businessOperationBuilder,
             RcUserFeignClient rcUserFeignClient
     ) {
         this.sequenceCounterService = sequenceCounterService;
@@ -75,7 +74,6 @@ public class AccountResourceRestController extends CommonRestController {
         this.accountOwnerManager = accountOwnerManager;
         this.planLimitsService = planLimitsService;
         this.siFeignClient = siFeignClient;
-        this.businessOperationBuilder = businessOperationBuilder;
         this.rcUserFeignClient = rcUserFeignClient;
     }
 
@@ -88,7 +86,7 @@ public class AccountResourceRestController extends CommonRestController {
     ) {
         logger.debug("Got SimpleServiceMessage: " + message.toString());
 
-        checkRequiredParams(message.getParams(), ACCOUNT_CREATE);
+        Utils.checkRequiredParams(message.getParams(), ACCOUNT_CREATE);
 
         boolean agreement = (boolean) message.getParam("agreement");
 
@@ -189,7 +187,7 @@ public class AccountResourceRestController extends CommonRestController {
         message.addParam("username", personalAccount.getName());
         message.addParam(PASSWORD_KEY, password);
 
-        ProcessingBusinessOperation processingBusinessOperation = businessOperationBuilder.build(BusinessOperationType.ACCOUNT_CREATE, message);
+        ProcessingBusinessOperation processingBusinessOperation = businessHelper.buildOperation(BusinessOperationType.ACCOUNT_CREATE, message);
 
         logger.debug("processingBusinessOperation saved: " + processingBusinessOperation.toString());
 
@@ -201,7 +199,7 @@ public class AccountResourceRestController extends CommonRestController {
 
         message.addParam("token", siResponse.getParam("token"));
 
-        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_CREATE_FIN, message, processingBusinessOperation);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionByOperation(BusinessActionType.ACCOUNT_CREATE_FIN, message, processingBusinessOperation);
 
         logger.debug("ProcessingBusinessAction saved: " + businessAction.toString());
 

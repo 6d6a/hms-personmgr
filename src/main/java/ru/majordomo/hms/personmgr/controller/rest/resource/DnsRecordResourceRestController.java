@@ -47,7 +47,7 @@ public class DnsRecordResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Создание DNS-записи невозможно.");
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DNS_RECORD_CREATE, BusinessActionType.DNS_RECORD_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DNS_RECORD_CREATE, BusinessActionType.DNS_RECORD_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -82,7 +82,7 @@ public class DnsRecordResourceRestController extends CommonRestController {
 
         checkParamsWithRoles(message.getParams(), DNS_RECORD_PATCH, authentication);
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DNS_RECORD_UPDATE, BusinessActionType.DNS_RECORD_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DNS_RECORD_UPDATE, BusinessActionType.DNS_RECORD_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
         //Save history
@@ -110,7 +110,7 @@ public class DnsRecordResourceRestController extends CommonRestController {
 
         logger.debug("Deleting DnsRecord with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DNS_RECORD_DELETE, BusinessActionType.DNS_RECORD_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DNS_RECORD_DELETE, BusinessActionType.DNS_RECORD_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

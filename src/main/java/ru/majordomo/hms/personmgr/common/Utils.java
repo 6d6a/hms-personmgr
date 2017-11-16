@@ -10,6 +10,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -136,5 +138,13 @@ public class Utils {
      */
     public static int getDifferentInDaysBetweenDates(LocalDate startDate, LocalDate endDate) {
         return ((Long) ChronoUnit.DAYS.between(startDate, endDate)).intValue();
+    }
+
+    public static void checkRequiredParams(Map<String, Object> params, Set<String> requiredParams) {
+        for (String field : requiredParams) {
+            if (params.get(field) == null) {
+                throw new ParameterValidationException("В запросе не передан обязательный параметр '" + field + "'");
+            }
+        }
     }
 }

@@ -61,7 +61,7 @@ public class DatabaseResourceRestController extends CommonRestController {
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), DATABASE_POST, authentication);
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_CREATE, BusinessActionType.DATABASE_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_CREATE, BusinessActionType.DATABASE_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -100,7 +100,7 @@ public class DatabaseResourceRestController extends CommonRestController {
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), DATABASE_PATCH, authentication);
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_UPDATE, BusinessActionType.DATABASE_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_UPDATE, BusinessActionType.DATABASE_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -128,7 +128,7 @@ public class DatabaseResourceRestController extends CommonRestController {
 
         logger.debug("Deleting database with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_DELETE, BusinessActionType.DATABASE_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_DELETE, BusinessActionType.DATABASE_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

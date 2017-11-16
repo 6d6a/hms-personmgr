@@ -45,7 +45,7 @@ public class DatabaseUserResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Создание пользователя базы данных невозможно.");
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_USER_CREATE, BusinessActionType.DATABASE_USER_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_USER_CREATE, BusinessActionType.DATABASE_USER_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -76,7 +76,7 @@ public class DatabaseUserResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление пользователя базы данных невозможно.");
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_USER_UPDATE, BusinessActionType.DATABASE_USER_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_USER_UPDATE, BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -104,7 +104,7 @@ public class DatabaseUserResourceRestController extends CommonRestController {
 
         logger.debug("Deleting database user with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_USER_DELETE, BusinessActionType.DATABASE_USER_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_USER_DELETE, BusinessActionType.DATABASE_USER_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

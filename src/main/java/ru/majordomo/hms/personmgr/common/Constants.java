@@ -69,6 +69,9 @@ public class Constants {
     public static final String MAILING_TYPE_TECH = "tech";
     public static final String MAILBOX_ANTISPAM_FIELD = "antiSpamEnabled";
     public static final String WEB_SITE_ID_KEY = "webSiteId";
+    public static final String DATABASE_ID_KEY = "databaseId";
+    public static final String DATABASE_USER_ID_KEY = "databaseUserId";
+    public static final String DATABASE_USER_PASSWORD_KEY = "databaseUserPassword";
 
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;

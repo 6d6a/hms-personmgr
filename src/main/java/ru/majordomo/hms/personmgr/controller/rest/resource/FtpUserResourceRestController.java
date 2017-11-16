@@ -51,7 +51,7 @@ public class FtpUserResourceRestController extends CommonRestController {
             return this.createErrorResponse("Plan limit for ftp-users exceeded");
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.FTP_USER_CREATE, BusinessActionType.FTP_USER_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_CREATE, BusinessActionType.FTP_USER_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -83,7 +83,7 @@ public class FtpUserResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление FTP пользователя невозможно.");
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.FTP_USER_UPDATE, BusinessActionType.FTP_USER_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_UPDATE, BusinessActionType.FTP_USER_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -111,7 +111,7 @@ public class FtpUserResourceRestController extends CommonRestController {
 
         logger.debug("Deleting ftpuser with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.FTP_USER_DELETE, BusinessActionType.FTP_USER_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_DELETE, BusinessActionType.FTP_USER_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

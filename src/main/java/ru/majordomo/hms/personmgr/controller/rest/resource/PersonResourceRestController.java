@@ -52,7 +52,7 @@ public class PersonResourceRestController extends CommonRestController {
 
         logger.debug("Creating person " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.PERSON_CREATE, BusinessActionType.PERSON_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.PERSON_CREATE, BusinessActionType.PERSON_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -80,7 +80,7 @@ public class PersonResourceRestController extends CommonRestController {
 
         logger.debug("Updating person with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.PERSON_UPDATE, BusinessActionType.PERSON_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.PERSON_UPDATE, BusinessActionType.PERSON_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -115,7 +115,7 @@ public class PersonResourceRestController extends CommonRestController {
             this.createErrorResponse("Person with id " + resourceId + " is set as accountOwner and prohibited to delete");
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.PERSON_DELETE, BusinessActionType.PERSON_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.PERSON_DELETE, BusinessActionType.PERSON_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

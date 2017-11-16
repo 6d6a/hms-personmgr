@@ -61,7 +61,7 @@ public class WebSiteResourceRestController extends CommonRestController {
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), WEB_SITE_POST, authentication);
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.WEB_SITE_CREATE, BusinessActionType.WEB_SITE_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.WEB_SITE_CREATE, BusinessActionType.WEB_SITE_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -100,7 +100,7 @@ public class WebSiteResourceRestController extends CommonRestController {
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), WEB_SITE_PATCH, authentication);
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.WEB_SITE_UPDATE, BusinessActionType.WEB_SITE_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.WEB_SITE_UPDATE, BusinessActionType.WEB_SITE_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -128,7 +128,7 @@ public class WebSiteResourceRestController extends CommonRestController {
 
         logger.debug("Deleting website with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.WEB_SITE_DELETE, BusinessActionType.WEB_SITE_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.WEB_SITE_DELETE, BusinessActionType.WEB_SITE_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
