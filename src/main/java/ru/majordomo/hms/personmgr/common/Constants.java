@@ -71,7 +71,11 @@ public class Constants {
     public static final String WEB_SITE_ID_KEY = "webSiteId";
     public static final String DATABASE_ID_KEY = "databaseId";
     public static final String DATABASE_USER_ID_KEY = "databaseUserId";
+    public static final String DATABASE_USER_NAME_KEY = "databaseUserName";
     public static final String DATABASE_USER_PASSWORD_KEY = "databaseUserPassword";
+    public static final String UNIX_ACCOUNT_NAME_KEY = "unixAccountName";
+    public static final String SERVER_ID_KEY = "serverId";
+    public static final String DATABASE_SERVICE_ID_KEY = "databaseServiceId";
 
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;
@@ -289,7 +293,7 @@ public class Constants {
         public static final String WEBSITE_UPDATE = "website.update";
         public static final String WEBSITE_DELETE = "website.delete";
 
-        public static final String APS_CAT_INSTALL = "apscat.install";
+        public static final String APPS_CAT_INSTALL = "appscat.install";
 
         public static Set<String> ALL_EXCHANGES;
 
@@ -333,7 +337,7 @@ public class Constants {
                     WEBSITE_CREATE,
                     WEBSITE_UPDATE,
                     WEBSITE_DELETE,
-                    APS_CAT_INSTALL
+                    APPS_CAT_INSTALL
             ));
         }
     }

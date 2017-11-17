@@ -80,7 +80,7 @@ public class BusinessActionDBSeedService {
         this.seedResourceArchiveUpdateActions();
         this.seedResourceArchiveDeleteActions();
 
-        this.seedApsCatInstallActions();
+        this.seedAppsCatInstallActions();
 
         logger.debug("BusinessAction found with findAll():");
         logger.debug("-------------------------------");
@@ -807,18 +807,18 @@ public class BusinessActionDBSeedService {
         businessActionRepository.save(action);
     }
 
-    private void seedApsCatInstallActions() {
+    private void seedAppsCatInstallActions() {
         BusinessAction action;
         AmqpMessageDestination amqpMessageDestination;
 
         //DnsRecord delete
         action = new BusinessAction();
-        action.setBusinessActionType(BusinessActionType.APP_INSTALL_APSCAT);
-        action.setName("ApsCat install");
+        action.setBusinessActionType(BusinessActionType.APP_INSTALL_APPSCAT);
+        action.setName("AppsCat install");
 
         amqpMessageDestination = new AmqpMessageDestination();
-        amqpMessageDestination.setExchange("apscat.install");
-        amqpMessageDestination.setRoutingKey("apscat");
+        amqpMessageDestination.setExchange("appscat.install");
+        amqpMessageDestination.setRoutingKey("appscat");
 
         action.setDestination(amqpMessageDestination);
 

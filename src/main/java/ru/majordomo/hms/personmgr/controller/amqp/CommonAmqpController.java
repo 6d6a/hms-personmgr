@@ -23,6 +23,7 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
+import ru.majordomo.hms.personmgr.service.AppsCatService;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -38,6 +39,7 @@ public class CommonAmqpController {
     ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     protected PersonalAccountManager accountManager;
     protected ApplicationEventPublisher publisher;
+    private AppsCatService appsCatService;
 
     protected String resourceName = "";
 
@@ -70,6 +72,11 @@ public class CommonAmqpController {
     @Autowired
     public void setPublisher(ApplicationEventPublisher publisher) {
         this.publisher = publisher;
+    }
+
+    @Autowired
+    public void setAppsCatService(AppsCatService appsCatService) {
+        this.appsCatService = appsCatService;
     }
 
     @Value("${hms.instance.name}")
@@ -233,13 +240,16 @@ public class CommonAmqpController {
                     case DATABASE_USER_CREATE_RC:
                         businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
                         if (businessOperation != null && businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
-                            //TODO Create DB {"name":"b***_***","type":"MYSQL","databaseUserIds":[""],"serviceId":""}
-//                            businessOperation.setState(State.PROCESSED);
-//                            processingBusinessOperationRepository.save(businessOperation);
-//
-//                            params.put(PASSWORD_KEY, (String) businessOperation.getParam(PASSWORD_KEY));
-//
-//                            publisher.publishEvent(new AccountCreatedEvent(account, params));
+                            message.setParams(businessOperation.getParams());
+                            appsCatService.addDatabase(message);
+                        }
+                        break;
+
+                    case DATABASE_CREATE_RC:
+                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        if (businessOperation != null && businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
+                            message.setParams(businessOperation.getParams());
+                            appsCatService.processInstall(message);
                         }
                         break;
                 }
