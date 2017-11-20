@@ -35,7 +35,7 @@ public class AppsCatRestController extends CommonRestController {
         this.appsCatService = appsCatService;
     }
 
-    @PostMapping("/app_install")
+    @PostMapping("/{accountId}/app_install")
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -62,7 +62,7 @@ public class AppsCatRestController extends CommonRestController {
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         //Save history
-        String operator = request.getUserPrincipal().getName();
+        String operator = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "service";
         Map<String, String> params = new HashMap<>();
         params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на установку приложения для сайта (имя: " + message.getParam("name") + ")");
         params.put(OPERATOR_KEY, operator);

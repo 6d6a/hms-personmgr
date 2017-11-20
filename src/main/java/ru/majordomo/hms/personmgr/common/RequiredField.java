@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.APP_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_PASSWORD_KEY;
@@ -53,7 +54,7 @@ public class RequiredField {
 
         APP_INSTALL.addAll(Arrays.asList(
                 WEB_SITE_ID_KEY,
-                "appId"
+                APP_ID_KEY
         ));
 
         APP_INSTALL_FULL.addAll(APP_INSTALL);

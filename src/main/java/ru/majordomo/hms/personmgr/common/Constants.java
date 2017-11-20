@@ -76,6 +76,8 @@ public class Constants {
     public static final String UNIX_ACCOUNT_NAME_KEY = "unixAccountName";
     public static final String SERVER_ID_KEY = "serverId";
     public static final String DATABASE_SERVICE_ID_KEY = "databaseServiceId";
+    public static final String DATABASE_HOST_KEY = "databaseHost";
+    public static final String APP_ID_KEY = "appId";
 
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;

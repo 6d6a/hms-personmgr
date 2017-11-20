@@ -94,8 +94,16 @@ public class BusinessHelper {
             SimpleServiceMessage message,
             ProcessingBusinessOperation operation
     ) {
+        return buildActionByOperationId(businessActionType, message, operation.getId());
+    }
+
+    public ProcessingBusinessAction buildActionByOperationId(
+            BusinessActionType businessActionType,
+            SimpleServiceMessage message,
+            String operationId
+    ) {
         ProcessingBusinessAction action = buildAction(businessActionType, message);
-        action.setOperationId(operation.getId());
+        action.setOperationId(operationId);
 
         processingBusinessActionRepository.save(action);
 

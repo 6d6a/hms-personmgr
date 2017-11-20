@@ -32,6 +32,9 @@ public interface RcUserFeignClient {
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/database")
     Collection<Database> getDatabases(@PathVariable("accountId") String accountId);
 
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/database/{databaseId}")
+    Database getDatabase(@PathVariable("accountId") String accountId, @PathVariable("databaseId") String databaseId);
+
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/database-user")
     List<DatabaseUser> getDatabaseUsers(@PathVariable("accountId") String accountId);
 
