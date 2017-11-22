@@ -75,6 +75,8 @@ public class Constants {
     public static final String DATABASE_USER_PASSWORD_KEY = "databaseUserPassword";
     public static final String UNIX_ACCOUNT_NAME_KEY = "unixAccountName";
     public static final String SERVER_ID_KEY = "serverId";
+    public static final String WEBSITE_SERVICE_ID_KEY = "webSiteServiceId";
+    public static final String WEBSITE_SERVER_NAME_KEY = "webSiteServerName";
     public static final String DATABASE_SERVICE_ID_KEY = "databaseServiceId";
     public static final String DATABASE_HOST_KEY = "databaseHost";
     public static final String APP_ID_KEY = "appId";

@@ -2,8 +2,6 @@ package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +30,8 @@ import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_NAME_KEY
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.UNIX_ACCOUNT_NAME_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.WEBSITE_SERVER_NAME_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.WEBSITE_SERVICE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEB_SITE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.RequiredField.APP_INSTALL;
 import static ru.majordomo.hms.personmgr.common.RequiredField.APP_INSTALL_FULL;
@@ -74,6 +74,7 @@ public class AppsCatService {
 
         message.addParam(UNIX_ACCOUNT_NAME_KEY, webSite.getUnixAccount().getName());
         message.addParam(SERVER_ID_KEY, webSite.getUnixAccount().getServerId());
+        message.addParam(WEBSITE_SERVICE_ID_KEY, webSite.getServiceId());
 
         message.addParam("APP_TITLE", webSite.getName());
         message.addParam("APP_URL", webSite.getDomains().isEmpty() ? webSite.getName() : webSite.getDomains().get(0).getName());
@@ -252,6 +253,10 @@ public class AppsCatService {
         message.addParam("ADMIN_USERNAME", "admin");
         message.addParam("ADMIN_EMAIL", String.join(",", accountOwner.getContactInfo().getEmailAddresses()));
         message.addParam("ADMIN_PASSWORD", password);
+
+        String serverName = rcStaffFeignClient.getServerByServiceId((String) message.getParam(WEBSITE_SERVICE_ID_KEY)).getName();
+
+        message.addParam(WEBSITE_SERVER_NAME_KEY, serverName.split("\\.")[0]);
 
         if (message.getOperationIdentity() != null) {
             return businessHelper.buildActionByOperationId(
