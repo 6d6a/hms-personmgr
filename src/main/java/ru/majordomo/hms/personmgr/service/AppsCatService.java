@@ -42,17 +42,20 @@ public class AppsCatService {
     private final RcStaffFeignClient rcStaffFeignClient;
     private final BusinessHelper businessHelper;
     private final AccountOwnerManager accountOwnerManager;
+    private final PlanCheckerService planCheckerService;
 
     public AppsCatService(
             RcUserFeignClient rcUserFeignClient,
             RcStaffFeignClient rcStaffFeignClient,
             BusinessHelper businessHelper,
-            AccountOwnerManager accountOwnerManager
+            AccountOwnerManager accountOwnerManager,
+            PlanCheckerService planCheckerService
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;
         this.businessHelper = businessHelper;
         this.accountOwnerManager = accountOwnerManager;
+        this.planCheckerService = planCheckerService;
     }
 
     public ProcessingBusinessAction install(SimpleServiceMessage message) {
@@ -120,7 +123,7 @@ public class AppsCatService {
             try {
                 databaseUsers = rcUserFeignClient.getDatabaseUsers(message.getAccountId());
             } catch (Exception e) {
-                throw new ParameterValidationException("Сайт не найден");
+                throw new ParameterValidationException("Ошибка при получении пользователей баз данных");
             }
 
             if (databaseUsers != null && !databaseUsers.isEmpty()) {
@@ -183,6 +186,10 @@ public class AppsCatService {
         String databaseServiceId = (String) message.getParam(DATABASE_SERVICE_ID_KEY);
 
         if (databaseId == null) {
+            if (!planCheckerService.canAddDatabase(message.getAccountId())) {
+                throw new ParameterValidationException("На аккаунте уже создано максимальнео количество баз данных");
+            }
+
             String unixAccountName = (String) message.getParam(UNIX_ACCOUNT_NAME_KEY);
 
             String databaseNamePostfix = randomAlphabetic(4);
@@ -192,7 +199,7 @@ public class AppsCatService {
             try {
                 databases = (List<Database>) rcUserFeignClient.getDatabases(message.getAccountId());
             } catch (Exception e) {
-                throw new ParameterValidationException("Сайт не найден");
+                throw new ParameterValidationException("Ошибка при получении баз данных");
             }
 
             if (databases != null && !databases.isEmpty()) {
