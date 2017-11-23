@@ -93,7 +93,7 @@ public class AccountResourceRestController extends CommonResourceRestController 
 
         if (!agreement) {
             logger.debug("Agreement not accepted");
-            return this.createErrorResponse("Необходимо согласится с условиями оферты");
+            return this.createErrorResponse("Необходимо согласиться с условиями оферты");
         }
 
         //Create pm, si and fin account
