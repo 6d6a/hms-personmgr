@@ -14,6 +14,7 @@ import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
+import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
+import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_FIRST_REAL_PAYMENT;
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_NAME_KEY;
 
 @Service
@@ -37,6 +39,7 @@ public class StatServiceHelper {
     private final PlanRepository planRepository;
     private final PersonalAccountManager accountManager;
     private final PaymentServiceRepository paymentServiceRepository;
+    private final AccountStatRepository accountStatRepository;
 
     @Autowired
     public StatServiceHelper(
@@ -44,13 +47,15 @@ public class StatServiceHelper {
             AbonementRepository abonementRepository,
             PlanRepository planRepository,
             PersonalAccountManager accountManager,
-            PaymentServiceRepository paymentServiceRepository
+            PaymentServiceRepository paymentServiceRepository,
+            AccountStatRepository accountStatRepository
     ) {
         this.mongoOperations = mongoOperations;
         this.abonementRepository = abonementRepository;
         this.planRepository = planRepository;
         this.accountManager = accountManager;
         this.paymentServiceRepository = paymentServiceRepository;
+        this.accountStatRepository = accountStatRepository;
     }
 
     public List<PlanCounter> getAllPlanCounters() {
@@ -294,5 +299,13 @@ public class StatServiceHelper {
             counter.setName(action + counter.getResourceId());
         }
         return list;
+    }
+
+    public Integer getAccountCountsWithFirstRealPaymentByDate(LocalDate date) {
+        return accountStatRepository
+                .countAccountStatByTypeAndCreatedIsBetween(
+                        VIRTUAL_HOSTING_FIRST_REAL_PAYMENT,
+                        LocalDateTime.of(date.minusDays(1), LocalTime.MAX),
+                        LocalDateTime.of(date.plusDays(1), LocalTime.MIN));
     }
 }
