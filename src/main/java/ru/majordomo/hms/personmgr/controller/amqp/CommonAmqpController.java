@@ -261,6 +261,7 @@ public class CommonAmqpController {
                             String databaseId = getResourceIdByObjRef(message.getObjRef());
 
                             businessOperation.addParam(DATABASE_ID_KEY, databaseId);
+                            businessOperation.addParam("DB_NAME", businessAction.getParam("DB_NAME"));
 
                             processingBusinessOperationRepository.save(businessOperation);
 
