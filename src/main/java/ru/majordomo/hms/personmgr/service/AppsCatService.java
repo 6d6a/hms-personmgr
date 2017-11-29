@@ -150,6 +150,8 @@ public class AppsCatService {
             message.addParam("serviceId", databaseServiceId);
             message.addParam("type", "MYSQL");
 
+            message.addParam(DATABASE_USER_PASSWORD_KEY, password);
+
             if (message.getOperationIdentity() != null) {
                 return businessHelper.buildActionByOperationId(
                         BusinessActionType.DATABASE_USER_CREATE_RC,

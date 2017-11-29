@@ -28,6 +28,7 @@ import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
@@ -245,6 +246,7 @@ public class CommonAmqpController {
                             String databaseUserId = getResourceIdByObjRef(message.getObjRef());
 
                             businessOperation.addParam(DATABASE_USER_ID_KEY, databaseUserId);
+                            businessOperation.addParam(DATABASE_USER_PASSWORD_KEY, businessAction.getParam(DATABASE_USER_PASSWORD_KEY));
 
                             processingBusinessOperationRepository.save(businessOperation);
 
