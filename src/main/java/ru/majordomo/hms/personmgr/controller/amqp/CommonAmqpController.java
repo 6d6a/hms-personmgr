@@ -26,6 +26,8 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationReposito
 import ru.majordomo.hms.personmgr.service.AppsCatService;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
+import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
@@ -240,6 +242,12 @@ public class CommonAmqpController {
                     case DATABASE_USER_CREATE_RC:
                         businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
                         if (businessOperation != null && businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
+                            String databaseUserId = getResourceIdByObjRef(message.getObjRef());
+
+                            businessOperation.addParam(DATABASE_USER_ID_KEY, databaseUserId);
+
+                            processingBusinessOperationRepository.save(businessOperation);
+
                             message.setParams(businessOperation.getParams());
                             appsCatService.addDatabase(message);
                         }
@@ -248,6 +256,12 @@ public class CommonAmqpController {
                     case DATABASE_CREATE_RC:
                         businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
                         if (businessOperation != null && businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
+                            String databaseId = getResourceIdByObjRef(message.getObjRef());
+
+                            businessOperation.addParam(DATABASE_ID_KEY, databaseId);
+
+                            processingBusinessOperationRepository.save(businessOperation);
+
                             message.setParams(businessOperation.getParams());
                             appsCatService.processInstall(message);
                         }

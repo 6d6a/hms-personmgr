@@ -43,19 +43,21 @@ public class AppsCatService {
     private final BusinessHelper businessHelper;
     private final AccountOwnerManager accountOwnerManager;
     private final PlanCheckerService planCheckerService;
+    private final AppscatFeignClient appscatFeignClient;
 
     public AppsCatService(
             RcUserFeignClient rcUserFeignClient,
             RcStaffFeignClient rcStaffFeignClient,
             BusinessHelper businessHelper,
             AccountOwnerManager accountOwnerManager,
-            PlanCheckerService planCheckerService
-    ) {
+            PlanCheckerService planCheckerService,
+            AppscatFeignClient appscatFeignClient) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;
         this.businessHelper = businessHelper;
         this.accountOwnerManager = accountOwnerManager;
         this.planCheckerService = planCheckerService;
+        this.appscatFeignClient = appscatFeignClient;
     }
 
     public ProcessingBusinessAction install(SimpleServiceMessage message) {
@@ -73,6 +75,10 @@ public class AppsCatService {
 
         if (webSite == null) {
             throw new ParameterValidationException("Сайт не найден");
+        }
+
+        if (appscatFeignClient.isPendingInstallForAccountByWebSiteId(message.getAccountId(), webSiteId)) {
+            throw new ParameterValidationException("На указанном сайте уже идет установка приложения");
         }
 
         message.addParam(UNIX_ACCOUNT_NAME_KEY, webSite.getUnixAccount().getName());
