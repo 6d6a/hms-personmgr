@@ -30,7 +30,7 @@ public class AppsCatAmqpController extends CommonAmqpController {
 
             ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
             if (businessOperation != null) {
-                businessOperation.setState(State.PROCESSED);
+                businessOperation.setState(state);
                 processingBusinessOperationRepository.save(businessOperation);
 
                 try {
@@ -46,7 +46,18 @@ public class AppsCatAmqpController extends CommonAmqpController {
                 }
             }
 
-            saveLogByMessageStateForCreate(message, state);
+            String logMessage = "ACTION_IDENTITY: " + message.getActionIdentity() +
+                    " OPERATION_IDENTITY: " + message.getOperationIdentity() +
+                    " установка приложения " + resourceName + " " + message.getAccountId();
+
+            switch (state) {
+                case PROCESSED:
+                    logger.info(logMessage + " завершена успешно");
+                    break;
+                case ERROR:
+                    logger.error(logMessage + " не удалась");
+                    break;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Got Exception in AppsCatAmqpController.install " + e.getMessage());

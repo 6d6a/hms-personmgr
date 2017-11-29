@@ -20,7 +20,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_
 
 @Service
 public class BusinessFlowDirector {
-    private static final Logger logger = LoggerFactory.getLogger(Application.class);
+    private static final Logger logger = LoggerFactory.getLogger(BusinessFlowDirector.class);
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final BusinessActionProcessor businessActionProcessor;
