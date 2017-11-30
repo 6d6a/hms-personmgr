@@ -16,6 +16,8 @@ import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 
+import static ru.majordomo.hms.personmgr.common.BusinessOperationType.BUSINESS_OPERATION_TYPE2HUMAN;
+
 @Service
 public class BusinessHelper {
     private final ProcessingBusinessOperationRepository operationRepository;
@@ -49,6 +51,7 @@ public class BusinessHelper {
         ProcessingBusinessOperation operation = new ProcessingBusinessOperation();
 
         operation.setPersonalAccountId(message.getAccountId());
+        operation.setName(BUSINESS_OPERATION_TYPE2HUMAN.get(operationType));
         operation.setState(State.PROCESSING);
         operation.setParams(message.getParams());
         operation.setType(operationType);
