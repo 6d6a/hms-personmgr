@@ -100,6 +100,8 @@ public class BusinessFlowDirector {
                                     && businessOperation.getType() != BusinessOperationType.APP_INSTALL) {
                                 businessOperation.setState(businessAction.getState());
                             }
+
+                            break;
                         case ERROR:
                             businessOperation.setState(businessAction.getState());
                             if (message.getParam("errorMessage") != null && !message.getParam("errorMessage").equals(""))

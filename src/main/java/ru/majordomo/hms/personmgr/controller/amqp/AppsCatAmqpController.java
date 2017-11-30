@@ -32,27 +32,28 @@ public class AppsCatAmqpController extends CommonAmqpController {
             if (businessOperation != null) {
                 businessOperation.setState(state);
                 processingBusinessOperationRepository.save(businessOperation);
-
-                try {
-                    //Save history
-                    Map<String, String> params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Заявка на установку приложения выполнена (имя: " + message.getParam("name") + ")");
-                    params.put(OPERATOR_KEY, "service");
-
-                    publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    logger.error("Got Exception in AppsCatAmqpController.install " + e.getMessage());
-                }
             }
 
             String logMessage = "ACTION_IDENTITY: " + message.getActionIdentity() +
                     " OPERATION_IDENTITY: " + message.getOperationIdentity() +
-                    " установка приложения " + resourceName + " " + message.getAccountId();
+                    " установка приложения на аккаунт " + message.getAccountId();
 
             switch (state) {
                 case PROCESSED:
                     logger.info(logMessage + " завершена успешно");
+
+                    try {
+                        //Save history
+                        Map<String, String> params = new HashMap<>();
+                        params.put(HISTORY_MESSAGE_KEY, "Заявка на установку приложения выполнена успешно (имя: " + message.getParam("name") + ")");
+                        params.put(OPERATOR_KEY, "service");
+
+                        publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        logger.error("Got Exception in AppsCatAmqpController.install " + e.getMessage());
+                    }
+
                     break;
                 case ERROR:
                     logger.error(logMessage + " не удалась");
