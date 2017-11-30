@@ -119,4 +119,14 @@ public class StatServiceRestController {
                 return null;
         }
     }
+
+    @GetMapping("/first-payment")
+    public ResponseEntity<Integer> getAccountCountsWithFirstRealPaymentByDate(
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false) LocalDate date
+    ) {
+        if (date == null) { date = LocalDate.now().minusDays(1); }
+
+        return ResponseEntity.ok(statServiceHelper.getAccountCountsWithFirstRealPaymentByDate(date));
+    }
 }
