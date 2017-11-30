@@ -31,6 +31,10 @@ public class AppsCatAmqpController extends CommonAmqpController {
             ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
             if (businessOperation != null) {
                 businessOperation.setState(state);
+
+                //Запишем урл сайта чтобы отображался в случае ошибки во фронтэнде (до этого момента там имя DB, либо имя DB-юзера)
+                businessOperation.addPublicParam("name", businessOperation.getParam("APP_URL"));
+
                 processingBusinessOperationRepository.save(businessOperation);
             }
 
