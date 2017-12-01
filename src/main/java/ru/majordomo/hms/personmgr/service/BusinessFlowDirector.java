@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import ru.majordomo.hms.personmgr.Application;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -45,12 +44,10 @@ public class BusinessFlowDirector {
     public void processClean(ProcessingBusinessAction businessAction) {
         logger.debug("Processing businessAction clean for " + businessAction.toString());
 
-        logger.error("Found old businessAction with " + businessAction.getState() +
-                " state " + businessAction.toString()
-        );
-
         switch (businessAction.getState()) {
             case ERROR:
+                logger.debug("Found error businessAction " + businessAction.toString()
+                );
             case PROCESSING:
             case PROCESSED:
             case FINISHED:
