@@ -29,7 +29,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.UNIX_ACCOUNT_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEBSITE_SERVER_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEBSITE_SERVICE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEB_SITE_ID_KEY;
@@ -81,13 +80,17 @@ public class AppsCatService {
             throw new ParameterValidationException("На указанном сайте уже идет установка приложения");
         }
 
-        message.addParam(UNIX_ACCOUNT_NAME_KEY, webSite.getUnixAccount().getName());
         message.addParam(SERVER_ID_KEY, webSite.getUnixAccount().getServerId());
         message.addParam(WEBSITE_SERVICE_ID_KEY, webSite.getServiceId());
 
         message.addParam("APP_TITLE", webSite.getName());
         message.addParam("APP_URL", webSite.getDomains().isEmpty() ? webSite.getName() : webSite.getDomains().get(0).getName());
         message.addParam("APP_PATH", webSite.getDocumentRoot());
+        message.addParam("ADMIN_USERNAME", "admin");
+
+        String password = randomAlphabetic(8);
+
+        message.addParam("ADMIN_PASSWORD", password);
 
         List<Service> databaseServices;
 
@@ -119,8 +122,6 @@ public class AppsCatService {
         String databaseServiceId = (String) message.getParam(DATABASE_SERVICE_ID_KEY);
 
         if (databaseUserId == null) {
-            String unixAccountName = (String) message.getParam(UNIX_ACCOUNT_NAME_KEY);
-
             String password = randomAlphabetic(8);
             String databaseUserNamePostfix = randomAlphabetic(4);
 
@@ -140,7 +141,7 @@ public class AppsCatService {
                 );
             }
 
-            String databaseUserName = unixAccountName + "_" + databaseUserNamePostfix;
+            String databaseUserName = "u" + message.getAccountId() + "_" + databaseUserNamePostfix;
 
             message.addParam("DB_USER", databaseUserName);
             message.addParam("DB_PASSWORD", password);
@@ -198,8 +199,6 @@ public class AppsCatService {
                 throw new ParameterValidationException("На аккаунте уже создано максимальнео количество баз данных");
             }
 
-            String unixAccountName = (String) message.getParam(UNIX_ACCOUNT_NAME_KEY);
-
             String databaseNamePostfix = randomAlphabetic(4);
 
             List<Database> databases;
@@ -218,7 +217,7 @@ public class AppsCatService {
                 );
             }
 
-            String databaseName = "b" + unixAccountName.substring(1) + "_" + databaseNamePostfix;
+            String databaseName = "b" + message.getAccountId() + "_" + databaseNamePostfix;
 
             message.addParam("DB_NAME", databaseName);
 
@@ -263,11 +262,7 @@ public class AppsCatService {
 
         AccountOwner accountOwner = accountOwnerManager.findOneByPersonalAccountId(message.getAccountId());
 
-        String password = randomAlphabetic(8);
-
-        message.addParam("ADMIN_USERNAME", "admin");
         message.addParam("ADMIN_EMAIL", String.join(",", accountOwner.getContactInfo().getEmailAddresses()));
-        message.addParam("ADMIN_PASSWORD", password);
 
         String serverName = rcStaffFeignClient.getServerByServiceId((String) message.getParam(WEBSITE_SERVICE_ID_KEY)).getName();
 
