@@ -30,7 +30,7 @@ public class TokenEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("vipThreadPoolTaskExecutor")
     public void onTokenDeleteEvent(TokenDeleteEvent event) {
         Token token = tokenHelper.findOne(event.getSource());
 

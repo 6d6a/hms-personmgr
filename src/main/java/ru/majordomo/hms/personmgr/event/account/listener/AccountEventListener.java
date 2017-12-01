@@ -91,7 +91,7 @@ public class AccountEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("vipThreadPoolTaskExecutor")
     public void onAccountCreated(AccountCreatedEvent event) {
         PersonalAccount account = event.getSource();
         Map<String, ?> params = event.getParams();
@@ -340,7 +340,7 @@ public class AccountEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("vipThreadPoolTaskExecutor")
     public void onAccountSwitchByPaymentCreatedEvent(AccountSwitchByPaymentCreatedEvent event) {
 
         // Задержка (К примеру, в случае возврата денег в процессе смены тарифа)

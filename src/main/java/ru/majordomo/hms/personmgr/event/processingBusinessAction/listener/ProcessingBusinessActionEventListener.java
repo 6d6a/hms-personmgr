@@ -40,7 +40,7 @@ public class ProcessingBusinessActionEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("vipThreadPoolTaskExecutor")
     public void onNewProcessingBusinessAction(ProcessingBusinessActionNewEvent event) {
         ProcessingBusinessAction action = event.getSource();
 
