@@ -3,11 +3,15 @@ package ru.majordomo.hms.personmgr.manager.impl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -23,6 +27,8 @@ import ru.majordomo.hms.personmgr.repository.CartRepository;
 import ru.majordomo.hms.personmgr.service.DomainService;
 import ru.majordomo.hms.personmgr.strategy.DomainCartItemStrategy;
 
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
 @Component
@@ -232,6 +238,17 @@ public class CartManagerImpl implements CartManager {
             setProcessing(accountId, false);
             throw e;
         }
+    }
+
+    @Override
+    public List<Cart> findNotEmptyCartsAtLastMonth(){
+        return mongoOperations.aggregate(/*Date.from(startDateTime.toInstant(ZoneOffset.ofHours(3)))*/
+                newAggregation(
+                        match(new Criteria().andOperator(
+                                Criteria.where("items.0").exists(true),
+                                Criteria.where("updateDateTime").gt(Date.from(LocalDateTime.now().minusMonths(1).toInstant(ZoneOffset.ofHours(3)))))
+                )), "cart", Cart.class)
+                .getMappedResults();
     }
 
     private void checkCartItem(Cart cart, CartItem cartItem) {

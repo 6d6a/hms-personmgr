@@ -46,4 +46,6 @@ public interface CartManager {
     void setProcessingByName(String accountId, String name, boolean status);
 
     List<ProcessingBusinessAction> buy(String accountId, BigDecimal cartPrice);
+
+    List<Cart> findNotEmptyCartsAtLastMonth();
 }

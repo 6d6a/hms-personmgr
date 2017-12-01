@@ -15,20 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import ru.majordomo.hms.personmgr.event.account.CleanBusinessActionsEvent;
-import ru.majordomo.hms.personmgr.event.account.PrepareChargesEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessAbonementsAutoRenewEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessAccountDeactivatedSendMailEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessChargesEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessDomainsAutoRenewEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessErrorChargesEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessExpiringAbonementsEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessExpiringDomainsEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessNotifyExpiredAbonementsEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessNotifyInactiveLongTimeEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessQuotaChecksEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessRecurrentsEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessSendInfoMailEvent;
+import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.token.CleanTokensEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.BatchJobManager;
@@ -105,6 +92,8 @@ public class SchedulerRestController extends CommonRestController {
                 publisher.publishEvent(new ProcessRecurrentsEvent());
 
                 break;
+            case "not_empty_cart_notification":
+                publisher.publishEvent(new AccountNotifyNotRegisteredDomainsInCart());
             default:
                 throw new ParameterValidationException("Неизвестный параметр scheduleAction");
         }
