@@ -9,9 +9,12 @@ import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.event.account.*;
+import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.cart.Cart;
+import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
@@ -23,7 +26,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import static ru.majordomo.hms.personmgr.common.Constants.ACC_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.CLIENT_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
+import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_NEWS;
 
 @Component
 public class AccountNotificationEventListener {
@@ -35,6 +41,7 @@ public class AccountNotificationEventListener {
     private final AccountNotificationHelper accountNotificationHelper;
     private final BizMailFeignClient bizMailFeignClient;
     private final PersonalAccountManager personalAccountManager;
+    private final CartManager cartManager;
 
     @Autowired
     public AccountNotificationEventListener(
@@ -43,7 +50,8 @@ public class AccountNotificationEventListener {
             PlanRepository planRepository,
             AccountNotificationHelper accountNotificationHelper,
             BizMailFeignClient bizMailFeignClient,
-            PersonalAccountManager personalAccountManager
+            PersonalAccountManager personalAccountManager,
+            CartManager cartManager
     ) {
         this.accountHelper = accountHelper;
         this.accountStatRepository = accountStatRepository;
@@ -51,6 +59,7 @@ public class AccountNotificationEventListener {
         this.accountNotificationHelper = accountNotificationHelper;
         this.bizMailFeignClient = bizMailFeignClient;
         this.personalAccountManager = personalAccountManager;
+        this.cartManager = cartManager;
     }
 
     @EventListener
@@ -102,6 +111,48 @@ public class AccountNotificationEventListener {
         paramsForSms.put("remaining_days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
         paramsForSms.put("client_id", account.getAccountId());
         accountNotificationHelper.sendSms(account, "MajordomoRemainingDays", 10, paramsForSms);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountNotifyNotRegisteredDomainsInCart(AccountNotifyNotRegisteredDomainsInCart event){
+
+        List<Integer> daysForNotify = Arrays.asList(1, 6, 11, 16, 21, 26);
+
+        List<Cart> carts = cartManager.findNotEmptyCartsAtLastMonth();
+        carts.forEach(cart -> {
+            PersonalAccount account = personalAccountManager.findOne(cart.getPersonalAccountId());
+            if (account.hasNotification(EMAIL_NEWS)) {
+
+                int daysAfterCartLastUpdate = Utils.getDifferentInDaysBetweenDates(
+                        cart.getUpdateDateTime().toLocalDate(),
+                        LocalDate.now()
+                );
+
+                if (daysForNotify.contains(daysAfterCartLastUpdate)) {
+                    Long countDomainsInCart = cart.getItems()
+                            .stream()
+                            .filter(cartItem -> cartItem instanceof DomainCartItem)
+                            .count();
+
+                    if (countDomainsInCart > 0) {
+                        String countDomainsForMessage = Utils.pluralizef(
+                                "%d домен",
+                                "%d домена",
+                                "%d доменов",
+                                countDomainsInCart.intValue()
+                        );
+
+                        Map<String, String> parameters = new HashMap<>();
+                        parameters.put(ACC_ID_KEY, account.getName());
+                        parameters.put("domains_in_cart", countDomainsForMessage);
+                        parameters.put(CLIENT_ID_KEY, account.getAccountId());
+
+                        accountNotificationHelper.sendMail(account, "HmsMajordomoForgotDomains", parameters);
+                    }
+                }
+            }
+        });
     }
 
     @EventListener

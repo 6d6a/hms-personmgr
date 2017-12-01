@@ -2,10 +2,12 @@ package ru.majordomo.hms.personmgr.model.cart;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +33,9 @@ public class Cart extends VersionedModelBelongsToPersonalAccount implements Cart
 
     @Transient
     private BigDecimal price;
+
+    @LastModifiedDate
+    private LocalDateTime updateDateTime;
 
     public Cart() {
         recalculate();
@@ -147,5 +152,13 @@ public class Cart extends VersionedModelBelongsToPersonalAccount implements Cart
                 "items=" + items +
                 ", domainCartItemStrategy=" + domainCartItemStrategy +
                 "} " + super.toString();
+    }
+
+    public LocalDateTime getUpdateDateTime() {
+        return updateDateTime;
+    }
+
+    public void setUpdateDateTime(LocalDateTime updateDateTime) {
+        this.updateDateTime = updateDateTime;
     }
 }

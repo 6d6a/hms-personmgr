@@ -216,6 +216,12 @@ public class CartManagerImplTest {
         manager.buy(accountId2, BigDecimal.valueOf(49));
     }
 
+    @Test
+    public void findNotEmptyCartsAtLastMonth() throws Exception {
+        List<Cart> notEmptyCartByLastMonth = manager.findNotEmptyCartsAtLastMonth();
+        Assert.assertEquals(notEmptyCartByLastMonth.size(), 1);
+    }
+
     private Cart generateEmptyCart() {
         Cart cart = new Cart();
         cart.setId(emptyCartId);
@@ -228,6 +234,7 @@ public class CartManagerImplTest {
         Cart cart = new Cart();
         cart.setId(notEmptyCartId);
         cart.setPersonalAccountId(accountId2);
+        cart.setUpdateDateTime(LocalDateTime.now());
 
         Set<CartItem> cartItems = new HashSet<>();
 
@@ -242,6 +249,7 @@ public class CartManagerImplTest {
         Cart cart = new Cart();
         cart.setId(processingCartId);
         cart.setPersonalAccountId(accountId3);
+        cart.setUpdateDateTime(LocalDateTime.now().minusMonths(2));
 
         Set<CartItem> cartItems = new HashSet<>();
 
