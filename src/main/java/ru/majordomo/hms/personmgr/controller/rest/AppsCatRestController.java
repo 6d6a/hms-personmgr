@@ -22,6 +22,7 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.service.AppsCatService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
@@ -47,9 +48,13 @@ public class AppsCatRestController extends CommonRestController {
 
         logger.debug("Installing app on website: " + message.toString());
 
-        if (!accountManager.findOne(accountId).isActive()) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Установка приложений невозможна.");
         }
+
+        message.addParam(ACCOUNT_ID_KEY, account.getAccountId());
 
         ProcessingBusinessAction businessAction;
 

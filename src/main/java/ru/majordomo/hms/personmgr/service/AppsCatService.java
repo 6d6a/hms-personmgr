@@ -22,6 +22,7 @@ import ru.majordomo.hms.rc.user.resources.Resource;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
+import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_SERVICE_ID_KEY;
@@ -141,7 +142,7 @@ public class AppsCatService {
                 );
             }
 
-            String databaseUserName = "u" + message.getAccountId() + "_" + databaseUserNamePostfix;
+            String databaseUserName = "u" + message.getParam(ACCOUNT_ID_KEY) + "_" + databaseUserNamePostfix;
 
             message.addParam("DB_USER", databaseUserName);
             message.addParam("DB_PASSWORD", password);
@@ -217,7 +218,7 @@ public class AppsCatService {
                 );
             }
 
-            String databaseName = "b" + message.getAccountId() + "_" + databaseNamePostfix;
+            String databaseName = "b" + message.getParam(ACCOUNT_ID_KEY) + "_" + databaseNamePostfix;
 
             message.addParam("DB_NAME", databaseName);
 
