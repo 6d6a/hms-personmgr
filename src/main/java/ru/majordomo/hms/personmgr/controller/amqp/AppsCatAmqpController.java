@@ -64,7 +64,7 @@ public class AppsCatAmqpController extends CommonAmqpController {
 
                             publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
 
-                            PersonalAccount account = accountManager.findByAccountId(message.getAccountId());
+                            PersonalAccount account = accountManager.findOne(message.getAccountId());
 
                             AppscatApp app = appscatFeignClient.getApp((String) businessOperation.getParam(APP_ID_KEY));
 
