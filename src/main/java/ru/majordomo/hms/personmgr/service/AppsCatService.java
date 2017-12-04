@@ -23,6 +23,12 @@ import ru.majordomo.hms.rc.user.resources.WebSite;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ADMIN_PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ADMIN_USERNAME_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_APP_PATH_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_APP_TITLE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_DB_HOST_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_DOMAIN_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_SERVICE_ID_KEY;
@@ -81,17 +87,21 @@ public class AppsCatService {
             throw new ParameterValidationException("На указанном сайте уже идет установка приложения");
         }
 
+        if (webSite.getDomains().isEmpty()) {
+            throw new ParameterValidationException("Указанный сайт не привязан к какому-либо домену. Установка приложения невозможна.");
+        }
+
         message.addParam(SERVER_ID_KEY, webSite.getUnixAccount().getServerId());
         message.addParam(WEBSITE_SERVICE_ID_KEY, webSite.getServiceId());
 
-        message.addParam("APP_TITLE", webSite.getName());
-        message.addParam("APP_URL", webSite.getDomains().isEmpty() ? webSite.getName() : webSite.getDomains().get(0).getName());
-        message.addParam("APP_PATH", webSite.getDocumentRoot());
-        message.addParam("ADMIN_USERNAME", "admin");
+        message.addParam(APPSCAT_APP_TITLE_KEY, webSite.getName());
+        message.addParam(APPSCAT_DOMAIN_NAME_KEY, webSite.getDomains().get(0).getName());
+        message.addParam(APPSCAT_APP_PATH_KEY, webSite.getDocumentRoot());
+        message.addParam(APPSCAT_ADMIN_USERNAME_KEY, "admin");
 
         String password = randomAlphabetic(8);
 
-        message.addParam("ADMIN_PASSWORD", password);
+        message.addParam(APPSCAT_ADMIN_PASSWORD_KEY, password);
 
         List<Service> databaseServices;
 
@@ -113,7 +123,7 @@ public class AppsCatService {
 
         message.addParam(DATABASE_HOST_KEY, databaseHost);
 
-        message.addParam("DB_HOST", databaseHost);
+        message.addParam(APPSCAT_DB_HOST_KEY, databaseHost);
 
         return addDatabaseUser(message);
     }

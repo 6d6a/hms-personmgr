@@ -18,6 +18,8 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.service.AppscatFeignClient;
 
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ADMIN_PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_DOMAIN_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.APP_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.APPS_CAT_INSTALL;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -44,7 +46,7 @@ public class AppsCatAmqpController extends CommonAmqpController {
                 businessOperation.setState(state);
 
                 //Запишем урл сайта чтобы отображался в случае ошибки во фронтэнде (до этого момента там имя DB, либо имя DB-юзера)
-                businessOperation.addPublicParam("name", businessOperation.getParam("APP_URL"));
+                businessOperation.addPublicParam("name", businessOperation.getParam(APPSCAT_DOMAIN_NAME_KEY));
 
                 processingBusinessOperationRepository.save(businessOperation);
 
@@ -69,12 +71,12 @@ public class AppsCatAmqpController extends CommonAmqpController {
                             AppscatApp app = appscatFeignClient.getApp((String) businessOperation.getParam(APP_ID_KEY));
 
                             if (app != null) {
-                                String appUri = (String) businessOperation.getParam("APP_URL");
+                                String appUri = (String) businessOperation.getParam(APPSCAT_DOMAIN_NAME_KEY);
                                 Map<String, String> paramsEmail = new HashMap<>();
                                 paramsEmail.put("app_name", app.getName() + " " + app.getVersion());
                                 paramsEmail.put("site_name", appUri);
                                 paramsEmail.put("app_admin_uri", appUri + app.getAdminUri());
-                                paramsEmail.put("app_admin_password", (String) businessOperation.getParam("ADMIN_PASSWORD"));
+                                paramsEmail.put("app_admin_password", (String) businessOperation.getParam(APPSCAT_ADMIN_PASSWORD_KEY));
 
                                 publisher.publishEvent(new AccountAppInstalledEvent(account, paramsEmail));
                             }
