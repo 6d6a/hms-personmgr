@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -31,7 +32,7 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.DATABASE_POST;
 @RestController
 @RequestMapping("/{accountId}/database")
 @Validated
-public class DatabaseResourceRestController extends CommonResourceRestController {
+public class DatabaseResourceRestController extends CommonRestController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -60,7 +61,7 @@ public class DatabaseResourceRestController extends CommonResourceRestController
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), DATABASE_POST, authentication);
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_CREATE, BusinessActionType.DATABASE_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_CREATE, BusinessActionType.DATABASE_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -99,7 +100,7 @@ public class DatabaseResourceRestController extends CommonResourceRestController
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), DATABASE_PATCH, authentication);
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_UPDATE, BusinessActionType.DATABASE_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_UPDATE, BusinessActionType.DATABASE_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -127,7 +128,7 @@ public class DatabaseResourceRestController extends CommonResourceRestController
 
         logger.debug("Deleting database with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_DELETE, BusinessActionType.DATABASE_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_DELETE, BusinessActionType.DATABASE_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

@@ -10,6 +10,7 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
@@ -23,7 +24,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 @RestController
 @RequestMapping("/{accountId}/resource-archive")
 @Validated
-public class ResourceArchiveResourceRestController extends CommonResourceRestController {
+public class ResourceArchiveResourceRestController extends CommonRestController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -35,7 +36,7 @@ public class ResourceArchiveResourceRestController extends CommonResourceRestCon
 
         logger.debug("Creating Resource Archive. Message: " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.RESOURCE_ARCHIVE_CREATE, BusinessActionType.RESOURCE_ARCHIVE_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.RESOURCE_ARCHIVE_CREATE, BusinessActionType.RESOURCE_ARCHIVE_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -63,7 +64,7 @@ public class ResourceArchiveResourceRestController extends CommonResourceRestCon
 
         logger.debug("Updating Resource Archive with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.RESOURCE_ARCHIVE_UPDATE, BusinessActionType.RESOURCE_ARCHIVE_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.RESOURCE_ARCHIVE_UPDATE, BusinessActionType.RESOURCE_ARCHIVE_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -91,7 +92,7 @@ public class ResourceArchiveResourceRestController extends CommonResourceRestCon
 
         logger.debug("Deleting Resource Archive with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.RESOURCE_ARCHIVE_DELETE, BusinessActionType.RESOURCE_ARCHIVE_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.RESOURCE_ARCHIVE_DELETE, BusinessActionType.RESOURCE_ARCHIVE_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

@@ -20,6 +20,7 @@ import org.xbill.DNS.*;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -36,7 +37,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 @RestController
 @RequestMapping("/{accountId}/ssl-certificate")
 @Validated
-public class SslCertificateResourceRestController extends CommonResourceRestController {
+public class SslCertificateResourceRestController extends CommonRestController {
 
     private final PlanRepository planRepository;
     private final RcUserFeignClient rcUserFeignClient;
@@ -125,7 +126,7 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
             throw new ParameterValidationException("Домен должен быть делегирован на наши DNS-серверы (ns.majordomo.ru, ns2.majordomo.ru и ns3.majordomo.ru)");
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.SSL_CERTIFICATE_CREATE, BusinessActionType.SSL_CERTIFICATE_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.SSL_CERTIFICATE_CREATE, BusinessActionType.SSL_CERTIFICATE_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -153,7 +154,7 @@ public class SslCertificateResourceRestController extends CommonResourceRestCont
 
         logger.debug("Deleting sslcertificate with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.SSL_CERTIFICATE_DELETE, BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.SSL_CERTIFICATE_DELETE, BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

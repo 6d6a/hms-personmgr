@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import ru.majordomo.hms.personmgr.Application;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -20,7 +19,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_
 
 @Service
 public class BusinessFlowDirector {
-    private static final Logger logger = LoggerFactory.getLogger(Application.class);
+    private static final Logger logger = LoggerFactory.getLogger(BusinessFlowDirector.class);
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final BusinessActionProcessor businessActionProcessor;
@@ -45,12 +44,10 @@ public class BusinessFlowDirector {
     public void processClean(ProcessingBusinessAction businessAction) {
         logger.debug("Processing businessAction clean for " + businessAction.toString());
 
-        logger.error("Found old businessAction with " + businessAction.getState() +
-                " state " + businessAction.toString()
-        );
-
         switch (businessAction.getState()) {
             case ERROR:
+                logger.debug("Found error businessAction " + businessAction.toString()
+                );
             case PROCESSING:
             case PROCESSED:
             case FINISHED:
@@ -96,9 +93,12 @@ public class BusinessFlowDirector {
                 if (businessOperation != null) {
                     switch (businessAction.getState()) {
                         case PROCESSED:
-                            if (businessOperation.getType() != BusinessOperationType.ACCOUNT_CREATE) {
+                            if (businessOperation.getType() != BusinessOperationType.ACCOUNT_CREATE
+                                    && businessOperation.getType() != BusinessOperationType.APP_INSTALL) {
                                 businessOperation.setState(businessAction.getState());
                             }
+
+                            break;
                         case ERROR:
                             businessOperation.setState(businessAction.getState());
                             if (message.getParam("errorMessage") != null && !message.getParam("errorMessage").equals(""))

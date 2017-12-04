@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -28,7 +29,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 @RestController
 @RequestMapping("/{accountId}/ftp-user")
 @Validated
-public class FtpUserResourceRestController extends CommonResourceRestController {
+public class FtpUserResourceRestController extends CommonRestController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -50,7 +51,7 @@ public class FtpUserResourceRestController extends CommonResourceRestController 
             return this.createErrorResponse("Plan limit for ftp-users exceeded");
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.FTP_USER_CREATE, BusinessActionType.FTP_USER_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_CREATE, BusinessActionType.FTP_USER_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -82,7 +83,7 @@ public class FtpUserResourceRestController extends CommonResourceRestController 
             throw new ParameterValidationException("Аккаунт неактивен. Обновление FTP пользователя невозможно.");
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.FTP_USER_UPDATE, BusinessActionType.FTP_USER_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_UPDATE, BusinessActionType.FTP_USER_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -110,7 +111,7 @@ public class FtpUserResourceRestController extends CommonResourceRestController 
 
         logger.debug("Deleting ftpuser with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.FTP_USER_DELETE, BusinessActionType.FTP_USER_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_DELETE, BusinessActionType.FTP_USER_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

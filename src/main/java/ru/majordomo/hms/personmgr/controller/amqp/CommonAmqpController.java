@@ -23,8 +23,12 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
+import ru.majordomo.hms.personmgr.service.AppsCatService;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
+import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
@@ -38,6 +42,7 @@ public class CommonAmqpController {
     ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     protected PersonalAccountManager accountManager;
     protected ApplicationEventPublisher publisher;
+    private AppsCatService appsCatService;
 
     protected String resourceName = "";
 
@@ -70,6 +75,11 @@ public class CommonAmqpController {
     @Autowired
     public void setPublisher(ApplicationEventPublisher publisher) {
         this.publisher = publisher;
+    }
+
+    @Autowired
+    public void setAppsCatService(AppsCatService appsCatService) {
+        this.appsCatService = appsCatService;
     }
 
     @Value("${hms.instance.name}")
@@ -202,6 +212,8 @@ public class CommonAmqpController {
 
                 Map<String, String> params = new HashMap<>();
 
+                ProcessingBusinessOperation businessOperation;
+
                 switch (businessAction.getBusinessActionType()) {
                     case WEB_SITE_CREATE_RC:
 
@@ -215,8 +227,9 @@ public class CommonAmqpController {
                         publisher.publishEvent(new WebSiteCreatedEvent(account, params));
 
                         break;
+
                     case UNIX_ACCOUNT_CREATE_RC:
-                        ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
                         if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
                             businessOperation.setState(State.PROCESSED);
                             processingBusinessOperationRepository.save(businessOperation);
@@ -224,6 +237,36 @@ public class CommonAmqpController {
                             params.put(PASSWORD_KEY, (String) businessOperation.getParam(PASSWORD_KEY));
 
                             publisher.publishEvent(new AccountCreatedEvent(account, params));
+                        }
+                        break;
+
+                    case DATABASE_USER_CREATE_RC:
+                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        if (businessOperation != null && businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
+                            String databaseUserId = getResourceIdByObjRef(message.getObjRef());
+
+                            businessOperation.addParam(DATABASE_USER_ID_KEY, databaseUserId);
+                            businessOperation.addParam(DATABASE_USER_PASSWORD_KEY, businessAction.getParam(DATABASE_USER_PASSWORD_KEY));
+
+                            processingBusinessOperationRepository.save(businessOperation);
+
+                            message.setParams(businessOperation.getParams());
+                            appsCatService.addDatabase(message);
+                        }
+                        break;
+
+                    case DATABASE_CREATE_RC:
+                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        if (businessOperation != null && businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
+                            String databaseId = getResourceIdByObjRef(message.getObjRef());
+
+                            businessOperation.addParam(DATABASE_ID_KEY, databaseId);
+                            businessOperation.addParam("DB_NAME", businessAction.getParam("DB_NAME"));
+
+                            processingBusinessOperationRepository.save(businessOperation);
+
+                            message.setParams(businessOperation.getParams());
+                            appsCatService.processInstall(message);
                         }
                         break;
                 }

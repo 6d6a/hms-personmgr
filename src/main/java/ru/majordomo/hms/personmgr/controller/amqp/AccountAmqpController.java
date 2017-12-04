@@ -33,7 +33,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @Service
 public class AccountAmqpController extends CommonAmqpController {
-    private final BusinessActionBuilder businessActionBuilder;
+    private final BusinessHelper businessHelper;
     private final PromocodeProcessor promocodeProcessor;
     private final AbonementService abonementService;
     private final AccountAbonementManager accountAbonementManager;
@@ -42,13 +42,13 @@ public class AccountAmqpController extends CommonAmqpController {
 
     @Autowired
     public AccountAmqpController(
-            BusinessActionBuilder businessActionBuilder,
+            BusinessHelper businessHelper,
             PromocodeProcessor promocodeProcessor,
             AbonementService abonementService,
             AccountAbonementManager accountAbonementManager,
             PromotionRepository promotionRepository,
             AccountHelper accountHelper) {
-        this.businessActionBuilder = businessActionBuilder;
+        this.businessHelper = businessHelper;
         this.promocodeProcessor = promocodeProcessor;
         this.abonementService = abonementService;
         this.accountAbonementManager = accountAbonementManager;
@@ -110,7 +110,7 @@ public class AccountAmqpController extends CommonAmqpController {
                             if (businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
                                 message.setParams(businessOperation.getParams());
                                 message.addParam("quota", (Long) businessOperation.getParams().get("quota") * 1024);
-                                businessActionBuilder.build(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
+                                businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
 
                                 try {
                                     //Save history

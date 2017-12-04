@@ -31,6 +31,7 @@ import javax.servlet.http.HttpServletRequest;
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
@@ -284,7 +285,7 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        checkRequiredParams(requestBody, ACCOUNT_PASSWORD_CHANGE);
+        Utils.checkRequiredParams(requestBody, ACCOUNT_PASSWORD_CHANGE);
 
         String password = (String) requestBody.get(PASSWORD_KEY);
 
@@ -309,7 +310,7 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         logger.debug("confirmPasswordRecovery httpHeaders: " + httpHeaders.toString());
 
-        checkRequiredParams(requestBody, ACCOUNT_PASSWORD_RECOVER);
+        Utils.checkRequiredParams(requestBody, ACCOUNT_PASSWORD_RECOVER);
 
         String accountId = (String) requestBody.get(ACCOUNT_ID_KEY);
 

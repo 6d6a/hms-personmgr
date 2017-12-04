@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.SeoType;
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.seo.SeoOrderedEvent;
@@ -89,7 +90,7 @@ public class SeoRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        checkRequiredParams(requestBody, ACCOUNT_SEO_ORDER_CREATE);
+        Utils.checkRequiredParams(requestBody, ACCOUNT_SEO_ORDER_CREATE);
 
         String domainName = (String) requestBody.get("domainName");
 

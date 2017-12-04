@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.*;
+import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -31,7 +32,7 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.WEB_SITE_POST;
 @RestController
 @RequestMapping("/{accountId}/website")
 @Validated
-public class WebSiteResourceRestController extends CommonResourceRestController {
+public class WebSiteResourceRestController extends CommonRestController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -60,7 +61,7 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), WEB_SITE_POST, authentication);
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.WEB_SITE_CREATE, BusinessActionType.WEB_SITE_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.WEB_SITE_CREATE, BusinessActionType.WEB_SITE_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -99,7 +100,7 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), WEB_SITE_PATCH, authentication);
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.WEB_SITE_UPDATE, BusinessActionType.WEB_SITE_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.WEB_SITE_UPDATE, BusinessActionType.WEB_SITE_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -127,7 +128,7 @@ public class WebSiteResourceRestController extends CommonResourceRestController 
 
         logger.debug("Deleting website with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.WEB_SITE_DELETE, BusinessActionType.WEB_SITE_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.WEB_SITE_DELETE, BusinessActionType.WEB_SITE_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

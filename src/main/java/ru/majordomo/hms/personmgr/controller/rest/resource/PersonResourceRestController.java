@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -31,7 +32,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 @RestController
 @RequestMapping("/{accountId}/person")
 @Validated
-public class PersonResourceRestController extends CommonResourceRestController {
+public class PersonResourceRestController extends CommonRestController {
     private final RcUserFeignClient rcUserFeignClient;
 
     public PersonResourceRestController(
@@ -51,7 +52,7 @@ public class PersonResourceRestController extends CommonResourceRestController {
 
         logger.debug("Creating person " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.PERSON_CREATE, BusinessActionType.PERSON_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.PERSON_CREATE, BusinessActionType.PERSON_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -79,7 +80,7 @@ public class PersonResourceRestController extends CommonResourceRestController {
 
         logger.debug("Updating person with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.PERSON_UPDATE, BusinessActionType.PERSON_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.PERSON_UPDATE, BusinessActionType.PERSON_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -114,7 +115,7 @@ public class PersonResourceRestController extends CommonResourceRestController {
             this.createErrorResponse("Person with id " + resourceId + " is set as accountOwner and prohibited to delete");
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.PERSON_DELETE, BusinessActionType.PERSON_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.PERSON_DELETE, BusinessActionType.PERSON_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

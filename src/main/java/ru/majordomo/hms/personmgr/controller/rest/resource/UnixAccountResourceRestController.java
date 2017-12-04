@@ -19,6 +19,7 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -35,7 +36,7 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.UNIX_ACCOUNT_POST;
 @RestController
 @RequestMapping("/{accountId}/unix-account")
 @Validated
-public class UnixAccountResourceRestController extends CommonResourceRestController {
+public class UnixAccountResourceRestController extends CommonRestController {
     private final RcUserFeignClient rcUserFeignClient;
 
     @Autowired
@@ -69,7 +70,7 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), UNIX_ACCOUNT_POST, authentication);
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.UNIX_ACCOUNT_CREATE, BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.UNIX_ACCOUNT_CREATE, BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -108,7 +109,7 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), UNIX_ACCOUNT_PATCH, authentication);
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.UNIX_ACCOUNT_UPDATE, BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.UNIX_ACCOUNT_UPDATE, BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -136,7 +137,7 @@ public class UnixAccountResourceRestController extends CommonResourceRestControl
 
         logger.debug("Deleting unix account with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.UNIX_ACCOUNT_DELETE, BusinessActionType.UNIX_ACCOUNT_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.UNIX_ACCOUNT_DELETE, BusinessActionType.UNIX_ACCOUNT_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

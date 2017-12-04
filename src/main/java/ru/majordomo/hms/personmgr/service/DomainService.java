@@ -52,43 +52,40 @@ public class DomainService {
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountHelper accountHelper;
     private final DomainTldService domainTldService;
-    private final BusinessActionBuilder businessActionBuilder;
     private final ApplicationEventPublisher publisher;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
     private final BlackListService blackListService;
     private final PersonalAccountManager accountManager;
     private final AccountPromotionManager accountPromotionManager;
-    private final BusinessOperationBuilder businessOperationBuilder;
     private final PromotionRepository promotionRepository;
     private final AccountNotificationHelper accountNotificationHelper;
+    private final BusinessHelper businessHelper;
 
     @Autowired
     public DomainService(
             RcUserFeignClient rcUserFeignClient,
             AccountHelper accountHelper,
             DomainTldService domainTldService,
-            BusinessActionBuilder businessActionBuilder,
             ApplicationEventPublisher publisher,
             DomainRegistrarFeignClient domainRegistrarFeignClient,
             BlackListService blackListService,
             PersonalAccountManager accountManager,
             AccountPromotionManager accountPromotionManager,
-            BusinessOperationBuilder businessOperationBuilder,
             PromotionRepository promotionRepository,
-            AccountNotificationHelper accountNotificationHelper
+            AccountNotificationHelper accountNotificationHelper,
+            BusinessHelper businessHelper
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
         this.domainTldService = domainTldService;
-        this.businessActionBuilder = businessActionBuilder;
         this.publisher = publisher;
         this.domainRegistrarFeignClient = domainRegistrarFeignClient;
         this.blackListService = blackListService;
         this.accountManager = accountManager;
         this.accountPromotionManager = accountPromotionManager;
-        this.businessOperationBuilder = businessOperationBuilder;
         this.promotionRepository = promotionRepository;
         this.accountNotificationHelper = accountNotificationHelper;
+        this.businessHelper = businessHelper;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -224,7 +221,7 @@ public class DomainService {
                 domainRenewMessage.addParam(AUTO_RENEW_KEY, true);
                 domainRenewMessage.addParam("documentNumber", documentNumber);
 
-                businessActionBuilder.build(BusinessActionType.DOMAIN_UPDATE_RC, domainRenewMessage);
+                businessHelper.buildAction(BusinessActionType.DOMAIN_UPDATE_RC, domainRenewMessage);
             }
         }
         //Отправим уведомления по почте и смс
@@ -476,9 +473,9 @@ public class DomainService {
             message.addParam("documentNumber", documentNumber);
         }
 
-        ProcessingBusinessOperation processingBusinessOperation = businessOperationBuilder.build(BusinessOperationType.DOMAIN_CREATE, message);
+        ProcessingBusinessOperation processingBusinessOperation = businessHelper.buildOperation(BusinessOperationType.DOMAIN_CREATE, message);
 
-        ProcessingBusinessAction processingBusinessAction = businessActionBuilder.build(BusinessActionType.DOMAIN_CREATE_RC, message, processingBusinessOperation);
+        ProcessingBusinessAction processingBusinessAction = businessHelper.buildActionByOperation(BusinessActionType.DOMAIN_CREATE_RC, message, processingBusinessOperation);
 
         String actionText = isFreeDomain ?
                 "бесплатную регистрацию" :

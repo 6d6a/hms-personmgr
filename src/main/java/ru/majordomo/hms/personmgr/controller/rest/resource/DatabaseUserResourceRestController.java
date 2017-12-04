@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -28,7 +29,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 @RestController
 @RequestMapping("/{accountId}/database-user")
 @Validated
-public class DatabaseUserResourceRestController extends CommonResourceRestController {
+public class DatabaseUserResourceRestController extends CommonRestController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -44,7 +45,7 @@ public class DatabaseUserResourceRestController extends CommonResourceRestContro
             throw new ParameterValidationException("Аккаунт неактивен. Создание пользователя базы данных невозможно.");
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_USER_CREATE, BusinessActionType.DATABASE_USER_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_USER_CREATE, BusinessActionType.DATABASE_USER_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -75,7 +76,7 @@ public class DatabaseUserResourceRestController extends CommonResourceRestContro
             throw new ParameterValidationException("Аккаунт неактивен. Обновление пользователя базы данных невозможно.");
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_USER_UPDATE, BusinessActionType.DATABASE_USER_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_USER_UPDATE, BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -103,7 +104,7 @@ public class DatabaseUserResourceRestController extends CommonResourceRestContro
 
         logger.debug("Deleting database user with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DATABASE_USER_DELETE, BusinessActionType.DATABASE_USER_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_USER_DELETE, BusinessActionType.DATABASE_USER_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

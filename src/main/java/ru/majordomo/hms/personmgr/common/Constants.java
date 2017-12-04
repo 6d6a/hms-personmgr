@@ -68,6 +68,23 @@ public class Constants {
     public static final String MAILING_TYPE_INFO = "info";
     public static final String MAILING_TYPE_TECH = "tech";
     public static final String MAILBOX_ANTISPAM_FIELD = "antiSpamEnabled";
+    public static final String WEB_SITE_ID_KEY = "webSiteId";
+    public static final String DATABASE_ID_KEY = "databaseId";
+    public static final String DATABASE_USER_ID_KEY = "databaseUserId";
+    public static final String DATABASE_USER_NAME_KEY = "databaseUserName";
+    public static final String DATABASE_USER_PASSWORD_KEY = "databaseUserPassword";
+    public static final String SERVER_ID_KEY = "serverId";
+    public static final String WEBSITE_SERVICE_ID_KEY = "webSiteServiceId";
+    public static final String WEBSITE_SERVER_NAME_KEY = "webSiteServerName";
+    public static final String DATABASE_SERVICE_ID_KEY = "databaseServiceId";
+    public static final String DATABASE_HOST_KEY = "databaseHost";
+    public static final String APP_ID_KEY = "appId";
+    public static final String APPSCAT_DOMAIN_NAME_KEY = "DOMAIN_NAME";
+    public static final String APPSCAT_APP_TITLE_KEY = "APP_TITLE";
+    public static final String APPSCAT_APP_PATH_KEY = "APP_PATH";
+    public static final String APPSCAT_ADMIN_USERNAME_KEY = "ADMIN_USERNAME";
+    public static final String APPSCAT_ADMIN_PASSWORD_KEY = "ADMIN_PASSWORD";
+    public static final String APPSCAT_DB_HOST_KEY = "DB_HOST";
 
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;
@@ -285,6 +302,8 @@ public class Constants {
         public static final String WEBSITE_UPDATE = "website.update";
         public static final String WEBSITE_DELETE = "website.delete";
 
+        public static final String APPS_CAT_INSTALL = "appscat.install";
+
         public static Set<String> ALL_EXCHANGES;
 
         static {
@@ -326,7 +345,8 @@ public class Constants {
                     UNIX_ACCOUNT_DELETE,
                     WEBSITE_CREATE,
                     WEBSITE_UPDATE,
-                    WEBSITE_DELETE
+                    WEBSITE_DELETE,
+                    APPS_CAT_INSTALL
             ));
         }
     }

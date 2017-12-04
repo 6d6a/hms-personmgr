@@ -27,6 +27,16 @@ public class AsyncConfig extends AsyncConfigurerSupport {
         return executor;
     }
 
+    @Bean(name = "vipThreadPoolTaskExecutor")
+    public Executor getVipAsyncExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(3);
+        executor.setMaxPoolSize(3);
+        executor.setThreadNamePrefix("PM-Vip-");
+        executor.initialize();
+        return executor;
+    }
+
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return new MyAsyncUncaughtExceptionHandler();

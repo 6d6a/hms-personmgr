@@ -1,5 +1,8 @@
 package ru.majordomo.hms.personmgr.common;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public enum BusinessOperationType {
     COMMON_OPERATION,
     ACCOUNT_CREATE,
@@ -33,12 +36,55 @@ public enum BusinessOperationType {
     UNIX_ACCOUNT_UPDATE,
     UNIX_ACCOUNT_DELETE,
     SEO_ORDER,
-    ACCOUNT_QUOTA_DISCARD,
-    ACCOUNT_QUOTA_ADD,
     DNS_RECORD_CREATE,
     DNS_RECORD_UPDATE,
     DNS_RECORD_DELETE,
     RESOURCE_ARCHIVE_CREATE,
     RESOURCE_ARCHIVE_UPDATE,
-    RESOURCE_ARCHIVE_DELETE
+    RESOURCE_ARCHIVE_DELETE,
+    APP_INSTALL;
+
+    public static Map<BusinessOperationType, String> BUSINESS_OPERATION_TYPE2HUMAN = new HashMap<>();
+
+    static {
+        BUSINESS_OPERATION_TYPE2HUMAN.put(COMMON_OPERATION, "Операция");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(ACCOUNT_CREATE, "Создание аккаунта");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(ACCOUNT_UPDATE, "Обновление аккаунта");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(ACCOUNT_DELETE, "Удаление аккаунта");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(WEB_SITE_CREATE, "Создание сайта");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(WEB_SITE_UPDATE, "Обновление сайта");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(WEB_SITE_DELETE, "Удаление сайта");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DATABASE_CREATE, "Создание базы данных");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DATABASE_UPDATE, "Обновление базы данных");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DATABASE_DELETE, "Удаление базы данных");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DATABASE_USER_CREATE, "Создание пользователя баз данных");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DATABASE_USER_UPDATE, "Обновление пользователя баз данных");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DATABASE_USER_DELETE, "Удаление пользователя баз данных");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(MAILBOX_CREATE, "Создание почтового ящика");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(MAILBOX_UPDATE, "Обновление почтового ящика");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(MAILBOX_DELETE, "Удаление почтового ящика");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(PERSON_CREATE, "Создание персоны");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(PERSON_UPDATE, "Обновление персоны");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(PERSON_DELETE, "Удаление персоны");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DOMAIN_CREATE, "Создание домена");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DOMAIN_UPDATE, "Обновление домена");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DOMAIN_DELETE, "Удаление домена");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(SSL_CERTIFICATE_CREATE, "Подключение SSL-сертификата");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(SSL_CERTIFICATE_UPDATE, "Обновление SSL-сертификата");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(SSL_CERTIFICATE_DELETE, "Отключение SSL-сертификата");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(FTP_USER_CREATE, "Создание пользователя FTP");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(FTP_USER_UPDATE, "Обновление пользователя FTP");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(FTP_USER_DELETE, "Удаление пользователя FTP");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(UNIX_ACCOUNT_CREATE, "Создание аккаунта на сервере");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(UNIX_ACCOUNT_UPDATE, "Обновление аккаунта на сервере");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(UNIX_ACCOUNT_DELETE, "Удаление аккаунта на сервере");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(SEO_ORDER, "Заказ продвижения");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DNS_RECORD_CREATE, "Создание DNS-записи");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DNS_RECORD_UPDATE, "Обновление DNS-записи");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DNS_RECORD_DELETE, "Удаление DNS-записи");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(RESOURCE_ARCHIVE_CREATE, "Создание архива");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(RESOURCE_ARCHIVE_UPDATE, "Обновление архива");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(RESOURCE_ARCHIVE_DELETE, "Удаление архива");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(APP_INSTALL, "Установка приложения");
+    }
 }

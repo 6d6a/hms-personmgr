@@ -35,7 +35,9 @@ import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.service.BusinessHelper;
 import ru.majordomo.hms.personmgr.service.PlanBuilder;
+import ru.majordomo.hms.personmgr.service.PlanCheckerService;
 
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.Matchers.any;
@@ -67,6 +69,12 @@ public class PlanRestControllerTest {
 
     @MockBean(name="accountManager")
     private PersonalAccountManager accountManager;
+
+    @MockBean(name="planCheckerService")
+    private PlanCheckerService planCheckerService;
+
+    @MockBean(name="businessHelper")
+    private BusinessHelper businessHelper;
 
     @Before
     public void setUp() throws Exception {

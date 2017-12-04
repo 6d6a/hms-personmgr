@@ -16,6 +16,7 @@ import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -33,20 +34,16 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
 import java.net.IDN;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
-import static ru.majordomo.hms.personmgr.common.Constants.RU_RF_DOMAINS;
 
 @RestController
 @RequestMapping("/{accountId}/domain")
 @Validated
-public class DomainResourceRestController extends CommonResourceRestController {
+public class DomainResourceRestController extends CommonRestController {
     private final DomainTldService domainTldService;
     private final AccountHelper accountHelper;
     private final RcUserFeignClient rcUserFeignClient;
@@ -199,7 +196,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
             }
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -261,7 +258,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
             message.addParam("documentNumber", documentNumber);
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DOMAIN_UPDATE, BusinessActionType.DOMAIN_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DOMAIN_UPDATE, BusinessActionType.DOMAIN_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -289,7 +286,7 @@ public class DomainResourceRestController extends CommonResourceRestController {
 
         logger.debug("Deleting domain with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DOMAIN_DELETE, BusinessActionType.DOMAIN_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DOMAIN_DELETE, BusinessActionType.DOMAIN_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

@@ -91,7 +91,7 @@ public class AccountEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("vipThreadPoolTaskExecutor")
     public void onAccountCreated(AccountCreatedEvent event) {
         PersonalAccount account = event.getSource();
         Map<String, ?> params = event.getParams();
@@ -215,6 +215,25 @@ public class AccountEventListener {
 
     @EventListener
     @Async("threadPoolTaskExecutor")
+    public void on(AccountAppInstalledEvent event) {
+        PersonalAccount account = event.getSource();
+        Map<String, String> params = event.getParams();
+
+        logger.debug("We got AccountAppInstalledEvent");
+
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getAccountId());
+        parameters.put("app_name", params.get("app_name"));
+        parameters.put("site_name", params.get("site_name"));
+        parameters.put("app_admin_uri", params.get("app_admin_uri"));
+        parameters.put("app_admin_password", params.get("app_admin_password"));
+
+        accountNotificationHelper.sendMail(account, "HmsVHMajordomoAppInstalled", 10, parameters);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
     public void onAccountPromotionProcessByPaymentCreatedEvent(AccountPromotionProcessByPaymentCreatedEvent event) {
 
         // Задержка
@@ -321,7 +340,7 @@ public class AccountEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("vipThreadPoolTaskExecutor")
     public void onAccountSwitchByPaymentCreatedEvent(AccountSwitchByPaymentCreatedEvent event) {
 
         // Задержка (К примеру, в случае возврата денег в процессе смены тарифа)

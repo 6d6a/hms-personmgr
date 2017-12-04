@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -30,7 +31,7 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.DNS_RECORD_PATCH;
 @RestController
 @RequestMapping("/{accountId}/dns-record")
 @Validated
-public class DnsRecordResourceRestController extends CommonResourceRestController {
+public class DnsRecordResourceRestController extends CommonRestController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
@@ -46,7 +47,7 @@ public class DnsRecordResourceRestController extends CommonResourceRestControlle
             throw new ParameterValidationException("Аккаунт неактивен. Создание DNS-записи невозможно.");
         }
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DNS_RECORD_CREATE, BusinessActionType.DNS_RECORD_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DNS_RECORD_CREATE, BusinessActionType.DNS_RECORD_CREATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -81,7 +82,7 @@ public class DnsRecordResourceRestController extends CommonResourceRestControlle
 
         checkParamsWithRoles(message.getParams(), DNS_RECORD_PATCH, authentication);
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DNS_RECORD_UPDATE, BusinessActionType.DNS_RECORD_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DNS_RECORD_UPDATE, BusinessActionType.DNS_RECORD_UPDATE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
         //Save history
@@ -109,7 +110,7 @@ public class DnsRecordResourceRestController extends CommonResourceRestControlle
 
         logger.debug("Deleting DnsRecord with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = process(BusinessOperationType.DNS_RECORD_DELETE, BusinessActionType.DNS_RECORD_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DNS_RECORD_DELETE, BusinessActionType.DNS_RECORD_DELETE_RC, message);
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
