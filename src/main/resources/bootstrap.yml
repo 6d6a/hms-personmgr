@@ -7,8 +7,7 @@ spring:
         name: pm
     cloud:
         config:
-            discovery:
-                enabled: true
+            uri: http://configserver:8888
             fail-fast: true
     profiles:
         active: dev
