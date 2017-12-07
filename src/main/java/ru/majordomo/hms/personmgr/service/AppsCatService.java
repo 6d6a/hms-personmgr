@@ -273,7 +273,7 @@ public class AppsCatService {
 
         AccountOwner accountOwner = accountOwnerManager.findOneByPersonalAccountId(message.getAccountId());
 
-        message.addParam("ADMIN_EMAIL", String.join(",", accountOwner.getContactInfo().getEmailAddresses()));
+        message.addParam("ADMIN_EMAIL", accountOwner.getContactInfo().getEmailAddresses().get(0));
 
         String serverName = rcStaffFeignClient.getServerByServiceId((String) message.getParam(WEBSITE_SERVICE_ID_KEY)).getName();
 
