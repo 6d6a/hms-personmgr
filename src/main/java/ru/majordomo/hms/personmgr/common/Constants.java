@@ -85,6 +85,12 @@ public class Constants {
     public static final String APPSCAT_ADMIN_USERNAME_KEY = "ADMIN_USERNAME";
     public static final String APPSCAT_ADMIN_PASSWORD_KEY = "ADMIN_PASSWORD";
     public static final String APPSCAT_DB_HOST_KEY = "DB_HOST";
+    public static final String TRANSFER_DATABASES_KEY = "transferDatabases";
+    public static final String SERVICE_ID_KEY = "serviceId";
+    public static final String OLD_SERVER_ID_KEY = "oldServerId";
+    public static final String NEW_SERVER_ID_KEY = "newServerId";
+    public static final String OLD_DATABASE_HOST_KEY = "oldDatabaseHost";
+    public static final String NEW_DATABASE_HOST_KEY = "newDatabaseHost";
 
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;

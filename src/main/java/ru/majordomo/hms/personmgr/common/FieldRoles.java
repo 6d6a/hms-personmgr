@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.common;
 import java.util.HashMap;
 import java.util.Map;
 
+import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.SecurityConstants.*;
 
 public class FieldRoles {
@@ -41,6 +42,7 @@ public class FieldRoles {
 
         UNIX_ACCOUNT_PATCH.put("sendmailAllowed", UNIX_ACCOUNT_SENDMAIL_ALLOWED_EDIT);
         UNIX_ACCOUNT_PATCH.put("quota", UNIX_ACCOUNT_QUOTA_EDIT);
+        UNIX_ACCOUNT_PATCH.put(SERVER_ID_KEY, "TRANSFER_ACCOUNT");
         UNIX_ACCOUNT_PATCH.putAll(RESOURCE_SWITCHED_ON);
         UNIX_ACCOUNT_PATCH.putAll(RESOURCE_WRITABLE);
 

@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,7 @@ import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
@@ -41,6 +43,7 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_CREATE;
+import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_TRANSFER;
 
 @RestController
 public class AccountResourceRestController extends CommonRestController {
@@ -53,6 +56,7 @@ public class AccountResourceRestController extends CommonRestController {
     private final PlanLimitsService planLimitsService;
     private final SiFeignClient siFeignClient;
     private final RcUserFeignClient rcUserFeignClient;
+    private final AccountTransferService accountTransferService;
 
     @Autowired
     public AccountResourceRestController(
@@ -64,7 +68,8 @@ public class AccountResourceRestController extends CommonRestController {
             AccountOwnerManager accountOwnerManager,
             PlanLimitsService planLimitsService,
             SiFeignClient siFeignClient,
-            RcUserFeignClient rcUserFeignClient
+            RcUserFeignClient rcUserFeignClient,
+            AccountTransferService accountTransferService
     ) {
         this.sequenceCounterService = sequenceCounterService;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
@@ -75,6 +80,7 @@ public class AccountResourceRestController extends CommonRestController {
         this.planLimitsService = planLimitsService;
         this.siFeignClient = siFeignClient;
         this.rcUserFeignClient = rcUserFeignClient;
+        this.accountTransferService = accountTransferService;
     }
 
 
@@ -220,6 +226,7 @@ public class AccountResourceRestController extends CommonRestController {
         return responseMessage;
     }
 
+    @PreAuthorize("hasAuthority('TRANSFER_ACCOUNT')")
     @RequestMapping(value = "/account/{accountId}/move", method = RequestMethod.POST)
     public Boolean moveAccount(
             @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
@@ -227,18 +234,16 @@ public class AccountResourceRestController extends CommonRestController {
             SecurityContextHolderAwareRequestWrapper request,
             Authentication authentication
     ) {
-        if (authentication.getAuthorities().stream().noneMatch(ga -> ga.getAuthority().equals("TRANSFER_ACCOUNT"))) {
-            return false;
-        }
+        Utils.checkRequiredParams(params, ACCOUNT_TRANSFER);
 
-        String desiredServerId = params.get("serverId");
-        if (desiredServerId == null || desiredServerId.equals("")) {
+        String desiredServerId = params.get(SERVER_ID_KEY);
+        if (desiredServerId.equals("")) {
             return false;
         }
 
         try {
             Map<String, String> body = new HashMap<>();
-            body.put("serverId", desiredServerId);
+            body.put(SERVER_ID_KEY, desiredServerId);
             Boolean success = rcUserFeignClient.moveAccount(accountId, body);
 
             if (success) {
@@ -257,6 +262,45 @@ public class AccountResourceRestController extends CommonRestController {
         }
 
         return true;
+    }
+
+    @PreAuthorize("hasAuthority('TRANSFER_ACCOUNT')")
+    @PostMapping(value = "/account/{accountId}/transfer")
+    public SimpleServiceMessage transferAccount(
+            @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
+            @RequestBody SimpleServiceMessage message,
+            SecurityContextHolderAwareRequestWrapper request,
+            HttpServletResponse response,
+            Authentication authentication
+    ) {
+        message.setAccountId(accountId);
+        Utils.checkRequiredParams(message.getParams(), ACCOUNT_TRANSFER);
+
+        String desiredServerId = (String) message.getParam(SERVER_ID_KEY);
+
+        if (desiredServerId.equals("")) {
+            throw new ParameterValidationException("Передано пустое значение в параметре " + SERVER_ID_KEY);
+        }
+
+        ProcessingBusinessAction businessAction;
+
+        try {
+            businessAction = accountTransferService.startTransfer(message);
+        } catch (Exception e) {
+            return this.createErrorResponse(e.getMessage());
+        }
+
+        response.setStatus(HttpServletResponse.SC_ACCEPTED);
+
+        //Save history
+        String operator = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "service";
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на перенос акканута на serverId: " + desiredServerId);
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
+        return this.createSuccessResponse(businessAction);
     }
 //
 //    @RequestMapping(value = "/{accountId}", method = RequestMethod.PATCH)
