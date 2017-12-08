@@ -75,7 +75,7 @@ public class AppsCatAmqpController extends CommonAmqpController {
                                 Map<String, String> paramsEmail = new HashMap<>();
                                 paramsEmail.put("app_name", app.getName() + " " + app.getVersion());
                                 paramsEmail.put("site_name", appUri);
-                                paramsEmail.put("app_admin_uri", appUri + app.getAdminUri());
+                                paramsEmail.put("app_admin_uri", "http://" + appUri + app.getAdminUri());
                                 paramsEmail.put("app_admin_password", (String) businessOperation.getParam(APPSCAT_ADMIN_PASSWORD_KEY));
 
                                 publisher.publishEvent(new AccountAppInstalledEvent(account, paramsEmail));
