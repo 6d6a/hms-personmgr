@@ -23,6 +23,7 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
+import ru.majordomo.hms.personmgr.service.AccountTransferService;
 import ru.majordomo.hms.personmgr.service.AppsCatService;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
@@ -43,6 +44,7 @@ public class CommonAmqpController {
     protected PersonalAccountManager accountManager;
     protected ApplicationEventPublisher publisher;
     private AppsCatService appsCatService;
+    private AccountTransferService accountTransferService;
 
     protected String resourceName = "";
 
@@ -80,6 +82,11 @@ public class CommonAmqpController {
     @Autowired
     public void setAppsCatService(AppsCatService appsCatService) {
         this.appsCatService = appsCatService;
+    }
+
+    @Autowired
+    public void setAccountTransferService(AccountTransferService accountTransferService) {
+        this.accountTransferService = accountTransferService;
     }
 
     @Value("${hms.instance.name}")
@@ -124,6 +131,7 @@ public class CommonAmqpController {
         try {
             State state = businessFlowDirector.processMessage(message);
 
+            processEventsByMessageStateForUpdate(message, state);
             saveAccountHistoryByMessageStateForUpdate(message, state);
             saveLogByMessageStateForUpdate(message, state);
         } catch (Exception e) {
@@ -270,6 +278,45 @@ public class CommonAmqpController {
                         }
                         break;
                 }
+            }
+        }
+    }
+
+    private void processEventsByMessageStateForUpdate(SimpleServiceMessage message, State state) {
+        ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+
+        if (businessAction != null) {
+            ProcessingBusinessOperation businessOperation;
+
+            switch (businessAction.getBusinessActionType()) {
+                case UNIX_ACCOUNT_UPDATE_RC:
+                case DATABASE_USER_UPDATE_RC:
+                case DATABASE_UPDATE_RC:
+                    businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                    if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
+                        if (state.equals(State.PROCESSED)) {
+                            accountTransferService.checkOperationAfterUnixAccountAndDatabaseUpdate(businessOperation);
+                        } else if (state.equals(State.ERROR)) {
+                            accountTransferService.revertTransferUnixAccountAndDatabase(businessOperation);
+                        }
+                    }
+                    break;
+                case WEB_SITE_UPDATE_RC:
+                    businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                    if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
+                        if (state.equals(State.PROCESSED)) {
+                            accountTransferService.checkOperationAfterWebSiteUpdate(businessOperation);
+                        } else if (state.equals(State.ERROR)) {
+                            accountTransferService.revertTransferWebSites(businessOperation);
+                        }
+                    }
+                    break;
+                case DNS_RECORD_UPDATE_RC:
+                    businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                    if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
+                        accountTransferService.finishOperation(businessOperation);
+                    }
+                    break;
             }
         }
     }

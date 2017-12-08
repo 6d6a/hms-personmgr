@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
@@ -24,4 +25,6 @@ public interface ProcessingBusinessActionRepository extends MongoRepository<Proc
     Page<ProcessingBusinessAction> findByPersonalAccountId(@Param("accountId") String accountId, Pageable pageable);
 
     ProcessingBusinessAction findByIdAndPersonalAccountId(@Param("id") String id, @Param("accountId") String accountId);
+
+    List<ProcessingBusinessAction> findAllByOperationId(@Param("operationId") String operationId);
 }

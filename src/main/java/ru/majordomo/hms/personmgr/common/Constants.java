@@ -91,6 +91,14 @@ public class Constants {
     public static final String NEW_SERVER_ID_KEY = "newServerId";
     public static final String OLD_DATABASE_HOST_KEY = "oldDatabaseHost";
     public static final String NEW_DATABASE_HOST_KEY = "newDatabaseHost";
+    public static final String DATA_KEY = "data";
+    public static final String DATASOURCE_URI_KEY = "datasourceUri";
+    public static final String TE_PARAMS_KEY = "teParams";
+    public static final String DATA_POSTPROCESSOR_ARGS_KEY = "dataPostprocessorArgs";
+    public static final String DATA_POSTPROCESSOR_TYPE_KEY = "dataPostprocessorType";
+    public static final String DATA_POSTPROCESSOR_STRING_REPLACE_ACTION = "string-replace";
+    public static final String DATA_POSTPROCESSOR_STRING_SEARCH_PATTERN_ARG = "searchPattern";
+    public static final String DATA_POSTPROCESSOR_STRING_REPLACE_STRING_ARG = "replaceString";
 
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;
