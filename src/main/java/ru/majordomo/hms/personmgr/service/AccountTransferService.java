@@ -67,6 +67,7 @@ public class AccountTransferService {
 
     public ProcessingBusinessAction startTransfer(SimpleServiceMessage message) {
         String newServerId = (String) message.getParam(SERVER_ID_KEY);
+        Boolean transferDatabases = (Boolean) message.getParam(TRANSFER_DATABASES_KEY);
 
         List<UnixAccount> unixAccounts = (List<UnixAccount>) rcUserFeignClient.getUnixAccounts(message.getAccountId());
 
@@ -80,7 +81,7 @@ public class AccountTransferService {
         accountTransferRequest.setAccountId(message.getAccountId());
         accountTransferRequest.setOldServerId(oldServerId);
         accountTransferRequest.setNewServerId(newServerId);
-        accountTransferRequest.setTransferDatabases((boolean) message.getParam(TRANSFER_DATABASES_KEY));
+        accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
 
         return startTransferUnixAccountAndDatabase(accountTransferRequest);
     }
@@ -90,12 +91,14 @@ public class AccountTransferService {
         String newServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
         String oldServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
 
+        Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
+
         AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
         accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
         accountTransferRequest.setOldServerId(oldServerId);
         accountTransferRequest.setNewServerId(newServerId);
         accountTransferRequest.setTransferData(false);
-        accountTransferRequest.setTransferDatabases((boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY));
+        accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
 
         startTransferUnixAccountAndDatabase(accountTransferRequest);
     }
@@ -105,12 +108,14 @@ public class AccountTransferService {
         String newServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
         String oldServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
 
+        Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
+
         AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
         accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
         accountTransferRequest.setOldServerId(oldServerId);
         accountTransferRequest.setNewServerId(newServerId);
         accountTransferRequest.setTransferData(false);
-        accountTransferRequest.setTransferDatabases((boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY));
+        accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
 
         startTransferWebSites(accountTransferRequest);
     }
@@ -256,12 +261,13 @@ public class AccountTransferService {
                 String oldServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
                 String oldDatabaseHost = (String) processingBusinessOperation.getParam(OLD_DATABASE_HOST_KEY);
                 String newDatabaseHost = (String) processingBusinessOperation.getParam(NEW_DATABASE_HOST_KEY);
+                Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
 
                 AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
                 accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
                 accountTransferRequest.setOldServerId(oldServerId);
                 accountTransferRequest.setNewServerId(newServerId);
-                accountTransferRequest.setTransferDatabases((boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY));
+                accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
                 accountTransferRequest.setOldDatabaseHost(oldDatabaseHost);
                 accountTransferRequest.setNewDatabaseHost(newDatabaseHost);
 
@@ -279,12 +285,13 @@ public class AccountTransferService {
             try {
                 String newServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
                 String oldServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
+                Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
 
                 AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
                 accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
                 accountTransferRequest.setOldServerId(oldServerId);
                 accountTransferRequest.setNewServerId(newServerId);
-                accountTransferRequest.setTransferDatabases((boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY));
+                accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
 
                 startUpdateDNSRecords(accountTransferRequest);
             } catch (Exception e) {
