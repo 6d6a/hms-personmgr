@@ -287,7 +287,7 @@ public class AccountResourceRestController extends CommonRestController {
         try {
             businessAction = accountTransferService.startTransfer(message);
         } catch (Exception e) {
-            if (e instanceof ParameterValidationException) {
+            if (!(e instanceof ParameterValidationException)) {
                 e.printStackTrace();
             }
             return this.createErrorResponse(e.getMessage());
