@@ -99,6 +99,7 @@ public class Constants {
     public static final String DATA_POSTPROCESSOR_STRING_REPLACE_ACTION = "string-replace";
     public static final String DATA_POSTPROCESSOR_STRING_SEARCH_PATTERN_ARG = "searchPattern";
     public static final String DATA_POSTPROCESSOR_STRING_REPLACE_STRING_ARG = "replaceString";
+    public static final String REVERTING_KEY = "reverting";
 
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;

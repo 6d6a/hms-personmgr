@@ -38,6 +38,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.NEW_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_DATABASE_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.REVERTING_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.TE_PARAMS_KEY;
@@ -87,37 +88,47 @@ public class AccountTransferService {
     }
 
     public void revertTransferUnixAccountAndDatabase(ProcessingBusinessOperation processingBusinessOperation) {
-        //Меняем id местами
-        String newServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
-        String oldServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
+        if (processingBusinessOperation.getParam(REVERTING_KEY) != null) {
+            processingBusinessOperation.addParam(REVERTING_KEY, true);
+            processingBusinessOperationRepository.save(processingBusinessOperation);
 
-        Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
+            //Меняем id местами
+            String newServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
+            String oldServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
 
-        AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
-        accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
-        accountTransferRequest.setOldServerId(oldServerId);
-        accountTransferRequest.setNewServerId(newServerId);
-        accountTransferRequest.setTransferData(false);
-        accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
+            Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
 
-        startTransferUnixAccountAndDatabase(accountTransferRequest);
+            AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
+            accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
+            accountTransferRequest.setOldServerId(oldServerId);
+            accountTransferRequest.setNewServerId(newServerId);
+            accountTransferRequest.setTransferData(false);
+            accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
+
+            startTransferUnixAccountAndDatabase(accountTransferRequest);
+        }
     }
 
     public void revertTransferWebSites(ProcessingBusinessOperation processingBusinessOperation) {
-        //Меняем id местами
-        String newServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
-        String oldServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
+        if (processingBusinessOperation.getParam(REVERTING_KEY) != null) {
+            processingBusinessOperation.addParam(REVERTING_KEY, true);
+            processingBusinessOperationRepository.save(processingBusinessOperation);
 
-        Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
+            //Меняем id местами
+            String newServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
+            String oldServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
 
-        AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
-        accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
-        accountTransferRequest.setOldServerId(oldServerId);
-        accountTransferRequest.setNewServerId(newServerId);
-        accountTransferRequest.setTransferData(false);
-        accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
+            Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
 
-        startTransferWebSites(accountTransferRequest);
+            AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
+            accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
+            accountTransferRequest.setOldServerId(oldServerId);
+            accountTransferRequest.setNewServerId(newServerId);
+            accountTransferRequest.setTransferData(false);
+            accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
+
+            startTransferWebSites(accountTransferRequest);
+        }
     }
 
     private ProcessingBusinessAction startTransferUnixAccountAndDatabase(AccountTransferRequest accountTransferRequest) {
@@ -197,9 +208,12 @@ public class AccountTransferService {
                         "/" + unixAccount.getHomeDir());
 
                 unixAccountMessage.addParam(TE_PARAMS_KEY, teParams);
+
+                processingBusinessAction = transferUnixAccount(unixAccountMessage);
+            } else {
+                processingBusinessAction = revertTransferUnixAccount(unixAccountMessage);
             }
 
-            processingBusinessAction = transferUnixAccount(unixAccountMessage);
             accountTransferRequest.setOperationId(processingBusinessAction.getOperationId());
         }
 
@@ -258,21 +272,21 @@ public class AccountTransferService {
     public void checkOperationAfterUnixAccountAndDatabaseUpdate(ProcessingBusinessOperation processingBusinessOperation) {
         List<ProcessingBusinessAction> businessActions = processingBusinessActionRepository.findAllByOperationId(processingBusinessOperation.getId());
         if (businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
+            String newServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
+            String oldServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
+            String oldDatabaseHost = (String) processingBusinessOperation.getParam(OLD_DATABASE_HOST_KEY);
+            String newDatabaseHost = (String) processingBusinessOperation.getParam(NEW_DATABASE_HOST_KEY);
+            Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
+
+            AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
+            accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
+            accountTransferRequest.setOldServerId(oldServerId);
+            accountTransferRequest.setNewServerId(newServerId);
+            accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
+            accountTransferRequest.setOldDatabaseHost(oldDatabaseHost);
+            accountTransferRequest.setNewDatabaseHost(newDatabaseHost);
+
             try {
-                String newServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
-                String oldServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
-                String oldDatabaseHost = (String) processingBusinessOperation.getParam(OLD_DATABASE_HOST_KEY);
-                String newDatabaseHost = (String) processingBusinessOperation.getParam(NEW_DATABASE_HOST_KEY);
-                Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
-
-                AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
-                accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
-                accountTransferRequest.setOldServerId(oldServerId);
-                accountTransferRequest.setNewServerId(newServerId);
-                accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
-                accountTransferRequest.setOldDatabaseHost(oldDatabaseHost);
-                accountTransferRequest.setNewDatabaseHost(newDatabaseHost);
-
                 startTransferWebSites(accountTransferRequest);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -284,21 +298,22 @@ public class AccountTransferService {
     public void checkOperationAfterWebSiteUpdate(ProcessingBusinessOperation processingBusinessOperation) {
         List<ProcessingBusinessAction> businessActions = processingBusinessActionRepository.findAllByOperationId(processingBusinessOperation.getId());
         if (businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
+            String newServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
+            String oldServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
+            Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
+
+            AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
+            accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
+            accountTransferRequest.setOldServerId(oldServerId);
+            accountTransferRequest.setNewServerId(newServerId);
+            accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
+
             try {
-                String newServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
-                String oldServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
-                Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
-
-                AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
-                accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
-                accountTransferRequest.setOldServerId(oldServerId);
-                accountTransferRequest.setNewServerId(newServerId);
-                accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
-
                 startUpdateDNSRecords(accountTransferRequest);
             } catch (Exception e) {
                 e.printStackTrace();
                 revertTransferUnixAccountAndDatabase(processingBusinessOperation);
+                revertTransferWebSites(processingBusinessOperation);
             }
         }
     }
@@ -307,9 +322,6 @@ public class AccountTransferService {
         List<ProcessingBusinessAction> businessActions = processingBusinessActionRepository.findAllByOperationId(processingBusinessOperation.getId());
         if (businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
             processingBusinessOperation.setState(State.PROCESSED);
-            processingBusinessOperationRepository.save(processingBusinessOperation);
-        } else if (businessActions.stream().anyMatch(processingBusinessAction -> processingBusinessAction.getState() == State.ERROR)) {
-            processingBusinessOperation.setState(State.ERROR);
             processingBusinessOperationRepository.save(processingBusinessOperation);
         }
     }
@@ -358,6 +370,8 @@ public class AccountTransferService {
                 throw new ParameterValidationException("На новом сервере не найден сервис " + servicePrefix);
             }
         }
+
+        ProcessingBusinessAction processingBusinessAction;
 
         for (WebSite webSite : webSites) {
             Service currentService = oldServerWebSiteServicesById.get(webSite.getServiceId());
@@ -411,13 +425,12 @@ public class AccountTransferService {
                 teParams.put(DATA_POSTPROCESSOR_ARGS_KEY, dataPostprocessorArgs);
 
                 webSiteMessage.addParam(TE_PARAMS_KEY, teParams);
+                processingBusinessAction = transferWebSite(webSiteMessage);
+            } else {
+                processingBusinessAction = revertTransferWebSite(webSiteMessage);
             }
 
-            businessHelper.buildActionByOperationId(
-                    BusinessActionType.WEB_SITE_UPDATE_RC,
-                    webSiteMessage,
-                    accountTransferRequest.getOperationId()
-            );
+            accountTransferRequest.setOperationId(processingBusinessAction.getOperationId());
         }
     }
 
@@ -493,6 +506,22 @@ public class AccountTransferService {
         }
     }
 
+    private ProcessingBusinessAction revertTransferUnixAccount(SimpleServiceMessage message) {
+        if (message.getOperationIdentity() != null) {
+            return businessHelper.buildActionByOperationId(
+                    BusinessActionType.UNIX_ACCOUNT_UPDATE_RC,
+                    message,
+                    message.getOperationIdentity()
+            );
+        } else {
+            return businessHelper.buildActionAndOperation(
+                    BusinessOperationType.ACCOUNT_TRANSFER_REVERT,
+                    BusinessActionType.UNIX_ACCOUNT_UPDATE_RC,
+                    message
+            );
+        }
+    }
+
     private ProcessingBusinessAction transferDatabaseUser(SimpleServiceMessage message) {
         if (message.getOperationIdentity() != null) {
             return businessHelper.buildActionByOperationId(
@@ -520,6 +549,38 @@ public class AccountTransferService {
             return businessHelper.buildActionAndOperation(
                     BusinessOperationType.ACCOUNT_TRANSFER,
                     BusinessActionType.DATABASE_UPDATE_RC,
+                    message
+            );
+        }
+    }
+
+    private ProcessingBusinessAction transferWebSite(SimpleServiceMessage message) {
+        if (message.getOperationIdentity() != null) {
+            return businessHelper.buildActionByOperationId(
+                    BusinessActionType.WEB_SITE_UPDATE_RC,
+                    message,
+                    message.getOperationIdentity()
+            );
+        } else {
+            return businessHelper.buildActionAndOperation(
+                    BusinessOperationType.ACCOUNT_TRANSFER,
+                    BusinessActionType.WEB_SITE_UPDATE_RC,
+                    message
+            );
+        }
+    }
+
+    private ProcessingBusinessAction revertTransferWebSite(SimpleServiceMessage message) {
+        if (message.getOperationIdentity() != null) {
+            return businessHelper.buildActionByOperationId(
+                    BusinessActionType.WEB_SITE_UPDATE_RC,
+                    message,
+                    message.getOperationIdentity()
+            );
+        } else {
+            return businessHelper.buildActionAndOperation(
+                    BusinessOperationType.ACCOUNT_TRANSFER_REVERT,
+                    BusinessActionType.WEB_SITE_UPDATE_RC,
                     message
             );
         }

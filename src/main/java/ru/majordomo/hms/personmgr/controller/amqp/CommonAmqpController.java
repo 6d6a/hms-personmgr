@@ -314,7 +314,9 @@ public class CommonAmqpController {
                 case DNS_RECORD_UPDATE_RC:
                     businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
                     if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
-                        accountTransferService.finishOperation(businessOperation);
+                        if (state.equals(State.PROCESSED)) {
+                            accountTransferService.finishOperation(businessOperation);
+                        }
                     }
                     break;
             }
