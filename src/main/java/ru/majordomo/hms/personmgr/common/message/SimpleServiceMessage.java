@@ -38,7 +38,7 @@ public class SimpleServiceMessage {
     }
 
     public Object getParam(String param) {
-        return params.get(param);
+        return params.getOrDefault(param, null);
     }
 
     public Map<String, Object> getParams() {
