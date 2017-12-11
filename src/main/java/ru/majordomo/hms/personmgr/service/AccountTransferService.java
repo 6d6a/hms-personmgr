@@ -138,6 +138,7 @@ public class AccountTransferService {
         Service newDatabaseService = newDatabaseServices.get(0);
 
         String newDatabaseHost = newDatabaseService.getServiceSockets().get(0).getAddressAsString();
+        accountTransferRequest.setNewDatabaseHost(newDatabaseHost);
 
         List<UnixAccount> unixAccounts = (List<UnixAccount>) rcUserFeignClient.getUnixAccounts(accountTransferRequest.getAccountId());
 
@@ -162,6 +163,7 @@ public class AccountTransferService {
         Service oldDatabaseService = oldDatabaseServices.get(0);
 
         String oldDatabaseHost = oldDatabaseService.getServiceSockets().get(0).getAddressAsString();
+        accountTransferRequest.setOldDatabaseHost(oldDatabaseHost);
 
         ProcessingBusinessAction processingBusinessAction = null;
 
