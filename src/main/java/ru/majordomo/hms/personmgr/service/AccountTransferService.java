@@ -204,8 +204,7 @@ public class AccountTransferService {
 
                 String oldNginxHost = oldNginxService.getServiceSockets().get(0).getAddressAsString();
 
-                teParams.put(DATASOURCE_URI_KEY, "rsync://" + oldNginxHost +
-                        "/" + unixAccount.getHomeDir());
+                teParams.put(DATASOURCE_URI_KEY, "rsync://" + oldNginxHost + unixAccount.getHomeDir());
 
                 unixAccountMessage.addParam(TE_PARAMS_KEY, teParams);
 
