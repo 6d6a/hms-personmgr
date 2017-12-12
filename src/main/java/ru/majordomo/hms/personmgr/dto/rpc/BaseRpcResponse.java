@@ -6,6 +6,7 @@ public class BaseRpcResponse implements RpcResponse{
 
     private static final String SUCCESS_KEY = "success";
     private Boolean success;
+    private String errorMessage;
 
     public Boolean getSuccess() {
         return success;
@@ -20,8 +21,17 @@ public class BaseRpcResponse implements RpcResponse{
         try {
             setSuccess((Boolean) response.get(SUCCESS_KEY));
         } catch (Exception e) {
+            setErrorMessage(e.getMessage());
             System.out.println(e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
     }
 }

@@ -15,8 +15,11 @@ public class ContractResponse extends BaseRpcResponse {
                 Contract contract = new Contract();
                 contract.mapping((Map<String, Object>) response.get(CONTRACT_KEY));
                 this.contract = contract;
+            } else {
+                setErrorMessage("Не удалось получить контракт");
             }
         } catch (Exception e) {
+            setErrorMessage(e.getMessage());
             System.out.println(e.getMessage());
             e.printStackTrace();
         }

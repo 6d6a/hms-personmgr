@@ -22,8 +22,11 @@ public class AuthResponse extends BaseRpcResponse {
             super.mapping(response);
             if (this.getSuccess()) {
                 this.setSessionId((String) response.get(SESSION_ID_KEY));
+            } else {
+                setErrorMessage("Ошибка при подключении к RPC-серверу");
             }
         } catch (Exception e) {
+            setErrorMessage(e.getMessage());
             System.out.println(e.getMessage());
             e.printStackTrace();
         }

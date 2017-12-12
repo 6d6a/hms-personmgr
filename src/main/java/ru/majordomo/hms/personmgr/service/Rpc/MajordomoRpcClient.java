@@ -111,7 +111,7 @@ public class MajordomoRpcClient implements RpcClient {
         return client.execute(method, params);
     }
 
-    public  <T extends BaseRpcResponse> T callMethod(String method, List<?> params, Class<T> tClass) throws XmlRpcException {
+    public  <T extends BaseRpcResponse> T callMethod(String method, List<?> params, Class<T> tClass) {
         try {
             T response = tClass.newInstance();
             response.mapping((Map<String, Object>) callMethod(method, params));
@@ -119,19 +119,23 @@ public class MajordomoRpcClient implements RpcClient {
         } catch (Exception e) {
             logger.error("Catch exception in " + getClass());
             e.printStackTrace();
-            throw new XmlRpcException("Can't create object with class " + tClass.getSimpleName());
+            return null;
         }
     }
 
-    private ContractResponse getActiveContractByType(String type) throws XmlRpcException {
-        return callMethod(GET_ACTIVE_CONTRACT_BY_TYPE_METHOD, Arrays.asList(type), ContractResponse.class);
+    private Contract getActiveContractByType(String type) {
+        return callMethod(
+                GET_ACTIVE_CONTRACT_BY_TYPE_METHOD,
+                Arrays.asList(type),
+                ContractResponse.class
+        ).getContract();
     }
 
-    public Contract getActiveContractVirtualHosting() throws Exception{
-        return getActiveContractByType(VH_CONTRACT).getContract();
+    public Contract getActiveContractVirtualHosting() {
+        return getActiveContractByType(VH_CONTRACT);
     }
 
-    public Contract getActiveOfertaVirtualHosting() throws Exception{
-        return getActiveContractByType(VH_OFERTA).getContract();
+    public Contract getActiveOfertaVirtualHosting() {
+        return getActiveContractByType(VH_OFERTA);
     }
 }
