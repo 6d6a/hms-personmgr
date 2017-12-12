@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.common;
 
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -146,5 +147,9 @@ public class Utils {
                 throw new ParameterValidationException("В запросе не передан обязательный параметр '" + field + "'");
             }
         }
+    }
+
+    public static String convertToUTF8(String input, String charsetName) throws UnsupportedEncodingException {
+        return new String(input.getBytes(charsetName), "UTF-8");
     }
 }
