@@ -521,7 +521,7 @@ public class AccountTransferService {
                     String oldNginxHost = oldNginxService.getServiceSockets().get(0).getAddressAsString();
 
                     teParams.put(DATASOURCE_URI_KEY, "rsync://" + oldNginxHost +
-                            "/" + webSite.getUnixAccount().getHomeDir()+
+                             webSite.getUnixAccount().getHomeDir()+
                             "/" + webSite.getDocumentRoot());
 
                     teParams.put(DATA_POSTPROCESSOR_TYPE_KEY, DATA_POSTPROCESSOR_STRING_REPLACE_ACTION);
@@ -601,7 +601,7 @@ public class AccountTransferService {
                     SimpleServiceMessage dnsRecordMessage = new SimpleServiceMessage();
                     dnsRecordMessage.setAccountId(accountTransferRequest.getAccountId());
                     dnsRecordMessage.setOperationIdentity(accountTransferRequest.getOperationId());
-                    dnsRecordMessage.addParam(RESOURCE_ID_KEY, dnsResourceRecord.getId());
+                    dnsRecordMessage.addParam(RESOURCE_ID_KEY, dnsResourceRecord.getRecordId());
                     dnsRecordMessage.addParam(DATA_KEY, newNginxHost);
 
                     processingBusinessAction = updateDNSRecord(dnsRecordMessage);
