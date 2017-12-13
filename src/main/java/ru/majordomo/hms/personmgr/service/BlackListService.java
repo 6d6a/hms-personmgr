@@ -28,21 +28,27 @@ public class BlackListService {
     }
 
     public Boolean domainExistsInControlBlackList(String domain) {
-        Boolean exists = false;
+
         try {
-            exists = restTemplate.getForObject(controlBlackListUrl + "/" + domain, Boolean.class);
+            Boolean exists = restTemplate.getForObject(controlBlackListUrl + "/" + domain, Boolean.class);
+            if (exists != null && exists) {
+                return true;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in BlackListService.domainExistsInControlBlackList " + e.getMessage());
         }
 
         try {
-            exists = restTemplate.getForObject(control2BlackListUrl + "/" + domain, Boolean.class);
+            Boolean exists = restTemplate.getForObject(control2BlackListUrl + "/" + domain, Boolean.class);
+            if (exists != null && exists) {
+                return true;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in BlackListService.domainExistsInControl2BlackList " + e.getMessage());
         }
 
-        return exists;
+        return false;
     }
 }
