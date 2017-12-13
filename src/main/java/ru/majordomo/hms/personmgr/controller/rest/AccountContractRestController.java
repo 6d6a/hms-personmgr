@@ -24,7 +24,7 @@ import java.util.Map;
 
 
 @RestController
-@RequestMapping("/{accountId}/contract")
+@RequestMapping("/{accountId}/document")
 public class AccountContractRestController {
 
     private MajordomoRpcClient majordomoRpcClient;
@@ -49,7 +49,7 @@ public class AccountContractRestController {
         this.personalAccountManager = personalAccountManager;
     }
 
-    @GetMapping("/virtual-hosting/{contractType}")
+    @GetMapping("/{documentType}")
     @ResponseBody
     public FileSystemResource getContract(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -113,7 +113,6 @@ public class AccountContractRestController {
             fw = new FileWriter(fileName);
             bw = new BufferedWriter(fw);
             bw.write(content);
-            System.out.println("Done");
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
