@@ -1,8 +1,11 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.CharStreams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.dto.rpc.Contract;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -10,10 +13,10 @@ import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.service.PdfService;
 import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import java.io.*;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -25,12 +28,11 @@ import java.util.Map;
 public class AccountContractRestController {
 
     private MajordomoRpcClient majordomoRpcClient;
-    private PdfService pdfService;
     private AccountOwnerManager accountOwnerManager;
     private PersonalAccountManager personalAccountManager;
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    private enum  ContractType {
+    public enum DocumentType {
         VIRTUAL_HOSTING_OFERTA,
         VIRTUAL_HOSTING_CONTRACT,
         VIRTUAL_HOSTING_BUDGET_CONTRACT
@@ -39,27 +41,28 @@ public class AccountContractRestController {
     @Autowired
     public AccountContractRestController(
             MajordomoRpcClient majordomoRpcClient,
-            PdfService pdfService,
             AccountOwnerManager accountOwnerManager,
             PersonalAccountManager personalAccountManager
     ){
         this.majordomoRpcClient = majordomoRpcClient;
-        this.pdfService = pdfService;
         this.accountOwnerManager = accountOwnerManager;
         this.personalAccountManager = personalAccountManager;
     }
 
     @GetMapping("/virtual-hosting/{contractType}")
     @ResponseBody
-    public Object getContract(
+    public FileSystemResource getContract(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @PathVariable(value = "contractType") ContractType contractType,
+            @PathVariable(value = "contractType") DocumentType documentType,
             @RequestParam Map<String, String> params
     ) {
-        AccountOwner owner = accountOwnerManager.findOneByPersonalAccountId("100000");
+        AccountOwner owner = accountOwnerManager.findOneByPersonalAccountId(accountId);
+
+
+        AccountOwner.Type ownerType = owner.getType();
 
         Contract contract;
-        switch (contractType) {
+        switch (documentType) {
             case VIRTUAL_HOSTING_OFERTA:
                 throw new ParameterValidationException("Нельзя заказать оферту");
 
@@ -67,27 +70,67 @@ public class AccountContractRestController {
                 throw new ParameterValidationException("Нельзя заказать договор");
 
             case VIRTUAL_HOSTING_BUDGET_CONTRACT:
+                if (!ownerType.equals(AccountOwner.Type.BUDGET_COMPANY)) {
+                    throw new ParameterValidationException("Вы не можете заказать такой документ");
+                }
                 contract = majordomoRpcClient.getActiveContractVirtualHosting();
+
                 break;
             default:
                 throw new ParameterValidationException("Неизвестный тип договора");
         }
 
-        String preparedContractInHtml = createContract(contract, owner, params);
+        String template;
 
-        return pdfService.convertHtmlToPdf(preparedContractInHtml);
+        try {
+            String header = getHeader();
+            String body = contract.getBody();
+            String footer = contract.getFooter();
+            List<Integer> noFooterPages = contract.getNoFooterPages();
+
+            if (body == null || footer == null || noFooterPages == null) {
+                throw new Exception();
+            }
+            template = createTemplate(header, body, footer, noFooterPages);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ParameterValidationException("Не удалось сгенерировать договор.");
+        }
+
+        String document = replaceFields(template, owner, params);
+
+        saveFile(accountId + "contract.html", document);
+
+        File file = new File(accountId + "contract.html");
+        return new FileSystemResource(file);
     }
 
-    private String createContract(Contract contract, AccountOwner owner, Map<String, String> params) {
-
-        String template = createTemplate(contract.getBody(), contract.getFooter(), contract.getNoFooterPages());
-
-        return replaceFields(template, owner, params);
+    @Deprecated
+    private void saveFile(String fileName, String content){
+        BufferedWriter bw = null;
+        FileWriter fw = null;
+        try {
+            fw = new FileWriter(fileName);
+            bw = new BufferedWriter(fw);
+            bw.write(content);
+            System.out.println("Done");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (bw != null)
+                    bw.close();
+                if (fw != null)
+                    fw.close();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 
-    private String createTemplate(String body, String footer, List<Integer> noFooterPages) {
+    private String createTemplate(String header, String body, String footer, List<Integer> noFooterPages) {
                 //need add footer to every page exclude noFooterPages
-                return getHeader() + body + footer;
+                return header + body + footer;
     }
 
     private String replaceFields(String template, AccountOwner owner, Map<String, String> params){
@@ -103,62 +146,12 @@ public class AccountContractRestController {
         return template;
     }
 
-    private String getHeader(){
-        return  "<html><head>\n" +
-                "<style>\n" +
-                "    @font-face { font-family: sans-serif; src: /home/val/arial.ttf; }\n" +
-                "    @font-face { font-family: serif; src: /home/val/arial.ttf; }\n" +
-                "    @font-face { font-family: Helvetica; src: /home/val/arial.ttf; }\n" +
-                "\n" +
-                "    @page {\n" +
-                "      \tmargin: 1cm;\n" +
-                "\t\tmargin-bottom: 2.5cm;\n" +
-                "\n" +
-                "\t\t@frame footer {\n" +
-                "\t\t    -pdf-frame-content: footerContent;\n" +
-                "\t\t    bottom: 1cm;\n" +
-                "\t\t    margin-left: 1cm;\n" +
-                "\t\t    margin-right: 1cm;\n" +
-                "\t\t    height: 1cm;\n" +
-                "\t\t}\n" +
-                "\t}\n" +
-                "\n" +
-                "    @page withfooter {\n" +
-                "      \tmargin: 1cm;\n" +
-                "\t\tmargin-bottom: 2.5cm;\n" +
-                "\n" +
-                "\t\t@frame footer {\n" +
-                "\t\t    -pdf-frame-content: footerContent;\n" +
-                "\t\t    bottom: 1cm;\n" +
-                "\t\t    margin-left: 1cm;\n" +
-                "\t\t    margin-right: 1cm;\n" +
-                "\t\t    height: 1cm;\n" +
-                "\t\t}\n" +
-                "\t}\n" +
-                "\n" +
-                "    @page withoutfooter {\n" +
-                "      \tmargin: 1cm;\n" +
-                "\t\tmargin-bottom: 2.5cm;\n" +
-                "\t}\n" +
-                "\n" +
-                "    html {\n" +
-                "        font-family: Helvetica;\n" +
-                "        font-size: 11pt;\n" +
-                "    }\n" +
-                "\n" +
-                "    body, div {\n" +
-                "        font: normal 16px/16px Helvetica, sans-serif;\n" +
-                "    }\n" +
-                "\n" +
-                "    p {\n" +
-                "        margin: 0px;\n" +
-                "    }\n" +
-                "\n" +
-                "</style>\n" +
-                "\n" +
-                "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"/>\n" +
-                "</head>\n" +
-                "<body>";
+    private String getHeader() throws IOException {
+        InputStream inputStream = this.getClass()
+                .getResourceAsStream("resources/contract/budget_contract_header.html");
+
+       return CharStreams.toString(new InputStreamReader(
+                    inputStream, Charsets.UTF_8));
     }
 
     private Map<String, String> buildReplaceParameters(AccountOwner owner, Map<String, String> params){
