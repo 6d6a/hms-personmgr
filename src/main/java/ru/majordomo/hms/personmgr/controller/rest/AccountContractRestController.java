@@ -2,12 +2,11 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.dto.rpc.Contract;
+import ru.majordomo.hms.personmgr.dto.rpc.DocumentType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -27,16 +26,9 @@ import java.util.Map;
 @RequestMapping("/{accountId}/document")
 public class AccountContractRestController {
 
-    private MajordomoRpcClient majordomoRpcClient;
-    private AccountOwnerManager accountOwnerManager;
-    private PersonalAccountManager personalAccountManager;
-    private Logger logger = LoggerFactory.getLogger(getClass());
-
-    public enum DocumentType {
-        VIRTUAL_HOSTING_OFERTA,
-        VIRTUAL_HOSTING_CONTRACT,
-        VIRTUAL_HOSTING_BUDGET_CONTRACT
-    }
+    private final MajordomoRpcClient majordomoRpcClient;
+    private final AccountOwnerManager accountOwnerManager;
+    private final PersonalAccountManager personalAccountManager;
 
     @Autowired
     public AccountContractRestController(
@@ -53,11 +45,10 @@ public class AccountContractRestController {
     @ResponseBody
     public FileSystemResource getContract(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @PathVariable(value = "contractType") DocumentType documentType,
+            @PathVariable(value = "documentType") DocumentType documentType,
             @RequestParam Map<String, String> params
     ) {
         AccountOwner owner = accountOwnerManager.findOneByPersonalAccountId(accountId);
-
 
         AccountOwner.Type ownerType = owner.getType();
 
@@ -89,7 +80,7 @@ public class AccountContractRestController {
             List<Integer> noFooterPages = contract.getNoFooterPages();
 
             if (body == null || footer == null || noFooterPages == null) {
-                throw new Exception();
+                throw new ParameterValidationException("djkajsdgkjasg");
             }
             template = createTemplate(header, body, footer, noFooterPages);
         } catch (Exception e) {
@@ -97,7 +88,9 @@ public class AccountContractRestController {
             throw new ParameterValidationException("Не удалось сгенерировать договор.");
         }
 
-        String document = replaceFields(template, owner, params);
+        String document = replaceFields(template, owner, new HashMap<>());
+
+//        return document;
 
         saveFile(accountId + "contract.html", document);
 
@@ -105,7 +98,6 @@ public class AccountContractRestController {
         return new FileSystemResource(file);
     }
 
-    @Deprecated
     private void saveFile(String fileName, String content){
         BufferedWriter bw = null;
         FileWriter fw = null;
