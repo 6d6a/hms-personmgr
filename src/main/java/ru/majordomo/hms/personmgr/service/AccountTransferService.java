@@ -340,6 +340,7 @@ public class AccountTransferService {
 
             AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
             accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
+            accountTransferRequest.setOperationId(processingBusinessOperation.getId());
             accountTransferRequest.setOldUnixAccountServerId(oldUnixAccountServerId);
             accountTransferRequest.setNewUnixAccountServerId(newUnixAccountServerId);
             accountTransferRequest.setOldDatabaseServerId(oldDatabaseServerId);
@@ -379,6 +380,7 @@ public class AccountTransferService {
 
             AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
             accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
+            accountTransferRequest.setOperationId(processingBusinessOperation.getId());
             accountTransferRequest.setOldUnixAccountServerId(oldServerId);
             accountTransferRequest.setNewUnixAccountServerId(newServerId);
             accountTransferRequest.setOldDatabaseServerId(oldDatabaseServerId);
