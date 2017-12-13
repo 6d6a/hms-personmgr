@@ -119,7 +119,14 @@ public class AccountTransferService {
             accountTransferRequest.setTransferData(false);
             accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
 
-            startTransferUnixAccountAndDatabase(accountTransferRequest);
+            try {
+                startTransferUnixAccountAndDatabase(accountTransferRequest);
+            } catch (Exception e) {
+                e.printStackTrace();
+
+                processingBusinessOperation.setState(State.ERROR);
+                processingBusinessOperationRepository.save(processingBusinessOperation);
+            }
         }
     }
 
@@ -131,6 +138,8 @@ public class AccountTransferService {
             //Меняем id местами
             String newServerId = (String) processingBusinessOperation.getParam(OLD_UNIX_ACCOUNT_SERVER_ID_KEY);
             String oldServerId = (String) processingBusinessOperation.getParam(NEW_UNIX_ACCOUNT_SERVER_ID_KEY);
+            String newWebSiteServerId = (String) processingBusinessOperation.getParam(OLD_WEBSITE_SERVER_ID_KEY);
+            String oldWebSiteServerId = (String) processingBusinessOperation.getParam(NEW_WEBSITE_SERVER_ID_KEY);
 
             Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
 
@@ -138,10 +147,19 @@ public class AccountTransferService {
             accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
             accountTransferRequest.setOldUnixAccountServerId(oldServerId);
             accountTransferRequest.setNewUnixAccountServerId(newServerId);
+            accountTransferRequest.setOldWebSiteServerId(oldWebSiteServerId);
+            accountTransferRequest.setNewWebSiteServerId(newWebSiteServerId);
             accountTransferRequest.setTransferData(false);
             accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
 
-            startTransferWebSites(accountTransferRequest);
+            try {
+                startTransferWebSites(accountTransferRequest);
+            } catch (Exception e) {
+                e.printStackTrace();
+
+                processingBusinessOperation.setState(State.ERROR);
+                processingBusinessOperationRepository.save(processingBusinessOperation);
+            }
         }
     }
 
@@ -326,6 +344,7 @@ public class AccountTransferService {
             accountTransferRequest.setNewUnixAccountServerId(newUnixAccountServerId);
             accountTransferRequest.setOldDatabaseServerId(oldDatabaseServerId);
             accountTransferRequest.setNewDatabaseServerId(newDatabaseServerId);
+            accountTransferRequest.setNewWebSiteServerId(newUnixAccountServerId);
             accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
             accountTransferRequest.setOldDatabaseHost(oldDatabaseHost);
             accountTransferRequest.setNewDatabaseHost(newDatabaseHost);
@@ -334,6 +353,10 @@ public class AccountTransferService {
                 startTransferWebSites(accountTransferRequest);
             } catch (Exception e) {
                 e.printStackTrace();
+
+                processingBusinessOperation.setState(State.ERROR);
+                processingBusinessOperationRepository.save(processingBusinessOperation);
+
                 revertTransferUnixAccountAndDatabase(processingBusinessOperation);
             }
         }
@@ -368,6 +391,10 @@ public class AccountTransferService {
                 startUpdateDNSRecords(accountTransferRequest);
             } catch (Exception e) {
                 e.printStackTrace();
+
+                processingBusinessOperation.setState(State.ERROR);
+                processingBusinessOperationRepository.save(processingBusinessOperation);
+
                 revertTransferUnixAccountAndDatabase(processingBusinessOperation);
                 revertTransferWebSites(processingBusinessOperation);
             }
