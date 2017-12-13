@@ -601,7 +601,7 @@ public class AccountTransferService {
                     SimpleServiceMessage dnsRecordMessage = new SimpleServiceMessage();
                     dnsRecordMessage.setAccountId(accountTransferRequest.getAccountId());
                     dnsRecordMessage.setOperationIdentity(accountTransferRequest.getOperationId());
-                    dnsRecordMessage.addParam(RESOURCE_ID_KEY, dnsResourceRecord.getRecordId());
+                    dnsRecordMessage.addParam(RESOURCE_ID_KEY, String.valueOf(dnsResourceRecord.getRecordId()));
                     dnsRecordMessage.addParam(DATA_KEY, newNginxHost);
 
                     processingBusinessAction = updateDNSRecord(dnsRecordMessage);
