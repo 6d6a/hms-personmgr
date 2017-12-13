@@ -34,6 +34,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_STR
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_STRING_REPLACE_STRING_ARG;
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_STRING_SEARCH_PATTERN_ARG;
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_TYPE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.DNS_RECORD_SENT_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_UNIX_ACCOUNT_SERVER_ID_KEY;
@@ -48,6 +49,8 @@ import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.TE_PARAMS_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.TRANSFER_DATABASES_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.UNIX_ACCOUNT_AND_DATABASE_SENT_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.WEBSITE_SENT_KEY;
 
 @Component
 public class AccountTransferService {
@@ -189,6 +192,13 @@ public class AccountTransferService {
             }
 
             accountTransferRequest.setOperationId(processingBusinessAction.getOperationId());
+
+            ProcessingBusinessOperation processingBusinessOperation = processingBusinessOperationRepository.findOne(processingBusinessAction.getOperationId());
+            processingBusinessOperation.addParam(UNIX_ACCOUNT_AND_DATABASE_SENT_KEY, false);
+            processingBusinessOperation.addParam(WEBSITE_SENT_KEY, false);
+            processingBusinessOperation.addParam(DNS_RECORD_SENT_KEY, false);
+
+            processingBusinessOperationRepository.save(processingBusinessOperation);
         }
 
         if (accountTransferRequest.isTransferDatabases()) {
@@ -288,6 +298,7 @@ public class AccountTransferService {
         processingBusinessOperation.addParam(NEW_DATABASE_SERVER_ID_KEY, accountTransferRequest.getNewDatabaseServerId());
         processingBusinessOperation.addParam(OLD_DATABASE_HOST_KEY, oldDatabaseHost);
         processingBusinessOperation.addParam(NEW_DATABASE_HOST_KEY, newDatabaseHost);
+        processingBusinessOperation.addParam(UNIX_ACCOUNT_AND_DATABASE_SENT_KEY, true);
 
         processingBusinessOperationRepository.save(processingBusinessOperation);
 
@@ -295,8 +306,12 @@ public class AccountTransferService {
     }
 
     public void checkOperationAfterUnixAccountAndDatabaseUpdate(ProcessingBusinessOperation processingBusinessOperation) {
+        Boolean unixAccountAndDatabaseSent = (Boolean) processingBusinessOperation.getParam(UNIX_ACCOUNT_AND_DATABASE_SENT_KEY);
+
         List<ProcessingBusinessAction> businessActions = processingBusinessActionRepository.findAllByOperationId(processingBusinessOperation.getId());
-        if (businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
+        if (unixAccountAndDatabaseSent != null
+                && unixAccountAndDatabaseSent
+                && businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
             String newUnixAccountServerId = (String) processingBusinessOperation.getParam(NEW_UNIX_ACCOUNT_SERVER_ID_KEY);
             String oldUnixAccountServerId = (String) processingBusinessOperation.getParam(OLD_UNIX_ACCOUNT_SERVER_ID_KEY);
             String newDatabaseServerId = (String) processingBusinessOperation.getParam(NEW_DATABASE_SERVER_ID_KEY);
@@ -325,8 +340,12 @@ public class AccountTransferService {
     }
 
     public void checkOperationAfterWebSiteUpdate(ProcessingBusinessOperation processingBusinessOperation) {
+        Boolean webSiteSent = (Boolean) processingBusinessOperation.getParam(WEBSITE_SENT_KEY);
+
         List<ProcessingBusinessAction> businessActions = processingBusinessActionRepository.findAllByOperationId(processingBusinessOperation.getId());
-        if (businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
+        if (webSiteSent != null
+                && webSiteSent
+                && businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
             String newServerId = (String) processingBusinessOperation.getParam(NEW_UNIX_ACCOUNT_SERVER_ID_KEY);
             String oldServerId = (String) processingBusinessOperation.getParam(OLD_UNIX_ACCOUNT_SERVER_ID_KEY);
             String newDatabaseServerId = (String) processingBusinessOperation.getParam(NEW_DATABASE_SERVER_ID_KEY);
@@ -356,8 +375,12 @@ public class AccountTransferService {
     }
 
     public void finishOperation(ProcessingBusinessOperation processingBusinessOperation) {
+        Boolean dnsRecordSent = (Boolean) processingBusinessOperation.getParam(DNS_RECORD_SENT_KEY);
+
         List<ProcessingBusinessAction> businessActions = processingBusinessActionRepository.findAllByOperationId(processingBusinessOperation.getId());
-        if (businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
+        if (dnsRecordSent != null
+                && dnsRecordSent
+                && businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
             processingBusinessOperation.setState(State.PROCESSED);
             processingBusinessOperationRepository.save(processingBusinessOperation);
         }
@@ -493,6 +516,7 @@ public class AccountTransferService {
                 ProcessingBusinessOperation processingBusinessOperation = processingBusinessOperationRepository.findOne(processingBusinessAction.getOperationId());
                 processingBusinessOperation.addParam(OLD_WEBSITE_SERVER_ID_KEY, accountTransferRequest.getOldWebSiteServerId());
                 processingBusinessOperation.addParam(NEW_WEBSITE_SERVER_ID_KEY, accountTransferRequest.getNewWebSiteServerId());
+                processingBusinessOperation.addParam(WEBSITE_SENT_KEY, true);
 
                 processingBusinessOperationRepository.save(processingBusinessOperation);
             }
@@ -534,6 +558,8 @@ public class AccountTransferService {
 
         List<Domain> domains = rcUserFeignClient.getDomains(accountTransferRequest.getAccountId());
 
+        ProcessingBusinessAction processingBusinessAction = null;
+
         for (Domain domain : domains) {
             List<DNSResourceRecord> aRecords = domain
                     .getDnsResourceRecords()
@@ -549,9 +575,16 @@ public class AccountTransferService {
                     dnsRecordMessage.addParam(RESOURCE_ID_KEY, dnsResourceRecord.getId());
                     dnsRecordMessage.addParam(DATA_KEY, newNginxHost);
 
-                    updateDNSRecord(dnsRecordMessage);
+                    processingBusinessAction = updateDNSRecord(dnsRecordMessage);
                 }
             }
+        }
+
+        if (processingBusinessAction != null) {
+            ProcessingBusinessOperation processingBusinessOperation = processingBusinessOperationRepository.findOne(processingBusinessAction.getOperationId());
+            processingBusinessOperation.addParam(DNS_RECORD_SENT_KEY, true);
+
+            processingBusinessOperationRepository.save(processingBusinessOperation);
         }
     }
 
