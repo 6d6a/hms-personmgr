@@ -17,6 +17,7 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
+import ru.majordomo.hms.rc.staff.resources.Server;
 import ru.majordomo.hms.rc.staff.resources.Service;
 import ru.majordomo.hms.rc.user.resources.DNSResourceRecord;
 import ru.majordomo.hms.rc.user.resources.DNSResourceRecordType;
@@ -34,9 +35,13 @@ import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_STR
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_STRING_SEARCH_PATTERN_ARG;
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_TYPE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_HOST_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.NEW_SERVER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_SERVER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.NEW_UNIX_ACCOUNT_SERVER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.NEW_WEBSITE_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_DATABASE_HOST_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OLD_SERVER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OLD_DATABASE_SERVER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OLD_UNIX_ACCOUNT_SERVER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OLD_WEBSITE_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.REVERTING_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
@@ -76,12 +81,14 @@ public class AccountTransferService {
             throw new ParameterValidationException("UnixAccount не найден");
         }
 
-        String oldServerId = unixAccounts.get(0).getServerId();
+        String oldUnixAccountServerId = unixAccounts.get(0).getServerId();
 
         AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
         accountTransferRequest.setAccountId(message.getAccountId());
-        accountTransferRequest.setOldServerId(oldServerId);
-        accountTransferRequest.setNewServerId(newServerId);
+        accountTransferRequest.setOldUnixAccountServerId(oldUnixAccountServerId);
+        accountTransferRequest.setNewUnixAccountServerId(newServerId);
+        accountTransferRequest.setNewDatabaseServerId(newServerId);
+        accountTransferRequest.setNewWebSiteServerId(newServerId);
         accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
 
         return startTransferUnixAccountAndDatabase(accountTransferRequest);
@@ -93,15 +100,19 @@ public class AccountTransferService {
             processingBusinessOperationRepository.save(processingBusinessOperation);
 
             //Меняем id местами
-            String newServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
-            String oldServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
+            String newUnixAccountServerId = (String) processingBusinessOperation.getParam(OLD_UNIX_ACCOUNT_SERVER_ID_KEY);
+            String oldUnixAccountServerId = (String) processingBusinessOperation.getParam(NEW_UNIX_ACCOUNT_SERVER_ID_KEY);
+            String newDatabaseServerId = (String) processingBusinessOperation.getParam(OLD_DATABASE_SERVER_ID_KEY);
+            String oldDatabaseServerId = (String) processingBusinessOperation.getParam(NEW_DATABASE_SERVER_ID_KEY);
 
             Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
 
             AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
             accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
-            accountTransferRequest.setOldServerId(oldServerId);
-            accountTransferRequest.setNewServerId(newServerId);
+            accountTransferRequest.setOldUnixAccountServerId(oldUnixAccountServerId);
+            accountTransferRequest.setNewUnixAccountServerId(newUnixAccountServerId);
+            accountTransferRequest.setOldDatabaseServerId(oldDatabaseServerId);
+            accountTransferRequest.setNewDatabaseServerId(newDatabaseServerId);
             accountTransferRequest.setTransferData(false);
             accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
 
@@ -115,15 +126,15 @@ public class AccountTransferService {
             processingBusinessOperationRepository.save(processingBusinessOperation);
 
             //Меняем id местами
-            String newServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
-            String oldServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
+            String newServerId = (String) processingBusinessOperation.getParam(OLD_UNIX_ACCOUNT_SERVER_ID_KEY);
+            String oldServerId = (String) processingBusinessOperation.getParam(NEW_UNIX_ACCOUNT_SERVER_ID_KEY);
 
             Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
 
             AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
             accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
-            accountTransferRequest.setOldServerId(oldServerId);
-            accountTransferRequest.setNewServerId(newServerId);
+            accountTransferRequest.setOldUnixAccountServerId(oldServerId);
+            accountTransferRequest.setNewUnixAccountServerId(newServerId);
             accountTransferRequest.setTransferData(false);
             accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
 
@@ -132,49 +143,13 @@ public class AccountTransferService {
     }
 
     private ProcessingBusinessAction startTransferUnixAccountAndDatabase(AccountTransferRequest accountTransferRequest) {
-        List<Service> newDatabaseServices;
-
-        try {
-            newDatabaseServices = rcStaffFeignClient.getDatabaseServicesByServerId(accountTransferRequest.getNewServerId());
-        } catch (Exception e) {
-            throw new ParameterValidationException("Новый сервер баз данных не найден");
-        }
-
-        if (newDatabaseServices == null
-                || newDatabaseServices.isEmpty()
-                || newDatabaseServices.get(0).getServiceSockets().isEmpty()) {
-            throw new ParameterValidationException("Новый сервер баз данных не найден");
-        }
-
-        Service newDatabaseService = newDatabaseServices.get(0);
-
-        String newDatabaseHost = newDatabaseService.getServiceSockets().get(0).getAddressAsString();
-        accountTransferRequest.setNewDatabaseHost(newDatabaseHost);
+        String oldDatabaseHost = null, newDatabaseHost = null;
 
         List<UnixAccount> unixAccounts = (List<UnixAccount>) rcUserFeignClient.getUnixAccounts(accountTransferRequest.getAccountId());
 
         if (unixAccounts == null || unixAccounts.isEmpty()) {
             throw new ParameterValidationException("UnixAccount не найден");
         }
-
-        List<Service> oldDatabaseServices;
-
-        try {
-            oldDatabaseServices = rcStaffFeignClient.getDatabaseServicesByServerId(accountTransferRequest.getOldServerId());
-        } catch (Exception e) {
-            throw new ParameterValidationException("Старый сервер баз данных не найден");
-        }
-
-        if (oldDatabaseServices == null
-                || oldDatabaseServices.isEmpty()
-                || oldDatabaseServices.get(0).getServiceSockets().isEmpty()) {
-            throw new ParameterValidationException("Старый сервер баз данных не найден");
-        }
-
-        Service oldDatabaseService = oldDatabaseServices.get(0);
-
-        String oldDatabaseHost = oldDatabaseService.getServiceSockets().get(0).getAddressAsString();
-        accountTransferRequest.setOldDatabaseHost(oldDatabaseHost);
 
         ProcessingBusinessAction processingBusinessAction = null;
 
@@ -183,7 +158,7 @@ public class AccountTransferService {
             unixAccountMessage.setAccountId(accountTransferRequest.getAccountId());
             unixAccountMessage.setOperationIdentity(accountTransferRequest.getOperationId());
             unixAccountMessage.addParam(RESOURCE_ID_KEY, unixAccount.getId());
-            unixAccountMessage.addParam(SERVER_ID_KEY, accountTransferRequest.getNewServerId());
+            unixAccountMessage.addParam(SERVER_ID_KEY, accountTransferRequest.getNewUnixAccountServerId());
 
             if (accountTransferRequest.isTransferData()) {
                 Map<String, Object> teParams = new HashMap<>();
@@ -191,7 +166,7 @@ public class AccountTransferService {
                 List<Service> oldServerNginxServices;
 
                 try {
-                    oldServerNginxServices = rcStaffFeignClient.getNginxServicesByServerId(accountTransferRequest.getOldServerId());
+                    oldServerNginxServices = rcStaffFeignClient.getNginxServicesByServerId(accountTransferRequest.getOldUnixAccountServerId());
                 } catch (Exception e) {
                     throw new ParameterValidationException("Ошибка при получении сервисов nginx для текущего сервера");
                 }
@@ -216,12 +191,63 @@ public class AccountTransferService {
             accountTransferRequest.setOperationId(processingBusinessAction.getOperationId());
         }
 
-        if (processingBusinessAction == null) {
-            throw new ParameterValidationException("Не была отправлена заявка на обновление UnixAccount");
-        }
-
         if (accountTransferRequest.isTransferDatabases()) {
             List<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(accountTransferRequest.getAccountId());
+            List<Database> databases = (List<Database>) rcUserFeignClient.getDatabases(accountTransferRequest.getAccountId());
+
+            String oldDatabaseServiceId = !databaseUsers.isEmpty() ?
+                    databaseUsers.get(0).getServiceId() :
+                    (!databases.isEmpty() ? databases.get(0).getServiceId() : null);
+
+            Server oldDatabaseServer = rcStaffFeignClient.getServerByServiceId(
+                    oldDatabaseServiceId != null ?
+                            oldDatabaseServiceId :
+                            accountTransferRequest.getOldUnixAccountServerId()
+            );
+
+            if (oldDatabaseServer == null) {
+                throw new ParameterValidationException("Старый сервер баз данных не найден");
+            }
+
+            accountTransferRequest.setOldDatabaseServerId(oldDatabaseServer.getId());
+
+            List<Service> oldDatabaseServices;
+
+            try {
+                oldDatabaseServices = rcStaffFeignClient.getDatabaseServicesByServerId(accountTransferRequest.getOldDatabaseServerId());
+            } catch (Exception e) {
+                throw new ParameterValidationException("Сервисы старого сервера баз данных не найдены");
+            }
+
+            if (oldDatabaseServices == null
+                    || oldDatabaseServices.isEmpty()
+                    || oldDatabaseServices.get(0).getServiceSockets().isEmpty()) {
+                throw new ParameterValidationException("Сервисы старого сервера баз данных пусты");
+            }
+
+            Service oldDatabaseService = oldDatabaseServices.get(0);
+
+            oldDatabaseHost = oldDatabaseService.getServiceSockets().get(0).getAddressAsString();
+            accountTransferRequest.setOldDatabaseHost(oldDatabaseHost);
+
+            List<Service> newDatabaseServices;
+
+            try {
+                newDatabaseServices = rcStaffFeignClient.getDatabaseServicesByServerId(accountTransferRequest.getNewDatabaseServerId());
+            } catch (Exception e) {
+                throw new ParameterValidationException("Сервисы нового сервера баз данных не найдены");
+            }
+
+            if (newDatabaseServices == null
+                    || newDatabaseServices.isEmpty()
+                    || newDatabaseServices.get(0).getServiceSockets().isEmpty()) {
+                throw new ParameterValidationException("Сервисы нового сервера баз данных пусты");
+            }
+
+            Service newDatabaseService = newDatabaseServices.get(0);
+
+            newDatabaseHost = newDatabaseService.getServiceSockets().get(0).getAddressAsString();
+            accountTransferRequest.setNewDatabaseHost(newDatabaseHost);
 
             for (DatabaseUser databaseUser : databaseUsers) {
                 SimpleServiceMessage databaseUserMessage = new SimpleServiceMessage();
@@ -233,8 +259,6 @@ public class AccountTransferService {
                 processingBusinessAction = transferDatabaseUser(databaseUserMessage);
                 accountTransferRequest.setOperationId(processingBusinessAction.getOperationId());
             }
-
-            List<Database> databases = (List<Database>) rcUserFeignClient.getDatabases(accountTransferRequest.getAccountId());
 
             for (Database database : databases) {
                 SimpleServiceMessage databaseMessage = new SimpleServiceMessage();
@@ -258,8 +282,10 @@ public class AccountTransferService {
         }
 
         ProcessingBusinessOperation processingBusinessOperation = processingBusinessOperationRepository.findOne(processingBusinessAction.getOperationId());
-        processingBusinessOperation.addParam(OLD_SERVER_ID_KEY, unixAccounts.get(0).getServerId());
-        processingBusinessOperation.addParam(NEW_SERVER_ID_KEY, accountTransferRequest.getNewServerId());
+        processingBusinessOperation.addParam(OLD_UNIX_ACCOUNT_SERVER_ID_KEY, accountTransferRequest.getOldUnixAccountServerId());
+        processingBusinessOperation.addParam(NEW_UNIX_ACCOUNT_SERVER_ID_KEY, accountTransferRequest.getNewUnixAccountServerId());
+        processingBusinessOperation.addParam(OLD_DATABASE_SERVER_ID_KEY, accountTransferRequest.getOldDatabaseServerId());
+        processingBusinessOperation.addParam(NEW_DATABASE_SERVER_ID_KEY, accountTransferRequest.getNewDatabaseServerId());
         processingBusinessOperation.addParam(OLD_DATABASE_HOST_KEY, oldDatabaseHost);
         processingBusinessOperation.addParam(NEW_DATABASE_HOST_KEY, newDatabaseHost);
 
@@ -271,16 +297,20 @@ public class AccountTransferService {
     public void checkOperationAfterUnixAccountAndDatabaseUpdate(ProcessingBusinessOperation processingBusinessOperation) {
         List<ProcessingBusinessAction> businessActions = processingBusinessActionRepository.findAllByOperationId(processingBusinessOperation.getId());
         if (businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
-            String newServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
-            String oldServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
+            String newUnixAccountServerId = (String) processingBusinessOperation.getParam(NEW_UNIX_ACCOUNT_SERVER_ID_KEY);
+            String oldUnixAccountServerId = (String) processingBusinessOperation.getParam(OLD_UNIX_ACCOUNT_SERVER_ID_KEY);
+            String newDatabaseServerId = (String) processingBusinessOperation.getParam(NEW_DATABASE_SERVER_ID_KEY);
+            String oldDatabaseServerId = (String) processingBusinessOperation.getParam(OLD_DATABASE_SERVER_ID_KEY);
             String oldDatabaseHost = (String) processingBusinessOperation.getParam(OLD_DATABASE_HOST_KEY);
             String newDatabaseHost = (String) processingBusinessOperation.getParam(NEW_DATABASE_HOST_KEY);
             Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
 
             AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
             accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
-            accountTransferRequest.setOldServerId(oldServerId);
-            accountTransferRequest.setNewServerId(newServerId);
+            accountTransferRequest.setOldUnixAccountServerId(oldUnixAccountServerId);
+            accountTransferRequest.setNewUnixAccountServerId(newUnixAccountServerId);
+            accountTransferRequest.setOldDatabaseServerId(oldDatabaseServerId);
+            accountTransferRequest.setNewDatabaseServerId(newDatabaseServerId);
             accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
             accountTransferRequest.setOldDatabaseHost(oldDatabaseHost);
             accountTransferRequest.setNewDatabaseHost(newDatabaseHost);
@@ -297,14 +327,22 @@ public class AccountTransferService {
     public void checkOperationAfterWebSiteUpdate(ProcessingBusinessOperation processingBusinessOperation) {
         List<ProcessingBusinessAction> businessActions = processingBusinessActionRepository.findAllByOperationId(processingBusinessOperation.getId());
         if (businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
-            String newServerId = (String) processingBusinessOperation.getParam(NEW_SERVER_ID_KEY);
-            String oldServerId = (String) processingBusinessOperation.getParam(OLD_SERVER_ID_KEY);
+            String newServerId = (String) processingBusinessOperation.getParam(NEW_UNIX_ACCOUNT_SERVER_ID_KEY);
+            String oldServerId = (String) processingBusinessOperation.getParam(OLD_UNIX_ACCOUNT_SERVER_ID_KEY);
+            String newDatabaseServerId = (String) processingBusinessOperation.getParam(NEW_DATABASE_SERVER_ID_KEY);
+            String oldDatabaseServerId = (String) processingBusinessOperation.getParam(OLD_DATABASE_SERVER_ID_KEY);
+            String newWebSiteServerId = (String) processingBusinessOperation.getParam(NEW_WEBSITE_SERVER_ID_KEY);
+            String oldWebSiteServerId = (String) processingBusinessOperation.getParam(OLD_WEBSITE_SERVER_ID_KEY);
             Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
 
             AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
             accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
-            accountTransferRequest.setOldServerId(oldServerId);
-            accountTransferRequest.setNewServerId(newServerId);
+            accountTransferRequest.setOldUnixAccountServerId(oldServerId);
+            accountTransferRequest.setNewUnixAccountServerId(newServerId);
+            accountTransferRequest.setOldDatabaseServerId(oldDatabaseServerId);
+            accountTransferRequest.setNewDatabaseServerId(newDatabaseServerId);
+            accountTransferRequest.setOldWebSiteServerId(oldWebSiteServerId);
+            accountTransferRequest.setNewWebSiteServerId(newWebSiteServerId);
             accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
 
             try {
@@ -328,108 +366,136 @@ public class AccountTransferService {
     private void startTransferWebSites(AccountTransferRequest accountTransferRequest) {
         List<WebSite> webSites = rcUserFeignClient.getWebSites(accountTransferRequest.getAccountId());
 
-        List<Service> oldServerWebSiteServices;
+        if (!webSites.isEmpty()) {
+            String oldWebSiteServiceId = webSites.get(0).getServiceId();
 
-        try {
-            oldServerWebSiteServices = rcStaffFeignClient.getWebsiteServicesByServerId(accountTransferRequest.getOldServerId());
-        } catch (Exception e) {
-            throw new ParameterValidationException("Ошибка при получении сервисов для вебсайтов для текущего сервера");
-        }
+            Server oldWebSiteServer = rcStaffFeignClient.getServerByServiceId(oldWebSiteServiceId);
 
-        if (oldServerWebSiteServices == null || oldServerWebSiteServices.isEmpty()) {
-            throw new ParameterValidationException("Сервисы для вебсайтов не найдены на текущем сервере");
-        }
-
-        Map<String, Service> oldServerWebSiteServicesById = oldServerWebSiteServices.stream().collect(Collectors.toMap(Service::getId, s -> s));
-
-        List<Service> newServerWebSiteServices;
-
-        try {
-            newServerWebSiteServices = rcStaffFeignClient.getWebsiteServicesByServerId(accountTransferRequest.getNewServerId());
-        } catch (Exception e) {
-            throw new ParameterValidationException("Ошибка при получении сервисов для вебсайтов для нового сервера");
-        }
-
-        if (newServerWebSiteServices == null || newServerWebSiteServices.isEmpty()) {
-            throw new ParameterValidationException("Сервисы для вебсайтов не найдены на новом сервере");
-        }
-
-        //Сначала проверим есть ли все нужные сервисы на новом сервере
-        for (WebSite webSite : webSites) {
-            Service currentService = oldServerWebSiteServicesById.get(webSite.getServiceId());
-
-            String servicePrefix = currentService.getName().split("@")[0];
-
-            Service newService = newServerWebSiteServices.stream()
-                    .filter(s -> s.getName().split("@")[0].equals(servicePrefix))
-                    .findFirst()
-                    .orElse(null);
-
-            if (newService == null) {
-                throw new ParameterValidationException("На новом сервере не найден сервис " + servicePrefix);
-            }
-        }
-
-        ProcessingBusinessAction processingBusinessAction;
-
-        for (WebSite webSite : webSites) {
-            Service currentService = oldServerWebSiteServicesById.get(webSite.getServiceId());
-
-            String servicePrefix = currentService.getName().split("@")[0];
-
-            Service newService = newServerWebSiteServices.stream()
-                    .filter(s -> s.getName().split("@")[0].equals(servicePrefix))
-                    .findFirst()
-                    .orElse(null);
-
-            if (newService == null) {
-                throw new ParameterValidationException("На новом сервере не найден сервис " + servicePrefix);
+            if (oldWebSiteServer == null) {
+                throw new ParameterValidationException("Старый веб-сервер не найден");
             }
 
-            SimpleServiceMessage webSiteMessage = new SimpleServiceMessage();
-            webSiteMessage.setAccountId(accountTransferRequest.getAccountId());
-            webSiteMessage.setOperationIdentity(accountTransferRequest.getOperationId());
-            webSiteMessage.addParam(RESOURCE_ID_KEY, webSite.getId());
-            webSiteMessage.addParam(SERVICE_ID_KEY, newService.getId());
+            accountTransferRequest.setOldWebSiteServerId(oldWebSiteServer.getId());
 
-            if (accountTransferRequest.isTransferData()) {
-                Map<String, Object> teParams = new HashMap<>();
+            List<Service> oldServerWebSiteServices;
 
-                List<Service> oldServerNginxServices;
+            try {
+                oldServerWebSiteServices = rcStaffFeignClient.getWebsiteServicesByServerId(accountTransferRequest.getOldWebSiteServerId());
+            } catch (Exception e) {
+                throw new ParameterValidationException("Ошибка при получении сервисов для вебсайтов для текущего сервера");
+            }
 
-                try {
-                    oldServerNginxServices = rcStaffFeignClient.getNginxServicesByServerId(accountTransferRequest.getOldServerId());
-                } catch (Exception e) {
-                    throw new ParameterValidationException("Ошибка при получении сервисов nginx для текущего сервера");
+            if (oldServerWebSiteServices == null || oldServerWebSiteServices.isEmpty()) {
+                throw new ParameterValidationException("Сервисы для вебсайтов не найдены на текущем сервере");
+            }
+
+            Map<String, Service> oldServerWebSiteServicesById = oldServerWebSiteServices.stream().collect(Collectors.toMap(Service::getId, s -> s));
+
+            List<Service> newServerWebSiteServices;
+
+            try {
+                newServerWebSiteServices = rcStaffFeignClient.getWebsiteServicesByServerId(accountTransferRequest.getNewWebSiteServerId());
+            } catch (Exception e) {
+                throw new ParameterValidationException("Ошибка при получении сервисов для вебсайтов для нового сервера");
+            }
+
+            if (newServerWebSiteServices == null || newServerWebSiteServices.isEmpty()) {
+                throw new ParameterValidationException("Сервисы для вебсайтов не найдены на новом сервере");
+            }
+
+            //Сначала проверим есть ли все нужные сервисы на новом сервере
+            for (WebSite webSite : webSites) {
+                Service oldServerWebSiteService = oldServerWebSiteServicesById.get(webSite.getServiceId());
+
+                if (oldServerWebSiteService == null) {
+                    throw new ParameterValidationException("Не найден текущий сервис для сайта " + webSite.getId() + " в списке сервисов старого сервера");
                 }
 
-                if (oldServerNginxServices == null || oldServerNginxServices.isEmpty()) {
-                    throw new ParameterValidationException("Сервисы nginx не найдены на текущем сервере");
+                String servicePrefix = oldServerWebSiteService.getName().split("@")[0];
+
+                Service newService = newServerWebSiteServices.stream()
+                        .filter(s -> s.getName().split("@")[0].equals(servicePrefix))
+                        .findFirst()
+                        .orElse(null);
+
+                if (newService == null) {
+                    throw new ParameterValidationException("На новом сервере не найден сервис " + servicePrefix);
                 }
-
-                Service oldNginxService = oldServerNginxServices.get(0);
-
-                String oldNginxHost = oldNginxService.getServiceSockets().get(0).getAddressAsString();
-
-                teParams.put(DATASOURCE_URI_KEY, "rsync://" + oldNginxHost +
-                        "/" + webSite.getUnixAccount().getHomeDir()+
-                        "/" + webSite.getDocumentRoot());
-
-                teParams.put(DATA_POSTPROCESSOR_TYPE_KEY, DATA_POSTPROCESSOR_STRING_REPLACE_ACTION);
-
-                Map<String, String> dataPostprocessorArgs = new HashMap<>();
-                dataPostprocessorArgs.put(DATA_POSTPROCESSOR_STRING_SEARCH_PATTERN_ARG, accountTransferRequest.getOldDatabaseHost());
-                dataPostprocessorArgs.put(DATA_POSTPROCESSOR_STRING_REPLACE_STRING_ARG, accountTransferRequest.getNewDatabaseHost());
-
-                teParams.put(DATA_POSTPROCESSOR_ARGS_KEY, dataPostprocessorArgs);
-
-                webSiteMessage.addParam(TE_PARAMS_KEY, teParams);
-                processingBusinessAction = transferWebSite(webSiteMessage);
-            } else {
-                processingBusinessAction = revertTransferWebSite(webSiteMessage);
             }
 
-            accountTransferRequest.setOperationId(processingBusinessAction.getOperationId());
+            ProcessingBusinessAction processingBusinessAction = null;
+
+            for (WebSite webSite : webSites) {
+                Service currentService = oldServerWebSiteServicesById.get(webSite.getServiceId());
+
+                if (currentService == null) {
+                    throw new ParameterValidationException("Не найден текущий сервис для сайта " + webSite.getId() + " в списке сервисов старого сервера");
+                }
+
+                String servicePrefix = currentService.getName().split("@")[0];
+
+                Service newService = newServerWebSiteServices.stream()
+                        .filter(s -> s.getName().split("@")[0].equals(servicePrefix))
+                        .findFirst()
+                        .orElse(null);
+
+                if (newService == null) {
+                    throw new ParameterValidationException("На новом сервере не найден сервис " + servicePrefix);
+                }
+
+                SimpleServiceMessage webSiteMessage = new SimpleServiceMessage();
+                webSiteMessage.setAccountId(accountTransferRequest.getAccountId());
+                webSiteMessage.setOperationIdentity(accountTransferRequest.getOperationId());
+                webSiteMessage.addParam(RESOURCE_ID_KEY, webSite.getId());
+                webSiteMessage.addParam(SERVICE_ID_KEY, newService.getId());
+
+                if (accountTransferRequest.isTransferData()) {
+                    Map<String, Object> teParams = new HashMap<>();
+
+                    List<Service> oldServerNginxServices;
+
+                    try {
+                        oldServerNginxServices = rcStaffFeignClient.getNginxServicesByServerId(accountTransferRequest.getOldWebSiteServerId());
+                    } catch (Exception e) {
+                        throw new ParameterValidationException("Ошибка при получении сервисов nginx для текущего сервера");
+                    }
+
+                    if (oldServerNginxServices == null || oldServerNginxServices.isEmpty()) {
+                        throw new ParameterValidationException("Сервисы nginx не найдены на текущем сервере");
+                    }
+
+                    Service oldNginxService = oldServerNginxServices.get(0);
+
+                    String oldNginxHost = oldNginxService.getServiceSockets().get(0).getAddressAsString();
+
+                    teParams.put(DATASOURCE_URI_KEY, "rsync://" + oldNginxHost +
+                            "/" + webSite.getUnixAccount().getHomeDir()+
+                            "/" + webSite.getDocumentRoot());
+
+                    teParams.put(DATA_POSTPROCESSOR_TYPE_KEY, DATA_POSTPROCESSOR_STRING_REPLACE_ACTION);
+
+                    Map<String, String> dataPostprocessorArgs = new HashMap<>();
+                    dataPostprocessorArgs.put(DATA_POSTPROCESSOR_STRING_SEARCH_PATTERN_ARG, accountTransferRequest.getOldDatabaseHost());
+                    dataPostprocessorArgs.put(DATA_POSTPROCESSOR_STRING_REPLACE_STRING_ARG, accountTransferRequest.getNewDatabaseHost());
+
+                    teParams.put(DATA_POSTPROCESSOR_ARGS_KEY, dataPostprocessorArgs);
+
+                    webSiteMessage.addParam(TE_PARAMS_KEY, teParams);
+                    processingBusinessAction = transferWebSite(webSiteMessage);
+                } else {
+                    processingBusinessAction = revertTransferWebSite(webSiteMessage);
+                }
+
+                accountTransferRequest.setOperationId(processingBusinessAction.getOperationId());
+            }
+
+            if (processingBusinessAction != null) {
+                ProcessingBusinessOperation processingBusinessOperation = processingBusinessOperationRepository.findOne(processingBusinessAction.getOperationId());
+                processingBusinessOperation.addParam(OLD_WEBSITE_SERVER_ID_KEY, accountTransferRequest.getOldWebSiteServerId());
+                processingBusinessOperation.addParam(NEW_WEBSITE_SERVER_ID_KEY, accountTransferRequest.getNewWebSiteServerId());
+
+                processingBusinessOperationRepository.save(processingBusinessOperation);
+            }
         }
     }
 
@@ -437,7 +503,7 @@ public class AccountTransferService {
         List<Service> oldServerNginxServices;
 
         try {
-            oldServerNginxServices = rcStaffFeignClient.getNginxServicesByServerId(accountTransferRequest.getOldServerId());
+            oldServerNginxServices = rcStaffFeignClient.getNginxServicesByServerId(accountTransferRequest.getOldWebSiteServerId());
         } catch (Exception e) {
             throw new ParameterValidationException("Ошибка при получении сервисов nginx для текущего сервера");
         }
@@ -453,7 +519,7 @@ public class AccountTransferService {
         List<Service> newServerNginxServices;
 
         try {
-            newServerNginxServices = rcStaffFeignClient.getNginxServicesByServerId(accountTransferRequest.getNewServerId());
+            newServerNginxServices = rcStaffFeignClient.getNginxServicesByServerId(accountTransferRequest.getNewWebSiteServerId());
         } catch (Exception e) {
             throw new ParameterValidationException("Ошибка при получении сервисов nginx для нового сервера");
         }

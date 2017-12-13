@@ -1,8 +1,12 @@
 package ru.majordomo.hms.personmgr.dto;
 
 public class AccountTransferRequest {
-    private String oldServerId;
-    private String newServerId;
+    private String oldUnixAccountServerId;
+    private String newUnixAccountServerId;
+    private String oldDatabaseServerId;
+    private String newDatabaseServerId;
+    private String oldWebSiteServerId;
+    private String newWebSiteServerId;
     private String accountId;
     private String operationId;
     private String oldDatabaseHost;
@@ -10,20 +14,52 @@ public class AccountTransferRequest {
     private boolean transferDatabases = true;
     private boolean transferData = true;
 
-    public String getOldServerId() {
-        return oldServerId;
+    public String getOldUnixAccountServerId() {
+        return oldUnixAccountServerId;
     }
 
-    public void setOldServerId(String oldServerId) {
-        this.oldServerId = oldServerId;
+    public void setOldUnixAccountServerId(String oldUnixAccountServerId) {
+        this.oldUnixAccountServerId = oldUnixAccountServerId;
     }
 
-    public String getNewServerId() {
-        return newServerId;
+    public String getNewUnixAccountServerId() {
+        return newUnixAccountServerId;
     }
 
-    public void setNewServerId(String newServerId) {
-        this.newServerId = newServerId;
+    public void setNewUnixAccountServerId(String newUnixAccountServerId) {
+        this.newUnixAccountServerId = newUnixAccountServerId;
+    }
+
+    public String getOldDatabaseServerId() {
+        return oldDatabaseServerId;
+    }
+
+    public void setOldDatabaseServerId(String oldDatabaseServerId) {
+        this.oldDatabaseServerId = oldDatabaseServerId;
+    }
+
+    public String getNewDatabaseServerId() {
+        return newDatabaseServerId;
+    }
+
+    public void setNewDatabaseServerId(String newDatabaseServerId) {
+        this.newDatabaseServerId = newDatabaseServerId;
+    }
+
+    public String getOldWebSiteServerId() {
+        return oldWebSiteServerId;
+    }
+
+    public void setOldWebSiteServerId(String oldWebSiteServerId) {
+        this.oldWebSiteServerId = oldWebSiteServerId;
+    }
+
+    public String getNewWebSiteServerId() {
+        return newWebSiteServerId;
+    }
+
+    public void setNewWebSiteServerId(String newWebSiteServerId) {
+        this.newWebSiteServerId = newWebSiteServerId;
     }
 
     public String getAccountId() {
@@ -77,8 +113,12 @@ public class AccountTransferRequest {
     @Override
     public String toString() {
         return "AccountTransferRequest{" +
-                "oldServerId='" + oldServerId + '\'' +
-                ", newServerId='" + newServerId + '\'' +
+                "oldUnixAccountServerId='" + oldUnixAccountServerId + '\'' +
+                ", newUnixAccountServerId='" + newUnixAccountServerId + '\'' +
+                ", oldDatabaseServerId='" + oldDatabaseServerId + '\'' +
+                ", newDatabaseServerId='" + newDatabaseServerId + '\'' +
+                ", oldWebSiteServerId='" + oldWebSiteServerId + '\'' +
+                ", newWebSiteServerId='" + newWebSiteServerId + '\'' +
                 ", accountId='" + accountId + '\'' +
                 ", operationId='" + operationId + '\'' +
                 ", oldDatabaseHost='" + oldDatabaseHost + '\'' +
