@@ -139,7 +139,7 @@ public class AccountContractRestController {
 
     private String getHeader() throws IOException {
         InputStream inputStream = this.getClass()
-                .getResourceAsStream("resources/contract/budget_contract_header.html");
+                .getResourceAsStream("/contract/budget_contract_header.html");
 
        return CharStreams.toString(new InputStreamReader(
                     inputStream, Charsets.UTF_8));
