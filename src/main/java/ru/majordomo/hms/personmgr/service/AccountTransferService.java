@@ -98,7 +98,10 @@ public class AccountTransferService {
     }
 
     public void revertTransferUnixAccountAndDatabase(ProcessingBusinessOperation processingBusinessOperation) {
-        if (processingBusinessOperation.getParam(REVERTING_KEY) != null) {
+        Boolean reverting = (Boolean) processingBusinessOperation.getParam(REVERTING_KEY);
+
+        if (reverting == null || !reverting) {
+            processingBusinessOperation.addParam(REVERTING_KEY, true);
             processingBusinessOperation.addParam(REVERTING_KEY, true);
             processingBusinessOperationRepository.save(processingBusinessOperation);
 
@@ -131,7 +134,9 @@ public class AccountTransferService {
     }
 
     public void revertTransferWebSites(ProcessingBusinessOperation processingBusinessOperation) {
-        if (processingBusinessOperation.getParam(REVERTING_KEY) != null) {
+        Boolean reverting = (Boolean) processingBusinessOperation.getParam(REVERTING_KEY);
+
+        if (reverting == null || !reverting) {
             processingBusinessOperation.addParam(REVERTING_KEY, true);
             processingBusinessOperationRepository.save(processingBusinessOperation);
 
