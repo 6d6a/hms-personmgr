@@ -297,6 +297,9 @@ public class CommonAmqpController {
                         if (state.equals(State.PROCESSED)) {
                             accountTransferService.checkOperationAfterUnixAccountAndDatabaseUpdate(businessOperation);
                         } else if (state.equals(State.ERROR)) {
+                            businessOperation.setState(State.ERROR);
+                            processingBusinessOperationRepository.save(businessOperation);
+
                             accountTransferService.revertTransferUnixAccountAndDatabase(businessOperation);
                         }
                     }
@@ -307,6 +310,10 @@ public class CommonAmqpController {
                         if (state.equals(State.PROCESSED)) {
                             accountTransferService.checkOperationAfterWebSiteUpdate(businessOperation);
                         } else if (state.equals(State.ERROR)) {
+                            businessOperation.setState(State.ERROR);
+                            processingBusinessOperationRepository.save(businessOperation);
+
+                            accountTransferService.revertTransferUnixAccountAndDatabase(businessOperation);
                             accountTransferService.revertTransferWebSites(businessOperation);
                         }
                     }

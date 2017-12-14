@@ -135,8 +135,9 @@ public class AccountTransferService {
 
     public void revertTransferWebSites(ProcessingBusinessOperation processingBusinessOperation) {
         Boolean reverting = (Boolean) processingBusinessOperation.getParam(REVERTING_KEY);
+        Boolean webSiteSent = (Boolean) processingBusinessOperation.getParam(WEBSITE_SENT_KEY);
 
-        if (reverting == null || !reverting) {
+        if (webSiteSent != null && webSiteSent && (reverting == null || !reverting)) {
             processingBusinessOperation.addParam(REVERTING_KEY, true);
             processingBusinessOperationRepository.save(processingBusinessOperation);
 
@@ -332,34 +333,39 @@ public class AccountTransferService {
         Boolean unixAccountAndDatabaseSent = (Boolean) processingBusinessOperation.getParam(UNIX_ACCOUNT_AND_DATABASE_SENT_KEY);
 
         List<ProcessingBusinessAction> businessActions = processingBusinessActionRepository.findAllByOperationId(processingBusinessOperation.getId());
-        if (unixAccountAndDatabaseSent != null
-                && unixAccountAndDatabaseSent
-                && businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
-            String newUnixAccountServerId = (String) processingBusinessOperation.getParam(NEW_UNIX_ACCOUNT_SERVER_ID_KEY);
-            String oldUnixAccountServerId = (String) processingBusinessOperation.getParam(OLD_UNIX_ACCOUNT_SERVER_ID_KEY);
-            String newDatabaseServerId = (String) processingBusinessOperation.getParam(NEW_DATABASE_SERVER_ID_KEY);
-            String oldDatabaseServerId = (String) processingBusinessOperation.getParam(OLD_DATABASE_SERVER_ID_KEY);
-            String oldDatabaseHost = (String) processingBusinessOperation.getParam(OLD_DATABASE_HOST_KEY);
-            String newDatabaseHost = (String) processingBusinessOperation.getParam(NEW_DATABASE_HOST_KEY);
-            Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
+        if (unixAccountAndDatabaseSent != null && unixAccountAndDatabaseSent) {
+            if (businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
+                String newUnixAccountServerId = (String) processingBusinessOperation.getParam(NEW_UNIX_ACCOUNT_SERVER_ID_KEY);
+                String oldUnixAccountServerId = (String) processingBusinessOperation.getParam(OLD_UNIX_ACCOUNT_SERVER_ID_KEY);
+                String newDatabaseServerId = (String) processingBusinessOperation.getParam(NEW_DATABASE_SERVER_ID_KEY);
+                String oldDatabaseServerId = (String) processingBusinessOperation.getParam(OLD_DATABASE_SERVER_ID_KEY);
+                String oldDatabaseHost = (String) processingBusinessOperation.getParam(OLD_DATABASE_HOST_KEY);
+                String newDatabaseHost = (String) processingBusinessOperation.getParam(NEW_DATABASE_HOST_KEY);
+                Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
 
-            AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
-            accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
-            accountTransferRequest.setOperationId(processingBusinessOperation.getId());
-            accountTransferRequest.setOldUnixAccountServerId(oldUnixAccountServerId);
-            accountTransferRequest.setNewUnixAccountServerId(newUnixAccountServerId);
-            accountTransferRequest.setOldDatabaseServerId(oldDatabaseServerId);
-            accountTransferRequest.setNewDatabaseServerId(newDatabaseServerId);
-            accountTransferRequest.setNewWebSiteServerId(newUnixAccountServerId);
-            accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
-            accountTransferRequest.setOldDatabaseHost(oldDatabaseHost);
-            accountTransferRequest.setNewDatabaseHost(newDatabaseHost);
+                AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
+                accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
+                accountTransferRequest.setOperationId(processingBusinessOperation.getId());
+                accountTransferRequest.setOldUnixAccountServerId(oldUnixAccountServerId);
+                accountTransferRequest.setNewUnixAccountServerId(newUnixAccountServerId);
+                accountTransferRequest.setOldDatabaseServerId(oldDatabaseServerId);
+                accountTransferRequest.setNewDatabaseServerId(newDatabaseServerId);
+                accountTransferRequest.setNewWebSiteServerId(newUnixAccountServerId);
+                accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
+                accountTransferRequest.setOldDatabaseHost(oldDatabaseHost);
+                accountTransferRequest.setNewDatabaseHost(newDatabaseHost);
 
-            try {
-                startTransferWebSites(accountTransferRequest);
-            } catch (Exception e) {
-                e.printStackTrace();
+                try {
+                    startTransferWebSites(accountTransferRequest);
+                } catch (Exception e) {
+                    e.printStackTrace();
 
+                    processingBusinessOperation.setState(State.ERROR);
+                    processingBusinessOperationRepository.save(processingBusinessOperation);
+
+                    revertTransferUnixAccountAndDatabase(processingBusinessOperation);
+                }
+            } else if (businessActions.stream().anyMatch(processingBusinessAction -> processingBusinessAction.getState() == State.ERROR)) {
                 processingBusinessOperation.setState(State.ERROR);
                 processingBusinessOperationRepository.save(processingBusinessOperation);
 
@@ -372,33 +378,39 @@ public class AccountTransferService {
         Boolean webSiteSent = (Boolean) processingBusinessOperation.getParam(WEBSITE_SENT_KEY);
 
         List<ProcessingBusinessAction> businessActions = processingBusinessActionRepository.findAllByOperationId(processingBusinessOperation.getId());
-        if (webSiteSent != null
-                && webSiteSent
-                && businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
-            String newServerId = (String) processingBusinessOperation.getParam(NEW_UNIX_ACCOUNT_SERVER_ID_KEY);
-            String oldServerId = (String) processingBusinessOperation.getParam(OLD_UNIX_ACCOUNT_SERVER_ID_KEY);
-            String newDatabaseServerId = (String) processingBusinessOperation.getParam(NEW_DATABASE_SERVER_ID_KEY);
-            String oldDatabaseServerId = (String) processingBusinessOperation.getParam(OLD_DATABASE_SERVER_ID_KEY);
-            String newWebSiteServerId = (String) processingBusinessOperation.getParam(NEW_WEBSITE_SERVER_ID_KEY);
-            String oldWebSiteServerId = (String) processingBusinessOperation.getParam(OLD_WEBSITE_SERVER_ID_KEY);
-            Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
+        if (webSiteSent != null && webSiteSent) {
+            if (businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
+                String newServerId = (String) processingBusinessOperation.getParam(NEW_UNIX_ACCOUNT_SERVER_ID_KEY);
+                String oldServerId = (String) processingBusinessOperation.getParam(OLD_UNIX_ACCOUNT_SERVER_ID_KEY);
+                String newDatabaseServerId = (String) processingBusinessOperation.getParam(NEW_DATABASE_SERVER_ID_KEY);
+                String oldDatabaseServerId = (String) processingBusinessOperation.getParam(OLD_DATABASE_SERVER_ID_KEY);
+                String newWebSiteServerId = (String) processingBusinessOperation.getParam(NEW_WEBSITE_SERVER_ID_KEY);
+                String oldWebSiteServerId = (String) processingBusinessOperation.getParam(OLD_WEBSITE_SERVER_ID_KEY);
+                Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
 
-            AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
-            accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
-            accountTransferRequest.setOperationId(processingBusinessOperation.getId());
-            accountTransferRequest.setOldUnixAccountServerId(oldServerId);
-            accountTransferRequest.setNewUnixAccountServerId(newServerId);
-            accountTransferRequest.setOldDatabaseServerId(oldDatabaseServerId);
-            accountTransferRequest.setNewDatabaseServerId(newDatabaseServerId);
-            accountTransferRequest.setOldWebSiteServerId(oldWebSiteServerId);
-            accountTransferRequest.setNewWebSiteServerId(newWebSiteServerId);
-            accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
+                AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
+                accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
+                accountTransferRequest.setOperationId(processingBusinessOperation.getId());
+                accountTransferRequest.setOldUnixAccountServerId(oldServerId);
+                accountTransferRequest.setNewUnixAccountServerId(newServerId);
+                accountTransferRequest.setOldDatabaseServerId(oldDatabaseServerId);
+                accountTransferRequest.setNewDatabaseServerId(newDatabaseServerId);
+                accountTransferRequest.setOldWebSiteServerId(oldWebSiteServerId);
+                accountTransferRequest.setNewWebSiteServerId(newWebSiteServerId);
+                accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
 
-            try {
-                startUpdateDNSRecords(accountTransferRequest);
-            } catch (Exception e) {
-                e.printStackTrace();
+                try {
+                    startUpdateDNSRecords(accountTransferRequest);
+                } catch (Exception e) {
+                    e.printStackTrace();
 
+                    processingBusinessOperation.setState(State.ERROR);
+                    processingBusinessOperationRepository.save(processingBusinessOperation);
+
+                    revertTransferUnixAccountAndDatabase(processingBusinessOperation);
+                    revertTransferWebSites(processingBusinessOperation);
+                }
+            } else if (businessActions.stream().anyMatch(processingBusinessAction -> processingBusinessAction.getState() == State.ERROR)) {
                 processingBusinessOperation.setState(State.ERROR);
                 processingBusinessOperationRepository.save(processingBusinessOperation);
 
