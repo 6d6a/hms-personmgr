@@ -183,7 +183,16 @@ public class PromocodeProcessor {
 
                 publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
 
-                processBonusPromocodeActions(account, accountPromocode);
+                try {
+                    processBonusPromocodeActions(account, accountPromocode);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    paramsHistory = new HashMap<>();
+                    paramsHistory.put(HISTORY_MESSAGE_KEY, "Обработка бонусного промокода '" + promocodeString + "' завершена с ошибкой");
+                    paramsHistory.put(OPERATOR_KEY, "ru.majordomo.hms.personmgr.service.PromocodeProcessor.processPromocode");
+
+                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+                }
 
                 break;
             case GOOGLE:
