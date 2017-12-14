@@ -2,8 +2,9 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.dto.rpc.Contract;
 import ru.majordomo.hms.personmgr.dto.rpc.DocumentType;
@@ -15,6 +16,8 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -25,6 +28,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/{accountId}/document")
 public class AccountContractRestController {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final MajordomoRpcClient majordomoRpcClient;
     private final AccountOwnerManager accountOwnerManager;
@@ -43,10 +48,11 @@ public class AccountContractRestController {
 
     @GetMapping("/{documentType}")
     @ResponseBody
-    public FileSystemResource getContract(
+    public void getContract(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "documentType") DocumentType documentType,
-            @RequestParam Map<String, String> params
+            @RequestParam Map<String, String> params,
+            HttpServletResponse response
     ) {
         AccountOwner owner = accountOwnerManager.findOneByPersonalAccountId(accountId);
 
@@ -90,37 +96,21 @@ public class AccountContractRestController {
 
         String document = replaceFields(template, owner, new HashMap<>());
 
-//        return document;
-
-        saveFile(accountId + "contract.html", document);
-
-        File file = new File(accountId + "contract.html");
-        return new FileSystemResource(file);
-    }
-
-    private void saveFile(String fileName, String content){
-        BufferedWriter bw = null;
-        FileWriter fw = null;
         try {
-            fw = new FileWriter(fileName);
-            bw = new BufferedWriter(fw);
-            bw.write(content);
+            response.setContentType("text/html; charset=utf-8");
+            response.setHeader("Content-Disposition", "attachment; filename=" + accountId + "_contract.html");
+            ServletOutputStream out = response.getOutputStream();
+            out.println(document);
+            out.flush();
+            out.close();
         } catch (IOException e) {
+            logger.error("Не удалось отдать договор");
             e.printStackTrace();
-        } finally {
-            try {
-                if (bw != null)
-                    bw.close();
-                if (fw != null)
-                    fw.close();
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
         }
     }
 
     private String createTemplate(String header, String body, String footer, List<Integer> noFooterPages) {
-                //need add footer to every page exclude noFooterPages
+                //TODO генерация шаблона
                 return header + body + footer;
     }
 
@@ -131,7 +121,7 @@ public class AccountContractRestController {
             try {
                 template = template.replaceAll(entry.getKey(), entry.getValue());
             } catch (Exception e) {
-                throw new ParameterValidationException("Не удалось создать договор");
+                throw new ParameterValidationException("Не удалось заполнить договор");
             }
         }
         return template;
@@ -141,8 +131,7 @@ public class AccountContractRestController {
         InputStream inputStream = this.getClass()
                 .getResourceAsStream("/contract/budget_contract_header.html");
 
-       return CharStreams.toString(new InputStreamReader(
-                    inputStream, Charsets.UTF_8));
+       return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
     }
 
     private Map<String, String> buildReplaceParameters(AccountOwner owner, Map<String, String> params){
