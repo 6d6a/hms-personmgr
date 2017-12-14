@@ -166,6 +166,8 @@ public class AccountTransferService {
                 processingBusinessOperation.setState(State.ERROR);
                 processingBusinessOperationRepository.save(processingBusinessOperation);
             }
+
+            revertTransferUnixAccountAndDatabase(processingBusinessOperation);
         }
     }
 
@@ -407,14 +409,12 @@ public class AccountTransferService {
                     processingBusinessOperation.setState(State.ERROR);
                     processingBusinessOperationRepository.save(processingBusinessOperation);
 
-                    revertTransferUnixAccountAndDatabase(processingBusinessOperation);
                     revertTransferWebSites(processingBusinessOperation);
                 }
             } else if (businessActions.stream().anyMatch(processingBusinessAction -> processingBusinessAction.getState() == State.ERROR)) {
                 processingBusinessOperation.setState(State.ERROR);
                 processingBusinessOperationRepository.save(processingBusinessOperation);
 
-                revertTransferUnixAccountAndDatabase(processingBusinessOperation);
                 revertTransferWebSites(processingBusinessOperation);
             }
         }
