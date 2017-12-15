@@ -15,24 +15,40 @@ public class BlackListService {
     private RestTemplate restTemplate = new RestTemplate();
 
     private String controlBlackListUrl;
+    private String control2BlackListUrl;
 
     @Value("${blacklist.control_url}")
     public void setControlBlackListUrl(String controlBlackListUrl) {
         this.controlBlackListUrl = controlBlackListUrl;
     }
 
+    @Value("${blacklist.control2_url}")
+    public void setControl2BlackListUrl(String control2BlackListUrl) {
+        this.control2BlackListUrl = control2BlackListUrl;
+    }
+
     public Boolean domainExistsInControlBlackList(String domain) {
-        Boolean exists = false;
+
         try {
-            exists = restTemplate.getForObject(controlBlackListUrl + "/" + domain, Boolean.class);
-            if (exists == null) {
-                return false;
+            Boolean exists = restTemplate.getForObject(controlBlackListUrl + "/" + domain, Boolean.class);
+            if (exists != null && exists) {
+                return true;
             }
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in BlackListService.domainExistsInControlBlackList " + e.getMessage());
         }
 
-        return exists;
+        try {
+            Boolean exists = restTemplate.getForObject(control2BlackListUrl + "/" + domain, Boolean.class);
+            if (exists != null && exists) {
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Exception in BlackListService.domainExistsInControl2BlackList " + e.getMessage());
+        }
+
+        return false;
     }
 }
