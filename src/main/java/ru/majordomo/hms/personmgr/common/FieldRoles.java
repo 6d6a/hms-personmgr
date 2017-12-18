@@ -14,14 +14,18 @@ public class FieldRoles {
     public static final Map<String, String> WEB_SITE_POST = new HashMap<>();
     public static final Map<String, String> DATABASE_PATCH = new HashMap<>();
     public static final Map<String, String> DATABASE_POST = new HashMap<>();
+    public static final Map<String, String> DATABASE_USER_PATCH = new HashMap<>();
+    public static final Map<String, String> DATABASE_USER_POST = new HashMap<>();
     public static final Map<String, String> UNIX_ACCOUNT_PATCH = new HashMap<>();
     public static final Map<String, String> UNIX_ACCOUNT_POST = new HashMap<>();
     public static final Map<String, String> DNS_RECORD_PATCH = new HashMap<>();
     public static final Map<String, String> RESOURCE_WRITABLE = new HashMap<>();
+    public static final Map<String, String> RESOURCE_SERVICE_ID = new HashMap<>();
 
     static {
         RESOURCE_SWITCHED_ON.put("switchedOn", RESOURCE_SWITCHED_ON_EDIT);
         RESOURCE_WRITABLE.put("writable", RESOURCE_WRITABLE_EDIT);
+        RESOURCE_SERVICE_ID.put("serviceId", TRANSFER_ACCOUNT);
 
         MAILBOX_PATCH.put("mailFromAllowed", MAILBOX_MAIL_FROM_ALLOWED_EDIT);
         MAILBOX_PATCH.put("mailSpool", MAILBOX_MAIL_SPOOL_EDIT);
@@ -37,12 +41,19 @@ public class FieldRoles {
 
         DATABASE_PATCH.putAll(RESOURCE_SWITCHED_ON);
         DATABASE_PATCH.putAll(RESOURCE_WRITABLE);
+        DATABASE_PATCH.putAll(RESOURCE_SERVICE_ID);
 
-        DATABASE_POST.putAll(DATABASE_PATCH);
+        DATABASE_POST.putAll(RESOURCE_SWITCHED_ON);
+        DATABASE_POST.putAll(RESOURCE_WRITABLE);
+
+        DATABASE_USER_PATCH.putAll(RESOURCE_SWITCHED_ON);
+        DATABASE_USER_PATCH.putAll(RESOURCE_SERVICE_ID);
+
+        DATABASE_USER_POST.putAll(RESOURCE_SWITCHED_ON);
 
         UNIX_ACCOUNT_PATCH.put("sendmailAllowed", UNIX_ACCOUNT_SENDMAIL_ALLOWED_EDIT);
         UNIX_ACCOUNT_PATCH.put("quota", UNIX_ACCOUNT_QUOTA_EDIT);
-        UNIX_ACCOUNT_PATCH.put(SERVER_ID_KEY, "TRANSFER_ACCOUNT");
+        UNIX_ACCOUNT_PATCH.put(SERVER_ID_KEY, TRANSFER_ACCOUNT);
         UNIX_ACCOUNT_PATCH.putAll(RESOURCE_SWITCHED_ON);
         UNIX_ACCOUNT_PATCH.putAll(RESOURCE_WRITABLE);
 
