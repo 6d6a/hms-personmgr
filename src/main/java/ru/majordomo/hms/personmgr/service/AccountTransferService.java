@@ -2,10 +2,11 @@ package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
@@ -447,10 +448,9 @@ public class AccountTransferService {
 
             accountTransferRequest.setOldWebSiteServerId(oldWebSiteServer.getId());
 
-
             List<String> oldServiceIds = webSites.stream().map(WebSite::getServiceId).distinct().collect(Collectors.toList());
 
-            List<Service> oldServersWebSiteServices = new ArrayList<>();
+            Set<Service> oldServersWebSiteServices = new HashSet<>();
 
             for (String oldServiceId : oldServiceIds) {
                 Server oldServer = rcStaffFeignClient.getServerByServiceId(oldServiceId);
@@ -478,7 +478,7 @@ public class AccountTransferService {
                 throw new ParameterValidationException("Сервисы для вебсайтов не найдены на текущем сервере");
             }
 
-            Map<String, Service> oldServerWebSiteServicesById = oldServersWebSiteServices.stream().collect(Collectors.toMap(Service::getId, s -> s));
+            Map<String, Service> oldServerWebSiteServicesById = oldServersWebSiteServices.stream().distinct().collect(Collectors.toMap(Service::getId, s -> s));
 
             List<Service> newServerWebSiteServices;
 
