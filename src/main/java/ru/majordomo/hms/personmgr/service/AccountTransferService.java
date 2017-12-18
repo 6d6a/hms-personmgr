@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -446,19 +447,38 @@ public class AccountTransferService {
 
             accountTransferRequest.setOldWebSiteServerId(oldWebSiteServer.getId());
 
-            List<Service> oldServerWebSiteServices;
 
-            try {
-                oldServerWebSiteServices = rcStaffFeignClient.getWebsiteServicesByServerId(accountTransferRequest.getOldWebSiteServerId());
-            } catch (Exception e) {
-                throw new ParameterValidationException("Ошибка при получении сервисов для вебсайтов для текущего сервера");
+            List<String> oldServiceIds = webSites.stream().map(WebSite::getServiceId).distinct().collect(Collectors.toList());
+
+            List<Service> oldServersWebSiteServices = new ArrayList<>();
+
+            for (String oldServiceId : oldServiceIds) {
+                Server oldServer = rcStaffFeignClient.getServerByServiceId(oldServiceId);
+
+                if (oldServer == null) {
+                    throw new ParameterValidationException("Старый веб-сервер не найден");
+                }
+
+                List<Service> oldServerWebSiteServices;
+
+                try {
+                    oldServerWebSiteServices = rcStaffFeignClient.getWebsiteServicesByServerId(oldServer.getId());
+                } catch (Exception e) {
+                    throw new ParameterValidationException("Ошибка при получении сервисов для вебсайтов для текущего сервера");
+                }
+
+                if (oldServerWebSiteServices == null || oldServerWebSiteServices.isEmpty()) {
+                    throw new ParameterValidationException("Сервисы для вебсайтов не найдены на текущем сервере");
+                }
+
+                oldServersWebSiteServices.addAll(oldServerWebSiteServices);
             }
 
-            if (oldServerWebSiteServices == null || oldServerWebSiteServices.isEmpty()) {
+            if (oldServersWebSiteServices.isEmpty()) {
                 throw new ParameterValidationException("Сервисы для вебсайтов не найдены на текущем сервере");
             }
 
-            Map<String, Service> oldServerWebSiteServicesById = oldServerWebSiteServices.stream().collect(Collectors.toMap(Service::getId, s -> s));
+            Map<String, Service> oldServerWebSiteServicesById = oldServersWebSiteServices.stream().collect(Collectors.toMap(Service::getId, s -> s));
 
             List<Service> newServerWebSiteServices;
 
@@ -477,7 +497,8 @@ public class AccountTransferService {
                 Service oldServerWebSiteService = oldServerWebSiteServicesById.get(webSite.getServiceId());
 
                 if (oldServerWebSiteService == null) {
-                    throw new ParameterValidationException("Не найден текущий сервис для сайта " + webSite.getId() + " в списке сервисов старого сервера");
+                    throw new ParameterValidationException("Не найден текущий сервис " + webSite.getServiceId() +
+                            " для сайта " + webSite.getId() + " в списке сервисов старого сервера");
                 }
 
                 String servicePrefix = oldServerWebSiteService.getName().split("@")[0];
@@ -498,7 +519,8 @@ public class AccountTransferService {
                 Service currentService = oldServerWebSiteServicesById.get(webSite.getServiceId());
 
                 if (currentService == null) {
-                    throw new ParameterValidationException("Не найден текущий сервис для сайта " + webSite.getId() + " в списке сервисов старого сервера");
+                    throw new ParameterValidationException("Не найден текущий сервис " + webSite.getServiceId() +
+                            " для сайта " + webSite.getId() + " в списке сервисов старого сервера");
                 }
 
                 String servicePrefix = currentService.getName().split("@")[0];
