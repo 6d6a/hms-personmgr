@@ -478,7 +478,7 @@ public class AccountTransferService {
                 throw new ParameterValidationException("Сервисы для вебсайтов не найдены на текущем сервере");
             }
 
-            Map<String, Service> oldServerWebSiteServicesById = oldServersWebSiteServices.stream().distinct().collect(Collectors.toMap(Service::getId, s -> s));
+            Map<String, Service> oldServerWebSiteServicesById = oldServersWebSiteServices.stream().distinct().collect(Collectors.toMap(Service::getId, s -> s, (s1, s2) -> s1));
 
             List<Service> newServerWebSiteServices;
 
