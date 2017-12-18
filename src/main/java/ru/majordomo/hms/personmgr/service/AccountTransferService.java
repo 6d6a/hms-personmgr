@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -14,6 +15,7 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.AccountTransferRequest;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
@@ -37,6 +39,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_STR
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_STRING_SEARCH_PATTERN_ARG;
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_TYPE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DNS_RECORD_SENT_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_UNIX_ACCOUNT_SERVER_ID_KEY;
@@ -45,6 +48,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.OLD_DATABASE_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_DATABASE_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_UNIX_ACCOUNT_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_WEBSITE_SERVER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.REVERTING_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
@@ -61,19 +65,22 @@ public class AccountTransferService {
     private final BusinessHelper businessHelper;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
+    private final ApplicationEventPublisher publisher;
 
     public AccountTransferService(
             RcUserFeignClient rcUserFeignClient,
             RcStaffFeignClient rcStaffFeignClient,
             BusinessHelper businessHelper,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
-            ProcessingBusinessActionRepository processingBusinessActionRepository
+            ProcessingBusinessActionRepository processingBusinessActionRepository,
+            ApplicationEventPublisher publisher
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;
         this.businessHelper = businessHelper;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
         this.processingBusinessActionRepository = processingBusinessActionRepository;
+        this.publisher = publisher;
     }
 
     public ProcessingBusinessAction startTransfer(SimpleServiceMessage message) {
@@ -103,6 +110,14 @@ public class AccountTransferService {
         Boolean reverting = (Boolean) processingBusinessOperation.getParam(REVERTING_KEY);
 
         if (reverting == null || !reverting) {
+            //Save history
+            String operator = "service";
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Произошла ошибка во время переноса аккаунта, производится откат изменений.");
+            params.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(processingBusinessOperation.getPersonalAccountId(), params));
+
             processingBusinessOperation.addParam(REVERTING_KEY, true);
             processingBusinessOperation.addParam(REVERTING_KEY, true);
             processingBusinessOperationRepository.save(processingBusinessOperation);
@@ -418,6 +433,14 @@ public class AccountTransferService {
                 && businessActions.stream().noneMatch(processingBusinessAction -> processingBusinessAction.getState() != State.PROCESSED)) {
             processingBusinessOperation.setState(State.PROCESSED);
             processingBusinessOperationRepository.save(processingBusinessOperation);
+
+            //Save history
+            String operator = "service";
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Перенос аккаунта успешно завершен. ДНС-записи изменены.");
+            params.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(processingBusinessOperation.getPersonalAccountId(), params));
         }
     }
 
@@ -640,6 +663,14 @@ public class AccountTransferService {
 
         if (processingBusinessAction == null) {
             processingBusinessOperation.setState(State.PROCESSED);
+
+            //Save history
+            String operator = "service";
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Перенос аккаунта успешно завершен. ДНС-записи изменены.");
+            params.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(processingBusinessOperation.getPersonalAccountId(), params));
         }
 
         processingBusinessOperationRepository.save(processingBusinessOperation);
