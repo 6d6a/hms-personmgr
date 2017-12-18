@@ -300,7 +300,7 @@ public class CommonAmqpController {
                             businessOperation.setState(State.ERROR);
                             processingBusinessOperationRepository.save(businessOperation);
 
-                            accountTransferService.revertTransferUnixAccountAndDatabase(businessOperation);
+                            accountTransferService.revertTransfer(businessOperation);
                         }
                     }
                     break;
@@ -313,7 +313,7 @@ public class CommonAmqpController {
                             businessOperation.setState(State.ERROR);
                             processingBusinessOperationRepository.save(businessOperation);
 
-                            accountTransferService.revertTransferWebSites(businessOperation);
+                            accountTransferService.revertTransferOnWebSitesFail(businessOperation);
                         }
                     }
                     break;
