@@ -151,13 +151,14 @@ public class AccountContractRestController {
         try {
             Process p = Runtime.getRuntime().exec(wkhtmltopdfFile.toPath().toString() + " " + pathToFile + " " + pathToPdf);
 
-            logger.info("exitStatus = " + p.exitValue());
+//            logger.info("exitStatus = " + p.exitValue());
             BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
             String line;
             while ((line = in.readLine()) != null) {
                 System.out.println(line);
             }
             p.waitFor();
+            logger.info("exitStatus = " + p.exitValue());
             System.out.println("ok!");
 
             in.close();
