@@ -9,4 +9,5 @@ public class SecurityConstants {
     public static final String UNIX_ACCOUNT_SENDMAIL_ALLOWED_EDIT = "UNIX_ACCOUNT_SENDMAIL_ALLOWED_EDIT";
     public static final String RESOURCE_WRITABLE_EDIT = "RESOURCE_WRITABLE_EDIT";
     public static final String UNIX_ACCOUNT_QUOTA_EDIT = "UNIX_ACCOUNT_QUOTA_EDIT";
+    public static final String TRANSFER_ACCOUNT = "TRANSFER_ACCOUNT";
 }

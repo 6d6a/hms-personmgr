@@ -140,7 +140,7 @@ public class Utils {
         return ((Long) ChronoUnit.DAYS.between(startDate, endDate)).intValue();
     }
 
-    public static void checkRequiredParams(Map<String, Object> params, Set<String> requiredParams) {
+    public static void checkRequiredParams(Map<String, ?> params, Set<String> requiredParams) {
         for (String field : requiredParams) {
             if (params.get(field) == null) {
                 throw new ParameterValidationException("В запросе не передан обязательный параметр '" + field + "'");

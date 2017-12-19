@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +26,8 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
+import static ru.majordomo.hms.personmgr.common.FieldRoles.DATABASE_USER_PATCH;
+import static ru.majordomo.hms.personmgr.common.FieldRoles.DATABASE_USER_POST;
 
 @RestController
 @RequestMapping("/{accountId}/database-user")
@@ -35,7 +38,8 @@ public class DatabaseUserResourceRestController extends CommonRestController {
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         message.setAccountId(accountId);
 
@@ -43,6 +47,12 @@ public class DatabaseUserResourceRestController extends CommonRestController {
 
         if (!accountManager.findOne(accountId).isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание пользователя базы данных невозможно.");
+        }
+
+        if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
+            checkParamsWithRoles(message.getParams(), DATABASE_USER_POST, authentication);
+        } else {
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), DATABASE_USER_POST, authentication);
         }
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_USER_CREATE, BusinessActionType.DATABASE_USER_CREATE_RC, message);
@@ -65,7 +75,8 @@ public class DatabaseUserResourceRestController extends CommonRestController {
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message, HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         message.setAccountId(accountId);
         message.getParams().put("resourceId", resourceId);
@@ -74,6 +85,12 @@ public class DatabaseUserResourceRestController extends CommonRestController {
 
         if (!accountManager.findOne(accountId).isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление пользователя базы данных невозможно.");
+        }
+
+        if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
+            checkParamsWithRoles(message.getParams(), DATABASE_USER_PATCH, authentication);
+        } else {
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), DATABASE_USER_PATCH, authentication);
         }
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_USER_UPDATE, BusinessActionType.DATABASE_USER_UPDATE_RC, message);
