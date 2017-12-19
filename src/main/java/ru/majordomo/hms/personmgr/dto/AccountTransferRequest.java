@@ -1,6 +1,8 @@
 package ru.majordomo.hms.personmgr.dto;
 
 public class AccountTransferRequest {
+    private String unixAccountId;
+    private String unixAccountHomeDir;
     private String oldUnixAccountServerId;
     private String newUnixAccountServerId;
     private String oldDatabaseServerId;
@@ -13,6 +15,22 @@ public class AccountTransferRequest {
     private String newDatabaseHost;
     private boolean transferDatabases = true;
     private boolean transferData = true;
+
+    public String getUnixAccountId() {
+        return unixAccountId;
+    }
+
+    public void setUnixAccountId(String unixAccountId) {
+        this.unixAccountId = unixAccountId;
+    }
+
+    public String getUnixAccountHomeDir() {
+        return unixAccountHomeDir;
+    }
+
+    public void setUnixAccountHomeDir(String unixAccountHomeDir) {
+        this.unixAccountHomeDir = unixAccountHomeDir;
+    }
 
     public String getOldUnixAccountServerId() {
         return oldUnixAccountServerId;
@@ -113,7 +131,9 @@ public class AccountTransferRequest {
     @Override
     public String toString() {
         return "AccountTransferRequest{" +
-                "oldUnixAccountServerId='" + oldUnixAccountServerId + '\'' +
+                "unixAccountId='" + unixAccountId + '\'' +
+                ", unixAccountHomeDir='" + unixAccountHomeDir + '\'' +
+                ", oldUnixAccountServerId='" + oldUnixAccountServerId + '\'' +
                 ", newUnixAccountServerId='" + newUnixAccountServerId + '\'' +
                 ", oldDatabaseServerId='" + oldDatabaseServerId + '\'' +
                 ", newDatabaseServerId='" + newDatabaseServerId + '\'' +
