@@ -150,8 +150,17 @@ public class AccountContractRestController {
         saveFile(pathToFile, document);
         try {
             Process p = Runtime.getRuntime().exec(wkhtmltopdfFile.toPath().toString() + " " + pathToFile + " " + pathToPdf);
-            p.waitFor();
+
             logger.info("exitStatus = " + p.exitValue());
+            BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line;
+            while ((line = in.readLine()) != null) {
+                System.out.println(line);
+            }
+            p.waitFor();
+            System.out.println("ok!");
+
+            in.close();
         } catch (Exception e) {
             logger.error("Can't convert to pdf, message: " + e.getMessage());
             e.printStackTrace();
