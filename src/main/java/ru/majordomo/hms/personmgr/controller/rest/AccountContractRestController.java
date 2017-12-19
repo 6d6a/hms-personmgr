@@ -5,6 +5,9 @@ import com.google.common.io.CharStreams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.dto.rpc.Contract;
 import ru.majordomo.hms.personmgr.dto.rpc.DocumentType;
@@ -16,13 +19,23 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import javax.servlet.ServletContext;
 import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.net.URI;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static ru.majordomo.hms.personmgr.common.Utils.convertFileToByteArrayOutputStream;
 
 
 @RestController
@@ -34,16 +47,19 @@ public class AccountContractRestController {
     private final MajordomoRpcClient majordomoRpcClient;
     private final AccountOwnerManager accountOwnerManager;
     private final PersonalAccountManager personalAccountManager;
+    private final ApplicationContext applicationContext;
 
     @Autowired
     public AccountContractRestController(
             MajordomoRpcClient majordomoRpcClient,
             AccountOwnerManager accountOwnerManager,
-            PersonalAccountManager personalAccountManager
+            PersonalAccountManager personalAccountManager,
+            ApplicationContext applicationContext
     ){
         this.majordomoRpcClient = majordomoRpcClient;
         this.accountOwnerManager = accountOwnerManager;
         this.personalAccountManager = personalAccountManager;
+        this.applicationContext = applicationContext;
     }
 
     @GetMapping("/{documentType}")
@@ -52,8 +68,16 @@ public class AccountContractRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "documentType") DocumentType documentType,
             @RequestParam Map<String, String> params,
-            HttpServletResponse response
+            HttpServletResponse response,
+            HttpServletRequest request
     ) {
+
+        final ServletContext servletContext = request.getSession().getServletContext();
+        final File tempDirectory = (File) servletContext.getAttribute("javax.servlet.context.tempdir");
+        final String temporaryFilePath = tempDirectory.getAbsolutePath() + "/";
+
+//        logger.info("temporaryFilePath: " + temporaryFilePath);
+
         AccountOwner owner = accountOwnerManager.findOneByPersonalAccountId(accountId);
 
         AccountOwner.Type ownerType = owner.getType();
@@ -86,26 +110,92 @@ public class AccountContractRestController {
             List<Integer> noFooterPages = contract.getNoFooterPages();
 
             if (body == null || footer == null || noFooterPages == null) {
-                throw new ParameterValidationException("djkajsdgkjasg");
+                throw new ParameterValidationException("Один из элементов (body||footer||noFooterPages) равен null");
             }
             template = createTemplate(header, body, footer, noFooterPages);
         } catch (Exception e) {
+            logger.error(e.getMessage());
             e.printStackTrace();
             throw new ParameterValidationException("Не удалось сгенерировать договор.");
         }
 
-        String document = replaceFields(template, owner, new HashMap<>());
+        String WKHTMLTOPDF_FILENAME = "wkhtmltopdf";
+        File wkhtmltopdfFile = new File(temporaryFilePath + WKHTMLTOPDF_FILENAME);
+        if (!wkhtmltopdfFile.exists()) {
+//        Resource resource = applicationContext.getResource("classpath:pdfconvert/" + WKHTMLTOPDF_FILENAME);
+            try {
+                URL url = getClass().getResource("/pdfconvert/" + WKHTMLTOPDF_FILENAME);
+                InputStream name = url.openStream();
+                URI uri = URI.create(temporaryFilePath + WKHTMLTOPDF_FILENAME);
 
+                Files.copy(name, wkhtmltopdfFile.toPath());
+                logger.info(String.valueOf(wkhtmltopdfFile.setExecutable(true, true)));
+//            Process p = Runtime.getRuntime().exec(wkhtmltopdfFile.toPath().toString() + " " + );
+//            logger.info(p.getOutputStream().toString());
+            } catch (IOException e) {
+                logger.error("Catch exception with copy wkhtmltopdf to tmpdir, message: " + e.getMessage());
+                e.printStackTrace();
+                return;
+            }
+        } else if (!wkhtmltopdfFile.canExecute()) {
+            wkhtmltopdfFile.setExecutable(true, true);
+        }
+
+
+
+        String document = replaceFields(template, owner, new HashMap<>());
+        String pathToFile = temporaryFilePath + owner.getPersonalAccountId() + ".html";
+        String pathToPdf = temporaryFilePath + owner.getPersonalAccountId() + ".pdf";
+
+        saveFile(pathToFile, document);
         try {
-            response.setContentType("text/html; charset=utf-8");
-            response.setHeader("Content-Disposition", "attachment; filename=" + accountId + "_contract.html");
-            ServletOutputStream out = response.getOutputStream();
-            out.println(document);
-            out.flush();
-            out.close();
+            Process p = Runtime.getRuntime().exec(wkhtmltopdfFile.toPath().toString() + " " + pathToFile + " " + pathToPdf);
+            p.waitFor();
+            logger.info("exitStatus = " + p.exitValue());
+        } catch (Exception e) {
+            logger.error("Can't convert to pdf, message: " + e.getMessage());
+            e.printStackTrace();
+//            return new FileSystemResource(new File(pathToFile));
+        }
+        try {
+//            response.setContentType("text/html; charset=utf-8");
+            response.setContentType("application/pdf");
+            response.setHeader("Content-disposition", "attachment; filename=" + accountId + "_contract.pdf");
+//            ServletOutputStream out = response.getOutputStream();
+//            out.println("Dfasdgasdgasdg");
+//            out.flush();
+//            out.close();
+            ByteArrayOutputStream baos;
+            baos = convertFileToByteArrayOutputStream(pathToPdf);
+            OutputStream os = response.getOutputStream();
+            baos.writeTo(os);
+            os.flush();
         } catch (IOException e) {
             logger.error("Не удалось отдать договор");
             e.printStackTrace();
+        }
+
+//        return new FileSystemResource(new File(pathToPdf));
+    }
+
+    private void saveFile(String fileName, String content){
+        BufferedWriter bw = null;
+        FileWriter fw = null;
+        try {
+            fw = new FileWriter(fileName);
+            bw = new BufferedWriter(fw);
+            bw.write(content);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (bw != null)
+                    bw.close();
+                if (fw != null)
+                    fw.close();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
         }
     }
 

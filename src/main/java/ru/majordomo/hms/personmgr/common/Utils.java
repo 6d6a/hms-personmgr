@@ -2,7 +2,7 @@ package ru.majordomo.hms.personmgr.common;
 
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -151,5 +151,34 @@ public class Utils {
 
     public static String convertToUTF8(String input, String charsetName) throws UnsupportedEncodingException {
         return new String(input.getBytes(charsetName), "UTF-8");
+    }
+
+    public static ByteArrayOutputStream convertFileToByteArrayOutputStream(String fileName) {
+
+        InputStream inputStream = null;
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+
+            inputStream = new FileInputStream(fileName);
+            byte[] buffer = new byte[1024];
+            baos = new ByteArrayOutputStream();
+
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                baos.write(buffer, 0, bytesRead);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return baos;
     }
 }
