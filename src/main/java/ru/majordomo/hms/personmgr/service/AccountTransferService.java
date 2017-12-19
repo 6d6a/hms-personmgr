@@ -146,8 +146,16 @@ public class AccountTransferService {
 
             Boolean transferDatabases = (Boolean) processingBusinessOperation.getParam(TRANSFER_DATABASES_KEY);
 
+            List<UnixAccount> unixAccounts = (List<UnixAccount>) rcUserFeignClient.getUnixAccounts(processingBusinessOperation.getPersonalAccountId());
+
+            if (unixAccounts == null || unixAccounts.isEmpty()) {
+                throw new ParameterValidationException("UnixAccount не найден");
+            }
+
             AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
             accountTransferRequest.setAccountId(processingBusinessOperation.getPersonalAccountId());
+            accountTransferRequest.setUnixAccountId(unixAccounts.get(0).getId());
+            accountTransferRequest.setUnixAccountHomeDir(unixAccounts.get(0).getHomeDir());
             accountTransferRequest.setOldUnixAccountServerId(oldUnixAccountServerId);
             accountTransferRequest.setNewUnixAccountServerId(newUnixAccountServerId);
             accountTransferRequest.setOldDatabaseServerId(oldDatabaseServerId);
