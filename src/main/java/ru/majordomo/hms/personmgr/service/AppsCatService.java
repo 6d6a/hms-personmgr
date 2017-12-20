@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.stereotype.Component;
 
+import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -9,6 +10,7 @@ import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.PasswordManager;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -16,6 +18,7 @@ import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.rc.staff.resources.Service;
+import ru.majordomo.hms.rc.user.resources.DBType;
 import ru.majordomo.hms.rc.user.resources.Database;
 import ru.majordomo.hms.rc.user.resources.DatabaseUser;
 import ru.majordomo.hms.rc.user.resources.Resource;
@@ -35,6 +38,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_SERVICE_ID_KE
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEBSITE_SERVER_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEBSITE_SERVICE_ID_KEY;
@@ -71,6 +75,8 @@ public class AppsCatService {
 
         WebSite webSite;
 
+        String domainId = (String) message.getParam(DOMAIN_ID_KEY);
+
         String webSiteId = (String) message.getParam(WEB_SITE_ID_KEY);
 
         try {
@@ -95,7 +101,22 @@ public class AppsCatService {
         message.addParam(WEBSITE_SERVICE_ID_KEY, webSite.getServiceId());
 
         message.addParam(APPSCAT_APP_TITLE_KEY, webSite.getName());
-        message.addParam(APPSCAT_DOMAIN_NAME_KEY, webSite.getDomains().get(0).getName());
+
+        if (domainId != null && !domainId.equals("")) {
+            message.addParam(
+                    APPSCAT_DOMAIN_NAME_KEY,
+                    webSite.getDomains()
+                            .stream()
+                            .filter(domain -> domain.getId().equals(domainId))
+                            .findFirst()
+                            .orElse(webSite.getDomains().get(0))
+                            .getName()
+            );
+
+        } else {
+            message.addParam(APPSCAT_DOMAIN_NAME_KEY, webSite.getDomains().get(0).getName());
+        }
+
         message.addParam(APPSCAT_APP_PATH_KEY, webSite.getDocumentRoot());
         message.addParam(APPSCAT_ADMIN_USERNAME_KEY, "admin");
 
@@ -189,12 +210,19 @@ public class AppsCatService {
 
             message.addParam("DB_USER", databaseUser.getName());
 
-            if (message.getParam(DATABASE_USER_PASSWORD_KEY) == null
-                    || message.getParam(DATABASE_USER_PASSWORD_KEY).equals("")) {
+            String databaseUserPassword = (String) message.getParam(DATABASE_USER_PASSWORD_KEY);
+
+            if (databaseUserPassword == null || databaseUserPassword.equals("")) {
                 throw new ParameterValidationException("Не указан пароль для пользователя баз данных");
             }
 
-            message.addParam("DB_PASSWORD", message.getParam(DATABASE_USER_PASSWORD_KEY));
+            String passwordHash = getDatabaseUserPasswordHashByPlainPassword(databaseUser.getType(), databaseUserPassword);
+
+            if (!passwordHash.equals(databaseUser.getPasswordHash())) {
+                throw new ParameterValidationException("Указан неверный пароль для пользователя баз данных");
+            }
+
+            message.addParam("DB_PASSWORD", databaseUserPassword);
 
             return addDatabase(message);
         }
@@ -309,5 +337,26 @@ public class AppsCatService {
             }
         }
         throw new ParameterValidationException("Создание уникального имени ресурса не удалось");
+    }
+
+    private String getDatabaseUserPasswordHashByPlainPassword(DBType type, String plainPassword) {
+        String passwordHash = null;
+        try {
+            switch (type) {
+                case MYSQL:
+                    passwordHash = PasswordManager.forMySQL5(plainPassword);
+                    break;
+                case POSTGRES:
+                    passwordHash = PasswordManager.forPostgres(plainPassword);
+                    break;
+            }
+        } catch (UnsupportedEncodingException ignored) {
+        }
+
+        if (passwordHash == null) {
+            throw new ParameterValidationException("Проверка пароля пользователя баз данных не удалась");
+        }
+
+        return passwordHash;
     }
 }
