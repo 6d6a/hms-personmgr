@@ -43,30 +43,31 @@ public class WebSiteEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onWebSiteCreated(WebSiteCreatedEvent event) {
-        PersonalAccount account = event.getSource();
-        Map<String, ?> params = event.getParams();
-
-        WebSite webSite = null;
-
-        String webSiteId = (String) params.get(RESOURCE_ID_KEY);
-
-        try {
-            webSite = rcUserFeignClient.getWebSite(account.getId(), webSiteId);
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("ru.majordomo.hms.personmgr.event.webSite.listener.WebSiteEventListener.onWebSiteCreated SeoOrderedEvent getWebSite Exception");
-        }
-
-        if (webSite == null) {
-            logger.error("ru.majordomo.hms.personmgr.event.webSite.listener.WebSiteEventListener.onWebSiteCreated WebSite with id " + webSiteId + " not found");
-
-            return;
-        }
-
-        HashMap<String, String> parameters = new HashMap<>();
-        parameters.put("client_id", account.getAccountId());
-        parameters.put("website_name", webSite.getName());
-
-        accountNotificationHelper.sendMail(account, "MajordomoVHWebSiteCreated", 10, parameters);
+        //Нет такого шаблона, попытки отправки засирают лог
+//        PersonalAccount account = event.getSource();
+//        Map<String, ?> params = event.getParams();
+//
+//        WebSite webSite = null;
+//
+//        String webSiteId = (String) params.get(RESOURCE_ID_KEY);
+//
+//        try {
+//            webSite = rcUserFeignClient.getWebSite(account.getId(), webSiteId);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            logger.error("ru.majordomo.hms.personmgr.event.webSite.listener.WebSiteEventListener.onWebSiteCreated SeoOrderedEvent getWebSite Exception");
+//        }
+//
+//        if (webSite == null) {
+//            logger.error("ru.majordomo.hms.personmgr.event.webSite.listener.WebSiteEventListener.onWebSiteCreated WebSite with id " + webSiteId + " not found");
+//
+//            return;
+//        }
+//
+//        HashMap<String, String> parameters = new HashMap<>();
+//        parameters.put("client_id", account.getAccountId());
+//        parameters.put("website_name", webSite.getName());
+//
+//        accountNotificationHelper.sendMail(account, "MajordomoVHWebSiteCreated", 10, parameters);
     }
 }

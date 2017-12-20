@@ -19,6 +19,7 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.service.AppscatFeignClient;
 
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ADMIN_PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ADMIN_USERNAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_DOMAIN_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.APP_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.APPS_CAT_INSTALL;
@@ -77,6 +78,7 @@ public class AppsCatAmqpController extends CommonAmqpController {
                                 paramsEmail.put("site_name", appUri);
                                 paramsEmail.put("app_admin_uri", "http://" + appUri + app.getAdminUri());
                                 paramsEmail.put("app_admin_password", (String) businessOperation.getParam(APPSCAT_ADMIN_PASSWORD_KEY));
+                                paramsEmail.put("app_admin_username", (String) businessOperation.getParam(APPSCAT_ADMIN_USERNAME_KEY));
 
                                 publisher.publishEvent(new AccountAppInstalledEvent(account, paramsEmail));
                             }

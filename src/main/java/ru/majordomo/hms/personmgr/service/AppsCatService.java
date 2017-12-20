@@ -118,7 +118,7 @@ public class AppsCatService {
         }
 
         message.addParam(APPSCAT_APP_PATH_KEY, webSite.getDocumentRoot());
-        message.addParam(APPSCAT_ADMIN_USERNAME_KEY, "admin");
+        message.addParam(APPSCAT_ADMIN_USERNAME_KEY, "u" + message.getParam(ACCOUNT_ID_KEY));
 
         String password = randomAlphabetic(8);
 

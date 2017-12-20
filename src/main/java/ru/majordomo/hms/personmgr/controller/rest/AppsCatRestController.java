@@ -23,6 +23,7 @@ import ru.majordomo.hms.personmgr.service.AppsCatService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
@@ -56,11 +57,20 @@ public class AppsCatRestController extends CommonRestController {
 
         message.addParam(ACCOUNT_ID_KEY, account.getAccountId());
 
+        String databaseId = (String) message.getParam(DATABASE_ID_KEY);
+
+        if (databaseId == null && !planCheckerService.canAddDatabase(accountId)) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+
+            return this.createErrorResponse("Создание дополнительной базы данных для вашего аккаунта невозможно");
+        }
+
         ProcessingBusinessAction businessAction;
 
         try {
             businessAction = appsCatService.install(message);
         } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return this.createErrorResponse(e.getMessage());
         }
 
