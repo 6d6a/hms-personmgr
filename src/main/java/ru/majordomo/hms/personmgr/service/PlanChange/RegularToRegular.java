@@ -39,6 +39,7 @@ public class RegularToRegular extends Processor {
         BigDecimal delta;
         BigDecimal currentPlanCost = getCurrentPlan().getService().getCost();
 
+        //TODO Коряво считает с продленными более чем на один срок абонементами
         // Если смена тарифа с абонементом в тот же день, что он был куплен - возвращаем полную стоимость
         if (accountAbonement.getCreated().toLocalDate().isEqual(LocalDate.now())) {
             delta = accountAbonement.getAbonement().getService().getCost();

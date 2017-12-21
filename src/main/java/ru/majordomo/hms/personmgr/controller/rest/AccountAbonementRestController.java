@@ -12,6 +12,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -247,5 +249,51 @@ public class AccountAbonementRestController extends CommonRestController {
         }
 
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/{accountAbonementId}/prolong", method = RequestMethod.POST)
+    public ResponseEntity<Object> prolongAccountAbonement(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @ObjectId(AccountAbonement.class) @PathVariable(value = "accountAbonementId") String accountAbonementId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(
+                accountAbonementId, account.getId()
+        );
+
+        if (!accountAbonement.getAbonement().isInternal()) {
+            //Абонемент нельзя продлить более чем на три года "всего", т.е. два срока абонемента
+            LocalDateTime expiredMinus3periods = accountAbonement
+                    .getExpired()
+                    .minus(Period.parse(accountAbonement.getAbonement().getPeriod()).multipliedBy(2));
+
+            logger.info("expiredMinus3periods: " + expiredMinus3periods + "\nnow: " + LocalDateTime.now());
+
+            if (expiredMinus3periods.isAfter(LocalDateTime.now())) {
+                return new ResponseEntity<>(
+                        this.createErrorResponse("Продление абонемента возможно не более чем на три года"),
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+
+            abonementService.prolongAbonement(account, accountAbonement);
+
+            //Save history
+            String operator = request.getUserPrincipal().getName();
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Произведен заказ продления абонемента " + accountAbonement.getAbonement().getName());
+            params.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
+            return new ResponseEntity<>(HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(
+                    this.createErrorResponse("Продление абонемента на пробном периоде не доступно"),
+                    HttpStatus.BAD_REQUEST
+            );
+        }
     }
 }
