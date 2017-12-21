@@ -199,9 +199,13 @@ public class AccountTransferService {
         if (accountTransferRequest.isTransferData()) {
             Map<String, Object> teParams = new HashMap<>();
 
-            String oldNginxHost = getNginxHostByServerId(accountTransferRequest.getOldUnixAccountServerId());
+            Server oldServer = rcStaffFeignClient.getServerById(accountTransferRequest.getOldUnixAccountServerId());
 
-            teParams.put(DATASOURCE_URI_KEY, "rsync://" + oldNginxHost + accountTransferRequest.getUnixAccountHomeDir());
+            if (oldServer == null) {
+                throw new ParameterValidationException("Старый сервер не найден");
+            }
+
+            teParams.put(DATASOURCE_URI_KEY, "rsync://" + oldServer.getName() + accountTransferRequest.getUnixAccountHomeDir());
 
             unixAccountMessage.addParam(TE_PARAMS_KEY, teParams);
 
@@ -468,7 +472,11 @@ public class AccountTransferService {
 
             ProcessingBusinessAction processingBusinessAction = null;
 
-            String oldNginxHost = getNginxHostByServerId(accountTransferRequest.getOldWebSiteServerId());
+            Server oldServer = rcStaffFeignClient.getServerById(accountTransferRequest.getOldWebSiteServerId());
+
+            if (oldServer == null) {
+                throw new ParameterValidationException("Старый сервер не найден");
+            }
 
             for (WebSite webSite : webSites) {
                 Service currentService = oldServerWebSiteServicesById.get(webSite.getServiceId());
@@ -498,7 +506,7 @@ public class AccountTransferService {
                 if (accountTransferRequest.isTransferData()) {
                     Map<String, Object> teParams = new HashMap<>();
 
-                    teParams.put(DATASOURCE_URI_KEY, "rsync://" + oldNginxHost +
+                    teParams.put(DATASOURCE_URI_KEY, "rsync://" + oldServer.getName() +
                              webSite.getUnixAccount().getHomeDir()+
                             "/" + webSite.getDocumentRoot());
 
