@@ -6,8 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.dto.rpc.Contract;
 import ru.majordomo.hms.personmgr.dto.rpc.DocumentType;
@@ -16,9 +14,9 @@ import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-//import ru.majordomo.hms.personmgr.service.JarUtils;
-import ru.majordomo.hms.personmgr.service.ResourceHelper;
+import ru.majordomo.hms.personmgr.common.FileUtils;
 import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
+import ru.majordomo.hms.personmgr.service.converter.HtmlToPdfConverter;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import javax.servlet.ServletContext;
@@ -27,11 +25,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URI;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -50,18 +43,21 @@ public class AccountDocumentRestController {
     private final AccountOwnerManager accountOwnerManager;
     private final PersonalAccountManager personalAccountManager;
     private final ApplicationContext applicationContext;
+    private final HtmlToPdfConverter converter;
 
     @Autowired
     public AccountDocumentRestController(
             MajordomoRpcClient majordomoRpcClient,
             AccountOwnerManager accountOwnerManager,
             PersonalAccountManager personalAccountManager,
-            ApplicationContext applicationContext
+            ApplicationContext applicationContext,
+            HtmlToPdfConverter converter
     ){
         this.majordomoRpcClient = majordomoRpcClient;
         this.accountOwnerManager = accountOwnerManager;
         this.personalAccountManager = personalAccountManager;
         this.applicationContext = applicationContext;
+        this.converter = converter;
     }
 
     @GetMapping("/{documentType}")
@@ -77,8 +73,6 @@ public class AccountDocumentRestController {
         final ServletContext servletContext = request.getSession().getServletContext();
         final File tempDirectory = (File) servletContext.getAttribute("javax.servlet.context.tempdir");
         final String temporaryFilePath = tempDirectory.getAbsolutePath() + "/";
-
-//        logger.info("temporaryFilePath: " + temporaryFilePath);
 
         AccountOwner owner = accountOwnerManager.findOneByPersonalAccountId(accountId);
 
@@ -121,164 +115,58 @@ public class AccountDocumentRestController {
             throw new ParameterValidationException("Не удалось сгенерировать договор.");
         }
 
-//        String WKHTMLTOPDF_FILENAME = "wkhtmltopdf";
-        String WKHTMLTOPDF_FILENAME = "wkhtmltox/bin/wkhtmltopdf";
-        File wkhtmltopdfFile = new File(temporaryFilePath + WKHTMLTOPDF_FILENAME);
-        if (!wkhtmltopdfFile.exists()) {
-//        Resource resource = applicationContext.getResource("classpath:pdfconvert/" + WKHTMLTOPDF_FILENAME);
-//            try {
-//                URL url = getClass().getResource("/pdfconvert/" + WKHTMLTOPDF_FILENAME);
-//                InputStream name = url.openStream();
-//                URI uri = URI.create(temporaryFilePath + WKHTMLTOPDF_FILENAME);
-//
-//                Files.copy(name, wkhtmltopdfFile.toPath());
-//                logger.info(String.valueOf(wkhtmltopdfFile.setExecutable(true, true)));
-////            Process p = Runtime.getRuntime().exec(wkhtmltopdfFile.toPath().toString() + " " + );
-////            logger.info(p.getOutputStream().toString());
-//            } catch (IOException e) {
-//                logger.error("Catch exception with copy wkhtmltopdf to tmpdir, message: " + e.getMessage());
-//                e.printStackTrace();
-//                return;
-//            }
-
-            prepareWkhtmltopdf();
-        } /*else if (!wkhtmltopdfFile.canExecute()) {
-            wkhtmltopdfFile.setExecutable(true, true);
-        }*/
-        wkhtmltopdfFile.setExecutable(true, true);
-
-
-
         String document = replaceFields(template, owner, new HashMap<>());
-        String pathToFile = temporaryFilePath + owner.getPersonalAccountId() + ".html";
-        String pathToPdf = temporaryFilePath + owner.getPersonalAccountId() + ".pdf";
 
-        ResourceHelper.saveFile(pathToFile, document);
+        String htmlFileName = owner.getPersonalAccountId() + ".html";
+        String pdfFileName = owner.getPersonalAccountId() + ".pdf";
+
+        String contentType = "application/pdf";
+        String responseFileName = pdfFileName;
+
+        FileUtils.saveFile(temporaryFilePath + htmlFileName, document);
+
         try {
-            String converterPath = wkhtmltopdfFile.getPath().toString();
-            logger.info(converterPath);
-            String command = converterPath + " "
-                    + pathToFile + " " + pathToPdf;
-//            Process p = Runtime.getRuntime().exec(converterPath + " " + pathToFile + " " + pathToPdf);
-            Process p = Runtime.getRuntime().exec(command);
-//            logger.info("exitStatus = " + p.exitValue());
-            BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String line;
-            while ((line = in.readLine()) != null) {
-                System.out.println(line);
-            }
-            p.waitFor();
-            logger.info("exitStatus = " + p.exitValue());
-            System.out.println("ok!");
+            converter.convertHtmlToPdf(
+                    temporaryFilePath + htmlFileName,
+                    temporaryFilePath + pdfFileName);
 
-            in.close();
         } catch (Exception e) {
-            logger.error("Can't convert to pdf, message: " + e.getMessage());
+            logger.error("Can't convert htmlToPdf, try return document in html, exceptionMessage: " + e.getMessage());
             e.printStackTrace();
-//            return new FileSystemResource(new File(pathToFile));
+
+            contentType = "text/html; charset=utf-8";
+            responseFileName = htmlFileName;
+        } finally {
+            printContentFromFileToResponseOutputStream(
+                    response,
+                    contentType,
+                    responseFileName,
+                    temporaryFilePath
+            );
         }
+    }
+
+    private void printContentFromFileToResponseOutputStream(
+            HttpServletResponse response,
+            String contentType,
+            String fileName,
+            String fileDir
+    ) {
         try {
-//            response.setContentType("text/html; charset=utf-8");
-            response.setContentType("application/pdf");
-            response.setHeader("Content-disposition", "attachment; filename=" + accountId + "_contract.pdf");
-//            ServletOutputStream out = response.getOutputStream();
-//            out.println("Dfasdgasdgasdg");
-//            out.flush();
-//            out.close();
+            response.setContentType(contentType);
+            response.setHeader("Content-disposition", "attachment; filename=" + fileName);
             ByteArrayOutputStream baos;
-            baos = convertFileToByteArrayOutputStream(pathToPdf);
+            baos = convertFileToByteArrayOutputStream(fileDir + fileName);
             OutputStream os = response.getOutputStream();
             baos.writeTo(os);
             os.flush();
         } catch (IOException e) {
-            logger.error("Не удалось отдать договор");
+            logger.error("Не удалось отдать документ, exceptionMessage: " + e.getMessage());
             e.printStackTrace();
         }
-
-//        return new FileSystemResource(new File(pathToPdf));
     }
 
-    private boolean prepareWkhtmltopdf(){
-//        Resource resource = applicationContext.getResource("classpath:wkhtmltox");
-//        try {
-//
-//            resource.getInputStream();
-//
-//            File src = resource.getFile();
-//            ResourceHelper.copyFolder(src, new File("/tmp/wkhtmltox"));
-//
-//        } catch (IOException e) {
-//            logger.error("catch exception in prepareWkhtmltopdf, message: " + e.getMessage());
-//            e.printStackTrace();
-//            return false;
-//        }
-//        return true;
-        throw new ParameterValidationException("wkhtmltopdf");
-    }
 
-//    public static void copyFolder(File src, File dest)
-//            throws IOException{
-//
-//        if(src.isDirectory()){
-//
-//            //if directory not exists, create it
-//            if(!dest.exists()){
-//                dest.mkdir();
-//                System.out.println("Directory copied from "
-//                        + src + "  to " + dest);
-//            }
-//
-//            //list all the directory contents
-//            String files[] = src.list();
-//
-//            for (String file : files) {
-//                //construct the src and dest file structure
-//                File srcFile = new File(src, file);
-//                File destFile = new File(dest, file);
-//                //recursive copy
-//                copyFolder(srcFile,destFile);
-//            }
-//
-//        }else{
-//            //if file, then copy it
-//            //Use bytes stream to support all file types
-//            InputStream in = new FileInputStream(src);
-//            OutputStream out = new FileOutputStream(dest);
-//
-//            byte[] buffer = new byte[1024];
-//
-//            int length;
-//            //copy the file content in bytes
-//            while ((length = in.read(buffer)) > 0){
-//                out.write(buffer, 0, length);
-//            }
-//
-//            in.close();
-//            out.close();
-//            System.out.println("File copied from " + src + " to " + dest);
-//        }
-//    }
-//
-//    private void saveFile(String fileName, String content){
-//        BufferedWriter bw = null;
-//        FileWriter fw = null;
-//        try {
-//            fw = new FileWriter(fileName);
-//            bw = new BufferedWriter(fw);
-//            bw.write(content);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        } finally {
-//            try {
-//                if (bw != null)
-//                    bw.close();
-//                if (fw != null)
-//                    fw.close();
-//            } catch (IOException ex) {
-//                ex.printStackTrace();
-//            }
-//        }
-//    }
 
     private String createTemplate(String header, String body, String footer, List<Integer> noFooterPages) {
                 //TODO генерация шаблона
@@ -347,7 +235,7 @@ public class AccountDocumentRestController {
         replaceMap.put("#PAGE#", "\n<pdf:pagenumber>\n"); //надо определять page при подстановке футера
 
         //это надо делать отдельно от подстановки юзерских параметров
-        replaceMap.put("#FONT_PATH#", "/home/val/arial.ttf");
+        replaceMap.put("#FONT_PATH#", "\"https://raw.githubusercontent.com/JotJunior/PHP-Boleto-ZF2/master/public/assets/fonts/arial.ttf\"");
         return replaceMap;
     }
 
