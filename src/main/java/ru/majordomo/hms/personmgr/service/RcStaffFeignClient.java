@@ -42,6 +42,9 @@ public interface RcStaffFeignClient {
     @RequestMapping(method = RequestMethod.GET, value = "/server/{serverId}/services?service-type=DATABASE")
     List<Service> getDatabaseServicesByServerId(@PathVariable("serverId") String serverId);
 
+    @RequestMapping(method = RequestMethod.GET, value = "/server/{serverId}/services?service-type=STAFF_NGINX")
+    List<Service> getNginxServicesByServerId(@PathVariable("serverId") String serverId);
+
     @RequestMapping(method = RequestMethod.GET, value = "/server/{serverId}/services?service-type={serviceType}")
     List<Service> getServicesByServerIdAndServiceType(@PathVariable("serverId") String serverId, @PathVariable("serviceType") String serviceType);
 

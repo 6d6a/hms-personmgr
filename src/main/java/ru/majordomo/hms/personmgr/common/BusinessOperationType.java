@@ -42,7 +42,9 @@ public enum BusinessOperationType {
     RESOURCE_ARCHIVE_CREATE,
     RESOURCE_ARCHIVE_UPDATE,
     RESOURCE_ARCHIVE_DELETE,
-    APP_INSTALL;
+    APP_INSTALL,
+    ACCOUNT_TRANSFER,
+    ACCOUNT_TRANSFER_REVERT;
 
     public static Map<BusinessOperationType, String> BUSINESS_OPERATION_TYPE2HUMAN = new HashMap<>();
 
@@ -86,5 +88,7 @@ public enum BusinessOperationType {
         BUSINESS_OPERATION_TYPE2HUMAN.put(RESOURCE_ARCHIVE_UPDATE, "Обновление архива");
         BUSINESS_OPERATION_TYPE2HUMAN.put(RESOURCE_ARCHIVE_DELETE, "Удаление архива");
         BUSINESS_OPERATION_TYPE2HUMAN.put(APP_INSTALL, "Установка приложения");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(ACCOUNT_TRANSFER, "Перенос аккаунта");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(ACCOUNT_TRANSFER_REVERT, "Отмена переноса аккаунта");
     }
 }

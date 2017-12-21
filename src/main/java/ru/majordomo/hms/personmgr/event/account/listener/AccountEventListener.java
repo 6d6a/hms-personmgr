@@ -228,6 +228,7 @@ public class AccountEventListener {
         parameters.put("site_name", params.get("site_name"));
         parameters.put("app_admin_uri", params.get("app_admin_uri"));
         parameters.put("app_admin_password", params.get("app_admin_password"));
+        parameters.put("app_admin_username", params.get("app_admin_username"));
 
         accountNotificationHelper.sendMail(account, "HmsVHMajordomoAppInstalled", 10, parameters);
     }

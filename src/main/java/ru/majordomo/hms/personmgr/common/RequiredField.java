@@ -12,6 +12,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.ENABLED_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEB_SITE_ID_KEY;
 
 public class RequiredField {
@@ -30,6 +31,8 @@ public class RequiredField {
     public static final Set<String> APP_INSTALL = new HashSet<>();
 
     public static final Set<String> APP_INSTALL_FULL = new HashSet<>();
+
+    public static final Set<String> ACCOUNT_TRANSFER = new HashSet<>();
 
     static {
         ACCOUNT_CREATE.addAll(Arrays.asList(
@@ -71,6 +74,10 @@ public class RequiredField {
 
         ACCOUNT_PASSWORD_RECOVER.addAll(Collections.singletonList(
                 ACCOUNT_ID_KEY
+        ));
+
+        ACCOUNT_TRANSFER.addAll(Collections.singletonList(
+                SERVER_ID_KEY
         ));
     }
 }
