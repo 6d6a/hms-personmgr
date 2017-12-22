@@ -40,7 +40,7 @@ import static ru.majordomo.hms.personmgr.common.Utils.planChangeComparator;
 
 public abstract class Processor {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private AccountAbonementManager accountAbonementManager;
     private AccountHelper accountHelper;

@@ -269,8 +269,6 @@ public class AccountAbonementRestController extends CommonRestController {
                     .getExpired()
                     .minus(Period.parse(accountAbonement.getAbonement().getPeriod()).multipliedBy(2));
 
-            logger.info("expiredMinus3periods: " + expiredMinus3periods + "\nnow: " + LocalDateTime.now());
-
             if (expiredMinus3periods.isAfter(LocalDateTime.now())) {
                 return new ResponseEntity<>(
                         this.createErrorResponse("Продление абонемента возможно не более чем на три года"),

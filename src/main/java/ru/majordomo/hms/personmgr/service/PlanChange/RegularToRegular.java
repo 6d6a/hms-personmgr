@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service.PlanChange;
 
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -9,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.temporal.ChronoUnit;
 
 public class RegularToRegular extends Processor {
 
@@ -39,21 +41,59 @@ public class RegularToRegular extends Processor {
         BigDecimal delta;
         BigDecimal currentPlanCost = getCurrentPlan().getService().getCost();
 
-        //TODO Коряво считает с продленными более чем на один срок абонементами
+        Period abonementPeriod = Period.parse(accountAbonement.getAbonement().getPeriod());
+
+        LocalDate accountAbonementCreated = accountAbonement.getCreated().toLocalDate();
+        LocalDate accountAbonementExpired = accountAbonement.getExpired().toLocalDate();
+
         // Если смена тарифа с абонементом в тот же день, что он был куплен - возвращаем полную стоимость
-        if (accountAbonement.getCreated().toLocalDate().isEqual(LocalDate.now())) {
-            delta = accountAbonement.getAbonement().getService().getCost();
+        if (accountAbonementCreated.isEqual(LocalDate.now())) {
+            long abonementDaysToExpired = ChronoUnit.DAYS.between(accountAbonementCreated, accountAbonementExpired);
+            long oneAbonementDays = ChronoUnit.DAYS.between(accountAbonementCreated, accountAbonementCreated.plus(abonementPeriod));
+
+            if (abonementDaysToExpired%oneAbonementDays != 0) {
+                throw new ParameterValidationException("Количество дней до окончания абонемента не " +
+                        "кратно количеству дней в одном абонементе");
+            }
+
+            long abonementCount = abonementDaysToExpired/oneAbonementDays;
+
+            delta = accountAbonement
+                    .getAbonement()
+                    .getService()
+                    .getCost()
+                    .multiply(BigDecimal.valueOf(abonementCount));
         } else {
-            LocalDateTime nextDate = accountAbonement.getExpired()
-                    .minus(Period.parse(accountAbonement.getAbonement().getPeriod())); // первая дата для начала пересчета АБ
-            LocalDateTime stopDate = LocalDateTime.now(); // дата окончания пересчета абонемента
+            LocalDate nextDate = accountAbonementExpired; // первая дата для начала пересчета АБ
+            LocalDate stopDate = LocalDate.now(); // дата окончания пересчета абонемента
+
+            //Вычитаем по одному абонементу пока не получим первую дату до текущей, с неё будем начинать расчет
+            while (nextDate.isAfter(stopDate)) {
+                nextDate = nextDate.minus(abonementPeriod);
+            }
+
+            long abonementDaysToExpired = ChronoUnit.DAYS.between(nextDate, accountAbonementExpired);
+            long oneAbonementDays = ChronoUnit.DAYS.between(nextDate, nextDate.plus(abonementPeriod));
+
+            if (abonementDaysToExpired%oneAbonementDays != 0) {
+                throw new ParameterValidationException("Количество дней до окончания абонемента не " +
+                        "кратно количеству дней в одном абонементе");
+            }
+
+            long abonementCount = abonementDaysToExpired/oneAbonementDays;
+
             while (stopDate.isAfter(nextDate)) {
-                Integer daysInMonth = nextDate.toLocalDate().lengthOfMonth();
+                Integer daysInMonth = nextDate.lengthOfMonth();
                 total = total.add(currentPlanCost.divide(BigDecimal.valueOf(daysInMonth), 4, BigDecimal.ROUND_HALF_UP));
                 nextDate = nextDate.plusDays(1L);
             }
 
-            delta = (accountAbonement.getAbonement().getService().getCost()).subtract(total);
+            delta = (accountAbonement.
+                    getAbonement()
+                    .getService()
+                    .getCost()
+                    .multiply(BigDecimal.valueOf(abonementCount))
+            ).subtract(total);
         }
 
         // delta может быть как отрицательной (будет списано), так и положительной (будет начислено)
