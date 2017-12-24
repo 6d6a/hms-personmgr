@@ -1,15 +1,18 @@
 package ru.majordomo.hms.personmgr.service.PlanChange;
 
-import org.apache.commons.lang.NotImplementedException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.plan.Plan;
 
-public class DeclineOnlyOnRegular extends RegularToRegular {
+public class RegularToRegularDecline extends RegularToRegular {
+    private boolean refund = true;
 
-    DeclineOnlyOnRegular(PersonalAccount account, Plan newPlan) {
-        super(account, newPlan);
+    RegularToRegularDecline(PersonalAccount account) {
+        super(account, null);
+    }
+
+    RegularToRegularDecline(PersonalAccount account, boolean refund) {
+        this(account);
+        this.refund = refund;
     }
 
     @Override
@@ -19,35 +22,33 @@ public class DeclineOnlyOnRegular extends RegularToRegular {
 
     @Override
     void preValidate() {
-        if (getAccount() == null) {
+        if (account == null) {
             throw new ParameterValidationException("Аккаунт не найден");
         }
     }
 
     @Override
     void deleteServices() {
-
-        AccountAbonement accountAbonement = getAccountAbonementManager().findByPersonalAccountId(getAccount().getId());
-
-        if (accountAbonement == null) {
+        if (currentAccountAbonement == null) {
             return;
         }
 
-        if (hasFreeTestAbonement(accountAbonement)) {
+        if (hasFreeTestAbonement()) {
             deleteFreeTestAbonement();
             return;
         }
 
         deleteRegularAbonement();
 
-        executeCashBackPayment(true);
+        if (refund) {
+            executeCashBackPayment(true);
+        }
     }
 
     @Override
     void addServices() {
-
-        if (!accountHasService(getCurrentPlan().getServiceId())) {
-            addServiceById(getCurrentPlan().getServiceId());
+        if (!accountHasService(currentPlan.getServiceId())) {
+            addServiceById(currentPlan.getServiceId());
         }
     }
 
@@ -56,5 +57,4 @@ public class DeclineOnlyOnRegular extends RegularToRegular {
 
     @Override
     void replaceServices() {}
-
 }

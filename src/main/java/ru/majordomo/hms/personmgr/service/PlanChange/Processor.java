@@ -42,8 +42,8 @@ public abstract class Processor {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private AccountAbonementManager accountAbonementManager;
-    private AccountHelper accountHelper;
+    protected AccountAbonementManager accountAbonementManager;
+    protected AccountHelper accountHelper;
     private AccountCountersService accountCountersService;
     private PlanLimitsService planLimitsService;
     private AccountStatRepository accountStatRepository;
@@ -56,105 +56,56 @@ public abstract class Processor {
     private FinFeignClient finFeignClient;
     private PlanRepository planRepository;
 
-    private PersonalAccount account;
-    private Plan currentPlan;
-    private Plan newPlan;
-    private Boolean newAbonementRequired;
+    protected final PersonalAccount account;
+    protected Plan currentPlan;
+    protected final Plan newPlan;
+    protected AccountAbonement currentAccountAbonement;
+    protected Boolean newAbonementRequired;
     private BigDecimal cashBackAmount;
     private PlanChangeAgreement requestPlanChangeAgreement;
     private String operator = "operator";
-    private Boolean ignoreRestricts = false;
-    private Boolean changeAbonementToAbonement;
+    protected Boolean ignoreRestricts = false;
 
     Processor(PersonalAccount account, Plan newPlan) {
         this.account = account;
         this.newPlan = newPlan;
     }
 
-    void postConstruct() {
-        this.currentPlan = planRepository.findOne(account.getPlanId());
-        this.cashBackAmount = calcCashBackAmount();
-        this.newAbonementRequired = needToAddAbonement();
-        this.changeAbonementToAbonement = getChangeAbonementToAbonement();
-    }
-
-    //Services
-
-    void setPlanRepository(PlanRepository planRepository) {
+    void init(
+            FinFeignClient finFeignClient,
+            AccountAbonementManager accountAbonementManager,
+            AccountStatRepository accountStatRepository,
+            AccountHistoryService accountHistoryService,
+            PersonalAccountManager accountManager,
+            PaymentServiceRepository paymentServiceRepository,
+            AccountCountersService accountCountersService,
+            PlanLimitsService planLimitsService,
+            AccountQuotaService accountQuotaService,
+            AccountServiceHelper accountServiceHelper,
+            AccountHelper accountHelper,
+            ApplicationEventPublisher publisher,
+            PlanRepository planRepository
+    ) {
+        this.finFeignClient = finFeignClient;
+        this.accountAbonementManager = accountAbonementManager;
+        this.accountStatRepository = accountStatRepository;
+        this.accountHistoryService = accountHistoryService;
+        this.accountManager = accountManager;
+        this.paymentServiceRepository = paymentServiceRepository;
+        this.accountCountersService = accountCountersService;
+        this.planLimitsService = planLimitsService;
+        this.accountQuotaService = accountQuotaService;
+        this.accountServiceHelper = accountServiceHelper;
+        this.accountHelper = accountHelper;
+        this.publisher = publisher;
         this.planRepository = planRepository;
     }
 
-    void setFinFeignClient(FinFeignClient finFeignClient) {
-        this.finFeignClient = finFeignClient;
-    }
-
-    void setAccountHistoryService(AccountHistoryService accountHistoryService) {
-        this.accountHistoryService = accountHistoryService;
-    }
-
-    void setPublisher(ApplicationEventPublisher publisher) {
-        this.publisher = publisher;
-    }
-
-    void setAccountManager(PersonalAccountManager accountManager) {
-        this.accountManager = accountManager;
-    }
-
-    void setAccountQuotaService(AccountQuotaService accountQuotaService) {
-        this.accountQuotaService = accountQuotaService;
-    }
-
-    void setAccountServiceHelper(AccountServiceHelper accountServiceHelper) {
-        this.accountServiceHelper = accountServiceHelper;
-    }
-
-    void setPaymentServiceRepository(PaymentServiceRepository paymentServiceRepository) {
-        this.paymentServiceRepository = paymentServiceRepository;
-    }
-
-    AccountAbonementManager getAccountAbonementManager() {
-        return accountAbonementManager;
-    }
-
-    void setAccountAbonementManager(AccountAbonementManager accountAbonementManager) {
-        this.accountAbonementManager = accountAbonementManager;
-    }
-
-    AccountHelper getAccountHelper() {
-        return accountHelper;
-    }
-
-    void setAccountHelper(AccountHelper accountHelper) {
-        this.accountHelper = accountHelper;
-    }
-
-    void setAccountCountersService(AccountCountersService accountCountersService) {
-        this.accountCountersService = accountCountersService;
-    }
-
-    void setPlanLimitsService(PlanLimitsService planLimitsService) {
-        this.planLimitsService = planLimitsService;
-    }
-
-    void setAccountStatRepository(AccountStatRepository accountStatRepository) {
-        this.accountStatRepository = accountStatRepository;
-    }
-
-    //Getters and setters
-    PersonalAccount getAccount() {
-        return account;
-    }
-
-    Plan getCurrentPlan() {
-        return currentPlan;
-    }
-
-    Plan getNewPlan() {
-        return newPlan;
-    }
-
-    Boolean getNewAbonementRequired() {
-        return newAbonementRequired;
+    void postConstruct() {
+        this.currentPlan = planRepository.findOne(account.getPlanId());
+        this.currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+        this.cashBackAmount = calcCashBackAmount();
+        this.newAbonementRequired = needToAddAbonement();
     }
 
     public void setRequestPlanChangeAgreement(PlanChangeAgreement requestPlanChangeAgreement) {
@@ -173,25 +124,14 @@ public abstract class Processor {
         this.ignoreRestricts = ignoreRestricts;
     }
 
-    Boolean getIgnoreRestricts() {
-        return ignoreRestricts;
-    }
-
     //Methods
     abstract Boolean needToAddAbonement();
-
-    private Boolean getChangeAbonementToAbonement() {
-        AccountAbonement accountAbonement = getAccountAbonementManager().findByPersonalAccountId(getAccount().getId());
-
-        return accountAbonement != null && getNewAbonementRequired();
-    }
 
     abstract BigDecimal calcCashBackAmount();
 
     abstract void deleteServices();
 
     void replaceServices() {
-
         replaceSmsNotificationsService();
         processFtpUserService();
         processWebSiteService();
@@ -201,9 +141,8 @@ public abstract class Processor {
     abstract void addServices();
 
     void postProcess() {
-
         //Укажем новый тариф
-        accountManager.setPlanId(getAccount().getId(), getNewPlan().getId());
+        accountManager.setPlanId(account.getId(), newPlan.getId());
 
         //Разрешён ли сертификат на новом тарифе
         sslCertAllowed();
@@ -221,8 +160,7 @@ public abstract class Processor {
         saveHistory();
     }
 
-    public PlanChangeAgreement isPlanChangeAllowed() {
-
+    public PlanChangeAgreement getPlanChangeAgreement() {
         PlanChangeAgreement planChangeAgreement = new PlanChangeAgreement();
 
         if (account == null) {
@@ -253,7 +191,7 @@ public abstract class Processor {
         }
 
         // На бесплатном тестовом абонементе можно менять тариф туда сюда без ограничений
-        if (!hasFreeTestAbonement(accountAbonementManager.findByPersonalAccountId(account.getId()))) {
+        if (!hasFreeTestAbonement()) {
 
             if (!ignoreRestricts) {
                 // С бизнеса можно только на бизнес
@@ -283,7 +221,6 @@ public abstract class Processor {
             }
 
             if (newAbonementRequired) {
-
                 planChangeAgreement.setBalanceChanges(true);
 
                 if (newBalanceAfterCashBack.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) {
@@ -327,22 +264,20 @@ public abstract class Processor {
     }
 
     void preValidate() {
-
         if (account == null) {
             throw new ParameterValidationException("Аккаунт не найден");
         }
 
-        if (!requestPlanChangeAgreement.equals(isPlanChangeAllowed())) {
+        if (!requestPlanChangeAgreement.equals(getPlanChangeAgreement())) {
             throw new ParameterValidationException("Произошла ошибка при смене тарифа");
         }
 
-        if (!requestPlanChangeAgreement.getPlanChangeAllowed()) {
+        if (!requestPlanChangeAgreement.isPlanChangeAllowed()) {
             throw new ParameterValidationException("Смена тарифа запрещена");
         }
     }
 
     final public void process() {
-
         preValidate();
         deleteServices();
         replaceServices();
@@ -387,8 +322,7 @@ public abstract class Processor {
      * Проверка наличия бонусных абонементов
      */
     private Boolean checkBonusAbonements(PlanChangeAgreement planChangeAgreement) {
-        AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-        if (accountAbonement != null && accountAbonement.getAbonement().isInternal()) {
+        if (currentAccountAbonement != null && currentAccountAbonement.getAbonement().isInternal()) {
             planChangeAgreement.addError("Для смены тарифного плана вам необходимо приобрести абонемент на " +
                     "текущий тарифный план сроком на 1 год или дождаться окончания бесплатного абонемента");
             return false;
@@ -400,8 +334,8 @@ public abstract class Processor {
     /**
      * Проверка является ли абонемент бесплатным тестовым
      */
-    Boolean hasFreeTestAbonement(AccountAbonement accountAbonement) {
-        return accountAbonement != null && accountAbonement.getAbonement().getPeriod().equals("P14D");
+    Boolean hasFreeTestAbonement() {
+        return currentAccountAbonement != null && currentAccountAbonement.getAbonement().getPeriod().equals("P14D");
     }
 
     /**
@@ -424,19 +358,11 @@ public abstract class Processor {
     private boolean isCompanyChangeAbonementToAbonement() {
         AccountOwner accountOwner = accountHelper.getOwnerByPersonalAccountId(account.getId());
 
-        if (accountOwner == null) { return false;}
-
-        if (!accountOwner.getType().equals(AccountOwner.Type.COMPANY)
-                && !accountOwner.getType().equals(AccountOwner.Type.BUDGET_COMPANY)
-        ) {
-            return false;
-        }
-
-        return isChangeAbonementToAbonement();
-    }
-
-    protected boolean isChangeAbonementToAbonement() {
-        return changeAbonementToAbonement;
+        return accountOwner != null &&
+                (accountOwner.getType().equals(AccountOwner.Type.COMPANY)
+                        || accountOwner.getType().equals(AccountOwner.Type.BUDGET_COMPANY))
+                && currentAccountAbonement != null
+                && newAbonementRequired;
     }
 
     /**
@@ -722,5 +648,4 @@ public abstract class Processor {
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
         }
     }
-
 }

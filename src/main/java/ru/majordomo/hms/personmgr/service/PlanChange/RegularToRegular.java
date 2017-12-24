@@ -22,29 +22,23 @@ public class RegularToRegular extends Processor {
 
     @Override
     public Boolean needToAddAbonement() {
-
-        AccountAbonement accountAbonement = getAccountAbonementManager().findByPersonalAccountId(getAccount().getId());
-
-        return accountAbonement != null;
+        return currentAccountAbonement != null;
     }
 
     @Override
     public BigDecimal calcCashBackAmount() {
-
-        AccountAbonement accountAbonement = getAccountAbonementManager().findByPersonalAccountId(getAccount().getId());
-
-        if (accountAbonement == null || hasFreeTestAbonement(accountAbonement) || accountAbonement.getAbonement().isInternal()) {
+        if (currentAccountAbonement == null || hasFreeTestAbonement() || currentAccountAbonement.getAbonement().isInternal()) {
             return BigDecimal.ZERO;
         }
 
         BigDecimal total = BigDecimal.ZERO;
         BigDecimal delta;
-        BigDecimal currentPlanCost = getCurrentPlan().getService().getCost();
+        BigDecimal currentPlanCost = currentPlan.getService().getCost();
 
-        Period abonementPeriod = Period.parse(accountAbonement.getAbonement().getPeriod());
+        Period abonementPeriod = Period.parse(currentAccountAbonement.getAbonement().getPeriod());
 
-        LocalDate accountAbonementCreated = accountAbonement.getCreated().toLocalDate();
-        LocalDate accountAbonementExpired = accountAbonement.getExpired().toLocalDate();
+        LocalDate accountAbonementCreated = currentAccountAbonement.getCreated().toLocalDate();
+        LocalDate accountAbonementExpired = currentAccountAbonement.getExpired().toLocalDate();
 
         // Если смена тарифа с абонементом в тот же день, что он был куплен - возвращаем полную стоимость
         if (accountAbonementCreated.isEqual(LocalDate.now())) {
@@ -58,7 +52,7 @@ public class RegularToRegular extends Processor {
 
             long abonementCount = abonementDaysToExpired/oneAbonementDays;
 
-            delta = accountAbonement
+            delta = currentAccountAbonement
                     .getAbonement()
                     .getService()
                     .getCost()
@@ -88,7 +82,7 @@ public class RegularToRegular extends Processor {
                 nextDate = nextDate.plusDays(1L);
             }
 
-            delta = (accountAbonement.
+            delta = (currentAccountAbonement.
                     getAbonement()
                     .getService()
                     .getCost()
@@ -102,17 +96,13 @@ public class RegularToRegular extends Processor {
 
     @Override
     void deleteServices() {
-
-        AccountAbonement accountAbonement = getAccountAbonementManager().findByPersonalAccountId(getAccount().getId());
-
-        if (accountAbonement == null) {
+        if (currentAccountAbonement == null) {
             deletePlanService();
             return;
         }
 
-        if (hasFreeTestAbonement(accountAbonement)) {
-
-            freeTestAbonementExpired = accountAbonement.getExpired();
+        if (hasFreeTestAbonement()) {
+            freeTestAbonementExpired = currentAccountAbonement.getExpired();
 
             deleteFreeTestAbonement();
             return;
@@ -120,24 +110,22 @@ public class RegularToRegular extends Processor {
 
         deleteRegularAbonement();
 
-        executeCashBackPayment(getIgnoreRestricts());
+        executeCashBackPayment(ignoreRestricts);
     }
 
     @Override
     void addServices() {
-
-        if (getNewAbonementRequired()) {
-
+        if (newAbonementRequired) {
             if (freeTestAbonementExpired != null) {
                 addFreeTestAbonement(freeTestAbonementExpired);
                 return;
             }
 
-            Abonement abonement = getNewPlan().getNotInternalAbonement();
-            getAccountHelper().charge(
-                    getAccount(), abonement.getService(),
+            Abonement abonement = newPlan.getNotInternalAbonement();
+            accountHelper.charge(
+                    account, abonement.getService(),
                     abonement.getService().getCost(),
-                    getIgnoreRestricts(),
+                    ignoreRestricts,
                     false,
                     LocalDateTime.now()
             );
@@ -146,7 +134,6 @@ public class RegularToRegular extends Processor {
         } else {
             addPlanService();
         }
-
     }
 
     /**
@@ -158,13 +145,11 @@ public class RegularToRegular extends Processor {
             LocalDateTime expiredFreeTestAbonementDate
     ) {
         if (expiredFreeTestAbonementDate.isAfter(LocalDateTime.now())) {
-            Abonement abonement = getNewPlan().getFree14DaysAbonement();
+            Abonement abonement = newPlan.getFree14DaysAbonement();
             if (abonement != null) {
                 AccountAbonement newFreeTestAbonement = addAccountAbonement(abonement);
-                getAccountAbonementManager().setExpired(newFreeTestAbonement.getId(), expiredFreeTestAbonementDate);
+                accountAbonementManager.setExpired(newFreeTestAbonement.getId(), expiredFreeTestAbonementDate);
             }
         }
     }
-
-
 }

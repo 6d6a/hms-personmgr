@@ -220,7 +220,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
         planChangeProcessor.setIgnoreRestricts(ignoreRestricts);
-        PlanChangeAgreement planChangeAgreement = planChangeProcessor.isPlanChangeAllowed();
+        PlanChangeAgreement planChangeAgreement = planChangeProcessor.getPlanChangeAgreement();
 
         if (!planChangeAgreement.getErrors().isEmpty()) {
             return new ResponseEntity<>(planChangeAgreement, HttpStatus.FORBIDDEN);
