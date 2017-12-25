@@ -276,7 +276,15 @@ public class AccountAbonementRestController extends CommonRestController {
                 );
             }
 
-            abonementService.prolongAbonement(account, accountAbonement);
+            try {
+                abonementService.prolongAbonement(account, accountAbonement);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return new ResponseEntity<>(
+                        this.createErrorResponse("Ошибка при продлении абонемента: " + e.getMessage()),
+                        HttpStatus.BAD_REQUEST
+                );
+            }
 
             //Save history
             String operator = request.getUserPrincipal().getName();
