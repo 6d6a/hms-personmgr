@@ -46,10 +46,16 @@ public class FileUtils {
     }
 
     public static void saveFile(String fileName, String content){
+
+        File destFile = new File(fileName);
+        saveFile(destFile, content);
+    }
+
+    public static void saveFile(File destFile, String content){
         BufferedWriter bw = null;
         FileWriter fw = null;
         try {
-            fw = new FileWriter(fileName);
+            fw = new FileWriter(destFile);
             bw = new BufferedWriter(fw);
             bw.write(content);
         } catch (IOException e) {

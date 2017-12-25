@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.dto.rpc;
+package ru.majordomo.hms.personmgr.common;
 
 public enum DocumentType {
     VIRTUAL_HOSTING_OFERTA,

@@ -12,11 +12,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.FileUtils;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 
 import java.io.*;
 
 @Service
-public class HtmlToPdfConverter {
+public class HtmlToPdfConverter implements Converter{
 
     private String wkhtmltopdfUrl;
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -28,12 +29,28 @@ public class HtmlToPdfConverter {
         this.wkhtmltopdfUrl = wkhtmltopdfUrl;
     }
 
-    public void convertHtmlToPdf(String sourceHtmlFilePath, String destinationPdfFilePath) throws Exception {
-        File html = new File(sourceHtmlFilePath);
+    public File convert(File file){
+        String destinationPdfFilePath;
+        String fileName = file.getName();
+        if (fileName.endsWith(".html")){
+            destinationPdfFilePath = file.getAbsolutePath().replaceAll("\\.html$", ".pdf");
+        } else {
+            destinationPdfFilePath = file.getAbsolutePath() + ".pdf";
+        }
+
+        try {
+            convertWithWkhtmltopdf(file, destinationPdfFilePath);
+        } catch (Exception e) {
+            throw new ParameterValidationException("Не удалось сконвертировать файл в pdf-формат");
+        }
+        return new File(destinationPdfFilePath);
+    }
+
+    private void convertWithWkhtmltopdf(File file, String destinationPdfFilePath) throws Exception {
         CloseableHttpClient httpclient = HttpClients.createDefault();
         HttpPost post = new HttpPost(this.wkhtmltopdfUrl);
         MultipartEntity entity = new MultipartEntity();
-        entity.addPart("file", new FileBody(html));
+        entity.addPart("file", new FileBody(file));
         post.setEntity(entity);
 
         HttpResponse response = httpclient.execute(post);
@@ -46,7 +63,7 @@ public class HtmlToPdfConverter {
         } else {
             logger.error(
                     "Wkhtmltopdf service return response with code " + response.getStatusLine().getStatusCode() +
-                    " Response content: " +
+                            " Response content: " +
                             FileUtils.getStringFromInputStream(response.getEntity().getContent())
             );
             throw new Exception("Can't convert html to pdf.");

@@ -153,13 +153,13 @@ public class Utils {
         return new String(input.getBytes(charsetName), "UTF-8");
     }
 
-    public static ByteArrayOutputStream convertFileToByteArrayOutputStream(String fileName) {
+    public static ByteArrayOutputStream convertFileToByteArrayOutputStream(File file) {
 
         InputStream inputStream = null;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
 
-            inputStream = new FileInputStream(fileName);
+            inputStream = new FileInputStream(file);
             byte[] buffer = new byte[1024];
             baos = new ByteArrayOutputStream();
 
@@ -180,5 +180,9 @@ public class Utils {
             }
         }
         return baos;
+    }
+
+    public static ByteArrayOutputStream convertFileToByteArrayOutputStream(String fileName) {
+        return convertFileToByteArrayOutputStream(new File(fileName));
     }
 }
