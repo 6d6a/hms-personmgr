@@ -122,7 +122,7 @@ public class AbonementService {
     }
 
     /**
-     * Продление абонемента
+     * Продление абонемента c текущей даты
      *
      * @param account Аккаунт
      * @param accountAbonement абонемент аккаунта
@@ -135,6 +135,28 @@ public class AbonementService {
         accountAbonementManager.setExpired(
                 accountAbonement.getId(),
                 LocalDateTime.now()
+                        .plus(Period.parse(accountAbonement.getAbonement().getPeriod()))
+        );
+
+        if (accountServiceHelper.accountHasService(account, plan.getServiceId())) {
+            accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
+        }
+    }
+
+    /**
+     * Продление абонемента с даты его окончания
+     *
+     * @param account Аккаунт
+     * @param accountAbonement абонемент аккаунта
+     */
+    public void prolongAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
+        Plan plan = getAccountPlan(account);
+
+        accountHelper.charge(account, accountAbonement.getAbonement().getService());
+
+        accountAbonementManager.setExpired(
+                accountAbonement.getId(),
+                accountAbonement.getExpired()
                         .plus(Period.parse(accountAbonement.getAbonement().getPeriod()))
         );
 

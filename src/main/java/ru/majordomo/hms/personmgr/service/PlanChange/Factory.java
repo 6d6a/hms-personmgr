@@ -66,76 +66,49 @@ public class Factory {
     }
 
     public Processor createPlanChangeProcessor(PersonalAccount account, Plan newPlan, boolean refund) {
+        Processor processor;
 
         Plan currentPlan = planRepository.findOne(account.getPlanId());
 
         if (newPlan == null) {
             if (currentPlan.isAbonementOnly()) {
-                if (refund) {
-                    DeclineOnlyOnAbonement processor = new DeclineOnlyOnAbonement(account, null);
-                    setAllRequirements(processor);
-
-                    return processor;
-                } else {
-                    DeclineOnlyOnAbonementWithoutRefund processor = new DeclineOnlyOnAbonementWithoutRefund(account, null);
-                    setAllRequirements(processor);
-
-                    return processor;
-                }
+                processor = new AbonementOnlyToRegularDecline(account, refund);
             } else {
-                if (refund) {
-                    DeclineOnlyOnRegular processor = new DeclineOnlyOnRegular(account, null);
-                    setAllRequirements(processor);
-
-                    return processor;
-                } else {
-                    DeclineOnlyOnRegularWithoutRefund processor = new DeclineOnlyOnRegularWithoutRefund(account, null);
-                    setAllRequirements(processor);
-
-                    return processor;
-                }
+                processor = new RegularToRegularDecline(account, refund);
+            }
+        } else {
+            if (currentPlan.isAbonementOnly() && newPlan.isAbonementOnly()) {
+                throw new NotImplementedException();
+            } else if (currentPlan.isAbonementOnly() && !newPlan.isAbonementOnly()) {
+                processor = new AbonementOnlyToRegular(account, newPlan);
+            } else if (!currentPlan.isAbonementOnly() && newPlan.isAbonementOnly()) {
+                processor = new RegularToAbonementOnly(account, newPlan);
+            } else {
+                processor = new RegularToRegular(account, newPlan);
             }
         }
 
-        if (currentPlan.isAbonementOnly() && newPlan.isAbonementOnly()) {
-            throw new NotImplementedException();
-        }
-        else if (currentPlan.isAbonementOnly() && !newPlan.isAbonementOnly()) {
-            AbonementToRegular processor = new AbonementToRegular(account, newPlan);
-            setAllRequirements(processor);
+        setAllRequirements(processor);
 
-            return processor;
-        }
-        else if (!currentPlan.isAbonementOnly() && newPlan.isAbonementOnly()) {
-            RegularToAbonement processor = new RegularToAbonement(account, newPlan);
-            setAllRequirements(processor);
-
-            return processor;
-        }
-        else {
-            RegularToRegular processor = new RegularToRegular(account, newPlan);
-            setAllRequirements(processor);
-
-            return processor;
-        }
-
+        return processor;
     }
 
     private void setAllRequirements(Processor processor) {
-
-        processor.setAccountAbonementManager(accountAbonementManager);
-        processor.setAccountCountersService(accountCountersService);
-        processor.setPlanLimitsService(planLimitsService);
-        processor.setAccountHelper(accountHelper);
-        processor.setAccountStatRepository(accountStatRepository);
-        processor.setAccountServiceHelper(accountServiceHelper);
-        processor.setPaymentServiceRepository(paymentServiceRepository);
-        processor.setAccountQuotaService(accountQuotaService);
-        processor.setAccountManager(accountManager);
-        processor.setPublisher(publisher);
-        processor.setAccountHistoryService(accountHistoryService);
-        processor.setFinFeignClient(finFeignClient);
-        processor.setPlanRepository(planRepository);
+        processor.init(
+                finFeignClient,
+                accountAbonementManager,
+                accountStatRepository,
+                accountHistoryService,
+                accountManager,
+                paymentServiceRepository,
+                accountCountersService,
+                planLimitsService,
+                accountQuotaService,
+                accountServiceHelper,
+                accountHelper,
+                publisher,
+                planRepository
+        );
 
         processor.postConstruct();
     }

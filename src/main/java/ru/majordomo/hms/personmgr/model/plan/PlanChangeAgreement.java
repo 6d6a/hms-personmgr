@@ -53,7 +53,7 @@ public class PlanChangeAgreement {
         this.balanceChanges = balanceChanges;
     }
 
-    public Boolean getPlanChangeAllowed() {
+    public Boolean isPlanChangeAllowed() {
         return isPlanChangeAllowed;
     }
 
@@ -103,7 +103,7 @@ public class PlanChangeAgreement {
             return false;
         if (getBalanceChanges() != null ? !getBalanceChanges().equals(that.getBalanceChanges()) : that.getBalanceChanges() != null)
             return false;
-        if (getPlanChangeAllowed() != null ? !getPlanChangeAllowed().equals(that.getPlanChangeAllowed()) : that.getPlanChangeAllowed() != null)
+        if (isPlanChangeAllowed() != null ? !isPlanChangeAllowed().equals(that.isPlanChangeAllowed()) : that.isPlanChangeAllowed() != null)
             return false;
         return getErrors() != null ? getErrors().equals(that.getErrors()) : that.getErrors() == null;
     }

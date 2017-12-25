@@ -1,16 +1,15 @@
 package ru.majordomo.hms.personmgr.service.PlanChange;
 
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
-import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public class RegularToAbonement extends Processor {
+public class RegularToAbonementOnly extends Processor {
 
-    RegularToAbonement(PersonalAccount account, Plan newPlan) {
+    RegularToAbonementOnly(PersonalAccount account, Plan newPlan) {
         super(account, newPlan);
     }
 
@@ -27,34 +26,28 @@ public class RegularToAbonement extends Processor {
 
     @Override
     void deleteServices() {
-
-        AccountAbonement accountAbonement = getAccountAbonementManager().findByPersonalAccountId(getAccount().getId());
-
-        if (accountAbonement == null) {
+        if (currentAccountAbonement == null) {
             deletePlanService();
             return;
         }
 
-        if (hasFreeTestAbonement(accountAbonement)) {
+        if (hasFreeTestAbonement()) {
             deleteFreeTestAbonement();
         }
     }
 
     @Override
     void addServices() {
-
-        if (getNewAbonementRequired()) {
-
-            Abonement abonement = getNewPlan().getNotInternalAbonement();
-            getAccountHelper().charge(
-                    getAccount(), abonement.getService(),
+        if (newAbonementRequired) {
+            Abonement abonement = newPlan.getNotInternalAbonement();
+            accountHelper.charge(
+                    account, abonement.getService(),
                     abonement.getService().getCost(),
-                    getIgnoreRestricts(),
+                    ignoreRestricts,
                     false,
                     LocalDateTime.now()
             );
             addAccountAbonement(abonement);
-
         }
     }
 
@@ -65,5 +58,4 @@ public class RegularToAbonement extends Processor {
         //Выключить кредит
         disableCredit();
     }
-
 }

@@ -1,7 +1,6 @@
 package ru.majordomo.hms.personmgr.service.PlanChange;
 
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
-import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 
@@ -11,9 +10,9 @@ import java.time.LocalDateTime;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 
-public class AbonementToRegular extends Processor {
+public class AbonementOnlyToRegular extends Processor {
 
-    AbonementToRegular(PersonalAccount account, Plan newPlan) {
+    AbonementOnlyToRegular(PersonalAccount account, Plan newPlan) {
         super(account, newPlan);
     }
 
@@ -24,17 +23,14 @@ public class AbonementToRegular extends Processor {
 
     @Override
     public BigDecimal calcCashBackAmount() {
-
-        AccountAbonement accountAbonement = getAccountAbonementManager().findByPersonalAccountId(getAccount().getId());
-
-        if (accountAbonement == null || accountAbonement.getAbonement().isInternal()) {
+        if (currentAccountAbonement == null || currentAccountAbonement.getAbonement().isInternal()) {
             return BigDecimal.ZERO;
         }
 
-        if (accountAbonement.getExpired().isAfter(LocalDateTime.now())) {
-            long remainingDays = DAYS.between(LocalDateTime.now(), accountAbonement.getExpired());
+        if (currentAccountAbonement.getExpired().isAfter(LocalDateTime.now())) {
+            long remainingDays = DAYS.between(LocalDateTime.now(), currentAccountAbonement.getExpired());
             //Получим стоимость тарифа в день с точностью до семи знаков, округляя в меньшую сторону
-            BigDecimal dayCost = accountAbonement.getAbonement().getService().getCost().divide(BigDecimal.valueOf(365L), 7, RoundingMode.DOWN);
+            BigDecimal dayCost = currentAccountAbonement.getAbonement().getService().getCost().divide(BigDecimal.valueOf(365L), 7, RoundingMode.DOWN);
             BigDecimal remainedServiceCost = (BigDecimal.valueOf(remainingDays)).multiply(dayCost);
             //Округлим до двух знаков в большую сторону
             remainedServiceCost = remainedServiceCost.setScale(2, RoundingMode.HALF_UP);
@@ -50,38 +46,30 @@ public class AbonementToRegular extends Processor {
 
     @Override
     void deleteServices() {
-
-        AccountAbonement accountAbonement = getAccountAbonementManager().findByPersonalAccountId(getAccount().getId());
-
-        if (accountAbonement == null) {
+        if (currentAccountAbonement == null) {
             deletePlanService();
             return;
         }
 
         deleteRegularAbonement();
 
-        executeCashBackPayment(getIgnoreRestricts());
+        executeCashBackPayment(ignoreRestricts);
     }
 
     @Override
     void addServices() {
-
-        if (getNewAbonementRequired()) {
-
-            Abonement abonement = getNewPlan().getNotInternalAbonement();
-            getAccountHelper().charge(
-                    getAccount(), abonement.getService(),
+        if (newAbonementRequired) {
+            Abonement abonement = newPlan.getNotInternalAbonement();
+            accountHelper.charge(
+                    account, abonement.getService(),
                     abonement.getService().getCost(),
-                    getIgnoreRestricts(),
+                    ignoreRestricts,
                     false,
                     LocalDateTime.now()
             );
             addAccountAbonement(abonement);
-
         } else {
             addPlanService();
         }
-
     }
-
 }

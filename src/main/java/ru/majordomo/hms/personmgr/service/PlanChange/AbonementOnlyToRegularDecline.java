@@ -1,15 +1,19 @@
 package ru.majordomo.hms.personmgr.service.PlanChange;
 
-import org.apache.commons.lang.NotImplementedException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 
-public class DeclineOnlyOnAbonement extends AbonementToRegular {
+public class AbonementOnlyToRegularDecline extends AbonementOnlyToRegular {
+    private boolean refund = true;
 
-    DeclineOnlyOnAbonement(PersonalAccount account, Plan newPlan) {
-        super(account, newPlan);
+    AbonementOnlyToRegularDecline(PersonalAccount account) {
+        super(account, null);
+    }
+
+    AbonementOnlyToRegularDecline(PersonalAccount account, boolean refund) {
+        this(account);
+        this.refund = refund;
     }
 
     @Override
@@ -19,30 +23,28 @@ public class DeclineOnlyOnAbonement extends AbonementToRegular {
 
     @Override
     void preValidate() {
-        if (getAccount() == null) {
+        if (account == null) {
             throw new ParameterValidationException("Аккаунт не найден");
         }
     }
 
     @Override
     void deleteServices() {
-
-        AccountAbonement accountAbonement = getAccountAbonementManager().findByPersonalAccountId(getAccount().getId());
-
-        if (accountAbonement == null) {
+        if (currentAccountAbonement == null) {
             return;
         }
 
         deleteRegularAbonement();
 
-        executeCashBackPayment(true);
+        if (refund) {
+            executeCashBackPayment(true);
+        }
     }
 
     @Override
     void addServices() {
-
-        if (!accountHasService(getCurrentPlan().getServiceId())) {
-            addServiceById(getCurrentPlan().getServiceId());
+        if (!accountHasService(currentPlan.getServiceId())) {
+            addServiceById(currentPlan.getServiceId());
         }
     }
 
@@ -51,5 +53,4 @@ public class DeclineOnlyOnAbonement extends AbonementToRegular {
 
     @Override
     void replaceServices() {}
-
 }
