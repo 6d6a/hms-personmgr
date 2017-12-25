@@ -42,15 +42,15 @@ public class RegularToRegular extends Processor {
 
         // Если смена тарифа с абонементом в тот же день, что он был куплен - возвращаем полную стоимость
         if (accountAbonementCreated.isEqual(LocalDate.now())) {
-            long abonementDaysToExpired = ChronoUnit.DAYS.between(accountAbonementCreated, accountAbonementExpired);
-            long oneAbonementDays = ChronoUnit.DAYS.between(accountAbonementCreated, accountAbonementCreated.plus(abonementPeriod));
+            LocalDate nextDate = accountAbonementExpired; // первая дата для начала пересчета АБ
 
-            if (abonementDaysToExpired%oneAbonementDays != 0) {
-                throw new ParameterValidationException("Количество дней до окончания абонемента не " +
-                        "кратно количеству дней в одном абонементе");
+            long abonementCount = 0;
+
+            //Вычитаем по одному абонементу пока не получим первую дату до текущей, с неё будем начинать расчет
+            while (!nextDate.isEqual(accountAbonementCreated) && nextDate.isAfter(accountAbonementCreated)) {
+                nextDate = nextDate.minus(abonementPeriod);
+                abonementCount++;
             }
-
-            long abonementCount = abonementDaysToExpired/oneAbonementDays;
 
             delta = currentAccountAbonement
                     .getAbonement()
@@ -61,20 +61,13 @@ public class RegularToRegular extends Processor {
             LocalDate nextDate = accountAbonementExpired; // первая дата для начала пересчета АБ
             LocalDate stopDate = LocalDate.now(); // дата окончания пересчета абонемента
 
+            long abonementCount = 0;
+
             //Вычитаем по одному абонементу пока не получим первую дату до текущей, с неё будем начинать расчет
             while (nextDate.isAfter(stopDate)) {
                 nextDate = nextDate.minus(abonementPeriod);
+                abonementCount++;
             }
-
-            long abonementDaysToExpired = ChronoUnit.DAYS.between(nextDate, accountAbonementExpired);
-            long oneAbonementDays = ChronoUnit.DAYS.between(nextDate, nextDate.plus(abonementPeriod));
-
-            if (abonementDaysToExpired%oneAbonementDays != 0) {
-                throw new ParameterValidationException("Количество дней до окончания абонемента не " +
-                        "кратно количеству дней в одном абонементе");
-            }
-
-            long abonementCount = abonementDaysToExpired/oneAbonementDays;
 
             while (stopDate.isAfter(nextDate)) {
                 Integer daysInMonth = nextDate.lengthOfMonth();
