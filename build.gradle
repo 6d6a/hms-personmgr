@@ -22,6 +22,7 @@ buildscript {
         classpath("ru.majordomo.gradle.plugins:copycompose:1.+")
         classpath("org.ajoberstar:gradle-git:1.6.0")
         classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:1.4.17"
+        classpath "org.springframework.boot:spring-boot-configuration-processor"
     }
 }
 plugins {
@@ -80,6 +81,7 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-cache")
     compile("org.springframework.boot:spring-boot-starter-jetty")
     compile("org.springframework.boot:spring-boot-starter-aop")
+    compile("org.springframework.boot:spring-boot-configuration-processor")
 
     compile('org.springframework.cloud:spring-cloud-starter-eureka')
     compile('org.springframework.cloud:spring-cloud-starter-feign')

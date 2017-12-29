@@ -11,10 +11,7 @@ import ru.majordomo.hms.personmgr.service.Document.DocumentBuilderFactory;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.Map;
 
 import static ru.majordomo.hms.personmgr.common.Utils.convertFileToByteArrayOutputStream;
@@ -44,7 +41,7 @@ public class AccountDocumentRestController {
             HttpServletResponse response
     ) {
         DocumentBuilder documentBuilder = this.documentBuilderFactory.getBuilder(
-                DocumentType.VIRTUAL_HOSTING_BUDGET_CONTRACT,
+                documentType,
                 accountId,
                 params
         );

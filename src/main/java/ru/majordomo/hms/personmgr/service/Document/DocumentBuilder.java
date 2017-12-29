@@ -6,8 +6,9 @@ import java.io.File;
 public interface DocumentBuilder {
     default File build(){
         checkAuthority();
+        checkRequireParams();
         buildTemplate();
-        replaseFields();
+        replaceFields();
         convert();
         return getDocument();
     }
@@ -16,9 +17,11 @@ public interface DocumentBuilder {
 
     void buildTemplate();
 
-    void replaseFields();
+    void replaceFields();
 
     void convert();
+
+    default void checkRequireParams(){}
 
     File getDocument();
 }

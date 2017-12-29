@@ -1,17 +1,18 @@
-package ru.majordomo.hms.personmgr.model.document;
+package ru.majordomo.hms.personmgr.model.account;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 import ru.majordomo.hms.personmgr.common.DocumentType;
-import ru.majordomo.hms.personmgr.common.FileType;
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
 
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-public abstract class Document extends VersionedModelBelongsToPersonalAccount{
+@Document
+public class AccountDocument extends VersionedModelBelongsToPersonalAccount{
 
     public Status getStatus() {
         return status;
@@ -21,39 +22,34 @@ public abstract class Document extends VersionedModelBelongsToPersonalAccount{
         this.status = status;
     }
 
-    public LocalDateTime getOrderDate() {
-        return orderDate;
+    public LocalDateTime getCreatedDate() {
+        return this.createdDate;
     }
 
-    public void setOrderDate(LocalDateTime orderDate) {
-        this.orderDate = orderDate;
-    }
-
-    public FileType getFileType() {
-        return fileType;
-    }
-
-    public void setFileType(FileType fileType) {
-        this.fileType = fileType;
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
     }
 
     public enum Status{
-        ORDERED,
+        NEW,
         PROCESSING,
         CREATED,
         SENT
     }
+
+    private String documentTemplateId;
+
     private DocumentType documentType;
 
-    private Map<String, Object> parameters;
+    private Map<String, String> parameters;
 
     @CreatedDate
     @Indexed
-    @NotNull
-    private LocalDateTime orderDate;
+    private LocalDateTime createdDate;
 
+    @Indexed
     @NotNull
-    private Status status;
+    private Status status = Status.NEW;
 
     @LastModifiedDate
     private LocalDateTime updateDateTime;
@@ -61,8 +57,6 @@ public abstract class Document extends VersionedModelBelongsToPersonalAccount{
     public DocumentType getDocumentType() {
         return documentType;
     }
-
-    private FileType fileType;
 
     public void setDocumentType(DocumentType documentType) {
         this.documentType = documentType;
@@ -76,11 +70,19 @@ public abstract class Document extends VersionedModelBelongsToPersonalAccount{
         this.updateDateTime = updateDateTime;
     }
 
-    public Map<String, Object> getParameters() {
+    public Map<String, String> getParameters() {
         return parameters;
     }
 
-    public void setParameters(Map<String, Object> parameters) {
+    public void setParameters(Map<String, String> parameters) {
         this.parameters = parameters;
+    }
+
+    public String getDocumentTemplateId() {
+        return documentTemplateId;
+    }
+
+    public void setDocumentTemplateId(String documentTemplateId) {
+        this.documentTemplateId = documentTemplateId;
     }
 }

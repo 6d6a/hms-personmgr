@@ -8,11 +8,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -153,6 +149,12 @@ public class Utils {
         return new String(input.getBytes(charsetName), "UTF-8");
     }
 
+    public static void saveByteArrayToFile(byte[] bytes, File file) throws Exception {
+        FileOutputStream fos = new FileOutputStream(file);
+        fos.write(bytes);
+        fos.close();
+    }
+
     public static ByteArrayOutputStream convertFileToByteArrayOutputStream(File file) {
 
         InputStream inputStream = null;
@@ -184,5 +186,17 @@ public class Utils {
 
     public static ByteArrayOutputStream convertFileToByteArrayOutputStream(String fileName) {
         return convertFileToByteArrayOutputStream(new File(fileName));
+    }
+
+    public static String getMonthName(int monthNumber) {
+        List<String> monthNames = new ArrayList<>(Arrays.asList("января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"));
+
+        monthNumber = monthNumber - 1;
+
+        if (monthNames.get(monthNumber) != null) {
+            return monthNames.get(monthNumber);
+        }
+
+        return String.valueOf(monthNumber);
     }
 }

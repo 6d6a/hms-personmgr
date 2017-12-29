@@ -12,8 +12,10 @@ import ru.majordomo.hms.personmgr.dto.rpc.BaseRpcResponse;
 import ru.majordomo.hms.personmgr.dto.rpc.Contract;
 import ru.majordomo.hms.personmgr.dto.rpc.ContractResponse;
 
+import javax.net.ssl.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.cert.X509Certificate;
 import java.util.*;
 
 @Service
@@ -29,7 +31,11 @@ public class MajordomoRpcClient implements RpcClient {
 
     private static final String LOGOUT_METHOD = "authentication.logout";
     private static final String AUTH_METHOD = "authentication.login";
-    private static final String GET_ACTIVE_CONTRACT_BY_TYPE_METHOD = "contracts.get_active_contract_by_type";
+
+    private static final String CONTRACT_CONTROLLER = "contracts.";
+    private static final String GET_ACTIVE_CONTRACT_BY_TYPE_METHOD = CONTRACT_CONTROLLER + "get_active_contract_by_type";
+    private static final String CONVERT_HTML_TO_PDF = CONTRACT_CONTROLLER + "convert_html_to_pdf";
+    private static final String GET_CONTRACT_BY_ID_METHOD = CONTRACT_CONTROLLER + "get_contract";
 
     private static final String VH_OFERTA = "oferta_virtual_hosting";
     private static final String VH_CONTRACT = "virtual_hosting";
@@ -102,12 +108,33 @@ public class MajordomoRpcClient implements RpcClient {
 
     public void logout() throws XmlRpcException {
         List<String> emptyParams = new ArrayList<>();
-        client.execute(LOGOUT_METHOD, emptyParams);
+        callMethod(LOGOUT_METHOD, emptyParams);
         sessionId = null;
     }
 
     @Override
     public Object callMethod(String method, List<?> params) throws XmlRpcException {
+        TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+            public X509Certificate[] getAcceptedIssuers() { return null; }
+            public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+            public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+        } };
+        try {
+            SSLContext sc = SSLContext.getInstance("SSL");
+            HostnameVerifier hv = new HostnameVerifier() {
+                public boolean verify(String arg0, SSLSession arg1) { return true; }
+            };
+            sc.init(null, trustAllCerts, new java.security.SecureRandom());
+        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+        HttpsURLConnection.setDefaultHostnameVerifier(hv);
+        } catch (Exception e) {
+            logger.error("Подключение к "
+                    + this.serverAddress.toString()
+                    + " производится с проверкой валидности сертификата. Причина: " + e.getMessage()
+            );
+            e.printStackTrace();
+        }
+
         return client.execute(method, params);
     }
 
@@ -131,6 +158,24 @@ public class MajordomoRpcClient implements RpcClient {
         ).getContract();
     }
 
+    public Contract getContractById(String id){
+        return callMethod(
+                GET_CONTRACT_BY_ID_METHOD,
+                Arrays.asList(id),
+                ContractResponse.class
+        ).getContract();
+    }
+
+    public Object convertHtmlToPdf(List<Object> params) {
+        try {
+            return callMethod(CONVERT_HTML_TO_PDF, params);
+        } catch (XmlRpcException e){
+            logger.error("Exception: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     public Contract getActiveContractVirtualHosting() {
         return getActiveContractByType(VH_CONTRACT);
     }
@@ -138,4 +183,6 @@ public class MajordomoRpcClient implements RpcClient {
     public Contract getActiveOfertaVirtualHosting() {
         return getActiveContractByType(VH_OFERTA);
     }
+
+
 }
