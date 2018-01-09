@@ -1,0 +1,55 @@
+<html><head>
+  <style>
+    @font-face { font-family: sans-serif; src: url(#FONT_PATH#); }
+    @font-face { font-family: serif; src: url(#FONT_PATH#); }
+    @font-face { font-family: Helvetica; src: url(#FONT_PATH#); }
+
+    @page {
+      margin: 1cm;
+      margin-bottom: 2.5cm;
+
+      @frame footer {
+      -pdf-frame-content: footerContent;
+      bottom: 1cm;
+      margin-left: 1cm;
+      margin-right: 1cm;
+      height: 1cm;
+    }
+    }
+
+    @page withfooter {
+      margin: 1cm;
+      margin-bottom: 2.5cm;
+
+      @frame footer {
+      -pdf-frame-content: footerContent;
+      bottom: 1cm;
+      margin-left: 1cm;
+      margin-right: 1cm;
+      height: 1cm;
+    }
+    }
+
+    @page withoutfooter {
+      margin: 1cm;
+      margin-bottom: 2.5cm;
+    }
+
+    html {
+      font-family: Helvetica;
+      font-size: 11pt;
+    }
+
+    body, div {
+      font: normal 16px/16px Helvetica, sans-serif;
+    }
+
+    p {
+      margin: 0px;
+    }
+
+  </style>
+
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+</head>
+<body>
