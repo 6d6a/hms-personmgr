@@ -22,7 +22,6 @@ buildscript {
         classpath("ru.majordomo.gradle.plugins:copycompose:1.+")
         classpath("org.ajoberstar:gradle-git:1.6.0")
         classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:1.4.17"
-        classpath "org.springframework.boot:spring-boot-configuration-processor"
     }
 }
 plugins {
