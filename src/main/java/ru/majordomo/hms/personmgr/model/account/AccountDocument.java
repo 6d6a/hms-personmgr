@@ -14,32 +14,10 @@ import java.util.Map;
 @Document
 public class AccountDocument extends VersionedModelBelongsToPersonalAccount{
 
-    public Status getStatus() {
-        return status;
-    }
+    private String templateId;
 
-    public void setStatus(Status status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getCreatedDate() {
-        return this.createdDate;
-    }
-
-    public void setCreatedDate(LocalDateTime createdDate) {
-        this.createdDate = createdDate;
-    }
-
-    public enum Status{
-        NEW,
-        PROCESSING,
-        CREATED,
-        SENT
-    }
-
-    private String documentTemplateId;
-
-    private DocumentType documentType;
+    @Indexed
+    private DocumentType type;
 
     private Map<String, String> parameters;
 
@@ -47,27 +25,12 @@ public class AccountDocument extends VersionedModelBelongsToPersonalAccount{
     @Indexed
     private LocalDateTime createdDate;
 
-    @Indexed
-    @NotNull
-    private Status status = Status.NEW;
-
-    @LastModifiedDate
-    private LocalDateTime updateDateTime;
-
-    public DocumentType getDocumentType() {
-        return documentType;
+    public DocumentType getType() {
+        return type;
     }
 
-    public void setDocumentType(DocumentType documentType) {
-        this.documentType = documentType;
-    }
-
-    public LocalDateTime getUpdateDateTime() {
-        return updateDateTime;
-    }
-
-    public void setUpdateDateTime(LocalDateTime updateDateTime) {
-        this.updateDateTime = updateDateTime;
+    public void setType(DocumentType type) {
+        this.type = type;
     }
 
     public Map<String, String> getParameters() {
@@ -78,11 +41,19 @@ public class AccountDocument extends VersionedModelBelongsToPersonalAccount{
         this.parameters = parameters;
     }
 
-    public String getDocumentTemplateId() {
-        return documentTemplateId;
+    public String getTemplateId() {
+        return templateId;
     }
 
-    public void setDocumentTemplateId(String documentTemplateId) {
-        this.documentTemplateId = documentTemplateId;
+    public void setTemplateId(String templateId) {
+        this.templateId = templateId;
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return this.createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
     }
 }

@@ -6,6 +6,7 @@ import ru.majordomo.hms.personmgr.common.DocumentType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.repository.AccountDocumentRepository;
 import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
 
 import java.util.Map;
@@ -16,16 +17,19 @@ public class DocumentBuilderFactory {
     private final MajordomoRpcClient majordomoRpcClient;
     private final AccountOwnerManager accountOwnerManager;
     private final PersonalAccountManager personalAccountManager;
+    private final AccountDocumentRepository accountDocumentRepository;
 
     @Autowired
     public DocumentBuilderFactory(
             MajordomoRpcClient majordomoRpcClient,
             AccountOwnerManager accountOwnerManager,
-            PersonalAccountManager personalAccountManager
+            PersonalAccountManager personalAccountManager,
+            AccountDocumentRepository accountDocumentRepository
     ){
         this.majordomoRpcClient = majordomoRpcClient;
         this.accountOwnerManager = accountOwnerManager;
         this.personalAccountManager = personalAccountManager;
+        this.accountDocumentRepository = accountDocumentRepository;
     }
 
     public DocumentBuilder getBuilder(DocumentType type, String personalAccountId, Map<String, String> params){
@@ -43,6 +47,7 @@ public class DocumentBuilderFactory {
                         accountOwnerManager,
                         majordomoRpcClient,
                         personalAccountManager,
+                        accountDocumentRepository,
                         params
                 );
 

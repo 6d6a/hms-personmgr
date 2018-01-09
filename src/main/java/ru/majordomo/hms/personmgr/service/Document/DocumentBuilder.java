@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service.Document;
 
+import ru.majordomo.hms.personmgr.model.account.AccountDocument;
+
 import java.io.File;
 
 
@@ -8,12 +10,18 @@ public interface DocumentBuilder {
         checkAuthority();
         checkRequireParams();
         buildTemplate();
+        buildReplaceParameters();
         replaceFields();
         convert();
+        saveAccountDocument();
         return getDocument();
     }
 
+    File buildFromAccountDocument(AccountDocument document);
+
     default void checkAuthority(){}
+
+    void buildReplaceParameters();
 
     void buildTemplate();
 
@@ -22,6 +30,8 @@ public interface DocumentBuilder {
     void convert();
 
     default void checkRequireParams(){}
+
+    void saveAccountDocument();
 
     File getDocument();
 }

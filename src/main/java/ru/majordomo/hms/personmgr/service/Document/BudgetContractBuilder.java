@@ -1,9 +1,11 @@
 package ru.majordomo.hms.personmgr.service.Document;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Strings;
 import com.google.common.io.CharStreams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.majordomo.hms.personmgr.common.DocumentType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.dto.rpc.Contract;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -12,6 +14,7 @@ import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountDocument;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.repository.AccountDocumentRepository;
 import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
 
 import java.io.*;
@@ -22,40 +25,58 @@ import static ru.majordomo.hms.personmgr.common.Utils.saveByteArrayToFile;
 
 public class BudgetContractBuilder implements DocumentBuilder {
 
-    private PersonalAccount account;
+    private final static String PAGE_NUMBER_PDF_TAG = "\n<pdf:pagenumber>\n";
+    private final static String NEXT_PAGE_PDF_TAG = "<pdf:nextpage/>";
+    private final static String NEXT_TEMPLATE_WITH_FOOTHER_TAG = "<pdf:nexttemplate name=\"withfooter\"/>";
+    private final static String NEXT_TEMPLATE_WITHOUT_FOOTHER_TAG = "<pdf:nexttemplate name=\"withoutfooter\"/>";
+
+    private final static String PAGE_BREAK_PATTERN = "<div style=\"page-break-after: always;?\">(\\s*<span style=\"display: none;\">&nbsp;</span></div>)?|<div class=\"pagebreak\"><!-- pagebreak --></div>";
+
+    private final static String FONT_PATH = "\"/home/git/billing/web/fonts/arial.ttf\"";
+    private final static String HEADER_RESOURCE_PATH = "/contract/budget_contract_header.html";
+
     private final MajordomoRpcClient majordomoRpcClient;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final Map<String, String> params;
+    private final AccountDocumentRepository accountDocumentRepository;
 
-    private String html;
+
     private AccountDocument document = new AccountDocument();
+    private Map<String, String> replaceParameters;
+    private String templateId;
+
+    private final Map<String, String> params;
+    private String html;
     private File pdfFile;
     private String temporaryFilePath = System.getProperty("java.io.tmpdir") + "/";
     private AccountOwner owner;
+    private PersonalAccount account;
 
     public BudgetContractBuilder(
             String personalAccountId,
             AccountOwnerManager accountOwnerManager,
             MajordomoRpcClient majordomoRpcClient,
             PersonalAccountManager personalAccountManager,
+            AccountDocumentRepository accountDocumentRepository,
             Map<String, String> params
     ){
         this.majordomoRpcClient = majordomoRpcClient;
         this.params = params;
         this.owner = accountOwnerManager.findOneByPersonalAccountId(personalAccountId);
         this.account = personalAccountManager.findOne(personalAccountId);
+        this.accountDocumentRepository = accountDocumentRepository;
     }
 
-    public File buildFromDocument(AccountDocument document){
+    @Override
+    public File buildFromAccountDocument(AccountDocument document){
         buildTemplateFromDocument(document);
         replaceFieldsWithReplaceMap(document.getParameters());
-
-        return null;
+        convert();
+        return getDocument();
     }
 
     @Override
     public void checkAuthority(){
-        if (this.owner == null || !this.owner.getType().equals(AccountOwner.Type.BUDGET_COMPANY)) {
+        if (owner == null || !owner.getType().equals(AccountOwner.Type.BUDGET_COMPANY)) {
             throw new ParameterValidationException("Вы не можете заказать такой документ");
         }
     }
@@ -113,16 +134,18 @@ public class BudgetContractBuilder implements DocumentBuilder {
     @Override
     public void buildTemplate() {
         Contract contract = majordomoRpcClient.getActiveContractVirtualHosting();
+        templateId = contract.getContractId().toString();
+
         buildTemplateFromContract(contract);
     }
 
-    public void buildTemplateFromDocument(AccountDocument document){
-        Contract contract = majordomoRpcClient.getContractById(document.getDocumentTemplateId());
+    private void buildTemplateFromDocument(AccountDocument document){
+        Contract contract = majordomoRpcClient.getContractById(document.getTemplateId());
         buildTemplateFromContract(contract);
     }
 
     private void buildTemplateFromContract(Contract contract){
-        this.document.setDocumentTemplateId(contract.getContractId().toString());
+
         try {
             String header = getHeader();
             String body = contract.getBody();
@@ -132,7 +155,7 @@ public class BudgetContractBuilder implements DocumentBuilder {
             if (body == null || footer == null || noFooterPages == null) {
                 throw new ParameterValidationException("Один из элементов (body||footer||noFooterPages) равен null");
             }
-            this.html = createTemplate(header, body, footer, noFooterPages);
+            html = createTemplate(header, body, footer, noFooterPages);
         } catch (Exception e) {
             logger.error(e.getMessage());
             e.printStackTrace();
@@ -141,70 +164,92 @@ public class BudgetContractBuilder implements DocumentBuilder {
     }
 
     @Override
-    public void replaceFields() {
-        Map<String, String> replaceMap = buildReplaceParameters(this.params, this.owner, this.account);
+    public void buildReplaceParameters(){
+        replaceParameters = buildReplaceParameters(params, owner, account);
+    }
 
-        replaceFieldsWithReplaceMap(replaceMap);
+    @Override
+    public void replaceFields() {
+        replaceFieldsWithReplaceMap(replaceParameters);
     }
 
     private void replaceFieldsWithReplaceMap(Map<String, String> replaceMap){
         for (Map.Entry<String, String> entry : replaceMap.entrySet()) {
-            this.html = this.html.replaceAll(entry.getKey(), entry.getValue());
+            html = html.replaceAll(entry.getKey(), entry.getValue());
         }
     }
 
     @Override
     public void convert() {
-        String pdfFilePath = this.temporaryFilePath + "budget_contract_" + this.account.getAccountId() + ".pdf";
-        this.pdfFile = new File(pdfFilePath);
+        String pdfFilePath = temporaryFilePath + "budget_contract_" + account.getAccountId() + ".pdf";
+        pdfFile = new File(pdfFilePath);
 
         try {
-            Object response = majordomoRpcClient.convertHtmlToPdf(Arrays.asList(this.html));
+            Object response = majordomoRpcClient.convertHtmlToPdf(Arrays.asList(html));
             byte[] decoded = Base64.getDecoder().decode(((Map<String, Object>) response).get("pdf_file").toString());
-            saveByteArrayToFile(decoded, this.pdfFile);
+            saveByteArrayToFile(decoded, pdfFile);
         } catch (Exception e){
             System.out.println(e.getMessage());
             e.printStackTrace();
         }
     }
 
+    @Override
+    public void saveAccountDocument(){
+        document.unSetId();
+        document.setPersonalAccountId(account.getId());
+        document.setType(DocumentType.VIRTUAL_HOSTING_BUDGET_CONTRACT);
+        document.setTemplateId(templateId);
+        document.setParameters(replaceParameters);
+
+        accountDocumentRepository.save(document);
+    }
 
     @Override
     public File getDocument() {
-        return this.pdfFile;
+        return pdfFile;
     }
 
     private String createTemplate(String header, String body, String footer, List<Integer> noFooterPages) {
         String pdfFooter = "<div id=\"footerContent\">" + footer + "</div>";
         String htmlFooter = "\n</body>\n</html>";
-        String pageBreakPattern = "<div style=\"page-break-after: always;?\">(\\s*<span style=\"display: none;\">&nbsp;</span></div>)?|<div class=\"pagebreak\"><!-- pagebreak --></div>";
 
         StringBuilder templateBuilder = new StringBuilder();
         templateBuilder.append(header);
 
-        List<String> pages = Arrays.asList(body.split(pageBreakPattern));
+        List<String> pages = Arrays.asList(body.split(PAGE_BREAK_PATTERN));
         Iterator pageIterator = pages.iterator();
 
         int pageNumber = 0;
         while (pageIterator.hasNext()){
             templateBuilder.append(pageIterator.next());
             if (noFooterPages.contains(pageNumber + 2)){
-                templateBuilder.append("<pdf:nexttemplate name=\"withoutfooter\"/>");
+                templateBuilder.append(NEXT_TEMPLATE_WITHOUT_FOOTHER_TAG);
             } else {
-                templateBuilder.append("<pdf:nexttemplate name=\"withfooter\"/>");
+                templateBuilder.append(NEXT_TEMPLATE_WITH_FOOTHER_TAG);
             }
-            templateBuilder.append("<pdf:nextpage/>");
+            templateBuilder.append(NEXT_PAGE_PDF_TAG);
             pageNumber++;
         }
 
         templateBuilder.append(pdfFooter).append(htmlFooter);
+        String template = templateBuilder.toString();
 
-        return templateBuilder.toString();
+        Map<String, String> templateReplaceMap = new HashMap<>();
+        templateReplaceMap.put("#PAGE#", PAGE_NUMBER_PDF_TAG);
+        templateReplaceMap.put("#FONT_PATH#", FONT_PATH);
+
+
+        for (Map.Entry<String, String> entry : templateReplaceMap.entrySet()) {
+            template = template.replaceAll(entry.getKey(), entry.getValue());
+        }
+
+        return template;
     }
 
     private String getHeader() throws IOException {
         InputStream inputStream = this.getClass()
-                .getResourceAsStream("/contract/budget_contract_header.html");
+                .getResourceAsStream(HEADER_RESOURCE_PATH);
 
         return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
     }
@@ -212,6 +257,7 @@ public class BudgetContractBuilder implements DocumentBuilder {
     private Map<String, String> buildReplaceParameters(Map<String, String> params, AccountOwner owner, PersonalAccount account){
         Map<String, String> replaceMap = new HashMap<>();
 
+        //обязательные параметры
         replaceMap.put("#TEL#", params.get("phone"));
         replaceMap.put("#FAX#", params.get("phone"));
         replaceMap.put("#URNAME#", owner.getName());
@@ -221,7 +267,6 @@ public class BudgetContractBuilder implements DocumentBuilder {
         replaceMap.put("#OGRN#", owner.getPersonalInfo().getOgrn());
         replaceMap.put("#INN#", owner.getPersonalInfo().getInn());
 
-
         replaceMap.put("#NUMER#", account.getAccountId());
         replaceMap.put("#DEN#", String.valueOf(LocalDate.now().getDayOfMonth()));
         replaceMap.put("#MES#", Utils.getMonthName(LocalDate.now().getMonthValue())); //месяц надо в виде слова
@@ -230,24 +275,14 @@ public class BudgetContractBuilder implements DocumentBuilder {
         replaceMap.put("#URFIO#", params.get("urfio")); //названия кого-то там, кого передал юзер
         replaceMap.put("#USTAVA#", params.get("ustava")); // на основании устава
 
-        /*ОКПО: #OKPO#                        необязательно
-        ОКВЭД: #OKVED#                      необязательно
-        Факс: #FAX#                         необязательно
-        Наименование банка: #BANKNAME#      необязательно
-        Расчетный счет: #RASSCHET#          необязательно
-        БИК: #BIK#                          необязательно
-        Корреспондентский счет: #KORSCHET#  необязательно*/
-        replaceMap.put("#BANKNAME#", owner.getContactInfo().getBankName() != null ? owner.getContactInfo().getBankName() : "");
-        replaceMap.put("#RASSCHET#", owner.getContactInfo().getBankAccount() != null ? owner.getContactInfo().getBankAccount() : "");
-        replaceMap.put("#KORSCHET#", owner.getContactInfo().getCorrespondentAccount() != null ? owner.getContactInfo().getCorrespondentAccount() : "");
-        replaceMap.put("#BIK#", owner.getContactInfo().getBik() != null ? owner.getContactInfo().getBik() : "");
-        replaceMap.put("#OKPO#", owner.getPersonalInfo().getOkpo() != null ? owner.getPersonalInfo().getOkpo() : "");
-        replaceMap.put("#OKVED#", owner.getPersonalInfo().getOkvedCodes() != null ? owner.getPersonalInfo().getOkvedCodes() : "");
+        //необязательные
+        replaceMap.put("#BANKNAME#", Strings.nullToEmpty(owner.getContactInfo().getBankName()));
+        replaceMap.put("#RASSCHET#", Strings.nullToEmpty(owner.getContactInfo().getBankAccount()));
+        replaceMap.put("#KORSCHET#", Strings.nullToEmpty(owner.getContactInfo().getCorrespondentAccount()));
+        replaceMap.put("#BIK#", Strings.nullToEmpty(owner.getContactInfo().getBik()));
+        replaceMap.put("#OKPO#", Strings.nullToEmpty(owner.getPersonalInfo().getOkpo()));
+        replaceMap.put("#OKVED#", Strings.nullToEmpty(owner.getPersonalInfo().getOkvedCodes()));
 
-        //это надо делать отдельно от подстановки юзерских параметров
-        replaceMap.put("#PAGE#", "\n<pdf:pagenumber>\n");
-//        replaceMap.put("#FONT_PATH#", "\"/arial.ttf\"");
-        replaceMap.put("#FONT_PATH#", "\"/home/berezka/git/rpc/arial.ttf\"");
         return replaceMap;
     }
 }

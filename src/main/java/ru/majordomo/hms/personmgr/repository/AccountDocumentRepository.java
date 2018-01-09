@@ -5,9 +5,22 @@ import org.springframework.data.repository.query.Param;
 import ru.majordomo.hms.personmgr.common.DocumentType;
 import ru.majordomo.hms.personmgr.model.account.AccountDocument;
 
+import java.util.List;
+
 public interface AccountDocumentRepository extends MongoRepository<AccountDocument, String> {
-    AccountDocument findFirstByPersonalAccountIdAndDocumentTypeOrderByCreatedDateDesc(
+    AccountDocument findFirstByPersonalAccountIdAndTypeOrderByCreatedDateDesc(
             @Param("personalAccountId") String accountId,
-            @Param("documentType") DocumentType documentType
+            @Param("type") DocumentType documentType
     );
+
+    List<AccountDocument> findByPersonalAccountIdAndType(
+            @Param("personalAccountId") String accountId,
+            @Param("type") DocumentType documentType
+    );
+
+    AccountDocument findOneByPersonalAccountIdAndId(
+            @Param("personalAccountId") String accountId,
+            @Param("id") String id
+    );
+
 }
