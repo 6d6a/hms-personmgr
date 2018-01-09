@@ -72,8 +72,7 @@ public class SupportRequestRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        List<String> emails = accountHelper.getEmails(account);
-        emails.forEach(String::toLowerCase);
+        List<String> emails = accountHelper.getEmails(account).stream().map(String::toLowerCase).collect(Collectors.toList());
 
         email = email.toLowerCase();
 
