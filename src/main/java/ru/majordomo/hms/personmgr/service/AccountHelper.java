@@ -894,13 +894,15 @@ public class AccountHelper {
     }
 
     public void saveHistory(PersonalAccount account, String message, String operator) {
+        this.saveHistory(account.getId(), message, operator);
+    }
 
+    public void saveHistory(String personalAccountId, String message, String operator) {
         Map<String, String> paramsHistory = new HashMap<>();
         paramsHistory.put(HISTORY_MESSAGE_KEY, message);
-        paramsHistory.put(OPERATOR_KEY, "service");
+        paramsHistory.put(OPERATOR_KEY, operator);
 
-        publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
-
+        publisher.publishEvent(new AccountHistoryEvent(personalAccountId, paramsHistory));
     }
 
     public Boolean hasActiveCredit(PersonalAccount account) {
