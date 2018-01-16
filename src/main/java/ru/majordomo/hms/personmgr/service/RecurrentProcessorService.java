@@ -86,7 +86,14 @@ public class RecurrentProcessorService {
             }
 
             //Домены -------------
-            BigDecimal domainRecurrentSum = getDomainRecurrentSum(account.getId());
+
+            BigDecimal domainRecurrentSum;
+
+            if (!accountIsActive && account.getDeactivated().isBefore(LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).minusMonths(1L))) {
+                domainRecurrentSum = BigDecimal.ZERO;
+            } else {
+                domainRecurrentSum = getDomainRecurrentSum(account.getId());
+            }
 
             if (domainRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
                 if (realBalance.compareTo(domainRecurrentSum) < 0) { //Реальных денег не хватает на продление доменов
