@@ -3,10 +3,13 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -66,95 +69,202 @@ public class RecurrentProcessorService {
 
     public void processRecurrent(PersonalAccount account) {
 
-        BigDecimal overallRecurrentSum = BigDecimal.ZERO;
-
-        Boolean accountIsActive = account.isActive();
-        Boolean accountIsOnAbonement = false;
-        Boolean accountIsOnArchivePlan = !planRepository.findOne(account.getPlanId()).isActive();
-
         try {
-            // Реккуренты только на активных тарифных планах и не удаленных аккаунтах
-            if (!accountIsOnArchivePlan && account.getDeleted() == null) {
 
-                // --- ДОМЕНЫ ---
-                //Ищем paidTill начиная с 25 дней до текущей даты
-                LocalDate paidTillStart = LocalDate.now().with(TWENTY_FIVE_DAYS_BEFORE);
-                //И закакнчивая 50 днями после текущей даты
-                LocalDate paidTillEnd = LocalDate.now().with(FIFTY_DAYS_AFTER);
+            BigDecimal balance = accountHelper.getBalance(account);
 
-                // домены - за 50, 30, 20, 10, 5, 4, 3, 2, 1 день до истечения + в день истечения + через 1, 3, 5, 10, 20, 25 дней после
-                Long[] days = {1L, 2L, 3L, 4L, 5L, 10L, 20L, 30L, 50L, -1L, -3L, -5L, -10L, -20L, -25L};
+            BigDecimal iNeedMoreMoney = BigDecimal.ZERO;
 
-                List<Domain> domains = rcUserFeignClient.getExpiringDomainsByAccount(
-                        account.getId(),
-                        paidTillStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                        paidTillEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            BigDecimal bonusBalance = accountHelper.getBonusBalance(account);
+            BigDecimal realBalance = balance.subtract(bonusBalance); //!balance может быть отрицательным(кредит)!
+
+            Boolean accountIsActive = account.isActive();
+            Boolean accountIsOnArchivePlan = !planRepository.findOne(account.getPlanId()).isActive();
+
+            if (accountIsOnArchivePlan || account.getDeleted() != null) {
+                return; // Реккуренты только на активных тарифных планах и не удаленных аккаунтах
+            }
+
+            //Домены -------------
+
+            BigDecimal domainRecurrentSum;
+
+            if (!accountIsActive && account.getDeactivated().isBefore(LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).minusMonths(1L))) {
+                domainRecurrentSum = BigDecimal.ZERO;
+            } else {
+                domainRecurrentSum = getDomainRecurrentSum(account.getId());
+            }
+
+            if (domainRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
+                if (realBalance.compareTo(domainRecurrentSum) < 0) { //Реальных денег не хватает на продление доменов
+                    iNeedMoreMoney = iNeedMoreMoney.add(domainRecurrentSum.subtract(realBalance)); //На реккурент
+                    realBalance = BigDecimal.ZERO; //Предположим что всё что было (с реккурентом вместе) уже потратили на продление
+                } else {
+                    realBalance = realBalance.subtract(domainRecurrentSum); //Предположим что уже потратили на продление
+                }
+            }
+            BigDecimal availableBalance = realBalance.add(bonusBalance); //Разделение на бонусы и реальные больше не требуется
+
+
+            //Абонементы -------------
+            BigDecimal abonementRecurrentSum = getAbonementRecurrentSum(account.getId());
+
+            if (abonementRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
+                if (availableBalance.compareTo(abonementRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает на абонемент
+                    iNeedMoreMoney = iNeedMoreMoney.add(abonementRecurrentSum.subtract(availableBalance)); //На реккурент
+                    availableBalance = BigDecimal.ZERO;
+                } else {
+                    availableBalance = availableBalance.subtract(abonementRecurrentSum);
+                }
+            }
+
+
+            //Сервисы -------------
+            BigDecimal servicesRecurrentSum = BigDecimal.ZERO;
+            BigDecimal dailyCostForRecurrent = getDailyCostForRecurrent(account);
+            LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+            Integer daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
+
+            Boolean dailyCostIsPositive = dailyCostForRecurrent.compareTo(BigDecimal.ZERO) > 0;
+            Boolean notEnougthMoneyFor5Days = availableBalance.compareTo(dailyCostForRecurrent.multiply(BigDecimal.valueOf(5L))) < 0;
+            Boolean planIsAbonementOnly = planRepository.findOne(account.getPlanId()).isAbonementOnly();
+
+            // Если аккаунт активен, смотрим что бы ему хватало на 5 дней хостинга - если не хватает добавляем месячную стоимость услуги в реккурент
+            if (accountIsActive && dailyCostIsPositive && notEnougthMoneyFor5Days) {
+                servicesRecurrentSum = servicesRecurrentSum.add(dailyCostForRecurrent.multiply(BigDecimal.valueOf(daysInCurrentMonth)));
+            }
+
+            // Если аккаунт не активен, смотрим что он был выключен 5 дней назад или меньше
+            if (!accountIsActive && dailyCostIsPositive && notEnougthMoneyFor5Days && account.getDeactivated().isAfter(chargeDate.minusDays(5L)) && !planIsAbonementOnly) {
+                servicesRecurrentSum = servicesRecurrentSum.add(dailyCostForRecurrent.multiply(BigDecimal.valueOf(daysInCurrentMonth)));
+            }
+
+            if (servicesRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
+                if (availableBalance.compareTo(servicesRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает на сервисы
+                    iNeedMoreMoney = iNeedMoreMoney.add(servicesRecurrentSum.subtract(availableBalance)); //На реккурент
+                }
+            }
+
+            //!В случае кредита - баланс будет отрицательным (при итоговом вычислении сумма будет вычислять с учётом минуса)!
+
+            // --- ИТОГО НЕХВАТАТ ---
+            if (iNeedMoreMoney.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal sumToChargeFromCart = iNeedMoreMoney.setScale(0, BigDecimal.ROUND_UP);
+
+                Map<String, String> params = new HashMap<>();
+                params.put(HISTORY_MESSAGE_KEY, "Аккаунт: " + account.getName()
+                        + ". Общая сумма списаний по реккуренту: " + sumToChargeFromCart
+                        + ". Общий баланс: " + balance
+                        + ". Бонусы: " + bonusBalance
+                        + ". За домены: " + domainRecurrentSum
+                        + ". За абонементы: " + abonementRecurrentSum
+                        + ". За остальные услуги: " + servicesRecurrentSum
                 );
+                params.put(OPERATOR_KEY, "service");
 
-                if (!domains.isEmpty()) {
-                    for (Domain domain : domains) {
+                publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
 
-                        if (domain.getAutoRenew() && domain.getRegSpec() != null) {
+                try {
+                    finFeignClient.repeatPayment(account.getId(), sumToChargeFromCart);
+                } catch (Exception e) {
+                    logger.error("Ошибка при выполнении реккурента для аккаунта: " + account.getName());
+                    e.printStackTrace();
+                }
+            }
 
-                            long daysToExpired = DAYS.between(LocalDate.now(), domain.getRegSpec().getPaidTill());
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Ошибка при выполнени реккурентов для аккаунта: " + account.getName());
 
-                            if (Arrays.asList(days).contains(daysToExpired)) {
-                                DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domain.getName(), domain.getRegSpec().getRegistrar());
+            Map<String, String> params = new HashMap<>();
+            params.put(HISTORY_MESSAGE_KEY, "Непредвиденная ошибка при выполнении реккурента для аккаунта : " + account.getName());
+            params.put(OPERATOR_KEY, "service");
 
-                                AvailabilityInfo availabilityInfo = domainRegistrarFeignClient.getAvailabilityInfo(domain.getName());
-                                BigDecimal domainRenewCost = domainTld.getRenewService().getCost();
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+        }
+    }
 
-                                if (availabilityInfo.getPremiumPrice() != null && (availabilityInfo.getPremiumPrice().compareTo(BigDecimal.ZERO) > 0)) {
-                                    domainRenewCost = availabilityInfo.getPremiumPrice();
-                                }
+    private BigDecimal getDomainRecurrentSum(String accountId) {
+        // --- ДОМЕНЫ ---
+        //Ищем paidTill начиная с 25 дней до текущей даты
+        LocalDate paidTillStart = LocalDate.now().with(TWENTY_FIVE_DAYS_BEFORE);
+        //И закакнчивая 50 днями после текущей даты
+        LocalDate paidTillEnd = LocalDate.now().with(FIFTY_DAYS_AFTER);
 
-                                if (domainRenewCost != null && domainRenewCost.compareTo(BigDecimal.ZERO) > 0) {
-                                    overallRecurrentSum = overallRecurrentSum.add(domainRenewCost);
+        // домены - за 50, 30, 20, 10, 5, 4, 3, 2, 1 день до истечения + в день истечения + через 1, 3, 5, 10, 20, 25 дней после
+        Long[] d = {1L, 2L, 3L, 4L, 5L, 10L, 20L, 30L, 50L, -1L, -3L, -5L, -10L, -20L, -25L};
+        List<Long> days = Arrays.asList(d);
 
-                                    Map<String, String> params = new HashMap<>();
-                                    params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлена услуга продления домена: '" + domain.getName() +
-                                            "' стоимостью: " + domainRenewCost + " руб.");
-                                    params.put(OPERATOR_KEY, "service");
+        List<Domain> domains = rcUserFeignClient.getExpiringDomainsByAccount(
+                accountId,
+                paidTillStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                paidTillEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        );
 
-                                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
-                                }
-                            }
+        BigDecimal domainRecurrentSum = BigDecimal.ZERO;
 
+        if (!domains.isEmpty()) {
+            for (Domain domain : domains) {
+
+                if (domain.getAutoRenew() && domain.getRegSpec() != null) {
+
+                    long daysToExpired = DAYS.between(LocalDate.now(), domain.getRegSpec().getPaidTill());
+
+                    if (days.contains(daysToExpired)) {
+                        DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domain.getName(), domain.getRegSpec().getRegistrar());
+
+                        AvailabilityInfo availabilityInfo = domainRegistrarFeignClient.getAvailabilityInfo(domain.getName());
+                        BigDecimal domainRenewCost = domainTld.getRenewService().getCost();
+
+                        if (availabilityInfo.getPremiumPrice() != null && (availabilityInfo.getPremiumPrice().compareTo(BigDecimal.ZERO) > 0)) {
+                            domainRenewCost = availabilityInfo.getPremiumPrice();
                         }
 
-                    }
-                }
-
-                // --- АБОНЕМЕНТ ---
-                AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-                if (accountAbonement != null) {
-                    accountIsOnAbonement = true;
-                }
-
-                LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
-                Integer daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
-
-                // тарифы и услуги - за 5, 4, 3, 2, 1 день до истечения + в день истечения + через 1, 2, 3, 4, 5 дней после
-
-                if (accountIsOnAbonement) {
-                    if (!accountAbonement.getAbonement().isInternal()) {
-                        // Проверям сколько осталось у абонементу
-                        // Если истекает через 5 дней или меньше - добавляем стоимость абонмента
-                        if (accountAbonement.getExpired().isBefore(chargeDate.plusDays(5L))) {
-                            overallRecurrentSum = overallRecurrentSum.add(accountAbonement.getAbonement().getService().getCost());
-
-                            Map<String, String> params = new HashMap<>();
-                            params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлено автопродление абонемента " +
-                                    " стоимостью: " + accountAbonement.getAbonement().getService().getCost() + " руб.");
-                            params.put(OPERATOR_KEY, "service");
-
-                            publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                        if (domainRenewCost != null && domainRenewCost.compareTo(BigDecimal.ZERO) > 0) {
+                            domainRecurrentSum = domainRecurrentSum.add(domainRenewCost);
                         }
                     }
+
                 }
 
-                // --- УСЛУГИ ---
-                //Далее смотрим остальные услуги (если есть активный абонемент - то услуги ежедневного списания не будет)
+            }
+        }
+
+        return domainRecurrentSum;
+    }
+
+    private BigDecimal getAbonementRecurrentSum(String accountId) {
+        // --- АБОНЕМЕНТ ---
+
+        Boolean accountIsOnAbonement = false;
+
+        BigDecimal abonementRecurrentSum = BigDecimal.ZERO;
+
+        AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(accountId);
+        if (accountAbonement != null) {
+            accountIsOnAbonement = true;
+        }
+
+        LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+
+        // тарифы и услуги - за 5, 4, 3, 2, 1 день до истечения + в день истечения + через 1, 2, 3, 4, 5 дней после
+
+        if (accountIsOnAbonement) {
+            if (!accountAbonement.getAbonement().isInternal()) {
+                // Проверям сколько осталось у абонементу
+                // Если истекает через 5 дней или меньше - добавляем стоимость абонмента
+                if (accountAbonement.getExpired().isBefore(chargeDate.plusDays(5L))) {
+                    abonementRecurrentSum = abonementRecurrentSum.add(accountAbonement.getAbonement().getService().getCost());
+                }
+            }
+        }
+
+        return abonementRecurrentSum;
+    }
+
+    private BigDecimal getDailyCostForRecurrent(PersonalAccount account) {
+        // --- УСЛУГИ ---
+        //Далее смотрим остальные услуги (если есть активный абонемент - то услуги ежедневного списания не будет)
 
                 /*
                 List<String> ServiceIdsEligibleForRecurrent = new ArrayList<>();
@@ -165,95 +275,33 @@ public class RecurrentProcessorService {
                 ServiceIdsEligibleForRecurrent.add(paymentServiceRepository.findByName("Защита от спама и вирусов").getId());
                 */
 
-                List<AccountService> accountServices = account.getServices();
+        LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        Integer daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
 
-                BigDecimal balance = accountHelper.getBalance(account);
-                BigDecimal dailyCostForRecurrent = BigDecimal.ZERO;
+        List<AccountService> accountServices = account.getServices();
 
-                BigDecimal improvisedBalance = balance;
-                //Вычитаем сумму услуг из баланса
-                improvisedBalance = improvisedBalance.subtract(overallRecurrentSum);
+        BigDecimal dailyCostForRecurrent = BigDecimal.ZERO;
 
-                //Если средств не хватает выводим аккаунт в 0 будущим рекурентом
-                if (improvisedBalance.compareTo(BigDecimal.ZERO) < 0) {
-                    improvisedBalance = BigDecimal.ZERO;
+        for (AccountService accountService : accountServices) {
+            if (accountService.isEnabled()
+                    //&& ServiceIdsEligibleForRecurrent.contains(accountService.getServiceId())
+                    && accountService.getPaymentService() != null) {
+                BigDecimal cost;
+
+                switch (accountService.getPaymentService().getPaymentType()) {
+                    case MONTH:
+                        cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
+                        dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
+                        break;
+                    case DAY:
+                        cost = accountService.getCost();
+                        dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
+                        break;
                 }
-
-                for (AccountService accountService : accountServices) {
-                    if (accountService.isEnabled()
-                            //&& ServiceIdsEligibleForRecurrent.contains(accountService.getServiceId())
-                            && accountService.getPaymentService() != null) {
-                        BigDecimal cost;
-
-                        switch (accountService.getPaymentService().getPaymentType()) {
-                            case MONTH:
-                                cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
-                                dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
-                                Map<String, String> params = new HashMap<>();
-                                params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлена услуга: '" + accountService.getPaymentService().getName() +
-                                        "' стоимостью: " + accountService.getCost() + " руб.");
-                                params.put(OPERATOR_KEY, "service");
-
-                                publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
-                                break;
-                            case DAY:
-                                cost = accountService.getCost();
-                                dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
-                                params = new HashMap<>();
-                                params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлена услуга: '" + accountService.getPaymentService().getName() +
-                                        "' стоимостью: " + accountService.getCost().multiply(BigDecimal.valueOf(daysInCurrentMonth)) + " руб.");
-                                params.put(OPERATOR_KEY, "service");
-
-                                publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
-                                break;
-                        }
-
-                    }
-                }
-
-                // Если аккаунт активен, смотрим что бы ему хватало на 5 дней хостинга - если не хватает добавляем месячную стоимость услуги в реккурент
-                if (accountIsActive && dailyCostForRecurrent.compareTo(BigDecimal.ZERO) > 0) {
-                    if (improvisedBalance.compareTo(dailyCostForRecurrent.multiply(BigDecimal.valueOf(5L))) < 0) {
-                        overallRecurrentSum = overallRecurrentSum.add(dailyCostForRecurrent.multiply(BigDecimal.valueOf(daysInCurrentMonth)));
-                    }
-                }
-
-                // Если аккаунт не активен, смотрим что он был выключен 5 дней назад или меньше
-                if (!accountIsActive && dailyCostForRecurrent.compareTo(BigDecimal.ZERO) > 0 && !planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
-                    if (account.getDeactivated().isAfter(chargeDate.minusDays(5L)) && improvisedBalance.compareTo(dailyCostForRecurrent.multiply(BigDecimal.valueOf(5L))) < 0) {
-                        overallRecurrentSum = overallRecurrentSum.add(dailyCostForRecurrent.multiply(BigDecimal.valueOf(daysInCurrentMonth)));
-                    }
-                }
-
-                //В случае кредита - баланс будет отрицательным (при итоговом вычислении сумма будет вычислять с учётом минуса)
-
-                // --- ИТОГО НЕХВАТАТ ---
-                if (overallRecurrentSum.compareTo(BigDecimal.ZERO) > 0 && balance.compareTo(overallRecurrentSum) < 0) {
-                    BigDecimal sumToChargeFromCart = overallRecurrentSum.subtract(balance);
-
-                    sumToChargeFromCart = sumToChargeFromCart.setScale(0, BigDecimal.ROUND_UP);
-
-                    Map<String, String> params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Общая сумма списаний по реккуренту: " + overallRecurrentSum +
-                            " к списанию с карты: " + sumToChargeFromCart + " руб.");
-                    params.put(OPERATOR_KEY, "service");
-
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
-
-                    try {
-                        finFeignClient.repeatPayment(account.getId(), sumToChargeFromCart);
-                    } catch (Exception e) {
-                        logger.error("Ошибка при выполнении реккурента для аккаунта: " + account.getName());
-                        e.printStackTrace();
-                    }
-                }
-
 
             }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Ошибка при выполнени реккурентов для аккаунта: " + account.getName());
         }
+
+        return dailyCostForRecurrent;
     }
 }
