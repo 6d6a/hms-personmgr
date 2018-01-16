@@ -118,10 +118,10 @@ public class RecurrentProcessorService {
                                 if (domainRenewCost != null && domainRenewCost.compareTo(BigDecimal.ZERO) > 0) {
                                     domainRecurrentSum = domainRecurrentSum.add(domainRenewCost);
 
-                                    Map<String, String> params = new HashMap<>();
-                                    params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлена услуга продления домена: '" + domain.getName() +
-                                            "' стоимостью: " + domainRenewCost + " руб.");
-                                    params.put(OPERATOR_KEY, "service");
+                                    //Map<String, String> params = new HashMap<>();
+                                    //params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлена услуга продления домена: '" + domain.getName() +
+                                    //        "' стоимостью: " + domainRenewCost + " руб.");
+                                    //params.put(OPERATOR_KEY, "service");
 
                                     //publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                                 }
@@ -140,7 +140,7 @@ public class RecurrentProcessorService {
                         realBalance = realBalance.subtract(domainRecurrentSum); //Предположим что уже потратили на продление
                     }
                 }
-                BigDecimal leftBalance = realBalance.add(bonusBalance); //Разделение на бонусы и ральные больше не требуется
+                BigDecimal leftBalance = realBalance.add(bonusBalance); //Разделение на бонусы и реальные больше не требуется
 
                 // --- АБОНЕМЕНТ ---
 
@@ -163,10 +163,10 @@ public class RecurrentProcessorService {
                         if (accountAbonement.getExpired().isBefore(chargeDate.plusDays(5L))) {
                             abonementRecurrentSum = abonementRecurrentSum.add(accountAbonement.getAbonement().getService().getCost());
 
-                            Map<String, String> params = new HashMap<>();
-                            params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлено автопродление абонемента " +
-                                    " стоимостью: " + accountAbonement.getAbonement().getService().getCost() + " руб.");
-                            params.put(OPERATOR_KEY, "service");
+                            //Map<String, String> params = new HashMap<>();
+                            //params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлено автопродление абонемента " +
+                            //        " стоимостью: " + accountAbonement.getAbonement().getService().getCost() + " руб.");
+                            //params.put(OPERATOR_KEY, "service");
 
                             //publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                         }
@@ -209,20 +209,20 @@ public class RecurrentProcessorService {
                             case MONTH:
                                 cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
                                 dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
-                                Map<String, String> params = new HashMap<>();
-                                params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлена услуга: '" + accountService.getPaymentService().getName() +
-                                        "' стоимостью: " + accountService.getCost() + " руб.");
-                                params.put(OPERATOR_KEY, "service");
+                                //Map<String, String> params = new HashMap<>();
+                                //params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлена услуга: '" + accountService.getPaymentService().getName() +
+                                //        "' стоимостью: " + accountService.getCost() + " руб.");
+                                //params.put(OPERATOR_KEY, "service");
 
                                 //publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                                 break;
                             case DAY:
                                 cost = accountService.getCost();
                                 dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
-                                params = new HashMap<>();
-                                params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлена услуга: '" + accountService.getPaymentService().getName() +
-                                        "' стоимостью: " + accountService.getCost().multiply(BigDecimal.valueOf(daysInCurrentMonth)) + " руб.");
-                                params.put(OPERATOR_KEY, "service");
+                                //params = new HashMap<>();
+                                //params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлена услуга: '" + accountService.getPaymentService().getName() +
+                                //        "' стоимостью: " + accountService.getCost().multiply(BigDecimal.valueOf(daysInCurrentMonth)) + " руб.");
+                                //params.put(OPERATOR_KEY, "service");
 
                                 //publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                                 break;
