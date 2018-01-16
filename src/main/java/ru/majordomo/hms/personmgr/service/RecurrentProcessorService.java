@@ -66,7 +66,12 @@ public class RecurrentProcessorService {
 
     public void processRecurrent(PersonalAccount account) {
 
-        BigDecimal overallRecurrentSum = BigDecimal.ZERO;
+        BigDecimal balance = accountHelper.getBalance(account);
+
+        BigDecimal iNeedMoreMoney = BigDecimal.ZERO;
+
+        BigDecimal bonusBalance = accountHelper.getBonusBalance(account);
+        BigDecimal realBalance = balance.subtract(bonusBalance); //!balance может быть отрицательным(кредит)!
 
         Boolean accountIsActive = account.isActive();
         Boolean accountIsOnAbonement = false;
@@ -91,6 +96,8 @@ public class RecurrentProcessorService {
                         paidTillEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                 );
 
+                BigDecimal domainRecurrentSum = BigDecimal.ZERO;
+
                 if (!domains.isEmpty()) {
                     for (Domain domain : domains) {
 
@@ -109,14 +116,14 @@ public class RecurrentProcessorService {
                                 }
 
                                 if (domainRenewCost != null && domainRenewCost.compareTo(BigDecimal.ZERO) > 0) {
-                                    overallRecurrentSum = overallRecurrentSum.add(domainRenewCost);
+                                    domainRecurrentSum = domainRecurrentSum.add(domainRenewCost);
 
                                     Map<String, String> params = new HashMap<>();
                                     params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлена услуга продления домена: '" + domain.getName() +
                                             "' стоимостью: " + domainRenewCost + " руб.");
                                     params.put(OPERATOR_KEY, "service");
 
-                                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                                    //publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                                 }
                             }
 
@@ -125,7 +132,20 @@ public class RecurrentProcessorService {
                     }
                 }
 
+                if (domainRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
+                    if (realBalance.compareTo(domainRecurrentSum) < 0) { //Реальных денег не хватает на продление доменов
+                        iNeedMoreMoney = iNeedMoreMoney.add(domainRecurrentSum.subtract(realBalance)); //На реккурент
+                        realBalance = BigDecimal.ZERO; //Предположим что всё что было (с реккурентом вместе) уже потратили на продление
+                    } else {
+                        realBalance = realBalance.subtract(domainRecurrentSum); //Предположим что уже потратили на продление
+                    }
+                }
+                BigDecimal leftBalance = realBalance.add(bonusBalance); //Разделение на бонусы и ральные больше не требуется
+
                 // --- АБОНЕМЕНТ ---
+
+                BigDecimal abonementRecurrentSum = BigDecimal.ZERO;
+
                 AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
                 if (accountAbonement != null) {
                     accountIsOnAbonement = true;
@@ -141,15 +161,24 @@ public class RecurrentProcessorService {
                         // Проверям сколько осталось у абонементу
                         // Если истекает через 5 дней или меньше - добавляем стоимость абонмента
                         if (accountAbonement.getExpired().isBefore(chargeDate.plusDays(5L))) {
-                            overallRecurrentSum = overallRecurrentSum.add(accountAbonement.getAbonement().getService().getCost());
+                            abonementRecurrentSum = abonementRecurrentSum.add(accountAbonement.getAbonement().getService().getCost());
 
                             Map<String, String> params = new HashMap<>();
                             params.put(HISTORY_MESSAGE_KEY, "В общую сумму реккурента добавлено автопродление абонемента " +
                                     " стоимостью: " + accountAbonement.getAbonement().getService().getCost() + " руб.");
                             params.put(OPERATOR_KEY, "service");
 
-                            publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                            //publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                         }
+                    }
+                }
+
+                if (abonementRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
+                    if (leftBalance.compareTo(abonementRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает на абонемент
+                        iNeedMoreMoney = iNeedMoreMoney.add(abonementRecurrentSum.subtract(leftBalance)); //На реккурент
+                        leftBalance = BigDecimal.ZERO;
+                    } else {
+                        leftBalance = leftBalance.subtract(abonementRecurrentSum);
                     }
                 }
 
@@ -167,17 +196,8 @@ public class RecurrentProcessorService {
 
                 List<AccountService> accountServices = account.getServices();
 
-                BigDecimal balance = accountHelper.getBalance(account);
                 BigDecimal dailyCostForRecurrent = BigDecimal.ZERO;
-
-                BigDecimal improvisedBalance = balance;
-                //Вычитаем сумму услуг из баланса
-                improvisedBalance = improvisedBalance.subtract(overallRecurrentSum);
-
-                //Если средств не хватает выводим аккаунт в 0 будущим рекурентом
-                if (improvisedBalance.compareTo(BigDecimal.ZERO) < 0) {
-                    improvisedBalance = BigDecimal.ZERO;
-                }
+                BigDecimal servicesRecurrentSum = BigDecimal.ZERO;
 
                 for (AccountService accountService : accountServices) {
                     if (accountService.isEnabled()
@@ -194,7 +214,7 @@ public class RecurrentProcessorService {
                                         "' стоимостью: " + accountService.getCost() + " руб.");
                                 params.put(OPERATOR_KEY, "service");
 
-                                publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                                //publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                                 break;
                             case DAY:
                                 cost = accountService.getCost();
@@ -204,7 +224,7 @@ public class RecurrentProcessorService {
                                         "' стоимостью: " + accountService.getCost().multiply(BigDecimal.valueOf(daysInCurrentMonth)) + " руб.");
                                 params.put(OPERATOR_KEY, "service");
 
-                                publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                                //publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
                                 break;
                         }
 
@@ -213,28 +233,32 @@ public class RecurrentProcessorService {
 
                 // Если аккаунт активен, смотрим что бы ему хватало на 5 дней хостинга - если не хватает добавляем месячную стоимость услуги в реккурент
                 if (accountIsActive && dailyCostForRecurrent.compareTo(BigDecimal.ZERO) > 0) {
-                    if (improvisedBalance.compareTo(dailyCostForRecurrent.multiply(BigDecimal.valueOf(5L))) < 0) {
-                        overallRecurrentSum = overallRecurrentSum.add(dailyCostForRecurrent.multiply(BigDecimal.valueOf(daysInCurrentMonth)));
+                    if (leftBalance.compareTo(dailyCostForRecurrent.multiply(BigDecimal.valueOf(5L))) < 0) {
+                        servicesRecurrentSum = servicesRecurrentSum.add(dailyCostForRecurrent.multiply(BigDecimal.valueOf(daysInCurrentMonth)));
                     }
                 }
 
                 // Если аккаунт не активен, смотрим что он был выключен 5 дней назад или меньше
                 if (!accountIsActive && dailyCostForRecurrent.compareTo(BigDecimal.ZERO) > 0 && !planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
-                    if (account.getDeactivated().isAfter(chargeDate.minusDays(5L)) && improvisedBalance.compareTo(dailyCostForRecurrent.multiply(BigDecimal.valueOf(5L))) < 0) {
-                        overallRecurrentSum = overallRecurrentSum.add(dailyCostForRecurrent.multiply(BigDecimal.valueOf(daysInCurrentMonth)));
+                    if (account.getDeactivated().isAfter(chargeDate.minusDays(5L)) && leftBalance.compareTo(dailyCostForRecurrent.multiply(BigDecimal.valueOf(5L))) < 0) {
+                        servicesRecurrentSum = servicesRecurrentSum.add(dailyCostForRecurrent.multiply(BigDecimal.valueOf(daysInCurrentMonth)));
+                    }
+                }
+
+                if (servicesRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
+                    if (leftBalance.compareTo(servicesRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает на сервисы
+                        iNeedMoreMoney = iNeedMoreMoney.add(servicesRecurrentSum.subtract(leftBalance)); //На реккурент
                     }
                 }
 
                 //В случае кредита - баланс будет отрицательным (при итоговом вычислении сумма будет вычислять с учётом минуса)
 
                 // --- ИТОГО НЕХВАТАТ ---
-                if (overallRecurrentSum.compareTo(BigDecimal.ZERO) > 0 && balance.compareTo(overallRecurrentSum) < 0) {
-                    BigDecimal sumToChargeFromCart = overallRecurrentSum.subtract(balance);
-
-                    sumToChargeFromCart = sumToChargeFromCart.setScale(0, BigDecimal.ROUND_UP);
+                if (iNeedMoreMoney.compareTo(BigDecimal.ZERO) > 0) {
+                    BigDecimal sumToChargeFromCart = iNeedMoreMoney.setScale(0, BigDecimal.ROUND_UP);
 
                     Map<String, String> params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Общая сумма списаний по реккуренту: " + overallRecurrentSum +
+                    params.put(HISTORY_MESSAGE_KEY, "Общая сумма списаний по реккуренту: " + sumToChargeFromCart +
                             " к списанию с карты: " + sumToChargeFromCart + " руб.");
                     params.put(OPERATOR_KEY, "service");
 
