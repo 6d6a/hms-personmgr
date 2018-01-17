@@ -186,8 +186,6 @@ public class BudgetContractBuilder implements DocumentBuilder {
         pdfFile = new File(pdfFilePath);
 
         try {
-//            Object response = majordomoRpcClient.convertHtmlToPdf(Arrays.asList(html));
-//            byte[] decoded = Base64.getDecoder().decode(((Map<String, Object>) response).get("pdf_file").toString());
             byte[] decoded = majordomoRpcClient.convertHtmlToPdfFile(html);
             saveByteArrayToFile(decoded, pdfFile);
         } catch (Exception e){

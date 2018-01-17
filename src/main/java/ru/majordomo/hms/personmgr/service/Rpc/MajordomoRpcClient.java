@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.service.Rpc;
 
-import org.apache.xmlrpc.XmlRpcException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -11,7 +10,6 @@ import ru.majordomo.hms.personmgr.dto.rpc.HtmlToPdfResponse;
 import java.net.MalformedURLException;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.List;
 
 @Service
 public class MajordomoRpcClient extends RpcClient {
@@ -47,16 +45,6 @@ public class MajordomoRpcClient extends RpcClient {
                 Arrays.asList(id),
                 ContractResponse.class
         ).getContract();
-    }
-
-    public Object convertHtmlToPdf(List<Object> params) {
-        try {
-            return callMethod(CONVERT_HTML_TO_PDF, params);
-        } catch (XmlRpcException e){
-            logger.error("Exception: " + e.getMessage());
-            e.printStackTrace();
-            return null;
-        }
     }
 
     public byte[] convertHtmlToPdfFile(String html){

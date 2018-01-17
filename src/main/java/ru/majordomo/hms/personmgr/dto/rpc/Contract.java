@@ -2,7 +2,9 @@ package ru.majordomo.hms.personmgr.dto.rpc;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import ru.majordomo.hms.personmgr.common.Utils;
 
+import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,7 +35,11 @@ public class Contract {
     }
 
     public void setBody(String body) {
-        this.body = body;
+        try {
+            this.body = Utils.convertToUTF8(body, "ISO-8859-1");
+        } catch (UnsupportedEncodingException e) {
+            this.body = body;
+        }
     }
 
     public String getFooter() {
@@ -41,7 +47,11 @@ public class Contract {
     }
 
     public void setFooter(String footer) {
-        this.footer = footer;
+        try {
+            this.footer = Utils.convertToUTF8(footer, "ISO-8859-1");
+        } catch (UnsupportedEncodingException e) {
+            this.footer = footer;
+        }
     }
 
     public Integer getOperatorId() {

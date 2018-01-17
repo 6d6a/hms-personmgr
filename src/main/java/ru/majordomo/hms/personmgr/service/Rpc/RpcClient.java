@@ -58,7 +58,6 @@ public abstract class RpcClient {
 
         try {
             Map<String, Object> sourceResponse = (Map<String, Object>) callMethod(method, params);
-            logger.info(sourceResponse.toString());
             response = mapper.convertValue(sourceResponse, tClass);
         } catch (Exception e) {
             logger.error("Catch exception in " + getClass());
@@ -93,7 +92,7 @@ public abstract class RpcClient {
         return client.execute(method, params);
     }
 
-    private void configClient(){
+    protected void configClient(){
         XmlRpcClientConfigImpl config = new XmlRpcClientConfigImpl();
         config.setServerURL(serverAddress);
         XmlRpcClient client = new XmlRpcClient();
@@ -101,7 +100,7 @@ public abstract class RpcClient {
         this.client = client;
     }
 
-    private void login() throws XmlRpcException {
+    protected void login() throws XmlRpcException {
 
         List<String> params = new ArrayList<>();
         params.add(login);
