@@ -1,14 +1,14 @@
 package ru.majordomo.hms.personmgr.dto.rpc;
 
-import java.util.Map;
+public class BaseRpcResponse {
 
-public class BaseRpcResponse implements RpcResponse{
-
-    private static final String SUCCESS_KEY = "success";
     private Boolean success;
-    private String errorMessage;
 
-    public Boolean getSuccess() {
+    private String faultCode = "";
+
+    private String faultString = "";
+
+    public Boolean isSuccess() {
         return success;
     }
 
@@ -16,22 +16,19 @@ public class BaseRpcResponse implements RpcResponse{
         this.success = success;
     }
 
-    @Override
-    public void mapping(Map<?, ?> response){
-        try {
-            setSuccess((Boolean) response.get(SUCCESS_KEY));
-        } catch (Exception e) {
-            setErrorMessage(e.getMessage());
-            System.out.println(e.getMessage());
-            e.printStackTrace();
-        }
+    public String getFaultCode() {
+        return faultCode;
     }
 
-    public String getErrorMessage() {
-        return errorMessage;
+    public void setFaultCode(String faultCode) {
+        this.faultCode = faultCode;
     }
 
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
+    public String getFaultString() {
+        return faultString;
+    }
+
+    public void setFaultString(String faultString) {
+        this.faultString = faultString;
     }
 }

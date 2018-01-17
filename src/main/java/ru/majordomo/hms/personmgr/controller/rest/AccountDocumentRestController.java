@@ -123,15 +123,22 @@ public class AccountDocumentRestController {
 
         File file = documentBuilder.build();
 
-        String contentType = "application/pdf";
-
         printContentFromFileToResponseOutputStream(
                 response,
-                contentType,
                 file.getName(),
                 file.getAbsolutePath()
         );
 
+    }
+
+    private void printContentFromFileToResponseOutputStream(
+            HttpServletResponse response,
+            String fileName,
+            String fileDir
+    ) {
+        String contentType = getContentTypeByFileName(fileName);
+
+        printContentFromFileToResponseOutputStream(response, contentType, fileName, fileDir);
     }
 
     private void printContentFromFileToResponseOutputStream(
@@ -151,6 +158,22 @@ public class AccountDocumentRestController {
         } catch (IOException e) {
             logger.error("Не удалось отдать документ, exceptionMessage: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    private String getContentTypeByFileName(String fileName){
+        String[] splitedFileName = fileName.split("\\.");
+        String extension = splitedFileName[splitedFileName.length - 1];
+
+        switch (extension) {
+            case "pdf":
+                return "application/pdf";
+            case "doc":
+                return "application/msword";
+            case "png":
+                return "image/png";
+            default:
+                return "text/plain";
         }
     }
 }

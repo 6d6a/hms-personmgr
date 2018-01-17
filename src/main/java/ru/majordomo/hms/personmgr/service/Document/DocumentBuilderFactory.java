@@ -8,6 +8,7 @@ import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.repository.AccountDocumentRepository;
 import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
+import ru.majordomo.hms.personmgr.service.Rpc.RegRpcClient;
 
 import java.util.Map;
 
@@ -18,18 +19,21 @@ public class DocumentBuilderFactory {
     private final AccountOwnerManager accountOwnerManager;
     private final PersonalAccountManager personalAccountManager;
     private final AccountDocumentRepository accountDocumentRepository;
+    private final RegRpcClient regRpcClient;
 
     @Autowired
     public DocumentBuilderFactory(
             MajordomoRpcClient majordomoRpcClient,
             AccountOwnerManager accountOwnerManager,
             PersonalAccountManager personalAccountManager,
-            AccountDocumentRepository accountDocumentRepository
+            AccountDocumentRepository accountDocumentRepository,
+            RegRpcClient regRpcClient
     ){
         this.majordomoRpcClient = majordomoRpcClient;
         this.accountOwnerManager = accountOwnerManager;
         this.personalAccountManager = personalAccountManager;
         this.accountDocumentRepository = accountDocumentRepository;
+        this.regRpcClient = regRpcClient;
     }
 
     public DocumentBuilder getBuilder(DocumentType type, String personalAccountId, Map<String, String> params){
@@ -48,6 +52,24 @@ public class DocumentBuilderFactory {
                         majordomoRpcClient,
                         personalAccountManager,
                         accountDocumentRepository,
+                        params
+                );
+
+                break;
+            case VIRTUAL_HOSTING_BUDGET_SUPPLEMENTARY_AGREEMENT:
+                documentBuilder = new SupplementaryAgreementBilder(
+                        personalAccountId,
+                        accountOwnerManager
+                );
+
+                break;
+            case VIRTUAL_HOSTING_COMMERCIAL_PROPOSAL:
+                documentBuilder = new CommercialProposalBilder();
+
+                break;
+            case REGISTRANT_DOMAIN_CERTIFICATE:
+                documentBuilder = new RegistrantDomainCertificateBuilder(
+                        regRpcClient,
                         params
                 );
 

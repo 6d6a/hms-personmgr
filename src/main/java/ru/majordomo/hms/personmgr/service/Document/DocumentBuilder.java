@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service.Document;
 
+import org.apache.commons.lang.NotImplementedException;
 import ru.majordomo.hms.personmgr.model.account.AccountDocument;
 
 import java.io.File;
@@ -17,11 +18,13 @@ public interface DocumentBuilder {
         return getDocument();
     }
 
-    File buildFromAccountDocument(AccountDocument document);
+    default File buildFromAccountDocument(AccountDocument document){
+        throw new NotImplementedException();
+    }
 
     default void checkAuthority(){}
 
-    void buildReplaceParameters();
+    default void buildReplaceParameters(){}
 
     void buildTemplate();
 

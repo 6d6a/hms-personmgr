@@ -1,52 +1,32 @@
 package ru.majordomo.hms.personmgr.dto.rpc;
 
-import ru.majordomo.hms.personmgr.common.Utils;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
-public class Contract implements RpcResponse {
-    private static final String BODY_KEY = "body";
-    private static final String FOOTER_KEY = "footer";
-    private static final String NO_FOOTER_PAGES = "no_footer_pages";
-    private static final String OPERATOR_ID_KEY = "operator_id";
-    private static final String STATUS_KEY = "status";
-    private static final String UPDATED_KEY = "updated";
-    private static final String TYPE_KEY = "type";
-    private static final String CONTRACT_ID_KEY = "contract_id";
-    private static final String RPC_RESPONSE_CODING = "ISO-8859-1";
-
+public class Contract {
 
     private String body;
     private String footer;
-    private List<Integer> noFooterPages; //no_footer_pages": "3,5,7",
-    private Integer operatorId; //operator_id": "41",
     private Boolean status; //'active', 'archived', 'draft'
-    private LocalDateTime updated; //updated": "2015-03-19 15:58:18"
     private String type; //'oferta', 'company', 'entrepreneur', 'oferta_virtual_hosting', 'virtual_hosting'
-    private Integer contractId; //contract_id": "128",
 
-    @Override
-    public void mapping(Map<?, ?> contract){
-        try {
-            setBody(Utils.convertToUTF8((String) contract.get(BODY_KEY), RPC_RESPONSE_CODING));
-            setFooter(Utils.convertToUTF8((String) contract.get(FOOTER_KEY), RPC_RESPONSE_CODING));
-            setStatus((String) contract.get(STATUS_KEY));
-            setType((String) contract.get(TYPE_KEY));
-            setUpdated(LocalDateTime.parse((String) contract.get(UPDATED_KEY), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-            setContractId(Integer.valueOf((String) contract.get(CONTRACT_ID_KEY)));
-            setNoFooterPages((String) contract.get(NO_FOOTER_PAGES));
-            setOperatorId(Integer.valueOf((String) contract.get(OPERATOR_ID_KEY)));
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-            e.printStackTrace();
-        }
-    }
+    @JsonIgnore
+    private LocalDateTime updated;
+
+    @JsonProperty("no_footer_pages")
+    private List<Integer> noFooterPages; //no_footer_pages": "3,5,7",
+
+    @JsonProperty("operator_id")
+    private Integer operatorId; //operator_id": "41",
+
+    @JsonProperty("contract_id")
+    private Integer contractId; //contract_id": "128",
 
     public String getBody() {
         return body;
@@ -78,14 +58,6 @@ public class Contract implements RpcResponse {
 
     public void setStatus(Boolean status) {
         this.status = status;
-    }
-
-    public LocalDateTime getUpdated() {
-        return updated;
-    }
-
-    public void setUpdated(LocalDateTime updated) {
-        this.updated = updated;
     }
 
     public String getType() {
@@ -128,5 +100,13 @@ public class Contract implements RpcResponse {
 
     public void setStatus(String status){
         setStatus(status.equals("active"));
+    }
+
+    public LocalDateTime getUpdated() {
+        return updated;
+    }
+
+    public void setUpdated(LocalDateTime updated) {
+        this.updated = updated;
     }
 }
