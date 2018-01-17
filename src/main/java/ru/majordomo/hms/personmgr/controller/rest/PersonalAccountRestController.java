@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +20,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PatchMapping;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -463,6 +468,31 @@ public class PersonalAccountRestController extends CommonRestController {
                 message,
                 HttpStatus.OK
         );
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'FIN')")
+    @PatchMapping("/{accountId}/account/credit-activation-date")
+    public ResponseEntity<Object> setCreditActivationDate(
+            @PathVariable(value = "accountId") String accountId,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam("date") LocalDate date,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (account == null) { return ResponseEntity.notFound().build();}
+
+        LocalDateTime newCreditActivationDate = LocalDateTime.of(date, LocalTime.of(3, 0, 0));
+        logger.info(newCreditActivationDate.toString());
+        accountManager.setCreditActivationDate(accountId, newCreditActivationDate);
+
+        String operator = request.getUserPrincipal().getName();
+        accountHelper.saveHistory(
+                accountId,
+                "Дата активации кредита изменена с " + account.getCreditActivationDate() + " на " + newCreditActivationDate,
+                operator
+        );
+
+        return ResponseEntity.ok().build();
     }
 
     @RequestMapping(value = "/{accountId}/account/settings",
