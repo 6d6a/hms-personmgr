@@ -8,6 +8,7 @@ import java.io.File;
 
 public interface DocumentBuilder {
     default File build(){
+        prepare();
         checkAuthority();
         checkRequireParams();
         buildTemplate();
@@ -17,6 +18,8 @@ public interface DocumentBuilder {
         saveAccountDocument();
         return getDocument();
     }
+
+    default void prepare(){}
 
     default File buildFromAccountDocument(AccountDocument document){
         throw new NotImplementedException();

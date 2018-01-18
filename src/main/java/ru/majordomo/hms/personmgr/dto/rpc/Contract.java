@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.dto.rpc;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 import ru.majordomo.hms.personmgr.common.Utils;
 
 import java.io.UnsupportedEncodingException;
@@ -11,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Data
 public class Contract {
 
     private String body;
@@ -54,57 +56,55 @@ public class Contract {
         }
     }
 
-    public Integer getOperatorId() {
-        return operatorId;
-    }
-
-    public void setOperatorId(Integer operatorId) {
-        this.operatorId = operatorId;
-    }
-
-    public Boolean getStatus() {
-        return status;
-    }
-
+//    public Integer getOperatorId() {
+//        return operatorId;
+//    }
+//
+//    public void setOperatorId(Integer operatorId) {
+//        this.operatorId = operatorId;
+//    }
+//
+//    public Boolean getStatus() {
+//        return status;
+//    }
+//
     public void setStatus(Boolean status) {
         this.status = status;
     }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public Integer getContractId() {
-        return contractId;
-    }
-
-    public void setContractId(Integer contractId) {
-        this.contractId = contractId;
-    }
-
-    public List<Integer> getNoFooterPages() {
-        return noFooterPages;
-    }
-
-    public void setNoFooterPages(List<Integer> noFooterPages) {
-        this.noFooterPages = noFooterPages;
-    }
+//
+//    public String getType() {
+//        return type;
+//    }
+//
+//    public void setType(String type) {
+//        this.type = type;
+//    }
+//
+//    public Integer getContractId() {
+//        return contractId;
+//    }
+//
+//    public void setContractId(Integer contractId) {
+//        this.contractId = contractId;
+//    }
+//
+//    public List<Integer> getNoFooterPages() {
+//        return noFooterPages;
+//    }
+//
+//    public void setNoFooterPages(List<Integer> noFooterPages) {
+//        this.noFooterPages = noFooterPages;
+//    }
 
     public void setNoFooterPages(String row) {
         if (row == null || row.length() == 0) {
-            setNoFooterPages(Collections.emptyList());
+            this.noFooterPages = Collections.emptyList();
         } else {
             List<String> strings = Arrays.asList(row.split(","));
-            setNoFooterPages(
-                    strings
-                            .stream()
-                            .map(Integer::valueOf)
-                            .collect(Collectors.toList())
-            );
+            this.noFooterPages = strings
+                    .stream()
+                    .map(Integer::valueOf)
+                    .collect(Collectors.toList());
         }
     }
 

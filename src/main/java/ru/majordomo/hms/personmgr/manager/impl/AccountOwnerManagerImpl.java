@@ -6,6 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 
@@ -297,7 +300,17 @@ public class AccountOwnerManagerImpl implements AccountOwnerManager {
 
     private void checkById(String id) {
         if (!exists(id)) {
-            throw new ResourceNotFoundException("AccountAbonement с id: " + id + " не найден");
+            throw new ResourceNotFoundException("AccountOwner с id: " + id + " не найден");
         }
+    }
+
+    @Override
+    public void setType(String id, AccountOwner.Type type) {
+        checkById(id);
+
+        Query query = new Query(new Criteria("_id").is(id));
+        Update update = new Update().set("type", type.name());
+
+        mongoOperations.updateFirst(query, update, AccountOwner.class);
     }
 }

@@ -7,6 +7,7 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.repository.AccountDocumentRepository;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
 import ru.majordomo.hms.personmgr.service.Rpc.RegRpcClient;
 
@@ -20,6 +21,7 @@ public class DocumentBuilderFactory {
     private final PersonalAccountManager personalAccountManager;
     private final AccountDocumentRepository accountDocumentRepository;
     private final RegRpcClient regRpcClient;
+    private final RcUserFeignClient rcUserFeignClient;
 
     @Autowired
     public DocumentBuilderFactory(
@@ -27,13 +29,15 @@ public class DocumentBuilderFactory {
             AccountOwnerManager accountOwnerManager,
             PersonalAccountManager personalAccountManager,
             AccountDocumentRepository accountDocumentRepository,
-            RegRpcClient regRpcClient
+            RegRpcClient regRpcClient,
+            RcUserFeignClient rcUserFeignClient
     ){
         this.majordomoRpcClient = majordomoRpcClient;
         this.accountOwnerManager = accountOwnerManager;
         this.personalAccountManager = personalAccountManager;
         this.accountDocumentRepository = accountDocumentRepository;
         this.regRpcClient = regRpcClient;
+        this.rcUserFeignClient = rcUserFeignClient;
     }
 
     public DocumentBuilder getBuilder(DocumentType type, String personalAccountId, Map<String, String> params){
@@ -69,7 +73,9 @@ public class DocumentBuilderFactory {
                 break;
             case REGISTRANT_DOMAIN_CERTIFICATE:
                 documentBuilder = new RegistrantDomainCertificateBuilder(
+                        personalAccountId,
                         regRpcClient,
+                        rcUserFeignClient,
                         params
                 );
 
