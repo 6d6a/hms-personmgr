@@ -72,8 +72,8 @@ public class FileUtils {
         }
     }
 
-    public static void saveInputStreamToFile(InputStream inputStream, String destinationPdfFilePath) throws IOException{
-        FileOutputStream fos = new FileOutputStream(new File(destinationPdfFilePath));
+    public static void saveInputStreamToFile(InputStream inputStream, String filePath) throws IOException{
+        FileOutputStream fos = new FileOutputStream(new File(filePath));
         int inByte;
         while((inByte = inputStream.read()) != -1)
             fos.write(inByte);

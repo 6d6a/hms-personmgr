@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.service.Document;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.majordomo.hms.personmgr.dto.rpc.RegistrantDomain;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
@@ -9,24 +7,17 @@ import ru.majordomo.hms.personmgr.service.Rpc.RegRpcClient;
 import ru.majordomo.hms.rc.user.resources.Domain;
 import ru.majordomo.hms.rc.user.resources.Person;
 
-import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-import static ru.majordomo.hms.personmgr.common.Utils.saveByteArrayToFile;
-
-public class RegistrantDomainCertificateBuilder implements DocumentBuilder {
+public class RegistrantDomainCertificateBuilder extends DocumentBuilderImpl {
 
     private final RegRpcClient regRpcClient;
     private final Map<String, String> params;
-    private File file;
-    private String temporaryFilePath = System.getProperty("java.io.tmpdir") + "/";
     private RcUserFeignClient rcUserFeignClient;
     private String personalAccountId;
     private Domain domain;
-
-    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public RegistrantDomainCertificateBuilder(
             String personalAccountId,
@@ -71,14 +62,9 @@ public class RegistrantDomainCertificateBuilder implements DocumentBuilder {
 
         String registrantDomainId = registrantDomain.getDomainId();
 
-        this.file = new File(temporaryFilePath + domainId + "domain_certificate.png");
-        try {
-            byte[] file = regRpcClient.getDomainCertificateInPng(registrantDomainId);
-            saveByteArrayToFile(file, this.file);
-        } catch (Exception e) {
-            logger.error("Catch exception in save cert.png for domainId " + domainId + " to file");
-            e.printStackTrace();
-        }
+        setFile(
+                regRpcClient.getDomainCertificateInPng(registrantDomainId)
+        );
     }
 
     private RegistrantDomain getDomainFromRegistrant(String domainName, String nicHandle) {
@@ -158,10 +144,5 @@ public class RegistrantDomainCertificateBuilder implements DocumentBuilder {
     @Override
     public void saveAccountDocument() {
 
-    }
-
-    @Override
-    public File getDocument() {
-        return this.file;
     }
 }

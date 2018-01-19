@@ -25,7 +25,6 @@ import javax.validation.Valid;
 
 import ru.majordomo.hms.personmgr.event.account.AccountOwnerChangeEmailEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -174,36 +173,5 @@ public class AccountOwnerRestController extends CommonRestController {
         Page<AccountOwner> accountOwners = accountOwnerManager.findAll(predicate, pageable);
 
         return new ResponseEntity<>(accountOwners, HttpStatus.OK);
-    }
-
-    @PreAuthorize("hasAuthority('CHANGE_OWNER_TYPE')")
-    @PatchMapping("/{accountId}/owner/change-type")
-    public ResponseEntity<Object> changeOwnerType(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestParam("type") AccountOwner.Type type
-    ) {
-        AccountOwner owner = accountOwnerManager.findOneByPersonalAccountId(accountId);
-        if (owner.getType().equals(type)) {
-            return ResponseEntity.ok().build();
-        }
-        switch (owner.getType()){
-            case INDIVIDUAL:
-                throw new ParameterValidationException("Нельзя сменить тип физ-лица");
-
-            case BUDGET_COMPANY:
-                if (!type.equals(AccountOwner.Type.COMPANY)) {
-                    throw new ParameterValidationException("Бюджетника можно изменить только на юр-лицо");
-                }
-                break;
-
-            case COMPANY:
-                if (!type.equals(AccountOwner.Type.BUDGET_COMPANY)) {
-                    throw new ParameterValidationException("Юридическое лицо можно изменить только на бюджетника");
-                }
-                break;
-        }
-
-        accountOwnerManager.setType(owner.getId(), type);
-        return ResponseEntity.ok().build();
     }
 }

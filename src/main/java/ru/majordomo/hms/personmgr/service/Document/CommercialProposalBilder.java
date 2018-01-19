@@ -1,60 +1,34 @@
 package ru.majordomo.hms.personmgr.service.Document;
 
-import java.io.File;
+import org.apache.commons.io.IOUtils;
+
+import java.io.IOException;
 import java.io.InputStream;
 
-import static ru.majordomo.hms.personmgr.common.FileUtils.saveInputStreamToFile;
-
-public class CommercialProposalBilder implements DocumentBuilder {
-
-    private final static String temporaryFilePath = System.getProperty("java.io.tmpdir") + "/";
-    private File file;
-    private final static String fileName = "commercial_proposal.pdf";
-    private final static String COMMERCIAL_PROPOSAL_RESOURCE_PATH = "/contract/" + fileName;
+public class CommercialProposalBilder extends DocumentBuilderImpl {
 
     @Override
-    public void buildReplaceParameters() {
-
-    }
+    public void buildReplaceParameters() {}
 
     @Override
     public void buildTemplate() {
-        String filePath = temporaryFilePath + fileName;
-
-        File file = new File(filePath);
-
-        if (file.exists()) {
-            this.file = file;
-        } else {
-            InputStream inputStream = this.getClass()
-                    .getResourceAsStream(COMMERCIAL_PROPOSAL_RESOURCE_PATH);
-
-            try {
-                saveInputStreamToFile(inputStream, filePath);
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-                e.printStackTrace();
-            }
+        InputStream inputStream = this.getClass().getResourceAsStream("/contract/commercial_proposal.pdf");
+        try {
+            setFile(
+                    IOUtils.toByteArray(inputStream)
+            );
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+            e.printStackTrace();
         }
     }
 
     @Override
-    public void replaceFields() {
-
-    }
+    public void replaceFields() {}
 
     @Override
-    public void convert() {
-
-    }
+    public void convert() {}
 
     @Override
-    public void saveAccountDocument() {
-
-    }
-
-    @Override
-    public File getDocument() {
-        return this.file;
-    }
+    public void saveAccountDocument() {}
 }

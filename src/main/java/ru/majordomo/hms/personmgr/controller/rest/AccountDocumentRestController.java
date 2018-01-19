@@ -19,9 +19,6 @@ import java.io.*;
 import java.util.List;
 import java.util.Map;
 
-import static ru.majordomo.hms.personmgr.common.Utils.convertFileToByteArrayOutputStream;
-
-
 @RestController
 @RequestMapping("/{accountId}/document")
 public class AccountDocumentRestController {
@@ -93,15 +90,12 @@ public class AccountDocumentRestController {
                     document.getParameters()
             );
 
-            File file = documentBuilder.buildFromAccountDocument(document);
-
-            String contentType = "application/pdf";
+            byte[] file = documentBuilder.buildFromAccountDocument(document);
 
             printContentFromFileToResponseOutputStream(
                     response,
-                    contentType,
-                    file.getName(),
-                    file.getAbsolutePath()
+                    document.getType(),
+                    file
             );
 
         }
@@ -121,37 +115,46 @@ public class AccountDocumentRestController {
                 params
         );
 
-        File file = documentBuilder.build();
+        byte[] file = documentBuilder.build();
 
         printContentFromFileToResponseOutputStream(
                 response,
-                file.getName(),
-                file.getAbsolutePath()
+                documentType,
+                file
         );
 
     }
 
+//    private void printContentFromFileToResponseOutputStream(
+//            HttpServletResponse response,
+//            String contentType,
+//            String fileName,
+//            String fileDir
+//    ) {
+//        try {
+//            response.setContentType(contentType);
+//            response.setHeader("Content-disposition", "attachment; filename=" + fileName);
+//            ByteArrayOutputStream baos;
+//            baos = convertFileToByteArrayOutputStream(fileDir);
+//            OutputStream os = response.getOutputStream();
+//            baos.writeTo(os);
+//            os.flush();
+//        } catch (IOException e) {
+//            logger.error("Не удалось отдать документ, exceptionMessage: " + e.getMessage());
+//            e.printStackTrace();
+//        }
+//    }
+
     private void printContentFromFileToResponseOutputStream(
             HttpServletResponse response,
-            String fileName,
-            String fileDir
-    ) {
-        String contentType = getContentTypeByFileName(fileName);
-
-        printContentFromFileToResponseOutputStream(response, contentType, fileName, fileDir);
-    }
-
-    private void printContentFromFileToResponseOutputStream(
-            HttpServletResponse response,
-            String contentType,
-            String fileName,
-            String fileDir
+            DocumentType type,
+            byte[] file
     ) {
         try {
-            response.setContentType(contentType);
-            response.setHeader("Content-disposition", "attachment; filename=" + fileName);
-            ByteArrayOutputStream baos;
-            baos = convertFileToByteArrayOutputStream(fileDir);
+            response.setContentType(getContentType(type));
+            response.setHeader("Content-disposition", "attachment; filename=" + getFileName(type));
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(file.length);
+            baos.write(file, 0, file.length);
             OutputStream os = response.getOutputStream();
             baos.writeTo(os);
             os.flush();
@@ -175,5 +178,57 @@ public class AccountDocumentRestController {
             default:
                 return "text/plain";
         }
+    }
+
+    private String getContentType(DocumentType type){
+        String contentType = "";
+        switch (type){
+            case REGISTRANT_DOMAIN_CERTIFICATE:
+                contentType = "image/png";
+
+                break;
+            case VIRTUAL_HOSTING_CONTRACT:
+            case VIRTUAL_HOSTING_BUDGET_CONTRACT:
+            case VIRTUAL_HOSTING_COMMERCIAL_PROPOSAL:
+                contentType = "application/pdf";
+
+                break;
+            case VIRTUAL_HOSTING_BUDGET_SUPPLEMENTARY_AGREEMENT:
+                contentType = "application/msword";
+
+                break;
+            case VIRTUAL_HOSTING_OFERTA:
+            default:
+                contentType = "application/octet-stream";
+        }
+
+        return contentType;
+    }
+
+    private String getFileName(DocumentType type){
+        String fileName = type.name().toLowerCase();
+        String extension;
+
+        switch (type){
+            case REGISTRANT_DOMAIN_CERTIFICATE:
+                extension = ".png";
+
+                break;
+            case VIRTUAL_HOSTING_OFERTA:
+            case VIRTUAL_HOSTING_CONTRACT:
+            case VIRTUAL_HOSTING_BUDGET_CONTRACT:
+            case VIRTUAL_HOSTING_COMMERCIAL_PROPOSAL:
+                extension = ".pdf";
+
+                break;
+            case VIRTUAL_HOSTING_BUDGET_SUPPLEMENTARY_AGREEMENT:
+                extension = ".doc";
+
+                break;
+            default:
+                extension = "";
+        }
+
+        return fileName + extension;
     }
 }

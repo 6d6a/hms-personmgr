@@ -3,8 +3,6 @@ package ru.majordomo.hms.personmgr.service.Document;
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
 import com.google.common.io.CharStreams;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.majordomo.hms.personmgr.common.DocumentType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.dto.rpc.Contract;
@@ -17,13 +15,13 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountDocumentRepository;
 import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.time.LocalDate;
 import java.util.*;
 
-import static ru.majordomo.hms.personmgr.common.Utils.saveByteArrayToFile;
-
-public class BudgetContractBuilder implements DocumentBuilder {
+public class BudgetContractBuilder extends DocumentBuilderImpl {
 
     private final static String PAGE_NUMBER_PDF_TAG = "\n<pdf:pagenumber>\n";
     private final static String NEXT_PAGE_PDF_TAG = "<pdf:nextpage/>";
@@ -37,7 +35,6 @@ public class BudgetContractBuilder implements DocumentBuilder {
     private final static String HEADER_RESOURCE_PATH = "/contract/budget_contract_header.html";
 
     private final MajordomoRpcClient majordomoRpcClient;
-    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final AccountDocumentRepository accountDocumentRepository;
 
 
@@ -47,8 +44,6 @@ public class BudgetContractBuilder implements DocumentBuilder {
 
     private final Map<String, String> params;
     private String html;
-    private File pdfFile;
-    private String temporaryFilePath = System.getProperty("java.io.tmpdir") + "/";
     private AccountOwner owner;
     private PersonalAccount account;
 
@@ -68,11 +63,11 @@ public class BudgetContractBuilder implements DocumentBuilder {
     }
 
     @Override
-    public File buildFromAccountDocument(AccountDocument document){
+    public byte[] buildFromAccountDocument(AccountDocument document){
         buildTemplateFromDocument(document);
         replaceFieldsWithReplaceMap(document.getParameters());
         convert();
-        return getDocument();
+        return getFile();
     }
 
     @Override
@@ -182,16 +177,9 @@ public class BudgetContractBuilder implements DocumentBuilder {
 
     @Override
     public void convert() {
-        String pdfFilePath = temporaryFilePath + "budget_contract_" + account.getAccountId() + ".pdf";
-        pdfFile = new File(pdfFilePath);
-
-        try {
-            byte[] decoded = majordomoRpcClient.convertHtmlToPdfFile(html);
-            saveByteArrayToFile(decoded, pdfFile);
-        } catch (Exception e){
-            System.out.println(e.getMessage());
-            e.printStackTrace();
-        }
+        setFile(
+                majordomoRpcClient.convertHtmlToPdfFile(html)
+        );
     }
 
     @Override
@@ -203,11 +191,6 @@ public class BudgetContractBuilder implements DocumentBuilder {
         document.setParameters(replaceParameters);
 
         accountDocumentRepository.save(document);
-    }
-
-    @Override
-    public File getDocument() {
-        return pdfFile;
     }
 
     private String createTemplate(String header, String body, String footer, List<Integer> noFooterPages) {
