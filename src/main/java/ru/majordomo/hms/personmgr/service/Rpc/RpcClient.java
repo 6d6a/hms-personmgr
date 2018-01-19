@@ -113,7 +113,7 @@ public abstract class RpcClient {
             throw new XmlRpcException("Ошибка при попытке авторизации на RPC");
         }
 
-        if (response.isSuccess() && response.getSessionId() != null) {
+        if (response.getSuccess() && response.getSessionId() != null) {
             this.sessionId = response.getSessionId();
         } else {
             logger.error("response: " + response.toString());

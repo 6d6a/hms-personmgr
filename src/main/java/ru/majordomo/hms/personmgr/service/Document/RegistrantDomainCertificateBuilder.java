@@ -116,7 +116,7 @@ public class RegistrantDomainCertificateBuilder extends DocumentBuilderImpl {
             throw new ParameterValidationException("У домена не найдены регистрационные данные");
         }
 
-        if (domain.getRegSpec().getPaidTill() == null || domain.getRegSpec().getPaidTill().isAfter(LocalDate.now())) {
+        if (domain.getRegSpec().getPaidTill() == null || !domain.getRegSpec().getPaidTill().isAfter(LocalDate.now())) {
             throw new ParameterValidationException("Нельзя заказать сертификат на истекший домен");
         }
 
