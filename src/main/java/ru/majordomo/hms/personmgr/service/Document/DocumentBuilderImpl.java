@@ -9,6 +9,16 @@ public abstract class DocumentBuilderImpl implements DocumentBuilder {
 
     protected byte[] file = new byte[1];
 
+    protected boolean withoutStamp;
+
+    protected void setWithoutStamp(boolean withoutStamp) {
+        this.withoutStamp = withoutStamp;
+    }
+
+    protected boolean isWithoutStamp(){
+        return this.withoutStamp;
+    }
+
     protected void setFile(byte[] file){
         this.file = file;
     }

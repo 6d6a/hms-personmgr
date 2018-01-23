@@ -71,6 +71,15 @@ public class DocumentBuilderFactory {
                 documentBuilder = new CommercialProposalBilder();
 
                 break;
+            case VIRTUAL_HOSTING_NOTIFY_RF:
+                documentBuilder = new NoticeRFBuilder(
+                        majordomoRpcClient,
+                        accountOwnerManager,
+                        personalAccountId,
+                        Boolean.valueOf(params.getOrDefault("withoutStamp", "false"))
+                        );
+
+                break;
             case REGISTRANT_DOMAIN_CERTIFICATE:
                 documentBuilder = new RegistrantDomainCertificateBuilder(
                         personalAccountId,

@@ -21,6 +21,8 @@ public class MajordomoRpcClient extends RpcClient {
 
     private static final String VH_OFERTA = "oferta_virtual_hosting";
     private static final String VH_CONTRACT = "virtual_hosting";
+    private static final String VH_BUDGET_CONTRACT = "hms_virtual_hosting_budget_contract";
+    private static final String NOTICE_RF = "hms_notice_rf";
 
     @Autowired
     public MajordomoRpcClient(
@@ -56,6 +58,14 @@ public class MajordomoRpcClient extends RpcClient {
 
     public Contract getActiveContractVirtualHosting() {
         return getActiveContractByType(VH_CONTRACT);
+    }
+
+    public Contract getActiveNoticeRF(){
+        return getActiveContractByType(NOTICE_RF);
+    }
+
+    public Contract getActiveBudgetContractVH(){
+        return getActiveContractByType(VH_BUDGET_CONTRACT);
     }
 
     public Contract getActiveOfertaVirtualHosting() {

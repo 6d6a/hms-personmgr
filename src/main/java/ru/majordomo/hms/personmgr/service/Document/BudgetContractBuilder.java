@@ -30,8 +30,7 @@ public class BudgetContractBuilder extends DocumentBuilderImpl {
 
     private final static String PAGE_BREAK_PATTERN = "<div style=\"page-break-after: always;?\">(\\s*<span style=\"display: none;\">&nbsp;</span></div>)?|<div class=\"pagebreak\"><!-- pagebreak --></div>";
 
-//    private final static String FONT_PATH = "\"/home/git/billing/web/fonts/arial.ttf\"";
-    private final static String FONT_PATH = "\"arial.ttf\"";
+    private final static String FONT_PATH = "\"fonts/arial.ttf\"";
     private final static String HEADER_RESOURCE_PATH = "/contract/budget_contract_header.html";
 
     private final MajordomoRpcClient majordomoRpcClient;
@@ -129,7 +128,7 @@ public class BudgetContractBuilder extends DocumentBuilderImpl {
 
     @Override
     public void buildTemplate() {
-        Contract contract = majordomoRpcClient.getActiveContractVirtualHosting();
+        Contract contract = majordomoRpcClient.getActiveBudgetContractVH();
         templateId = contract.getContractId().toString();
 
         buildTemplateFromContract(contract);

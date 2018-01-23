@@ -68,25 +68,35 @@ public abstract class RpcClient {
     }
 
     protected Object callMethod(String method, List<?> params) throws XmlRpcException {
-        TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
-            public X509Certificate[] getAcceptedIssuers() { return null; }
-            public void checkClientTrusted(X509Certificate[] certs, String authType) {}
-            public void checkServerTrusted(X509Certificate[] certs, String authType) {}
-        } };
-        try {
-            SSLContext sc = SSLContext.getInstance("SSL");
-            HostnameVerifier hv = new HostnameVerifier() {
-                public boolean verify(String arg0, SSLSession arg1) { return true; }
-            };
-            sc.init(null, trustAllCerts, new java.security.SecureRandom());
-            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-            HttpsURLConnection.setDefaultHostnameVerifier(hv);
-        } catch (Exception e) {
-            logger.error("Подключение к "
-                    + this.serverAddress.toString()
-                    + " производится с проверкой валидности сертификата. Причина: " + e.getMessage()
-            );
-            e.printStackTrace();
+        if (this.serverAddress.getProtocol().equals("https")) {
+            TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
+                public X509Certificate[] getAcceptedIssuers() {
+                    return null;
+                }
+
+                public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                }
+
+                public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                }
+            }};
+            try {
+                SSLContext sc = SSLContext.getInstance("SSL");
+                HostnameVerifier hv = new HostnameVerifier() {
+                    public boolean verify(String arg0, SSLSession arg1) {
+                        return true;
+                    }
+                };
+                sc.init(null, trustAllCerts, new java.security.SecureRandom());
+                HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+                HttpsURLConnection.setDefaultHostnameVerifier(hv);
+            } catch (Exception e) {
+                logger.error("Подключение к "
+                        + this.serverAddress.toString()
+                        + " производится с проверкой валидности сертификата. Причина: " + e.getMessage()
+                );
+                e.printStackTrace();
+            }
         }
 
         return client.execute(method, params);

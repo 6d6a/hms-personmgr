@@ -26,11 +26,11 @@ public class RegRpcClient extends RpcClient{
         super(serverURL, login, password);
     }
 
-    public byte[] getDomainCertificateInPng(String domainId){
+    public byte[] getDomainCertificateInPng(String domainId, Boolean withoutStamp){
 
         DomainCertificateResponse response = callMethodNew(
                 GET_CERTIFICATE_METHOD,
-                Arrays.asList(domainId),
+                Arrays.asList(domainId, withoutStamp),
                 DomainCertificateResponse.class
         );
         return Base64.getDecoder().decode(response.getCertificate());

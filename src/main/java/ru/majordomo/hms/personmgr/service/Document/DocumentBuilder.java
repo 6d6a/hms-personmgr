@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.service.Document;
 
 import org.apache.commons.lang.NotImplementedException;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.AccountDocument;
 
 public interface DocumentBuilder {
@@ -14,6 +15,12 @@ public interface DocumentBuilder {
         convert();
         saveAccountDocument();
         return getFile();
+    }
+
+    default void check() throws ParameterValidationException {
+        prepare();
+        checkAuthority();
+        checkRequireParams();
     }
 
     default void prepare(){}

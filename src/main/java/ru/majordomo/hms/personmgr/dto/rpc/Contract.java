@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@JsonIgnoreProperties(value = { "updated", "operator_id" })
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 public class Contract {
 

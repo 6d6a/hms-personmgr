@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-@JsonIgnoreProperties(value = { "free_date", "reg_till", "autorenew", "can_prolong", "phone_verified" , "created", "registered" })
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 public class RegistrantDomain {
 

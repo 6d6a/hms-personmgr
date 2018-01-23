@@ -18,6 +18,7 @@ public class RegistrantDomainCertificateBuilder extends DocumentBuilderImpl {
     private RcUserFeignClient rcUserFeignClient;
     private String personalAccountId;
     private Domain domain;
+    private RegistrantDomain registrantDomain;
 
     public RegistrantDomainCertificateBuilder(
             String personalAccountId,
@@ -32,38 +33,50 @@ public class RegistrantDomainCertificateBuilder extends DocumentBuilderImpl {
     }
 
     @Override
+    public void prepare(){
+        setWithoutStamp(Boolean.valueOf(params.getOrDefault("withoutStamp", "false")));
+        String domainId = params.getOrDefault("domainId", null);
+        if (domainId == null) {
+            domain = null;
+        } else {
+            try {
+                domain = rcUserFeignClient.getDomain(personalAccountId, domainId);
+            } catch (Exception e) {
+                domain = null;
+            }
+        }
+        checkDomainAndPerson(domain);
+        Person person = domain.getPerson();
+        registrantDomain = getDomainFromRegistrant(domain.getName(), person.getNicHandle());
+    }
+
+    @Override
+    public void check(){
+        super.check();
+        buildTemplate();
+    }
+
+    @Override
     public void checkRequireParams(){
         String domainId = params.get("domainId");
 
         if (domainId == null || domainId.isEmpty()) {
             throw new ParameterValidationException("Укажите домен, для которого хотите заказать сертификат");
         }
+
+        if (registrantDomain == null) {
+            throw new ParameterValidationException("Домен " + domain.getName() + " не найден у регистратора");
+        }
+
+        if (!registrantDomain.getState().equals("ok")) {
+            throw new ParameterValidationException("Домен " + domain.getName() + " в состоянии ошибки");
+        }
     }
 
     @Override
     public void buildTemplate() {
-        String domainId = params.get("domainId");
-
-        domain = rcUserFeignClient.getDomain(personalAccountId, domainId);
-
-        checkDomainAndPerson(domain);
-
-        Person person = domain.getPerson();
-
-        RegistrantDomain registrantDomain = getDomainFromRegistrant(domain.getName(), person.getNicHandle());
-
-        if (registrantDomain == null) {
-            throw new ParameterValidationException("Домен не найден у регистратора");
-        }
-
-        if (!registrantDomain.getState().equals("ok")) {
-            throw new ParameterValidationException("Домен в состоянии ошибки");
-        }
-
-        String registrantDomainId = registrantDomain.getDomainId();
-
         setFile(
-                regRpcClient.getDomainCertificateInPng(registrantDomainId)
+                regRpcClient.getDomainCertificateInPng(registrantDomain.getDomainId(), isWithoutStamp())
         );
     }
 
@@ -113,21 +126,21 @@ public class RegistrantDomainCertificateBuilder extends DocumentBuilderImpl {
         }
 
         if (domain.getRegSpec() == null) {
-            throw new ParameterValidationException("У домена не найдены регистрационные данные");
+            throw new ParameterValidationException("У домена " + domain.getName() + " не найдены регистрационные данные");
         }
 
         if (domain.getRegSpec().getPaidTill() == null || !domain.getRegSpec().getPaidTill().isAfter(LocalDate.now())) {
-            throw new ParameterValidationException("Нельзя заказать сертификат на истекший домен");
+            throw new ParameterValidationException("Нельзя заказать сертификат на истекший домен  " + domain.getName());
         }
 
         Person person = domain.getPerson();
 
         if (person == null) {
-            throw new ParameterValidationException("Не найдена персона, на которую зарегистрирован домен");
+            throw new ParameterValidationException("Не найдена персона, на которую зарегистрирован домен " + domain.getName());
         }
 
         if (person.getNicHandle() == null || person.getNicHandle().isEmpty()) {
-            throw new ParameterValidationException("Не найдет Nic-handle персоны");
+            throw new ParameterValidationException("Не найдет Nic-handle персоны для домена " + domain.getName());
         }
     }
 
@@ -142,7 +155,5 @@ public class RegistrantDomainCertificateBuilder extends DocumentBuilderImpl {
     }
 
     @Override
-    public void saveAccountDocument() {
-
-    }
+    public void saveAccountDocument() {}
 }
