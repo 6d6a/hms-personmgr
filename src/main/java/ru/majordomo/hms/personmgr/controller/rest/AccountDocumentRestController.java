@@ -3,9 +3,11 @@ package ru.majordomo.hms.personmgr.controller.rest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.DocumentType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -18,6 +20,7 @@ import ru.majordomo.hms.personmgr.repository.AccountDocumentRepository;
 import ru.majordomo.hms.personmgr.repository.DocumentOrderRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.service.Document.DocumentBuilder;
 import ru.majordomo.hms.personmgr.service.Document.DocumentBuilderFactory;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
@@ -26,7 +29,10 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -45,6 +51,15 @@ public class AccountDocumentRestController {
     private final PersonalAccountManager personalAccountManager;
     private final PaymentServiceRepository paymentServiceRepository;
     private final DocumentOrderRepository documentOrderRepository;
+    private final AccountNotificationHelper accountNotificationHelper;
+    private final String documentOrderEmail;
+
+    private List<DocumentType> defaultDocumentTypes = Arrays.asList(
+            VIRTUAL_HOSTING_BUDGET_CONTRACT,
+            VIRTUAL_HOSTING_BUDGET_SUPPLEMENTARY_AGREEMENT,
+            VIRTUAL_HOSTING_COMMERCIAL_PROPOSAL,
+            VIRTUAL_HOSTING_NOTIFY_RF
+    );
 
     protected final String temporaryFilePath = System.getProperty("java.io.tmpdir") + "/";
 
@@ -55,7 +70,9 @@ public class AccountDocumentRestController {
             AccountHelper accountHelper,
             PersonalAccountManager personalAccountManager,
             PaymentServiceRepository paymentServiceRepository,
-            DocumentOrderRepository documentOrderRepository
+            DocumentOrderRepository documentOrderRepository,
+            AccountNotificationHelper accountNotificationHelper,
+            @Value("${mail_manager.document_order_email}") String documentOrderEmail
     ){
         this.documentBuilderFactory = documentBuilderFactory;
         this.accountDocumentRepository = accountDocumentRepository;
@@ -63,6 +80,8 @@ public class AccountDocumentRestController {
         this.personalAccountManager = personalAccountManager;
         this.paymentServiceRepository = paymentServiceRepository;
         this.documentOrderRepository = documentOrderRepository;
+        this.accountNotificationHelper = accountNotificationHelper;
+        this.documentOrderEmail = documentOrderEmail;
     }
 
     @GetMapping("/old/{documentType}")
@@ -134,26 +153,15 @@ public class AccountDocumentRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestParam Map<String, String> params
     ){
-
         DocumentOrder documentOrder = new DocumentOrder();
-
-        PersonalAccount account = personalAccountManager.findOne(accountId);
-
-        PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
-        BigDecimal available = accountHelper.getBalance(account);
-
-        if (paymentService.getCost().compareTo(available) >= 0) {
-            documentOrder.getErrors().put(
-                    "balance", "Недостаточно средств на счету, для заказа документов необходимо пополнить счет на " +
-                            paymentService.getCost().subtract(available) + " руб."
-            );
+        String postalAddress = params.getOrDefault("postalAddress", "");
+        if (postalAddress == null || !postalAddress.isEmpty()){
+            throw new ParameterValidationException("Необходимо указать почтовый адрес для заказа документов");
         }
 
-        List<DocumentType> defaultDocumentTypes = Arrays.asList(
-                VIRTUAL_HOSTING_BUDGET_CONTRACT,
-                VIRTUAL_HOSTING_BUDGET_SUPPLEMENTARY_AGREEMENT,
-                VIRTUAL_HOSTING_COMMERCIAL_PROPOSAL
-        );
+        documentOrder.setPostalAddress(postalAddress);
+
+        PersonalAccount account = personalAccountManager.findOne(accountId);
 
         defaultDocumentTypes.forEach(documentType ->{
             try {
@@ -178,6 +186,10 @@ public class AccountDocumentRestController {
 
         List<Domain> domains = accountHelper.getDomains(account);
 
+        domains = domains.stream()
+                .filter(domain -> domain.getParentDomainId() == null || domain.getParentDomainId().isEmpty())
+                .collect(Collectors.toList());
+
         if (domains != null && !domains.isEmpty()) {
             for (Domain domain : domains){
                 try {
@@ -197,29 +209,40 @@ public class AccountDocumentRestController {
             }
         }
 
+        PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
+        BigDecimal available = accountHelper.getBalance(account);
+
+        if (paymentService.getCost().compareTo(available) >= 0) {
+            documentOrder.getErrors().put(
+                    "balance", "Недостаточно средств на счету, для заказа документов необходимо пополнить счет на " +
+                            paymentService.getCost().subtract(available) + " руб."
+            );
+        }
+
         return ResponseEntity.ok(documentOrder);
     }
 
     @PostMapping("/order")
     public ResponseEntity<Object> order(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody DocumentOrder documentOrder
+            @RequestBody DocumentOrder documentOrder,
+            SecurityContextHolderAwareRequestWrapper request
     ){
         PersonalAccount account = personalAccountManager.findOne(accountId);
 
         Map<String, byte[]> fileMap = new HashMap<>();
         Boolean agreement = documentOrder.getAgreement();
 
+        if (documentOrder.getPostalAddress() == null || documentOrder.getPostalAddress().isEmpty()){
+            throw new ParameterValidationException("Необходимо указать почтовый адрес для заказа документов");
+        }
+
         if (!agreement) {
             throw new ParameterValidationException("Необходимо подтвердить заказ документов");
         }
         documentOrder.getParams().put("withoutStamp", "true");
 
-        List<DocumentType> defaultDocumentTypes = Arrays.asList(
-                VIRTUAL_HOSTING_BUDGET_CONTRACT,
-                VIRTUAL_HOSTING_BUDGET_SUPPLEMENTARY_AGREEMENT,
-                VIRTUAL_HOSTING_COMMERCIAL_PROPOSAL
-        );
+        documentOrder.setPersonalAccountId(accountId);
 
         defaultDocumentTypes.forEach(documentType ->{
             try {
@@ -243,6 +266,10 @@ public class AccountDocumentRestController {
 
         List<Domain> domains = accountHelper.getDomains(account);
 
+        domains = domains.stream()
+                .filter(domain -> domain.getParentDomainId() == null || domain.getParentDomainId().isEmpty())
+                .collect(Collectors.toList());
+
         if (domains != null && !domains.isEmpty()) {
             for (Domain domain : domains){
                 try {
@@ -258,10 +285,11 @@ public class AccountDocumentRestController {
 
                 } catch (Exception e){
                     logger.debug("Ошибка при генерации сертификата для домена " + domain.getName());
-//                    documentOrder.getErrors().put(domain.getName(), e.getMessage());
                 }
             }
         }
+
+        documentOrder.setChecked(true);
 
         if (documentOrder.getErrors().isEmpty()) {
             PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
@@ -271,30 +299,63 @@ public class AccountDocumentRestController {
                 zipFile.delete();
                 zipFile.createNewFile();
                 saveFilesToZip(zipFile, fileMap);
+
+                byte[] zipFileByteArray = Files.readAllBytes(Paths.get(zipFile.getAbsolutePath()));
+
+                String documentListInHtml = String.join("<br/>", documentOrder.getDocumentTypes()
+                        .stream().map(e -> e.getNameForHuman()).collect(Collectors.toList()));
+
+                String domainListInHtml = "не заказано";
+                if (!documentOrder.getDomainIds().isEmpty()) {
+                    List<String> domainNameList = new ArrayList<>();
+                    domains.stream().forEach(domain -> {
+                        if (documentOrder.getDomainIds().contains(domain.getId())) {
+                            domainNameList.add(domain.getName());
+                        }
+                    });
+                    domainListInHtml = String.join("<br/>", domainNameList);
+                }
+
+
+                Map<String, String> parameters = new HashMap<>();
+                parameters.put("client_id", account.getAccountId());
+                parameters.put("acc_id", account.getName());
+                parameters.put("address", documentOrder.getPostalAddress());
+                parameters.put("document_list", documentListInHtml);
+                parameters.put("domain_list", domainListInHtml);
+
+                Map<String, String> attachment = new HashMap<>();
+                attachment.put("body", Base64.getMimeEncoder().encodeToString(zipFileByteArray));
+                attachment.put("mime_type", "application/zip");
+                attachment.put("filename", zipFile.getName());
+
+                accountNotificationHelper.sendMailWithAttachement(
+                        account,
+                        documentOrderEmail,
+                        "HmsSendDocumentOrder",
+                        10,
+                        parameters,
+                        attachment
+                );
             } catch (IOException e) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Внутренняя ошибка, попробуйте снова позже");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Внутренняя ошибка, попробуйте позже");
             }
 
             try {
-
                 accountHelper.charge(account, paymentService);
                 documentOrder.setPaid(true);
-
-
-
+                documentOrderRepository.save(documentOrder);
+                String operator = request.getUserPrincipal().getName();
+                accountHelper.saveHistory(accountId, "Заказан пакет документов " + documentOrder.toString(), operator);
             } catch (Exception e){
                 logger.error("Не удалось списать за пакет документов " + e.getMessage());
                 documentOrder.setChecked(false);
                 documentOrder.getErrors().put("balance", e.getMessage());
+                documentOrderRepository.save(documentOrder);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(documentOrder);
             }
             return ResponseEntity.ok().build();
         }
-
-
-
-
-
         return ResponseEntity.ok(documentOrder);
     }
 

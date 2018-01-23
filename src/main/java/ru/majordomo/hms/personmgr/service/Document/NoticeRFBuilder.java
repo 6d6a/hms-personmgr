@@ -4,16 +4,13 @@ import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.springframework.beans.factory.annotation.Value;
 import ru.majordomo.hms.personmgr.common.FileUtils;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.dto.rpc.Contract;
@@ -23,18 +20,16 @@ import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
 
 import java.io.*;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
 public class NoticeRFBuilder extends DocumentBuilderImpl {
 
-
-
-
-
     private final MajordomoRpcClient majordomoRpcClient;
     private AccountOwner accountOwner;
+
+    private final String tmpDir = System.getProperty("java.io.tmpdir") + "/";
+    private final String wkhtmltopdfUrl;
 
     private String template;
     private Contract contract;
@@ -44,11 +39,13 @@ public class NoticeRFBuilder extends DocumentBuilderImpl {
             MajordomoRpcClient majordomoRpcClient,
             AccountOwnerManager accountOwnerManager,
             String personalAccountId,
-            boolean withoutStamp
+            boolean withoutStamp,
+            String wkhtmltopdfUrl
     ) {
         setWithoutStamp(withoutStamp);
         this.majordomoRpcClient = majordomoRpcClient;
         this.accountOwner = accountOwnerManager.findOneByPersonalAccountId(personalAccountId);
+        this.wkhtmltopdfUrl = wkhtmltopdfUrl;
     }
 
 
@@ -80,7 +77,7 @@ public class NoticeRFBuilder extends DocumentBuilderImpl {
     @Override
     public void convert() {
         try {
-            File htmlFile = new File(accountOwner.getPersonalAccountId() + "_notice_rf.html");
+            File htmlFile = new File(tmpDir + accountOwner.getPersonalAccountId() + "_notice_rf.html");
             FileUtils.saveFile(htmlFile, template);
             file = convertHtmlToPdf(htmlFile);
         } catch (IOException e){}
@@ -88,7 +85,7 @@ public class NoticeRFBuilder extends DocumentBuilderImpl {
 
     public byte[] convertHtmlToPdf(File htmlFile) throws IOException {
         CloseableHttpClient httpclient = HttpClients.createDefault();
-        HttpPost post = new HttpPost("http://dh1-mr.intr:9080/");
+        HttpPost post = new HttpPost(wkhtmltopdfUrl);
         MultipartEntity entity = new MultipartEntity();
         entity.addPart("file", new FileBody(htmlFile));
         post.setEntity(entity);

@@ -33,4 +33,6 @@ public class DocumentOrder extends ModelBelongsToPersonalAccount {
     private Map<String, String> errors = new HashMap<>();
 
     private Boolean send = false;
+
+    private String postalAddress;
 }

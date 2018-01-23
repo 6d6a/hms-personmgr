@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.service.Document;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.DocumentType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -22,6 +23,7 @@ public class DocumentBuilderFactory {
     private final AccountDocumentRepository accountDocumentRepository;
     private final RegRpcClient regRpcClient;
     private final RcUserFeignClient rcUserFeignClient;
+    private final String wkhtmltopdfUrl;
 
     @Autowired
     public DocumentBuilderFactory(
@@ -30,7 +32,8 @@ public class DocumentBuilderFactory {
             PersonalAccountManager personalAccountManager,
             AccountDocumentRepository accountDocumentRepository,
             RegRpcClient regRpcClient,
-            RcUserFeignClient rcUserFeignClient
+            RcUserFeignClient rcUserFeignClient,
+            @Value("${converter.wkhtmltopdf.url}") String wkhtmltopdfUrl
     ){
         this.majordomoRpcClient = majordomoRpcClient;
         this.accountOwnerManager = accountOwnerManager;
@@ -38,6 +41,7 @@ public class DocumentBuilderFactory {
         this.accountDocumentRepository = accountDocumentRepository;
         this.regRpcClient = regRpcClient;
         this.rcUserFeignClient = rcUserFeignClient;
+        this.wkhtmltopdfUrl = wkhtmltopdfUrl;
     }
 
     public DocumentBuilder getBuilder(DocumentType type, String personalAccountId, Map<String, String> params){
@@ -76,8 +80,9 @@ public class DocumentBuilderFactory {
                         majordomoRpcClient,
                         accountOwnerManager,
                         personalAccountId,
-                        Boolean.valueOf(params.getOrDefault("withoutStamp", "false"))
-                        );
+                        Boolean.valueOf(params.getOrDefault("withoutStamp", "false")),
+                        wkhtmltopdfUrl
+                );
 
                 break;
             case REGISTRANT_DOMAIN_CERTIFICATE:
