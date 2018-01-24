@@ -202,9 +202,9 @@ public class DomainResourceRestController extends CommonRestController {
 
         String actionText = isRegistration ?
                 (isFreeDomain ?
-                        "бесплатную регистрацию" :
+                        "бесплатную регистрацию (actionPromotion Id: " + message.getParam("freeDomainPromotionId") + " )" :
                         (isDiscountedDomain ?
-                                "регистрацию со скидкой" :
+                                "регистрацию со скидкой (actionPromotion Id: " + message.getParam("domainDiscountPromotionId") + " )" :
                                 "регистрацию")) :
                 "добавление";
         //Save history

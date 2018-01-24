@@ -296,7 +296,14 @@ public class AccountEventListener {
             if (account.getCreated().isAfter(LocalDateTime.now().minusYears(1))) {
                 // Все условия выполнены
 
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                LocalDateTime partnerBonusSwitchDate = LocalDateTime.parse(INCREASED_BONUS_PARTNER_DATE, formatter);
+
                 BigDecimal percent = new BigDecimal(BONUS_PARTNER_PERCENT);
+
+                if (account.getCreated().isAfter(partnerBonusSwitchDate)) {
+                    percent = new BigDecimal(INCREASED_BONUS_PARTNER_PERCENT);
+                }
 
                 BigDecimal promocodeBonus = amount.multiply(percent);
 
