@@ -135,8 +135,6 @@ public class AccountDocumentRestController {
 
         documentOrder.getParams().put("withoutStamp", "true");
 
-        documentOrder.setPersonalAccountId(accountId);
-
         List<Domain> domains = accountHelper.getDomains(account);
 
         Map<String, byte[]> fileMap = buildFileMap(documentOrder, domains);

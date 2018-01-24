@@ -118,8 +118,11 @@ public class NoticeRFBuilder extends DocumentBuilderImpl {
 
         //обязательные параметры
         String stamp = "<img src=\"data:image/png;base64," +
-                getResourceInBase64("/images/stamp_hosting.gif") +
-                "\" alt=\"Подпись/печать\"/>";
+                getResourceInBase64("/images/stamp_hosting.png") +
+                "\" alt=\"Подпись\"/><img width=70% height=auto class=\"sign\" src=\"data:image/png;base64," +
+                getResourceInBase64("/images/signature_di.png") +
+                "\" alt=\"Печать\"/>";
+
 
         String dateInString = String.valueOf(LocalDate.now().getDayOfMonth()) +
                 " " + Utils.getMonthName(LocalDate.now().getMonthValue()) +
