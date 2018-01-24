@@ -4,12 +4,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.DocumentType;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
+import ru.majordomo.hms.personmgr.exception.LowBalanceException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountDocument;
@@ -102,6 +107,59 @@ public class AccountDocumentRestController {
         return ResponseEntity.ok(documents);
     }
 
+    @PreAuthorize("hasAuthority('ACCOUNT_DOCUMENT_ORDER_VIEW')")
+    @RequestMapping(value = "", method = RequestMethod.GET)
+    public ResponseEntity<Page<DocumentOrder>> listAll(
+            @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
+            Pageable pageable
+    ) {
+        Page<DocumentOrder> orders = documentOrderRepository.findByPersonalAccountId(accountId, pageable);
+
+        return new ResponseEntity<>(orders, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAuthority('ACCOUNT_DOCUMENT_ORDER_VIEW')")
+    @GetMapping("/order/{documentOrderId}")
+    @ResponseBody
+    public void downloadDocumentOrder(
+            @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
+            @ObjectId(DocumentOrder.class) @PathVariable("documentOrderId") String documentOrderId,
+            HttpServletResponse response
+    ) {
+        DocumentOrder documentOrder = documentOrderRepository.findOneByIdAndPersonalAccountId(documentOrderId, accountId);
+        if (documentOrder == null) {
+            throw new ResourceNotFoundException("Не найден заказ документов");
+        }
+
+        PersonalAccount account = personalAccountManager.findOne(documentOrder.getPersonalAccountId());
+
+        documentOrder.getParams().put("withoutStamp", "true");
+
+        documentOrder.setPersonalAccountId(accountId);
+
+        List<Domain> domains = accountHelper.getDomains(account);
+
+        Map<String, byte[]> fileMap = buildFileMap(documentOrder, domains);
+
+        if (!documentOrder.getErrors().isEmpty()) {
+            throw new InternalApiException(documentOrder.getErrors().toString());
+        }
+
+        byte[] zipFileByteArray;
+        try {
+            zipFileByteArray = getZipFileByteArray(fileMap, accountId);
+        } catch (IOException e) {
+            throw new InternalApiException("Ошибка при создании zip-архива");
+        }
+
+        printContentFromFileToResponseOutputStream(
+                response,
+                "application/zip",
+                accountId + ".zip",
+                zipFileByteArray
+        );
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/id/{accountDocumentId}")
     public ResponseEntity<AccountDocument> deleteDocumentById(
@@ -154,6 +212,7 @@ public class AccountDocumentRestController {
             @RequestParam Map<String, String> params
     ){
         DocumentOrder documentOrder = new DocumentOrder();
+
         String postalAddress = params.getOrDefault("postalAddress", "");
         if (postalAddress == null || !postalAddress.isEmpty()){
             throw new ParameterValidationException("Необходимо указать почтовый адрес для заказа документов");
@@ -165,12 +224,7 @@ public class AccountDocumentRestController {
 
         defaultDocumentTypes.forEach(documentType ->{
             try {
-                DocumentBuilder builder = documentBuilderFactory.getBuilder(
-                        documentType,
-                        accountId,
-                        params
-                );
-                builder.check();
+                checkDocument(documentType, accountId, params);
                 documentOrder.
                         getDocumentTypes().
                         add(documentType);
@@ -186,21 +240,14 @@ public class AccountDocumentRestController {
 
         List<Domain> domains = accountHelper.getDomains(account);
 
-        domains = domains.stream()
-                .filter(domain -> domain.getParentDomainId() == null || domain.getParentDomainId().isEmpty())
-                .collect(Collectors.toList());
+        domains = filterDomains(domains);
 
         if (domains != null && !domains.isEmpty()) {
             for (Domain domain : domains){
                 try {
                     params.put("domainId", domain.getId());
-                    DocumentBuilder builder = documentBuilderFactory.getBuilder(
-                            REGISTRANT_DOMAIN_CERTIFICATE,
-                            accountId,
-                            params
-                    );
 
-                    builder.check();
+                    checkDocument(REGISTRANT_DOMAIN_CERTIFICATE, accountId, params);
 
                     documentOrder.getDomainIds().add(domain.getId());
                 } catch (Exception e){
@@ -212,11 +259,10 @@ public class AccountDocumentRestController {
         PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
         BigDecimal available = accountHelper.getBalance(account);
 
-        if (paymentService.getCost().compareTo(available) >= 0) {
-            documentOrder.getErrors().put(
-                    "balance", "Недостаточно средств на счету, для заказа документов необходимо пополнить счет на " +
-                            paymentService.getCost().subtract(available) + " руб."
-            );
+        try {
+            checkBalanceForDocumentOrder(account);
+        } catch (LowBalanceException e) {
+            documentOrder.getErrors().put("balance", e.getMessage());
         }
 
         return ResponseEntity.ok(documentOrder);
@@ -230,7 +276,6 @@ public class AccountDocumentRestController {
     ){
         PersonalAccount account = personalAccountManager.findOne(accountId);
 
-        Map<String, byte[]> fileMap = new HashMap<>();
         Boolean agreement = documentOrder.getAgreement();
 
         if (documentOrder.getPostalAddress() == null || documentOrder.getPostalAddress().isEmpty()){
@@ -244,104 +289,63 @@ public class AccountDocumentRestController {
 
         documentOrder.setPersonalAccountId(accountId);
 
-        defaultDocumentTypes.forEach(documentType ->{
-            try {
-                DocumentBuilder builder = documentBuilderFactory.getBuilder(
-                        documentType,
-                        accountId,
-                        documentOrder.getParams()
-                );
-                byte[] file = builder.build();
-                fileMap.put(getFileName(documentType), file);
-
-            } catch (Exception e) {
-                documentOrder.setChecked(false);
-                documentOrder.getErrors().put(documentType.name(), e.getMessage());
-            }
-        });
-
-        if (documentOrder.getErrors().isEmpty()) {
-            documentOrder.setChecked(true);
-        }
-
         List<Domain> domains = accountHelper.getDomains(account);
 
-        domains = domains.stream()
-                .filter(domain -> domain.getParentDomainId() == null || domain.getParentDomainId().isEmpty())
-                .collect(Collectors.toList());
-
-        if (domains != null && !domains.isEmpty()) {
-            for (Domain domain : domains){
-                try {
-                    DocumentBuilder builder = documentBuilderFactory.getBuilder(
-                            REGISTRANT_DOMAIN_CERTIFICATE,
-                            accountId,
-                            documentOrder.getParams()
-                    );
-
-                    byte[] file = builder.build();
-                    fileMap.put(domain.getName() + getFileName(REGISTRANT_DOMAIN_CERTIFICATE), file);
-                    documentOrder.getDomainIds().add(domain.getId());
-
-                } catch (Exception e){
-                    logger.debug("Ошибка при генерации сертификата для домена " + domain.getName());
-                }
-            }
-        }
-
-        documentOrder.setChecked(true);
+        Map<String, byte[]> fileMap = buildFileMap(documentOrder, domains);
 
         if (documentOrder.getErrors().isEmpty()) {
-            PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
-            File zipFile = new File(temporaryFilePath + accountId + ".zip");
 
+
+            byte[] zipFileByteArray;
             try {
-                zipFile.delete();
-                zipFile.createNewFile();
-                saveFilesToZip(zipFile, fileMap);
-
-                byte[] zipFileByteArray = Files.readAllBytes(Paths.get(zipFile.getAbsolutePath()));
-
-                String documentListInHtml = String.join("<br/>", documentOrder.getDocumentTypes()
-                        .stream().map(e -> e.getNameForHuman()).collect(Collectors.toList()));
-
-                String domainListInHtml = "не заказано";
-                if (!documentOrder.getDomainIds().isEmpty()) {
-                    List<String> domainNameList = new ArrayList<>();
-                    domains.stream().forEach(domain -> {
-                        if (documentOrder.getDomainIds().contains(domain.getId())) {
-                            domainNameList.add(domain.getName());
-                        }
-                    });
-                    domainListInHtml = String.join("<br/>", domainNameList);
-                }
-
-
-                Map<String, String> parameters = new HashMap<>();
-                parameters.put("client_id", account.getAccountId());
-                parameters.put("acc_id", account.getName());
-                parameters.put("address", documentOrder.getPostalAddress());
-                parameters.put("document_list", documentListInHtml);
-                parameters.put("domain_list", domainListInHtml);
-
-                Map<String, String> attachment = new HashMap<>();
-                attachment.put("body", Base64.getMimeEncoder().encodeToString(zipFileByteArray));
-                attachment.put("mime_type", "application/zip");
-                attachment.put("filename", zipFile.getName());
-
-                accountNotificationHelper.sendMailWithAttachement(
-                        account,
-                        documentOrderEmail,
-                        "HmsSendDocumentOrder",
-                        10,
-                        parameters,
-                        attachment
-                );
+                zipFileByteArray = getZipFileByteArray(fileMap, accountId);
             } catch (IOException e) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Внутренняя ошибка, попробуйте позже");
             }
 
+            //Отправка письма секретарю
+
+            String documentListInHtml = String.join("<br/>", documentOrder.getDocumentTypes()
+                    .stream().map(e -> e.getNameForHuman()).collect(Collectors.toList()));
+
+            String domainListInHtml = "не заказано";
+            if (!documentOrder.getDomainIds().isEmpty()) {
+                List<String> domainNameList = new ArrayList<>();
+                domains.stream().forEach(domain -> {
+                    if (documentOrder.getDomainIds().contains(domain.getId())) {
+                        domainNameList.add(domain.getName());
+                    }
+                });
+                domainListInHtml = String.join("<br/>", domainNameList);
+            }
+
+            String attachementBody = Base64.getMimeEncoder().encodeToString(zipFileByteArray);
+
+            Map<String, String> parameters = new HashMap<>();
+            parameters.put("client_id", account.getAccountId());
+            parameters.put("acc_id", account.getName());
+            parameters.put("address", documentOrder.getPostalAddress());
+            parameters.put("document_list", documentListInHtml);
+            parameters.put("domain_list", domainListInHtml);
+
+            Map<String, String> attachment = new HashMap<>();
+            attachment.put("body", attachementBody);
+            attachment.put("mime_type", "application/zip");
+            attachment.put("filename", accountId + ".zip");
+
+            accountNotificationHelper.sendMailWithAttachement(
+                    account,
+                    documentOrderEmail,
+                    "HmsSendDocumentOrder",
+                    10,
+                    parameters,
+                    attachment
+            );
+
+
             try {
+                PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
+
                 accountHelper.charge(account, paymentService);
                 documentOrder.setPaid(true);
                 documentOrderRepository.save(documentOrder);
@@ -356,7 +360,7 @@ public class AccountDocumentRestController {
             }
             return ResponseEntity.ok().build();
         }
-        return ResponseEntity.ok(documentOrder);
+        return ResponseEntity.badRequest().body(documentOrder);
     }
 
     @GetMapping("/{documentType}")
@@ -408,9 +412,26 @@ public class AccountDocumentRestController {
             DocumentType type,
             byte[] file
     ) {
+        String contentType = getContentType(type);
+        String fileName = getFileName(type);
+
+        printContentFromFileToResponseOutputStream(
+                response,
+                contentType,
+                fileName,
+                file
+        );
+    }
+
+    private void printContentFromFileToResponseOutputStream(
+            HttpServletResponse response,
+            String contentType,
+            String fileName,
+            byte[] file
+    ) {
         try {
-            response.setContentType(getContentType(type));
-            response.setHeader("Content-disposition", "attachment; filename=" + getFileName(type));
+            response.setContentType(contentType);
+            response.setHeader("Content-disposition", "attachment; filename=" + fileName);
             ByteArrayOutputStream baos = new ByteArrayOutputStream(file.length);
             baos.write(file, 0, file.length);
             OutputStream os = response.getOutputStream();
@@ -521,5 +542,103 @@ public class AccountDocumentRestController {
 
 
         out.close();
+    }
+
+    private void checkDocument(DocumentType type, String accountId, Map<String, String> params) {
+        DocumentBuilder builder = getBuilder(type, accountId, params);
+        builder.check();
+    }
+
+    private byte[] buildDocument(DocumentType type, String accountId, Map<String, String> params){
+        DocumentBuilder builder = getBuilder(type, accountId, params);
+        return builder.build();
+    }
+
+    private DocumentBuilder getBuilder(DocumentType type, String accountId, Map<String, String> params){
+        return documentBuilderFactory.getBuilder(
+                type,
+                accountId,
+                params
+        );
+    }
+
+    private List<Domain> filterDomains(List<Domain> domains){
+        domains = domains.stream()
+                .filter(domain -> domain.getParentDomainId() == null
+                        || domain.getParentDomainId().isEmpty()
+                        || domain.getPersonId() == null
+                        || domain.getPersonId().isEmpty()
+                )
+                .collect(Collectors.toList());
+
+        return domains;
+    }
+
+    private void checkBalanceForDocumentOrder(PersonalAccount account) throws LowBalanceException {
+        PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
+        BigDecimal available = accountHelper.getBalance(account);
+
+        if (paymentService.getCost().compareTo(available) >= 0) {
+            throw new LowBalanceException(
+                    "Недостаточно средств на счету, для заказа документов необходимо пополнить счет на " +
+                            paymentService.getCost().subtract(available) + " руб."
+            );
+        }
+    }
+
+    private Map<String, byte[]> buildFileMap(DocumentOrder documentOrder, List<Domain> domains){
+
+        Map<String, byte[]> fileMap = new HashMap<>();
+
+        defaultDocumentTypes.forEach(documentType ->{
+            try {
+                byte[] file = buildDocument(
+                        documentType,
+                        documentOrder.getPersonalAccountId(),
+                        documentOrder.getParams()
+                );
+                fileMap.put(getFileName(documentType), file);
+
+            } catch (Exception e) {
+                documentOrder.setChecked(false);
+                documentOrder.getErrors().put(documentType.name(), e.getMessage());
+            }
+        });
+
+        if (documentOrder.getErrors().isEmpty()) {
+            documentOrder.setChecked(true);
+        }
+
+
+
+        domains = filterDomains(domains);
+
+        if (domains != null && !domains.isEmpty()) {
+            for (Domain domain : domains){
+                try {
+                    byte[] file = buildDocument(
+                            REGISTRANT_DOMAIN_CERTIFICATE,
+                            documentOrder.getPersonalAccountId(),
+                            documentOrder.getParams()
+                    );
+
+                    fileMap.put(domain.getName() + getFileName(REGISTRANT_DOMAIN_CERTIFICATE), file);
+                    documentOrder.getDomainIds().add(domain.getId());
+
+                } catch (Exception e){
+                    logger.debug("Ошибка при генерации сертификата для домена " + domain.getName());
+                }
+            }
+        }
+
+        return fileMap;
+    }
+
+    private byte[] getZipFileByteArray(Map<String, byte[]> fileMap, String filePrefixName) throws IOException{
+        File zipFile = new File(temporaryFilePath + filePrefixName + ".zip");
+        zipFile.delete();
+        zipFile.createNewFile();
+        saveFilesToZip(zipFile, fileMap);
+        return Files.readAllBytes(Paths.get(zipFile.getAbsolutePath()));
     }
 }
