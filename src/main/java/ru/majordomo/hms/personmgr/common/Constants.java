@@ -31,6 +31,8 @@ public class Constants {
     public static final String REAL_PAYMENT_TYPE_KIND = "REAL";
     public static final String CREDIT_PAYMENT_TYPE_KIND = "CREDIT";
     public static final String BONUS_PARTNER_PERCENT = "0.25";
+    public static final String INCREASED_BONUS_PARTNER_PERCENT = "0.3";
+    public static final String INCREASED_BONUS_PARTNER_DATE = "2018-01-25 00:00:00";
     public static final String FREE_SERVICE_POSTFIX = "_free";
     public static final String FREE_SERVICE_NAME_POSTFIX = " (бесплатно)";
     public static final String SERVICE_PREFIX = "service_";

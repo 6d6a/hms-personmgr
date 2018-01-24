@@ -478,9 +478,9 @@ public class DomainService {
         ProcessingBusinessAction processingBusinessAction = businessHelper.buildActionByOperation(BusinessActionType.DOMAIN_CREATE_RC, message, processingBusinessOperation);
 
         String actionText = isFreeDomain ?
-                "бесплатную регистрацию" :
+                "бесплатную регистрацию (actionPromotion Id: " + message.getParam("freeDomainPromotionId") + " )" :
                 (isDiscountedDomain ?
-                        "регистрацию со скидкой" :
+                        "регистрацию со скидкой (actionPromotion Id: " + message.getParam("domainDiscountPromotionId") + " )" :
                         "регистрацию");
         //Save history
         String operator = account.getName();
