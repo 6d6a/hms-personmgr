@@ -27,6 +27,7 @@ import ru.majordomo.hms.personmgr.service.AccountTransferService;
 import ru.majordomo.hms.personmgr.service.AppsCatService;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_DOMAIN_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_PASSWORD_KEY;
@@ -306,16 +307,28 @@ public class CommonAmqpController {
                     break;
                 case WEB_SITE_UPDATE_RC:
                     businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                    if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
-                        if (state.equals(State.PROCESSED)) {
-                            accountTransferService.checkOperationAfterWebSiteUpdate(businessOperation);
-                        } else if (state.equals(State.ERROR)) {
-                            businessOperation.setState(State.ERROR);
+                    if (businessOperation != null) {
+                        if (businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
+                            if (state.equals(State.PROCESSED)) {
+                                accountTransferService.checkOperationAfterWebSiteUpdate(businessOperation);
+                            } else if (state.equals(State.ERROR)) {
+                                businessOperation.setState(State.ERROR);
+                                processingBusinessOperationRepository.save(businessOperation);
+
+                                accountTransferService.revertTransferOnWebSitesFail(businessOperation);
+                            }
+                        } else if (businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
+                            businessOperation.setState(state);
+
+                            //Запишем урл сайта чтобы отображался в случае ошибки во фронтэнде (до этого момента там имя DB, либо имя DB-юзера)
+                            businessOperation.addPublicParam("name", businessOperation.getParam(APPSCAT_DOMAIN_NAME_KEY));
+
                             processingBusinessOperationRepository.save(businessOperation);
 
-                            accountTransferService.revertTransferOnWebSitesFail(businessOperation);
+                            appsCatService.finishInstall(businessOperation, state);
                         }
                     }
+
                     break;
                 case DNS_RECORD_UPDATE_RC:
                     businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());

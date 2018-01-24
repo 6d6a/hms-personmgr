@@ -95,7 +95,8 @@ public class BusinessFlowDirector {
                         case PROCESSED:
                             if (businessOperation.getType() != BusinessOperationType.ACCOUNT_CREATE
                                     && businessOperation.getType() != BusinessOperationType.APP_INSTALL
-                                    && businessOperation.getType() != BusinessOperationType.ACCOUNT_TRANSFER) {
+                                    && businessOperation.getType() != BusinessOperationType.ACCOUNT_TRANSFER
+                                    && businessOperation.getType() != BusinessOperationType.APP_INSTALL) {
                                 businessOperation.setState(businessAction.getState());
                             }
 

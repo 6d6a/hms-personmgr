@@ -1,22 +1,32 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.PasswordManager;
+import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.dto.AppscatApp;
+import ru.majordomo.hms.personmgr.event.account.AccountAppInstalledEvent;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.rc.staff.resources.Service;
 import ru.majordomo.hms.rc.user.resources.DBType;
 import ru.majordomo.hms.rc.user.resources.Database;
@@ -32,6 +42,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_APP_PATH_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_APP_TITLE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_DB_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_DOMAIN_NAME_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.APP_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_SERVICE_ID_KEY;
@@ -39,6 +50,9 @@ import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.FINISH_INSTALL_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEBSITE_SERVER_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEBSITE_SERVICE_ID_KEY;
@@ -48,12 +62,15 @@ import static ru.majordomo.hms.personmgr.common.RequiredField.APP_INSTALL_FULL;
 
 @Component
 public class AppsCatService {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
     private final RcUserFeignClient rcUserFeignClient;
     private final RcStaffFeignClient rcStaffFeignClient;
     private final BusinessHelper businessHelper;
     private final AccountOwnerManager accountOwnerManager;
     private final PlanCheckerService planCheckerService;
     private final AppscatFeignClient appscatFeignClient;
+    private final ApplicationEventPublisher publisher;
 
     public AppsCatService(
             RcUserFeignClient rcUserFeignClient,
@@ -61,13 +78,16 @@ public class AppsCatService {
             BusinessHelper businessHelper,
             AccountOwnerManager accountOwnerManager,
             PlanCheckerService planCheckerService,
-            AppscatFeignClient appscatFeignClient) {
+            AppscatFeignClient appscatFeignClient,
+            ApplicationEventPublisher publisher
+    ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;
         this.businessHelper = businessHelper;
         this.accountOwnerManager = accountOwnerManager;
         this.planCheckerService = planCheckerService;
         this.appscatFeignClient = appscatFeignClient;
+        this.publisher = publisher;
     }
 
     public ProcessingBusinessAction install(SimpleServiceMessage message) {
@@ -320,6 +340,52 @@ public class AppsCatService {
                     message
             );
         }
+    }
+
+    public void finishInstall(ProcessingBusinessOperation businessOperation, State state) {
+        switch (state) {
+            case PROCESSED:
+                try {
+                    //Save history
+                    Map<String, String> params = new HashMap<>();
+                    params.put(HISTORY_MESSAGE_KEY, "Заявка на установку приложения выполнена успешно (имя: " +
+                            businessOperation.getPublicParam("name") + ")");
+                    params.put(OPERATOR_KEY, "service");
+
+                    publisher.publishEvent(new AccountHistoryEvent(businessOperation.getPersonalAccountId(), params));
+
+                    AppscatApp app = appscatFeignClient.getApp((String) businessOperation.getParam(APP_ID_KEY));
+
+                    if (app != null) {
+                        String appUri = (String) businessOperation.getParam(APPSCAT_DOMAIN_NAME_KEY);
+                        Map<String, String> paramsEmail = new HashMap<>();
+                        paramsEmail.put("app_name", app.getName() + " " + app.getVersion());
+                        paramsEmail.put("site_name", appUri);
+                        paramsEmail.put("app_admin_uri", "http://" + appUri + app.getAdminUri());
+                        paramsEmail.put("app_admin_password", (String) businessOperation.getParam(APPSCAT_ADMIN_PASSWORD_KEY));
+                        paramsEmail.put("app_admin_username", (String) businessOperation.getParam(APPSCAT_ADMIN_USERNAME_KEY));
+
+                        publisher.publishEvent(new AccountAppInstalledEvent(businessOperation.getPersonalAccountId(), paramsEmail));
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    logger.error("Got Exception in AppsCatService.finishInstall " + e.getMessage());
+                }
+
+                break;
+        }
+
+        SimpleServiceMessage message = new SimpleServiceMessage();
+
+        message.setOperationIdentity(businessOperation.getId());
+        message.setAccountId(businessOperation.getPersonalAccountId());
+        message.addParam(FINISH_INSTALL_KEY, true);
+
+        businessHelper.buildActionByOperationId(
+                BusinessActionType.APP_INSTALL_APPSCAT,
+                message,
+                businessOperation.getId()
+        );
     }
 
     private String generateUnusedNamePostfix(List<String> usedNames) {
