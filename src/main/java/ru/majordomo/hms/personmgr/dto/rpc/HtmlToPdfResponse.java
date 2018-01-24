@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
-public class AuthResponse extends BaseRpcResponse {
+public class HtmlToPdfResponse extends BaseRpcResponse {
 
-    @JsonProperty("session_id")
-    private String sessionId;
+    @JsonProperty("pdf_file")
+    private String pdfFileInBase64;
 }

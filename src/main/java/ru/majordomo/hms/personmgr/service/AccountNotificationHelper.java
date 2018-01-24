@@ -166,6 +166,28 @@ public class AccountNotificationHelper {
         this.sendMail(account, apiName, 5, parameters);
     }
 
+    public void sendMailWithAttachement(
+            PersonalAccount account,
+            String email,
+            String apiName,
+            int priority,
+            Map<String, String> parameters,
+            Map<String, String> attachment
+    ){
+        SimpleServiceMessage message = new SimpleServiceMessage();
+
+        message.setAccountId(account.getId());
+        message.setParams(new HashMap<>());
+        message.addParam(EMAIL_KEY, email);
+        message.addParam(API_NAME_KEY, apiName);
+        message.addParam(PRIORITY_KEY, priority);
+        if (parameters != null) {
+            message.addParam(PARAMETRS_KEY, parameters);
+        }
+        message.addParam("attachment", attachment);
+        publisher.publishEvent(new SendMailEvent(message));
+    }
+
     public void sendMail(PersonalAccount account, String apiName, int priority, Map<String, String> parameters) {
 
         String email = accountHelper.getEmail(account);

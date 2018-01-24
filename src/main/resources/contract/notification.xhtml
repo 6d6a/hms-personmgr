@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <style type="text/css">
+
+        /*@page withoutfooter {
+            margin: 1cm;
+            margin-bottom: 2.5cm;
+        }*/
+        body {
+            margin: 1cm 1cm 1cm 2cm;
+            padding: 0;
+        }
+
+        body * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        .content {
+            /*margin-left: 14%;*/
+            /*margin-right: 9%;*/
+        }
+
+        /*.border-black * {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }*/
+
+        .signature {
+            width: 30%;
+
+            text-align: center;
+        }
+
+        .sign {
+            position: absolute;
+            left: 30px;
+            bottom: 0;
+        }
+
+        .block-inline {
+            display: inline-block;
+            position: relative;
+        }
+
+        .footer {
+            font-size: 10pt;
+            position: absolute;
+            margin-top: 12cm;
+            width: calc(100% - 2cm - 1cm);
+
+            /* TODO delete */
+            /*border: none;*/
+        }
+
+        .paragraph {
+            text-indent: 40px; /* Отступ первой строки в пикселах */
+            font-size: 12pt;
+        }
+    </style>
+    <title>Уведомление</title>
+</head>
+<body class="border-black">
+<div><div style="display: inline-block; width: 36%;"><img width="100%" src="data:image/png;base64,#MAJORDOMO_LOGO#" alt="Majordomo"/></div>
+    <div style="position: absolute; margin-top: 60px; display: inline-block; margin-left: 40px; font-size: 10pt;">
+        www.majordomo.ru, info@majordomo.ru
+    </div>
+</div>
+<div style="font-size: 12pt;">
+    <table width="100%">
+        <tr>
+            <td width="50%"/>
+            <td width="50%">
+                Кому: #ORG_NAME#
+                <br/>
+                _______________________________________
+                <br/>
+                Адрес: 455000, Россия, Магнитогорск, Комсомольская, 33
+            </td>
+        </tr>
+    </table>
+</div>
+<h2 style="text-align: center; position: relative; margin-top: 70px; margin-bottom: 30px">УВЕДОМЛЕНИЕ</h2>
+<div class="content border-black">
+    <div class="paragraph">
+        В соответствии с законодательством России ФЗ РФ № 152 "О персональных данных" общество с ограниченной
+        ответственностью «Хостинг» оказывает услуги по предоставлению вычислительной мощности на территории
+        Российской Федерации.
+    </div>
+    <div class="paragraph">
+        Технические средства обработки данных сайтов находятся на территории Российской Федерации, по адресу:
+    </div>
+    <div class="paragraph">
+        194044, г. Санкт-Петербург, Пироговская наб., д. 17.
+    </div>
+    <br/>
+    <div class="paragraph">
+        Защита данных осуществляется с использованием физических, технических, программных и административных
+        мероприятий, нацеленных на предотвращение риска потери, неправильного использования, несанкционированного
+        доступа, нарушения конфиденциальности и изменения данных. Меры обеспечения безопасности включают в себя
+        межсетевую защиту и шифрование данных, контроль физического доступа к центрам обработки данных компании,
+        а также контроль полномочий на доступ к данным.
+    </div>
+
+    <br/>
+    <br/>
+
+    <div>
+        <div class="block-inline" style="text-align: left; width: 35%">
+            Генеральный директор
+            <br/>
+            ООО «Хостинг»
+        </div><!--
+        --><div class="block-inline signature"><!--
+            -->#STAMP#
+            </div><!--
+        --><div class="block-inline" style="text-align: right; width: 35%" >
+            Имшенецкий Д.С.
+        </div>
+    </div>
+    <div style="position: relative; margin-top: 40px">
+        #DATE#
+    </div>
+
+    <div class="footer">
+        <table width="100%">
+            <tr>
+                <td style="width: 35%">
+                    +7 (812) 335-35-45
+                </td>
+                <td style="width: 65%; text-align: right;">
+                    Санкт-Петербург, Торфяная дорога д.7, лит. Ф, бизнес-центр «Гулливер 2»
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+</body>
+</html>

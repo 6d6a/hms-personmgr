@@ -1,12 +1,12 @@
 package ru.majordomo.hms.personmgr.service.Document;
 
+import org.apache.commons.lang.NotImplementedException;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.AccountDocument;
 
-import java.io.File;
-
-
 public interface DocumentBuilder {
-    default File build(){
+    default byte[] build(){
+        prepare();
         checkAuthority();
         checkRequireParams();
         buildTemplate();
@@ -14,14 +14,24 @@ public interface DocumentBuilder {
         replaceFields();
         convert();
         saveAccountDocument();
-        return getDocument();
+        return getFile();
     }
 
-    File buildFromAccountDocument(AccountDocument document);
+    default void check() throws ParameterValidationException {
+        prepare();
+        checkAuthority();
+        checkRequireParams();
+    }
+
+    default void prepare(){}
+
+    default byte[] buildFromAccountDocument(AccountDocument document){
+        throw new NotImplementedException();
+    }
 
     default void checkAuthority(){}
 
-    void buildReplaceParameters();
+    default void buildReplaceParameters(){}
 
     void buildTemplate();
 
@@ -33,5 +43,5 @@ public interface DocumentBuilder {
 
     void saveAccountDocument();
 
-    File getDocument();
+    byte[] getFile();
 }

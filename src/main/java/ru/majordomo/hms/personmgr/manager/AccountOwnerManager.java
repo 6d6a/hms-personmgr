@@ -51,4 +51,6 @@ public interface AccountOwnerManager {
     void setEmptyAndAllowedToEditFields(AccountOwner currentAccountOwner, AccountOwner accountOwner);
 
     void setFields(AccountOwner currentAccountOwner, AccountOwner accountOwner);
+
+    void setType(String id, AccountOwner.Type type);
 }
