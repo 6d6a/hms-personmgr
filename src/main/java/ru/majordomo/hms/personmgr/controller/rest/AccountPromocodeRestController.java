@@ -2,7 +2,9 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -66,10 +68,14 @@ public class AccountPromocodeRestController extends CommonRestController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('OPERATOR')")
     @GetMapping(value = "/account-promocode/search-by-code/{code}")
     public ResponseEntity<Page<AccountPromocode>> search(
-            @ObjectId(value = Promocode.class, idFieldName = "code")@PathVariable String code,
+            @PathVariable String code,
             Pageable pageable
     ) {
         Promocode promocode = promocodeRepository.findByCodeIgnoreCase(code);
+
+        if (promocode == null) {
+            throw new ResourceNotFoundException("Не найден промокод");
+        }
 
         Page<AccountPromocode> page = accountPromocodeRepository.findByPromocodeId(promocode.getId(), pageable);
 
