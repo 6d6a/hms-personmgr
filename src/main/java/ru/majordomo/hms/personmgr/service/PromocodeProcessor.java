@@ -162,9 +162,12 @@ public class PromocodeProcessor {
                 //Если кто-то уже использовал промокод
                 accountPromocode = accountPromocodeRepository.findOneByPromocodeId(promocode.getId());
                 if (accountPromocode != null) {
-                    String message = "Client trying to use already used code: " + promocodeString;
-                    logger.debug(message);
-                    accountHelper.saveHistory(account.getAccountId(), message, "service");
+                    logger.debug("Client trying to use already used code: " + promocodeString);
+                    accountHelper.saveHistory(
+                            account.getAccountId(),
+                            "Клиент пытается использовать уже использованный бонусный промокод " + promocodeString,
+                            "service"
+                    );
                     return;
                 }
 
