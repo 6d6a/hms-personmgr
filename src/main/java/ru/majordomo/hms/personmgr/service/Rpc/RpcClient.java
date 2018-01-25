@@ -68,6 +68,14 @@ public abstract class RpcClient {
     }
 
     protected Object callMethod(String method, List<?> params) throws XmlRpcException {
+        configClient();
+        login();
+        Object result = client.execute(method, params);
+        logout();
+        return result;
+    }
+
+    private void prepareForUntrustedSSL(){
         if (this.serverAddress.getProtocol().equals("https")) {
             TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
                 public X509Certificate[] getAcceptedIssuers() {
@@ -98,8 +106,6 @@ public abstract class RpcClient {
                 e.printStackTrace();
             }
         }
-
-        return client.execute(method, params);
     }
 
     protected void configClient(){
@@ -108,6 +114,7 @@ public abstract class RpcClient {
         XmlRpcClient client = new XmlRpcClient();
         client.setConfig(config);
         this.client = client;
+        prepareForUntrustedSSL();
     }
 
     protected void login() throws XmlRpcException {
@@ -118,7 +125,8 @@ public abstract class RpcClient {
 
         AuthResponse response;
         try {
-            response = callMethodNew(AUTH_METHOD, params, AuthResponse.class);
+            Map<String, Object> sourceResponse = (Map<String, Object>) client.execute(AUTH_METHOD, params);
+            response = mapper.convertValue(sourceResponse, AuthResponse.class);
         } catch (Exception e){
             throw new XmlRpcException("Ошибка при попытке авторизации на RPC");
         }
@@ -148,7 +156,7 @@ public abstract class RpcClient {
 
     private void logout() throws XmlRpcException {
         List<String> emptyParams = new ArrayList<>();
-        callMethod(LOGOUT_METHOD, emptyParams);
+        client.execute(LOGOUT_METHOD, emptyParams);
         sessionId = null;
     }
 }
