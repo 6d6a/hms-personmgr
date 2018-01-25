@@ -14,6 +14,7 @@ import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 public interface AccountPromocodeRepository extends MongoRepository<AccountPromocode, String>,
         QueryDslPredicateExecutor<AccountPromocode> {
     List<AccountPromocode> findByPromocodeId(@Param("promocodeId") String promocodeId);
+    Page<AccountPromocode> findByPromocodeId(@Param("promocodeId") String promocodeId, Pageable pageable);
     AccountPromocode findOneByPromocodeId(@Param("promocodeId") String promocodeId);
     AccountPromocode findByPromocodeIdAndOwnedByAccount(@Param("promocodeId") String promocodeId, @Param("ownedByAccount") boolean ownedByAccount);
     AccountPromocode findOneByPersonalAccountIdAndOwnedByAccount(@Param("personalAccountId") String personalAccountId, @Param("ownedByAccount") boolean ownedByAccount);
