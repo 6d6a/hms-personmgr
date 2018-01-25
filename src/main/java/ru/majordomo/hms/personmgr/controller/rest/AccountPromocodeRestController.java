@@ -69,7 +69,7 @@ public class AccountPromocodeRestController extends CommonRestController {
             @ObjectId(value = Promocode.class, idFieldName = "code")@PathVariable String code,
             Pageable pageable
     ) {
-        Promocode promocode = promocodeRepository.findByCode(code);
+        Promocode promocode = promocodeRepository.findByCodeIgnoreCase(code);
 
         Page<AccountPromocode> page = accountPromocodeRepository.findByPromocodeId(promocode.getId(), pageable);
 

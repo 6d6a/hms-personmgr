@@ -12,6 +12,7 @@ import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 public interface PromocodeRepository extends MongoRepository<Promocode, String> {
     @Cacheable("promocodes")
     Promocode findByCode(@Param("code") String code);
+    Promocode findByCodeIgnoreCase(@Param("code") String code);
     Promocode findByCodeAndActive(@Param("code") String code, @Param("active") boolean active);
     Promocode findByTypeAndActive(@Param("type") String type, @Param("active") boolean active);
     List<Promocode> findByType(@Param("type") PromocodeType type);
