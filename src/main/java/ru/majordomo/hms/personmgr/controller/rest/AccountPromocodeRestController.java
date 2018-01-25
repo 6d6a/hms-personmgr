@@ -5,56 +5,74 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
+import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
+import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 @RestController
 @Validated
 public class AccountPromocodeRestController extends CommonRestController {
 
-    private final AccountPromocodeRepository repository;
+    private final AccountPromocodeRepository accountPromocodeRepository;
+    private final PromocodeRepository promocodeRepository;
 
     @Autowired
-    public AccountPromocodeRestController(AccountPromocodeRepository repository) {
-        this.repository = repository;
+    public AccountPromocodeRestController(
+            AccountPromocodeRepository accountPromocodeRepository,
+            PromocodeRepository promocodeRepository
+    ) {
+        this.accountPromocodeRepository = accountPromocodeRepository;
+        this.promocodeRepository = promocodeRepository;
     }
 
-    @RequestMapping(value = "/{accountId}/account-promocodes", method = RequestMethod.GET)
+    @GetMapping("/{accountId}/account-promocodes")
     public ResponseEntity<List<AccountPromocode>> listAll(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        List<AccountPromocode> accountPromocodes = repository.findByPersonalAccountId(accountId);
+        List<AccountPromocode> accountPromocodes = accountPromocodeRepository.findByPersonalAccountId(accountId);
 
         return new ResponseEntity<>(accountPromocodes, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/account-promocodes/{accountPromocodeId}", method = RequestMethod.GET)
+    @GetMapping("/{accountId}/account-promocodes/{accountPromocodeId}")
     public ResponseEntity<AccountPromocode> get(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountPromocode.class) @PathVariable(value = "accountPromocodeId") String accountPromocodeId
     ) {
-        AccountPromocode accountPromocode = repository.findByPersonalAccountIdAndId(accountId, accountPromocodeId);
+        AccountPromocode accountPromocode = accountPromocodeRepository.findByPersonalAccountIdAndId(accountId, accountPromocodeId);
 
         return new ResponseEntity<>(accountPromocode, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/account-promocodes-clients", method = RequestMethod.GET)
+    @GetMapping("/{accountId}/account-promocodes-clients")
     public ResponseEntity<Page<AccountPromocode>> listAllClients(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             Pageable pageable
     ) {
-        Page<AccountPromocode> accountPromocodes = repository.findByOwnerPersonalAccountIdAndPersonalAccountIdNot(accountId, accountId, pageable);
+        Page<AccountPromocode> accountPromocodes = accountPromocodeRepository.findByOwnerPersonalAccountIdAndPersonalAccountIdNot(accountId, accountId, pageable);
 
         return new ResponseEntity<>(accountPromocodes, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('OPERATOR')")
+    @GetMapping(value = "/account-promocode/search-by-code/{code}")
+    public ResponseEntity<Page<AccountPromocode>> search(
+            @ObjectId(value = Promocode.class, idFieldName = "code")@PathVariable String code,
+            Pageable pageable
+    ) {
+        Promocode promocode = promocodeRepository.findByCode(code);
+
+        Page<AccountPromocode> page = accountPromocodeRepository.findByPromocodeId(promocode.getId(), pageable);
+
+        return ResponseEntity.ok(page);
     }
 }
