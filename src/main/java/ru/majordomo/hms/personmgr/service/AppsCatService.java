@@ -54,6 +54,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.FINISH_INSTALL_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.SUCCESS_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEBSITE_SERVER_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEBSITE_SERVICE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEB_SITE_ID_KEY;
@@ -380,6 +381,7 @@ public class AppsCatService {
         message.setOperationIdentity(businessOperation.getId());
         message.setAccountId(businessOperation.getPersonalAccountId());
         message.addParam(FINISH_INSTALL_KEY, true);
+        message.addParam(SUCCESS_KEY, state == State.PROCESSED);
 
         businessHelper.buildActionByOperationId(
                 BusinessActionType.APP_INSTALL_APPSCAT,
