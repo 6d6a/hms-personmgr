@@ -4,13 +4,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -66,15 +66,15 @@ public class AccountPromocodeRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('OPERATOR')")
-    @GetMapping(value = "/account-promocode/search-by-code/{code}")
+    @GetMapping(value = "/account-promocodes/search-by-code")
     public ResponseEntity<Page<AccountPromocode>> search(
-            @PathVariable String code,
+            @RequestParam String code,
             Pageable pageable
     ) {
         Promocode promocode = promocodeRepository.findByCodeIgnoreCase(code);
 
         if (promocode == null) {
-            throw new ResourceNotFoundException("Не найден промокод");
+            return ResponseEntity.ok(new PageImpl<AccountPromocode>(new ArrayList<>(), pageable, 0));
         }
 
         Page<AccountPromocode> page = accountPromocodeRepository.findByPromocodeId(promocode.getId(), pageable);
