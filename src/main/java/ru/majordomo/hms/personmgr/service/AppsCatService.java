@@ -34,6 +34,7 @@ import ru.majordomo.hms.rc.user.resources.DatabaseUser;
 import ru.majordomo.hms.rc.user.resources.Resource;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
+import static org.apache.commons.lang.RandomStringUtils.random;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ADMIN_PASSWORD_KEY;
@@ -72,6 +73,11 @@ public class AppsCatService {
     private final PlanCheckerService planCheckerService;
     private final AppscatFeignClient appscatFeignClient;
     private final ApplicationEventPublisher publisher;
+
+    private static String CHAR_L ="abcdefghijklmnopqrstuvwxyz";
+    private static String CHAR_U="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private static String NUM="1234567890";
+    private static String CHAR_S="!@#$%^&*()_=+";
 
     public AppsCatService(
             RcUserFeignClient rcUserFeignClient,
@@ -141,7 +147,7 @@ public class AppsCatService {
         message.addParam(APPSCAT_APP_PATH_KEY, webSite.getDocumentRoot());
         message.addParam(APPSCAT_ADMIN_USERNAME_KEY, "u" + message.getParam(ACCOUNT_ID_KEY));
 
-        String password = randomAlphabetic(8);
+        String password = random(8, CHAR_L + CHAR_U + CHAR_S + NUM);
 
         message.addParam(APPSCAT_ADMIN_PASSWORD_KEY, password);
 
@@ -175,7 +181,7 @@ public class AppsCatService {
         String databaseServiceId = (String) message.getParam(DATABASE_SERVICE_ID_KEY);
 
         if (databaseUserId == null) {
-            String password = randomAlphabetic(8);
+            String password = random(8, CHAR_L + CHAR_U + CHAR_S + NUM);
             String databaseUserNamePostfix = randomAlphabetic(4);
 
             List<DatabaseUser> databaseUsers;
