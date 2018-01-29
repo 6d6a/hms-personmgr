@@ -11,6 +11,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -24,13 +25,16 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.service.AccountTransferService;
+import ru.majordomo.hms.personmgr.service.AmqpSender;
 import ru.majordomo.hms.personmgr.service.AppsCatService;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
+import ru.majordomo.hms.personmgr.service.BusinessHelper;
 
-import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_DOMAIN_NAME_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.DATABASE_USER_PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ROUTING_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_CREATE;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_UPDATE;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_USER_CREATE;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.WEBSITE_UPDATE;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
@@ -44,8 +48,9 @@ public class CommonAmqpController {
     ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     protected PersonalAccountManager accountManager;
     protected ApplicationEventPublisher publisher;
-    private AppsCatService appsCatService;
+    protected BusinessHelper businessHelper;
     private AccountTransferService accountTransferService;
+    private AmqpSender amqpSender;
 
     protected String resourceName = "";
 
@@ -76,18 +81,23 @@ public class CommonAmqpController {
     }
 
     @Autowired
+    public void setBusinessHelper(BusinessHelper businessHelper) {
+        this.businessHelper = businessHelper;
+    }
+
+    @Autowired
     public void setPublisher(ApplicationEventPublisher publisher) {
         this.publisher = publisher;
     }
 
     @Autowired
-    public void setAppsCatService(AppsCatService appsCatService) {
-        this.appsCatService = appsCatService;
+    public void setAccountTransferService(AccountTransferService accountTransferService) {
+        this.accountTransferService = accountTransferService;
     }
 
     @Autowired
-    public void setAccountTransferService(AccountTransferService accountTransferService) {
-        this.accountTransferService = accountTransferService;
+    public void setAmqpSender(AmqpSender amqpSender) {
+        this.amqpSender = amqpSender;
     }
 
     @Value("${hms.instance.name}")
@@ -251,33 +261,27 @@ public class CommonAmqpController {
 
                     case DATABASE_USER_CREATE_RC:
                         businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                        if (businessOperation != null && businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
-                            String databaseUserId = getResourceIdByObjRef(message.getObjRef());
+                        sendToAppscat(message, businessOperation, DATABASE_USER_CREATE);
 
-                            businessOperation.addParam(DATABASE_USER_ID_KEY, databaseUserId);
-                            businessOperation.addParam(DATABASE_USER_PASSWORD_KEY, businessAction.getParam(DATABASE_USER_PASSWORD_KEY));
-
-                            processingBusinessOperationRepository.save(businessOperation);
-
-                            message.setParams(businessOperation.getParams());
-                            appsCatService.addDatabase(message);
-                        }
                         break;
 
                     case DATABASE_CREATE_RC:
                         businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                        if (businessOperation != null && businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
-                            String databaseId = getResourceIdByObjRef(message.getObjRef());
+                        sendToAppscat(message, businessOperation, DATABASE_CREATE);
 
-                            businessOperation.addParam(DATABASE_ID_KEY, databaseId);
-                            businessOperation.addParam("DB_NAME", businessAction.getParam("DB_NAME"));
-
-                            processingBusinessOperationRepository.save(businessOperation);
-
-                            message.setParams(businessOperation.getParams());
-                            appsCatService.processInstall(message);
-                        }
                         break;
+                }
+            }
+        }
+    }
+
+    private void sendToAppscat(SimpleServiceMessage message, ProcessingBusinessOperation businessOperation, String exchange) {
+        if (businessOperation != null) {
+            if (businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
+                try {
+                    amqpSender.send(exchange, APPSCAT_ROUTING_KEY, message);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         }
@@ -294,16 +298,26 @@ public class CommonAmqpController {
                 case DATABASE_USER_UPDATE_RC:
                 case DATABASE_UPDATE_RC:
                     businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                    if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
-                        if (state.equals(State.PROCESSED)) {
-                            accountTransferService.checkOperationAfterUnixAccountAndDatabaseUpdate(businessOperation);
-                        } else if (state.equals(State.ERROR)) {
-                            businessOperation.setState(State.ERROR);
-                            processingBusinessOperationRepository.save(businessOperation);
+                    if (businessOperation != null) {
+                        if (businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
+                            if (state.equals(State.PROCESSED)) {
+                                accountTransferService.checkOperationAfterUnixAccountAndDatabaseUpdate(businessOperation);
+                            } else if (state.equals(State.ERROR)) {
+                                businessOperation.setState(State.ERROR);
+                                processingBusinessOperationRepository.save(businessOperation);
 
-                            accountTransferService.revertTransfer(businessOperation);
+                                accountTransferService.revertTransfer(businessOperation);
+                            }
+                        } else if (businessOperation.getType() == BusinessOperationType.APP_INSTALL
+                                && businessAction.getBusinessActionType() == BusinessActionType.DATABASE_UPDATE_RC) {
+                            try {
+                                amqpSender.send(DATABASE_UPDATE, APPSCAT_ROUTING_KEY, message);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
+
                     break;
                 case WEB_SITE_UPDATE_RC:
                     businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
@@ -318,14 +332,11 @@ public class CommonAmqpController {
                                 accountTransferService.revertTransferOnWebSitesFail(businessOperation);
                             }
                         } else if (businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
-                            businessOperation.setState(state);
-
-                            //Запишем урл сайта чтобы отображался в случае ошибки во фронтэнде (до этого момента там имя DB, либо имя DB-юзера)
-                            businessOperation.addPublicParam("name", businessOperation.getParam(APPSCAT_DOMAIN_NAME_KEY));
-
-                            processingBusinessOperationRepository.save(businessOperation);
-
-                            appsCatService.finishInstall(businessOperation, state);
+                            try {
+                                amqpSender.send(WEBSITE_UPDATE, APPSCAT_ROUTING_KEY, message);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
 

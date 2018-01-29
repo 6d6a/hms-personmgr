@@ -10,7 +10,6 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.service.BusinessHelper;
 
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.WEBSITE_CREATE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.WEBSITE_DELETE;
@@ -18,10 +17,8 @@ import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.WEBSITE_UPDA
 
 @Service
 public class WebSiteAmqpController extends CommonAmqpController  {
-    private final BusinessHelper businessHelper;
 
-    public WebSiteAmqpController(BusinessHelper businessHelper) {
-        this.businessHelper = businessHelper;
+    public WebSiteAmqpController() {
         resourceName = "сайт";
     }
 

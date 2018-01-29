@@ -110,6 +110,7 @@ public class Constants {
     public static final String REVERTING_KEY = "reverting";
     public static final String FINISH_INSTALL_KEY = "finishInstall";
     public static final String SUCCESS_KEY = "success";
+    public static final String APPSCAT_ROUTING_KEY = "appscat";
 
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;
