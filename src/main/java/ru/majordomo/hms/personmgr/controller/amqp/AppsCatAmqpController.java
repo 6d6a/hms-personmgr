@@ -39,10 +39,10 @@ public class AppsCatAmqpController extends CommonAmqpController {
                 businessOperation.setState(state);
 
                 //Запишем урл сайта чтобы отображался в случае ошибки во фронтэнде (до этого момента там имя DB, либо имя DB-юзера)
-                businessOperation.addPublicParam("name", businessOperation.getParam(APPSCAT_DOMAIN_NAME_KEY));
-                businessOperation.addPublicParam(APPSCAT_ADMIN_USERNAME_KEY, businessOperation.getParam(APPSCAT_ADMIN_USERNAME_KEY));
-                businessOperation.addPublicParam(APPSCAT_ADMIN_PASSWORD_KEY, businessOperation.getParam(APPSCAT_ADMIN_PASSWORD_KEY));
-                businessOperation.addPublicParam(APPSCAT_DOMAIN_NAME_KEY, businessOperation.getParam(APPSCAT_DOMAIN_NAME_KEY));
+                businessOperation.addPublicParam("name", message.getParam(APPSCAT_DOMAIN_NAME_KEY));
+                businessOperation.addPublicParam(APPSCAT_ADMIN_USERNAME_KEY, message.getParam(APPSCAT_ADMIN_USERNAME_KEY));
+                businessOperation.addPublicParam(APPSCAT_ADMIN_PASSWORD_KEY, message.getParam(APPSCAT_ADMIN_PASSWORD_KEY));
+                businessOperation.addPublicParam(APPSCAT_DOMAIN_NAME_KEY, message.getParam(APPSCAT_DOMAIN_NAME_KEY));
 
                 processingBusinessOperationRepository.save(businessOperation);
 
