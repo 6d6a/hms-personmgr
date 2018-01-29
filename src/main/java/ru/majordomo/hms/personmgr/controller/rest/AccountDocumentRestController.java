@@ -211,12 +211,9 @@ public class AccountDocumentRestController {
     ){
         DocumentOrder documentOrder = new DocumentOrder();
 
-        String postalAddress = params.getOrDefault("postalAddress", "");
-        if (postalAddress == null || !postalAddress.isEmpty()){
-            throw new ParameterValidationException("Необходимо указать почтовый адрес для заказа документов");
-        }
+        documentOrder.setPostalAddress(params.getOrDefault("postalAddress", null));
 
-        documentOrder.setPostalAddress(postalAddress);
+        validatePostalAddressInDocumentOrder(documentOrder);
 
         PersonalAccount account = personalAccountManager.findOne(accountId);
 
@@ -269,9 +266,7 @@ public class AccountDocumentRestController {
 
         Boolean agreement = documentOrder.getAgreement();
 
-        if (documentOrder.getPostalAddress() == null || documentOrder.getPostalAddress().isEmpty()){
-            throw new ParameterValidationException("Необходимо указать почтовый адрес для заказа документов");
-        }
+        validatePostalAddressInDocumentOrder(documentOrder);
 
         if (!agreement) {
             throw new ParameterValidationException("Необходимо подтвердить заказ документов");
@@ -645,5 +640,11 @@ public class AccountDocumentRestController {
                 parameters,
                 attachment
         );
+    }
+
+    private void validatePostalAddressInDocumentOrder(DocumentOrder documentOrder){
+        if (documentOrder.getPostalAddress() == null || documentOrder.getPostalAddress().isEmpty()){
+            throw new ParameterValidationException("Необходимо указать почтовый адрес для заказа документов");
+        }
     }
 }
