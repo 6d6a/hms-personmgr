@@ -212,7 +212,7 @@ public class AccountDocumentRestController {
         DocumentOrder documentOrder = new DocumentOrder();
 
         String postalAddress = params.getOrDefault("postalAddress", "");
-        if (postalAddress == null || !postalAddress.isEmpty()){
+        if (postalAddress == null || postalAddress.isEmpty()){
             throw new ParameterValidationException("Необходимо указать почтовый адрес для заказа документов");
         }
 
