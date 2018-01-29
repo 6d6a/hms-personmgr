@@ -17,6 +17,8 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ADMIN_PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ADMIN_USERNAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_DOMAIN_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.APPS_CAT_INSTALL;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -38,6 +40,9 @@ public class AppsCatAmqpController extends CommonAmqpController {
 
                 //Запишем урл сайта чтобы отображался в случае ошибки во фронтэнде (до этого момента там имя DB, либо имя DB-юзера)
                 businessOperation.addPublicParam("name", businessOperation.getParam(APPSCAT_DOMAIN_NAME_KEY));
+                businessOperation.addPublicParam(APPSCAT_ADMIN_USERNAME_KEY, businessOperation.getParam(APPSCAT_ADMIN_USERNAME_KEY));
+                businessOperation.addPublicParam(APPSCAT_ADMIN_PASSWORD_KEY, businessOperation.getParam(APPSCAT_ADMIN_PASSWORD_KEY));
+                businessOperation.addPublicParam(APPSCAT_DOMAIN_NAME_KEY, businessOperation.getParam(APPSCAT_DOMAIN_NAME_KEY));
 
                 processingBusinessOperationRepository.save(businessOperation);
 
