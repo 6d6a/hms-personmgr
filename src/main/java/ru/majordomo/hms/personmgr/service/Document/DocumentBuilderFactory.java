@@ -72,7 +72,9 @@ public class DocumentBuilderFactory {
 
                 break;
             case VIRTUAL_HOSTING_COMMERCIAL_PROPOSAL:
-                documentBuilder = new CommercialProposalBilder();
+                documentBuilder = new CommercialProposalBilder(
+                        Boolean.valueOf(params.getOrDefault("withoutStamp", "false"))
+                );
 
                 break;
             case VIRTUAL_HOSTING_NOTIFY_RF:
