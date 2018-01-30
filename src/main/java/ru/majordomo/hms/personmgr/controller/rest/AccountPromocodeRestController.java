@@ -2,8 +2,6 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.StringExpression;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -19,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
@@ -33,14 +32,17 @@ public class AccountPromocodeRestController extends CommonRestController {
 
     private final AccountPromocodeRepository accountPromocodeRepository;
     private final PromocodeRepository promocodeRepository;
+    private final PersonalAccountManager personalAccountManager;
 
     @Autowired
     public AccountPromocodeRestController(
             AccountPromocodeRepository accountPromocodeRepository,
-            PromocodeRepository promocodeRepository
+            PromocodeRepository promocodeRepository,
+            PersonalAccountManager personalAccountManager
     ) {
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.promocodeRepository = promocodeRepository;
+        this.personalAccountManager = personalAccountManager;
     }
 
     @GetMapping("/{accountId}/account-promocodes")
@@ -126,13 +128,12 @@ public class AccountPromocodeRestController extends CommonRestController {
                 promocodeIds = promocodes.stream().map(Promocode::getId).collect(Collectors.toList());
             }
         }
+        String accId = getAccountIdFromNameOrAccountId(search.getOrDefault("personalAccountId", ""));
+
+        String ownerId = getAccountIdFromNameOrAccountId(search.getOrDefault("ownerPersonalAccountId", ""));
 
         QAccountPromocode qAccountPromocode = QAccountPromocode.accountPromocode;
         BooleanBuilder builder = new BooleanBuilder();
-
-        String accId = search.getOrDefault("personalAccountId", "");
-
-        String ownerId = search.getOrDefault("ownerPersonalAccountId", "");
 
         Predicate predicate = builder.and(
                 accId.isEmpty() ? null : qAccountPromocode.personalAccountId.containsIgnoreCase(accId)
@@ -151,5 +152,17 @@ public class AccountPromocodeRestController extends CommonRestController {
         return ResponseEntity.ok(page);
     }
 
+    private  String getAccountIdFromNameOrAccountId(String accountId) {
+        String personalAccountId = "";
 
+        if (accountId != null && !accountId.isEmpty()){
+
+            accountId = accountId.replaceAll("[^0-9]", "");
+            PersonalAccount account = personalAccountManager.findByAccountId(accountId);
+            if (account != null) {
+                personalAccountId = account.getId();
+            }
+        }
+        return personalAccountId;
+    }
 }
