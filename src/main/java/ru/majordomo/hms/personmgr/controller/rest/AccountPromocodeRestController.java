@@ -116,18 +116,14 @@ public class AccountPromocodeRestController extends CommonRestController {
             @RequestParam Map<String, String> search,
             Pageable pageable
     ) {
-        String codePart = search.getOrDefault("code", "");
+        String code = search.getOrDefault("code", "");
 
-        List<String> promocodeIds = new ArrayList<>();
+        Promocode promocode = null;
 
-        if (codePart != null && !codePart.isEmpty()) {
-
-            List<Promocode> promocodes = promocodeRepository.findByCodeContainsIgnoreCase(codePart);
-
-            if (promocodes != null && !promocodes.isEmpty()) {
-                promocodeIds = promocodes.stream().map(Promocode::getId).collect(Collectors.toList());
-            }
+        if (code != null && !code.isEmpty()) {
+            promocode = promocodeRepository.findByCodeIgnoreCase(code);
         }
+
         String accId = getAccountIdFromNameOrAccountId(search.getOrDefault("personalAccountId", ""));
 
         String ownerId = getAccountIdFromNameOrAccountId(search.getOrDefault("ownerPersonalAccountId", ""));
@@ -136,17 +132,18 @@ public class AccountPromocodeRestController extends CommonRestController {
         BooleanBuilder builder = new BooleanBuilder();
 
         Predicate predicate = builder.and(
-                accId.isEmpty() ? null : qAccountPromocode.personalAccountId.containsIgnoreCase(accId)
+                accId.isEmpty() ? null : qAccountPromocode.personalAccountId.eq(accId)
         ).and(
-                ownerId.isEmpty() ? null : qAccountPromocode.ownerPersonalAccountId.containsIgnoreCase(ownerId)
+                ownerId.isEmpty() ? null : qAccountPromocode.ownerPersonalAccountId.eq(ownerId)
         ).and(
-                promocodeIds.isEmpty() ? null : qAccountPromocode.promocodeId.in(promocodeIds)
+                promocode != null ? null : qAccountPromocode.promocodeId.eq(promocode.getId())
         );
 
         Page<AccountPromocode> page = accountPromocodeRepository.findAll(predicate, pageable);
         page.getContent().forEach(accountPromocode -> {
-            Promocode promocode = promocodeRepository.findOne(accountPromocode.getPromocodeId());
-            accountPromocode.setPromocode(promocode);
+            accountPromocode.setPromocode(
+                    promocodeRepository.findOne(accountPromocode.getPromocodeId())
+            );
         });
 
         return ResponseEntity.ok(page);
