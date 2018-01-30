@@ -199,4 +199,14 @@ public class Utils {
 
         return String.valueOf(monthNumber);
     }
+
+    public static Boolean cleanBooleanSafe(Object booleanObject) {
+        if (booleanObject == null) {
+            return Boolean.FALSE;
+        } else if (booleanObject instanceof String ) {
+            return Boolean.valueOf((String) booleanObject);
+        } else {
+            return (Boolean) booleanObject;
+        }
+    }
 }

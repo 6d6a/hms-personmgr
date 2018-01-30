@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_CREATE;
@@ -23,12 +24,34 @@ public class DatabaseAmqpController extends CommonAmqpController {
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DATABASE_CREATE)
     public void create(Message amqpMessage, @Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
-        handleCreateEventFromRc(message, headers);
+        String provider = headers.get("provider");
+        String realProviderName = provider.replaceAll("^" + instanceName + "\\.", "");
+        switch (realProviderName) {
+            case "rc-user":
+                handleCreateEventFromRc(message, headers);
+
+                break;
+            case "appscat":
+                businessHelper.buildActionByOperationId(BusinessActionType.DATABASE_CREATE_RC, message, message.getOperationIdentity());
+
+                break;
+        }
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DATABASE_UPDATE)
     public void update(Message amqpMessage, @Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
-        handleUpdateEventFromRc(message, headers);
+        String provider = headers.get("provider");
+        String realProviderName = provider.replaceAll("^" + instanceName + "\\.", "");
+        switch (realProviderName) {
+            case "rc-user":
+                handleUpdateEventFromRc(message, headers);
+
+                break;
+            case "appscat":
+                businessHelper.buildActionByOperationId(BusinessActionType.DATABASE_UPDATE_RC, message, message.getOperationIdentity());
+
+                break;
+        }
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DATABASE_DELETE)
