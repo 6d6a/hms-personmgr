@@ -212,6 +212,7 @@ public class AccountDocumentRestController {
         DocumentOrder documentOrder = new DocumentOrder();
 
         documentOrder.setPostalAddress(params.getOrDefault("postalAddress", null));
+        documentOrder.setParams(params);
 
         validatePostalAddressInDocumentOrder(documentOrder);
 
