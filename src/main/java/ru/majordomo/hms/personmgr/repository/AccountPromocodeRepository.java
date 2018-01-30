@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.repository;
 
+import com.querydsl.core.types.Predicate;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -13,8 +15,10 @@ import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 
 public interface AccountPromocodeRepository extends MongoRepository<AccountPromocode, String>,
         QueryDslPredicateExecutor<AccountPromocode> {
+    Page<AccountPromocode> findAll(Predicate predicate, Pageable pageable);
     List<AccountPromocode> findByPromocodeId(@Param("promocodeId") String promocodeId);
     Page<AccountPromocode> findByPromocodeId(@Param("promocodeId") String promocodeId, Pageable pageable);
+    Page<AccountPromocode> findByPromocodeIdIn(@Param("promocodeIds") List<String> promocodeIds, Pageable pageable);
     AccountPromocode findOneByPromocodeId(@Param("promocodeId") String promocodeId);
     AccountPromocode findByPromocodeIdAndOwnedByAccount(@Param("promocodeId") String promocodeId, @Param("ownedByAccount") boolean ownedByAccount);
     AccountPromocode findOneByPersonalAccountIdAndOwnedByAccount(@Param("personalAccountId") String personalAccountId, @Param("ownedByAccount") boolean ownedByAccount);
