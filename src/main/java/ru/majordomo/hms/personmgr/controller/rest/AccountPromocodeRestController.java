@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -118,25 +119,31 @@ public class AccountPromocodeRestController extends CommonRestController {
     ) {
         String code = search.getOrDefault("code", "");
 
-        Promocode promocode = null;
+        QAccountPromocode qAccountPromocode = QAccountPromocode.accountPromocode;
+        BooleanExpression promocodeExpression = null;
 
         if (code != null && !code.isEmpty()) {
-            promocode = promocodeRepository.findByCodeIgnoreCase(code);
+            Promocode promocode = promocodeRepository.findByCodeIgnoreCase(code);
+
+            if (promocode != null){
+                promocodeExpression = qAccountPromocode.promocodeId.equalsIgnoreCase(promocode.getId());
+            } else {
+                promocodeExpression = qAccountPromocode.promocodeId.isNull();
+            }
         }
 
         String accId = getAccountIdFromNameOrAccountId(search.getOrDefault("personalAccountId", ""));
 
         String ownerId = getAccountIdFromNameOrAccountId(search.getOrDefault("ownerPersonalAccountId", ""));
 
-        QAccountPromocode qAccountPromocode = QAccountPromocode.accountPromocode;
         BooleanBuilder builder = new BooleanBuilder();
 
         Predicate predicate = builder.and(
-                accId.isEmpty() ? null : qAccountPromocode.personalAccountId.eq(accId)
+                accId.isEmpty() ? null : qAccountPromocode.personalAccountId.equalsIgnoreCase(accId)
         ).and(
-                ownerId.isEmpty() ? null : qAccountPromocode.ownerPersonalAccountId.eq(ownerId)
+                ownerId.isEmpty() ? null : qAccountPromocode.ownerPersonalAccountId.equalsIgnoreCase(ownerId)
         ).and(
-                promocode != null ? null : qAccountPromocode.promocodeId.eq(promocode.getId())
+                promocodeExpression
         );
 
         Page<AccountPromocode> page = accountPromocodeRepository.findAll(predicate, pageable);
