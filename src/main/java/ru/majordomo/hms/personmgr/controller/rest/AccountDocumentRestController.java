@@ -254,6 +254,10 @@ public class AccountDocumentRestController {
             documentOrder.getErrors().put("balance", e.getMessage());
         }
 
+        if (!documentOrder.getErrors().isEmpty()) {
+            return ResponseEntity.badRequest().body(documentOrder);
+        }
+
         return ResponseEntity.ok(documentOrder);
     }
 
@@ -281,31 +285,30 @@ public class AccountDocumentRestController {
         Map<String, byte[]> fileMap = buildFileMap(documentOrder, domains);
         String operator = request.getUserPrincipal().getName();
 
-        if (documentOrder.getErrors().isEmpty()) {
-            try {
-                PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
+        try {
+            PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
 
-                accountHelper.charge(account, paymentService);
+            accountHelper.charge(account, paymentService);
 
-                documentOrder.setPaid(true);
-                documentOrder = documentOrderRepository.save(documentOrder);
+            documentOrder.setPaid(true);
+            documentOrder = documentOrderRepository.save(documentOrder);
 
-                //Отправка письма c документами секретарю
-                sendDocumentOrderToSecretary(account, documentOrder, domains, fileMap, operator);
+            //Отправка письма c документами секретарю
+            sendDocumentOrderToSecretary(account, documentOrder, domains, fileMap, operator);
 
-                accountHelper.saveHistory(accountId, "Заказан пакет документов " + documentOrder.toString(), operator);
+            accountHelper.saveHistory(accountId, "Заказан пакет документов " + documentOrder.toString(), operator);
 
-            } catch (Exception e){
+        } catch (Exception e){
+            logger.error("Не удалось списать за пакет документов " + e.getMessage());
+            documentOrder.setChecked(false);
+            documentOrder.getErrors().put("balance", e.getMessage());
+        }
 
-                logger.error("Не удалось списать за пакет документов " + e.getMessage());
-                documentOrder.setChecked(false);
-                documentOrder.getErrors().put("balance", e.getMessage());
-
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(documentOrder);
-            }
+        if (!documentOrder.getErrors().isEmpty()) {
+            return ResponseEntity.badRequest().body(documentOrder);
+        } else {
             return ResponseEntity.ok(documentOrder);
         }
-        return ResponseEntity.badRequest().body(documentOrder);
     }
 
     @GetMapping("/{documentType}")
