@@ -216,7 +216,8 @@ public class AccountTransferService {
                             .stream()
                             .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(NGINX_SERVICE_TEMPLATE_TYPE_NAME))
                             .findFirst()
-                            .map(service -> service.getServiceSockets().get(0).getAddressAsString())
+                            .orElseThrow(() -> new ParameterValidationException("Сервис Nginx на старом сервере не найден"))
+                            .getServiceSockets().get(0).getAddressAsString()
             );
 
             unixAccountMessage.addParam(TE_PARAMS_KEY, teParams);
@@ -302,7 +303,8 @@ public class AccountTransferService {
                                     .stream()
                                     .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(NGINX_SERVICE_TEMPLATE_TYPE_NAME))
                                     .findFirst()
-                                    .map(service -> service.getServiceSockets().get(0).getAddressAsString())
+                                    .orElseThrow(() -> new ParameterValidationException("Сервис Nginx на старом сервере не найден"))
+                                    .getServiceSockets().get(0).getAddressAsString()
                     );
 
                     databaseMessage.addParam(TE_PARAMS_KEY, teParams);
@@ -553,7 +555,8 @@ public class AccountTransferService {
                                     .stream()
                                     .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(NGINX_SERVICE_TEMPLATE_TYPE_NAME))
                                     .findFirst()
-                                    .map(service -> service.getServiceSockets().get(0).getAddressAsString())
+                                    .orElseThrow(() -> new ParameterValidationException("Сервис Nginx на старом сервере не найден"))
+                                    .getServiceSockets().get(0).getAddressAsString()
                     );
 
                     webSiteMessage.addParam(TE_PARAMS_KEY, teParams);
