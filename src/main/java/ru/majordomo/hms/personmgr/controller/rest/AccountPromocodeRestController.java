@@ -2,8 +2,6 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.StringExpression;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -19,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
@@ -33,14 +32,17 @@ public class AccountPromocodeRestController extends CommonRestController {
 
     private final AccountPromocodeRepository accountPromocodeRepository;
     private final PromocodeRepository promocodeRepository;
+    private final PersonalAccountManager personalAccountManager;
 
     @Autowired
     public AccountPromocodeRestController(
             AccountPromocodeRepository accountPromocodeRepository,
-            PromocodeRepository promocodeRepository
+            PromocodeRepository promocodeRepository,
+            PersonalAccountManager personalAccountManager
     ) {
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.promocodeRepository = promocodeRepository;
+        this.personalAccountManager = personalAccountManager;
     }
 
     @GetMapping("/{accountId}/account-promocodes")
@@ -114,42 +116,50 @@ public class AccountPromocodeRestController extends CommonRestController {
             @RequestParam Map<String, String> search,
             Pageable pageable
     ) {
-        String codePart = search.getOrDefault("code", "");
+        String code = search.getOrDefault("code", "");
 
-        List<String> promocodeIds = new ArrayList<>();
+        Promocode promocode = null;
 
-        if (codePart != null && !codePart.isEmpty()) {
-
-            List<Promocode> promocodes = promocodeRepository.findByCodeContainsIgnoreCase(codePart);
-
-            if (promocodes != null && !promocodes.isEmpty()) {
-                promocodeIds = promocodes.stream().map(Promocode::getId).collect(Collectors.toList());
-            }
+        if (code != null && !code.isEmpty()) {
+            promocode = promocodeRepository.findByCodeIgnoreCase(code);
         }
+
+        String accId = getAccountIdFromNameOrAccountId(search.getOrDefault("personalAccountId", ""));
+
+        String ownerId = getAccountIdFromNameOrAccountId(search.getOrDefault("ownerPersonalAccountId", ""));
 
         QAccountPromocode qAccountPromocode = QAccountPromocode.accountPromocode;
         BooleanBuilder builder = new BooleanBuilder();
 
-        String accId = search.getOrDefault("personalAccountId", "");
-
-        String ownerId = search.getOrDefault("ownerPersonalAccountId", "");
-
         Predicate predicate = builder.and(
-                accId.isEmpty() ? null : qAccountPromocode.personalAccountId.containsIgnoreCase(accId)
+                accId.isEmpty() ? null : qAccountPromocode.personalAccountId.eq(accId)
         ).and(
-                ownerId.isEmpty() ? null : qAccountPromocode.ownerPersonalAccountId.containsIgnoreCase(ownerId)
+                ownerId.isEmpty() ? null : qAccountPromocode.ownerPersonalAccountId.eq(ownerId)
         ).and(
-                promocodeIds.isEmpty() ? null : qAccountPromocode.promocodeId.in(promocodeIds)
+                promocode != null ? null : qAccountPromocode.promocodeId.eq(promocode.getId())
         );
 
         Page<AccountPromocode> page = accountPromocodeRepository.findAll(predicate, pageable);
         page.getContent().forEach(accountPromocode -> {
-            Promocode promocode = promocodeRepository.findOne(accountPromocode.getPromocodeId());
-            accountPromocode.setPromocode(promocode);
+            accountPromocode.setPromocode(
+                    promocodeRepository.findOne(accountPromocode.getPromocodeId())
+            );
         });
 
         return ResponseEntity.ok(page);
     }
 
+    private  String getAccountIdFromNameOrAccountId(String accountId) {
+        String personalAccountId = "";
 
+        if (accountId != null && !accountId.isEmpty()){
+
+            accountId = accountId.replaceAll("[^0-9]", "");
+            PersonalAccount account = personalAccountManager.findByAccountId(accountId);
+            if (account != null) {
+                personalAccountId = account.getId();
+            }
+        }
+        return personalAccountId;
+    }
 }
