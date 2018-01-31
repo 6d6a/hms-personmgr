@@ -92,6 +92,9 @@ public class Constants {
     public static final String SERVICE_ID_KEY = "serviceId";
     public static final String OLD_UNIX_ACCOUNT_SERVER_ID_KEY = "oldUnixAccountServerId";
     public static final String NEW_UNIX_ACCOUNT_SERVER_ID_KEY = "newUnixAccountServerId";
+    public static final String OLD_SERVER_NAME_KEY = "oldServerName";
+    public static final String OLD_HTTP_PROXY_IP_KEY = "oldHttpProxyIp";
+    public static final String NGINX_SERVICE_TEMPLATE_TYPE_NAME = "STAFF_NGINX";
     public static final String OLD_DATABASE_SERVER_ID_KEY = "oldDatabaseServerId";
     public static final String NEW_DATABASE_SERVER_ID_KEY = "newDatabaseServerId";
     public static final String OLD_WEBSITE_SERVER_ID_KEY = "oldWebSiteServerId";
