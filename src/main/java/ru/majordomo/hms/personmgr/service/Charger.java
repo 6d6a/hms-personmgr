@@ -61,7 +61,15 @@ public class Charger {
                     + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE)
                     + " cost: " + cost
             );
-            response = accountHelper.charge(account, accountService.getPaymentService(), cost, forceCharge, false, chargeDateTime);
+            CustomCharge charge = new CustomCharge(
+                    accountService.getPaymentService(),
+                    chargeDateTime,
+                    cost,
+                    forceCharge,
+                    false,
+                    false
+            );
+            response = accountHelper.charge(account, charge.getPaymentOperationMessage());
         } catch (ChargeException e) {
             logger.info("Error. accountHelper.charge returned ChargeException for service: " + accountService.toString());
             return ChargeResult.error();

@@ -101,7 +101,9 @@ public class AbonementService {
         Abonement abonement = checkAbonementAllownes(account, plan, abonementId, accountHasFree14DaysAbonement);
 
         if (abonement.getService().getCost().compareTo(BigDecimal.ZERO) > 0) {
-            accountHelper.charge(account, abonement.getService());
+
+            DefaultCharge charge = new DefaultCharge(abonement.getService());
+            accountHelper.charge(account, charge.getPaymentOperationMessage());
         }
 
         AccountAbonement accountAbonement = new AccountAbonement();
@@ -130,7 +132,8 @@ public class AbonementService {
     public void renewAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
         Plan plan = getAccountPlan(account);
 
-        accountHelper.charge(account, accountAbonement.getAbonement().getService());
+        DefaultCharge charge = new DefaultCharge(accountAbonement.getAbonement().getService());
+        accountHelper.charge(account, charge.getPaymentOperationMessage());
 
         accountAbonementManager.setExpired(
                 accountAbonement.getId(),
@@ -152,7 +155,8 @@ public class AbonementService {
     public void prolongAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
         Plan plan = getAccountPlan(account);
 
-        accountHelper.charge(account, accountAbonement.getAbonement().getService());
+        DefaultCharge charge = new DefaultCharge(accountAbonement.getAbonement().getService());
+        accountHelper.charge(account, charge.getPaymentOperationMessage());
 
         accountAbonementManager.setExpired(
                 accountAbonement.getId(),

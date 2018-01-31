@@ -1,16 +1,20 @@
 package ru.majordomo.hms.personmgr.service.PlanChange;
 
+import org.apache.commons.collections.map.HashedMap;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.service.DefaultCharge;
+import ru.majordomo.hms.personmgr.service.ForceCharge;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 
 public class RegularToRegular extends Processor {
 
@@ -115,13 +119,16 @@ public class RegularToRegular extends Processor {
             }
 
             Abonement abonement = newPlan.getNotInternalAbonement();
-            accountHelper.charge(
-                    account, abonement.getService(),
-                    abonement.getService().getCost(),
-                    ignoreRestricts,
-                    false,
-                    LocalDateTime.now()
-            );
+
+            Map<String, Object> paymentOperationMessage;
+
+            if (ignoreRestricts) {
+                paymentOperationMessage = new ForceCharge(abonement.getService()).getPaymentOperationMessage();
+            } else {
+                paymentOperationMessage = new DefaultCharge(abonement.getService()).getPaymentOperationMessage();
+            }
+
+            accountHelper.charge(account, paymentOperationMessage);
             addAccountAbonement(abonement);
 
         } else {
