@@ -279,6 +279,21 @@ public class AccountTransferService {
                 databaseUserMessage.addParam(RESOURCE_ID_KEY, databaseUser.getId());
                 databaseUserMessage.addParam(SERVICE_ID_KEY, newDatabaseService.getId());
 
+                Map<String, Object> teParams = new HashMap<>();
+
+                teParams.put(OLD_SERVER_NAME_KEY, oldServer.getName());
+                teParams.put(
+                        OLD_HTTP_PROXY_IP_KEY,
+                        oldServer.getServices()
+                                .stream()
+                                .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(NGINX_SERVICE_TEMPLATE_TYPE_NAME))
+                                .findFirst()
+                                .orElseThrow(() -> new ParameterValidationException("Сервис Nginx на старом сервере не найден"))
+                                .getServiceSockets().get(0).getAddressAsString()
+                );
+
+                databaseUserMessage.addParam(TE_PARAMS_KEY, teParams);
+
                 processingBusinessAction = transferDatabaseUser(databaseUserMessage);
                 accountTransferRequest.setOperationId(processingBusinessAction.getOperationId());
             }
