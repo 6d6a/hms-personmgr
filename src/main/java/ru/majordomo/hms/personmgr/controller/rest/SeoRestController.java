@@ -29,7 +29,7 @@ import ru.majordomo.hms.personmgr.model.seo.Seo;
 import ru.majordomo.hms.personmgr.repository.AccountSeoOrderRepository;
 import ru.majordomo.hms.personmgr.repository.SeoRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.DefaultCharge;
+import ru.majordomo.hms.personmgr.service.ChargeMessage;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_NAME_KEY;
@@ -141,8 +141,10 @@ public class SeoRestController extends CommonRestController {
 
         accountSeoOrderRepository.save(order);
 
-        DefaultCharge charge = new DefaultCharge(seo.getService());
-        accountHelper.charge(account, charge.getPaymentOperationMessage());
+        Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(seo.getService())
+                .build()
+                .getFullMessage();
+        accountHelper.charge(account, paymentOperationMessage);
 
         Map<String, String> params = new HashMap<>();
         params.put(DOMAIN_NAME_KEY, domainName);

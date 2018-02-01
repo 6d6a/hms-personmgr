@@ -17,7 +17,7 @@ public abstract class Order<T extends AccountOrder> {
 
     Order() {}
 
-    protected void setAccountOrder(T accountOrder) {
+    public void setAccountOrder(T accountOrder) {
         this.accountOrder = accountOrder;
     }
 

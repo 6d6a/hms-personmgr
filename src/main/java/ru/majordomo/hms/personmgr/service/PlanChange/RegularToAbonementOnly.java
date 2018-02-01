@@ -3,8 +3,7 @@ package ru.majordomo.hms.personmgr.service.PlanChange;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.service.DefaultCharge;
-import ru.majordomo.hms.personmgr.service.ForceCharge;
+import ru.majordomo.hms.personmgr.service.ChargeMessage;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -47,9 +46,14 @@ public class RegularToAbonementOnly extends Processor {
             Map<String, Object> paymentOperationMessage;
 
             if (ignoreRestricts) {
-                paymentOperationMessage = new ForceCharge(abonement.getService()).getPaymentOperationMessage();
+                paymentOperationMessage = new ChargeMessage.ChargeBuilder(abonement.getService())
+                        .forceCharge()
+                        .build()
+                        .getFullMessage();
             } else {
-                paymentOperationMessage = new DefaultCharge(abonement.getService()).getPaymentOperationMessage();
+                paymentOperationMessage =  new ChargeMessage.ChargeBuilder(abonement.getService())
+                        .build()
+                        .getFullMessage();
             }
 
             accountHelper.charge(account, paymentOperationMessage);

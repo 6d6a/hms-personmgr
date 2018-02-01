@@ -102,8 +102,10 @@ public class AbonementService {
 
         if (abonement.getService().getCost().compareTo(BigDecimal.ZERO) > 0) {
 
-            DefaultCharge charge = new DefaultCharge(abonement.getService());
-            accountHelper.charge(account, charge.getPaymentOperationMessage());
+            Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(abonement.getService())
+                    .build()
+                    .getFullMessage();
+            accountHelper.charge(account, paymentOperationMessage);
         }
 
         AccountAbonement accountAbonement = new AccountAbonement();
@@ -132,8 +134,10 @@ public class AbonementService {
     public void renewAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
         Plan plan = getAccountPlan(account);
 
-        DefaultCharge charge = new DefaultCharge(accountAbonement.getAbonement().getService());
-        accountHelper.charge(account, charge.getPaymentOperationMessage());
+        Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(accountAbonement.getAbonement().getService())
+                .build()
+                .getFullMessage();
+        accountHelper.charge(account, paymentOperationMessage);
 
         accountAbonementManager.setExpired(
                 accountAbonement.getId(),
@@ -155,8 +159,10 @@ public class AbonementService {
     public void prolongAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
         Plan plan = getAccountPlan(account);
 
-        DefaultCharge charge = new DefaultCharge(accountAbonement.getAbonement().getService());
-        accountHelper.charge(account, charge.getPaymentOperationMessage());
+        Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(accountAbonement.getAbonement().getService())
+                .build()
+                .getFullMessage();
+        accountHelper.charge(account, paymentOperationMessage);
 
         accountAbonementManager.setExpired(
                 accountAbonement.getId(),

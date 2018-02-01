@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -18,6 +20,7 @@ import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.Map;
 
 import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PAYOUT_SERVICE_ID;
 
@@ -32,6 +35,9 @@ public class PartnerCheckoutOrder extends Order<AccountPartnerCheckoutOrder> {
     private AccountHelper accountHelper;
     private PersonalAccountManager personalAccountManager;
     private PaymentServiceRepository paymentServiceRepository;
+    private FinFeignClient finFeignClient;
+
+    private final static Logger logger = LoggerFactory.getLogger(PartnerCheckoutOrder.class);
 
     @Autowired
     PartnerCheckoutOrder(
@@ -39,13 +45,15 @@ public class PartnerCheckoutOrder extends Order<AccountPartnerCheckoutOrder> {
             AccountPartnerCheckoutOrderRepository orderRepository,
             AccountHelper accountHelper,
             PersonalAccountManager personalAccountManager,
-            PaymentServiceRepository paymentServiceRepository
+            PaymentServiceRepository paymentServiceRepository,
+            FinFeignClient finFeignClient
     ) {
         this.publisher = publisher;
         this.orderRepository = orderRepository;
         this.accountHelper = accountHelper;
         this.personalAccountManager = personalAccountManager;
         this.paymentServiceRepository = paymentServiceRepository;
+        this.finFeignClient = finFeignClient;
     }
 
     @Override
@@ -63,7 +71,7 @@ public class PartnerCheckoutOrder extends Order<AccountPartnerCheckoutOrder> {
             throw new ParameterValidationException("Минимальная сумма вывода - 1500 руб.");
         }
 
-        PersonalAccount account = personalAccountManager.findByAccountId(this.accountOrder.getPersonalAccountId());
+        PersonalAccount account = personalAccountManager.findOne(this.accountOrder.getPersonalAccountId());
 
         BigDecimal partnerBalance = accountHelper.getPartnerBalance(account.getId());
 
@@ -75,8 +83,12 @@ public class PartnerCheckoutOrder extends Order<AccountPartnerCheckoutOrder> {
         PaymentService paymentService = paymentServiceRepository.findOne(PARTNER_PAYOUT_SERVICE_ID);
 
         //Списываем деньги
-        PartnerCharge charge = new PartnerCharge(paymentService);
-        SimpleServiceMessage response = accountHelper.charge(account, charge.getPaymentOperationMessage());
+        Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(paymentService)
+                .setAmount(amountToPayout)
+                .partnerOnlyPaymentType()
+                .build()
+                .getFullMessage();
+        SimpleServiceMessage response = accountHelper.charge(account, paymentOperationMessage);
         this.accountOrder.setDocumentNumber((String) response.getParam("documentNumber"));
 
         //Уведомление
@@ -85,10 +97,13 @@ public class PartnerCheckoutOrder extends Order<AccountPartnerCheckoutOrder> {
 
     @Override
     protected void onDecline() {
-        //Получаем сумму которую, мы списывали
-        BigDecimal amountToPayout = this.accountOrder.getAmount();
-
-        //TODO Вернуть
+        //Возвращаем партнёрские средства, которые мы списывали
+        try {
+            finFeignClient.unblock(this.accountOrder.getPersonalAccountId(), this.accountOrder.getDocumentNumber());
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.service.PartnerCheckoutOrder #1 " + e.getMessage());
+        }
     }
 
     @Override
@@ -96,11 +111,7 @@ public class PartnerCheckoutOrder extends Order<AccountPartnerCheckoutOrder> {
         //При завершении выставляется только статус FINISHED
     }
 
-
-
-
-
-    public void notifyPro(PersonalAccount account) {
+    private void notifyPro(PersonalAccount account) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(account.getId());
         message.setParams(new HashMap<>());
@@ -111,15 +122,13 @@ public class PartnerCheckoutOrder extends Order<AccountPartnerCheckoutOrder> {
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("client_id", message.getAccountId());
 
-        //TODO
-        parameters.put("body", "1. Аккаунт: " + account.getName() + "<br>");
-//                "2. Сумма к выводу партнёрских средств: " + clientEmails + "<br>" +
-//                "3. Имя сайта: " + domainName + "<br><br>" +
-//                "Услуга " + serviceName + " оплачена из ПУ.");
-//        parameters.put("subject", "Услуга " + serviceName + " оплачена");
+        parameters.put("body", "1. Аккаунт: " + account.getName() + "<br>" +
+                "2. Сумма к выводу партнёрских средств: " + this.accountOrder.getAmount() + "<br>");
+        parameters.put("subject", "Заказ на вывод партнёрских средств");
 
         message.addParam("parametrs", parameters);
 
-        publisher.publishEvent(new SendMailEvent(message));
+        logger.info("Отправелно письмо: " + parameters); //TODO remove debug
+//        publisher.publishEvent(new SendMailEvent(message));
     }
 }

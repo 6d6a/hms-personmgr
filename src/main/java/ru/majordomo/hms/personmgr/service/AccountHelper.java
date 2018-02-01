@@ -330,10 +330,11 @@ public class AccountHelper {
 
     //TODO на самом деле сюда ещё должна быть возможность передать discountedService
     public SimpleServiceMessage block(PersonalAccount account, PaymentService service, Boolean bonusChargeProhibited) {
-        Map<String, Object> paymentOperation = new HashMap<>();
-        paymentOperation.put("serviceId", service.getId());
-        paymentOperation.put("amount", service.getCost());
-        paymentOperation.put("bonusChargeProhibited", bonusChargeProhibited);
+
+        Map<String, Object> paymentOperation = new ChargeMessage.ChargeBuilder(service)
+                .excludeBonusPaymentType()
+                .build()
+                .getFullMessage();
 
         SimpleServiceMessage response;
         try {

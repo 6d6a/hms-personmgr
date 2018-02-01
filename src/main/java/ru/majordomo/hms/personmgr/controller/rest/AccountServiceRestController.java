@@ -134,8 +134,10 @@ public class AccountServiceRestController extends CommonRestController {
         //Сейчас баланс проверяется по полной стоимости услуги
         accountHelper.checkBalance(account, paymentService);
 
-        DefaultCharge charge = new DefaultCharge(paymentService);
-        accountHelper.charge(account, charge.getPaymentOperationMessage());
+        Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(paymentService)
+                .build()
+                .getFullMessage();
+        accountHelper.charge(account, paymentOperationMessage);
 
         accountServiceHelper.addAccountService(account, paymentServiceId);
 
@@ -384,8 +386,11 @@ public class AccountServiceRestController extends CommonRestController {
 
         if (dayCost.compareTo(BigDecimal.ZERO) > 0) {
             logger.debug("account [" + account + "] dailyCost for service [" + paymentService + "] = " + dayCost);
-            CustomAmountAndDateCharge charge = new CustomAmountAndDateCharge(paymentService, LocalDateTime.now(), dayCost);
-            accountHelper.charge(account, charge.getPaymentOperationMessage());
+            Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(paymentService)
+                    .setAmount(dayCost)
+                    .build()
+                    .getFullMessage();
+            accountHelper.charge(account, paymentOperationMessage);
         } else {
             logger.debug("account [" + account + "] dailyCost for service [" + paymentService + "] <= 0 ");
         }

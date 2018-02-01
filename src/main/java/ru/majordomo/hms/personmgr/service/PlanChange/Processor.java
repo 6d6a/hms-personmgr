@@ -312,15 +312,13 @@ public abstract class Processor {
             }
         } else if (cashBackAmount.compareTo(BigDecimal.ZERO) < 0) {
             //Списать деньги
-            CustomCharge charge = new CustomCharge(
-                    currentPlan.getService(),
-                    LocalDateTime.now(),
-                    cashBackAmount.abs(),
-                    forceCharge,
-                    false,
-                    false
-            );
-            accountHelper.charge(account, charge.getPaymentOperationMessage());
+
+            Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(currentPlan.getService())
+                    .setAmount(cashBackAmount.abs())
+                    .setForceCharge(forceCharge)
+                    .build()
+                    .getFullMessage();
+            accountHelper.charge(account, paymentOperationMessage);
         }
     }
 
