@@ -111,7 +111,7 @@ public class AccountOwnerRestController extends CommonRestController {
             publisher.publishEvent(new AccountOwnerChangeEmailEvent(account, paramsForToken));
         }
 
-        String historyMessage = "Изменены данные владельца аккаунта с IP: " + ip + diffMessage;
+        String historyMessage = "С IP " + ip +  " изменены данные владельца аккаунта: " + diffMessage;
 
         if (changeEmail) {
             historyMessage += " Ожидается подтверждение смены контактных Email на " + owner.getContactInfo().getEmailAddresses();

@@ -92,20 +92,18 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
 
     public String getDiffMessage(AccountOwner owner){
 
+        PersonalInfo personalInfo = getPersonalInfo() == null ? new PersonalInfo() : getPersonalInfo();
+        PersonalInfo newPersonalInfo = owner.getPersonalInfo() == null ? new PersonalInfo() : owner.getPersonalInfo();
+        ContactInfo contactInfo = getContactInfo() == null ? new ContactInfo() : getContactInfo();
+        ContactInfo newContactInfo = owner.getContactInfo() == null ? new ContactInfo() : owner.getContactInfo();
+
+
         return Utils.joinStringsWithDelimeterExceptNullStrings(
                 ", ",
                 Utils.diffFieldsString("имя", getName(), owner.getName()),
                 Utils.diffFieldsString("тип", getType(), owner.getType()),
-                getPersonalInfo() == null || owner.getPersonalInfo() == null
-                        ?
-                        Utils.diffFieldsString("personalInfo", getPersonalInfo(), owner.getPersonalInfo())
-                        :
-                        getPersonalInfo().getDiffMessage(owner.getPersonalInfo()),
-                getContactInfo() == null || owner.getContactInfo() == null
-                        ?
-                        Utils.diffFieldsString("contactInfo", getContactInfo(), owner.getContactInfo())
-                        :
-                        getContactInfo().getDiffMessage(owner.getContactInfo())
+                Utils.diffFieldsString("personalInfo", personalInfo, newPersonalInfo),
+                Utils.diffFieldsString("contactInfo", contactInfo, newContactInfo)
         );
     }
 
