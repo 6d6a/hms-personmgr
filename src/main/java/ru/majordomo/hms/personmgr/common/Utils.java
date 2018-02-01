@@ -209,4 +209,14 @@ public class Utils {
             return (Boolean) booleanObject;
         }
     }
+
+    public static String diffFieldsString(String fieldName, Object oldField, Object newField){
+        String oldFieldString = oldField == null ? "null" : oldField.toString();
+        String newFieldString = newField == null ? "null" : newField.toString();
+
+        if (!oldFieldString.equals(newFieldString)) {
+            return " " + fieldName + " с " + oldFieldString + " на " + newFieldString;
+        }
+        return "";
+    }
 }

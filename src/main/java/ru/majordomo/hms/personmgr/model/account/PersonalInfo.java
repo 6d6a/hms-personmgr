@@ -5,6 +5,7 @@ import java.time.LocalDate;
 
 import javax.validation.constraints.Null;
 
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.validation.group.AccountOwnerCompanyChecks;
 import ru.majordomo.hms.personmgr.validation.group.AccountOwnerIndividualChecks;
 
@@ -105,6 +106,20 @@ public class PersonalInfo {
 
     public void setOkvedCodes(String okvedCodes) {
         this.okvedCodes = okvedCodes;
+    }
+
+    public String getDiffMessage(PersonalInfo personalInfo){
+        StringBuilder message = new StringBuilder();
+        message.append(Utils.diffFieldsString("номер паспорта", getNumber(), personalInfo.getNumber()));
+        message.append(Utils.diffFieldsString("паспорт выдан", getIssuedOrg(), personalInfo.getIssuedOrg()));
+        message.append(Utils.diffFieldsString("дата выдачи паспорта", getIssuedDate(), personalInfo.getIssuedDate()));
+        message.append(Utils.diffFieldsString("юридический адрес", getAddress(), personalInfo.getAddress()));
+        message.append(Utils.diffFieldsString("ИНН", getInn(), personalInfo.getInn()));
+        message.append(Utils.diffFieldsString("ОКПО", getOkpo(), personalInfo.getOkpo()));
+        message.append(Utils.diffFieldsString("КПП", getKpp(), personalInfo.getKpp()));
+        message.append(Utils.diffFieldsString("ОГРН", getOgrn(), personalInfo.getOgrn()));
+        message.append(Utils.diffFieldsString("ОКВЭД", getOkvedCodes(), personalInfo.getOkvedCodes()));
+        return message.toString();
     }
 
     @Override
