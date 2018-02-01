@@ -225,10 +225,11 @@ public class Utils {
     public static String joinStringsWithDelimeterExceptNullStrings(CharSequence delimiter, CharSequence... strings){
         StringJoiner joiner = new StringJoiner(delimiter);
         int i = 0;
-        while (i++ < strings.length) {
+        while (i < strings.length) {
             if (strings[i] != null) {
                 joiner.add(strings[i]);
             }
+            i++;
         }
         return joiner.toString();
     }
