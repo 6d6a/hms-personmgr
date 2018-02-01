@@ -226,7 +226,7 @@ public class Utils {
         StringJoiner joiner = new StringJoiner(delimiter);
         int i = 0;
         while (i < strings.length) {
-            if (strings[i] != null) {
+            if (strings[i] != null && strings[i].length() > 0) {
                 joiner.add(strings[i]);
             }
             i++;
