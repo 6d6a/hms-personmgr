@@ -102,8 +102,8 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
                 ", ",
                 Utils.diffFieldsString("имя", getName(), owner.getName()),
                 Utils.diffFieldsString("тип", getType(), owner.getType()),
-                Utils.diffFieldsString("personalInfo", personalInfo, newPersonalInfo),
-                Utils.diffFieldsString("contactInfo", contactInfo, newContactInfo)
+                personalInfo.getDiffMessage(newPersonalInfo),
+                contactInfo.getDiffMessage(newContactInfo)
         );
     }
 
