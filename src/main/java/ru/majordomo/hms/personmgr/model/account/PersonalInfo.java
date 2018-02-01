@@ -5,6 +5,7 @@ import java.time.LocalDate;
 
 import javax.validation.constraints.Null;
 
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.validation.group.AccountOwnerCompanyChecks;
 import ru.majordomo.hms.personmgr.validation.group.AccountOwnerIndividualChecks;
 
@@ -105,6 +106,21 @@ public class PersonalInfo {
 
     public void setOkvedCodes(String okvedCodes) {
         this.okvedCodes = okvedCodes;
+    }
+
+    public String getDiffMessage(PersonalInfo personalInfo){
+        return Utils.joinStringsWithDelimeterExceptNullStrings(
+                ", ",
+                Utils.diffFieldsString("номер паспорта", getNumber(), personalInfo.getNumber()),
+                Utils.diffFieldsString("паспорт выдан", getIssuedOrg(), personalInfo.getIssuedOrg()),
+                Utils.diffFieldsString("дата выдачи паспорта", getIssuedDate(), personalInfo.getIssuedDate()),
+                Utils.diffFieldsString("юридический адрес", getAddress(), personalInfo.getAddress()),
+                Utils.diffFieldsString("ИНН", getInn(), personalInfo.getInn()),
+                Utils.diffFieldsString("ОКПО", getOkpo(), personalInfo.getOkpo()),
+                Utils.diffFieldsString("КПП", getKpp(), personalInfo.getKpp()),
+                Utils.diffFieldsString("ОГРН", getOgrn(), personalInfo.getOgrn()),
+                Utils.diffFieldsString("ОКВЭД", getOkvedCodes(), personalInfo.getOkvedCodes())
+        );
     }
 
     @Override
