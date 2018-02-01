@@ -115,7 +115,6 @@ public class PersonalInfo {
                 Utils.diffFieldsString("паспорт выдан", getIssuedOrg(), personalInfo.getIssuedOrg()),
                 Utils.diffFieldsString("дата выдачи паспорта", getIssuedDate(), personalInfo.getIssuedDate()),
                 Utils.diffFieldsString("юридический адрес", getAddress(), personalInfo.getAddress()),
-                Utils.diffFieldsString("юридический адрес", getAddress(), personalInfo.getAddress()),
                 Utils.diffFieldsString("ИНН", getInn(), personalInfo.getInn()),
                 Utils.diffFieldsString("ОКПО", getOkpo(), personalInfo.getOkpo()),
                 Utils.diffFieldsString("КПП", getKpp(), personalInfo.getKpp()),
