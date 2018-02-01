@@ -211,11 +211,11 @@ public class Utils {
     }
 
     public static String diffFieldsString(String fieldName, Object oldField, Object newField){
-        String oldFieldString = oldField == null ? "null" : oldField.toString();
-        String newFieldString = newField == null ? "null" : newField.toString();
+        String oldFieldString = oldField == null ? "" : oldField.toString();
+        String newFieldString = newField == null ? "" : newField.toString();
 
         if (!oldFieldString.equals(newFieldString)) {
-            return " " + fieldName + " с " + oldFieldString + " на " + newFieldString;
+            return "'" + fieldName + "' с '" + oldFieldString + "' на '" + newFieldString + "'";
         }
         return "";
     }

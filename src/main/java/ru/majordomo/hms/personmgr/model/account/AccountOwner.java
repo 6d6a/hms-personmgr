@@ -14,8 +14,8 @@ import ru.majordomo.hms.personmgr.validation.groupSequenceProvider.AccountOwnerG
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-import java.lang.reflect.Field;
 import java.util.List;
+import java.util.StringJoiner;
 
 @Document
 @UniquePersonalAccountIdModel(AccountOwner.class)
@@ -92,21 +92,45 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
     }
 
     public String getDiffMessage(AccountOwner owner){
-        StringBuilder message = new StringBuilder();
-        message.append(" Изменилось");
 
-        message.append(Utils.diffFieldsString("имя", getName(), owner.getName()));
-        message.append(Utils.diffFieldsString("тип", getType(), owner.getType()));
+//        StringBuilder message = new StringBuilder();
+//        message.append(" Изменилось");
+//
+//        message.append(Utils.diffFieldsString("имя", getName(), owner.getName()));
+//        message.append(Utils.diffFieldsString("тип", getType(), owner.getType()));
+//
+//        message.append(
+//                getPersonalInfo() == null || owner.getPersonalInfo() == null
+//                ?
+//                Utils.diffFieldsString("personalInfo", getPersonalInfo(), owner.getPersonalInfo())
+//                :
+//                getPersonalInfo().getDiffMessage(owner.getPersonalInfo())
+//        );
+//
+//        message.append(
+//                getContactInfo() == null || owner.getContactInfo() == null
+//                        ?
+//                        Utils.diffFieldsString("contactInfo", getContactInfo(), owner.getContactInfo())
+//                        :
+//                        getContactInfo().getDiffMessage(owner.getContactInfo())
+//        );
+//
+//        return message.toString();
 
-        message.append(
+        StringJoiner joiner = new StringJoiner(", ");
+
+        joiner.add(Utils.diffFieldsString("имя", getName(), owner.getName()));
+        joiner.add(Utils.diffFieldsString("тип", getType(), owner.getType()));
+
+        joiner.add(
                 getPersonalInfo() == null || owner.getPersonalInfo() == null
-                ?
-                Utils.diffFieldsString("personalInfo", getPersonalInfo(), owner.getPersonalInfo())
-                :
-                getPersonalInfo().getDiffMessage(owner.getPersonalInfo())
+                        ?
+                        Utils.diffFieldsString("personalInfo", getPersonalInfo(), owner.getPersonalInfo())
+                        :
+                        getPersonalInfo().getDiffMessage(owner.getPersonalInfo())
         );
 
-        message.append(
+        joiner.add(
                 getContactInfo() == null || owner.getContactInfo() == null
                         ?
                         Utils.diffFieldsString("contactInfo", getContactInfo(), owner.getContactInfo())
@@ -114,7 +138,7 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
                         getContactInfo().getDiffMessage(owner.getContactInfo())
         );
 
-        return message.toString();
+        return joiner.toString();
     }
 
     @Override
