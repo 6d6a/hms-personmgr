@@ -93,30 +93,6 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
 
     public String getDiffMessage(AccountOwner owner){
 
-//        StringBuilder message = new StringBuilder();
-//        message.append(" Изменилось");
-//
-//        message.append(Utils.diffFieldsString("имя", getName(), owner.getName()));
-//        message.append(Utils.diffFieldsString("тип", getType(), owner.getType()));
-//
-//        message.append(
-//                getPersonalInfo() == null || owner.getPersonalInfo() == null
-//                ?
-//                Utils.diffFieldsString("personalInfo", getPersonalInfo(), owner.getPersonalInfo())
-//                :
-//                getPersonalInfo().getDiffMessage(owner.getPersonalInfo())
-//        );
-//
-//        message.append(
-//                getContactInfo() == null || owner.getContactInfo() == null
-//                        ?
-//                        Utils.diffFieldsString("contactInfo", getContactInfo(), owner.getContactInfo())
-//                        :
-//                        getContactInfo().getDiffMessage(owner.getContactInfo())
-//        );
-//
-//        return message.toString();
-
         StringJoiner joiner = new StringJoiner(", ");
 
         joiner.add(Utils.diffFieldsString("имя", getName(), owner.getName()));
@@ -138,7 +114,7 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
                         getContactInfo().getDiffMessage(owner.getContactInfo())
         );
 
-        return joiner.toString();
+        return "Изменено " + joiner.toString();
     }
 
     @Override

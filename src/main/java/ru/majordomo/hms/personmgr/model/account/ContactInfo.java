@@ -123,16 +123,6 @@ public class ContactInfo {
     }
 
     public String getDiffMessage(ContactInfo contactInfo){
-//        StringBuilder message = new StringBuilder();
-//        message.append(Utils.diffFieldsString("номера телефонов", getPhoneNumbers(), contactInfo.getPhoneNumbers()));
-//        message.append(Utils.diffFieldsString("email-адреса", getEmailAddresses(), contactInfo.getEmailAddresses()));
-//        message.append(Utils.diffFieldsString("почтовый адрес", getPostalAddress(), contactInfo.getPostalAddress()));
-//        message.append(Utils.diffFieldsString("банк", getBankName(), contactInfo.getBankName()));
-//        message.append(Utils.diffFieldsString("Бик", getBik(), contactInfo.getBik()));
-//        message.append(Utils.diffFieldsString("Кор. счет", getCorrespondentAccount(), contactInfo.getCorrespondentAccount()));
-//        message.append(Utils.diffFieldsString("счет", getBankAccount(), contactInfo.getBankAccount()));
-//        return message.toString();
-
         StringJoiner joiner = new StringJoiner(", ");
         joiner.add(Utils.diffFieldsString("номера телефонов", getPhoneNumbers(), contactInfo.getPhoneNumbers()));
         joiner.add(Utils.diffFieldsString("email-адреса", getEmailAddresses(), contactInfo.getEmailAddresses()));
