@@ -15,7 +15,6 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 import java.util.List;
-import java.util.StringJoiner;
 
 @Document
 @UniquePersonalAccountIdModel(AccountOwner.class)
@@ -93,28 +92,21 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
 
     public String getDiffMessage(AccountOwner owner){
 
-        StringJoiner joiner = new StringJoiner(", ");
-
-        joiner.add(Utils.diffFieldsString("имя", getName(), owner.getName()));
-        joiner.add(Utils.diffFieldsString("тип", getType(), owner.getType()));
-
-        joiner.add(
+        return Utils.joinStringsWithDelimeterExceptNullStrings(
+                ", ",
+                Utils.diffFieldsString("имя", getName(), owner.getName()),
+                Utils.diffFieldsString("тип", getType(), owner.getType()),
                 getPersonalInfo() == null || owner.getPersonalInfo() == null
                         ?
                         Utils.diffFieldsString("personalInfo", getPersonalInfo(), owner.getPersonalInfo())
                         :
-                        getPersonalInfo().getDiffMessage(owner.getPersonalInfo())
-        );
-
-        joiner.add(
+                        getPersonalInfo().getDiffMessage(owner.getPersonalInfo()),
                 getContactInfo() == null || owner.getContactInfo() == null
                         ?
                         Utils.diffFieldsString("contactInfo", getContactInfo(), owner.getContactInfo())
                         :
                         getContactInfo().getDiffMessage(owner.getContactInfo())
         );
-
-        return "Изменено " + joiner.toString();
     }
 
     @Override

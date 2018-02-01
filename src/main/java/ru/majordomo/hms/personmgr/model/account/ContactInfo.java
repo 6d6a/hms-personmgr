@@ -5,7 +5,6 @@ import org.hibernate.validator.constraints.NotEmpty;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.StringJoiner;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Null;
@@ -123,15 +122,16 @@ public class ContactInfo {
     }
 
     public String getDiffMessage(ContactInfo contactInfo){
-        StringJoiner joiner = new StringJoiner(", ");
-        joiner.add(Utils.diffFieldsString("номера телефонов", getPhoneNumbers(), contactInfo.getPhoneNumbers()));
-        joiner.add(Utils.diffFieldsString("email-адреса", getEmailAddresses(), contactInfo.getEmailAddresses()));
-        joiner.add(Utils.diffFieldsString("почтовый адрес", getPostalAddress(), contactInfo.getPostalAddress()));
-        joiner.add(Utils.diffFieldsString("банк", getBankName(), contactInfo.getBankName()));
-        joiner.add(Utils.diffFieldsString("Бик", getBik(), contactInfo.getBik()));
-        joiner.add(Utils.diffFieldsString("Кор. счет", getCorrespondentAccount(), contactInfo.getCorrespondentAccount()));
-        joiner.add(Utils.diffFieldsString("счет", getBankAccount(), contactInfo.getBankAccount()));
-        return joiner.toString();
+        return Utils.joinStringsWithDelimeterExceptNullStrings(
+                ", ",
+                Utils.diffFieldsString("номера телефонов", getPhoneNumbers(), contactInfo.getPhoneNumbers()),
+                Utils.diffFieldsString("email-адреса", getEmailAddresses(), contactInfo.getEmailAddresses()),
+                Utils.diffFieldsString("почтовый адрес", getPostalAddress(), contactInfo.getPostalAddress()),
+                Utils.diffFieldsString("банк", getBankName(), contactInfo.getBankName()),
+                Utils.diffFieldsString("Бик", getBik(), contactInfo.getBik()),
+                Utils.diffFieldsString("Кор. счет", getCorrespondentAccount(), contactInfo.getCorrespondentAccount()),
+                Utils.diffFieldsString("счет", getBankAccount(), contactInfo.getBankAccount())
+        );
     }
 
     @Override

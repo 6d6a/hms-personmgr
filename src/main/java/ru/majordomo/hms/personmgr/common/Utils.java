@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 
 public class Utils {
@@ -210,6 +211,7 @@ public class Utils {
         }
     }
 
+    @Nullable
     public static String diffFieldsString(String fieldName, Object oldField, Object newField){
         String oldFieldString = oldField == null ? "" : oldField.toString();
         String newFieldString = newField == null ? "" : newField.toString();
@@ -217,6 +219,17 @@ public class Utils {
         if (!oldFieldString.equals(newFieldString)) {
             return "'" + fieldName + "' с '" + oldFieldString + "' на '" + newFieldString + "'";
         }
-        return "";
+        return null;
+    }
+
+    public static String joinStringsWithDelimeterExceptNullStrings(CharSequence delimiter, CharSequence... strings){
+        StringJoiner joiner = new StringJoiner(delimiter);
+        int i = 0;
+        while (i++ < strings.length) {
+            if (strings[i] != null) {
+                joiner.add(strings[i]);
+            }
+        }
+        return joiner.toString();
     }
 }

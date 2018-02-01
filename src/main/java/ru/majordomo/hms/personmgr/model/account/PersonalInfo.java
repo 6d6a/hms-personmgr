@@ -2,7 +2,6 @@ package ru.majordomo.hms.personmgr.model.account;
 
 
 import java.time.LocalDate;
-import java.util.StringJoiner;
 
 import javax.validation.constraints.Null;
 
@@ -110,17 +109,19 @@ public class PersonalInfo {
     }
 
     public String getDiffMessage(PersonalInfo personalInfo){
-        StringJoiner joiner = new StringJoiner(", ");
-        joiner.add(Utils.diffFieldsString("номер паспорта", getNumber(), personalInfo.getNumber()));
-        joiner.add(Utils.diffFieldsString("паспорт выдан", getIssuedOrg(), personalInfo.getIssuedOrg()));
-        joiner.add(Utils.diffFieldsString("дата выдачи паспорта", getIssuedDate(), personalInfo.getIssuedDate()));
-        joiner.add(Utils.diffFieldsString("юридический адрес", getAddress(), personalInfo.getAddress()));
-        joiner.add(Utils.diffFieldsString("ИНН", getInn(), personalInfo.getInn()));
-        joiner.add(Utils.diffFieldsString("ОКПО", getOkpo(), personalInfo.getOkpo()));
-        joiner.add(Utils.diffFieldsString("КПП", getKpp(), personalInfo.getKpp()));
-        joiner.add(Utils.diffFieldsString("ОГРН", getOgrn(), personalInfo.getOgrn()));
-        joiner.add(Utils.diffFieldsString("ОКВЭД", getOkvedCodes(), personalInfo.getOkvedCodes()));
-        return joiner.toString();
+        return Utils.joinStringsWithDelimeterExceptNullStrings(
+                ", ",
+                Utils.diffFieldsString("номер паспорта", getNumber(), personalInfo.getNumber()),
+                Utils.diffFieldsString("паспорт выдан", getIssuedOrg(), personalInfo.getIssuedOrg()),
+                Utils.diffFieldsString("дата выдачи паспорта", getIssuedDate(), personalInfo.getIssuedDate()),
+                Utils.diffFieldsString("юридический адрес", getAddress(), personalInfo.getAddress()),
+                Utils.diffFieldsString("юридический адрес", getAddress(), personalInfo.getAddress()),
+                Utils.diffFieldsString("ИНН", getInn(), personalInfo.getInn()),
+                Utils.diffFieldsString("ОКПО", getOkpo(), personalInfo.getOkpo()),
+                Utils.diffFieldsString("КПП", getKpp(), personalInfo.getKpp()),
+                Utils.diffFieldsString("ОГРН", getOgrn(), personalInfo.getOgrn()),
+                Utils.diffFieldsString("ОКВЭД", getOkvedCodes(), personalInfo.getOkvedCodes())
+        );
     }
 
     @Override
