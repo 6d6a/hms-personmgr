@@ -932,7 +932,9 @@ public class AccountHelper {
 
     public void setCreditActivationDateIfNotSet(PersonalAccount account) {
         if (account.getCreditActivationDate() == null) {
-            accountManager.setCreditActivationDate(account.getId(), LocalDateTime.now());
+            LocalDateTime now = LocalDateTime.now();
+            accountManager.setCreditActivationDate(account.getId(), now);
+            saveHistoryForOperatorService(account, "Установлена дата активации кредита на " + now);
         }
     }
 
