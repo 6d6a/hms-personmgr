@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.annotation.Transient;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -128,7 +127,6 @@ public class PartnerCheckoutOrder extends Order<AccountPartnerCheckoutOrder> {
 
         message.addParam("parametrs", parameters);
 
-        logger.info("Отправелно письмо: " + parameters); //TODO remove debug
-//        publisher.publishEvent(new SendMailEvent(message));
+        publisher.publishEvent(new SendMailEvent(message));
     }
 }

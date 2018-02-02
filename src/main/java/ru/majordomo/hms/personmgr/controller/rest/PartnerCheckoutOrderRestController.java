@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.OrderState;
@@ -15,7 +16,6 @@ import ru.majordomo.hms.personmgr.service.PartnerCheckoutOrder;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import java.math.BigDecimal;
-import java.util.Map;
 
 @RestController
 public class PartnerCheckoutOrderRestController extends CommonRestController {
@@ -32,8 +32,7 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
         this.partnerCheckoutOrder = partnerCheckoutOrder;
     }
 
-    //TODO add routs to apigw
-
+    @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
     @RequestMapping(value = "/{accountId}/partner-checkout-order/{partnerCheckoutOrderId}",
             method = RequestMethod.GET)
     public ResponseEntity<AccountPartnerCheckoutOrder> get(
@@ -47,6 +46,7 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
         return new ResponseEntity<>(partnerOrder, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
     @RequestMapping(value = "/{accountId}/partner-checkout-order",
             method = RequestMethod.GET)
     public ResponseEntity<Page<AccountPartnerCheckoutOrder>> getAll(
@@ -60,7 +60,18 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
         return new ResponseEntity<>(partnerOrders, HttpStatus.OK);
     }
 
-    //TODO add role for modify order
+    @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
+    @RequestMapping(value = "/partner-checkout-order",
+            method = RequestMethod.GET)
+    public ResponseEntity<Page<AccountPartnerCheckoutOrder>> getAllOrders(
+            Pageable pageable
+    ) {
+        Page<AccountPartnerCheckoutOrder> partnerOrders = repository.findAll(pageable);
+
+        return new ResponseEntity<>(partnerOrders, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
     @RequestMapping(value = "/{accountId}/partner-checkout-order/{partnerCheckoutOrderId}",
             method = RequestMethod.POST)
     public ResponseEntity<Void> update(
