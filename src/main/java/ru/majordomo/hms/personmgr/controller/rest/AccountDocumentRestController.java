@@ -212,21 +212,17 @@ public class AccountDocumentRestController {
     ){
         DocumentOrder documentOrder = new DocumentOrder();
 
-        String postalAddress = params.getOrDefault("postalAddress", "");
-        if (postalAddress == null || !postalAddress.isEmpty()){
-            throw new ParameterValidationException("Необходимо указать почтовый адрес для заказа документов");
-        }
+        documentOrder.setPostalAddress(params.getOrDefault("postalAddress", null));
+        documentOrder.setParams(params);
 
-        documentOrder.setPostalAddress(postalAddress);
+        validatePostalAddressInDocumentOrder(documentOrder);
 
         PersonalAccount account = personalAccountManager.findOne(accountId);
 
         defaultDocumentTypes.forEach(documentType ->{
             try {
                 checkDocument(documentType, accountId, params);
-                documentOrder.
-                        getDocumentTypes().
-                        add(documentType);
+                documentOrder.getDocumentTypes().add(documentType);
             } catch (Exception e) {
                 documentOrder.setChecked(false);
                 documentOrder.getErrors().put(documentType.name(), e.getMessage());
@@ -249,19 +245,18 @@ public class AccountDocumentRestController {
                     checkDocument(REGISTRANT_DOMAIN_CERTIFICATE, accountId, params);
 
                     documentOrder.getDomainIds().add(domain.getId());
-                } catch (Exception e){
-                    documentOrder.getErrors().put(domain.getName(), e.getMessage());
-                }
+                } catch (Exception e){}
             }
         }
-
-        PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
-        BigDecimal available = accountHelper.getBalance(account);
 
         try {
             checkBalanceForDocumentOrder(account);
         } catch (LowBalanceException e) {
             documentOrder.getErrors().put("balance", e.getMessage());
+        }
+
+        if (!documentOrder.getErrors().isEmpty()) {
+            return ResponseEntity.badRequest().body(documentOrder);
         }
 
         return ResponseEntity.ok(documentOrder);
@@ -277,9 +272,7 @@ public class AccountDocumentRestController {
 
         Boolean agreement = documentOrder.getAgreement();
 
-        if (documentOrder.getPostalAddress() == null || documentOrder.getPostalAddress().isEmpty()){
-            throw new ParameterValidationException("Необходимо указать почтовый адрес для заказа документов");
-        }
+        validatePostalAddressInDocumentOrder(documentOrder);
 
         if (!agreement) {
             throw new ParameterValidationException("Необходимо подтвердить заказ документов");
@@ -291,78 +284,36 @@ public class AccountDocumentRestController {
         List<Domain> domains = accountHelper.getDomains(account);
 
         Map<String, byte[]> fileMap = buildFileMap(documentOrder, domains);
+        String operator = request.getUserPrincipal().getName();
 
-        if (documentOrder.getErrors().isEmpty()) {
+        try {
 
+            PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
 
-            byte[] zipFileByteArray;
-            try {
-                zipFileByteArray = getZipFileByteArray(fileMap, accountId);
-            } catch (IOException e) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Внутренняя ошибка, попробуйте позже");
-            }
+            Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(paymentService)
+                    .build()
+                    .getFullMessage();
+            accountHelper.charge(account, paymentOperationMessage);
 
-            //Отправка письма секретарю
+            documentOrder.setPaid(true);
+            documentOrder = documentOrderRepository.save(documentOrder);
 
-            String documentListInHtml = String.join("<br/>", documentOrder.getDocumentTypes()
-                    .stream().map(e -> e.getNameForHuman()).collect(Collectors.toList()));
+            //Отправка письма c документами секретарю
+            sendDocumentOrderToSecretary(account, documentOrder, domains, fileMap, operator);
 
-            String domainListInHtml = "не заказано";
-            if (!documentOrder.getDomainIds().isEmpty()) {
-                List<String> domainNameList = new ArrayList<>();
-                domains.stream().forEach(domain -> {
-                    if (documentOrder.getDomainIds().contains(domain.getId())) {
-                        domainNameList.add(domain.getName());
-                    }
-                });
-                domainListInHtml = String.join("<br/>", domainNameList);
-            }
+            accountHelper.saveHistory(accountId, "Заказан пакет документов " + documentOrder.toString(), operator);
 
-            String attachementBody = Base64.getMimeEncoder().encodeToString(zipFileByteArray);
-
-            Map<String, String> parameters = new HashMap<>();
-            parameters.put("client_id", account.getAccountId());
-            parameters.put("acc_id", account.getName());
-            parameters.put("address", documentOrder.getPostalAddress());
-            parameters.put("document_list", documentListInHtml);
-            parameters.put("domain_list", domainListInHtml);
-
-            Map<String, String> attachment = new HashMap<>();
-            attachment.put("body", attachementBody);
-            attachment.put("mime_type", "application/zip");
-            attachment.put("filename", accountId + ".zip");
-
-            accountNotificationHelper.sendMailWithAttachement(
-                    account,
-                    documentOrderEmail,
-                    "HmsSendDocumentOrder",
-                    10,
-                    parameters,
-                    attachment
-            );
-
-
-            try {
-                PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
-
-                Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(paymentService)
-                        .build()
-                        .getFullMessage();
-                accountHelper.charge(account, paymentOperationMessage);
-                documentOrder.setPaid(true);
-                documentOrderRepository.save(documentOrder);
-                String operator = request.getUserPrincipal().getName();
-                accountHelper.saveHistory(accountId, "Заказан пакет документов " + documentOrder.toString(), operator);
-            } catch (Exception e){
-                logger.error("Не удалось списать за пакет документов " + e.getMessage());
-                documentOrder.setChecked(false);
-                documentOrder.getErrors().put("balance", e.getMessage());
-                documentOrderRepository.save(documentOrder);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(documentOrder);
-            }
-            return ResponseEntity.ok().build();
+        } catch (Exception e){
+            logger.error("Не удалось списать за пакет документов " + e.getMessage());
+            documentOrder.setChecked(false);
+            documentOrder.getErrors().put("balance", e.getMessage());
         }
-        return ResponseEntity.badRequest().body(documentOrder);
+
+        if (!documentOrder.getErrors().isEmpty()) {
+            return ResponseEntity.badRequest().body(documentOrder);
+        } else {
+            return ResponseEntity.ok(documentOrder);
+        }
     }
 
     @GetMapping("/{documentType}")
@@ -611,8 +562,6 @@ public class AccountDocumentRestController {
             documentOrder.setChecked(true);
         }
 
-
-
         domains = filterDomains(domains);
 
         if (domains != null && !domains.isEmpty()) {
@@ -642,5 +591,69 @@ public class AccountDocumentRestController {
         zipFile.createNewFile();
         saveFilesToZip(zipFile, fileMap);
         return Files.readAllBytes(Paths.get(zipFile.getAbsolutePath()));
+    }
+
+    private void sendDocumentOrderToSecretary(
+            PersonalAccount account,
+            DocumentOrder documentOrder,
+            List<Domain> domains,
+            Map<String, byte[]> fileMap,
+            String operatorName
+    ){
+        byte[] zipFileByteArray;
+        try {
+            zipFileByteArray = getZipFileByteArray(fileMap, account.getAccountId());
+        } catch (IOException e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Внутренняя ошибка, попробуйте позже");
+            logger.error("Не удалось создать архив с документами перед отправкой секретарю. ErrorMessage: " + e.getMessage());
+            accountHelper.saveHistory(account,"Не удалось создать архив с документами перед отправкой секретарю. ErrorMessage: " + e.getMessage(), operatorName);
+            e.printStackTrace();
+            throw new InternalApiException("Внутренняя ошибка, попробуйте позже");
+        }
+
+        //Отправка письма секретарю
+
+        String documentListInHtml = String.join("<br/>", documentOrder.getDocumentTypes()
+                .stream().map(e -> e.getNameForHuman()).collect(Collectors.toList()));
+
+        String domainListInHtml = "не заказано";
+        if (!documentOrder.getDomainIds().isEmpty()) {
+            List<String> domainNameList = new ArrayList<>();
+            domains.stream().forEach(domain -> {
+                if (documentOrder.getDomainIds().contains(domain.getId())) {
+                    domainNameList.add(domain.getName());
+                }
+            });
+            domainListInHtml = String.join("<br/>", domainNameList);
+        }
+
+        String attachementBody = Base64.getMimeEncoder().encodeToString(zipFileByteArray);
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getName());
+        parameters.put("address", documentOrder.getPostalAddress());
+        parameters.put("document_list", documentListInHtml);
+        parameters.put("domain_list", domainListInHtml);
+
+        Map<String, String> attachment = new HashMap<>();
+        attachment.put("body", attachementBody);
+        attachment.put("mime_type", "application/zip");
+        attachment.put("filename", account.getAccountId() + "_documentOrder.zip");
+
+        accountNotificationHelper.sendMailWithAttachement(
+                account,
+                documentOrderEmail,
+                "HmsSendDocumentOrder",
+                10,
+                parameters,
+                attachment
+        );
+    }
+
+    private void validatePostalAddressInDocumentOrder(DocumentOrder documentOrder){
+        if (documentOrder.getPostalAddress() == null || documentOrder.getPostalAddress().isEmpty()){
+            throw new ParameterValidationException("Необходимо указать почтовый адрес для заказа документов");
+        }
     }
 }

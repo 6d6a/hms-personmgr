@@ -265,12 +265,22 @@ public class PersonalAccountRestController extends CommonRestController {
                     HttpStatus.BAD_REQUEST
             );
         }
-        List<String> newEmail = (List<String>) token.getParam("newemails");
+        List<String> newEmails = (List<String>) token.getParam("newemails");
         AccountOwner accountOwner = accountOwnerManager.findOneByPersonalAccountId(account.getId());
         ContactInfo contactInfo = accountOwner.getContactInfo();
-        contactInfo.setEmailAddresses(newEmail);
+
+        String oldEmails = contactInfo.getEmailAddresses().toString();
+
+        contactInfo.setEmailAddresses(newEmails);
         accountOwner.setContactInfo(contactInfo);
         accountOwnerManager.save(accountOwner);
+
+        String ip = getClientIP(request);
+        accountHelper.saveHistoryForOperatorService(account,
+                "С IP " + ip + "подтверждено изменение контактных адресов с "
+                        + oldEmails
+                        + " на " + newEmails.toString()
+        );
 
         publisher.publishEvent(new TokenDeleteEvent(token.getId()));
 

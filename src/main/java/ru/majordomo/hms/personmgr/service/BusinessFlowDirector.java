@@ -16,6 +16,7 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationReposito
 
 import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Utils.cleanBooleanSafe;
 
 @Service
 public class BusinessFlowDirector {
@@ -73,7 +74,7 @@ public class BusinessFlowDirector {
         ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
         if (businessAction != null) {
-            if ((boolean) message.getParam("success")) {
+            if (cleanBooleanSafe(message.getParam("success"))) {
                 businessAction.setState(State.PROCESSED);
             } else {
                 businessAction.setState(State.ERROR);
@@ -95,7 +96,8 @@ public class BusinessFlowDirector {
                         case PROCESSED:
                             if (businessOperation.getType() != BusinessOperationType.ACCOUNT_CREATE
                                     && businessOperation.getType() != BusinessOperationType.APP_INSTALL
-                                    && businessOperation.getType() != BusinessOperationType.ACCOUNT_TRANSFER) {
+                                    && businessOperation.getType() != BusinessOperationType.ACCOUNT_TRANSFER
+                                    && businessOperation.getType() != BusinessOperationType.APP_INSTALL) {
                                 businessOperation.setState(businessAction.getState());
                             }
 
@@ -103,7 +105,7 @@ public class BusinessFlowDirector {
                         case ERROR:
                             businessOperation.setState(businessAction.getState());
                             if (message.getParam("errorMessage") != null && !message.getParam("errorMessage").equals(""))
-                                businessOperation.addPublicParam("message", message.getParam("errorMessage"));
+                                businessOperation.addPublicParam("message", String.valueOf(message.getParam("errorMessage")));
                     }
                     logger.debug("ProcessingBusinessOperation -> " + businessOperation.getState() + ", operationIdentity: " +
                             message.getOperationIdentity()

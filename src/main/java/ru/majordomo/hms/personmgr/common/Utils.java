@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 
 public class Utils {
@@ -198,5 +199,38 @@ public class Utils {
         }
 
         return String.valueOf(monthNumber);
+    }
+
+    public static Boolean cleanBooleanSafe(Object booleanObject) {
+        if (booleanObject == null) {
+            return Boolean.FALSE;
+        } else if (booleanObject instanceof String ) {
+            return Boolean.valueOf((String) booleanObject);
+        } else {
+            return (Boolean) booleanObject;
+        }
+    }
+
+    @Nullable
+    public static String diffFieldsString(String fieldName, Object oldField, Object newField){
+        String oldFieldString = oldField == null ? "" : oldField.toString();
+        String newFieldString = newField == null ? "" : newField.toString();
+
+        if (!oldFieldString.equals(newFieldString)) {
+            return "'" + fieldName + "' с '" + oldFieldString + "' на '" + newFieldString + "'";
+        }
+        return null;
+    }
+
+    public static String joinStringsWithDelimeterExceptNullStrings(CharSequence delimiter, CharSequence... strings){
+        StringJoiner joiner = new StringJoiner(delimiter);
+        int i = 0;
+        while (i < strings.length) {
+            if (strings[i] != null && strings[i].length() > 0) {
+                joiner.add(strings[i]);
+            }
+            i++;
+        }
+        return joiner.toString();
     }
 }

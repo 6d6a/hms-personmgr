@@ -9,6 +9,7 @@ import java.util.List;
 import javax.validation.Valid;
 import javax.validation.constraints.Null;
 
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.validation.ValidPhone;
 import ru.majordomo.hms.personmgr.validation.group.AccountOwnerIndividualChecks;
 import ru.majordomo.hms.rc.user.resources.validation.ValidEmail;
@@ -118,6 +119,19 @@ public class ContactInfo {
         this.setBankName(contactInfo.getBankName());
         this.setBik(contactInfo.getBik());
         this.setCorrespondentAccount(contactInfo.getCorrespondentAccount());
+    }
+
+    public String getDiffMessage(ContactInfo contactInfo){
+        return Utils.joinStringsWithDelimeterExceptNullStrings(
+                ", ",
+                Utils.diffFieldsString("номера телефонов", getPhoneNumbers(), contactInfo.getPhoneNumbers()),
+                Utils.diffFieldsString("email-адреса", getEmailAddresses(), contactInfo.getEmailAddresses()),
+                Utils.diffFieldsString("почтовый адрес", getPostalAddress(), contactInfo.getPostalAddress()),
+                Utils.diffFieldsString("банк", getBankName(), contactInfo.getBankName()),
+                Utils.diffFieldsString("Бик", getBik(), contactInfo.getBik()),
+                Utils.diffFieldsString("Кор. счет", getCorrespondentAccount(), contactInfo.getCorrespondentAccount()),
+                Utils.diffFieldsString("счет", getBankAccount(), contactInfo.getBankAccount())
+        );
     }
 
     @Override

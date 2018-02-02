@@ -83,6 +83,9 @@ public class AccountOwnerRestController extends CommonRestController {
         AccountOwner currentOwner = accountOwnerManager.findOneByPersonalAccountId(accountId);
 
         boolean changeEmail = false;
+
+        String diffMessage = currentOwner.getDiffMessage(owner);
+
         List<String> currentEmails = new ArrayList<>(currentOwner.getContactInfo().getEmailAddresses());
         if (authentication.getAuthorities().stream().noneMatch(ga -> ga.getAuthority().equals("UPDATE_CLIENT_CONTACTS"))) {
             changeEmail = !currentOwner.equalEmailAdressess(owner);
@@ -107,12 +110,13 @@ public class AccountOwnerRestController extends CommonRestController {
             paramsForToken.put("oldemails", currentEmails);
             publisher.publishEvent(new AccountOwnerChangeEmailEvent(account, paramsForToken));
         }
-        String historyMessage = "Произведена смена владельца аккаунта с IP: " + ip + " Предыдущий владелец: " +
-                currentOwner +
-                " Новый владелец: " + owner
-                ;
-        if (changeEmail) {historyMessage += " Ожидается подтверждение смены контактных Email на "
-                + owner.getContactInfo().getEmailAddresses();}
+
+        String historyMessage = "С IP " + ip +  " изменены данные владельца аккаунта: " + diffMessage;
+
+        if (changeEmail) {
+            historyMessage += " Ожидается подтверждение смены контактных Email на " + owner.getContactInfo().getEmailAddresses();
+        }
+
         params.put(HISTORY_MESSAGE_KEY, historyMessage);
         params.put(OPERATOR_KEY, operator);
 

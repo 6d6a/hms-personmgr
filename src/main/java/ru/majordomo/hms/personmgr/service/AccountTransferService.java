@@ -44,8 +44,11 @@ import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_UNIX_ACCOUNT_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_WEBSITE_SERVER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.NGINX_SERVICE_TEMPLATE_TYPE_NAME;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_DATABASE_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_DATABASE_SERVER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OLD_HTTP_PROXY_IP_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OLD_SERVER_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_UNIX_ACCOUNT_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_WEBSITE_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
@@ -206,6 +209,16 @@ public class AccountTransferService {
             }
 
             teParams.put(DATASOURCE_URI_KEY, "rsync://" + oldServer.getName() + accountTransferRequest.getUnixAccountHomeDir());
+            teParams.put(OLD_SERVER_NAME_KEY, oldServer.getName());
+            teParams.put(
+                    OLD_HTTP_PROXY_IP_KEY,
+                    oldServer.getServices()
+                            .stream()
+                            .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(NGINX_SERVICE_TEMPLATE_TYPE_NAME))
+                            .findFirst()
+                            .orElseThrow(() -> new ParameterValidationException("Сервис Nginx на старом сервере не найден"))
+                            .getServiceSockets().get(0).getAddressAsString()
+            );
 
             unixAccountMessage.addParam(TE_PARAMS_KEY, teParams);
 
@@ -224,6 +237,12 @@ public class AccountTransferService {
         processingBusinessOperationRepository.save(processingBusinessOperation);
 
         if (accountTransferRequest.isTransferDatabases()) {
+            Server oldServer = rcStaffFeignClient.getServerById(accountTransferRequest.getOldUnixAccountServerId());
+
+            if (oldServer == null) {
+                throw new ParameterValidationException("Старый сервер не найден");
+            }
+
             List<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(accountTransferRequest.getAccountId());
             List<Database> databases = (List<Database>) rcUserFeignClient.getDatabases(accountTransferRequest.getAccountId());
 
@@ -260,6 +279,21 @@ public class AccountTransferService {
                 databaseUserMessage.addParam(RESOURCE_ID_KEY, databaseUser.getId());
                 databaseUserMessage.addParam(SERVICE_ID_KEY, newDatabaseService.getId());
 
+                Map<String, Object> teParams = new HashMap<>();
+
+                teParams.put(OLD_SERVER_NAME_KEY, oldServer.getName());
+                teParams.put(
+                        OLD_HTTP_PROXY_IP_KEY,
+                        oldServer.getServices()
+                                .stream()
+                                .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(NGINX_SERVICE_TEMPLATE_TYPE_NAME))
+                                .findFirst()
+                                .orElseThrow(() -> new ParameterValidationException("Сервис Nginx на старом сервере не найден"))
+                                .getServiceSockets().get(0).getAddressAsString()
+                );
+
+                databaseUserMessage.addParam(TE_PARAMS_KEY, teParams);
+
                 processingBusinessAction = transferDatabaseUser(databaseUserMessage);
                 accountTransferRequest.setOperationId(processingBusinessAction.getOperationId());
             }
@@ -276,6 +310,17 @@ public class AccountTransferService {
 
                     teParams.put(DATASOURCE_URI_KEY, "mysql://" + accountTransferRequest.getOldDatabaseHost() +
                             "/" + database.getName());
+
+                    teParams.put(OLD_SERVER_NAME_KEY, oldServer.getName());
+                    teParams.put(
+                            OLD_HTTP_PROXY_IP_KEY,
+                            oldServer.getServices()
+                                    .stream()
+                                    .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(NGINX_SERVICE_TEMPLATE_TYPE_NAME))
+                                    .findFirst()
+                                    .orElseThrow(() -> new ParameterValidationException("Сервис Nginx на старом сервере не найден"))
+                                    .getServiceSockets().get(0).getAddressAsString()
+                    );
 
                     databaseMessage.addParam(TE_PARAMS_KEY, teParams);
                 }
@@ -517,6 +562,17 @@ public class AccountTransferService {
                     dataPostprocessorArgs.put(DATA_POSTPROCESSOR_STRING_REPLACE_STRING_ARG, accountTransferRequest.getNewDatabaseHost());
 
                     teParams.put(DATA_POSTPROCESSOR_ARGS_KEY, dataPostprocessorArgs);
+
+                    teParams.put(OLD_SERVER_NAME_KEY, oldServer.getName());
+                    teParams.put(
+                            OLD_HTTP_PROXY_IP_KEY,
+                            oldServer.getServices()
+                                    .stream()
+                                    .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(NGINX_SERVICE_TEMPLATE_TYPE_NAME))
+                                    .findFirst()
+                                    .orElseThrow(() -> new ParameterValidationException("Сервис Nginx на старом сервере не найден"))
+                                    .getServiceSockets().get(0).getAddressAsString()
+                    );
 
                     webSiteMessage.addParam(TE_PARAMS_KEY, teParams);
                     processingBusinessAction = transferWebSite(webSiteMessage);

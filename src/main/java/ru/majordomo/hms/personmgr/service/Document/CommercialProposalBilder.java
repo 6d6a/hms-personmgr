@@ -7,12 +7,18 @@ import java.io.InputStream;
 
 public class CommercialProposalBilder extends DocumentBuilderImpl {
 
+    public CommercialProposalBilder(boolean withoutStamp){
+        setWithoutStamp(withoutStamp);
+    }
+
     @Override
     public void buildReplaceParameters() {}
 
     @Override
     public void buildTemplate() {
-        InputStream inputStream = this.getClass().getResourceAsStream("/contract/commercial_proposal.pdf");
+        String resourceWithStamp = "/contract/commercial_proposal.pdf";
+        String resourceWithoutStamp = "/contract/commercial_proposal_without_stamp.pdf";
+        InputStream inputStream = this.getClass().getResourceAsStream(isWithoutStamp() ? resourceWithoutStamp : resourceWithStamp);
         try {
             setFile(
                     IOUtils.toByteArray(inputStream)

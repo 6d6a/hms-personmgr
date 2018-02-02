@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.validation.annotation.Validated;
 
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.validation.UniquePersonalAccountIdModel;
 import ru.majordomo.hms.personmgr.validation.groupSequenceProvider.AccountOwnerGroupSequenceProvider;
@@ -87,6 +88,23 @@ public class AccountOwner extends VersionedModelBelongsToPersonalAccount {
 
     public void setAccountId(String accountId) {
         this.accountId = accountId;
+    }
+
+    public String getDiffMessage(AccountOwner owner){
+
+        PersonalInfo personalInfo = getPersonalInfo() == null ? new PersonalInfo() : getPersonalInfo();
+        PersonalInfo newPersonalInfo = owner.getPersonalInfo() == null ? new PersonalInfo() : owner.getPersonalInfo();
+        ContactInfo contactInfo = getContactInfo() == null ? new ContactInfo() : getContactInfo();
+        ContactInfo newContactInfo = owner.getContactInfo() == null ? new ContactInfo() : owner.getContactInfo();
+
+
+        return Utils.joinStringsWithDelimeterExceptNullStrings(
+                ", ",
+                Utils.diffFieldsString("имя", getName(), owner.getName()),
+                Utils.diffFieldsString("тип", getType(), owner.getType()),
+                personalInfo.getDiffMessage(newPersonalInfo),
+                contactInfo.getDiffMessage(newContactInfo)
+        );
     }
 
     @Override

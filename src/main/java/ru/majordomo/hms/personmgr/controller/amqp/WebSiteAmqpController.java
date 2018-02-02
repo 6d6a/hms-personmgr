@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.WEBSITE_CREATE;
@@ -16,6 +17,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.WEBSITE_UPDA
 
 @Service
 public class WebSiteAmqpController extends CommonAmqpController  {
+
     public WebSiteAmqpController() {
         resourceName = "сайт";
     }
@@ -27,7 +29,18 @@ public class WebSiteAmqpController extends CommonAmqpController  {
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + WEBSITE_UPDATE)
     public void update(Message amqpMessage, @Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
-        handleUpdateEventFromRc(message, headers);
+        String provider = headers.get("provider");
+        String realProviderName = provider.replaceAll("^" + instanceName + "\\.", "");
+        switch (realProviderName) {
+            case "rc-user":
+                handleUpdateEventFromRc(message, headers);
+
+                break;
+            case "appscat":
+                businessHelper.buildActionByOperationId(BusinessActionType.WEB_SITE_UPDATE_RC, message, message.getOperationIdentity());
+
+                break;
+        }
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + WEBSITE_DELETE)

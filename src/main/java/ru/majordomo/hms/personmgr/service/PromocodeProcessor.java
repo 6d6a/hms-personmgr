@@ -163,7 +163,11 @@ public class PromocodeProcessor {
                 accountPromocode = accountPromocodeRepository.findOneByPromocodeId(promocode.getId());
                 if (accountPromocode != null) {
                     logger.debug("Client trying to use already used code: " + promocodeString);
-
+                    accountHelper.saveHistory(
+                            account.getAccountId(),
+                            "Клиент пытается использовать уже использованный бонусный промокод " + promocodeString,
+                            "service"
+                    );
                     return;
                 }
 
