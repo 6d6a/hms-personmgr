@@ -57,7 +57,7 @@ public class AccountOrder extends ModelBelongsToPersonalAccount {
 
     @Override
     public String toString() {
-        return "Promotion{" +
+        return "AccountOrder{" +
                 "state='" + state + '\'' +
                 ", operator=" + operator +
                 ", created=" + created +
