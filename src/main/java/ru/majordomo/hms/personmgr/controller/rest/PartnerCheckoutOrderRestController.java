@@ -4,6 +4,7 @@ import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.config.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoOperations;
@@ -149,14 +150,18 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
     }
 
     private  String getAccountIdFromNameOrAccountId(String accountId) {
-        String personalAccountId = "";
+        String personalAccountId = accountId;
 
         if (accountId != null && !accountId.isEmpty()){
 
             accountId = accountId.replaceAll("[^0-9]", "");
-            PersonalAccount account = personalAccountManager.findByAccountId(accountId);
-            if (account != null) {
-                personalAccountId = account.getId();
+            try {
+                PersonalAccount account = personalAccountManager.findByAccountId(accountId);
+                if (account != null) {
+                    personalAccountId = account.getId();
+                }
+            } catch (ResourceNotFoundException e) {
+                return personalAccountId;
             }
         }
         return personalAccountId;
