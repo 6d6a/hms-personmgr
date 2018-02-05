@@ -1,6 +1,8 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,13 +14,16 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.OrderState;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.order.AccountPartnerCheckoutOrder;
+import ru.majordomo.hms.personmgr.model.order.QAccountPartnerCheckoutOrder;
 import ru.majordomo.hms.personmgr.repository.AccountPartnerCheckoutOrderRepository;
 import ru.majordomo.hms.personmgr.service.PartnerCheckoutOrder;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 @RestController
 public class PartnerCheckoutOrderRestController extends CommonRestController {
@@ -26,16 +31,19 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
     private AccountPartnerCheckoutOrderRepository repository;
     private PartnerCheckoutOrder partnerCheckoutOrder;
     private MongoOperations mongoOperations;
+    private PersonalAccountManager personalAccountManager;
 
     @Autowired
     public PartnerCheckoutOrderRestController(
             AccountPartnerCheckoutOrderRepository repository,
             PartnerCheckoutOrder partnerCheckoutOrder,
-            MongoOperations mongoOperations
+            MongoOperations mongoOperations,
+            PersonalAccountManager personalAccountManager
     ) {
         this.repository = repository;
         this.partnerCheckoutOrder = partnerCheckoutOrder;
         this.mongoOperations = mongoOperations;
+        this.personalAccountManager = personalAccountManager;
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
@@ -70,9 +78,19 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
     @RequestMapping(value = "/partner-checkout-order",
             method = RequestMethod.GET)
     public ResponseEntity<Page<AccountPartnerCheckoutOrder>> getAllOrders(
-            @QuerydslPredicate(root = AccountPartnerCheckoutOrder.class) Predicate predicate,
-            Pageable pageable
+            Pageable pageable,
+            @RequestParam Map<String, String> search
     ) {
+        QAccountPartnerCheckoutOrder qAccountAccountPartnerCheckoutOrder = QAccountPartnerCheckoutOrder.accountPartnerCheckoutOrder;
+
+        String accId = getAccountIdFromNameOrAccountId(search.getOrDefault("personalAccountId", ""));
+
+        BooleanBuilder builder = new BooleanBuilder();
+
+        Predicate predicate = builder.and(
+                accId.isEmpty() ? null : qAccountAccountPartnerCheckoutOrder.personalAccountId.equalsIgnoreCase(accId)
+        );
+
         Page<AccountPartnerCheckoutOrder> partnerOrders = repository.findAll(predicate, pageable);
 
         return new ResponseEntity<>(partnerOrders, HttpStatus.OK);
@@ -130,5 +148,18 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    private  String getAccountIdFromNameOrAccountId(String accountId) {
+        String personalAccountId = "";
+
+        if (accountId != null && !accountId.isEmpty()){
+
+            accountId = accountId.replaceAll("[^0-9]", "");
+            PersonalAccount account = personalAccountManager.findByAccountId(accountId);
+            if (account != null) {
+                personalAccountId = account.getId();
+            }
+        }
+        return personalAccountId;
+    }
 
 }
