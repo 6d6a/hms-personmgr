@@ -1,8 +1,11 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import com.querydsl.core.types.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,14 +25,17 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
 
     private AccountPartnerCheckoutOrderRepository repository;
     private PartnerCheckoutOrder partnerCheckoutOrder;
+    private MongoOperations mongoOperations;
 
     @Autowired
     public PartnerCheckoutOrderRestController(
             AccountPartnerCheckoutOrderRepository repository,
-            PartnerCheckoutOrder partnerCheckoutOrder
+            PartnerCheckoutOrder partnerCheckoutOrder,
+            MongoOperations mongoOperations
     ) {
         this.repository = repository;
         this.partnerCheckoutOrder = partnerCheckoutOrder;
+        this.mongoOperations = mongoOperations;
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
@@ -64,9 +70,10 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
     @RequestMapping(value = "/partner-checkout-order",
             method = RequestMethod.GET)
     public ResponseEntity<Page<AccountPartnerCheckoutOrder>> getAllOrders(
+            @QuerydslPredicate(root = AccountPartnerCheckoutOrder.class) Predicate predicate,
             Pageable pageable
     ) {
-        Page<AccountPartnerCheckoutOrder> partnerOrders = repository.findAll(pageable);
+        Page<AccountPartnerCheckoutOrder> partnerOrders = repository.findAll(predicate, pageable);
 
         return new ResponseEntity<>(partnerOrders, HttpStatus.OK);
     }
@@ -114,6 +121,7 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
 
         AccountPartnerCheckoutOrder partnerOrder = new AccountPartnerCheckoutOrder();
         partnerOrder.setPersonalAccountId(account.getId());
+        partnerOrder.setPersonalAccountName(account.getName());
         partnerOrder.setAmount(amount);
 
         partnerCheckoutOrder.setAccountOrder(partnerOrder);
