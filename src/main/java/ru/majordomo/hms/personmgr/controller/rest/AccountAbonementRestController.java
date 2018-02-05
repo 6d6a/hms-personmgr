@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.controller.rest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.StringJoiner;
 
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -77,7 +79,7 @@ public class AccountAbonementRestController extends CommonRestController {
 
     @PreAuthorize("hasRole('OPERATOR')")
     @RequestMapping(value = "/{accountAbonementId}", method = RequestMethod.PATCH)
-    public ResponseEntity<Object> updateAccountAbonement(
+    public ResponseEntity<Object> changeAutorenewAccountAbonement(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountAbonement.class) @PathVariable(value = "accountAbonementId") String accountAbonementId,
             @RequestBody Map<String, String> requestBody,
@@ -94,22 +96,92 @@ public class AccountAbonementRestController extends CommonRestController {
                 Boolean autorenew = Boolean.valueOf(requestBody.get("autorenew"));
                 accountAbonementManager.setAutorenew(accountAbonement.getId(), autorenew);
 
-                //Save history
                 String operator = request.getUserPrincipal().getName();
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY,
+                accountHelper.saveHistory(
+                        account,
                         (autorenew ? "Включено" : "Выключено") +
-                        " автопродление абонемента '" + accountAbonement.getAbonement().getName() + "'"
+                                " автопродление абонемента '" + accountAbonement.getAbonement().getName() + "'",
+                        operator
                 );
-                params.put(OPERATOR_KEY, operator);
-
-                publisher.publishEvent(new AccountHistoryEvent(accountId, params));
             }
 
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @PreAuthorize("hasAuthority('ACCOUNT_ABONEMENT_EDIT')")
+    @PatchMapping("/{accountAbonementId}/update")
+    public ResponseEntity<Object> updateAccountAbonement(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @ObjectId(AccountAbonement.class) @PathVariable(value = "accountAbonementId") String accountAbonementId,
+            @RequestBody Map<String, String> update,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(
+                accountAbonementId, account.getId()
+        );
+
+        String operator = request.getUserPrincipal().getName();
+
+        StringJoiner historyJoiner = new StringJoiner(", ","Абонемент аккаунта изменён: ", "");
+
+        update.keySet().forEach(key -> {
+            switch (key) {
+                case "created":
+                    LocalDateTime created = LocalDateTime.parse(update.get(key));
+                    if (created.isAfter(LocalDateTime.now())) {
+                        throw new ParameterValidationException(
+                                "Нельзя устанавливать дату создания абонемента позже текущей даты");
+                    }
+                    historyJoiner.add(
+                            new StringBuilder("дата создания с ").append(accountAbonement.getCreated().toString())
+                                .append(" на ").append(created.toString()));
+                    accountAbonement.setCreated(created);
+
+                    break;
+                case "expired":
+                    LocalDateTime expired = LocalDateTime.parse(update.get(key));
+                    if (expired.isBefore(LocalDateTime.now())) {
+                        throw new ParameterValidationException(
+                                "Нельзя устанавливать дату истечения абонемента раньше текущей даты");
+                    }
+                    historyJoiner.add(
+                            new StringBuilder("дата истечения с ").append(accountAbonement.getExpired().toString())
+                            .append(" на ").append(expired.toString()));
+                    accountAbonement.setExpired(expired);
+
+                    break;
+                case "abonementId":
+                    String abonementId = update.get(key);
+                    Abonement abonement = abonementRepository.findOne(abonementId);
+                    if (abonement == null) {
+                        throw new ResourceNotFoundException("Абонемент с id " + abonementId + " не найден");
+                    }
+                    historyJoiner.add(
+                            new StringBuilder("абонемент с id ").append(accountAbonement.getAbonementId())
+                                    .append(" и именем ").append(accountAbonement.getAbonement().getName())
+                            .append(" на ").append(abonementId).append(" с именем ").append(abonement.getName()));
+                    accountAbonement.setAbonementId(abonementId);
+
+                    break;
+                case "autorenew":
+                    Boolean autorenew = Boolean.valueOf(update.get(key));
+                    historyJoiner.add(
+                            new StringBuilder((autorenew ? "Включено" : "Выключено") +
+                            " автопродление '" + accountAbonement.getAbonement().getName() + "'"));
+
+                    break;
+                default:
+                    break;
+            }
+        });
+        accountAbonementManager.save(accountAbonement);
+        accountHelper.saveHistory(account, historyJoiner.toString(), operator);
+        return ResponseEntity.ok(accountAbonement);
     }
 
     @RequestMapping(value = "/{accountAbonementId}", method = RequestMethod.DELETE)
