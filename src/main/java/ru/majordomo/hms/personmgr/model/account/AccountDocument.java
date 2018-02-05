@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 @Data
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 @Document
 public class AccountDocument extends VersionedModelBelongsToPersonalAccount{
 

@@ -13,7 +13,7 @@ import java.util.*;
 
 @Data
 @Document
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 public class DocumentOrder extends ModelBelongsToPersonalAccount {
 
     @CreatedDate
