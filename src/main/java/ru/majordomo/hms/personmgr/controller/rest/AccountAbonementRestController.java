@@ -171,7 +171,7 @@ public class AccountAbonementRestController extends CommonRestController {
                 case "autorenew":
                     Boolean autorenew = Boolean.valueOf(update.get(key));
                     history.add(
-                            new StringBuilder((autorenew ? "Включено" : "Выключено") +
+                            new StringBuilder((autorenew ? "Включено" : "Выключено") + 
                             " автопродление '" + accountAbonement.getAbonement().getName() + "'"));
 
                     break;
