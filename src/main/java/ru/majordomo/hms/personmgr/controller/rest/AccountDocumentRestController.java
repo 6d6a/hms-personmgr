@@ -290,10 +290,9 @@ public class AccountDocumentRestController {
 
             PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
 
-            Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(paymentService)
-                    .build()
-                    .getFullMessage();
-            accountHelper.charge(account, paymentOperationMessage);
+            ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
+                    .build();
+            accountHelper.charge(account, chargeMessage);
 
             documentOrder.setPaid(true);
             documentOrder = documentOrderRepository.save(documentOrder);

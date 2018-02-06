@@ -63,14 +63,13 @@ public class Charger {
                     + " cost: " + cost
             );
 
-            Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(accountService.getPaymentService())
+            ChargeMessage chargeMessage = new ChargeMessage.Builder(accountService.getPaymentService())
                     .setAmount(cost)
                     .setChargeDate(chargeDateTime)
                     .setForceCharge(forceCharge)
-                    .build()
-                    .getFullMessage();
+                    .build();
 
-            response = accountHelper.charge(account, paymentOperationMessage);
+            response = accountHelper.charge(account, chargeMessage);
         } catch (ChargeException e) {
             logger.info("Error. accountHelper.charge returned ChargeException for service: " + accountService.toString());
             return ChargeResult.error();

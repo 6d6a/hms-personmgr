@@ -7,7 +7,7 @@ import ru.majordomo.hms.personmgr.model.order.AccountOrder;
 
 import java.time.LocalDateTime;
 
-public abstract class Order<T extends AccountOrder> {
+public abstract class OrderManager<T extends AccountOrder> {
 
     protected T accountOrder;
 
@@ -15,9 +15,7 @@ public abstract class Order<T extends AccountOrder> {
         accountOrder.setUpdated(LocalDateTime.now());
     }
 
-    Order() {}
-
-    public void setAccountOrder(T accountOrder) {
+    OrderManager(T accountOrder) {
         this.accountOrder = accountOrder;
     }
 

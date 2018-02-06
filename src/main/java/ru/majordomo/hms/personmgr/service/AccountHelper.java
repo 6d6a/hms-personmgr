@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -300,12 +299,12 @@ public class AccountHelper {
         return getDayCostByService(service, chargeDate);
     }
 
-    public SimpleServiceMessage charge(PersonalAccount account, Map<String, Object> paymentOperation) {
+    public SimpleServiceMessage charge(PersonalAccount account, ChargeMessage chargeMessage) {
 
         SimpleServiceMessage response;
 
         try {
-            response = finFeignClient.charge(account.getId(), paymentOperation);
+            response = finFeignClient.charge(account.getId(), chargeMessage.getFullMessage());
         } catch (Exception e) {
             if (!(e instanceof FeignException) || ((FeignException) e).status() != 400 ) {
                 logger.error("Exception in AccountHelper.charge " + e.getMessage());
@@ -313,12 +312,12 @@ public class AccountHelper {
                 throw e;
             }
             throw new ChargeException("Произошла ошибка при списании средств." +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency((BigDecimal) paymentOperation.get("amount")));
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()));
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
             throw new ChargeException("Баланс аккаунта недостаточен для заказа услуги. " +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency((BigDecimal) paymentOperation.get("amount")));
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()));
         }
 
         return response;
@@ -331,7 +330,7 @@ public class AccountHelper {
     //TODO на самом деле сюда ещё должна быть возможность передать discountedService
     public SimpleServiceMessage block(PersonalAccount account, PaymentService service, Boolean bonusChargeProhibited) {
 
-        Map<String, Object> paymentOperation = new ChargeMessage.ChargeBuilder(service)
+        Map<String, Object> paymentOperation = new ChargeMessage.Builder(service)
                 .excludeBonusPaymentType()
                 .build()
                 .getFullMessage();

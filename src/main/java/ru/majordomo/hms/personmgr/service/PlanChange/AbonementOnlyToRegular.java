@@ -63,15 +63,11 @@ public class AbonementOnlyToRegular extends Processor {
         if (newAbonementRequired) {
             Abonement abonement = newPlan.getNotInternalAbonement();
 
-            Map<String, Object> paymentOperationMessage;
+            ChargeMessage chargeMessage =  new ChargeMessage.Builder(abonement.getService())
+                    .setForceCharge(ignoreRestricts)
+                    .build();
 
-            if (ignoreRestricts) {
-                paymentOperationMessage = new ChargeMessage.ChargeBuilder(abonement.getService()).forceCharge().build().getFullMessage();
-            } else {
-                paymentOperationMessage = new ChargeMessage.ChargeBuilder(abonement.getService()).build().getFullMessage();
-            }
-
-            accountHelper.charge(account, paymentOperationMessage);
+            accountHelper.charge(account, chargeMessage);
 
             addAccountAbonement(abonement);
         } else {

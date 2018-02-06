@@ -2,7 +2,6 @@ package ru.majordomo.hms.personmgr.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -19,12 +18,12 @@ import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
-import java.util.Map;
 
-import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PAYOUT_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_CHECKOUT_MIN_SUMM;
+import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_CHECKOUT_SERVICE_ID;
 
 @Service
-public class PartnerCheckoutOrder extends Order<AccountPartnerCheckoutOrder> {
+public class PartnerCheckoutOrderManager extends OrderManager<AccountPartnerCheckoutOrder> {
 
     @Value("${mail_manager.pro_email}")
     private String proEmail;
@@ -36,10 +35,15 @@ public class PartnerCheckoutOrder extends Order<AccountPartnerCheckoutOrder> {
     private PaymentServiceRepository paymentServiceRepository;
     private FinFeignClient finFeignClient;
 
-    private final static Logger logger = LoggerFactory.getLogger(PartnerCheckoutOrder.class);
+    private final static Logger logger = LoggerFactory.getLogger(PartnerCheckoutOrderManager.class);
 
-    @Autowired
-    PartnerCheckoutOrder(
+    PartnerCheckoutOrderManager(
+            AccountPartnerCheckoutOrder accountPartnerCheckoutOrder
+    ) {
+        super(accountPartnerCheckoutOrder);
+    }
+
+    protected void init(
             ApplicationEventPublisher publisher,
             AccountPartnerCheckoutOrderRepository orderRepository,
             AccountHelper accountHelper,
@@ -63,31 +67,30 @@ public class PartnerCheckoutOrder extends Order<AccountPartnerCheckoutOrder> {
     @Override
     protected void onCreate() {
         //Проверить сколько партнёрских средств на аккаунте
-        BigDecimal amountToPayout = this.accountOrder.getAmount();
+        BigDecimal amountToCheckout = this.accountOrder.getAmount();
 
-        if (amountToPayout.compareTo(BigDecimal.valueOf(1500L)) < 0) {
+        if (amountToCheckout.compareTo(BigDecimal.valueOf(PARTNER_CHECKOUT_MIN_SUMM)) < 0) {
             super.updateState(OrderState.DECLINED, "service");
-            throw new ParameterValidationException("Минимальная сумма вывода - 1500 руб.");
+            throw new ParameterValidationException("Минимальная сумма вывода - " + PARTNER_CHECKOUT_MIN_SUMM + " руб.");
         }
 
         PersonalAccount account = personalAccountManager.findOne(this.accountOrder.getPersonalAccountId());
 
         BigDecimal partnerBalance = accountHelper.getPartnerBalance(account.getId());
 
-        if (amountToPayout.compareTo(partnerBalance) > 0) {
+        if (amountToCheckout.compareTo(partnerBalance) > 0) {
             super.updateState(OrderState.DECLINED, "service");
             throw new ParameterValidationException("Партнерский баланс недостаточен для вывода суммы");
         }
 
-        PaymentService paymentService = paymentServiceRepository.findOne(PARTNER_PAYOUT_SERVICE_ID);
+        PaymentService paymentService = paymentServiceRepository.findOne(PARTNER_CHECKOUT_SERVICE_ID);
 
         //Списываем деньги
-        Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(paymentService)
-                .setAmount(amountToPayout)
+        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
+                .setAmount(amountToCheckout)
                 .partnerOnlyPaymentType()
-                .build()
-                .getFullMessage();
-        SimpleServiceMessage response = accountHelper.charge(account, paymentOperationMessage);
+                .build();
+        SimpleServiceMessage response = accountHelper.charge(account, chargeMessage);
         this.accountOrder.setDocumentNumber((String) response.getParam("documentNumber"));
 
         //Уведомление

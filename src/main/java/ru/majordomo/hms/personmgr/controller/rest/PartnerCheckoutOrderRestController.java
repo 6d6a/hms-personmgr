@@ -2,12 +2,10 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
-import com.querydsl.core.types.dsl.BooleanExpression;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoOperations;
-import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +18,8 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.order.AccountPartnerCheckoutOrder;
 import ru.majordomo.hms.personmgr.model.order.QAccountPartnerCheckoutOrder;
 import ru.majordomo.hms.personmgr.repository.AccountPartnerCheckoutOrderRepository;
-import ru.majordomo.hms.personmgr.service.PartnerCheckoutOrder;
+import ru.majordomo.hms.personmgr.service.PartnerCheckoutOrderManager;
+import ru.majordomo.hms.personmgr.service.PartnerCheckoutOrderMangerFactory;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import java.math.BigDecimal;
@@ -30,20 +29,17 @@ import java.util.Map;
 public class PartnerCheckoutOrderRestController extends CommonRestController {
 
     private AccountPartnerCheckoutOrderRepository repository;
-    private PartnerCheckoutOrder partnerCheckoutOrder;
-    private MongoOperations mongoOperations;
+    private PartnerCheckoutOrderMangerFactory partnerCheckoutOrderMangerFactory;
     private PersonalAccountManager personalAccountManager;
 
     @Autowired
     public PartnerCheckoutOrderRestController(
             AccountPartnerCheckoutOrderRepository repository,
-            PartnerCheckoutOrder partnerCheckoutOrder,
-            MongoOperations mongoOperations,
+            PartnerCheckoutOrderMangerFactory partnerCheckoutOrderMangerFactory,
             PersonalAccountManager personalAccountManager
     ) {
         this.repository = repository;
-        this.partnerCheckoutOrder = partnerCheckoutOrder;
-        this.mongoOperations = mongoOperations;
+        this.partnerCheckoutOrderMangerFactory = partnerCheckoutOrderMangerFactory;
         this.personalAccountManager = personalAccountManager;
     }
 
@@ -110,16 +106,16 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
 
         AccountPartnerCheckoutOrder partnerOrder = repository.findOneByIdAndPersonalAccountId(partnerCheckoutOrderId, account.getId());
 
-        partnerCheckoutOrder.setAccountOrder(partnerOrder);
+        PartnerCheckoutOrderManager partnerCheckoutOrderManager = partnerCheckoutOrderMangerFactory.createManager(partnerOrder);
 
         String operator = request.getUserPrincipal().getName();
 
         switch (orderState) {
             case FINISHED:
-                partnerCheckoutOrder.finish(operator);
+                partnerCheckoutOrderManager.finish(operator);
                 break;
             case DECLINED:
-                partnerCheckoutOrder.decline(operator);
+                partnerCheckoutOrderManager.decline(operator);
                 break;
             case IN_PROGRESS:
                 return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
@@ -143,8 +139,8 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
         partnerOrder.setPersonalAccountName(account.getName());
         partnerOrder.setAmount(amount);
 
-        partnerCheckoutOrder.setAccountOrder(partnerOrder);
-        partnerCheckoutOrder.create(operator);
+        PartnerCheckoutOrderManager partnerCheckoutOrderManager = partnerCheckoutOrderMangerFactory.createManager(partnerOrder);
+        partnerCheckoutOrderManager.create(operator);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

@@ -19,6 +19,10 @@ public class ChargeMessage {
     private Boolean forceCharge;
     private Set<PaymentTypeKind> allowedPaymentTypeKinds;
 
+    public BigDecimal getAmount() {
+        return this.amount;
+    }
+
     public Map<String, Object> getFullMessage() {
         Map<String, Object> paymentOperation = new HashMap<>();
 
@@ -32,7 +36,7 @@ public class ChargeMessage {
         return paymentOperation;
     }
 
-    private ChargeMessage(ChargeBuilder builder) {
+    private ChargeMessage(Builder builder) {
         this.paymentService = builder.paymentService;
         this.chargeDate = builder.chargeDate;
         this.amount = builder.amount;
@@ -40,7 +44,7 @@ public class ChargeMessage {
         this.allowedPaymentTypeKinds = builder.allowedPaymentTypeKinds;
     }
 
-    public static class ChargeBuilder {
+    public static class Builder {
 
         // required
         private PaymentService paymentService;
@@ -51,7 +55,7 @@ public class ChargeMessage {
         private Boolean forceCharge = false;
         private Set<PaymentTypeKind> allowedPaymentTypeKinds = new HashSet<>();
 
-        public ChargeBuilder(PaymentService paymentService) {
+        public Builder(PaymentService paymentService) {
             this.paymentService = paymentService;
             this.amount = paymentService.getCost();
             allowedPaymentTypeKinds.addAll(Arrays.asList(
@@ -62,34 +66,34 @@ public class ChargeMessage {
             ));
         }
 
-        public ChargeBuilder setChargeDate(LocalDateTime chargeDate) {
+        public Builder setChargeDate(LocalDateTime chargeDate) {
             this.chargeDate = chargeDate;
             return this;
         }
 
-        public ChargeBuilder setAmount(BigDecimal amount) {
+        public Builder setAmount(BigDecimal amount) {
             this.amount = amount;
             return this;
         }
 
-        public ChargeBuilder forceCharge() {
+        public Builder forceCharge() {
             this.forceCharge = true;
             return this;
         }
 
-        public ChargeBuilder setForceCharge(Boolean forceCharge) {
+        public Builder setForceCharge(Boolean forceCharge) {
             this.forceCharge = forceCharge;
             return this;
         }
 
-        public ChargeBuilder excludeBonusPaymentType() {
+        public Builder excludeBonusPaymentType() {
             if (this.allowedPaymentTypeKinds.contains(PaymentTypeKind.BONUS)) {
                 this.allowedPaymentTypeKinds.remove(PaymentTypeKind.BONUS);
             }
             return this;
         }
 
-        public ChargeBuilder partnerOnlyPaymentType() {
+        public Builder partnerOnlyPaymentType() {
             this.allowedPaymentTypeKinds = new HashSet<>();
             allowedPaymentTypeKinds.addAll(Collections.singletonList(
                     PaymentTypeKind.PARTNER

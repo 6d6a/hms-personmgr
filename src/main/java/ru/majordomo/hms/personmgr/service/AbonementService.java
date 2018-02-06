@@ -102,10 +102,9 @@ public class AbonementService {
 
         if (abonement.getService().getCost().compareTo(BigDecimal.ZERO) > 0) {
 
-            Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(abonement.getService())
-                    .build()
-                    .getFullMessage();
-            accountHelper.charge(account, paymentOperationMessage);
+            ChargeMessage chargeMessage = new ChargeMessage.Builder(abonement.getService())
+                    .build();
+            accountHelper.charge(account, chargeMessage);
         }
 
         AccountAbonement accountAbonement = new AccountAbonement();
@@ -134,10 +133,9 @@ public class AbonementService {
     public void renewAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
         Plan plan = getAccountPlan(account);
 
-        Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(accountAbonement.getAbonement().getService())
-                .build()
-                .getFullMessage();
-        accountHelper.charge(account, paymentOperationMessage);
+        ChargeMessage chargeMessage = new ChargeMessage.Builder(accountAbonement.getAbonement().getService())
+                .build();
+        accountHelper.charge(account, chargeMessage);
 
         accountAbonementManager.setExpired(
                 accountAbonement.getId(),
@@ -159,10 +157,9 @@ public class AbonementService {
     public void prolongAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
         Plan plan = getAccountPlan(account);
 
-        Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(accountAbonement.getAbonement().getService())
-                .build()
-                .getFullMessage();
-        accountHelper.charge(account, paymentOperationMessage);
+        ChargeMessage chargeMessage = new ChargeMessage.Builder(accountAbonement.getAbonement().getService())
+                .build();
+        accountHelper.charge(account, chargeMessage);
 
         accountAbonementManager.setExpired(
                 accountAbonement.getId(),

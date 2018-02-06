@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.service.PlanChange;
 
-import org.apache.commons.collections.map.HashedMap;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -12,7 +10,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
 
 public class RegularToRegular extends Processor {
@@ -119,20 +116,11 @@ public class RegularToRegular extends Processor {
 
             Abonement abonement = newPlan.getNotInternalAbonement();
 
-            Map<String, Object> paymentOperationMessage;
+            ChargeMessage chargeMessage = new ChargeMessage.Builder(abonement.getService())
+                    .setForceCharge(ignoreRestricts)
+                    .build();
 
-            if (ignoreRestricts) {
-                paymentOperationMessage = new ChargeMessage.ChargeBuilder(abonement.getService())
-                        .forceCharge()
-                        .build()
-                        .getFullMessage();
-            } else {
-                paymentOperationMessage = new ChargeMessage.ChargeBuilder(abonement.getService())
-                        .build()
-                        .getFullMessage();
-            }
-
-            accountHelper.charge(account, paymentOperationMessage);
+            accountHelper.charge(account, chargeMessage);
             addAccountAbonement(abonement);
 
         } else {

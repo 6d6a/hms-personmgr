@@ -141,10 +141,9 @@ public class SeoRestController extends CommonRestController {
 
         accountSeoOrderRepository.save(order);
 
-        Map<String, Object> paymentOperationMessage = new ChargeMessage.ChargeBuilder(seo.getService())
-                .build()
-                .getFullMessage();
-        accountHelper.charge(account, paymentOperationMessage);
+        ChargeMessage chargeMessage = new ChargeMessage.Builder(seo.getService())
+                .build();
+        accountHelper.charge(account, chargeMessage);
 
         Map<String, String> params = new HashMap<>();
         params.put(DOMAIN_NAME_KEY, domainName);
