@@ -22,7 +22,6 @@ import java.util.HashMap;
 import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_CHECKOUT_MIN_SUMM;
 import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_CHECKOUT_SERVICE_ID;
 
-@Service
 public class PartnerCheckoutOrderManager extends OrderManager<AccountPartnerCheckoutOrder> {
 
     @Value("${mail_manager.pro_email}")
