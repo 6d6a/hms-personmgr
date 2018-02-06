@@ -6,17 +6,15 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.springframework.beans.factory.annotation.Value;
 import ru.majordomo.hms.personmgr.common.FileUtils;
 import ru.majordomo.hms.personmgr.common.Utils;
-import ru.majordomo.hms.personmgr.dto.rpc.Contract;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
-import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
 
 import java.io.*;
 import java.time.LocalDate;
@@ -25,25 +23,21 @@ import java.util.Map;
 
 public class NoticeRFBuilder extends DocumentBuilderImpl {
 
-    private final MajordomoRpcClient majordomoRpcClient;
     private AccountOwner accountOwner;
 
     private final String tmpDir = System.getProperty("java.io.tmpdir") + "/";
     private final String wkhtmltopdfUrl;
 
     private String template;
-    private Contract contract;
     private Map<String, String> replaceMap;
 
     public NoticeRFBuilder(
-            MajordomoRpcClient majordomoRpcClient,
             AccountOwnerManager accountOwnerManager,
             String personalAccountId,
             boolean withoutStamp,
             String wkhtmltopdfUrl
     ) {
         setWithoutStamp(withoutStamp);
-        this.majordomoRpcClient = majordomoRpcClient;
         this.accountOwner = accountOwnerManager.findOneByPersonalAccountId(personalAccountId);
         this.wkhtmltopdfUrl = wkhtmltopdfUrl;
     }
@@ -59,14 +53,6 @@ public class NoticeRFBuilder extends DocumentBuilderImpl {
             e.printStackTrace();
             template = "";
         }
-//        contract = majordomoRpcClient.getActiveNoticeRF();
-        //должна быть одна страница
-//        String nextTemplateWithFootherTag = "<pdf:nexttemplate name=\"withfooter\"/><pdf:nextpage/>";
-//        template = contract.getBody() + nextTemplateWithFootherTag + contract.getFooter();
-//        String stampPath = "/images/stamp_hosting.gif";
-//        String logoPath = "/images/majordomo.png";
-//        String imageSrcBeforeBase64 = "data:image/png;base64,";
-//        String stamp = "<img src=\"data:image/png;base64,#STAMP_HOSTING#\" alt=\"Подпись/печать\"/>";
     }
 
     @Override
@@ -86,10 +72,10 @@ public class NoticeRFBuilder extends DocumentBuilderImpl {
     public byte[] convertHtmlToPdf(File htmlFile) throws IOException {
         CloseableHttpClient httpclient = HttpClients.createDefault();
         HttpPost post = new HttpPost(wkhtmltopdfUrl);
-        MultipartEntity entity = new MultipartEntity();
-        entity.addPart("file", new FileBody(htmlFile));
-        post.setEntity(entity);
-
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+        builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+        builder.addPart("file", new FileBody(htmlFile));
+        post.setEntity(builder.build());
         HttpResponse response = httpclient.execute(post);
 
         byte[] targetArray;
