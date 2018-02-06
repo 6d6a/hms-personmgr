@@ -127,7 +127,7 @@ public class AccountAbonementRestController extends CommonRestController {
 
         String operator = request.getUserPrincipal().getName();
 
-        StringJoiner historyJoiner = new StringJoiner(", ","Абонемент аккаунта изменён: ", "");
+        StringJoiner history = new StringJoiner(", ","Абонемент аккаунта изменён: ", "");
 
         update.keySet().forEach(key -> {
             switch (key) {
@@ -137,7 +137,7 @@ public class AccountAbonementRestController extends CommonRestController {
                         throw new ParameterValidationException(
                                 "Нельзя устанавливать дату создания абонемента позже текущей даты");
                     }
-                    historyJoiner.add(
+                    history.add(
                             new StringBuilder("дата создания с ").append(accountAbonement.getCreated().toString())
                                 .append(" на ").append(created.toString()));
                     accountAbonement.setCreated(created);
@@ -149,7 +149,7 @@ public class AccountAbonementRestController extends CommonRestController {
                         throw new ParameterValidationException(
                                 "Нельзя устанавливать дату истечения абонемента раньше текущей даты");
                     }
-                    historyJoiner.add(
+                    history.add(
                             new StringBuilder("дата истечения с ").append(accountAbonement.getExpired().toString())
                             .append(" на ").append(expired.toString()));
                     accountAbonement.setExpired(expired);
@@ -161,7 +161,7 @@ public class AccountAbonementRestController extends CommonRestController {
                     if (abonement == null) {
                         throw new ResourceNotFoundException("Абонемент с id " + abonementId + " не найден");
                     }
-                    historyJoiner.add(
+                    history.add(
                             new StringBuilder("абонемент с id ").append(accountAbonement.getAbonementId())
                                     .append(" и именем ").append(accountAbonement.getAbonement().getName())
                             .append(" на ").append(abonementId).append(" с именем ").append(abonement.getName()));
@@ -170,7 +170,7 @@ public class AccountAbonementRestController extends CommonRestController {
                     break;
                 case "autorenew":
                     Boolean autorenew = Boolean.valueOf(update.get(key));
-                    historyJoiner.add(
+                    history.add(
                             new StringBuilder((autorenew ? "Включено" : "Выключено") +
                             " автопродление '" + accountAbonement.getAbonement().getName() + "'"));
 
@@ -180,7 +180,7 @@ public class AccountAbonementRestController extends CommonRestController {
             }
         });
         accountAbonementManager.save(accountAbonement);
-        accountHelper.saveHistory(account, historyJoiner.toString(), operator);
+        accountHelper.saveHistory(account, history.toString(), operator);
         return ResponseEntity.ok(accountAbonement);
     }
 
