@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -167,13 +166,21 @@ public class AccountHelper {
     /**
      * Получим баланс
      *
-     * @param account Аккаунт
+     * @param personalAccountId Аккаунт Id
      */
-    public BigDecimal getBonusBalance(PersonalAccount account) {
+    public BigDecimal getBonusBalance(String personalAccountId) {
+        return getBalanceByType(personalAccountId, "BONUS");
+    }
+
+    public BigDecimal getPartnerBalance(String personalAccountId) {
+        return getBalanceByType(personalAccountId, "PARTNER");
+    }
+
+    private BigDecimal getBalanceByType(String accountId, String type) {
         Map<String, Object> balance = null;
 
         try {
-            balance = finFeignClient.getBalance(account.getId());
+            balance = finFeignClient.getBalance(accountId);
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in AccountHelper.getBalance #1 " + e.getMessage());
@@ -187,7 +194,7 @@ public class AccountHelper {
 
         try {
             Map<String, Map<String, Object>> datMap = (Map<String, Map<String, Object>>) balance.get("balance");
-            available = getBigDecimalFromUnexpectedInput(datMap.get("BONUS").get("available"));
+            available = getBigDecimalFromUnexpectedInput(datMap.get(type).get("available"));
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in AccountHelper.getBalance #2 " + e.getMessage());
@@ -251,7 +258,7 @@ public class AccountHelper {
 
         BigDecimal available = getBalance(account);
 
-        BigDecimal bonusBalanceAvailable = getBonusBalance(account);
+        BigDecimal bonusBalanceAvailable = getBonusBalance(account.getId());
 
         if (available.subtract(bonusBalanceAvailable).compareTo(service.getCost()) < 0) {
             throw new LowBalanceException("Бонусные средства недоступны для этой операции. " +
@@ -292,29 +299,12 @@ public class AccountHelper {
         return getDayCostByService(service, chargeDate);
     }
 
-    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service) {
-        BigDecimal amount = service.getCost();
-
-        return charge(account, service, amount, false, false, LocalDateTime.now());
-    }
-
-    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount) {
-        return charge(account, service, amount, false, false, LocalDateTime.now());
-    }
-
-    public SimpleServiceMessage charge(PersonalAccount account, PaymentService service, BigDecimal amount, Boolean forceCharge, Boolean bonusChargeProhibited, LocalDateTime chargeDate) {
-        Map<String, Object> paymentOperation = new HashMap<>();
-        paymentOperation.put("serviceId", service.getId());
-        paymentOperation.put("amount", amount);
-        paymentOperation.put("forceCharge", forceCharge);
-        paymentOperation.put("bonusChargeProhibited", bonusChargeProhibited);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        paymentOperation.put("chargeDate", chargeDate.format(formatter));
+    public SimpleServiceMessage charge(PersonalAccount account, ChargeMessage chargeMessage) {
 
         SimpleServiceMessage response;
 
         try {
-            response = finFeignClient.charge(account.getId(), paymentOperation);
+            response = finFeignClient.charge(account.getId(), chargeMessage.getFullMessage());
         } catch (Exception e) {
             if (!(e instanceof FeignException) || ((FeignException) e).status() != 400 ) {
                 logger.error("Exception in AccountHelper.charge " + e.getMessage());
@@ -322,12 +312,12 @@ public class AccountHelper {
                 throw e;
             }
             throw new ChargeException("Произошла ошибка при списании средств." +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()));
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
             throw new ChargeException("Баланс аккаунта недостаточен для заказа услуги. " +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()));
         }
 
         return response;
@@ -339,10 +329,11 @@ public class AccountHelper {
 
     //TODO на самом деле сюда ещё должна быть возможность передать discountedService
     public SimpleServiceMessage block(PersonalAccount account, PaymentService service, Boolean bonusChargeProhibited) {
-        Map<String, Object> paymentOperation = new HashMap<>();
-        paymentOperation.put("serviceId", service.getId());
-        paymentOperation.put("amount", service.getCost());
-        paymentOperation.put("bonusChargeProhibited", bonusChargeProhibited);
+
+        Map<String, Object> paymentOperation = new ChargeMessage.Builder(service)
+                .excludeBonusPaymentType()
+                .build()
+                .getFullMessage();
 
         SimpleServiceMessage response;
         try {

@@ -26,6 +26,7 @@ import ru.majordomo.hms.personmgr.repository.DocumentOrderRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
+import ru.majordomo.hms.personmgr.service.ChargeMessage;
 import ru.majordomo.hms.personmgr.service.Document.DocumentBuilder;
 import ru.majordomo.hms.personmgr.service.Document.DocumentBuilderFactory;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
@@ -286,9 +287,12 @@ public class AccountDocumentRestController {
         String operator = request.getUserPrincipal().getName();
 
         try {
+
             PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
 
-            accountHelper.charge(account, paymentService);
+            ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
+                    .build();
+            accountHelper.charge(account, chargeMessage);
 
             documentOrder.setPaid(true);
             documentOrder = documentOrderRepository.save(documentOrder);

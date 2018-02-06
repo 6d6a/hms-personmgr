@@ -3,10 +3,12 @@ package ru.majordomo.hms.personmgr.service.PlanChange;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.service.ChargeMessage;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 
@@ -60,13 +62,13 @@ public class AbonementOnlyToRegular extends Processor {
     void addServices() {
         if (newAbonementRequired) {
             Abonement abonement = newPlan.getNotInternalAbonement();
-            accountHelper.charge(
-                    account, abonement.getService(),
-                    abonement.getService().getCost(),
-                    ignoreRestricts,
-                    false,
-                    LocalDateTime.now()
-            );
+
+            ChargeMessage chargeMessage =  new ChargeMessage.Builder(abonement.getService())
+                    .setForceCharge(ignoreRestricts)
+                    .build();
+
+            accountHelper.charge(account, chargeMessage);
+
             addAccountAbonement(abonement);
         } else {
             addPlanService();

@@ -75,7 +75,7 @@ public class RecurrentProcessorService {
 
             BigDecimal iNeedMoreMoney = BigDecimal.ZERO;
 
-            BigDecimal bonusBalance = accountHelper.getBonusBalance(account);
+            BigDecimal bonusBalance = accountHelper.getBonusBalance(account.getId());
             BigDecimal realBalance = balance.subtract(bonusBalance); //!balance может быть отрицательным(кредит)!
 
             Boolean accountIsActive = account.isActive();

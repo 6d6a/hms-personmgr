@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.ChargeResult;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -61,7 +62,14 @@ public class Charger {
                     + " for date: " + chargeDate.format(DateTimeFormatter.ISO_DATE)
                     + " cost: " + cost
             );
-            response = accountHelper.charge(account, accountService.getPaymentService(), cost, forceCharge, false, chargeDateTime);
+
+            ChargeMessage chargeMessage = new ChargeMessage.Builder(accountService.getPaymentService())
+                    .setAmount(cost)
+                    .setChargeDate(chargeDateTime)
+                    .setForceCharge(forceCharge)
+                    .build();
+
+            response = accountHelper.charge(account, chargeMessage);
         } catch (ChargeException e) {
             logger.info("Error. accountHelper.charge returned ChargeException for service: " + accountService.toString());
             return ChargeResult.error();

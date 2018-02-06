@@ -312,7 +312,12 @@ public abstract class Processor {
             }
         } else if (cashBackAmount.compareTo(BigDecimal.ZERO) < 0) {
             //Списать деньги
-            accountHelper.charge(account, currentPlan.getService(), cashBackAmount.abs(), forceCharge, false, LocalDateTime.now());
+
+            ChargeMessage chargeMessage = new ChargeMessage.Builder(currentPlan.getService())
+                    .setAmount(cashBackAmount.abs())
+                    .setForceCharge(forceCharge)
+                    .build();
+            accountHelper.charge(account, chargeMessage);
         }
     }
 

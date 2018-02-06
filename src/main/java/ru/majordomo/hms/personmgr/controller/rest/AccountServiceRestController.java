@@ -34,10 +34,7 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
-import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
-import ru.majordomo.hms.personmgr.service.DiscountServiceHelper;
+import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.ANTI_SPAM_SERVICE_ID;
@@ -137,7 +134,9 @@ public class AccountServiceRestController extends CommonRestController {
         //Сейчас баланс проверяется по полной стоимости услуги
         accountHelper.checkBalance(account, paymentService);
 
-        accountHelper.charge(account, paymentService);
+        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
+                .build();
+        accountHelper.charge(account, chargeMessage);
 
         accountServiceHelper.addAccountService(account, paymentServiceId);
 
@@ -386,7 +385,10 @@ public class AccountServiceRestController extends CommonRestController {
 
         if (dayCost.compareTo(BigDecimal.ZERO) > 0) {
             logger.debug("account [" + account + "] dailyCost for service [" + paymentService + "] = " + dayCost);
-            accountHelper.charge(account, paymentService, dayCost);
+            ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
+                    .setAmount(dayCost)
+                    .build();
+            accountHelper.charge(account, chargeMessage);
         } else {
             logger.debug("account [" + account + "] dailyCost for service [" + paymentService + "] <= 0 ");
         }
