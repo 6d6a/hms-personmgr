@@ -16,6 +16,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
@@ -24,14 +25,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 
+import ru.majordomo.hms.personmgr.common.message.ErrorMessage;
+import ru.majordomo.hms.personmgr.exception.*;
+import ru.majordomo.hms.personmgr.exception.newExceptions.BaseException;
+
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
-
-import ru.majordomo.hms.personmgr.common.message.ErrorMessage;
-import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
-import ru.majordomo.hms.personmgr.exception.LowBalanceException;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 
 @ControllerAdvice
 public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionHandler {
@@ -217,5 +216,21 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
                 new HashMap<>()
         );
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
+    }
+
+    @ExceptionHandler({ BaseException.class })
+    public ResponseEntity<Object> handleBaseException(final BaseException ex, final WebRequest request) {
+
+        HttpStatus httpStatus;
+        ResponseStatus annotation = ex.getClass().getAnnotation(ResponseStatus.class);
+
+        if (annotation != null) {
+            httpStatus = annotation.value();
+        } else {
+             httpStatus = BaseException.class.getAnnotation(ResponseStatus.class).value();
+        }
+        logger.debug("Handling exception " + ex.getName() + " ");
+
+        return handleExceptionInternal(ex, ex, new HttpHeaders(), httpStatus, request);
     }
 }
