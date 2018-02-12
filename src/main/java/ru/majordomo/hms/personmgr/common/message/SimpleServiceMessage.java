@@ -61,6 +61,12 @@ public class SimpleServiceMessage {
         params.put(name,value);
     }
 
+    public void removeParam(String key) {
+        if (params != null) {
+            params.remove(key);
+        }
+    }
+
     public String getAccountId() {
         return accountId;
     }

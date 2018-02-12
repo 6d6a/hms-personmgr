@@ -38,6 +38,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_STR
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_STRING_REPLACE_STRING_ARG;
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_STRING_SEARCH_PATTERN_ARG;
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_TYPE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.DELAY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DNS_RECORD_SENT_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_HOST_KEY;
@@ -52,6 +53,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.OLD_SERVER_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_UNIX_ACCOUNT_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_WEBSITE_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.PM_PARAM_PREFIX_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.REVERTING_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
@@ -59,6 +61,8 @@ import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.TE_PARAMS_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.TRANSFER_DATABASES_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.UNIX_ACCOUNT_AND_DATABASE_SENT_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.WAIT_FOR_DATABASE_UPDATE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.WAIT_FOR_DATABASE_USER_UPDATE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.WEBSITE_SENT_KEY;
 
 @Component
@@ -198,6 +202,7 @@ public class AccountTransferService {
         unixAccountMessage.setOperationIdentity(accountTransferRequest.getOperationId());
         unixAccountMessage.addParam(RESOURCE_ID_KEY, accountTransferRequest.getUnixAccountId());
         unixAccountMessage.addParam(SERVER_ID_KEY, accountTransferRequest.getNewUnixAccountServerId());
+        unixAccountMessage.addParam(PM_PARAM_PREFIX_KEY + DELAY_MESSAGE_KEY, true);
 
         if (accountTransferRequest.isTransferData()) {
             Map<String, Object> teParams = new HashMap<>();
@@ -250,17 +255,17 @@ public class AccountTransferService {
                     databaseUsers.get(0).getServiceId() :
                     (!databases.isEmpty() ? databases.get(0).getServiceId() : null);
 
-            Server oldDatabaseServer = rcStaffFeignClient.getServerByServiceId(
-                    oldDatabaseServiceId != null ?
-                            oldDatabaseServiceId :
-                            accountTransferRequest.getOldUnixAccountServerId()
-            );
+            Server oldDatabaseServer;
+            String oldDatabaseServerId;
 
-            if (oldDatabaseServer == null) {
-                throw new ParameterValidationException("Старый сервер баз данных не найден");
+            if (oldDatabaseServiceId != null) {
+                oldDatabaseServer = rcStaffFeignClient.getServerByServiceId(oldDatabaseServiceId);
+                oldDatabaseServerId = oldDatabaseServer.getId();
+            } else {
+                oldDatabaseServerId = oldServer.getId();
             }
 
-            accountTransferRequest.setOldDatabaseServerId(oldDatabaseServer.getId());
+            accountTransferRequest.setOldDatabaseServerId(oldDatabaseServerId);
 
             Service oldDatabaseService = getDatabaseServiceByServerId(accountTransferRequest.getOldDatabaseServerId());
 
@@ -278,6 +283,7 @@ public class AccountTransferService {
                 databaseUserMessage.setOperationIdentity(accountTransferRequest.getOperationId());
                 databaseUserMessage.addParam(RESOURCE_ID_KEY, databaseUser.getId());
                 databaseUserMessage.addParam(SERVICE_ID_KEY, newDatabaseService.getId());
+                databaseUserMessage.addParam(PM_PARAM_PREFIX_KEY + DELAY_MESSAGE_KEY, true);
 
                 Map<String, Object> teParams = new HashMap<>();
 
@@ -304,6 +310,7 @@ public class AccountTransferService {
                 databaseMessage.setOperationIdentity(accountTransferRequest.getOperationId());
                 databaseMessage.addParam(RESOURCE_ID_KEY, database.getId());
                 databaseMessage.addParam(SERVICE_ID_KEY, newDatabaseService.getId());
+                databaseMessage.addParam(PM_PARAM_PREFIX_KEY + DELAY_MESSAGE_KEY, true);
 
                 if (accountTransferRequest.isTransferData()) {
                     Map<String, Object> teParams = new HashMap<>();
@@ -328,6 +335,22 @@ public class AccountTransferService {
                 processingBusinessAction = transferDatabase(databaseMessage);
                 accountTransferRequest.setOperationId(processingBusinessAction.getOperationId());
             }
+
+            processingBusinessOperation = processingBusinessOperationRepository.findOne(processingBusinessAction.getOperationId());
+
+            if (databaseUsers.isEmpty()) {
+                processingBusinessOperation.addParam(WAIT_FOR_DATABASE_USER_UPDATE_KEY, false);
+            } else {
+                processingBusinessOperation.addParam(WAIT_FOR_DATABASE_USER_UPDATE_KEY, true);
+            }
+
+            if (databases.isEmpty()) {
+                processingBusinessOperation.addParam(WAIT_FOR_DATABASE_UPDATE_KEY, false);
+            } else {
+                processingBusinessOperation.addParam(WAIT_FOR_DATABASE_UPDATE_KEY, true);
+            }
+
+            processingBusinessOperationRepository.save(processingBusinessOperation);
         }
 
         processingBusinessOperation = processingBusinessOperationRepository.findOne(processingBusinessAction.getOperationId());

@@ -13,6 +13,9 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 
+import static ru.majordomo.hms.personmgr.common.Constants.DELAY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.PM_PARAM_PREFIX_KEY;
+
 @Component
 public class ProcessingBusinessActionEventListener {
     private final static Logger logger = LoggerFactory.getLogger(ProcessingBusinessActionEventListener.class);
@@ -45,6 +48,17 @@ public class ProcessingBusinessActionEventListener {
         ProcessingBusinessAction action = event.getSource();
 
         logger.debug("We got ProcessingBusinessActionNewEvent");
+
+        if (action.getParam(PM_PARAM_PREFIX_KEY + DELAY_MESSAGE_KEY) != null && (boolean) action.getParam(PM_PARAM_PREFIX_KEY + DELAY_MESSAGE_KEY)) {
+            action.getMessage().removeParam(PM_PARAM_PREFIX_KEY + DELAY_MESSAGE_KEY);
+            logger.debug("We got delay command in ProcessingBusinessActionNewEvent");
+
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
 
         businessFlowDirector.process(action);
     }
