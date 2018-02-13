@@ -1,18 +1,23 @@
 package ru.majordomo.hms.personmgr.model.service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
+import ru.majordomo.hms.personmgr.dto.PaymentTypeKind;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.validation.ObjectIdMap;
 
@@ -50,6 +55,10 @@ public class PaymentService extends BaseModel {
 //    @NotNull
     @ObjectIdMap(value = PaymentService.class)
     private Map<String, Integer> servicesIdsWithLimits= new HashMap<>();
+
+    @Getter
+    @Setter
+    private Set<PaymentTypeKind> paymentTypeKinds = new HashSet<>();
 
     public ServicePaymentType getPaymentType() {
         return paymentType;

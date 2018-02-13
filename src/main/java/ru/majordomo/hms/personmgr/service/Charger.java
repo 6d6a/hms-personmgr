@@ -9,11 +9,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.ChargeResult;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.exception.ChargeException;
+import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
@@ -70,7 +69,7 @@ public class Charger {
                     .build();
 
             response = accountHelper.charge(account, chargeMessage);
-        } catch (ChargeException e) {
+        } catch (NotEnoughMoneyException e) {
             logger.info("Error. accountHelper.charge returned ChargeException for service: " + accountService.toString());
             return ChargeResult.error();
         } catch (Exception e) {

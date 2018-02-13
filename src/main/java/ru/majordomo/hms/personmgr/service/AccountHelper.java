@@ -18,7 +18,6 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -319,13 +318,17 @@ public class AccountHelper {
                 e.printStackTrace();
                 throw e;
             }
-            throw new ChargeException("Произошла ошибка при списании средств." +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()));
+            throw new NotEnoughMoneyException("Произошла ошибка при списании средств." +
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()),
+                    chargeMessage.getAmount()
+            );
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
-            throw new ChargeException("Баланс аккаунта недостаточен для заказа услуги. " +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()));
+            throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()),
+                    chargeMessage.getAmount()
+            );
         }
 
         return response;
@@ -349,13 +352,17 @@ public class AccountHelper {
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in AccountHelper.block " + e.getMessage());
-            throw new ChargeException("Произошла ошибка при блокировке средств." +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
+            throw new NotEnoughMoneyException("Произошла ошибка при блокировке средств." +
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
+                    service.getCost()
+            );
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
-            throw new ChargeException("Баланс аккаунта недостаточен для заказа услуги. " +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
+            throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
+                    service.getCost()
+            );
         }
 
         return response;
