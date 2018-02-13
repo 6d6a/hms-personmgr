@@ -70,7 +70,7 @@ public class Charger {
 
             response = accountHelper.charge(account, chargeMessage);
         } catch (NotEnoughMoneyException e) {
-            logger.info("Error. accountHelper.charge returned ChargeException for service: " + accountService.toString());
+            logger.info("Error. accountHelper.charge returned NotEnoughMoneyException for service: " + accountService.toString());
             return ChargeResult.error();
         } catch (Exception e) {
             e.printStackTrace();
