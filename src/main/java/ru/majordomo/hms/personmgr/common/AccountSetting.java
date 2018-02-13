@@ -11,5 +11,6 @@ public enum AccountSetting {
     CREDIT_ACTIVATION_DATE,
     NOTIFY_DAYS,
     SMS_PHONE_NUMBER,
-    NEW_ACCOUNT
+    NEW_ACCOUNT,
+    CUSTOM_SETTING
 }
