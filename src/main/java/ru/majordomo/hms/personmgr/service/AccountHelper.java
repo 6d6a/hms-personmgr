@@ -20,12 +20,12 @@ import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
-import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -231,8 +231,9 @@ public class AccountHelper {
         BigDecimal available = getBalance(account);
 
         if (available.compareTo(BigDecimal.ZERO) < 0) {
-            throw new LowBalanceException("Баланс аккаунта отрицательный: "
-                    + formatBigDecimalWithCurrency(available));
+            throw new NotEnoughMoneyException("Баланс аккаунта отрицательный: " + formatBigDecimalWithCurrency(available),
+                    available
+            );
         }
     }
 
@@ -245,9 +246,11 @@ public class AccountHelper {
         BigDecimal available = getBalance(account);
 
         if (available.compareTo(service.getCost()) < 0) {
-            throw new LowBalanceException("Баланс аккаунта недостаточен для заказа услуги. " +
+            throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
                     "Текущий баланс: " + formatBigDecimalWithCurrency(available) +
-                    ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
+                    ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
+                    service.getCost().subtract(available)
+            );
         }
     }
 
@@ -261,9 +264,11 @@ public class AccountHelper {
         BigDecimal bonusBalanceAvailable = getBonusBalance(account.getId());
 
         if (available.subtract(bonusBalanceAvailable).compareTo(service.getCost()) < 0) {
-            throw new LowBalanceException("Бонусные средства недоступны для этой операции. " +
+            throw new NotEnoughMoneyException("Бонусные средства недоступны для этой операции. " +
                     "Текущий баланс без учёта бонусных средств: " + formatBigDecimalWithCurrency(available.subtract(bonusBalanceAvailable)) +
-                    ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
+                    ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
+                    service.getCost().subtract(available.subtract(bonusBalanceAvailable))
+            );
         }
     }
 
@@ -281,8 +286,11 @@ public class AccountHelper {
             BigDecimal available = getBalance(account);
 
             if (available.compareTo(dayCost) < 0) {
-                throw new LowBalanceException("Баланс аккаунта недостаточен для заказа услуги. " +
-                        "Текущий баланс: " + formatBigDecimalWithCurrency(available) + " стоимость услуги за 1 день: " + formatBigDecimalWithCurrency(dayCost));
+                throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
+                        "Текущий баланс: " + formatBigDecimalWithCurrency(available)
+                        + " стоимость услуги за 1 день: " + formatBigDecimalWithCurrency(dayCost),
+                        dayCost.subtract(available)
+                );
             }
         }
     }

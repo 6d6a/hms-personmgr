@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.exception.newExceptions;
+package ru.majordomo.hms.personmgr.exception;
 
 import lombok.Getter;
 import lombok.Setter;

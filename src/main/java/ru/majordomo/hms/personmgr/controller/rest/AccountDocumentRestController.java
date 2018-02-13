@@ -12,11 +12,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
-import ru.majordomo.hms.personmgr.annotation.ReplacingExceptionWithBaseException;
 import ru.majordomo.hms.personmgr.common.DocumentType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
-import ru.majordomo.hms.personmgr.exception.newExceptions.NotEnoughMoneyException;
+import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountDocument;
@@ -92,7 +91,6 @@ public class AccountDocumentRestController {
         this.documentOrderEmail = documentOrderEmail;
     }
 
-    @ReplacingExceptionWithBaseException
     @GetMapping("/old/{documentType}")
     public ResponseEntity<List<AccountDocument>> getOldDocuments(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -111,7 +109,6 @@ public class AccountDocumentRestController {
         return ResponseEntity.ok(documents);
     }
 
-    @ReplacingExceptionWithBaseException
     @PreAuthorize("hasAuthority('ACCOUNT_DOCUMENT_ORDER_VIEW')")
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<Page<DocumentOrder>> listAll(
@@ -123,7 +120,6 @@ public class AccountDocumentRestController {
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
 
-    @ReplacingExceptionWithBaseException
     @PreAuthorize("hasAuthority('ACCOUNT_DOCUMENT_ORDER_VIEW')")
     @GetMapping("/order/{documentOrderId}")
     @ResponseBody
@@ -164,7 +160,6 @@ public class AccountDocumentRestController {
         );
     }
 
-    @ReplacingExceptionWithBaseException
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/id/{accountDocumentId}")
     public ResponseEntity<AccountDocument> deleteDocumentById(
@@ -185,7 +180,6 @@ public class AccountDocumentRestController {
         }
     }
 
-    @ReplacingExceptionWithBaseException
     @GetMapping("/id/{accountDocumentId}")
     @ResponseBody
     public void getDocumentById(
@@ -212,7 +206,6 @@ public class AccountDocumentRestController {
         }
     }
 
-    @ReplacingExceptionWithBaseException
     @GetMapping("/check")
     public ResponseEntity<Object> check(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -271,7 +264,6 @@ public class AccountDocumentRestController {
         return ResponseEntity.ok(documentOrder);
     }
 
-    @ReplacingExceptionWithBaseException
     @PostMapping("/order")
     public ResponseEntity<Object> order(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -326,7 +318,6 @@ public class AccountDocumentRestController {
         }
     }
 
-    @ReplacingExceptionWithBaseException
     @GetMapping("/{documentType}")
     @ResponseBody
     public void getDocument(

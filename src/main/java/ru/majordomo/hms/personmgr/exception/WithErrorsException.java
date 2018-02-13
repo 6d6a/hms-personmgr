@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.exception.newExceptions;
+package ru.majordomo.hms.personmgr.exception;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -16,10 +16,5 @@ public abstract class WithErrorsException extends BaseException {
 
     public WithErrorsException(String message) {
         super(message);
-    }
-
-    public WithErrorsException(String message, Map errors) {
-        super(message);
-        this.errors = errors;
     }
 }

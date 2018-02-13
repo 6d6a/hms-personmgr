@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.exception.newExceptions;
+package ru.majordomo.hms.personmgr.exception;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
@@ -12,9 +12,18 @@ public abstract class BaseException extends RuntimeException {
 
     @Getter
     @Setter
-    private String name = getClass().getSimpleName();
+    private int code = 400;
+
+    @Getter
+    @Setter
+    private String exception = getClass().getSimpleName();
 
     public BaseException(String message) {
         super(message);
+    }
+
+    public BaseException(String message, int code) {
+        super(message);
+        this.code = code;
     }
 }
