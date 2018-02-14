@@ -104,12 +104,16 @@ public class Constants {
     public static final String DATA_KEY = "data";
     public static final String DATASOURCE_URI_KEY = "datasourceUri";
     public static final String TE_PARAMS_KEY = "teParams";
+    public static final String PM_PARAM_PREFIX_KEY = "pmParam_";
     public static final String DATA_POSTPROCESSOR_ARGS_KEY = "dataPostprocessorArgs";
     public static final String DATA_POSTPROCESSOR_TYPE_KEY = "dataPostprocessorType";
     public static final String DATA_POSTPROCESSOR_STRING_REPLACE_ACTION = "string-replace";
     public static final String DATA_POSTPROCESSOR_STRING_SEARCH_PATTERN_ARG = "searchPattern";
     public static final String DATA_POSTPROCESSOR_STRING_REPLACE_STRING_ARG = "replaceString";
     public static final String UNIX_ACCOUNT_AND_DATABASE_SENT_KEY = "unixAccountAndDatabaseSent";
+    public static final String WAIT_FOR_DATABASE_UPDATE_KEY = "waitForDatabaseUpdate";
+    public static final String WAIT_FOR_DATABASE_USER_UPDATE_KEY = "waitForDatabaseUserUpdate";
+    public static final String DELAY_MESSAGE_KEY = "delayMessage";
     public static final String WEBSITE_SENT_KEY = "webSiteSent";
     public static final String DNS_RECORD_SENT_KEY = "dnsRecordSent";
     public static final String REVERTING_KEY = "reverting";
