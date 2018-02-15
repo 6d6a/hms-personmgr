@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -23,17 +24,19 @@ import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import javax.validation.ConstraintViolationException;
 import java.util.Arrays;
 
+@Component
 @ControllerAdvice
 public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionHandler {
 
     private Tracer tracer;
 
     @Autowired
-    public RestResponseEntityExceptionHandler(
-            Tracer tracer
-    ) {
-        super();
+    public void setTracer(Tracer tracer) {
         this.tracer = tracer;
+    }
+
+    public RestResponseEntityExceptionHandler() {
+        super();
     }
 
     private String traceId() {
@@ -98,12 +101,7 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
 
     @ExceptionHandler({Throwable.class})
     public ResponseEntity<Object> handleAllException(final Throwable ex, final WebRequest request) {
-        logger.error(
-                "Handling exception " + ex.getClass().getName()
-                        + "; exceptionMessag: " + ex.getMessage()
-                        + "; stackTrace: " + Arrays.asList(ex.getStackTrace()).toString()
-        );
-
+        printLogError(ex);
         BaseException baseException = convertThrowableToBaseException(ex);
         HttpStatus httpStatus = getHttpStatus(baseException);
 
