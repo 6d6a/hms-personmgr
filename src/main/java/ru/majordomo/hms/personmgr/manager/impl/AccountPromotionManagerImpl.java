@@ -125,6 +125,12 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
         setAccountPromotionStatusByIdAndActionId(id, actionId, false);
     }
 
+    @Override
+    public void switchAccountPromotionById(String id) {
+        Map<String, Boolean> map = repository.findOne(id).getActionsWithStatus();
+        map.forEach((k,v) -> setAccountPromotionStatusByIdAndActionId(id, k, !v));
+    }
+
     private void setAccountPromotionStatusByIdAndActionId(String id, String actionId, boolean status) {
         checkById(id);
 

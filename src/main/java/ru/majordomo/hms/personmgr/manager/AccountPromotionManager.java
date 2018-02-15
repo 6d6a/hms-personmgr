@@ -38,4 +38,6 @@ public interface AccountPromotionManager {
     void activateAccountPromotionByIdAndActionId(String id, String actionId);
 
     void deactivateAccountPromotionByIdAndActionId(String id, String actionId);
+
+    void switchAccountPromotionById(String id);
 }
