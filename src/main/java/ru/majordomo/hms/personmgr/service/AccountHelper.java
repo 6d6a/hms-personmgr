@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -969,5 +970,14 @@ public class AccountHelper {
 //            TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
         }
         this.saveHistoryForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
+    }
+
+    public void saveHistory(PersonalAccount account, String message, SecurityContextHolderAwareRequestWrapper request) {
+        String operator = "unknown";
+        try {
+            operator = request.getUserPrincipal().getName();
+        } catch (Throwable ignore) {}
+
+        saveHistory(account, message, operator);
     }
 }
