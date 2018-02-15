@@ -28,7 +28,7 @@ public class InternalApiException extends WithErrorsException {
     }
 
     public InternalApiException(Throwable cause, String traceId) {
-        this(cause.getMessage(), traceId);
+        this("Возникла непредвиденная ошибка", traceId);
         ResponseStatus annotation = cause.getClass().getAnnotation(ResponseStatus.class);
 
         if (annotation != null) {
