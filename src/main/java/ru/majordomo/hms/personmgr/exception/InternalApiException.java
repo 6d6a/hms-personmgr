@@ -18,14 +18,17 @@ public class InternalApiException extends WithErrorsException {
         super(message);
     }
 
-    public InternalApiException(Throwable cause, HttpStatus httpStatus) {
-        super(cause.getMessage());
-        setException(cause.getClass().getSimpleName());
+    public InternalApiException(String message, String traceId){
+        super(message, traceId);
+    }
+
+    public InternalApiException(Throwable cause, HttpStatus httpStatus, String traceId) {
+        this(cause.getMessage(), traceId);
         setCode(httpStatus.value());
     }
 
-    public InternalApiException(Throwable cause) {
-        super(cause.getMessage());
+    public InternalApiException(Throwable cause, String traceId) {
+        this(cause.getMessage(), traceId);
         ResponseStatus annotation = cause.getClass().getAnnotation(ResponseStatus.class);
 
         if (annotation != null) {
@@ -35,8 +38,8 @@ public class InternalApiException extends WithErrorsException {
         }
     }
 
-    public InternalApiException(ConstraintViolationException ex) {
-        super(ex.getMessage());
+    public InternalApiException(ConstraintViolationException ex, String traceId) {
+        this(ex.getMessage(), traceId);
         setException(ex.getClass().getSimpleName());
         setErrors(
                 ex.getConstraintViolations()
@@ -46,8 +49,8 @@ public class InternalApiException extends WithErrorsException {
         );
     }
 
-    public InternalApiException(DecodeException ex) {
-        super(ex.getMessage());
+    public InternalApiException(DecodeException ex, String traceId) {
+        this(ex.getMessage(), traceId);
         setException(ex.getClass().getSimpleName());
         setErrors(
                 Arrays.stream(ex.getStackTrace())
@@ -55,8 +58,8 @@ public class InternalApiException extends WithErrorsException {
                         StackTraceElement::getClassName, StackTraceElement::getMethodName)));
     }
 
-    public InternalApiException(MethodArgumentNotValidException ex) {
-        super(ex.getMessage());
+    public InternalApiException(MethodArgumentNotValidException ex, String traceId) {
+        this(ex.getMessage(), traceId);
         setException(ex.getClass().getSimpleName());
         setErrors(ex.getBindingResult().getFieldErrors()
                 .stream()
