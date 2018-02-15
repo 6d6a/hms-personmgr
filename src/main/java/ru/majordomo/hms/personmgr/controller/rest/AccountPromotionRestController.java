@@ -10,8 +10,11 @@ import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.model.promotion.Promotion;
+import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,12 +27,15 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 public class AccountPromotionRestController extends CommonRestController {
 
     private final AccountPromotionManager accountPromotionManager;
+    private final PromotionRepository promotionRepository;
 
     @Autowired
     public AccountPromotionRestController(
-            AccountPromotionManager accountPromotionManager
+            AccountPromotionManager accountPromotionManager,
+            PromotionRepository promotionRepository
     ) {
         this.accountPromotionManager = accountPromotionManager;
+        this.promotionRepository = promotionRepository;
     }
 
     @GetMapping
@@ -42,7 +48,7 @@ public class AccountPromotionRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_PROMOTION_EDIT')")
-    @PostMapping(value = "/{accountPromotionId}")
+    @PostMapping(value = "/{accountPromotionId}/switch")
     public ResponseEntity<Void> switchPromotionActionStatus(
             @PathVariable String accountPromotionId,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -59,6 +65,39 @@ public class AccountPromotionRestController extends CommonRestController {
         String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();
         params.put(HISTORY_MESSAGE_KEY, "AccountPromotion Id: '" + accountPromotion.getId() + "' был изменён оператором");
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAuthority('ACCOUNT_PROMOTION_EDIT')")
+    @PostMapping(value = "/{promotionId}")
+    public ResponseEntity<Void> create(
+            @PathVariable(value = "promotionId") String promotionId,
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        Promotion promotion = promotionRepository.findOne(promotionId);
+
+        AccountPromotion accountPromotion = new AccountPromotion();
+        accountPromotion.setPersonalAccountId(accountId);
+        accountPromotion.setPromotionId(promotion.getId());
+        accountPromotion.setPromotion(promotion);
+        accountPromotion.setCreated(LocalDateTime.now());
+
+        Map<String, Boolean> actionsWithStatus = new HashMap<>();
+        for (String actionId : promotion.getActionIds()) {
+            actionsWithStatus.put(actionId, true);
+        }
+        accountPromotion.setActionsWithStatus(actionsWithStatus);
+
+        accountPromotionManager.insert(accountPromotion);
+
+        String operator = request.getUserPrincipal().getName();
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, "Создан новый accountPromotion с ID: '" + accountPromotion.getId() + "'");
         params.put(OPERATOR_KEY, operator);
 
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));
