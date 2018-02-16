@@ -323,12 +323,7 @@ public class AccountAbonementRestController extends CommonRestController {
             throw new ParameterValidationException("Продление абонемента возможно не более чем на три года");
         }
 
-        try {
-            abonementService.prolongAbonement(account, accountAbonement);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new InternalApiException("Ошибка при продлении абонемента: " + e.getMessage());
-        }
+        abonementService.prolongAbonement(account, accountAbonement);
 
         accountHelper.saveHistory(
                 account,

@@ -246,12 +246,18 @@ public class AccountDocumentRestController {
                     checkDocument(REGISTRANT_DOMAIN_CERTIFICATE, accountId, params);
 
                     documentOrder.getDomainIds().add(domain.getId());
-                } catch (Exception e){}
+                } catch (Exception ignore){
+                    logger.info("Для домена " + domain.getName() + " заказ сертификата недоступен по причине: "
+                            + ignore.getMessage());
+                }
             }
         }
 
         try {
-            checkBalanceForDocumentOrder(account);
+
+            PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
+            accountHelper.checkBalance(account, paymentService);
+
         } catch (NotEnoughMoneyException e) {
             documentOrder.getErrors().put("balance", e.getMessage());
             documentOrder.getErrors().put("requiredAmount", e.getRequiredAmount().toString());
@@ -529,19 +535,6 @@ public class AccountDocumentRestController {
         return domains;
     }
 
-    private void checkBalanceForDocumentOrder(PersonalAccount account) throws NotEnoughMoneyException {
-        PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
-        BigDecimal available = accountHelper.getBalance(account);
-
-        if (paymentService.getCost().compareTo(available) >= 0) {
-            throw new NotEnoughMoneyException(
-                    "Недостаточно средств на счету, для заказа документов  необходимо пополнить счет на " +
-                            paymentService.getCost().subtract(available) + " руб.",
-                    paymentService.getCost().subtract(available)
-            );
-        }
-    }
-
     private Map<String, byte[]> buildFileMap(DocumentOrder documentOrder, List<Domain> domains){
 
         Map<String, byte[]> fileMap = new HashMap<>();
@@ -607,11 +600,10 @@ public class AccountDocumentRestController {
         try {
             zipFileByteArray = getZipFileByteArray(fileMap, account.getAccountId());
         } catch (IOException e) {
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Внутренняя ошибка, попробуйте позже");
             logger.error("Не удалось создать архив с документами перед отправкой секретарю. ErrorMessage: " + e.getMessage());
             accountHelper.saveHistory(account,"Не удалось создать архив с документами перед отправкой секретарю. ErrorMessage: " + e.getMessage(), operatorName);
             e.printStackTrace();
-            throw new InternalApiException("Внутренняя ошибка, попробуйте позже");
+            throw new InternalApiException("Возникла ошибка при создании архива с документами, попробуйте позже");
         }
 
         //Отправка письма секретарю

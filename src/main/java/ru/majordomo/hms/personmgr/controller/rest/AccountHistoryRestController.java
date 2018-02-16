@@ -51,12 +51,10 @@ public class AccountHistoryRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountHistory.class) @PathVariable(value = "accountHistoryId") String accountHistoryId
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        AccountHistory accountHistory = accountHistoryRepository.findByIdAndPersonalAccountId(accountHistoryId, account.getId());
+        AccountHistory accountHistory = accountHistoryRepository.findByIdAndPersonalAccountId(accountHistoryId, accountId);
 
         if(accountHistory == null){
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
         return new ResponseEntity<>(accountHistory, HttpStatus.OK);
@@ -102,6 +100,8 @@ public class AccountHistoryRestController extends CommonRestController {
         return new ResponseEntity<>(accountHistories, HttpStatus.OK);
     }
 
+    //TODO надо переделать контроллер для того чтобы нельзя было добавлять сообщения от имени другого пользователя
+    // сейчас через биллинг можно передать какое угодно имя оператора
     @PreAuthorize("hasAuthority('ACCOUNT_HISTORY_ADD')")
     @RequestMapping(value = "/{accountId}/account-history", method = RequestMethod.POST)
     public ResponseEntity<AccountHistory> addAccountHistory(

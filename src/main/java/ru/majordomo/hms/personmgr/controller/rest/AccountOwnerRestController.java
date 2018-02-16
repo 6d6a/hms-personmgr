@@ -61,9 +61,7 @@ public class AccountOwnerRestController extends CommonRestController {
     public ResponseEntity<AccountOwner> getOwner(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        AccountOwner accountOwner = accountOwnerManager.findOneByPersonalAccountId(account.getId());
+        AccountOwner accountOwner = accountOwnerManager.findOneByPersonalAccountId(accountId);
 
         if (accountOwner == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -74,7 +72,7 @@ public class AccountOwnerRestController extends CommonRestController {
 
     @RequestMapping(value = "/{accountId}/owner",
                     method = RequestMethod.PUT)
-    public ResponseEntity changeOwner(
+    public ResponseEntity<AccountOwner> changeOwner(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @Valid @RequestBody AccountOwner owner,
             SecurityContextHolderAwareRequestWrapper request,
@@ -87,15 +85,15 @@ public class AccountOwnerRestController extends CommonRestController {
         String diffMessage = currentOwner.getDiffMessage(owner);
 
         List<String> currentEmails = new ArrayList<>(currentOwner.getContactInfo().getEmailAddresses());
-        if (authentication.getAuthorities().stream().noneMatch(ga -> ga.getAuthority().equals("UPDATE_CLIENT_CONTACTS"))) {
+        if (authentication.getAuthorities().stream().anyMatch(ga -> ga.getAuthority().equals("UPDATE_CLIENT_CONTACTS"))) {
+            accountOwnerManager.setFields(currentOwner, owner);
+        } else {
             changeEmail = !currentOwner.equalEmailAdressess(owner);
             accountOwnerManager.checkNotEmptyFields(currentOwner, owner);
             accountOwnerManager.setEmptyAndAllowedToEditFields(currentOwner, owner);
-        } else {
-            accountOwnerManager.setFields(currentOwner, owner);
         }
 
-        accountOwnerManager.save(currentOwner);
+        AccountOwner savedOwner = accountOwnerManager.save(currentOwner);
 
         //Запишем инфу о произведенном изменении владельца в историю клиента
         String operator = request.getUserPrincipal().getName();
@@ -122,7 +120,7 @@ public class AccountOwnerRestController extends CommonRestController {
 
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));
 
-        return new ResponseEntity(HttpStatus.OK);
+        return new ResponseEntity<>(savedOwner, HttpStatus.OK);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
