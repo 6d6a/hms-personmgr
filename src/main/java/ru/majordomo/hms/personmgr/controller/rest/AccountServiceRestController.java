@@ -86,9 +86,7 @@ public class AccountServiceRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountService.class) @PathVariable(value = "accountServiceId") String accountServiceId
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndId(account.getId(), accountServiceId);
+        AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndId(accountId, accountServiceId);
 
         if (accountService == null) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -103,9 +101,7 @@ public class AccountServiceRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             Pageable pageable
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        Page<AccountService> accountServices = accountServiceRepository.findByPersonalAccountId(account.getId(), pageable);
+        Page<AccountService> accountServices = accountServiceRepository.findByPersonalAccountId(accountId, pageable);
 
         return new ResponseEntity<>(accountServices, HttpStatus.OK);
     }
@@ -113,7 +109,7 @@ public class AccountServiceRestController extends CommonRestController {
     @PreAuthorize("hasAuthority('MANAGE_SERVICES')")
     @RequestMapping(value = "/{accountId}/account-service",
                     method = RequestMethod.POST)
-    public ResponseEntity<SimpleServiceMessage> addService(
+    public ResponseEntity<AccountService> addService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Map<String, Object> requestBody,
             SecurityContextHolderAwareRequestWrapper request
@@ -134,21 +130,15 @@ public class AccountServiceRestController extends CommonRestController {
         //Сейчас баланс проверяется по полной стоимости услуги
         accountHelper.checkBalance(account, paymentService);
 
-        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
-                .build();
+        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService).build();
+
         accountHelper.charge(account, chargeMessage);
 
-        accountServiceHelper.addAccountService(account, paymentServiceId);
+        AccountService accountService = accountServiceHelper.addAccountService(account, paymentServiceId);
 
-        //Save history
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Произведен заказ услуги " + paymentService.getName());
-        params.put(OPERATOR_KEY, operator);
+        accountHelper.saveHistory(account, "Произведен заказ услуги " + paymentService.getName(), request);
 
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-
-        return new ResponseEntity<>(this.createSuccessResponse("accountService created with id " + paymentServiceId), HttpStatus.OK);
+        return new ResponseEntity<>(accountService, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{accountId}/account-service-sms-notification",
@@ -165,7 +155,7 @@ public class AccountServiceRestController extends CommonRestController {
         if (accountServices == null || accountServices.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else if (accountServices.size() > 1) {
-            throw new ParameterValidationException("Account has more than one AccountService with serviceId " + paymentService.getId());
+            throw new ParameterValidationException("На аккаунте больше одной услуги СМС-уведомлений. Пожалуйста, обратитесь в тех-поддержку.");
         }
 
         return new ResponseEntity<>(accountServices.get(0), HttpStatus.OK);
@@ -206,13 +196,10 @@ public class AccountServiceRestController extends CommonRestController {
 
         processCustomService(account, paymentService, enabled);
 
-        //Save history
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Произведено " + (enabled ? "включение" : "отключение") + " услуги " + paymentService.getName());
-        params.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+        accountHelper.saveHistory(
+                account,
+                "Произведено " + (enabled ? "включение" : "отключение") + " услуги " + paymentService.getName(),
+                request);
 
         return new ResponseEntity<>(this.createSuccessResponse("accountService " + (enabled ? "enabled" : "disabled") + " for sms-notification"), HttpStatus.OK);
     }

@@ -50,31 +50,20 @@ public class AccountPromotionRestController extends CommonRestController {
     @PreAuthorize("hasAuthority('ACCOUNT_PROMOTION_EDIT')")
     @PostMapping(value = "/{accountPromotionId}/switch")
     public ResponseEntity<Void> switchPromotionActionStatus(
-            @PathVariable String accountPromotionId,
+            @ObjectId(AccountPromotion.class) @PathVariable String accountPromotionId,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        AccountPromotion accountPromotion = accountPromotionManager.findOne(accountPromotionId);
+        accountPromotionManager.switchAccountPromotionById(accountPromotionId);
 
-        if (accountPromotion == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+        saveHistory(accountId, "AccountPromotion Id: '" + accountPromotionId + "' был изменён оператором", request);
 
-        accountPromotionManager.switchAccountPromotionById(accountPromotion.getId());
-
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "AccountPromotion Id: '" + accountPromotion.getId() + "' был изменён оператором");
-        params.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_PROMOTION_EDIT')")
     @PostMapping(value = "/{promotionId}")
-    public ResponseEntity<Void> create(
+    public ResponseEntity<AccountPromotion> create(
             @ObjectId(Promotion.class) @PathVariable(value = "promotionId") String promotionId,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
@@ -85,7 +74,6 @@ public class AccountPromotionRestController extends CommonRestController {
         accountPromotion.setPersonalAccountId(accountId);
         accountPromotion.setPromotionId(promotion.getId());
         accountPromotion.setPromotion(promotion);
-        accountPromotion.setCreated(LocalDateTime.now());
 
         Map<String, Boolean> actionsWithStatus = new HashMap<>();
         for (String actionId : promotion.getActionIds()) {
@@ -95,13 +83,17 @@ public class AccountPromotionRestController extends CommonRestController {
 
         accountPromotionManager.insert(accountPromotion);
 
+        saveHistory(accountId, "Создан новый accountPromotion с ID: '" + accountPromotion.getId() + "'", request);
+
+        return new ResponseEntity<>(accountPromotion, HttpStatus.OK);
+    }
+
+    private void saveHistory(String personalAccountId, String message, SecurityContextHolderAwareRequestWrapper request) {
         String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Создан новый accountPromotion с ID: '" + accountPromotion.getId() + "'");
+        params.put(HISTORY_MESSAGE_KEY, message);
         params.put(OPERATOR_KEY, operator);
 
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-
-        return new ResponseEntity<>(HttpStatus.OK);
+        publisher.publishEvent(new AccountHistoryEvent(personalAccountId, params));
     }
 }

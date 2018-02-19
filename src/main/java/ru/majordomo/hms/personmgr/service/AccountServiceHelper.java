@@ -73,12 +73,12 @@ public class AccountServiceHelper {
      * @param account   Аккаунт
      * @param newServiceId id новой услуги
      */
-    public void addAccountService(PersonalAccount account, String newServiceId) {
+    public AccountService addAccountService(PersonalAccount account, String newServiceId) {
         AccountService service = new AccountService();
         service.setPersonalAccountId(account.getId());
         service.setServiceId(newServiceId);
 
-        accountServiceRepository.save(service);
+        return accountServiceRepository.save(service);
     }
 
     /**
