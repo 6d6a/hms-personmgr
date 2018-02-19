@@ -5,21 +5,17 @@ import com.querydsl.core.types.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.mongodb.core.MongoOperations;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.OrderState;
-import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.order.AccountPartnerCheckoutOrder;
 import ru.majordomo.hms.personmgr.model.order.QAccountPartnerCheckoutOrder;
 import ru.majordomo.hms.personmgr.repository.AccountPartnerCheckoutOrderRepository;
 import ru.majordomo.hms.personmgr.service.PartnerCheckoutOrderManager;
-import ru.majordomo.hms.personmgr.service.PartnerCheckoutOrderMangerFactory;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import java.math.BigDecimal;
@@ -29,18 +25,15 @@ import java.util.Map;
 public class PartnerCheckoutOrderRestController extends CommonRestController {
 
     private AccountPartnerCheckoutOrderRepository repository;
-    private PartnerCheckoutOrderMangerFactory partnerCheckoutOrderMangerFactory;
-    private PersonalAccountManager personalAccountManager;
+    private PartnerCheckoutOrderManager partnerCheckoutOrderManager;
 
     @Autowired
     public PartnerCheckoutOrderRestController(
             AccountPartnerCheckoutOrderRepository repository,
-            PartnerCheckoutOrderMangerFactory partnerCheckoutOrderMangerFactory,
-            PersonalAccountManager personalAccountManager
+            PartnerCheckoutOrderManager partnerCheckoutOrderManager
     ) {
         this.repository = repository;
-        this.partnerCheckoutOrderMangerFactory = partnerCheckoutOrderMangerFactory;
-        this.personalAccountManager = personalAccountManager;
+        this.partnerCheckoutOrderManager = partnerCheckoutOrderManager;
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
@@ -106,20 +99,9 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
 
         AccountPartnerCheckoutOrder partnerOrder = repository.findOneByIdAndPersonalAccountId(partnerCheckoutOrderId, account.getId());
 
-        PartnerCheckoutOrderManager partnerCheckoutOrderManager = partnerCheckoutOrderMangerFactory.createManager(partnerOrder);
-
         String operator = request.getUserPrincipal().getName();
 
-        switch (orderState) {
-            case FINISHED:
-                partnerCheckoutOrderManager.finish(operator);
-                break;
-            case DECLINED:
-                partnerCheckoutOrderManager.decline(operator);
-                break;
-            case IN_PROGRESS:
-                return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
-        }
+        partnerCheckoutOrderManager.changeState(partnerOrder, orderState, operator);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -139,28 +121,8 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
         partnerOrder.setPersonalAccountName(account.getName());
         partnerOrder.setAmount(amount);
 
-        PartnerCheckoutOrderManager partnerCheckoutOrderManager = partnerCheckoutOrderMangerFactory.createManager(partnerOrder);
-        partnerCheckoutOrderManager.create(operator);
+        partnerCheckoutOrderManager.create(partnerOrder, operator);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
-
-    private  String getAccountIdFromNameOrAccountId(String accountId) {
-        String personalAccountId = accountId;
-
-        if (accountId != null && !accountId.isEmpty()){
-
-            accountId = accountId.replaceAll("[^0-9]", "");
-            try {
-                PersonalAccount account = personalAccountManager.findByAccountId(accountId);
-                if (account != null) {
-                    personalAccountId = account.getId();
-                }
-            } catch (ResourceNotFoundException e) {
-                return personalAccountId;
-            }
-        }
-        return personalAccountId;
-    }
-
 }

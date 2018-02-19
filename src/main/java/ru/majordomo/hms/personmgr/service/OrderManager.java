@@ -1,100 +1,79 @@
 package ru.majordomo.hms.personmgr.service;
 
-import org.apache.commons.lang.NotImplementedException;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import ru.majordomo.hms.personmgr.common.OrderState;
-import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.exception.IncorrectStateException;
 import ru.majordomo.hms.personmgr.model.order.AccountOrder;
+import ru.majordomo.hms.personmgr.repository.AccountOrderRepository;
 
 import java.time.LocalDateTime;
 
 public abstract class OrderManager<T extends AccountOrder> {
+    private AccountOrderRepository<T> accountOrderRepository;
 
-    protected T accountOrder;
-
-    private void setUpdatedNow() {
+    protected void updateState(T accountOrder, OrderState newState, String operator) {
+        accountOrder.setState(newState);
+        accountOrder.setOperator(operator);
         accountOrder.setUpdated(LocalDateTime.now());
     }
 
-    OrderManager(T accountOrder) {
-        this.accountOrder = accountOrder;
+    @Autowired
+    public void setAccountOrderRepository(AccountOrderRepository<T> accountOrderRepository) {
+        this.accountOrderRepository = accountOrderRepository;
     }
 
-    protected void updateState(OrderState newState, String operator) {
-        accountOrder.setState(newState);
-        accountOrder.setOperator(operator);
-        setUpdatedNow();
+    protected void save(T accountOrder) {
+        accountOrderRepository.save(accountOrder);
     }
 
-    protected void save() {
-        throw new NotImplementedException();
-    }
+    protected void onCreate(T accountOrder) {}
 
-    protected void onCreate() {
-        throw new NotImplementedException();
-    }
+    protected void onProcess(T accountOrder) {}
 
-    protected void onProcess() {
-        throw new NotImplementedException();
-    }
+    protected void onDecline(T accountOrder) {}
 
-    protected void onDecline() {
-        throw new NotImplementedException();
-    }
+    protected void onFinish(T accountOrder) {}
 
-    protected void onFinish() {
-        throw new NotImplementedException();
-    }
-
-    public void create(String operator) {
-
+    public void create(T accountOrder, String operator) {
         accountOrder.setCreated(LocalDateTime.now());
-        this.updateState(OrderState.NEW, operator);
-        this.onCreate();
+        updateState(accountOrder, OrderState.NEW, operator);
+        onCreate(accountOrder);
 
-        this.save();
+        save(accountOrder);
     }
 
-    public void decline(String operator) {
+    public void decline(T accountOrder, String operator) {
+        updateState(accountOrder, OrderState.DECLINED, operator);
+        onDecline(accountOrder);
 
-        this.updateState(OrderState.DECLINED, operator);
-        this.onDecline();
-
-        this.save();
+        save(accountOrder);
     }
 
-    public void finish(String operator) {
+    public void finish(T accountOrder, String operator) {
+        updateState(accountOrder, OrderState.FINISHED, operator);
+        onFinish(accountOrder);
 
-        this.updateState(OrderState.FINISHED, operator);
-        this.onFinish();
-
-        this.save();
+        save(accountOrder);
     }
 
-    public void process(String operator) {
+    public void process(T accountOrder, String operator) {
+        updateState(accountOrder, OrderState.IN_PROGRESS, operator);
+        onProcess(accountOrder);
 
-        this.updateState(OrderState.IN_PROGRESS, operator);
-        this.onProcess();
-
-        this.save();
+        save(accountOrder);
     }
 
-//    private Boolean isStateChangeAllowed(OrderState initialState, OrderState finalState) {
-//
-//        if (initialState == finalState) {
-//            return false;
-//        }
-//
-//        switch (initialState) {
-//            case NEW:
-//                return true;
-//            case IN_PROGRESS:
-//                return finalState != OrderState.NEW;
-//            case DECLINED:
-//            case FINISHED:
-//                return false;
-//            default:
-//                return true; //initialState == null
-//        }
-//    }
-
+    public void changeState(T accountOrder, OrderState orderState, String operator) {
+        switch (orderState) {
+            case FINISHED:
+                finish(accountOrder, operator);
+                break;
+            case DECLINED:
+                decline(accountOrder, operator);
+                break;
+            case IN_PROGRESS:
+                throw new IncorrectStateException("Состояние не может быть изменено на " + OrderState.IN_PROGRESS.name());
+        }
+    }
 }
