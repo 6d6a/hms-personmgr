@@ -37,4 +37,6 @@ public class DocumentOrder extends ModelBelongsToPersonalAccount {
     private Boolean send = false;
 
     private String postalAddress;
+
+    private String documentNumber;
 }

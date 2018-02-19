@@ -13,8 +13,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.DocumentType;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
-import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountDocument;
@@ -245,14 +246,21 @@ public class AccountDocumentRestController {
                     checkDocument(REGISTRANT_DOMAIN_CERTIFICATE, accountId, params);
 
                     documentOrder.getDomainIds().add(domain.getId());
-                } catch (Exception e){}
+                } catch (Exception ignore){
+                    logger.info("Для домена " + domain.getName() + " заказ сертификата недоступен по причине: "
+                            + ignore.getMessage());
+                }
             }
         }
 
         try {
-            checkBalanceForDocumentOrder(account);
-        } catch (LowBalanceException e) {
+
+            PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
+            accountHelper.checkBalance(account, paymentService);
+
+        } catch (NotEnoughMoneyException e) {
             documentOrder.getErrors().put("balance", e.getMessage());
+            documentOrder.getErrors().put("requiredAmount", e.getRequiredAmount().toString());
         }
 
         if (!documentOrder.getErrors().isEmpty()) {
@@ -292,9 +300,10 @@ public class AccountDocumentRestController {
 
             ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
                     .build();
-            accountHelper.charge(account, chargeMessage);
+            SimpleServiceMessage response = accountHelper.charge(account, chargeMessage);
 
             documentOrder.setPaid(true);
+            documentOrder.setDocumentNumber((String) response.getParam("documentNumber"));
             documentOrder = documentOrderRepository.save(documentOrder);
 
             //Отправка письма c документами секретарю
@@ -526,18 +535,6 @@ public class AccountDocumentRestController {
         return domains;
     }
 
-    private void checkBalanceForDocumentOrder(PersonalAccount account) throws LowBalanceException {
-        PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
-        BigDecimal available = accountHelper.getBalance(account);
-
-        if (paymentService.getCost().compareTo(available) >= 0) {
-            throw new LowBalanceException(
-                    "Недостаточно средств на счету, для заказа документов необходимо пополнить счет на " +
-                            paymentService.getCost().subtract(available) + " руб."
-            );
-        }
-    }
-
     private Map<String, byte[]> buildFileMap(DocumentOrder documentOrder, List<Domain> domains){
 
         Map<String, byte[]> fileMap = new HashMap<>();
@@ -603,11 +600,10 @@ public class AccountDocumentRestController {
         try {
             zipFileByteArray = getZipFileByteArray(fileMap, account.getAccountId());
         } catch (IOException e) {
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Внутренняя ошибка, попробуйте позже");
             logger.error("Не удалось создать архив с документами перед отправкой секретарю. ErrorMessage: " + e.getMessage());
             accountHelper.saveHistory(account,"Не удалось создать архив с документами перед отправкой секретарю. ErrorMessage: " + e.getMessage(), operatorName);
             e.printStackTrace();
-            throw new InternalApiException("Внутренняя ошибка, попробуйте позже");
+            throw new InternalApiException("Возникла ошибка при создании архива с документами, попробуйте позже");
         }
 
         //Отправка письма секретарю

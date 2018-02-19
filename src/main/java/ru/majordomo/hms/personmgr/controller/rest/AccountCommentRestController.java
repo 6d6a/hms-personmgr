@@ -54,9 +54,7 @@ public class AccountCommentRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             Pageable pageable
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        Page<AccountComment> accountComments = accountCommentRepository.findByPersonalAccountId(account.getId(), pageable);
+        Page<AccountComment> accountComments = accountCommentRepository.findByPersonalAccountId(accountId, pageable);
 
         if(accountComments == null || !accountComments.hasContent()){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -72,21 +70,16 @@ public class AccountCommentRestController extends CommonRestController {
             @RequestBody Map<String, String> requestBody,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-        if(account == null){
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-
         String commentMessage = requestBody.get("message");
 
         AccountComment accountComment = new AccountComment();
-        accountComment.setPersonalAccountId(account.getId());
+        accountComment.setPersonalAccountId(accountId);
         accountComment.setMessage(commentMessage);
         accountComment.setOperator(request.getUserPrincipal().getName());
 
-        accountCommentRepository.insert(accountComment);
+        accountComment = accountCommentRepository.insert(accountComment);
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(accountComment, HttpStatus.OK);
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_COMMENTS_DELETE')")
@@ -95,14 +88,12 @@ public class AccountCommentRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountComment.class) @PathVariable(value = "accountCommentId") String accountCommentId
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        AccountComment accountComment = accountCommentRepository.findByIdAndPersonalAccountId(accountCommentId, account.getId());
+        AccountComment accountComment = accountCommentRepository.findByIdAndPersonalAccountId(accountCommentId, accountId);
 
         if (accountComment != null) {
             accountCommentRepository.delete(accountComment);
         }
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

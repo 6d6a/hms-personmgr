@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,14 +19,13 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.exception.ChargeException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
-import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -231,8 +231,9 @@ public class AccountHelper {
         BigDecimal available = getBalance(account);
 
         if (available.compareTo(BigDecimal.ZERO) < 0) {
-            throw new LowBalanceException("Баланс аккаунта отрицательный: "
-                    + formatBigDecimalWithCurrency(available));
+            throw new NotEnoughMoneyException("Баланс аккаунта отрицательный: " + formatBigDecimalWithCurrency(available),
+                    available
+            );
         }
     }
 
@@ -245,9 +246,11 @@ public class AccountHelper {
         BigDecimal available = getBalance(account);
 
         if (available.compareTo(service.getCost()) < 0) {
-            throw new LowBalanceException("Баланс аккаунта недостаточен для заказа услуги. " +
+            throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
                     "Текущий баланс: " + formatBigDecimalWithCurrency(available) +
-                    ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
+                    ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
+                    service.getCost().subtract(available)
+            );
         }
     }
 
@@ -261,9 +264,11 @@ public class AccountHelper {
         BigDecimal bonusBalanceAvailable = getBonusBalance(account.getId());
 
         if (available.subtract(bonusBalanceAvailable).compareTo(service.getCost()) < 0) {
-            throw new LowBalanceException("Бонусные средства недоступны для этой операции. " +
+            throw new NotEnoughMoneyException("Бонусные средства недоступны для этой операции. " +
                     "Текущий баланс без учёта бонусных средств: " + formatBigDecimalWithCurrency(available.subtract(bonusBalanceAvailable)) +
-                    ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
+                    ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
+                    service.getCost().subtract(available.subtract(bonusBalanceAvailable))
+            );
         }
     }
 
@@ -281,8 +286,11 @@ public class AccountHelper {
             BigDecimal available = getBalance(account);
 
             if (available.compareTo(dayCost) < 0) {
-                throw new LowBalanceException("Баланс аккаунта недостаточен для заказа услуги. " +
-                        "Текущий баланс: " + formatBigDecimalWithCurrency(available) + " стоимость услуги за 1 день: " + formatBigDecimalWithCurrency(dayCost));
+                throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
+                        "Текущий баланс: " + formatBigDecimalWithCurrency(available)
+                        + " стоимость услуги за 1 день: " + formatBigDecimalWithCurrency(dayCost),
+                        dayCost.subtract(available)
+                );
             }
         }
     }
@@ -311,13 +319,17 @@ public class AccountHelper {
                 e.printStackTrace();
                 throw e;
             }
-            throw new ChargeException("Произошла ошибка при списании средств." +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()));
+            throw new NotEnoughMoneyException("Произошла ошибка при списании средств." +
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()),
+                    chargeMessage.getAmount()
+            );
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
-            throw new ChargeException("Баланс аккаунта недостаточен для заказа услуги. " +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()));
+            throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()),
+                    chargeMessage.getAmount()
+            );
         }
 
         return response;
@@ -341,13 +353,17 @@ public class AccountHelper {
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in AccountHelper.block " + e.getMessage());
-            throw new ChargeException("Произошла ошибка при блокировке средств." +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
+            throw new NotEnoughMoneyException("Произошла ошибка при блокировке средств." +
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
+                    service.getCost()
+            );
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
-            throw new ChargeException("Баланс аккаунта недостаточен для заказа услуги. " +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()));
+            throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
+                    service.getCost()
+            );
         }
 
         return response;
@@ -954,5 +970,14 @@ public class AccountHelper {
 //            TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
         }
         this.saveHistoryForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
+    }
+
+    public void saveHistory(PersonalAccount account, String message, SecurityContextHolderAwareRequestWrapper request) {
+        String operator = "unknown";
+        try {
+            operator = request.getUserPrincipal().getName();
+        } catch (Throwable ignore) {}
+
+        saveHistory(account, message, operator);
     }
 }

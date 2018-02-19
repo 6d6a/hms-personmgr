@@ -5,7 +5,6 @@ import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,10 +12,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -73,42 +70,6 @@ public class AccountPromocodeRestController extends CommonRestController {
         Page<AccountPromocode> accountPromocodes = accountPromocodeRepository.findByOwnerPersonalAccountIdAndPersonalAccountIdNot(accountId, accountId, pageable);
 
         return new ResponseEntity<>(accountPromocodes, HttpStatus.OK);
-    }
-
-    @PreAuthorize("hasRole('ADMIN') or hasRole('OPERATOR')")
-    @GetMapping(value = "/account-promocodes/search-by-code")
-    public ResponseEntity<Page<AccountPromocode>> search(
-            @RequestParam String code,
-            Pageable pageable
-    ) {
-        Promocode promocode = promocodeRepository.findByCodeIgnoreCase(code);
-
-        if (promocode == null) {
-            return ResponseEntity.ok(new PageImpl<AccountPromocode>(new ArrayList<>(), pageable, 0));
-        }
-
-        Page<AccountPromocode> page = accountPromocodeRepository.findByPromocodeId(promocode.getId(), pageable);
-
-        return ResponseEntity.ok(page);
-    }
-
-    @PreAuthorize("hasRole('ADMIN') or hasRole('OPERATOR')")
-    @GetMapping(value = "/account-promocodes/search-by-code-contains")
-    public ResponseEntity<Page<AccountPromocode>> searchByCodeContains(
-            @RequestParam String code,
-            Pageable pageable
-    ) {
-        List<Promocode> promocodes = promocodeRepository.findByCodeContainsIgnoreCase(code);
-
-        if (promocodes == null || promocodes.isEmpty()) {
-            return ResponseEntity.ok(new PageImpl<AccountPromocode>(new ArrayList<>(), pageable, 0));
-        }
-
-        List<String> promocodeIds = promocodes.stream().map(Promocode::getId).collect(Collectors.toList());
-
-        Page<AccountPromocode> page = accountPromocodeRepository.findByPromocodeIdIn(promocodeIds, pageable);
-
-        return ResponseEntity.ok(page);
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('OPERATOR')")
