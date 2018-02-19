@@ -344,15 +344,15 @@ public class AccountHelper {
             e.printStackTrace();
             logger.error("Exception in AccountHelper.block " + e.getMessage());
             throw new NotEnoughMoneyException("Произошла ошибка при блокировке средств." +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
-                    service.getCost()
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()),
+                    chargeMessage.getAmount()
             );
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
             throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
-                    service.getCost()
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()),
+                    chargeMessage.getAmount()
             );
         }
 
