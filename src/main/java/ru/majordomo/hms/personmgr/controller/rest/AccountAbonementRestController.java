@@ -15,11 +15,10 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.StringJoiner;
 
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
@@ -33,9 +32,6 @@ import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.PlanChange.Factory;
 import ru.majordomo.hms.personmgr.service.PlanChange.Processor;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
-
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @RestController
 @RequestMapping("/{accountId}/account-abonements")
@@ -56,7 +52,8 @@ public class AccountAbonementRestController extends CommonRestController {
             AbonementRepository abonementRepository,
             PlanRepository planRepository,
             AccountHelper accountHelper,
-            Factory planChangeFactory) {
+            Factory planChangeFactory
+    ) {
         this.accountAbonementManager = accountAbonementManager;
         this.abonementService = abonementService;
         this.abonementRepository = abonementRepository;
@@ -70,9 +67,7 @@ public class AccountAbonementRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountAbonement.class) @PathVariable(value = "accountAbonementId") String accountAbonementId
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
+        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(accountAbonementId, accountId);
 
         return new ResponseEntity<>(accountAbonement, HttpStatus.OK);
     }
@@ -91,24 +86,24 @@ public class AccountAbonementRestController extends CommonRestController {
                 accountAbonementId, account.getId()
         );
 
-        if (!accountAbonement.getAbonement().isInternal()) {
-            if (requestBody.get("autorenew") != null) {
-                Boolean autorenew = Boolean.valueOf(requestBody.get("autorenew"));
-                accountAbonementManager.setAutorenew(accountAbonement.getId(), autorenew);
-
-                String operator = request.getUserPrincipal().getName();
-                accountHelper.saveHistory(
-                        account,
-                        (autorenew ? "Включено" : "Выключено") +
-                                " автопродление абонемента '" + accountAbonement.getAbonement().getName() + "'",
-                        operator
-                );
-            }
-
-            return new ResponseEntity<>(HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        if (accountAbonement.getAbonement().isInternal()) {
+            throw new ParameterValidationException("Нельзя изменять автопродление тестового абонемента");
         }
+
+        if (requestBody.get("autorenew") != null) {
+            Boolean autorenew = Boolean.valueOf(requestBody.get("autorenew"));
+            accountAbonementManager.setAutorenew(accountAbonement.getId(), autorenew);
+
+            String operator = request.getUserPrincipal().getName();
+            accountHelper.saveHistory(
+                    account,
+                    (autorenew ? "Включено" : "Выключено") +
+                            " автопродление абонемента '" + accountAbonement.getAbonement().getName() + "'",
+                    operator
+            );
+        }
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_ABONEMENT_EDIT')")
@@ -193,26 +188,21 @@ public class AccountAbonementRestController extends CommonRestController {
         PersonalAccount account = accountManager.findOne(accountId);
 
         AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
-        if (!accountAbonement.getAbonement().isInternal()) {
 
-            if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
-                throw new ParameterValidationException("Удаление абонемента невозможно на вашем тарифном плане");
-            }
-
-            abonementService.deleteAbonement(account, accountAbonementId);
-
-            //Save history
-            String operator = request.getUserPrincipal().getName();
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Произведен отказ от абонемента");
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-
-            return new ResponseEntity<>(HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        if (accountAbonement.getAbonement().isInternal()) {
+            throw new ParameterValidationException("Отказ от тестового абонемента невозможен");
         }
+
+        if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
+            throw new ParameterValidationException("Удаление абонемента невозможно на вашем тарифном плане");
+        }
+
+        abonementService.deleteAbonement(account, accountAbonementId);
+
+        String operator = request.getUserPrincipal().getName();
+        accountHelper.saveHistory(account, "Произведен отказ от абонемента", operator);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
@@ -220,9 +210,7 @@ public class AccountAbonementRestController extends CommonRestController {
             @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId,
             Pageable pageable
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        Page<AccountAbonement> accountAbonements = accountAbonementManager.findByPersonalAccountId(account.getId(), pageable);
+        Page<AccountAbonement> accountAbonements = accountAbonementManager.findByPersonalAccountId(accountId, pageable);
 
         if(accountAbonements == null || !accountAbonements.hasContent()){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -253,15 +241,13 @@ public class AccountAbonementRestController extends CommonRestController {
 
         planChangeProcessor.process();
 
-        //Save history
         String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Произведен отказ от абонемента" + (refund ? " с возвратом средств" : " без возврата средств"));
-        params.put(OPERATOR_KEY, operator);
+        accountHelper.saveHistory(account,
+                "Произведен отказ от абонемента" + (refund ? " с возвратом средств" : " без возврата средств"),
+                operator
+        );
 
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PreAuthorize("hasAuthority('DELETE_ACCOUNT_ABONEMENT')")
@@ -278,49 +264,38 @@ public class AccountAbonementRestController extends CommonRestController {
         return new ResponseEntity<>(cashback, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "", method = RequestMethod.POST)
+    @RequestMapping(value = "/{abonementId}", method = RequestMethod.POST)
     public ResponseEntity<Object> addAccountAbonement(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, String> requestBody,
+            @ObjectId(Abonement.class) @PathVariable(value = "abonementId") String abonementId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        String abonementId = requestBody.get("abonementId");
-
-        if (abonementId == null) {
-            throw new ParameterValidationException("abonementId field is required in requestBody");
-        }
-
         Abonement abonement = abonementRepository.findOne(abonementId);
 
-        if (abonement == null) {
-            throw new ParameterValidationException("Abonement with abonementId: " + abonementId + " not found");
+        if (abonement.isInternal()) {
+            throw new ParameterValidationException("Нельзя заказать тестовый абонемент");
         }
 
         AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
 
-        // Internal абонементы юзер не может заказывать
-        if (!abonement.isInternal() && (currentAccountAbonement == null || currentAccountAbonement.getAbonement().getPeriod().equals("P14D"))) {
-
-            abonementService.addAbonement(account, abonementId, true);
-
-            if (accountAbonementManager.findByPersonalAccountId(account.getId()) != null) {
-                accountHelper.enableAccount(account);
-            }
-
-            //Save history
-            String operator = request.getUserPrincipal().getName();
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Произведен заказ абонемента " + abonement.getName());
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-        } else {
-            throw new ParameterValidationException("Ошибка при заказе абонемента");
+        if (currentAccountAbonement != null && !currentAccountAbonement.getAbonement().getPeriod().equals("P14D")
+        ) {
+            throw new ParameterValidationException("Нельзя купить абонемент при наличии другого абонемента");
         }
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        abonementService.addAbonement(account, abonementId, true);
+
+        AccountAbonement newAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+
+        if (newAccountAbonement != null) {
+            accountHelper.enableAccount(account);
+        }
+
+        accountHelper.saveHistory(account, "Произведен заказ абонемента " + abonement.getName(), request);
+
+        return new ResponseEntity<>(newAccountAbonement, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{accountAbonementId}/prolong", method = RequestMethod.POST)
@@ -335,43 +310,26 @@ public class AccountAbonementRestController extends CommonRestController {
                 accountAbonementId, account.getId()
         );
 
-        if (!accountAbonement.getAbonement().isInternal()) {
-            //Абонемент нельзя продлить более чем на три года "всего", т.е. два срока абонемента
-            LocalDateTime expiredMinus3periods = accountAbonement
-                    .getExpired()
-                    .minus(Period.parse(accountAbonement.getAbonement().getPeriod()).multipliedBy(2));
-
-            if (expiredMinus3periods.isAfter(LocalDateTime.now())) {
-                return new ResponseEntity<>(
-                        this.createErrorResponse("Продление абонемента возможно не более чем на три года"),
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-
-            try {
-                abonementService.prolongAbonement(account, accountAbonement);
-            } catch (Exception e) {
-                e.printStackTrace();
-                return new ResponseEntity<>(
-                        this.createErrorResponse("Ошибка при продлении абонемента: " + e.getMessage()),
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-
-            //Save history
-            String operator = request.getUserPrincipal().getName();
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Произведен заказ продления абонемента " + accountAbonement.getAbonement().getName());
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-
-            return new ResponseEntity<>(HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(
-                    this.createErrorResponse("Продление абонемента на пробном периоде не доступно"),
-                    HttpStatus.BAD_REQUEST
-            );
+        if (accountAbonement.getAbonement().isInternal()) {
+            throw new ParameterValidationException("Продление абонемента на пробном периоде не доступно");
         }
+
+        //Абонемент нельзя продлить более чем на три года "всего", т.е. два срока абонемента
+        LocalDateTime expiredMinus3periods = accountAbonement
+                .getExpired()
+                .minus(Period.parse(accountAbonement.getAbonement().getPeriod()).multipliedBy(2));
+
+        if (expiredMinus3periods.isAfter(LocalDateTime.now())) {
+            throw new ParameterValidationException("Продление абонемента возможно не более чем на три года");
+        }
+
+        abonementService.prolongAbonement(account, accountAbonement);
+
+        accountHelper.saveHistory(
+                account,
+                "Произведен заказ продления абонемента " + accountAbonement.getAbonement().getName(),
+                request);
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }

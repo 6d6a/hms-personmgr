@@ -20,7 +20,7 @@ import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
-import ru.majordomo.hms.personmgr.exception.LowBalanceException;
+import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -201,7 +201,7 @@ public class DomainService {
                 try {
                     accountHelper.checkBalance(account, domainTld.getRenewService());
                     accountHelper.checkBalanceWithoutBonus(account, domainTld.getRenewService());
-                } catch (LowBalanceException e) {
+                } catch (NotEnoughMoneyException e) {
                     //Если денег не хватает
                     //Запишем попытку в историю клиента
                     accountHelper.saveHistoryForOperatorService(account, "Автоматическое продление " + domain.getName() + " невозможно, на счету " + balance + " руб.");

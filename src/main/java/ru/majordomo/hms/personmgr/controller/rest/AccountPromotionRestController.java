@@ -75,7 +75,7 @@ public class AccountPromotionRestController extends CommonRestController {
     @PreAuthorize("hasAuthority('ACCOUNT_PROMOTION_EDIT')")
     @PostMapping(value = "/{promotionId}")
     public ResponseEntity<Void> create(
-            @PathVariable(value = "promotionId") String promotionId,
+            @ObjectId(Promotion.class) @PathVariable(value = "promotionId") String promotionId,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
