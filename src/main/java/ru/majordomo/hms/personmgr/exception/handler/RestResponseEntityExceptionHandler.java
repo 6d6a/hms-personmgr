@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -101,6 +102,9 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
 
     @ExceptionHandler({Throwable.class})
     public ResponseEntity<Object> handleAllException(final Throwable ex, final WebRequest request) {
+
+        throwIfAccessDeniedException(ex);
+
         printLogError(ex);
         BaseException baseException = convertThrowableToBaseException(ex);
         HttpStatus httpStatus = getHttpStatus(baseException);
@@ -112,6 +116,12 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
                 httpStatus,
                 request
         );
+    }
+
+    private void throwIfAccessDeniedException(Throwable ex){
+        if (ex instanceof AccessDeniedException) {
+            throw (AccessDeniedException) ex;
+        }
     }
 
     private static <T extends Throwable> HttpStatus getHttpStatus(T exception){
