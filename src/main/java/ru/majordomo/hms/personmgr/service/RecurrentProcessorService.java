@@ -3,13 +3,8 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
-import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
-import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -27,8 +22,6 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
 import static java.time.temporal.ChronoUnit.DAYS;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @Service
 public class RecurrentProcessorService {
@@ -40,7 +33,6 @@ public class RecurrentProcessorService {
     private final RcUserFeignClient rcUserFeignClient;
     private final DomainTldService domainTldService;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
-    private final ApplicationEventPublisher publisher;
     private final FinFeignClient finFeignClient;
 
     private static TemporalAdjuster FIFTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(50));
@@ -54,7 +46,6 @@ public class RecurrentProcessorService {
             RcUserFeignClient rcUserFeignClient,
             DomainTldService domainTldService,
             DomainRegistrarFeignClient domainRegistrarFeignClient,
-            ApplicationEventPublisher publisher,
             FinFeignClient finFeignClient
     ) {
         this.accountAbonementManager = accountAbonementManager;
@@ -63,7 +54,6 @@ public class RecurrentProcessorService {
         this.rcUserFeignClient = rcUserFeignClient;
         this.domainTldService = domainTldService;
         this.domainRegistrarFeignClient = domainRegistrarFeignClient;
-        this.publisher = publisher;
         this.finFeignClient = finFeignClient;
     }
 
@@ -151,18 +141,15 @@ public class RecurrentProcessorService {
             if (iNeedMoreMoney.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal sumToChargeFromCart = iNeedMoreMoney.setScale(0, BigDecimal.ROUND_UP);
 
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Аккаунт: " + account.getName()
+                String message = "Аккаунт: " + account.getName()
                         + ". Общая сумма списаний по реккуренту: " + sumToChargeFromCart
                         + ". Общий баланс: " + balance
                         + ". Бонусы: " + bonusBalance
                         + ". За домены: " + domainRecurrentSum
                         + ". За абонементы: " + abonementRecurrentSum
-                        + ". За остальные услуги: " + servicesRecurrentSum
-                );
-                params.put(OPERATOR_KEY, "service");
+                        + ". За остальные услуги: " + servicesRecurrentSum;
 
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                accountHelper.saveHistoryForOperatorService(account, message);
 
                 try {
                     finFeignClient.repeatPayment(account.getId(), sumToChargeFromCart);
@@ -175,12 +162,7 @@ public class RecurrentProcessorService {
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Ошибка при выполнени реккурентов для аккаунта: " + account.getName());
-
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Непредвиденная ошибка при выполнении реккурента для аккаунта : " + account.getName());
-            params.put(OPERATOR_KEY, "service");
-
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+            accountHelper.saveHistoryForOperatorService(account, "Непредвиденная ошибка при выполнении реккурента для аккаунта : " + account.getName());
         }
     }
 

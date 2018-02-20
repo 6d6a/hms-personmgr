@@ -896,6 +896,19 @@ public class AccountHelper {
         }
     }
 
+    public void saveHistory(PersonalAccount account, String message, SecurityContextHolderAwareRequestWrapper request) {
+        saveHistory(account.getId(), message, request);
+    }
+
+    public void saveHistory(String personalAccountId, String message, SecurityContextHolderAwareRequestWrapper request) {
+        String operator = "unknown";
+        try {
+            operator = request.getUserPrincipal().getName();
+        } catch (Throwable ignore) {}
+
+        saveHistory(personalAccountId, message, operator);
+    }
+
     public void saveHistoryForOperatorService(PersonalAccount account, String message) {
         this.saveHistory(account, message, "service");
     }
@@ -970,14 +983,5 @@ public class AccountHelper {
 //            TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
         }
         this.saveHistoryForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
-    }
-
-    public void saveHistory(PersonalAccount account, String message, SecurityContextHolderAwareRequestWrapper request) {
-        String operator = "unknown";
-        try {
-            operator = request.getUserPrincipal().getName();
-        } catch (Throwable ignore) {}
-
-        saveHistory(account, message, operator);
     }
 }

@@ -8,11 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -22,7 +18,6 @@ import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -39,8 +34,6 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.ANTI_SPAM_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.ENABLED_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SERVICE_CREATE;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SERVICE_ENABLE;
@@ -80,15 +73,12 @@ public class AccountServiceRestController extends CommonRestController {
         this.discountServiceHelper = discountServiceHelper;
     }
 
-    @RequestMapping(value = "/{accountId}/account-service/{accountServiceId}",
-                    method = RequestMethod.GET)
+    @GetMapping(value = "/{accountId}/account-service/{accountServiceId}")
     public ResponseEntity<AccountService> get(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountService.class) @PathVariable(value = "accountServiceId") String accountServiceId
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndId(account.getId(), accountServiceId);
+        AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndId(accountId, accountServiceId);
 
         if (accountService == null) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -97,23 +87,19 @@ public class AccountServiceRestController extends CommonRestController {
         return new ResponseEntity<>(accountService, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/account-service",
-                    method = RequestMethod.GET)
+    @GetMapping("/{accountId}/account-service")
     public ResponseEntity<Page<AccountService>> getAll(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             Pageable pageable
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        Page<AccountService> accountServices = accountServiceRepository.findByPersonalAccountId(account.getId(), pageable);
+        Page<AccountService> accountServices = accountServiceRepository.findByPersonalAccountId(accountId, pageable);
 
         return new ResponseEntity<>(accountServices, HttpStatus.OK);
     }
 
     @PreAuthorize("hasAuthority('MANAGE_SERVICES')")
-    @RequestMapping(value = "/{accountId}/account-service",
-                    method = RequestMethod.POST)
-    public ResponseEntity<SimpleServiceMessage> addService(
+    @PostMapping("/{accountId}/account-service")
+    public ResponseEntity<AccountService> addService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Map<String, Object> requestBody,
             SecurityContextHolderAwareRequestWrapper request
@@ -127,32 +113,23 @@ public class AccountServiceRestController extends CommonRestController {
         PaymentService paymentService = getPaymentServiceById(paymentServiceId);
 
         if (accountServiceHelper.accountHasService(account, paymentServiceId)) {
-            throw new ParameterValidationException("accountService already found for specified paymentServiceId " +
-                    paymentServiceId);
+            throw new ParameterValidationException("На аккаунте уже есть услуга '" + paymentService.getName() + "'");
         }
 
-        //Сейчас баланс проверяется по полной стоимости услуги
         accountHelper.checkBalance(account, paymentService);
 
-        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
-                .build();
+        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService).build();
+
         accountHelper.charge(account, chargeMessage);
 
-        accountServiceHelper.addAccountService(account, paymentServiceId);
+        AccountService accountService = accountServiceHelper.addAccountService(account, paymentServiceId);
 
-        //Save history
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Произведен заказ услуги " + paymentService.getName());
-        params.put(OPERATOR_KEY, operator);
+        accountHelper.saveHistory(account, "Произведен заказ услуги " + paymentService.getName(), request);
 
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-
-        return new ResponseEntity<>(this.createSuccessResponse("accountService created with id " + paymentServiceId), HttpStatus.OK);
+        return new ResponseEntity<>(accountService, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/account-service-sms-notification",
-                    method = RequestMethod.GET)
+    @GetMapping("/{accountId}/account-service-sms-notification")
     public ResponseEntity<AccountService> getSmsService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
@@ -165,14 +142,14 @@ public class AccountServiceRestController extends CommonRestController {
         if (accountServices == null || accountServices.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else if (accountServices.size() > 1) {
-            throw new ParameterValidationException("Account has more than one AccountService with serviceId " + paymentService.getId());
-        }
+            throw new ParameterValidationException(
+                    "На аккаунте обнаружено больше одной услуги '" + paymentService.getName()
+                            + "'. Пожалуйста, обратитесь в финансовый отдел.");}
 
         return new ResponseEntity<>(accountServices.get(0), HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/account-service-sms-notification",
-                    method = RequestMethod.POST)
+    @PostMapping("/{accountId}/account-service-sms-notification")
     public ResponseEntity<SimpleServiceMessage> addSmsService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Map<String, Object> requestBody,
@@ -206,19 +183,16 @@ public class AccountServiceRestController extends CommonRestController {
 
         processCustomService(account, paymentService, enabled);
 
-        //Save history
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Произведено " + (enabled ? "включение" : "отключение") + " услуги " + paymentService.getName());
-        params.put(OPERATOR_KEY, operator);
+        accountHelper.saveHistory(
+                account,
+                "Произведено " + (enabled ? "включение" : "отключение") + " услуги " + paymentService.getName(),
+                request
+        );
 
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-
-        return new ResponseEntity<>(this.createSuccessResponse("accountService " + (enabled ? "enabled" : "disabled") + " for sms-notification"), HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    @RequestMapping(value = "/{accountId}/account-service-anti-spam",
-                    method = RequestMethod.GET)
+    @GetMapping("/{accountId}/account-service-anti-spam")
     public ResponseEntity<AccountService> getAntiSpamService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
@@ -231,14 +205,15 @@ public class AccountServiceRestController extends CommonRestController {
         if (accountServices == null || accountServices.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else if (accountServices.size() > 1) {
-            throw new ParameterValidationException("Account has more than one AccountService with serviceId " + paymentService.getId());
+            throw new ParameterValidationException(
+                    "На аккаунте обнаружено больше одной услуги '" + paymentService.getName()
+                            + "'. Пожалуйста, обратитесь в финансовый отдел на почту billing@majordomo.ru");
         }
 
         return new ResponseEntity<>(accountServices.get(0), HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/account-service-anti-spam",
-                    method = RequestMethod.POST)
+    @PostMapping("/{accountId}/account-service-anti-spam")
     public ResponseEntity<SimpleServiceMessage> addAntiSpamService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Map<String, Object> requestBody,
@@ -256,20 +231,17 @@ public class AccountServiceRestController extends CommonRestController {
 
         accountHelper.switchAntiSpamForMailboxes(account, enabled);
 
-        //Save history
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Произведено " + (enabled ? "включение" : "отключение") + " услуги " + paymentService.getName());
-        params.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+        accountHelper.saveHistory(
+                account,
+                "Произведено " + (enabled ? "включение" : "отключение") + " услуги " + paymentService.getName(),
+                request
+        );
 
         return new ResponseEntity<>(this.createSuccessResponse("accountService " + (enabled ? "enabled" : "disabled") + " for anti-spam"), HttpStatus.OK);
     }
 
     @PreAuthorize("hasAuthority('MANAGE_SERVICES')")
-    @RequestMapping(value = "/{accountId}/account-service/{accountServiceId}",
-                    method = RequestMethod.DELETE)
+    @DeleteMapping("/{accountId}/account-service/{accountServiceId}")
     public ResponseEntity<Object> delete(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountService.class) @PathVariable(value = "accountServiceId") String accountServiceId,
@@ -314,16 +286,11 @@ public class AccountServiceRestController extends CommonRestController {
         accountServiceHelper.deleteAccountServiceById(account, accountServiceId);
 
         if (serviceName != null) {
-            //Save history
-            String operator = request.getUserPrincipal().getName();
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Произведено удаление услуги '" + serviceName + "', id: " + accountServiceId);
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+            accountHelper.saveHistory(
+                    accountId, "Произведено удаление услуги '" + serviceName + "', id: " + accountServiceId, request);
         }
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     private PaymentService getPaymentServiceById(String paymentServiceId) {
@@ -340,7 +307,7 @@ public class AccountServiceRestController extends CommonRestController {
         PaymentService paymentService = serviceRepository.findByOldId(paymentServiceOldId);
 
         if (paymentService == null) {
-            throw new ParameterValidationException("paymentService with oldId " + paymentServiceOldId + " not found");
+            throw new ParameterValidationException("Не найдена услуга с oldId " + paymentServiceOldId);
         }
 
         return paymentService;
@@ -378,7 +345,6 @@ public class AccountServiceRestController extends CommonRestController {
     }
 
     private void chargeMoneyAndAddService(PersonalAccount account, PaymentService paymentService, boolean accountHasService) {
-        //добавляем услугу, списываем деньги
         accountHelper.checkBalance(account, paymentService, true);
 
         BigDecimal dayCost = this.getDailyCost(account, paymentService);
@@ -401,7 +367,9 @@ public class AccountServiceRestController extends CommonRestController {
     private AccountService getAccountServiceByPaymentServiceId(PersonalAccount account, String paymentServiceId) {
         List<AccountService> accountServices = accountServiceHelper.getAccountServices(account, paymentServiceId);
         if (accountServices.size() > 1) {
-            throw new ParameterValidationException("Account has more than one AccountService with serviceId " + paymentServiceId);
+            throw new ParameterValidationException(
+                    "На аккаунте обнаружено больше одной услуги с id '" + paymentServiceId
+                            + "'. Пожалуйста, обратитесь в финансовый отдел.");
         }
         return accountServices.get(0);
     }
@@ -409,7 +377,9 @@ public class AccountServiceRestController extends CommonRestController {
     private void checkAccountHasOneServiceWithId(PersonalAccount account, String paymentServiceId) {
         List<AccountService> accountServices = accountServiceHelper.getAccountServices(account, paymentServiceId);
         if (accountServices.size() > 1) {
-            throw new ParameterValidationException("Account has more than one AccountService with serviceId " + paymentServiceId);
+            throw new ParameterValidationException(
+                    "На аккаунте обнаружено больше одной услуги с id '" + paymentServiceId
+                            + "'. Пожалуйста, обратитесь в финансовый отдел.");
         }
     }
 
