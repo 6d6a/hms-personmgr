@@ -129,6 +129,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
         order.setPersonalAccountId(account.getId());
         order.setPersonalAccountName(account.getName());
         order.setDomainName(bitrixLicenseOrderRequest.getDomainName());
+        order.setServiceId(bitrixLicenseOrderRequest.getServiceId());
 
         bitrixLicenseOrderManager.create(order, operator);
 
