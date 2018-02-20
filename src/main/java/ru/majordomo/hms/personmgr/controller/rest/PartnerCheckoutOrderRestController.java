@@ -45,9 +45,9 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        AccountPartnerCheckoutOrder partnerOrder = repository.findOneByIdAndPersonalAccountId(partnerCheckoutOrderId, account.getId());
+        AccountPartnerCheckoutOrder order = repository.findOneByIdAndPersonalAccountId(partnerCheckoutOrderId, account.getId());
 
-        return new ResponseEntity<>(partnerOrder, HttpStatus.OK);
+        return new ResponseEntity<>(order, HttpStatus.OK);
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
@@ -59,9 +59,9 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        Page<AccountPartnerCheckoutOrder> partnerOrders = repository.findByPersonalAccountId(account.getId(), pageable);
+        Page<AccountPartnerCheckoutOrder> orders = repository.findByPersonalAccountId(account.getId(), pageable);
 
-        return new ResponseEntity<>(partnerOrders, HttpStatus.OK);
+        return new ResponseEntity<>(orders, HttpStatus.OK);
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
@@ -71,19 +71,17 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
             Pageable pageable,
             @RequestParam Map<String, String> search
     ) {
-        QAccountPartnerCheckoutOrder qAccountAccountPartnerCheckoutOrder = QAccountPartnerCheckoutOrder.accountPartnerCheckoutOrder;
-
         String accId = getAccountIdFromNameOrAccountId(search.getOrDefault("personalAccountId", ""));
 
-        BooleanBuilder builder = new BooleanBuilder();
+        Page<AccountPartnerCheckoutOrder> orders;
 
-        Predicate predicate = builder.and(
-                accId.isEmpty() ? null : qAccountAccountPartnerCheckoutOrder.personalAccountId.equalsIgnoreCase(accId)
-        );
+        if (!accId.isEmpty()) {
+            orders = repository.findByPersonalAccountId(accId, pageable);
+        } else {
+            orders = repository.findAll(pageable);
+        }
 
-        Page<AccountPartnerCheckoutOrder> partnerOrders = repository.findAll(predicate, pageable);
-
-        return new ResponseEntity<>(partnerOrders, HttpStatus.OK);
+        return new ResponseEntity<>(orders, HttpStatus.OK);
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
@@ -97,11 +95,11 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        AccountPartnerCheckoutOrder partnerOrder = repository.findOneByIdAndPersonalAccountId(partnerCheckoutOrderId, account.getId());
+        AccountPartnerCheckoutOrder order = repository.findOneByIdAndPersonalAccountId(partnerCheckoutOrderId, account.getId());
 
         String operator = request.getUserPrincipal().getName();
 
-        partnerCheckoutOrderManager.changeState(partnerOrder, orderState, operator);
+        partnerCheckoutOrderManager.changeState(order, orderState, operator);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -116,12 +114,12 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
         PersonalAccount account = accountManager.findOne(accountId);
         String operator = request.getUserPrincipal().getName();
 
-        AccountPartnerCheckoutOrder partnerOrder = new AccountPartnerCheckoutOrder();
-        partnerOrder.setPersonalAccountId(account.getId());
-        partnerOrder.setPersonalAccountName(account.getName());
-        partnerOrder.setAmount(amount);
+        AccountPartnerCheckoutOrder order = new AccountPartnerCheckoutOrder();
+        order.setPersonalAccountId(account.getId());
+        order.setPersonalAccountName(account.getName());
+        order.setAmount(amount);
 
-        partnerCheckoutOrderManager.create(partnerOrder, operator);
+        partnerCheckoutOrderManager.create(order, operator);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

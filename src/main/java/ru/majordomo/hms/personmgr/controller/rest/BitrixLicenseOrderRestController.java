@@ -80,17 +80,15 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
             Pageable pageable,
             @RequestParam Map<String, String> search
     ) {
-        QAccountPartnerCheckoutOrder qAccountAccountPartnerCheckoutOrder = QAccountPartnerCheckoutOrder.accountPartnerCheckoutOrder;
-
         String accId = getAccountIdFromNameOrAccountId(search.getOrDefault("personalAccountId", ""));
 
-        BooleanBuilder builder = new BooleanBuilder();
+        Page<BitrixLicenseOrder> orders;
 
-        Predicate predicate = builder.and(
-                accId.isEmpty() ? null : qAccountAccountPartnerCheckoutOrder.personalAccountId.equalsIgnoreCase(accId)
-        );
-
-        Page<BitrixLicenseOrder> orders = repository.findAll(predicate, pageable);
+        if (!accId.isEmpty()) {
+            orders = repository.findByPersonalAccountId(accId, pageable);
+        } else {
+            orders = repository.findAll(pageable);
+        }
 
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
