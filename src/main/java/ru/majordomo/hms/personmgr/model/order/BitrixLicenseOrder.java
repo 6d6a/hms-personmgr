@@ -1,11 +1,8 @@
 package ru.majordomo.hms.personmgr.model.order;
 
 import org.hibernate.validator.constraints.NotBlank;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import java.math.BigDecimal;
-
-import javax.validation.constraints.NotNull;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -18,5 +15,7 @@ public class BitrixLicenseOrder extends AccountOrder {
     private String domainName;
     @NotBlank
     private String serviceId;
+    @Transient
+    private String serviceName;
     private String documentNumber;
 }
