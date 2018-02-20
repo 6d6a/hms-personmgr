@@ -307,7 +307,7 @@ public class AccountServiceRestController extends CommonRestController {
         PaymentService paymentService = serviceRepository.findByOldId(paymentServiceOldId);
 
         if (paymentService == null) {
-            throw new ParameterValidationException("Не найдена услуга с id " + paymentServiceOldId);
+            throw new ParameterValidationException("Не найдена услуга с oldId " + paymentServiceOldId);
         }
 
         return paymentService;
