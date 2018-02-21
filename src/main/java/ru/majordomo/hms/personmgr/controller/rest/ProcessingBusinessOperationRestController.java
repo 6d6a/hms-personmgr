@@ -96,6 +96,6 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
     ) {
         repository.delete(id);
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
