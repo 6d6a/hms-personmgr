@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.sleuth.Tracer;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -106,8 +107,10 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         throwIfAccessDeniedException(ex);
 
         printLogError(ex);
+
+        HttpStatus httpStatus = getHttpStatus(ex);
+
         BaseException baseException = convertThrowableToBaseException(ex);
-        HttpStatus httpStatus = getHttpStatus(baseException);
 
         return handleExceptionInternal(
                 baseException,
@@ -148,8 +151,10 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             return new InternalApiException(ex, HttpStatus.CONFLICT, traceId());
         } else if (ex instanceof DecodeException) {
             return new InternalApiException((DecodeException) ex, traceId());
+        } else if (ex instanceof ResourceNotFoundException) {
+            return new ru.majordomo.hms.personmgr.exception.ResourceNotFoundException(ex.getMessage(), traceId());
         } else {
-            return new InternalApiException(ex.getMessage(), traceId());
+            return new InternalApiException(ex, traceId());
         }
     }
 }
