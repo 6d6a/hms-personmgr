@@ -47,4 +47,9 @@ public interface AccountStatRepository extends MongoRepository<AccountStat, Stri
             @Param("after") LocalDateTime after,
             @Param("before") LocalDateTime before
     );
+
+    List<AccountStat> findByPersonalAccountIdInAndType(
+            @Param("personalAccountIds") List<String> personalAccountIds,
+            @Param("type") AccountStatType type
+    );
 }
