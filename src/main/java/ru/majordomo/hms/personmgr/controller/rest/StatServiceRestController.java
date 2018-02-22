@@ -129,4 +129,14 @@ public class StatServiceRestController {
 
         return ResponseEntity.ok(statServiceHelper.getAccountCountsWithFirstRealPaymentByDate(date));
     }
+
+    @GetMapping("/register-with-plan")
+    public ResponseEntity<List<ResourceCounter>> getRegisterWithPlanCounters(
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false) LocalDate date
+    ){
+        if (date == null) { date = LocalDate.now().minusDays(1); }
+
+        return ResponseEntity.ok(statServiceHelper.getRegisterWithPlanCounters(date));
+    }
 }

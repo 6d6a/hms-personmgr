@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.manager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -112,4 +113,6 @@ public interface PersonalAccountManager {
     void removeSettingByName(String accountId, AccountSetting name);
 
     void setNotifications(String id, Set<MailManagerMessageType> notifications);
+
+    List<PersonalAccount> findByCreatedDate(LocalDate date);
 }

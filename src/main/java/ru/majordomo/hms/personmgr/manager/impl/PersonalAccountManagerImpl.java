@@ -16,7 +16,9 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
@@ -531,6 +533,14 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
         Update update = new Update().set("notifications", notifications);
 
         mongoOperations.updateFirst(query, update, PersonalAccount.class);
+    }
+
+    @Override
+    public List<PersonalAccount> findByCreatedDate(LocalDate date) {
+        LocalDateTime from = LocalDateTime.of(date.minusDays(1), LocalTime.MAX);
+        LocalDateTime to = LocalDateTime.of(date.plusDays(1), LocalTime.MIN);
+
+        return repository.findByCreatedBetween(from, to);
     }
 
     private void checkById(String id) {
