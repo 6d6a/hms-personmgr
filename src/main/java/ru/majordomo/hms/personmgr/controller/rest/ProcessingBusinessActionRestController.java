@@ -60,6 +60,6 @@ public class ProcessingBusinessActionRestController extends CommonRestController
 
         repository.delete(action);
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
