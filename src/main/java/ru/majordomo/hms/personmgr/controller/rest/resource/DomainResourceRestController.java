@@ -17,7 +17,6 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
@@ -34,7 +33,6 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
 import java.net.IDN;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -188,7 +186,6 @@ public class DomainResourceRestController extends CommonRestController {
             }
 
             if (!isFreeDomain) {
-                accountHelper.checkBalance(account, paymentService);
                 accountHelper.checkBalanceWithoutBonus(account, paymentService);
                 SimpleServiceMessage blockResult = accountHelper.block(account, paymentService, true);
                 String documentNumber = (String) blockResult.getParam("documentNumber");
@@ -207,13 +204,7 @@ public class DomainResourceRestController extends CommonRestController {
                                 "регистрацию со скидкой (actionPromotion Id: " + message.getParam("domainDiscountPromotionId") + " )" :
                                 "регистрацию")) :
                 "добавление";
-        //Save history
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на " + actionText +" домена (имя: " + message.getParam("name") + ")");
-        params.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+        saveHistory(request, accountId, "Поступила заявка на " + actionText +" домена (имя: " + message.getParam("name") + ")");
 
         return this.createSuccessResponse(businessAction);
     }
@@ -262,13 +253,7 @@ public class DomainResourceRestController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        //Save history
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на " + (isRenew ? "продление" : "обновление") + " домена (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
-        params.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+        saveHistory(request, accountId, "Поступила заявка на " + (isRenew ? "продление" : "обновление") + " домена (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
         return this.createSuccessResponse(businessAction);
     }
@@ -290,13 +275,7 @@ public class DomainResourceRestController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        //Save history
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на удаление домена (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
-        params.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+        saveHistory(request, accountId, "Поступила заявка на удаление домена (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
         return this.createSuccessResponse(businessAction);
     }

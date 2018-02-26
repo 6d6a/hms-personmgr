@@ -557,7 +557,7 @@ public class PersonalAccountRestController extends CommonRestController {
             accountHelper.saveHistory(account, "Установлен телефон для СМС-уведомлений на '" + smsPhoneNumber + "'", request);
         }
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PatchMapping("/{accountId}/account/notifications")
@@ -578,7 +578,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         accountHelper.saveHistory(account, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + filteredNotifications + "]", request);
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PatchMapping("/{accountId}/account/notifications/sms")

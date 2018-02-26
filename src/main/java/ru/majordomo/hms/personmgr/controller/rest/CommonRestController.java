@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -169,7 +170,8 @@ public class CommonRestController {
         });
     }
 
-    public void addHistoryMessage(String operator, String accountId, String message) {
+    protected void saveHistory(SecurityContextHolderAwareRequestWrapper request, String accountId, String message) {
+        String operator = request.getUserPrincipal().getName();
         Map<String, String> params = new HashMap<>();
         params.put(HISTORY_MESSAGE_KEY, message);
         params.put(OPERATOR_KEY, operator);
