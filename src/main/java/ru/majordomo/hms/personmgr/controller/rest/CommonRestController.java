@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.security.core.Authentication;
 
 import java.util.HashMap;
@@ -176,5 +177,23 @@ public class CommonRestController {
         params.put(HISTORY_MESSAGE_KEY, message);
         params.put(OPERATOR_KEY, operator);
         publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+    }
+
+    protected String getAccountIdFromNameOrAccountId(String accountId) {
+        String personalAccountId = accountId;
+
+        if (accountId != null && !accountId.isEmpty()){
+
+            accountId = accountId.replaceAll("[^0-9]", "");
+            try {
+                PersonalAccount account = accountManager.findByAccountId(accountId);
+                if (account != null) {
+                    personalAccountId = account.getId();
+                }
+            } catch (ResourceNotFoundException e) {
+                return personalAccountId;
+            }
+        }
+        return personalAccountId;
     }
 }

@@ -1,5 +1,8 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Predicate;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,69 +17,72 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
 import java.util.Map;
 
+import javax.validation.Valid;
+
 import ru.majordomo.hms.personmgr.common.OrderState;
+import ru.majordomo.hms.personmgr.dto.BitrixLicenseOrderRequest;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.order.AccountPartnerCheckoutOrder;
-import ru.majordomo.hms.personmgr.repository.AccountPartnerCheckoutOrderRepository;
-import ru.majordomo.hms.personmgr.service.PartnerCheckoutOrderManager;
+import ru.majordomo.hms.personmgr.model.order.BitrixLicenseOrder;
+import ru.majordomo.hms.personmgr.model.order.QAccountPartnerCheckoutOrder;
+import ru.majordomo.hms.personmgr.repository.BitrixLicenseOrderRepository;
+import ru.majordomo.hms.personmgr.service.BitrixLicenseOrderManager;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 @RestController
-public class PartnerCheckoutOrderRestController extends CommonRestController {
+public class BitrixLicenseOrderRestController extends CommonRestController {
 
-    private AccountPartnerCheckoutOrderRepository repository;
-    private PartnerCheckoutOrderManager partnerCheckoutOrderManager;
+    private BitrixLicenseOrderRepository repository;
+    private BitrixLicenseOrderManager bitrixLicenseOrderManager;
 
     @Autowired
-    public PartnerCheckoutOrderRestController(
-            AccountPartnerCheckoutOrderRepository repository,
-            PartnerCheckoutOrderManager partnerCheckoutOrderManager
+    public BitrixLicenseOrderRestController(
+            BitrixLicenseOrderRepository repository,
+            BitrixLicenseOrderManager bitrixLicenseOrderManager
     ) {
         this.repository = repository;
-        this.partnerCheckoutOrderManager = partnerCheckoutOrderManager;
+        this.bitrixLicenseOrderManager = bitrixLicenseOrderManager;
     }
 
-    @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
-    @RequestMapping(value = "/{accountId}/partner-checkout-order/{partnerCheckoutOrderId}",
+    @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
+    @RequestMapping(value = "/{accountId}/bitrix-license-order/{orderId}",
             method = RequestMethod.GET)
-    public ResponseEntity<AccountPartnerCheckoutOrder> get(
+    public ResponseEntity<BitrixLicenseOrder> get(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @ObjectId(AccountPartnerCheckoutOrder.class) @PathVariable(value = "partnerCheckoutOrderId") String partnerCheckoutOrderId
+            @ObjectId(BitrixLicenseOrder.class) @PathVariable(value = "orderId") String orderId
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        AccountPartnerCheckoutOrder order = repository.findOneByIdAndPersonalAccountId(partnerCheckoutOrderId, account.getId());
+        BitrixLicenseOrder order = repository.findOneByIdAndPersonalAccountId(orderId, account.getId());
 
         return new ResponseEntity<>(order, HttpStatus.OK);
     }
 
-    @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
-    @RequestMapping(value = "/{accountId}/partner-checkout-order",
+    @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
+    @RequestMapping(value = "/{accountId}/bitrix-license-order",
             method = RequestMethod.GET)
-    public ResponseEntity<Page<AccountPartnerCheckoutOrder>> getAll(
+    public ResponseEntity<Page<BitrixLicenseOrder>> getAll(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             Pageable pageable
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        Page<AccountPartnerCheckoutOrder> orders = repository.findByPersonalAccountId(account.getId(), pageable);
+        Page<BitrixLicenseOrder> orders = repository.findByPersonalAccountId(account.getId(), pageable);
 
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
 
-    @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
-    @RequestMapping(value = "/partner-checkout-order",
+    @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
+    @RequestMapping(value = "/bitrix-license-order",
             method = RequestMethod.GET)
-    public ResponseEntity<Page<AccountPartnerCheckoutOrder>> getAllOrders(
+    public ResponseEntity<Page<BitrixLicenseOrder>> getAllOrders(
             Pageable pageable,
             @RequestParam Map<String, String> search
     ) {
         String accId = getAccountIdFromNameOrAccountId(search.getOrDefault("personalAccountId", ""));
 
-        Page<AccountPartnerCheckoutOrder> orders;
+        Page<BitrixLicenseOrder> orders;
 
         if (!accId.isEmpty()) {
             orders = repository.findByPersonalAccountId(accId, pageable);
@@ -87,43 +93,45 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
 
-    @PreAuthorize("hasAuthority('ACCOUNT_PARTNER_ORDER_VIEW')")
-    @RequestMapping(value = "/{accountId}/partner-checkout-order/{partnerCheckoutOrderId}",
+    @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
+    @RequestMapping(value = "/{accountId}/bitrix-license-order/{orderId}",
             method = RequestMethod.POST)
     public ResponseEntity<Void> update(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @ObjectId(AccountPartnerCheckoutOrder.class) @PathVariable(value = "partnerCheckoutOrderId") String partnerCheckoutOrderId,
+            @ObjectId(BitrixLicenseOrder.class) @PathVariable(value = "orderId") String orderId,
             @RequestBody OrderState orderState,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        AccountPartnerCheckoutOrder order = repository.findOneByIdAndPersonalAccountId(partnerCheckoutOrderId, account.getId());
+        BitrixLicenseOrder order = repository.findOneByIdAndPersonalAccountId(orderId, account.getId());
 
         String operator = request.getUserPrincipal().getName();
 
-        partnerCheckoutOrderManager.changeState(order, orderState, operator);
+        bitrixLicenseOrderManager.changeState(order, orderState, operator);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/partner-checkout-order",
+    @RequestMapping(value = "/{accountId}/bitrix-license-order",
             method = RequestMethod.POST)
     public ResponseEntity<Void> create(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody BigDecimal amount,
+            @RequestBody @Valid BitrixLicenseOrderRequest bitrixLicenseOrderRequest,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
         String operator = request.getUserPrincipal().getName();
 
-        AccountPartnerCheckoutOrder order = new AccountPartnerCheckoutOrder();
+        BitrixLicenseOrder order = new BitrixLicenseOrder();
         order.setPersonalAccountId(account.getId());
         order.setPersonalAccountName(account.getName());
-        order.setAmount(amount);
+        order.setDomainName(bitrixLicenseOrderRequest.getDomainName());
+        order.setServiceId(bitrixLicenseOrderRequest.getServiceId());
 
-        partnerCheckoutOrderManager.create(order, operator);
+        bitrixLicenseOrderManager.create(order, operator);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
 }

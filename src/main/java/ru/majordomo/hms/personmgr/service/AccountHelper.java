@@ -335,34 +335,24 @@ public class AccountHelper {
         return response;
     }
 
-    public SimpleServiceMessage block(PersonalAccount account, PaymentService service) {
-        return block(account, service, false);
-    }
-
     //TODO на самом деле сюда ещё должна быть возможность передать discountedService
-    public SimpleServiceMessage block(PersonalAccount account, PaymentService service, Boolean bonusChargeProhibited) {
-
-        Map<String, Object> paymentOperation = new ChargeMessage.Builder(service)
-                .excludeBonusPaymentType()
-                .build()
-                .getFullMessage();
-
+    public SimpleServiceMessage block(PersonalAccount account, ChargeMessage chargeMessage) {
         SimpleServiceMessage response;
         try {
-            response = finFeignClient.block(account.getId(), paymentOperation);
+            response = finFeignClient.block(account.getId(), chargeMessage.getFullMessage());
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in AccountHelper.block " + e.getMessage());
             throw new NotEnoughMoneyException("Произошла ошибка при блокировке средств." +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
-                    service.getCost()
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()),
+                    chargeMessage.getAmount()
             );
         }
 
         if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
             throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
-                    service.getCost()
+                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()),
+                    chargeMessage.getAmount()
             );
         }
 

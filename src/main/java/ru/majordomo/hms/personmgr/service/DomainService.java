@@ -209,7 +209,11 @@ public class DomainService {
                     domainNotProlong.add(domain);
                 }
 
-                SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRenewService(), true);
+                ChargeMessage chargeMessage = new ChargeMessage.Builder(domainTld.getRenewService())
+                        .excludeBonusPaymentType()
+                        .build();
+
+                SimpleServiceMessage blockResult = accountHelper.block(account, chargeMessage);
 
                 String documentNumber = (String) blockResult.getParam("documentNumber");
 
@@ -468,7 +472,12 @@ public class DomainService {
         if (!isFreeDomain) {
             accountHelper.checkBalance(account, domainTld.getRegistrationService());
             accountHelper.checkBalanceWithoutBonus(account, domainTld.getRegistrationService());
-            SimpleServiceMessage blockResult = accountHelper.block(account, domainTld.getRegistrationService(), true);
+
+            ChargeMessage chargeMessage = new ChargeMessage.Builder(domainTld.getRegistrationService())
+                    .excludeBonusPaymentType()
+                    .build();
+
+            SimpleServiceMessage blockResult = accountHelper.block(account, chargeMessage);
             String documentNumber = (String) blockResult.getParam("documentNumber");
             message.addParam("documentNumber", documentNumber);
         }

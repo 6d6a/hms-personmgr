@@ -116,18 +116,4 @@ public class AccountPromocodeRestController extends CommonRestController {
 
         return ResponseEntity.ok(page);
     }
-
-    private  String getAccountIdFromNameOrAccountId(String accountId) {
-        String personalAccountId = "";
-
-        if (accountId != null && !accountId.isEmpty()){
-
-            accountId = accountId.replaceAll("[^0-9]", "");
-            PersonalAccount account = personalAccountManager.findByAccountId(accountId);
-            if (account != null) {
-                personalAccountId = account.getId();
-            }
-        }
-        return personalAccountId;
-    }
 }
