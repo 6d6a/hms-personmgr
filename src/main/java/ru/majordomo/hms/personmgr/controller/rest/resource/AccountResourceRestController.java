@@ -23,7 +23,6 @@ import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
@@ -247,14 +246,7 @@ public class AccountResourceRestController extends CommonRestController {
             Boolean success = rcUserFeignClient.moveAccount(accountId, body);
 
             if (success) {
-                String operator = request.getUserPrincipal().getName();
-                String historyMessage = "Сервер аккаунта " + accountId + " изменён на " + desiredServerId;
-                Map<String, String> historyParams = new HashMap<>();
-
-                historyParams.put(HISTORY_MESSAGE_KEY, historyMessage);
-                historyParams.put(OPERATOR_KEY, operator);
-
-                publisher.publishEvent(new AccountHistoryEvent(accountId, historyParams));
+                saveHistory(request, accountId, "Сервер аккаунта " + accountId + " изменён на " + desiredServerId);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -295,13 +287,7 @@ public class AccountResourceRestController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        //Save history
-        String operator = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "service";
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на перенос акканута на serverId: " + desiredServerId);
-        params.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+        saveHistory(request, accountId, "Поступила заявка на перенос акканута на serverId: " + desiredServerId);
 
         return this.createSuccessResponse(businessAction);
     }
