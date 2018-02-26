@@ -26,7 +26,6 @@ import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -39,8 +38,10 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.time.temporal.ChronoUnit.DAYS;
-import static ru.majordomo.hms.personmgr.common.AccountStatType.*;
-import static ru.majordomo.hms.personmgr.common.Constants.*;
+import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE;
+import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_ABONEMENT;
+import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND;
+import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_ABONEMENT_EXPIRING;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
@@ -313,31 +314,21 @@ public class AbonementService {
 
                         renewAbonement(account, accountAbonement);
 
-                        //Запишем инфу о произведенном продлении в историю клиента
-                        Map<String, String> params = new HashMap<>();
-                        params.put(HISTORY_MESSAGE_KEY, "Автоматическое продление абонемента. Со счета аккаунта списано " +
+                        accountHelper.saveHistoryForOperatorService(account,
+                                "Автоматическое продление абонемента. Со счета аккаунта списано " +
                                 formatBigDecimalWithCurrency(abonementCost) +
-                                " Новый срок окончания: " + accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
-                        );
-                        params.put(OPERATOR_KEY, "service");
-
-                        publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+                                " Новый срок окончания: " + accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
                     } else {
                         logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
 
                         //Удаляем абонемент и включаем услуги хостинга по тарифу
                         processAccountAbonementDelete(account, accountAbonement);
 
-                        //Запишем в историю клиента
-                        Map<String, String> params = new HashMap<>();
-                        params.put(HISTORY_MESSAGE_KEY, "Абонемент удален, так как средств на счету аккаунта не достаточно. Стоимость абонемента: " +
+                        accountHelper.saveHistoryForOperatorService(account, "Абонемент удален, так как средств на счету аккаунта не достаточно. Стоимость абонемента: " +
                                 formatBigDecimalWithCurrency(abonementCost) +
                                 " Баланс: " + formatBigDecimalWithCurrency(balance) +
                                 " Дата окончания: " + currentExpired
                         );
-                        params.put(OPERATOR_KEY, "service");
-
-                        publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
 
                         //Сохраним "на будущее" установку автопокупки абонемента
                         publisher.publishEvent(new AccountSetSettingEvent(account, AccountSetting.ABONEMENT_AUTO_RENEW, true));
@@ -348,13 +339,10 @@ public class AbonementService {
                 //Удаляем абонемент и включаем услуги хостинга по тарифу
                 processAccountAbonementDelete(account, accountAbonement);
 
-                //Запишем в историю клиента
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Бонусный абонемент удален. Обычный абонемент не был предзаказн. Дата окончания: " + currentExpired);
-                params.put(OPERATOR_KEY, "service");
-
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
-
+                accountHelper.saveHistoryForOperatorService(
+                        account,
+                        "Бонусный абонемент удален. Обычный абонемент не был предзаказн. Дата окончания: " + currentExpired
+                );
             }
         });
     }
@@ -453,13 +441,7 @@ public class AbonementService {
 
         if (abonement != null) {
             addAbonement(account, abonement.getId(), false);
-
-            //Save history
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Добавлен абонемент на тестовый период (14 дней)");
-            params.put(OPERATOR_KEY, "service");
-
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+            accountHelper.saveHistoryForOperatorService(account, "Добавлен абонемент на тестовый период (14 дней)");
         }
     }
 }

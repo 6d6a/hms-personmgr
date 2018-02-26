@@ -9,9 +9,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +21,6 @@ import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.RU_RF_DOMAINS;
-import static ru.majordomo.hms.personmgr.common.Constants.RU_RF_DOMAIN_NEW_PRICE_DATE;
 
 @RestController
 @RequestMapping({"/{accountId}/domain-tlds", "/domain-tlds"})
@@ -48,7 +43,9 @@ public class DomainTldRestController extends CommonRestController {
     }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
-    public ResponseEntity<List<DomainTld>> listAll(@PathVariable(value = "accountId", required = false) String accountId) {
+    public ResponseEntity<List<DomainTld>> listAll(
+            @PathVariable(value = "accountId", required = false) String accountId
+    ) {
         List<DomainTld> domainTlds = repository.findAllByActive(true);
 
         List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountId(accountId);

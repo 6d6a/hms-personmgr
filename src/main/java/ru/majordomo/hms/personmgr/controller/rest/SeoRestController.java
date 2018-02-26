@@ -23,6 +23,7 @@ import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.seo.SeoOrderedEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.seo.AccountSeoOrder;
 import ru.majordomo.hms.personmgr.model.seo.Seo;
@@ -104,17 +105,10 @@ public class SeoRestController extends CommonRestController {
             seo = seoRepository.findByType(seoType);
 
             if(seo == null){
-                return new ResponseEntity<>(
-                        this.createErrorResponse("Услуга SEO с типом '" + seoType + "' не найдена"),
-                        HttpStatus.BAD_REQUEST
-                );
+                throw new ParameterValidationException("Услуга SEO с типом '" + seoType + "' не найдена");
             }
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(
-                    this.createErrorResponse("Тип услуги SEO должен быть одним из: " +
-                    Arrays.toString(SeoType.values())),
-                    HttpStatus.BAD_REQUEST
-            );
+            throw new ParameterValidationException("Тип услуги SEO должен быть одним из: " + Arrays.toString(SeoType.values()));
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -124,10 +118,7 @@ public class SeoRestController extends CommonRestController {
 
         if(orders != null && !orders.isEmpty()) {
             if (orders.stream().anyMatch(accountSeoOrder -> accountSeoOrder.getSeo().getType() == seo.getType())) {
-                return new ResponseEntity<>(
-                        this.createErrorResponse("Заказ на услугу SEO для домена '" + domainName + "' уже был получен ранее"),
-                        HttpStatus.BAD_REQUEST
-                );
+                throw new ParameterValidationException("Заказ на услугу SEO для домена '" + domainName + "' уже был получен ранее");
             }
         }
 

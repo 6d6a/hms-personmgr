@@ -5,11 +5,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.sleuth.Tracer;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -101,9 +103,14 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
 
     @ExceptionHandler({Throwable.class})
     public ResponseEntity<Object> handleAllException(final Throwable ex, final WebRequest request) {
+
+        throwIfAccessDeniedException(ex);
+
         printLogError(ex);
+
+        HttpStatus httpStatus = getHttpStatus(ex);
+
         BaseException baseException = convertThrowableToBaseException(ex);
-        HttpStatus httpStatus = getHttpStatus(baseException);
 
         return handleExceptionInternal(
                 baseException,
@@ -112,6 +119,12 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
                 httpStatus,
                 request
         );
+    }
+
+    private void throwIfAccessDeniedException(Throwable ex){
+        if (ex instanceof AccessDeniedException) {
+            throw (AccessDeniedException) ex;
+        }
     }
 
     private static <T extends Throwable> HttpStatus getHttpStatus(T exception){
@@ -138,8 +151,10 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             return new InternalApiException(ex, HttpStatus.CONFLICT, traceId());
         } else if (ex instanceof DecodeException) {
             return new InternalApiException((DecodeException) ex, traceId());
+        } else if (ex instanceof ResourceNotFoundException) {
+            return new ru.majordomo.hms.personmgr.exception.ResourceNotFoundException(ex.getMessage(), traceId());
         } else {
-            return new InternalApiException(ex.getMessage(), traceId());
+            return new InternalApiException(ex, traceId());
         }
     }
 }

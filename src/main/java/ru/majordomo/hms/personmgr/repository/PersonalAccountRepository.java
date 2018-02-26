@@ -51,4 +51,6 @@ public interface PersonalAccountRepository extends MongoRepository<PersonalAccou
     @RestResource(path = "findListByAccountIdContaining", rel = "findListByAccountIdContaining")
     List<PersonalAccount> findByAccountIdContaining(@Param("accountId") String accountId);
     Page<PersonalAccount> findByAccountIdContaining(@Param("accountId") String accountId, Pageable pageable);
+
+    List<PersonalAccount> findByCreatedBetween(@Param("created") LocalDateTime from, @Param("created") LocalDateTime to);
 }

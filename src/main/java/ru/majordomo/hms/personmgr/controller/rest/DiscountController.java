@@ -27,6 +27,14 @@ public class DiscountController {
         this.discountServiceHelper = discountServiceHelper;
     }
 
+    @PreAuthorize("hasRole('OPERATOR')")
+    @GetMapping("/discounts/page")
+    public ResponseEntity<List<Discount>> getAllPage(
+    ) {
+        return ResponseEntity.ok(discountRepository.findAll());
+    }
+
+    @PreAuthorize("hasRole('OPERATOR')")
     @GetMapping("/discounts/{discountId}")
     public ResponseEntity<Discount> getDiscount(
             @ObjectId(Discount.class) @PathVariable(value = "discountId") String discountId
@@ -34,12 +42,14 @@ public class DiscountController {
         return ResponseEntity.ok(discountRepository.findOne(discountId));
     }
 
+    @PreAuthorize("hasRole('OPERATOR')")
     @GetMapping("/discounts")
     public ResponseEntity<List<Discount>> getAll(
     ) {
         return ResponseEntity.ok(discountRepository.findAll());
     }
 
+    @PreAuthorize("hasRole('ADD_DISCOUNT_ON_ACCOUNT')")
     @PostMapping("/{accountId}/account/discounts")
     public ResponseEntity<Void> addDiscountToAccount(
             @RequestBody List<@ObjectId(Discount.class) String> discountIds,
@@ -49,6 +59,7 @@ public class DiscountController {
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("hasAuthority('CREATE_DISCOUNT')")
     @PostMapping("/discounts")
     public ResponseEntity<Void> createDiscount(
             @RequestBody Discount discount

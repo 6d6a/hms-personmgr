@@ -9,6 +9,7 @@ import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,33 +29,19 @@ public class AccountStatRestController extends CommonRestController {
 
     @RequestMapping(value = "/{statId}", method = RequestMethod.GET)
     public ResponseEntity<AccountStat> getAccountStat(
-            @PathVariable(value = "accountId") String accountId,
-            @PathVariable(value = "statId") String statId
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @ObjectId(AccountStat.class) @PathVariable(value = "statId") String statId
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-        if(account == null){
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }
-
         AccountStat accountStat = accountStatRepository.findOne(statId);
-
-        if(accountStat == null){
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }
 
         return new ResponseEntity<>(accountStat, HttpStatus.OK);
     }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<List<AccountStat>> getAccountStats(
-            @PathVariable(value = "accountId") String accountId,
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestParam(value = "type", required = false) String type
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-        if(account == null){
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }
-
         AccountStatType statTypeForSearch;
         List<AccountStat> accountStats = new ArrayList<>();
         if (type == null) {

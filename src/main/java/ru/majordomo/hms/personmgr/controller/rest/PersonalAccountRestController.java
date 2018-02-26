@@ -13,14 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -42,9 +35,9 @@ import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverConfirmedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverEvent;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
@@ -116,9 +109,11 @@ public class PersonalAccountRestController extends CommonRestController {
         this.accountNotificationHelper = accountNotificationHelper;
     }
 
-    @RequestMapping(value = "/accounts",
-                    method = RequestMethod.GET)
-    public ResponseEntity<Page<PersonalAccount>> getAccounts(@RequestParam("accountId") String accountId, Pageable pageable) {
+    @GetMapping("/accounts")
+    public ResponseEntity<Page<PersonalAccount>> getAccounts(
+            @RequestParam("accountId") String accountId,
+            Pageable pageable
+    ) {
         Page<PersonalAccount> accounts = accountManager.findByAccountIdContaining(accountId, pageable);
 
         if (accounts == null || !accounts.hasContent()) {
@@ -128,8 +123,7 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(accounts, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/account",
-                    method = RequestMethod.GET)
+    @GetMapping("/{accountId}/account")
     public ResponseEntity<PersonalAccount> getAccount(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
@@ -138,8 +132,7 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(account, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/plan",
-                    method = RequestMethod.GET)
+    @GetMapping("/{accountId}/plan")
     public ResponseEntity<Plan> getAccountPlan(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
@@ -154,11 +147,10 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(plan, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/plan/{planId}",
-                    method = RequestMethod.POST)
+    @PostMapping("/{accountId}/plan/{planId}")
     public ResponseEntity<Object> changeAccountPlan(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @PathVariable(value = "planId") String planId,
+            @ObjectId(Plan.class) @PathVariable(value = "planId") String planId,
             @RequestBody PlanChangeAgreement planChangeAgreement,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -172,12 +164,11 @@ public class PersonalAccountRestController extends CommonRestController {
 
         planChangeProcessor.process();
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PreAuthorize("hasAuthority('FORCE_PLAN_CHANGE')")
-    @RequestMapping(value = "/{accountId}/force-plan/{planId}",
-            method = RequestMethod.POST)
+    @PostMapping("/{accountId}/force-plan/{planId}")
     //При недостатке средств на аккаунте пользователя для смены аккаунта - списание происходит в кредит
     public ResponseEntity<Object> forceChangeAccountPlan(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -196,11 +187,10 @@ public class PersonalAccountRestController extends CommonRestController {
 
         planChangeProcessor.process();
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    @RequestMapping(value = "/{accountId}/plan-check/{planId}",
-                    method = RequestMethod.POST)
+    @PostMapping("/{accountId}/plan-check/{planId}")
     public ResponseEntity<PlanChangeAgreement> accountPlanCheck(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "planId") String planId
@@ -209,8 +199,7 @@ public class PersonalAccountRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasAuthority('FORCE_PLAN_CHANGE')")
-    @RequestMapping(value = "/{accountId}/force-plan-check/{planId}",
-            method = RequestMethod.POST)
+    @PostMapping("/{accountId}/force-plan-check/{planId}")
     //При недостатке средств на аккаунте пользователя для смены аккаунта - списание происходит в кредит
     public ResponseEntity<PlanChangeAgreement> forceAccountPlanCheck(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -237,8 +226,7 @@ public class PersonalAccountRestController extends CommonRestController {
         }
     }
 
-    @RequestMapping(value = "/change-email",
-            method = RequestMethod.GET)
+    @GetMapping("/change-email")
     public ResponseEntity<Object> confirmEmailsChange(
             @RequestParam("token") String tokenId,
             HttpServletRequest request,
@@ -291,8 +279,7 @@ public class PersonalAccountRestController extends CommonRestController {
         );
     }
 
-    @RequestMapping(value = "/{accountId}/password",
-                    method = RequestMethod.POST)
+    @PostMapping("/{accountId}/password")
     public ResponseEntity<Object> changePassword(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Map<String, Object> requestBody,
@@ -313,11 +300,10 @@ public class PersonalAccountRestController extends CommonRestController {
 
         publisher.publishEvent(new AccountPasswordChangedEvent(account, params));
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    @RequestMapping(value = "/password-recovery",
-                    method = RequestMethod.POST)
+    @PostMapping("/password-recovery")
     public ResponseEntity<Object> requestPasswordRecovery(
             @RequestBody Map<String, Object> requestBody,
             HttpServletRequest request,
@@ -341,38 +327,34 @@ public class PersonalAccountRestController extends CommonRestController {
                 account = accountManager.findByAccountId(accountId);
             }
         } else {
-            Domain domain;
-
+            String domainName = accountId.toLowerCase();
+            Domain domain = null;
             try {
-                domain = rcUserFeignClient.findDomain(accountId);
+                domain = rcUserFeignClient.findDomain(domainName);
+            } catch (Exception ignore) {}
 
-                if (domain != null) {
-                    accountId = domain.getAccountId();
-                    account = accountManager.findOne(accountId);
-                } else {
-                    return new ResponseEntity<>(createErrorResponse("Домен не найден."), HttpStatus.NOT_FOUND);
-                }
-            } catch (Exception e) {
-                logger.error("[requestPasswordRecovery] exception :" + e.getMessage());
-                return new ResponseEntity<>(createErrorResponse("Домен не найден."), HttpStatus.NOT_FOUND);
+            if (domain == null) {
+                throw new ResourceNotFoundException("Домен не найден.");
             }
+            accountId = domain.getAccountId();
+            account = accountManager.findOne(accountId);
         }
 
-        if (account != null && account.getDeleted() == null) {
-            String ip = getClientIP(request);
-
-            Map<String, String> params = new HashMap<>();
-            params.put(IP_KEY, ip);
-
-            publisher.publishEvent(new AccountPasswordRecoverEvent(account, params));
-
-            return new ResponseEntity<>(createSuccessResponse("Произведен запрос на восстановление пароля."), HttpStatus.OK);
+        if (account == null || account.getDeleted() != null) {
+            throw new ResourceNotFoundException("Аккаунт/домен не найден.");
         }
 
-        return new ResponseEntity<>(createErrorResponse("Аккаунт/домен не найден."), HttpStatus.NOT_FOUND);
+        String ip = getClientIP(request);
+
+        Map<String, String> params = new HashMap<>();
+        params.put(IP_KEY, ip);
+
+        publisher.publishEvent(new AccountPasswordRecoverEvent(account, params));
+
+        return new ResponseEntity<>(createSuccessResponse("Произведен запрос на восстановление пароля."), HttpStatus.OK);
     }
-    @RequestMapping(value = "/password-recovery",
-                    method = RequestMethod.GET)
+
+    @GetMapping("/password-recovery")
     public ResponseEntity<Object> confirmPasswordRecovery(
             @RequestParam("token") String tokenId,
             HttpServletRequest request,
@@ -427,7 +409,7 @@ public class PersonalAccountRestController extends CommonRestController {
         );
     }
 
-    @RequestMapping(value = "/{accountId}/google-adwords-promocode", method = RequestMethod.GET)
+    @GetMapping("/{accountId}/google-adwords-promocode")
     public ResponseEntity<Object> getGooglePromocode(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
@@ -449,7 +431,7 @@ public class PersonalAccountRestController extends CommonRestController {
         );
     }
 
-    @RequestMapping(value = "/{accountId}/google-adwords-promocode", method = RequestMethod.POST)
+    @PostMapping("/{accountId}/google-adwords-promocode")
     public ResponseEntity<Object> generateGooglePromocode(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
@@ -464,14 +446,7 @@ public class PersonalAccountRestController extends CommonRestController {
         } else {
             code = accountHelper.giveGooglePromocode(account);
             message.put("promocode", code);
-
-            //Save history
-            String operator = request.getUserPrincipal().getName();
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Пользователю выдан промокод google adwords (" + code + ")");
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), params));
+            accountHelper.saveHistory(account, "Пользователю выдан промокод google adwords (" + code + ")", request);
         }
 
         return new ResponseEntity<>(
@@ -505,8 +480,7 @@ public class PersonalAccountRestController extends CommonRestController {
         return ResponseEntity.ok().build();
     }
 
-    @RequestMapping(value = "/{accountId}/account/settings",
-            method = RequestMethod.PATCH)
+    @PatchMapping("/{accountId}/account/settings")
     public ResponseEntity<Object> setSettings(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Map<String, Object> requestBody,
@@ -533,13 +507,7 @@ public class PersonalAccountRestController extends CommonRestController {
             }
             accountManager.setCredit(accountId, credit);
 
-            //Save history
-            String operator = request.getUserPrincipal().getName();
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, (credit ? "Включен": "Выключен") + " кредит");
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+            accountHelper.saveHistory(account, (credit ? "Включен" : "Выключен") + " кредит", request);
         }
 
         if (requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED.name()) != null) {
@@ -550,26 +518,14 @@ public class PersonalAccountRestController extends CommonRestController {
             account.setAddQuotaIfOverquoted(addQuotaIfOverquoted);
             publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
 
-            //Save history
-            String operator = request.getUserPrincipal().getName();
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, (addQuotaIfOverquoted ? "Включено": "Выключено") + " добавление квоты при превышении доступной по тарифу");
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+            accountHelper.saveHistory(account, (addQuotaIfOverquoted ? "Включено" : "Выключено") + " добавление квоты при превышении доступной по тарифу", request);
         }
 
         if (requestBody.get(AccountSetting.AUTO_BILL_SENDING.name()) != null) {
             Boolean autoBillSending = (Boolean) requestBody.get(AccountSetting.AUTO_BILL_SENDING.name());
             accountManager.setAutoBillSending(accountId, autoBillSending);
 
-            //Save history
-            String operator = request.getUserPrincipal().getName();
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, (autoBillSending ? "Включена": "Выключена") + " автоматическая отправка бухгалтерских документов");
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+            accountHelper.saveHistory(account, (autoBillSending ? "Включена" : "Выключена") + " автоматическая отправка бухгалтерских документов", request);
         }
 
         if (requestBody.get(AccountSetting.NOTIFY_DAYS.name()) != null) {
@@ -582,13 +538,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
             accountManager.setNotifyDays(accountId, notifyDays);
 
-            //Save history
-            String operator = request.getUserPrincipal().getName();
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Установлен срок отправки уведомлений об окончании оплаченного периода хостинга на '" + notifyDays + "' дней");
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+            accountHelper.saveHistory(account, "Установлен срок отправки уведомлений об окончании оплаченного периода хостинга на '" + notifyDays + "' дней", request);
         }
 
         if (requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name()) != null) {
@@ -604,20 +554,13 @@ public class PersonalAccountRestController extends CommonRestController {
 
             accountManager.setSmsPhoneNumber(accountId, smsPhoneNumber);
 
-            //Save history
-            String operator = request.getUserPrincipal().getName();
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Установлен телефон для СМС-уведомлений на '" + smsPhoneNumber + "'");
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+            accountHelper.saveHistory(account, "Установлен телефон для СМС-уведомлений на '" + smsPhoneNumber + "'", request);
         }
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/account/notifications",
-            method = RequestMethod.PATCH)
+    @PatchMapping("/{accountId}/account/notifications")
     public ResponseEntity<Object> setNotifications(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Set<MailManagerMessageType> notifications,
@@ -633,19 +576,12 @@ public class PersonalAccountRestController extends CommonRestController {
 
         accountManager.setNotifications(accountId, filteredNotifications);
 
-        //Save history
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + filteredNotifications + "]");
-        params.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+        accountHelper.saveHistory(account, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + filteredNotifications + "]", request);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/account/notifications/sms",
-                    method = RequestMethod.PATCH)
+    @PatchMapping("/{accountId}/account/notifications/sms")
     public ResponseEntity<Object> setSmsNotifications(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Set<MailManagerMessageType> notifications,
@@ -659,7 +595,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         setNotifications(account, notifications, "SMS_", request);
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @RequestMapping(value = "/{accountId}/account/notifications/email-news",
@@ -678,12 +614,11 @@ public class PersonalAccountRestController extends CommonRestController {
                     HttpStatus.BAD_REQUEST
             );
         }
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @RequestMapping(value = "/is_subscribed_account",
-                    method = RequestMethod.GET)
+    @GetMapping("/is_subscribed_account")
     public ResponseEntity<Map<String, Boolean>> isSubscribed(
             @ObjectId(
                     value = PersonalAccount.class,
@@ -700,8 +635,7 @@ public class PersonalAccountRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
-    @RequestMapping(value = "/{accountId}/account/toggle_state",
-            method = RequestMethod.POST)
+    @PostMapping("/{accountId}/account/toggle_state")
     public ResponseEntity<Object> toggleAccount(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
@@ -710,19 +644,13 @@ public class PersonalAccountRestController extends CommonRestController {
 
         accountHelper.switchAccountActiveState(account, !account.isActive());
 
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Аккаунт " + (!account.isActive() ? "включен" : "выключен"));
-        params.put(OPERATOR_KEY, operator);
+        accountHelper.saveHistory(account, "Аккаунт " + (!account.isActive() ? "включен" : "выключен"), request);
 
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PreAuthorize("hasAuthority('MANAGE_ACCOUNT_DELETED')")
-    @RequestMapping(value = "/{accountId}/account/toggle_deleted",
-                    method = RequestMethod.POST)
+    @PostMapping("/{accountId}/account/toggle_deleted")
     public ResponseEntity<Object> toggleDeleted(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
@@ -740,16 +668,11 @@ public class PersonalAccountRestController extends CommonRestController {
             throw new ParameterValidationException("Не удалось удалить логин для входа в КП. Ошибка: " + siResponse.getParam(ERROR_MESSAGE_KEY));
         }
 
-        accountManager.setDeleted(accountId, account.getDeleted() == null);
+        accountManager.setDeleted(accountId, delete);
 
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Аккаунт " + (account.getDeleted() == null ? "удален" : "воскрешен"));
-        params.put(OPERATOR_KEY, operator);
+        accountHelper.saveHistory(account, "Аккаунт " + (delete ? "удален" : "воскрешен"), request);
 
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     private void setNotifications(PersonalAccount account, Set<MailManagerMessageType> notifications, String pattern, SecurityContextHolderAwareRequestWrapper request) {
@@ -775,11 +698,8 @@ public class PersonalAccountRestController extends CommonRestController {
         );
 
         accountManager.setNotifications(account.getId(), notifications);
-
-        //Save history
-        String operator = request.getUserPrincipal().getName();
         String message = "Уведомления [" + pattern + "] изменены c [" + oldNotificationsAsString + "] на [" + newNotificationsAsString + "]";
-        addHistoryMessage(operator, account.getId(), message);
+        accountHelper.saveHistory(account, message, request);
     }
 
     private void setNotification(String accountId, MailManagerMessageType messageType, boolean state, SecurityContextHolderAwareRequestWrapper request) {
@@ -803,10 +723,7 @@ public class PersonalAccountRestController extends CommonRestController {
         }
         if (change) {
             accountManager.setNotifications(accountId, notifications);
-            String operator = request.getUserPrincipal().getName();
-            String notificationName = notification.getName();
-            String message = notificationName + (state ? " включено." : " отключено.");
-            addHistoryMessage(operator, accountId, message);
+            accountHelper.saveHistory(account, notification.getName() + (state ? " включено." : " отключено."), request);
         }
     }
 }
