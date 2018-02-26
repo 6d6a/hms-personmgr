@@ -30,19 +30,22 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
     private final PersonalAccountManager personalAccountManager;
     private final PaymentServiceRepository paymentServiceRepository;
     private final FinFeignClient finFeignClient;
+    private final AccountNotificationHelper accountNotificationHelper;
 
     public BitrixLicenseOrderManager(
             ApplicationEventPublisher publisher,
             AccountHelper accountHelper,
             PersonalAccountManager personalAccountManager,
             PaymentServiceRepository paymentServiceRepository,
-            FinFeignClient finFeignClient
+            FinFeignClient finFeignClient,
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.publisher = publisher;
         this.accountHelper = accountHelper;
         this.personalAccountManager = personalAccountManager;
         this.paymentServiceRepository = paymentServiceRepository;
         this.finFeignClient = finFeignClient;
+        this.accountNotificationHelper = accountNotificationHelper;
     }
 
     @Override
@@ -69,7 +72,9 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
         accountOrder.setDocumentNumber((String) response.getParam("documentNumber"));
 
         //Уведомление
-        notify(accountOrder, account, paymentService.getName());
+        notifyStaff(accountOrder, account, paymentService.getName());
+
+        notifyClient(account, paymentService.getName());
     }
 
     @Override
@@ -94,7 +99,7 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
         }
     }
 
-    private void notify(BitrixLicenseOrder accountOrder, PersonalAccount account, String licenseName) {
+    private void notifyStaff(BitrixLicenseOrder accountOrder, PersonalAccount account, String licenseName) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(account.getId());
         message.setParams(new HashMap<>());
@@ -113,5 +118,15 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
         message.addParam("parametrs", parameters);
 
         publisher.publishEvent(new SendMailEvent(message));
+    }
+
+    private void notifyClient(PersonalAccount account, String licenseName) {
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getName());
+        parameters.put("license_name", licenseName);
+        parameters.put("from", "noreply@majordomo.ru");
+
+        accountNotificationHelper.sendMail(account, "HmsVHMajordomoZakaz1CBitrix", 1, parameters);
     }
 }
