@@ -12,6 +12,8 @@ import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.dto.*;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
+import ru.majordomo.hms.personmgr.model.account.AccountStat;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_FIRST_REAL_PAYMENT;
+import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_PLAN_CHANGE;
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_NAME_KEY;
 
 @Service
@@ -307,5 +310,60 @@ public class StatServiceHelper {
                         VIRTUAL_HOSTING_FIRST_REAL_PAYMENT,
                         LocalDateTime.of(date.minusDays(1), LocalTime.MAX),
                         LocalDateTime.of(date.plusDays(1), LocalTime.MIN));
+    }
+
+    public List<ResourceCounter> getRegisterWithPlanCounters(LocalDate date) {
+        List<PersonalAccount> accounts = accountManager.findByCreatedDate(date);
+
+        if (accounts == null || accounts.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<String, String> accountMap = accounts.stream().collect(
+                Collectors.toMap(PersonalAccount::getId, PersonalAccount::getPlanId));
+
+        List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdInAndType(
+                accounts.stream().map(PersonalAccount::getId).collect(Collectors.toList()),
+                VIRTUAL_HOSTING_PLAN_CHANGE
+        );
+
+        Map<String, AccountStat> firstPlanChange = new HashMap<>();
+
+        if (accountStats != null && !accountStats.isEmpty()) {
+
+            for (AccountStat item : accountStats) {
+                String personalAccountId = item.getPersonalAccountId();
+
+                if (!firstPlanChange.containsKey(personalAccountId)) {
+                    firstPlanChange.put(personalAccountId, item);
+                } else {
+                    if (firstPlanChange.get(personalAccountId).getCreated().isAfter(item.getCreated())) {
+                        firstPlanChange.put(personalAccountId, item);
+                    }
+                }
+            }
+
+            for (Map.Entry<String, AccountStat> entry: firstPlanChange.entrySet()) {
+                accountMap.put(entry.getKey(), entry.getValue().getData().get("oldPlanId"));
+            }
+        }
+
+        Map<String, String> planIdAndName = planRepository.findAll().stream().collect(Collectors.toMap(Plan::getId, Plan::getName));
+
+        Map<String, ResourceCounter> planStats = new HashMap<>();
+
+        for(String planId: accountMap.values()){
+            if (!planStats.containsKey(planId)){
+                ResourceCounter counter = new ResourceCounter();
+                counter.setName(planIdAndName.get(planId));
+                counter.setResourceId(planId);
+                counter.setCount(1);
+                counter.setDateTime(LocalDateTime.of(date, LocalTime.MIN));
+                planStats.put(planId, counter);
+            } else {
+                planStats.get(planId).countPlusOne();
+            }
+        }
+        return new ArrayList<>(planStats.values());
     }
 }
