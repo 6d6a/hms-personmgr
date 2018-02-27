@@ -15,18 +15,19 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
-import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.PlanChange.Factory;
@@ -41,28 +42,28 @@ public class AccountAbonementRestController extends CommonRestController {
     private final AccountAbonementManager accountAbonementManager;
     private final AbonementRepository abonementRepository;
     private final AbonementService abonementService;
-    private final PlanRepository planRepository;
     private final AccountHelper accountHelper;
     private final Factory planChangeFactory;
+    private final PlanManager planManager;
 
     @Autowired
     public AccountAbonementRestController(
             AccountAbonementManager accountAbonementManager,
             AbonementService abonementService,
             AbonementRepository abonementRepository,
-            PlanRepository planRepository,
             AccountHelper accountHelper,
-            Factory planChangeFactory
+            Factory planChangeFactory,
+            PlanManager planManager
     ) {
         this.accountAbonementManager = accountAbonementManager;
         this.abonementService = abonementService;
         this.abonementRepository = abonementRepository;
-        this.planRepository = planRepository;
         this.accountHelper = accountHelper;
         this.planChangeFactory = planChangeFactory;
+        this.planManager = planManager;
     }
 
-    @RequestMapping(value = "/{accountAbonementId}", method = RequestMethod.GET)
+    @GetMapping("/{accountAbonementId}")
     public ResponseEntity<AccountAbonement> getAccountAbonement(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountAbonement.class) @PathVariable(value = "accountAbonementId") String accountAbonementId
@@ -73,7 +74,7 @@ public class AccountAbonementRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasRole('OPERATOR')")
-    @RequestMapping(value = "/{accountAbonementId}", method = RequestMethod.PATCH)
+    @PatchMapping("/{accountAbonementId}")
     public ResponseEntity<Object> changeAutorenewAccountAbonement(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountAbonement.class) @PathVariable(value = "accountAbonementId") String accountAbonementId,
@@ -179,7 +180,7 @@ public class AccountAbonementRestController extends CommonRestController {
         return ResponseEntity.ok(accountAbonement);
     }
 
-    @RequestMapping(value = "/{accountAbonementId}", method = RequestMethod.DELETE)
+    @DeleteMapping("/{accountAbonementId}")
     public ResponseEntity<Object> deleteAccountAbonement(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountAbonement.class) @PathVariable(value = "accountAbonementId") String accountAbonementId,
@@ -193,7 +194,7 @@ public class AccountAbonementRestController extends CommonRestController {
             throw new ParameterValidationException("Отказ от тестового абонемента невозможен");
         }
 
-        if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
+        if (planManager.findOne(account.getPlanId()).isAbonementOnly()) {
             throw new ParameterValidationException("Удаление абонемента невозможно на вашем тарифном плане");
         }
 
@@ -205,7 +206,7 @@ public class AccountAbonementRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    @RequestMapping(value = "", method = RequestMethod.GET)
+    @GetMapping
     public ResponseEntity<Page<AccountAbonement>> getAccountAbonements(
             @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId,
             Pageable pageable
@@ -220,7 +221,7 @@ public class AccountAbonementRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasAuthority('DELETE_ACCOUNT_ABONEMENT')")
-    @RequestMapping(value = "", method = RequestMethod.DELETE)
+    @DeleteMapping
     public ResponseEntity<Page<AccountAbonement>> deleteAccountAbonements(
             @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId,
             SecurityContextHolderAwareRequestWrapper request,
@@ -251,7 +252,7 @@ public class AccountAbonementRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasAuthority('DELETE_ACCOUNT_ABONEMENT')")
-    @RequestMapping(value = "/cashback", method = RequestMethod.GET)
+    @GetMapping("/cashback")
     public ResponseEntity<BigDecimal> getCashBackAmount(
             @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId
     ) {
@@ -264,7 +265,7 @@ public class AccountAbonementRestController extends CommonRestController {
         return new ResponseEntity<>(cashback, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{abonementId}", method = RequestMethod.POST)
+    @PostMapping("/{abonementId}")
     public ResponseEntity<Object> addAccountAbonement(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(Abonement.class) @PathVariable(value = "abonementId") String abonementId,
@@ -298,7 +299,7 @@ public class AccountAbonementRestController extends CommonRestController {
         return new ResponseEntity<>(newAccountAbonement, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountAbonementId}/prolong", method = RequestMethod.POST)
+    @PostMapping("/{accountAbonementId}/prolong")
     public ResponseEntity<Object> prolongAccountAbonement(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountAbonement.class) @PathVariable(value = "accountAbonementId") String accountAbonementId,
@@ -331,5 +332,47 @@ public class AccountAbonementRestController extends CommonRestController {
                 request);
 
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAuthority('ADD_PROMO_ABONEMENT_ON_ACCOUNT')")
+    @PostMapping
+    public ResponseEntity<Object> addCustomAbonement(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestParam("period") Period period,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        List<String> allowedPeriods = Arrays.asList("P3M", "P6M", "P9M", "P1Y");
+
+        if (!allowedPeriods.contains(period.toString())) {
+            throw new ParameterValidationException("Можно добавить абонементы только следующей продолжительности: " + allowedPeriods.toString());
+        }
+
+        AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
+        String message;
+
+        if (accountAbonement == null) {
+            abonementService.addPromoAbonementWithActivePlan(account, period);
+            message = "Создан абонемент для planId " + account.getPlanId() + " периодом " + period.toString() + " и добавлен на аккаунт";
+        } else {
+            accountAbonement.setAbonement(abonementRepository.findOne(accountAbonement.getAbonementId()));
+
+            if (accountAbonement.getAbonement().isInternal() && accountAbonement.getAbonement().getPeriod().equals("P14D")) {
+                abonementService.addPromoAbonementWithActivePlan(account, period);
+                message = "Тестовый абонемент аккаунта удален. Добавлен бесплатный абонемент на период " + period.toString();
+            } else {
+                LocalDateTime newExpired = accountAbonement.getExpired().plus(period);
+                accountAbonementManager.setExpired(accountAbonement.getId(), newExpired);
+                message = "Абонемент продлен на " + period.toString() + " с " + accountAbonement.getExpired() + " на " + newExpired;
+            }
+        }
+
+        if (!account.isActive()) {
+            accountHelper.enableAccount(account);
+        }
+
+        saveHistory(request, accountId, message);
+
+        return ResponseEntity.noContent().build();
     }
 }

@@ -23,7 +23,7 @@ public class PromotionRestController {
         this.promotionRepository = promotionRepository;
     }
 
-    @PreAuthorize("hasRole('OPERATOR')")
+    @PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN')")
     @GetMapping
     public ResponseEntity<List<Promotion>> listAll() {
         return ResponseEntity.ok(promotionRepository.findAll());
