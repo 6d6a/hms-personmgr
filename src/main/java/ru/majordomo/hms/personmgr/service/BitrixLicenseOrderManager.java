@@ -113,7 +113,7 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
         parameters.put("body", "1. Аккаунт: " + account.getName() + "<br>" +
                 "2. Заказ лицензии Битрикс для: " + accountOrder.getDomainName() + "<br>" +
                 "3. Тип лицензии: " + licenseName + "<br>");
-        parameters.put("subject", "Заказ на вывод партнёрских средств");
+        parameters.put("subject", "Заказ лицензии 1С-Битрикс Управление сайтом");
 
         message.addParam("parametrs", parameters);
 
