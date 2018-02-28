@@ -2,11 +2,7 @@ package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -23,7 +19,8 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 @RequestMapping("/{accountId}/ftp-user")
 @Validated
 public class FtpUserResourceRestController extends CommonRestController {
-    @RequestMapping(value = "", method = RequestMethod.POST)
+
+    @PostMapping
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
@@ -39,9 +36,7 @@ public class FtpUserResourceRestController extends CommonRestController {
         }
 
         if (!planCheckerService.canAddFtpUser(accountId)) {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-
-            return this.createErrorResponse("Plan limit for ftp-users exceeded");
+            throw new ParameterValidationException("Лимит тарифного плана на создание FTP пользователей превышен");
         }
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_CREATE, BusinessActionType.FTP_USER_CREATE_RC, message);
@@ -53,7 +48,7 @@ public class FtpUserResourceRestController extends CommonRestController {
         return this.createSuccessResponse(businessAction);
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.PATCH)
+    @PatchMapping("/{resourceId}")
     public SimpleServiceMessage update(
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message,
@@ -79,7 +74,7 @@ public class FtpUserResourceRestController extends CommonRestController {
         return this.createSuccessResponse(businessAction);
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.DELETE)
+    @DeleteMapping("/{resourceId}")
     public SimpleServiceMessage delete(
             @PathVariable String resourceId,
             HttpServletResponse response,

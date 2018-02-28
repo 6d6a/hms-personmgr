@@ -4,11 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
 
@@ -41,7 +37,7 @@ public class UnixAccountResourceRestController extends CommonRestController {
         this.rcUserFeignClient = rcUserFeignClient;
     }
 
-    @RequestMapping(value = "", method = RequestMethod.POST)
+    @PostMapping
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
@@ -74,7 +70,7 @@ public class UnixAccountResourceRestController extends CommonRestController {
         return this.createSuccessResponse(businessAction);
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.PATCH)
+    @PatchMapping("/{resourceId}")
     public SimpleServiceMessage update(
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message,
@@ -107,7 +103,7 @@ public class UnixAccountResourceRestController extends CommonRestController {
         return this.createSuccessResponse(businessAction);
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.DELETE)
+    @DeleteMapping("/{resourceId}")
     public SimpleServiceMessage delete(
             @PathVariable String resourceId,
             HttpServletResponse response,

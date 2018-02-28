@@ -18,7 +18,8 @@ import javax.servlet.http.HttpServletResponse;
 @RequestMapping("/{accountId}/resource-archive")
 @Validated
 public class ResourceArchiveResourceRestController extends CommonRestController {
-    @RequestMapping(value = "", method = RequestMethod.POST)
+
+    @PostMapping
     public SimpleServiceMessage create(
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
@@ -38,7 +39,7 @@ public class ResourceArchiveResourceRestController extends CommonRestController 
         return this.createSuccessResponse(businessAction);
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.PATCH)
+    @PatchMapping("/{resourceId}")
     public SimpleServiceMessage update(
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message,
@@ -60,7 +61,7 @@ public class ResourceArchiveResourceRestController extends CommonRestController 
         return this.createSuccessResponse(businessAction);
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.DELETE)
+    @DeleteMapping("/{resourceId}")
     public SimpleServiceMessage delete(
             @PathVariable String resourceId,
             HttpServletResponse response,
