@@ -15,11 +15,13 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
@@ -349,21 +351,22 @@ public class AccountAbonementRestController extends CommonRestController {
 
         AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(accountId);
         PersonalAccount account = accountManager.findOne(accountId);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
         String message;
 
         if (accountAbonement == null) {
             abonementService.addPromoAbonementWithActivePlan(account, period);
-            message = "Создан абонемент для planId " + account.getPlanId() + " периодом " + period.toString() + " и добавлен на аккаунт";
+            message = "Сгенерирован абонемент для planId " + account.getPlanId() + " периодом " + Utils.humanizePeriod(period) + " и добавлен на аккаунт";
         } else {
             accountAbonement.setAbonement(abonementRepository.findOne(accountAbonement.getAbonementId()));
 
             if (accountAbonement.getAbonement().isInternal() && accountAbonement.getAbonement().getPeriod().equals("P14D")) {
                 abonementService.addPromoAbonementWithActivePlan(account, period);
-                message = "Тестовый абонемент аккаунта удален. Добавлен бесплатный абонемент на период " + period.toString();
+                message = "Тестовый абонемент аккаунта удален. Добавлен бесплатный абонемент на период " + Utils.humanizePeriod(period);
             } else {
                 LocalDateTime newExpired = accountAbonement.getExpired().plus(period);
                 accountAbonementManager.setExpired(accountAbonement.getId(), newExpired);
-                message = "Абонемент продлен на " + period.toString() + " с " + accountAbonement.getExpired() + " на " + newExpired;
+                message = "Абонемент продлен на " + Utils.humanizePeriod(period) + " с " + accountAbonement.getExpired().format(formatter) + " на " + newExpired.format(formatter);
             }
         }
 
@@ -373,6 +376,6 @@ public class AccountAbonementRestController extends CommonRestController {
 
         saveHistory(request, accountId, message);
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(createSuccessResponse(message));
     }
 }
