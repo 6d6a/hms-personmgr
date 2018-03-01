@@ -13,7 +13,6 @@ import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbone
 import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRenewEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessNotifyExpiredAbonementsEvent;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -41,7 +40,6 @@ public class AccountAbonementsEventListener {
     private final ApplicationEventPublisher publisher;
     private final PlanRepository planRepository;
     private final AccountNotificationHelper accountNotificationHelper;
-    private final AccountAbonementManager accountAbonementManager;
     private final PersonalAccountManager personalAccountManager;
 
     @Autowired
@@ -52,7 +50,6 @@ public class AccountAbonementsEventListener {
             ApplicationEventPublisher publisher,
             PlanRepository planRepository,
             AccountNotificationHelper accountNotificationHelper,
-            AccountAbonementManager accountAbonementManager,
             PersonalAccountManager personalAccountManager
     ) {
         this.abonementService = abonementService;
@@ -61,7 +58,6 @@ public class AccountAbonementsEventListener {
         this.publisher = publisher;
         this.planRepository = planRepository;
         this.accountNotificationHelper = accountNotificationHelper;
-        this.accountAbonementManager = accountAbonementManager;
         this.personalAccountManager = personalAccountManager;
     }
 

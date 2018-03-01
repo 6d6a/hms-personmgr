@@ -61,7 +61,7 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             WebRequest request
     ) {
         printLogError(ex);
-        InternalApiException apiException = new InternalApiException(ex, traceId());
+        InternalApiException apiException = new InternalApiException(ex.getMessage(), traceId());
         return handleExceptionInternal(apiException, apiException, headers, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -73,7 +73,7 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             final WebRequest request
     ) {
         printLogError(ex);
-        InternalApiException apiException = new InternalApiException(ex, traceId());
+        InternalApiException apiException = new InternalApiException(ex.getMessage(), traceId());
         return handleExceptionInternal(apiException, apiException, headers, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -85,7 +85,7 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             WebRequest request
     ) {
         printLogError(ex);
-        InternalApiException apiException = new InternalApiException(ex, traceId());
+        InternalApiException apiException = new InternalApiException(ex.getMessage(), traceId());
         return handleExceptionInternal(apiException, apiException, headers, HttpStatus.BAD_REQUEST, request);
     }
 
