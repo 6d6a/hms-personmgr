@@ -39,16 +39,16 @@ public class ResourceNormalizer {
         this.businessHelper = businessHelper;
     }
 
-    public void normalizeResources(PersonalAccount account, ResourceType resourceType, Plan plan) {
+    public void normalizeResources(PersonalAccount account, ResourceType resourceType, Plan plan, boolean applyChanges) {
         switch (resourceType) {
             case WEB_SITE:
-                normalizeWebSites(account, plan);
+                normalizeWebSites(account, plan, applyChanges);
 
                 break;
         }
     }
 
-    private void normalizeWebSites(PersonalAccount account, Plan plan) {
+    private void normalizeWebSites(PersonalAccount account, Plan plan, boolean applyChanges) {
         List<WebSite> webSites = rcUserFeignClient.getWebSites(account.getId());
         List<Service> webSiteServices;
 
@@ -89,17 +89,19 @@ public class ResourceNormalizer {
                                 .findFirst()
                                 .orElseThrow(() -> new ParameterValidationException("Необходимый для вебсайта сервис не найден"));
 
-                        SimpleServiceMessage message = new SimpleServiceMessage();
-                        message.setParams(new HashMap<>());
-                        message.setAccountId(account.getId());
-                        message.addParam(RESOURCE_ID_KEY, webSite.getId());
-                        message.addParam(SERVICE_ID_KEY, selectedWebSiteService.getId());
+                        if (applyChanges) {
+                            SimpleServiceMessage message = new SimpleServiceMessage();
+                            message.setParams(new HashMap<>());
+                            message.setAccountId(account.getId());
+                            message.addParam(RESOURCE_ID_KEY, webSite.getId());
+                            message.addParam(SERVICE_ID_KEY, selectedWebSiteService.getId());
 
-                        businessHelper.buildAction(BusinessActionType.WEB_SITE_UPDATE_RC, message);
+                            businessHelper.buildAction(BusinessActionType.WEB_SITE_UPDATE_RC, message);
 
-                        String historyMessage = "Отправлена заявка на изменение serviceId сайта '" + webSite.getName() + "'";
+                            String historyMessage = "Отправлена заявка на изменение serviceId сайта '" + webSite.getName() + "'";
 
-                        accountHelper.saveHistoryForOperatorService(account, historyMessage);
+                            accountHelper.saveHistoryForOperatorService(account, historyMessage);
+                        }
                     }
                 }
             }

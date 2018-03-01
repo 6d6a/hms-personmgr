@@ -249,10 +249,12 @@ public abstract class Processor {
         // Лимиты WebSite
         Boolean isWebSiteLimitsOk = checkAccountWebSiteLimits(planChangeAgreement);
 
+        Boolean isWebSitesOk = checkAccountWebSites(planChangeAgreement);
+
         // Лимиты Quota
         Boolean isQuotaLimitsOk = checkAccountQuotaLimits(planChangeAgreement);
 
-        if (!isDatabaseLimitsOk || !isFtpUserLimitsOk || !isWebSiteLimitsOk || !isQuotaLimitsOk) {
+        if (!isDatabaseLimitsOk || !isFtpUserLimitsOk || !isWebSiteLimitsOk || !isQuotaLimitsOk || !isWebSitesOk) {
             return planChangeAgreement;
         }
 
@@ -436,6 +438,21 @@ public abstract class Processor {
         } else {
             return true;
         }
+    }
+
+    /**
+     * Проверить WebSite аккаунта на соответствие их новому тарифу
+     */
+    private Boolean checkAccountWebSites(PlanChangeAgreement planChangeAgreement) {
+        try {
+            resourceNormalizer.normalizeResources(account, ResourceType.WEB_SITE, newPlan, false);
+        } catch (Exception e) {
+            e.printStackTrace();
+            planChangeAgreement.addError("Тариф не может быть изменен. Ошибка: " + e.getMessage());
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -631,16 +648,16 @@ public abstract class Processor {
 
     private void checkResources() {
         //Разрешены ли SSL-сертификаты на новом тарифе
-        checkSslCertificate();
+        normalizeSslCertificate();
 
         //Разрешены ли почтовые ящики на новом тарифе
-        checkMailbox();
+        normalizeMailbox();
 
         //Разрешены ли установленные для сайтов serviceId на новом тарифе
-        checkWebSite();
+        normalizeWebSite();
     }
 
-    private void checkMailbox() {
+    private void normalizeMailbox() {
         if (!newPlan.isMailboxAllowed()) {
             accountHelper.deleteAllMailboxes(account);
 
@@ -653,11 +670,11 @@ public abstract class Processor {
         }
     }
 
-    private void checkWebSite() {
-        resourceNormalizer.normalizeResources(account, ResourceType.WEB_SITE, newPlan);
+    private void normalizeWebSite() {
+        resourceNormalizer.normalizeResources(account, ResourceType.WEB_SITE, newPlan, true);
     }
 
-    private void checkSslCertificate() {
+    private void normalizeSslCertificate() {
         if (!newPlan.isSslCertificateAllowed()) {
             accountHelper.disableAllSslCertificates(account);
 
