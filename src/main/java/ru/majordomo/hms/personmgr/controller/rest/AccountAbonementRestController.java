@@ -358,8 +358,6 @@ public class AccountAbonementRestController extends CommonRestController {
             abonementService.addPromoAbonementWithActivePlan(account, period);
             message = "Сгенерирован абонемент для planId " + account.getPlanId() + " периодом " + Utils.humanizePeriod(period) + " и добавлен на аккаунт";
         } else {
-            accountAbonement.setAbonement(abonementRepository.findOne(accountAbonement.getAbonementId()));
-
             if (accountAbonement.getAbonement().isInternal() && accountAbonement.getAbonement().getPeriod().equals("P14D")) {
                 abonementService.addPromoAbonementWithActivePlan(account, period);
                 message = "Тестовый абонемент аккаунта удален. Добавлен бесплатный абонемент на период " + Utils.humanizePeriod(period);
