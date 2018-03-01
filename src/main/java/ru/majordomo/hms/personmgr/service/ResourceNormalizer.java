@@ -83,12 +83,17 @@ public class ResourceNormalizer {
 
                     if (!allowedServiceTypes.contains(currentWebSiteService.getServiceTemplate().getServiceTypeName())) {
                         //ставим какой-то, на самом деле первый ;) из доступных
+                        Service selectedWebSiteService = webSiteServices
+                                .stream()
+                                .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(allowedServiceTypes.iterator().next()))
+                                .findFirst()
+                                .orElseThrow(() -> new ParameterValidationException("Необходимый для вебсайта сервис не найден"));
 
                         SimpleServiceMessage message = new SimpleServiceMessage();
                         message.setParams(new HashMap<>());
                         message.setAccountId(account.getId());
                         message.addParam(RESOURCE_ID_KEY, webSite.getId());
-                        message.addParam(SERVICE_ID_KEY, allowedServiceTypes.iterator().next());
+                        message.addParam(SERVICE_ID_KEY, selectedWebSiteService.getId());
 
                         businessHelper.buildAction(BusinessActionType.WEB_SITE_UPDATE_RC, message);
 
