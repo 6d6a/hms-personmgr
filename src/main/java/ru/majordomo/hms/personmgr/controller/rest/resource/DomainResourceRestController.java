@@ -2,11 +2,10 @@ package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
@@ -67,9 +66,8 @@ public class DomainResourceRestController extends CommonRestController {
     }
 
     @PostMapping
-    public SimpleServiceMessage create(
+    public ResponseEntity<SimpleServiceMessage> create(
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -192,8 +190,6 @@ public class DomainResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         String actionText = isRegistration ?
                 (isFreeDomain ?
                         "бесплатную регистрацию (actionPromotion Id: " + message.getParam("freeDomainPromotionId") + " )" :
@@ -203,14 +199,13 @@ public class DomainResourceRestController extends CommonRestController {
                 "добавление";
         saveHistory(request, accountId, "Поступила заявка на " + actionText +" домена (имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
     @PatchMapping("/{resourceId}")
-    public SimpleServiceMessage update(
+    public ResponseEntity<SimpleServiceMessage> update(
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -252,17 +247,14 @@ public class DomainResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DOMAIN_UPDATE, BusinessActionType.DOMAIN_UPDATE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на " + (isRenew ? "продление" : "обновление") + " домена (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
     @DeleteMapping("/{resourceId}")
-    public SimpleServiceMessage delete(
+    public ResponseEntity<SimpleServiceMessage> delete(
             @PathVariable String resourceId,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -274,10 +266,8 @@ public class DomainResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DOMAIN_DELETE, BusinessActionType.DOMAIN_DELETE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на удаление домена (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 }

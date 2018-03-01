@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
@@ -25,9 +26,8 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.DATABASE_POST;
 public class DatabaseResourceRestController extends CommonRestController {
 
     @PostMapping
-    public SimpleServiceMessage create(
+    public ResponseEntity<SimpleServiceMessage> create(
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request,
             Authentication authentication
@@ -37,9 +37,7 @@ public class DatabaseResourceRestController extends CommonRestController {
         logger.debug("Creating database " + message.toString());
 
         if (!planCheckerService.canAddDatabase(accountId)) {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-
-            return this.createErrorResponse("Plan limit for databases exceeded");
+            throw new ParameterValidationException("Лимит тарифа на базы данных превышен");
         }
 
         if (!accountManager.findOne(accountId).isActive()) {
@@ -54,15 +52,13 @@ public class DatabaseResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_CREATE, BusinessActionType.DATABASE_CREATE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на создание базы данных (имя: " + message.getParam("name") + ")");
 
-        return createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
     @PatchMapping("/{resourceId}")
-    public SimpleServiceMessage update(
+    public ResponseEntity<SimpleServiceMessage> update(
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message,
             HttpServletResponse response,
@@ -87,15 +83,13 @@ public class DatabaseResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_UPDATE, BusinessActionType.DATABASE_UPDATE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId,"Поступила заявка на обновление базы данных (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
-        return createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
     @DeleteMapping("/{resourceId}")
-    public SimpleServiceMessage delete(
+    public ResponseEntity<SimpleServiceMessage> delete(
             @PathVariable String resourceId,
             HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -109,10 +103,8 @@ public class DatabaseResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DATABASE_DELETE, BusinessActionType.DATABASE_DELETE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на удаление базы данных (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
-        return createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 }
