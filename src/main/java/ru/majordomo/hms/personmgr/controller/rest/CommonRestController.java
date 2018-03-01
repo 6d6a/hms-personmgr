@@ -25,6 +25,7 @@ import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.service.BusinessHelper;
 import ru.majordomo.hms.personmgr.service.PlanCheckerService;
+import ru.majordomo.hms.personmgr.service.ResourceChecker;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 
@@ -37,6 +38,7 @@ public class CommonRestController {
     protected AccountServiceRepository accountServiceRepository;
     protected PlanCheckerService planCheckerService;
     protected BusinessHelper businessHelper;
+    protected ResourceChecker resourceChecker;
 
     @Autowired
     public void setAccountManager(PersonalAccountManager accountManager) {
@@ -66,6 +68,11 @@ public class CommonRestController {
     @Autowired
     public void setBusinessHelper(BusinessHelper businessHelper) {
         this.businessHelper = businessHelper;
+    }
+
+    @Autowired
+    public void setResourceChecker(ResourceChecker resourceChecker) {
+        this.resourceChecker = resourceChecker;
     }
 
     private SimpleServiceMessage createResponse() {

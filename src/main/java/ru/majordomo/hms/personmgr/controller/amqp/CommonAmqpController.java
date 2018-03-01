@@ -26,9 +26,9 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.service.AccountTransferService;
 import ru.majordomo.hms.personmgr.service.AmqpSender;
-import ru.majordomo.hms.personmgr.service.AppsCatService;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 import ru.majordomo.hms.personmgr.service.BusinessHelper;
+import ru.majordomo.hms.personmgr.service.ResourceChecker;
 
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ROUTING_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_CREATE;
@@ -49,8 +49,9 @@ public class CommonAmqpController {
     protected PersonalAccountManager accountManager;
     protected ApplicationEventPublisher publisher;
     protected BusinessHelper businessHelper;
+    protected ResourceChecker resourceChecker;
     private AccountTransferService accountTransferService;
-    private AmqpSender amqpSender;
+    protected AmqpSender amqpSender;
 
     protected String resourceName = "";
 
@@ -83,6 +84,11 @@ public class CommonAmqpController {
     @Autowired
     public void setBusinessHelper(BusinessHelper businessHelper) {
         this.businessHelper = businessHelper;
+    }
+
+    @Autowired
+    public void setResourceChecker(ResourceChecker resourceChecker) {
+        this.resourceChecker = resourceChecker;
     }
 
     @Autowired

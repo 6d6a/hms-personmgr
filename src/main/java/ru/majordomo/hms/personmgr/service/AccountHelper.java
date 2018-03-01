@@ -722,6 +722,22 @@ public class AccountHelper {
 
     }
 
+    public void deleteAllMailboxes(PersonalAccount account) {
+        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+        for (Mailbox mailbox : mailboxes) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", mailbox.getId());
+
+            businessHelper.buildAction(BusinessActionType.MAILBOX_DELETE_RC, message);
+
+            String historyMessage = "Отправлена заявка на удаление почтового ящика '" + mailbox.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
     /*
      * получим стоимость абонемента на период через Plan, PlanId или PersonalAccount
      * @period - период действия абонемента, "P1Y" - на год

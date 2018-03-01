@@ -17,13 +17,12 @@ import javax.servlet.http.HttpServletResponse;
 import org.xbill.DNS.*;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
@@ -33,15 +32,12 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 @Validated
 public class SslCertificateResourceRestController extends CommonRestController {
 
-    private final PlanRepository planRepository;
     private final RcUserFeignClient rcUserFeignClient;
 
     @Autowired
     public SslCertificateResourceRestController(
-            PlanRepository planRepository,
             RcUserFeignClient rcUserFeignClient
     ) {
-        this.planRepository = planRepository;
         this.rcUserFeignClient = rcUserFeignClient;
     }
 
@@ -62,11 +58,7 @@ public class SslCertificateResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Заказ SSL-сертификата невозможен.");
         }
 
-        Plan plan = planRepository.findOne(account.getPlanId());
-
-        if (!plan.isSslCertificateAllowed()) {
-            throw new ParameterValidationException("На вашем тарифном плане заказ SSL сертификатов недоступен");
-        }
+        resourceChecker.checkResource(account, ResourceType.SSL_CERTIFICATE, message.getParams());
 
         String domainName = (String) message.getParam("name");
 

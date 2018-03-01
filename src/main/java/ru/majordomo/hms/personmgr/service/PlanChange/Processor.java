@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
@@ -55,6 +56,7 @@ public abstract class Processor {
     private AccountHistoryService accountHistoryService;
     private FinFeignClient finFeignClient;
     private PlanRepository planRepository;
+    private ResourceNormalizer resourceNormalizer;
 
     protected final PersonalAccount account;
     protected Plan currentPlan;
@@ -84,7 +86,8 @@ public abstract class Processor {
             AccountServiceHelper accountServiceHelper,
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher,
-            PlanRepository planRepository
+            PlanRepository planRepository,
+            ResourceNormalizer resourceNormalizer
     ) {
         this.finFeignClient = finFeignClient;
         this.accountAbonementManager = accountAbonementManager;
@@ -99,6 +102,7 @@ public abstract class Processor {
         this.accountHelper = accountHelper;
         this.publisher = publisher;
         this.planRepository = planRepository;
+        this.resourceNormalizer = resourceNormalizer;
     }
 
     void postConstruct() {
@@ -144,8 +148,8 @@ public abstract class Processor {
         //Укажем новый тариф
         accountManager.setPlanId(account.getId(), newPlan.getId());
 
-        //Разрешён ли сертификат на новом тарифе
-        sslCertAllowed();
+        //Проверим ресурсы на соответствие тарифу
+        checkResources();
 
         //При необходимости отправляем письмо в саппорт
         supportNotification();
@@ -625,9 +629,36 @@ public abstract class Processor {
         }
     }
 
-    private void sslCertAllowed() {
-        if (!newPlan.isSslCertificateAllowed()) {
+    private void checkResources() {
+        //Разрешены ли SSL-сертификаты на новом тарифе
+        checkSslCertificate();
 
+        //Разрешены ли почтовые ящики на новом тарифе
+        checkMailbox();
+
+        //Разрешены ли установленные для сайтов serviceId на новом тарифе
+        checkWebSite();
+    }
+
+    private void checkMailbox() {
+        if (!newPlan.isMailboxAllowed()) {
+            accountHelper.deleteAllMailboxes(account);
+
+            //Запишем в историю клиента
+            Map<String, String> historyParams = new HashMap<>();
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта удалены почтовые ящики в соответствии с тарифным планом");
+            historyParams.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        }
+    }
+
+    private void checkWebSite() {
+        resourceNormalizer.normalizeResources(account, ResourceType.WEB_SITE, newPlan);
+    }
+
+    private void checkSslCertificate() {
+        if (!newPlan.isSslCertificateAllowed()) {
             accountHelper.disableAllSslCertificates(account);
 
             //Запишем в историю клиента

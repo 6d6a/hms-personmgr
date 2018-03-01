@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.common.message.*;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -39,7 +40,9 @@ public class WebSiteResourceRestController extends CommonRestController {
 
         logger.debug("Creating website: " + message.toString());
 
-        if (!accountManager.findOne(accountId).isActive()) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание сайта невозможно.");
         }
 
@@ -55,7 +58,13 @@ public class WebSiteResourceRestController extends CommonRestController {
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), WEB_SITE_POST, authentication);
         }
 
-        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.WEB_SITE_CREATE, BusinessActionType.WEB_SITE_CREATE_RC, message);
+        resourceChecker.checkResource(account, ResourceType.WEB_SITE, message.getParams());
+
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(
+                BusinessOperationType.WEB_SITE_CREATE,
+                BusinessActionType.WEB_SITE_CREATE_RC,
+                message
+        );
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -78,7 +87,9 @@ public class WebSiteResourceRestController extends CommonRestController {
 
         logger.debug("Updating website with id " + resourceId + " " + message.toString());
 
-        if (!accountManager.findOne(accountId).isActive()) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание сайта невозможно.");
         }
 
@@ -88,7 +99,13 @@ public class WebSiteResourceRestController extends CommonRestController {
             checkParamsWithRolesAndDeleteRestricted(message.getParams(), WEB_SITE_PATCH, authentication);
         }
 
-        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.WEB_SITE_UPDATE, BusinessActionType.WEB_SITE_UPDATE_RC, message);
+        resourceChecker.checkResource(account, ResourceType.WEB_SITE, message.getParams());
+
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(
+                BusinessOperationType.WEB_SITE_UPDATE,
+                BusinessActionType.WEB_SITE_UPDATE_RC,
+                message
+        );
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
@@ -110,7 +127,11 @@ public class WebSiteResourceRestController extends CommonRestController {
 
         logger.debug("Deleting website with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.WEB_SITE_DELETE, BusinessActionType.WEB_SITE_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(
+                BusinessOperationType.WEB_SITE_DELETE,
+                BusinessActionType.WEB_SITE_DELETE_RC,
+                message
+        );
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 

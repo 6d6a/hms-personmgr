@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -39,7 +40,9 @@ public class MailboxResourceRestController extends CommonRestController {
 
         logger.debug("Creating mailbox: " + message.toString());
 
-        if (!accountManager.findOne(accountId).isActive()) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание почтового ящика невозможно.");
         }
 
@@ -50,6 +53,8 @@ public class MailboxResourceRestController extends CommonRestController {
         }
 
         checkParamsForServicesOnUpdate(message.getParams(), accountManager.findOne(accountId));
+
+        resourceChecker.checkResource(account, ResourceType.MAILBOX, message.getParams());
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.MAILBOX_CREATE, BusinessActionType.MAILBOX_CREATE_RC, message);
 
@@ -74,7 +79,9 @@ public class MailboxResourceRestController extends CommonRestController {
 
         logger.debug("Updating mailbox with id " + resourceId + " " + message.toString());
 
-        if (!accountManager.findOne(accountId).isActive()) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление почтового ящика невозможно.");
         }
 
@@ -85,6 +92,8 @@ public class MailboxResourceRestController extends CommonRestController {
         }
 
         checkParamsForServicesOnUpdate(message.getParams(), accountManager.findOne(accountId));
+
+        resourceChecker.checkResource(account, ResourceType.MAILBOX, message.getParams());
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.MAILBOX_UPDATE, BusinessActionType.MAILBOX_UPDATE_RC, message);
 
