@@ -17,6 +17,7 @@ import ru.majordomo.hms.rc.staff.resources.Server;
 import ru.majordomo.hms.rc.staff.resources.Service;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
+import static ru.majordomo.hms.personmgr.common.Constants.APPLICATION_SERVICE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_ID_KEY;
 
@@ -59,6 +60,8 @@ public class ResourceChecker {
 
         if (resource.get(SERVICE_ID_KEY) != null) {
             webSiteServiceId = (String) resource.get(SERVICE_ID_KEY);
+        } else if (resource.get(APPLICATION_SERVICE_ID_KEY) != null) {
+            webSiteServiceId = (String) resource.get(APPLICATION_SERVICE_ID_KEY);
         } else {
             WebSite webSite = getWebSite(account, resource);
 
