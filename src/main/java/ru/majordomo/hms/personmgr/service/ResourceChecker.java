@@ -54,12 +54,18 @@ public class ResourceChecker {
     }
 
     private void checkWebSite(PersonalAccount account, Map<String, Object> resource) {
-        WebSite webSite;
         List<Service> webSiteServices;
+        String webSiteServiceId;
 
-        webSite = getWebSite(account, resource);
+        if (resource.get(SERVICE_ID_KEY) != null) {
+            webSiteServiceId = (String) resource.get(SERVICE_ID_KEY);
+        } else {
+            WebSite webSite = getWebSite(account, resource);
 
-        Server webSiteServer = rcStaffFeignClient.getServerByServiceId(webSite.getServiceId());
+            webSiteServiceId = webSite.getServiceId();
+        }
+
+        Server webSiteServer = rcStaffFeignClient.getServerByServiceId(webSiteServiceId);
 
         if (webSiteServer == null) {
             throw new ParameterValidationException("веб-сервер не найден");
