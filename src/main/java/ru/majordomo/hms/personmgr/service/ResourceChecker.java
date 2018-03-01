@@ -94,15 +94,12 @@ public class ResourceChecker {
             VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
 
             Set<String> allowedServiceTypes = planProperties.getWebSiteAllowedServiceTypes();
+
             if (allowedServiceTypes != null && !allowedServiceTypes.isEmpty()) {
-                for (Service webSiteService : webSiteServices) {
-                    if (webSiteService.getId().equals(resource.get(SERVICE_ID_KEY))) {
-                        if (!allowedServiceTypes.contains(webSiteService.getServiceTemplate().getServiceTypeName())) {
-                            throw new ResourceNotFoundException("Указанный для вебсайта serviceId не разрешен для вашего тарифа");
-                        } else {
-                            break;
-                        }
-                    }
+                boolean foundAllowedService = serviceIdHasType(webSiteServiceId, webSiteServices, allowedServiceTypes);
+
+                if (!foundAllowedService) {
+                    throw new ResourceNotFoundException("Указанный для вебсайта serviceId не разрешен для вашего тарифа");
                 }
             }
         }
@@ -136,5 +133,33 @@ public class ResourceChecker {
             throw new ParameterValidationException("Сайт не найден");
         }
         return webSite;
+    }
+
+    private boolean serviceIdHasType(String serviceId, List<Service> services, Set<String> serviceTypes) {
+        for (Service service : services) {
+            if (service.getId().equals(serviceId)) {
+                if (serviceHasType(service, serviceTypes)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    static boolean serviceHasType(Service service, Set<String> serviceTypes) {
+        for (String serviceType : serviceTypes) {
+            if (serviceType.endsWith("*")) {
+                if (service.getServiceTemplate().getServiceTypeName()
+                        .startsWith(serviceType.substring(0, serviceType.length()-1))) {
+                    return true;
+                }
+            } else {
+                if (service.getServiceTemplate().getServiceTypeName().equals(serviceType)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

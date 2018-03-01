@@ -1,9 +1,7 @@
 package ru.majordomo.hms.personmgr.model.plan;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -40,9 +38,6 @@ public class VirtualHostingPlanProperties extends PlanProperties {
 
     @NotNull
     private Map<DBType, PlanPropertyLimit> db = new HashMap<>();
-
-    @NotNull
-    private List<String> serviceTemplateIds = new ArrayList<>();
 
     private Map<ResourceType, Set<String>> allowedServiceTypes = new HashMap<>();
 

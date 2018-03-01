@@ -81,11 +81,26 @@ public class ResourceNormalizer {
                             .findFirst()
                             .orElseThrow(() -> new ParameterValidationException("Текущий сервис для вебсайта не найден"));
 
-                    if (!allowedServiceTypes.contains(currentWebSiteService.getServiceTemplate().getServiceTypeName())) {
+                    boolean foundAllowedService = false;
+
+                    for (String serviceType : allowedServiceTypes) {
+                        if (serviceType.endsWith("*")) {
+                            if (currentWebSiteService.getServiceTemplate().getServiceTypeName()
+                                    .startsWith(serviceType.substring(0, serviceType.length()-1))) {
+                                foundAllowedService = true;
+                            }
+                        } else {
+                            if (currentWebSiteService.getServiceTemplate().getServiceTypeName().equals(serviceType)) {
+                                foundAllowedService = true;
+                            }
+                        }
+                    }
+
+                    if (!foundAllowedService) {
                         //ставим какой-то, на самом деле первый ;) из доступных
                         Service selectedWebSiteService = webSiteServices
                                 .stream()
-                                .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(allowedServiceTypes.iterator().next()))
+                                .filter(service -> ResourceChecker.serviceHasType(service, allowedServiceTypes))
                                 .findFirst()
                                 .orElseThrow(() -> new ParameterValidationException("Необходимый для вебсайта сервис не найден"));
 
