@@ -18,11 +18,14 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.OrderState;
+import ru.majordomo.hms.personmgr.dto.PartnerCheckoutOrderRequest;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.order.AccountPartnerCheckoutOrder;
 import ru.majordomo.hms.personmgr.repository.AccountPartnerCheckoutOrderRepository;
 import ru.majordomo.hms.personmgr.service.PartnerCheckoutOrderManager;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
+
+import javax.validation.Valid;
 
 @RestController
 public class PartnerCheckoutOrderRestController extends CommonRestController {
@@ -111,7 +114,7 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
             method = RequestMethod.POST)
     public ResponseEntity<Void> create(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody BigDecimal amount,
+            @RequestBody @Valid PartnerCheckoutOrderRequest partnerCheckoutOrderRequest,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
@@ -120,7 +123,8 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
         AccountPartnerCheckoutOrder order = new AccountPartnerCheckoutOrder();
         order.setPersonalAccountId(account.getId());
         order.setPersonalAccountName(account.getName());
-        order.setAmount(amount);
+        order.setAmount(partnerCheckoutOrderRequest.getAmount());
+        order.setNumberAccount(partnerCheckoutOrderRequest.getNumberAccount());
 
         partnerCheckoutOrderManager.create(order, operator);
 
