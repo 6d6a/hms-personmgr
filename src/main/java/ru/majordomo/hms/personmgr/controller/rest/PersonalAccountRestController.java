@@ -62,6 +62,7 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
+import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_EMAIL_NEWS_PATCH;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_CHANGE;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_RECOVER;
 import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
@@ -235,24 +236,17 @@ public class PersonalAccountRestController extends CommonRestController {
         logger.debug("confirmChangeOwnerEmail httpHeaders: " + httpHeaders.toString());
 
         Token token = tokenHelper.getToken(tokenId, TokenType.CHANGE_OWNER_EMAILS);
+
         if (token == null) {
-            return new ResponseEntity<>(
-                    createErrorResponse(
-                            "Запрос на изменение контактных e-mail адресов не найден или уже выполнен ранее."
-                    ),
-                    HttpStatus.BAD_REQUEST
-            );
+            throw new ParameterValidationException("Запрос на изменение контактных e-mail адресов не найден или уже выполнен ранее.");
         }
 
         PersonalAccount account = accountManager.findOne(token.getPersonalAccountId());
+
         if (account == null) {
-            return new ResponseEntity<>(
-                    createErrorResponse(
-                            "Аккаунт не найден."
-                    ),
-                    HttpStatus.BAD_REQUEST
-            );
+            throw new ParameterValidationException("Аккаунт не найден.");
         }
+
         List<String> newEmails = (List<String>) token.getParam("newemails");
         AccountOwner accountOwner = accountOwnerManager.findOneByPersonalAccountId(account.getId());
         ContactInfo contactInfo = accountOwner.getContactInfo();
@@ -273,10 +267,8 @@ public class PersonalAccountRestController extends CommonRestController {
         publisher.publishEvent(new TokenDeleteEvent(token.getId()));
 
         SimpleServiceMessage message = createSuccessResponse("Email-адреса владельца аккаунта успешно изменены. ");
-        return new ResponseEntity<>(
-                message,
-                HttpStatus.OK
-        );
+
+        return new ResponseEntity<>(message, HttpStatus.OK);
     }
 
     @PostMapping("/{accountId}/password")
@@ -365,23 +357,13 @@ public class PersonalAccountRestController extends CommonRestController {
         Token token = tokenHelper.getToken(tokenId);
 
         if (token == null) {
-            return new ResponseEntity<>(
-                    createErrorResponse(
-                    "Запрос на восстановление пароля не найден или уже выполнен ранее."
-                    ),
-                    HttpStatus.BAD_REQUEST
-            );
+            throw new ParameterValidationException("Запрос на восстановление пароля не найден или уже выполнен ранее.");
         }
 
         PersonalAccount account = accountManager.findOne(token.getPersonalAccountId());
 
         if (account == null) {
-            return new ResponseEntity<>(
-                    createErrorResponse(
-                            "Аккаунт не найден."
-                    ),
-                    HttpStatus.BAD_REQUEST
-            );
+            throw new ParameterValidationException("Аккаунт не найден.");
         }
 
         String ip = getClientIP(request);
@@ -598,22 +580,24 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    @RequestMapping(value = "/{accountId}/account/notifications/email-news",
-            method = RequestMethod.POST)
+    @PostMapping("/{accountId}/account/notifications/email-news")
     public ResponseEntity<Object> addNotification(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody Map<String, Object> requestBody,
             SecurityContextHolderAwareRequestWrapper request
     ) {
+        Utils.checkRequiredParams(requestBody, ACCOUNT_EMAIL_NEWS_PATCH);
+
+        boolean newState;
+
         try {
-            boolean newState = (boolean) requestBody.get("enabled");
-            setNotification(accountId, MailManagerMessageType.EMAIL_NEWS, newState, request);
+            newState = (boolean) requestBody.get("enabled");
         } catch (ClassCastException e) {
-            return new ResponseEntity<>(
-                    this.createErrorResponse("Некорректный параметр запроса."),
-                    HttpStatus.BAD_REQUEST
-            );
+            throw new ParameterValidationException("Некорректный параметр 'enabled'. Параметр должен быть 'true' или 'false'");
         }
+
+        setNotification(accountId, MailManagerMessageType.EMAIL_NEWS, newState, request);
+
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 

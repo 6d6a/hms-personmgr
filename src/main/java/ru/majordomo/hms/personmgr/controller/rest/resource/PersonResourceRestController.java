@@ -1,17 +1,12 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-
-import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
@@ -36,10 +31,9 @@ public class PersonResourceRestController extends CommonRestController {
         this.rcUserFeignClient = rcUserFeignClient;
     }
 
-    @RequestMapping(value = "", method = RequestMethod.POST)
-    public SimpleServiceMessage create(
+    @PostMapping
+    public ResponseEntity<SimpleServiceMessage> create(
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -49,18 +43,15 @@ public class PersonResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.PERSON_CREATE, BusinessActionType.PERSON_CREATE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на создание персоны (имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.PATCH)
-    public SimpleServiceMessage update(
+    @PatchMapping("/{resourceId}")
+    public ResponseEntity<SimpleServiceMessage> update(
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -71,17 +62,14 @@ public class PersonResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.PERSON_UPDATE, BusinessActionType.PERSON_UPDATE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на обновление персоны (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.DELETE)
-    public SimpleServiceMessage delete(
+    @DeleteMapping("/{resourceId}")
+    public ResponseEntity<SimpleServiceMessage> delete(
             @PathVariable String resourceId,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -91,27 +79,17 @@ public class PersonResourceRestController extends CommonRestController {
 
         logger.debug("Deleting person with id " + resourceId + " " + message.toString());
 
-        PersonalAccount account = accountManager.findOne(message.getAccountId());
-
-        //Если пытаемся удалить персону "владельца аккаунта"
-        if (account != null && account.getOwnerPersonId() != null && account.getOwnerPersonId().equals(resourceId)) {
-            this.createErrorResponse("Person with id " + resourceId + " is set as accountOwner and prohibited to delete");
-        }
-
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.PERSON_DELETE, BusinessActionType.PERSON_DELETE_RC, message);
-
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         saveHistory(request, accountId, "Поступила заявка на удаление персоны (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
     @PreAuthorize("hasAuthority('MANAGE_PERSONS')")
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     public Person create(
             @RequestBody Map<String, String> requestBody,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
