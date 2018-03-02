@@ -25,7 +25,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_CHECKOUT_SERVI
 @Service
 public class PartnerCheckoutOrderManager extends OrderManager<AccountPartnerCheckoutOrder> {
 
-    @Value("${mail_manager.pro_email}")
+    @Value("${mail_manager.partner_checkout_order_email}")
     private String proEmail;
 
     private final ApplicationEventPublisher publisher;
