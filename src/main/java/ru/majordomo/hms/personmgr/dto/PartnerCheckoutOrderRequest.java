@@ -11,5 +11,5 @@ public class PartnerCheckoutOrderRequest {
     @NotNull
     private BigDecimal amount;
     @NotBlank
-    private String account;
+    private String purse;
 }

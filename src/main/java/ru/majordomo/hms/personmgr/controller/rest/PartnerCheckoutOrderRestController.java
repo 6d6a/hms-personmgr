@@ -123,7 +123,7 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
         order.setPersonalAccountId(account.getId());
         order.setPersonalAccountName(account.getName());
         order.setAmount(partnerCheckoutOrderRequest.getAmount());
-        order.setAccount(partnerCheckoutOrderRequest.getAccount());
+        order.setPurse(partnerCheckoutOrderRequest.getPurse());
 
         partnerCheckoutOrderManager.create(order, operator);
 
