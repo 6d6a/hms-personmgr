@@ -25,7 +25,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_CHECKOUT_SERVI
 @Service
 public class PartnerCheckoutOrderManager extends OrderManager<AccountPartnerCheckoutOrder> {
 
-    @Value("${mail_manager.pro_email}")
+    @Value("${mail_manager.partner_checkout_order_email}")
     private String proEmail;
 
     private final ApplicationEventPublisher publisher;
@@ -109,7 +109,9 @@ public class PartnerCheckoutOrderManager extends OrderManager<AccountPartnerChec
         parameters.put("client_id", message.getAccountId());
 
         parameters.put("body", "1. Аккаунт: " + account.getName() + "<br>" +
-                "2. Сумма к выводу партнёрских средств: " + accountOrder.getAmount() + "<br>");
+                "2. Сумма к выводу партнёрских средств: " + accountOrder.getAmount() + "<br>" +
+                "3. Номер кошелька: " + accountOrder.getPurse() + "<br>"
+        );
         parameters.put("subject", "Заказ на вывод партнёрских средств");
 
         message.addParam("parametrs", parameters);
