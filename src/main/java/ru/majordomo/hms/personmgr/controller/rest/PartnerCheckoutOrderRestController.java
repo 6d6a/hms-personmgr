@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.OrderState;
@@ -124,7 +123,7 @@ public class PartnerCheckoutOrderRestController extends CommonRestController {
         order.setPersonalAccountId(account.getId());
         order.setPersonalAccountName(account.getName());
         order.setAmount(partnerCheckoutOrderRequest.getAmount());
-        order.setNumberAccount(partnerCheckoutOrderRequest.getNumberAccount());
+        order.setYaAccount(partnerCheckoutOrderRequest.getAccount());
 
         partnerCheckoutOrderManager.create(order, operator);
 
