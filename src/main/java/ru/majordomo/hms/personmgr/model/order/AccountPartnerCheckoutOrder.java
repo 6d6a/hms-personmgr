@@ -13,7 +13,7 @@ public class AccountPartnerCheckoutOrder extends AccountOrder {
 
     private String documentNumber;
 
-    private String yaAccount;
+    private String account;
 
     public BigDecimal getAmount() {
         return amount;
@@ -31,12 +31,12 @@ public class AccountPartnerCheckoutOrder extends AccountOrder {
         this.documentNumber = documentNumber;
     }
 
-    public String getYaAccount() {
-        return yaAccount;
+    public String getAccount() {
+        return account;
     }
 
-    public void setYaAccount(String yaAccount) {
-        this.yaAccount = yaAccount;
+    public void setAccount(String account) {
+        this.account = account;
     }
 
     @Override
@@ -44,7 +44,7 @@ public class AccountPartnerCheckoutOrder extends AccountOrder {
         return "AccountPartnerCheckoutOrder{" +
                 "amount=" + amount +
                 ", documentNumber='" + documentNumber + '\'' +
-                ", yaAccount='" + yaAccount + '\'' +
+                ", account='" + account + '\'' +
                 "} " + super.toString();
     }
 }

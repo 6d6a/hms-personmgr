@@ -110,7 +110,7 @@ public class PartnerCheckoutOrderManager extends OrderManager<AccountPartnerChec
 
         parameters.put("body", "1. Аккаунт: " + account.getName() + "<br>" +
                 "2. Сумма к выводу партнёрских средств: " + accountOrder.getAmount() + "<br>" +
-                "3. Номер кошелька: " + accountOrder.getYaAccount() + "<br>"
+                "3. Номер кошелька: " + accountOrder.getAccount() + "<br>"
         );
         parameters.put("subject", "Заказ на вывод партнёрских средств");
 
