@@ -1,18 +1,13 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
-
-import javax.servlet.http.HttpServletResponse;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
@@ -41,10 +36,9 @@ public class UnixAccountResourceRestController extends CommonRestController {
         this.rcUserFeignClient = rcUserFeignClient;
     }
 
-    @RequestMapping(value = "", method = RequestMethod.POST)
-    public SimpleServiceMessage create(
+    @PostMapping
+    public ResponseEntity<SimpleServiceMessage> create(
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request,
             Authentication authentication
@@ -67,18 +61,15 @@ public class UnixAccountResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.UNIX_ACCOUNT_CREATE, BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на создание Unix-аккаунта (имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.PATCH)
-    public SimpleServiceMessage update(
+    @PatchMapping("/{resourceId}")
+    public ResponseEntity<SimpleServiceMessage> update(
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request,
             Authentication authentication
@@ -100,17 +91,14 @@ public class UnixAccountResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.UNIX_ACCOUNT_UPDATE, BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на обновление Unix-аккаунта (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.DELETE)
-    public SimpleServiceMessage delete(
+    @DeleteMapping("/{resourceId}")
+    public ResponseEntity<SimpleServiceMessage> delete(
             @PathVariable String resourceId,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -122,10 +110,8 @@ public class UnixAccountResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.UNIX_ACCOUNT_DELETE, BusinessActionType.UNIX_ACCOUNT_DELETE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на удаление Unix-аккаунта (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 }

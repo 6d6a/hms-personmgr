@@ -1,14 +1,9 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-
-import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.bind.annotation.*;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
@@ -23,10 +18,10 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 @RequestMapping("/{accountId}/ftp-user")
 @Validated
 public class FtpUserResourceRestController extends CommonRestController {
-    @RequestMapping(value = "", method = RequestMethod.POST)
-    public SimpleServiceMessage create(
+
+    @PostMapping
+    public ResponseEntity<SimpleServiceMessage> create(
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -39,25 +34,20 @@ public class FtpUserResourceRestController extends CommonRestController {
         }
 
         if (!planCheckerService.canAddFtpUser(accountId)) {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-
-            return this.createErrorResponse("Plan limit for ftp-users exceeded");
+            throw new ParameterValidationException("Лимит тарифного плана на создание FTP пользователей превышен");
         }
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_CREATE, BusinessActionType.FTP_USER_CREATE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на создание FTP-пользователя (имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.PATCH)
-    public SimpleServiceMessage update(
+    @PatchMapping("/{resourceId}")
+    public ResponseEntity<SimpleServiceMessage> update(
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -72,17 +62,14 @@ public class FtpUserResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_UPDATE, BusinessActionType.FTP_USER_UPDATE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на обновление FTP-пользователя (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.DELETE)
-    public SimpleServiceMessage delete(
+    @DeleteMapping("/{resourceId}")
+    public ResponseEntity<SimpleServiceMessage> delete(
             @PathVariable String resourceId,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -94,10 +81,8 @@ public class FtpUserResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_DELETE, BusinessActionType.FTP_USER_DELETE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на удаление FTP-пользователя (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 }

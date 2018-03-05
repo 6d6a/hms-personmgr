@@ -1,9 +1,6 @@
 package ru.majordomo.hms.personmgr.common;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.APP_ID_KEY;
@@ -33,6 +30,8 @@ public class RequiredField {
     public static final Set<String> APP_INSTALL_FULL = new HashSet<>();
 
     public static final Set<String> ACCOUNT_TRANSFER = new HashSet<>();
+
+    public static final Set<String> ACCOUNT_EMAIL_NEWS_PATCH = new HashSet<>();
 
     static {
         ACCOUNT_CREATE.addAll(Arrays.asList(
@@ -79,5 +78,7 @@ public class RequiredField {
         ACCOUNT_TRANSFER.addAll(Collections.singletonList(
                 SERVER_ID_KEY
         ));
+
+        ACCOUNT_EMAIL_NEWS_PATCH.add("enabled");
     }
 }

@@ -269,7 +269,8 @@ public class DomainService {
         List<Domain> domainsByName = getDomainsByName(domainName);
         if (!domainsByName.isEmpty() || blackListService.domainExistsInControlBlackList(domainName)) {
             logger.debug("domain: " + domainName + " exists in control BlackList");
-            throw new DomainNotAvailableException("Домен: " + domainName + " уже присутствует в системе и не может быть добавлен.");
+            throw new DomainNotAvailableException("Домен " + domainName
+                    + " уже присутствует в системе и не может быть добавлен.");
         }
 
         //Top private domain check
@@ -292,8 +293,8 @@ public class DomainService {
 
             if (!existOnAccount) {
                 logger.debug("domain: " + domainName + " exists in control BlackList");
-                throw new DomainNotAvailableException("Домен: " + domain.topPrivateDomain().toString() + " уже присутствует " +
-                        "в системе и не может быть добавлен.");
+                throw new DomainNotAvailableException("Домен " + domain.topPrivateDomain().toString()
+                        + " уже присутствует в системе и не может быть добавлен.");
             }
         }
     }
