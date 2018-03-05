@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -777,7 +778,7 @@ public class AccountHelper {
             message.setAccountId(account.getId());
             message.addParam("resourceId", mailbox.getId());
             message.addParam("switchedOn", false);
-            message.addParam("willBeDeletedAfter", LocalDateTime.now().plusDays(7));
+            message.addParam("willBeDeletedAfter", LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 
             businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
@@ -795,7 +796,7 @@ public class AccountHelper {
             message.setAccountId(account.getId());
             message.addParam("resourceId", database.getId());
             message.addParam("switchedOn", false);
-            message.addParam("willBeDeletedAfter", LocalDateTime.now().plusDays(7));
+            message.addParam("willBeDeletedAfter", LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 
             businessHelper.buildAction(BusinessActionType.DATABASE_UPDATE_RC, message);
 
@@ -813,7 +814,7 @@ public class AccountHelper {
             message.setAccountId(account.getId());
             message.addParam("resourceId", databaseUser.getId());
             message.addParam("switchedOn", false);
-            message.addParam("willBeDeletedAfter", LocalDateTime.now().plusDays(7));
+            message.addParam("willBeDeletedAfter", LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 
             businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
