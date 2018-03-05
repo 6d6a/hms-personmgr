@@ -343,7 +343,7 @@ public class AccountAbonementRestController extends CommonRestController {
             @RequestParam("period") Period period,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        List<String> allowedPeriods = Arrays.asList("P3M", "P6M", "P9M", "P1Y");
+        List<String> allowedPeriods = Arrays.asList("P3M", "P6M", "P9M", "P1Y", "P2Y");
 
         if (!allowedPeriods.contains(period.toString())) {
             throw new ParameterValidationException("Можно добавить абонементы только следующей продолжительности: " + allowedPeriods.toString());
