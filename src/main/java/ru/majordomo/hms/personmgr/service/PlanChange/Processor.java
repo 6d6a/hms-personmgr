@@ -665,11 +665,11 @@ public abstract class Processor {
 
     private void normalizeMailbox() {
         if (!newPlan.isMailboxAllowed()) {
-            accountHelper.deleteAllMailboxes(account);
+            accountHelper.disableAndScheduleDeleteForAllMailboxes(account);
 
             //Запишем в историю клиента
             Map<String, String> historyParams = new HashMap<>();
-            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта удалены почтовые ящики в соответствии с тарифным планом");
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта выключены и запланированы на удаление почтовые ящики в соответствии с тарифным планом");
             historyParams.put(OPERATOR_KEY, operator);
 
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
@@ -682,11 +682,11 @@ public abstract class Processor {
 
     private void normalizeSslCertificate() {
         if (!newPlan.isSslCertificateAllowed()) {
-            accountHelper.disableAllSslCertificates(account);
+            accountHelper.deleteAllSslCertificates(account);
 
             //Запишем в историю клиента
             Map<String, String> historyParams = new HashMap<>();
-            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отключны SSL сертификаты в соответствии с тарифным планом");
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта удалены SSL сертификаты в соответствии с тарифным планом");
             historyParams.put(OPERATOR_KEY, operator);
 
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
@@ -695,11 +695,11 @@ public abstract class Processor {
 
     private void normalizeDatabase() {
         if (!newPlan.isDatabaseAllowed()) {
-            accountHelper.deleteAllDatabases(account);
+            accountHelper.disableAndScheduleDeleteForAllDatabases(account);
 
             //Запишем в историю клиента
             Map<String, String> historyParams = new HashMap<>();
-            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта удалены базы данных в соответствии с тарифным планом");
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта выключены и запланированы на удаление базы данных в соответствии с тарифным планом");
             historyParams.put(OPERATOR_KEY, operator);
 
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
@@ -708,11 +708,11 @@ public abstract class Processor {
 
     private void normalizeDatabaseUser() {
         if (!newPlan.isDatabaseUserAllowed()) {
-            accountHelper.deleteAllDatabaseUsers(account);
+            accountHelper.disableAndScheduleDeleteForAllDatabaseUsers(account);
 
             //Запишем в историю клиента
             Map<String, String> historyParams = new HashMap<>();
-            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта удалены пользователи баз данных в соответствии с тарифным планом");
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта выключены и запланированы на удаление пользователи баз данных в соответствии с тарифным планом");
             historyParams.put(OPERATOR_KEY, operator);
 
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
