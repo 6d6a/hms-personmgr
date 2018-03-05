@@ -519,6 +519,8 @@ public class AbonementService {
                 return " (абонемент на 9 месяцев)";
             case "P1Y":
                 return " (абонемент на 1 год)";
+            case "P2Y":
+                return " (абонемент на 2 года)";
             default:
                 throw new ParameterValidationException("Некорректный период");
         }
