@@ -21,6 +21,8 @@ import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.validation.ObjectIdList;
 
+import static ru.majordomo.hms.personmgr.common.ResourceType.DATABASE;
+import static ru.majordomo.hms.personmgr.common.ResourceType.DATABASE_USER;
 import static ru.majordomo.hms.personmgr.common.ResourceType.MAILBOX;
 import static ru.majordomo.hms.personmgr.common.ResourceType.SSL_CERTIFICATE;
 
@@ -78,6 +80,14 @@ public class Plan extends BaseModel {
 
     public Boolean isMailboxAllowed() {
         return !prohibitedResourceTypes.contains(MAILBOX);
+    }
+
+    public Boolean isDatabaseAllowed() {
+        return !prohibitedResourceTypes.contains(DATABASE);
+    }
+
+    public Boolean isDatabaseUserAllowed() {
+        return !prohibitedResourceTypes.contains(DATABASE_USER);
     }
 
     public String getNotInternalAbonementId() {

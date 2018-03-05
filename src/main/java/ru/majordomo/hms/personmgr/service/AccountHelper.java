@@ -738,6 +738,38 @@ public class AccountHelper {
         }
     }
 
+    public void deleteAllDatabases(PersonalAccount account) {
+        Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+
+        for (Database database : databases) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", database.getId());
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_DELETE_RC, message);
+
+            String historyMessage = "Отправлена заявка на удаление базы данных '" + database.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void deleteAllDatabaseUsers(PersonalAccount account) {
+        Collection<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
+
+        for (DatabaseUser databaseUser : databaseUsers) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", databaseUser.getId());
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_USER_DELETE_RC, message);
+
+            String historyMessage = "Отправлена заявка на удаление пользователя баз данных '" + databaseUser.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
     /*
      * получим стоимость абонемента на период через Plan, PlanId или PersonalAccount
      * @period - период действия абонемента, "P1Y" - на год

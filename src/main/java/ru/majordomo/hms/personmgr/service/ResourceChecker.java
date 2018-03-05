@@ -51,6 +51,14 @@ public class ResourceChecker {
                 checkMailbox(account);
 
                 break;
+            case DATABASE:
+                checkDatabase(account);
+
+                break;
+            case DATABASE_USER:
+                checkDatabaseUser(account);
+
+                break;
         }
     }
 
@@ -121,6 +129,22 @@ public class ResourceChecker {
         }
     }
 
+    private void checkDatabase(PersonalAccount account) {
+        Plan plan = planRepository.findOne(account.getPlanId());
+
+        if (!plan.isDatabaseAllowed()) {
+            throw new ParameterValidationException("На вашем тарифном плане добавление баз данных недоступно");
+        }
+    }
+
+    private void checkDatabaseUser(PersonalAccount account) {
+        Plan plan = planRepository.findOne(account.getPlanId());
+
+        if (!plan.isDatabaseUserAllowed()) {
+            throw new ParameterValidationException("На вашем тарифном плане добавление пользователей баз данных недоступно");
+        }
+    }
+
     private WebSite getWebSite(PersonalAccount account, Map<String, Object> resource) {
         WebSite webSite;
         try {
@@ -136,30 +160,18 @@ public class ResourceChecker {
     }
 
     private boolean serviceIdHasType(String serviceId, List<Service> services, Set<String> serviceTypes) {
-        for (Service service : services) {
-            if (service.getId().equals(serviceId)) {
-                if (serviceHasType(service, serviceTypes)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return services
+                .stream()
+                .anyMatch(service -> service.getId().equals(serviceId) && serviceHasType(service, serviceTypes));
     }
 
     static boolean serviceHasType(Service service, Set<String> serviceTypes) {
-        for (String serviceType : serviceTypes) {
-            if (serviceType.endsWith("*")) {
-                if (service.getServiceTemplate().getServiceTypeName()
-                        .startsWith(serviceType.substring(0, serviceType.length()-1))) {
-                    return true;
-                }
-            } else {
-                if (service.getServiceTemplate().getServiceTypeName().equals(serviceType)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return serviceTypes
+                .stream()
+                .anyMatch(
+                        s -> s.endsWith("*") ?
+                                service.getServiceTemplate().getServiceTypeName().startsWith(s.substring(0, s.length()-1)) :
+                                service.getServiceTemplate().getServiceTypeName().equals(s)
+                );
     }
 }

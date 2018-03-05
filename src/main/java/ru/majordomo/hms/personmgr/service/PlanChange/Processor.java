@@ -653,6 +653,12 @@ public abstract class Processor {
         //Разрешены ли почтовые ящики на новом тарифе
         normalizeMailbox();
 
+        //Разрешены ли базы данных на новом тарифе
+        normalizeDatabase();
+
+        //Разрешены ли пользователи баз данных на новом тарифе
+        normalizeDatabaseUser();
+
         //Разрешены ли установленные для сайтов serviceId на новом тарифе
         normalizeWebSite();
     }
@@ -681,6 +687,32 @@ public abstract class Processor {
             //Запишем в историю клиента
             Map<String, String> historyParams = new HashMap<>();
             historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отключны SSL сертификаты в соответствии с тарифным планом");
+            historyParams.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        }
+    }
+
+    private void normalizeDatabase() {
+        if (!newPlan.isDatabaseAllowed()) {
+            accountHelper.deleteAllDatabases(account);
+
+            //Запишем в историю клиента
+            Map<String, String> historyParams = new HashMap<>();
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта удалены базы данных в соответствии с тарифным планом");
+            historyParams.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        }
+    }
+
+    private void normalizeDatabaseUser() {
+        if (!newPlan.isDatabaseUserAllowed()) {
+            accountHelper.deleteAllDatabaseUsers(account);
+
+            //Запишем в историю клиента
+            Map<String, String> historyParams = new HashMap<>();
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта удалены пользователи баз данных в соответствии с тарифным планом");
             historyParams.put(OPERATOR_KEY, operator);
 
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
