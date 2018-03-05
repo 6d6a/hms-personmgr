@@ -21,23 +21,25 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Arrays;
 
-import ru.majordomo.hms.personmgr.common.AccountSetting;
-import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.Utils;
+import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.repository.AbonementRepository;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.time.temporal.ChronoUnit.DAYS;
+import static ru.majordomo.hms.personmgr.common.AbonementType.VIRTUAL_HOSTING_PLAN;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_ABONEMENT;
 import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND;
@@ -49,7 +51,9 @@ import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurren
 public class AbonementService {
     private final static Logger logger = LoggerFactory.getLogger(AbonementService.class);
 
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
+    private final AbonementRepository abonementRepository;
+    private final PaymentServiceRepository paymentServiceRepository;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
@@ -62,7 +66,9 @@ public class AbonementService {
 
     @Autowired
     public AbonementService(
-            PlanRepository planRepository,
+            PlanManager planManager,
+            AbonementRepository abonementRepository,
+            PaymentServiceRepository paymentServiceRepository,
             AccountAbonementManager accountAbonementManager,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
@@ -71,7 +77,9 @@ public class AbonementService {
             AccountNotificationHelper accountNotificationHelper,
             ChargeHelper chargeHelper
     ) {
-        this.planRepository = planRepository;
+        this.planManager = planManager;
+        this.abonementRepository = abonementRepository;
+        this.paymentServiceRepository = paymentServiceRepository;
         this.accountAbonementManager = accountAbonementManager;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
@@ -212,7 +220,7 @@ public class AbonementService {
 
             // Высчитываем предполагаемую месячную стоимость аккаунта
             Integer daysInCurrentMonth = LocalDateTime.now().toLocalDate().lengthOfMonth();
-            Plan plan = planRepository.findOne(account.getPlanId());
+            Plan plan = planManager.findOne(account.getPlanId());
             PaymentService planAccountService = plan.getService();
             BigDecimal monthCost = planAccountService.getCost();
 
@@ -348,7 +356,7 @@ public class AbonementService {
     }
 
     private Plan getAccountPlan(PersonalAccount account) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         if(plan == null){
             throw new ResourceNotFoundException("Account plan not found");
@@ -390,7 +398,7 @@ public class AbonementService {
 
         accountAbonementManager.delete(accountAbonement);
 
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
         boolean needToSendMail = false;
         if (!plan.isAbonementOnly()) {
             BigDecimal balance = accountHelper.getBalance(account);
@@ -411,7 +419,7 @@ public class AbonementService {
         //Создаем AccountService с выбранным тарифом
         addPlanServicesAfterAbonementExpire(account);
 
-        if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
+        if (planManager.findOne(account.getPlanId()).isAbonementOnly()) {
             accountHelper.disableAccount(account);
         } else {
             chargeHelper.prepareAndProcessChargeRequest(account.getId(), LocalDate.now());
@@ -436,12 +444,85 @@ public class AbonementService {
     }
 
     public void addFree14DaysAbonement(PersonalAccount account) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
         Abonement abonement = plan.getFree14DaysAbonement();
 
         if (abonement != null) {
             addAbonement(account, abonement.getId(), false);
             accountHelper.saveHistoryForOperatorService(account, "Добавлен абонемент на тестовый период (14 дней)");
+        }
+    }
+
+    public void addPromoAbonementWithActivePlan(PersonalAccount account, Period period) {
+
+        Plan plan = planManager.findOne(account.getPlanId());
+
+        List<Abonement> abonements = abonementRepository.findByIdInAndInternalAndPeriod(
+                plan.getAbonementIds(), true, period.toString());
+
+        Abonement abonement = null;
+        for (Abonement a : abonements) {
+            if (a.getService().getCost().equals(BigDecimal.ZERO)) {
+                abonement = a;
+                break;
+            }
+        }
+
+        if (abonement == null) {
+            abonement = generatePromoAbonementByPlanAndPeriod(plan, period);
+        }
+
+        addAbonement(account, abonement.getId(), false);
+    }
+
+    private Abonement generatePromoAbonementByPlanAndPeriod(Plan plan, Period period){
+        PaymentService paymentService = generatePromoServiceByPlanAndPeriod(plan, period);
+
+        Abonement abonement = new Abonement();
+
+        abonement.setInternal(true);
+        abonement.setName(plan.getName() + suffixName(period));
+        abonement.setServiceId(paymentService.getId());
+        abonement.setType(VIRTUAL_HOSTING_PLAN);
+        abonement.setPeriod(period.toString());
+
+        abonementRepository.insert(abonement);
+
+        planManager.addAbonementId(plan.getId(), abonement.getId());
+
+        return abonement;
+    }
+
+    private PaymentService generatePromoServiceByPlanAndPeriod(Plan plan, Period period){
+        PaymentService paymentService = new PaymentService();
+
+        paymentService.setCost(BigDecimal.ZERO);
+        paymentService.setName(plan.getName() + suffixName(period));
+        paymentService.setAccountType(AccountType.VIRTUAL_HOSTING);
+        paymentService.setActive(false);
+        paymentService.setLimit(1);
+        paymentService.setOldId("plan_abonement_" + plan.getOldId() + "_" + period.toString());
+        paymentService.setPaymentType(ServicePaymentType.ONE_TIME);
+
+        return paymentServiceRepository.insert(paymentService);
+    }
+
+    private String suffixName(Period period) {
+        switch (period.toString()) {
+            case "P1M":
+                return " (абонемент на 1 месяц)";
+            case "P3M":
+                return " (абонемент на 3 месяца)";
+            case "P6M":
+                return " (абонемент на 6 месяцев)";
+            case "P9M":
+                return " (абонемент на 9 месяцев)";
+            case "P1Y":
+                return " (абонемент на 1 год)";
+            case "P2Y":
+                return " (абонемент на 2 года)";
+            default:
+                throw new ParameterValidationException("Некорректный период");
         }
     }
 }

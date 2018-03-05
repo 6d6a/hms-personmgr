@@ -2,15 +2,10 @@ package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-
-import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.bind.annotation.*;
 
 import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
@@ -19,6 +14,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
@@ -69,10 +65,9 @@ public class DomainResourceRestController extends CommonRestController {
         this.domainRegistrarFeignClient = domainRegistrarFeignClient;
     }
 
-    @RequestMapping(value = "", method = RequestMethod.POST)
-    public SimpleServiceMessage create(
+    @PostMapping
+    public ResponseEntity<SimpleServiceMessage> create(
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -107,16 +102,11 @@ public class DomainResourceRestController extends CommonRestController {
                     e.printStackTrace();
                     throw e;
                 }
-                return this.createErrorResponse("Домен c ID: " + parentDomainId + " не найден на аккаунте.");
+                throw new ResourceNotFoundException("Домен c ID: " + parentDomainId + " не найден на аккаунте.");
             }
         }
 
-        try {
-            domainService.checkBlacklist(domainName, accountId);
-        } catch (DomainNotAvailableException e) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return this.createErrorResponse("Домен: " + domainName + " уже присутствует в системе и не может быть добавлен.");
-        }
+        domainService.checkBlacklist(domainName, accountId);
 
         DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
 
@@ -125,7 +115,7 @@ public class DomainResourceRestController extends CommonRestController {
             //Проверить домен на премиальность
             AvailabilityInfo availabilityInfo = domainRegistrarFeignClient.getAvailabilityInfo(domainName);
             if (!availabilityInfo.getFree()) {
-                return this.createErrorResponse("Домен: " + domainName + " по данным whois занят.");
+                throw new DomainNotAvailableException("Домен: " + domainName + " по данным whois занят.");
             }
 
             List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountId(account.getId());
@@ -200,8 +190,6 @@ public class DomainResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         String actionText = isRegistration ?
                 (isFreeDomain ?
                         "бесплатную регистрацию (actionPromotion Id: " + message.getParam("freeDomainPromotionId") + " )" :
@@ -211,14 +199,13 @@ public class DomainResourceRestController extends CommonRestController {
                 "добавление";
         saveHistory(request, accountId, "Поступила заявка на " + actionText +" домена (имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.PATCH)
-    public SimpleServiceMessage update(
+    @PatchMapping("/{resourceId}")
+    public ResponseEntity<SimpleServiceMessage> update(
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -260,17 +247,14 @@ public class DomainResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DOMAIN_UPDATE, BusinessActionType.DOMAIN_UPDATE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на " + (isRenew ? "продление" : "обновление") + " домена (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
-    @RequestMapping(value = "/{resourceId}", method = RequestMethod.DELETE)
-    public SimpleServiceMessage delete(
+    @DeleteMapping("/{resourceId}")
+    public ResponseEntity<SimpleServiceMessage> delete(
             @PathVariable String resourceId,
-            HttpServletResponse response,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
@@ -282,10 +266,8 @@ public class DomainResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DOMAIN_DELETE, BusinessActionType.DOMAIN_DELETE_RC, message);
 
-        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-
         saveHistory(request, accountId, "Поступила заявка на удаление домена (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
 
-        return this.createSuccessResponse(businessAction);
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 }

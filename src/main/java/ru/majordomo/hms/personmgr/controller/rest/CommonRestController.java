@@ -179,7 +179,7 @@ public class CommonRestController {
     }
 
     protected void saveHistory(SecurityContextHolderAwareRequestWrapper request, String accountId, String message) {
-        String operator = request.getUserPrincipal().getName();
+        String operator = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "service";
         Map<String, String> params = new HashMap<>();
         params.put(HISTORY_MESSAGE_KEY, message);
         params.put(OPERATOR_KEY, operator);

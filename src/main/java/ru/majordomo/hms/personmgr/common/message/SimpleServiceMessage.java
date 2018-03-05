@@ -86,6 +86,19 @@ public class SimpleServiceMessage {
         return jsonData;
     }
 
+    public SimpleServiceMessage withAccountId(String accountId) {
+        this.accountId = accountId;
+        return this;
+    }
+
+    public SimpleServiceMessage withParam(String key, Object value) {
+        if (params == null) {
+            params = new HashMap<>();
+        }
+        params.put(key, value);
+        return this;
+    }
+
     @Override
     public String toString() {
         return "SimpleServiceMessage{" +

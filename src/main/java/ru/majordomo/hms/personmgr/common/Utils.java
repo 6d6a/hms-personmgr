@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
@@ -232,5 +233,19 @@ public class Utils {
             i++;
         }
         return joiner.toString();
+    }
+
+    public static String humanizePeriod(Period period) {
+        StringBuilder result = new StringBuilder();
+        if (period.getYears() > 0) {
+            result.append(Utils.pluralizef("%d год", "%d года", "%d лет", period.getYears()));
+        }
+        if (period.getMonths() > 0) {
+            result.append(Utils.pluralizef("%d месяц", "%d месяца", "%d месяцев", period.getMonths()));
+        }
+        if (period.getDays() > 0) {
+            result.append(Utils.pluralizef("%d день", "%d дня", "%d дней", period.getDays()));
+        }
+        return result.toString().isEmpty() ? period.toString() : result.toString();
     }
 }
