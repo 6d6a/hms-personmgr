@@ -823,6 +823,57 @@ public class AccountHelper {
         }
     }
 
+    public void unScheduleDeleteForAllMailboxes(PersonalAccount account) {
+        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+        for (Mailbox mailbox : mailboxes) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", mailbox.getId());
+            message.addParam("willBeDeletedAfter", null);
+
+            businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на отмену отложенного удаления почтового ящика '" + mailbox.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void unScheduleDeleteForAllDatabases(PersonalAccount account) {
+        Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+
+        for (Database database : databases) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", database.getId());
+            message.addParam("willBeDeletedAfter", null);
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на отмену отложенного удаления базы данных '" + database.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void unScheduleDeleteForAllDatabaseUsers(PersonalAccount account) {
+        Collection<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
+
+        for (DatabaseUser databaseUser : databaseUsers) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", databaseUser.getId());
+            message.addParam("willBeDeletedAfter", null);
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на отмену отложенного удаления пользователя баз данных '" + databaseUser.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
     /*
      * получим стоимость абонемента на период через Plan, PlanId или PersonalAccount
      * @period - период действия абонемента, "P1Y" - на год

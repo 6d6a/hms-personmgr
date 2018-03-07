@@ -673,6 +673,15 @@ public abstract class Processor {
             historyParams.put(OPERATOR_KEY, operator);
 
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        } else {
+            accountHelper.unScheduleDeleteForAllMailboxes(account);
+
+            //Запишем в историю клиента
+            Map<String, String> historyParams = new HashMap<>();
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отменено запланированное удаление почтовых ящиков в соответствии с тарифным планом");
+            historyParams.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
         }
     }
 
@@ -703,6 +712,15 @@ public abstract class Processor {
             historyParams.put(OPERATOR_KEY, operator);
 
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        }else {
+            accountHelper.unScheduleDeleteForAllDatabases(account);
+
+            //Запишем в историю клиента
+            Map<String, String> historyParams = new HashMap<>();
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отменено запланированное удаление баз данных в соответствии с тарифным планом");
+            historyParams.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
         }
     }
 
@@ -713,6 +731,15 @@ public abstract class Processor {
             //Запишем в историю клиента
             Map<String, String> historyParams = new HashMap<>();
             historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта выключены и запланированы на удаление пользователи баз данных в соответствии с тарифным планом");
+            historyParams.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        }else {
+            accountHelper.unScheduleDeleteForAllDatabaseUsers(account);
+
+            //Запишем в историю клиента
+            Map<String, String> historyParams = new HashMap<>();
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отменено запланированное удаление пользователей баз данных в соответствии с тарифным планом");
             historyParams.put(OPERATOR_KEY, operator);
 
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
