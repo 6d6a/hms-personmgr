@@ -171,6 +171,9 @@ public class AccountNotificationEventListener {
         } else if (account.isActive()) {
 
             switch (accountAgeInDays) {
+                case 1:
+                    apiName = "HmsMajordomoUstanoviteCMS";
+                    break;
 
                 case 4:
                     //если не регистрировал домен у нас
