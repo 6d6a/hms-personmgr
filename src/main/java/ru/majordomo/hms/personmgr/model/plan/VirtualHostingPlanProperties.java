@@ -1,18 +1,20 @@
 package ru.majordomo.hms.personmgr.model.plan;
 
-import org.springframework.data.annotation.PersistenceConstructor;
-
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.validation.constraints.NotNull;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import ru.majordomo.hms.personmgr.common.DBType;
+import ru.majordomo.hms.personmgr.common.ResourceType;
 
+@EqualsAndHashCode(callSuper = true)
+@Data
 public class VirtualHostingPlanProperties extends PlanProperties {
-
     @NotNull
     private PlanPropertyLimit sitesLimit = new PlanPropertyLimit();
 
@@ -37,119 +39,9 @@ public class VirtualHostingPlanProperties extends PlanProperties {
     @NotNull
     private Map<DBType, PlanPropertyLimit> db = new HashMap<>();
 
-    @NotNull
-    private List<String> serviceTemplateIds = new ArrayList<>();
+    private Map<ResourceType, Set<String>> allowedServiceTypes = new HashMap<>();
 
-    public VirtualHostingPlanProperties() {
-    }
-
-    @PersistenceConstructor
-    public VirtualHostingPlanProperties(
-            PlanPropertyLimit sitesLimit,
-            PlanPropertyLimit webCpuLimit,
-            PlanPropertyLimit dbCpuLimit,
-            PlanPropertyLimit quotaKBLimit,
-            PlanPropertyLimit ftpLimit,
-            PlanPropertyLimit sshLimit,
-            boolean businessServices,
-            Map<DBType, PlanPropertyLimit> db,
-            List<String> serviceTemplateIds
-    ) {
-        this.sitesLimit = sitesLimit;
-        this.webCpuLimit = webCpuLimit;
-        this.dbCpuLimit = dbCpuLimit;
-        this.quotaKBLimit = quotaKBLimit;
-        this.ftpLimit = ftpLimit;
-        this.sshLimit = sshLimit;
-        this.businessServices = businessServices;
-        this.db = db;
-        this.serviceTemplateIds = serviceTemplateIds;
-    }
-
-    public PlanPropertyLimit getSitesLimit() {
-        return sitesLimit;
-    }
-
-    public void setSitesLimit(PlanPropertyLimit sitesLimit) {
-        this.sitesLimit = sitesLimit;
-    }
-
-    public void setWebCpuLimit(PlanPropertyLimit webCpuLimit) {
-        this.webCpuLimit = webCpuLimit;
-    }
-
-    public void setDbCpuLimit(PlanPropertyLimit dbCpuLimit) {
-        this.dbCpuLimit = dbCpuLimit;
-    }
-
-    public void setQuotaKBLimit(PlanPropertyLimit quotaKBLimit) {
-        this.quotaKBLimit = quotaKBLimit;
-    }
-
-    public void setFtpLimit(PlanPropertyLimit ftpLimit) {
-        this.ftpLimit = ftpLimit;
-    }
-
-    public PlanPropertyLimit getWebCpuLimit() {
-        return webCpuLimit;
-    }
-
-    public PlanPropertyLimit getDbCpuLimit() {
-        return dbCpuLimit;
-    }
-
-    public PlanPropertyLimit getQuotaKBLimit() {
-        return quotaKBLimit;
-    }
-
-    public PlanPropertyLimit getFtpLimit() {
-        return ftpLimit;
-    }
-
-    public PlanPropertyLimit getSshLimit() {
-        return sshLimit;
-    }
-
-    public void setSshLimit(PlanPropertyLimit sshLimit) {
-        this.sshLimit = sshLimit;
-    }
-
-    public boolean isBusinessServices() {
-        return businessServices;
-    }
-
-    public void setBusinessServices(boolean businessServices) {
-        this.businessServices = businessServices;
-    }
-
-    public Map<DBType, PlanPropertyLimit> getDb() {
-        return db;
-    }
-
-    public void setDb(Map<DBType, PlanPropertyLimit> db) {
-        this.db = db;
-    }
-
-    public List<String> getServiceTemplateIds() {
-        return serviceTemplateIds;
-    }
-
-    public void setServiceTemplateIds(List<String> serviceTemplateIds) {
-        this.serviceTemplateIds = serviceTemplateIds;
-    }
-
-    @Override
-    public String toString() {
-        return "VirtualHostingPlanProperties{" +
-                "sitesLimit=" + sitesLimit +
-                ", webCpuLimit=" + webCpuLimit +
-                ", dbCpuLimit=" + dbCpuLimit +
-                ", quotaKBLimit=" + quotaKBLimit +
-                ", ftpLimit=" + ftpLimit +
-                ", sshLimit=" + sshLimit +
-                ", businessServices=" + businessServices +
-                ", db=" + db +
-                ", serviceTemplateIds=" + serviceTemplateIds +
-                "} " + super.toString();
+    public Set<String> getWebSiteAllowedServiceTypes() {
+        return allowedServiceTypes.getOrDefault(ResourceType.WEB_SITE, new HashSet<>());
     }
 }

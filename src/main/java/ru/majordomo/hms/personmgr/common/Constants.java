@@ -90,6 +90,7 @@ public class Constants {
     public static final String APPSCAT_DB_HOST_KEY = "DB_HOST";
     public static final String TRANSFER_DATABASES_KEY = "transferDatabases";
     public static final String SERVICE_ID_KEY = "serviceId";
+    public static final String APPLICATION_SERVICE_ID_KEY = "applicationServiceId";
     public static final String OLD_UNIX_ACCOUNT_SERVER_ID_KEY = "oldUnixAccountServerId";
     public static final String NEW_UNIX_ACCOUNT_SERVER_ID_KEY = "newUnixAccountServerId";
     public static final String OLD_SERVER_NAME_KEY = "oldServerName";
