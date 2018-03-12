@@ -235,6 +235,8 @@ public class AbonementService {
                         case DAY:
                             monthCost = monthCost.add(accountService.getCost().multiply(BigDecimal.valueOf(daysInCurrentMonth)));
                             break;
+                        case ONE_TIME:
+                            break;
                     }
                 }
             }

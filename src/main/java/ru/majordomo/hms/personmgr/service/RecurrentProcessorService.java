@@ -279,6 +279,8 @@ public class RecurrentProcessorService {
                         cost = accountService.getCost();
                         dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
                         break;
+                    case ONE_TIME:
+                        break;
                 }
 
             }

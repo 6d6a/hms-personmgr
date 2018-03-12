@@ -94,8 +94,12 @@ public class SchedulerRestController extends CommonRestController {
                 break;
             case "not_registered_domains_in_cart_notification":
                 publisher.publishEvent(new AccountNotifyNotRegisteredDomainsInCart());
-                break;
 
+                break;
+            case "process_bulk_revisium_requests":
+                publisher.publishEvent(new AccountNotifyNotRegisteredDomainsInCart());
+
+                break;
             default:
                 throw new ParameterValidationException("Неизвестный параметр scheduleAction");
         }
