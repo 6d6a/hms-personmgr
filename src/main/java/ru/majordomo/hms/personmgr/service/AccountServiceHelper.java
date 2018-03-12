@@ -24,7 +24,7 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.*;
-import ru.majordomo.hms.personmgr.service.Revisium.ReviScanApiClient;
+import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
 
 import static ru.majordomo.hms.personmgr.common.Constants.REVISIUM_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
@@ -36,7 +36,7 @@ public class AccountServiceHelper {
     private final PaymentServiceRepository serviceRepository;
     private final AccountServiceExpirationRepository accountServiceExpirationRepository;
     private final RevisiumRequestRepository revisiumRequestRepository;
-    private final ReviScanApiClient reviScanApiClient;
+    private final RevisiumApiClient reviScanApiClient;
     private final AccountHelper accountHelper;
     private final ApplicationEventPublisher publisher;
 
@@ -47,7 +47,7 @@ public class AccountServiceHelper {
             PaymentServiceRepository serviceRepository,
             AccountServiceExpirationRepository accountServiceExpirationRepository,
             RevisiumRequestRepository revisiumRequestRepository,
-            ReviScanApiClient reviScanApiClient,
+            RevisiumApiClient reviScanApiClient,
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher
     ) {
@@ -249,22 +249,21 @@ public class AccountServiceHelper {
                 .findByPersonalAccountIdAndAccountServiceId(account.getId(), accountService.getId());
 
         accountService.setEnabled(true);
+        
+        LocalDate expireDate = LocalDate.now().plusMonths(months);
 
         if (accountServiceExpiration == null) {
             accountServiceExpiration = new AccountServiceExpiration();
             accountServiceExpiration.setAccountServiceId(accountService.getId());
             accountServiceExpiration.setCreatedDate(LocalDate.now());
-            accountServiceExpiration.setExpireDate(LocalDate.now().plusMonths(months));
             accountServiceExpiration.setAccountService(accountService);
             accountServiceExpiration.setPersonalAccountId(account.getId());
-            accountServiceExpirationRepository.save(accountServiceExpiration);
-
-        } else {
-            LocalDate newDate = accountServiceExpiration.getExpireDate().isBefore(LocalDate.now())
-                    ? LocalDate.now() : accountServiceExpiration.getExpireDate();
-
-            accountServiceExpiration.setExpireDate(newDate.plusMonths(months));
+        } else if (accountServiceExpiration.getExpireDate().isAfter(LocalDate.now())) {
+            expireDate = accountServiceExpiration.getExpireDate().plusMonths(months);
         }
+
+        accountServiceExpiration.setExpireDate(expireDate);
+        accountServiceExpirationRepository.save(accountServiceExpiration);
 
         return accountServiceExpiration;
     }
@@ -398,8 +397,6 @@ public class AccountServiceHelper {
                 break;
             case DAY:
                 cost = accountService.getCost();
-                break;
-            case ONE_TIME:
                 break;
         }
         return cost;

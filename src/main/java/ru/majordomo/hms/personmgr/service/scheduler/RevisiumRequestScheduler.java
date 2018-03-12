@@ -51,6 +51,8 @@ public class RevisiumRequestScheduler {
         logger.info("Started processRecurrents");
         try {
 
+            //TODO revisium по 30 штук
+
             List<RevisiumRequestService> revisiumRequestServices = revisiumRequestServiceRepository.findAll();
             revisiumRequestServices.forEach(item -> {
                 if (!item.getExpireDate().isBefore(LocalDate.now()) && item.getAccountService().isEnabled()) {

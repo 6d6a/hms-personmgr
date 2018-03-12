@@ -138,13 +138,16 @@ public class ChargeProcessor {
             }
 
             if (chargeRequestItem.getAmount().compareTo(BigDecimal.ZERO) == 0) {
-                //TODO (in future) переделать под автопроделние
+                //TODO revisium (in future) переделать под автопроделние
                 AccountServiceExpiration expiration = accountServiceExpirationRepository.findByPersonalAccountIdAndAccountServiceId(
                         account.getId(), chargeRequestItem.getAccountServiceId()
                 );
 
-                if (expiration.getExpireDate().isBefore(LocalDate.now())) {
+                if (expiration != null && expiration.getExpireDate().isBefore(LocalDate.now())) {
                     accountHelper.disableAdditionalService(accountService);
+                    chargeRequestItem.setStatus(Status.CHARGED);
+                } else {
+                    chargeRequestItem.setStatus(Status.SKIPPED);
                 }
             } else {
                 ChargeResult chargeResult = charger.makeCharge(accountService, chargeRequest.getChargeDate());

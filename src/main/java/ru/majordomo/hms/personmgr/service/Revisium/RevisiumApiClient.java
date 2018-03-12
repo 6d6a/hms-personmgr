@@ -27,7 +27,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Service
-public class ReviScanApiClient {
+public class RevisiumApiClient {
 
     private String serverUrl;
     private RestTemplate restTemplate;
@@ -37,7 +37,7 @@ public class ReviScanApiClient {
     private final static String VERSION = "1.2.0";
 
     @Autowired
-    public ReviScanApiClient(
+    public RevisiumApiClient(
             @Value("${revisium.key}") String key,
             @Value("${revisium.url}") String serverUrl
     ) {

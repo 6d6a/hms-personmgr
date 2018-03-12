@@ -8,21 +8,25 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import ru.majordomo.hms.personmgr.common.AccountNotificationType;
 import ru.majordomo.hms.personmgr.dto.revisium.GetResultResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.MonitoringFlag;
 import ru.majordomo.hms.personmgr.dto.revisium.ResultStatus;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessBulkRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.model.account.AccountControlNotification;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequest;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
+import ru.majordomo.hms.personmgr.repository.AccountControlNotificationRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.Revisium.ReviScanApiClient;
+import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
 import ru.majordomo.hms.personmgr.service.scheduler.RevisiumRequestScheduler;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 
@@ -30,23 +34,25 @@ import java.util.List;
 public class ProcessingRevisiumRequestEventListener {
     private final static Logger logger = LoggerFactory.getLogger(ProcessingRevisiumRequestEventListener.class);
 
-    private final ReviScanApiClient reviScanApiClient;
+    private final RevisiumApiClient reviScanApiClient;
     private final ApplicationEventPublisher publisher;
     private final AccountHelper accountHelper;
     private final PersonalAccountManager personalAccountManager;
     private final RevisiumRequestRepository revisiumRequestRepository;
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final RevisiumRequestScheduler scheduler;
+    private final AccountControlNotificationRepository accountControlNotificationRepository;
 
     @Autowired
     public ProcessingRevisiumRequestEventListener(
-            ReviScanApiClient reviScanApiClient,
+            RevisiumApiClient reviScanApiClient,
             ApplicationEventPublisher publisher,
             AccountHelper accountHelper,
             PersonalAccountManager personalAccountManager,
             RevisiumRequestRepository revisiumRequestRepository,
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
-            RevisiumRequestScheduler scheduler
+            RevisiumRequestScheduler scheduler,
+            AccountControlNotificationRepository accountControlNotificationRepository
     ) {
         this.reviScanApiClient = reviScanApiClient;
         this.publisher = publisher;
@@ -55,6 +61,7 @@ public class ProcessingRevisiumRequestEventListener {
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
         this.scheduler = scheduler;
+        this.accountControlNotificationRepository = accountControlNotificationRepository;
     }
 
     @EventListener
@@ -62,13 +69,6 @@ public class ProcessingRevisiumRequestEventListener {
     public void onProcessingRevisiumRequestEventAction(ProcessRevisiumRequestEvent event) {
 
         logger.debug("We got ProcessingRevisiumRequestEvent");
-
-        try {
-            //Проверка сайта происходит в течении примерно минуты
-            Thread.sleep(100000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
 
         RevisiumRequest revisiumRequest = event.getSource();
 
@@ -83,6 +83,12 @@ public class ProcessingRevisiumRequestEventListener {
                     revisiumRequestRepository.save(revisiumRequest);
                     break;
                 case INCOMPLETE:
+                    try {
+                        //Проверка сайта происходит в течении примерно минуты
+                        Thread.sleep(100000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     publisher.publishEvent(new ProcessRevisiumRequestEvent(revisiumRequest));
                     break;
                 case CANCELED:
@@ -143,7 +149,14 @@ public class ProcessingRevisiumRequestEventListener {
                 }
 
                 if (newAlertFound) {
-                    //TODO уведомить пользователя
+                    //TODO revisium письмо
+                    AccountControlNotification notification = new AccountControlNotification();
+                    notification.setPersonalAccountId(revisiumRequest.getPersonalAccountId());
+                    notification.setCreated(LocalDateTime.now());
+                    notification.setViewed(false);
+                    notification.setMessage(revisiumRequest.getId());
+                    notification.setType(AccountNotificationType.REVISIUM_ALERT);
+                    accountControlNotificationRepository.save(notification);
                 }
 
             }

@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import ru.majordomo.hms.personmgr.event.account.*;
+import ru.majordomo.hms.personmgr.event.revisium.ProcessBulkRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.event.token.CleanTokensEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.BatchJobManager;
@@ -97,7 +98,7 @@ public class SchedulerRestController extends CommonRestController {
 
                 break;
             case "process_bulk_revisium_requests":
-                publisher.publishEvent(new AccountNotifyNotRegisteredDomainsInCart());
+                publisher.publishEvent(new ProcessBulkRevisiumRequestEvent());
 
                 break;
             default:

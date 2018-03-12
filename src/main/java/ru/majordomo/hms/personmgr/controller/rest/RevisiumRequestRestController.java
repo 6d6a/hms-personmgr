@@ -6,10 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.majordomo.hms.personmgr.dto.revisium.CheckResponse;
-import ru.majordomo.hms.personmgr.dto.revisium.ResultStatus;
 import ru.majordomo.hms.personmgr.dto.revisium.RevisiumRequestBody;
-import ru.majordomo.hms.personmgr.event.revisium.ProcessRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -23,7 +20,7 @@ import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
-import ru.majordomo.hms.personmgr.service.Revisium.ReviScanApiClient;
+import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import javax.validation.Valid;
@@ -42,7 +39,7 @@ public class RevisiumRequestRestController extends CommonRestController {
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final PersonalAccountManager personalAccountManager;
     private final AccountHelper accountHelper;
-    private final ReviScanApiClient reviScanApiClient;
+    private final RevisiumApiClient reviScanApiClient;
     private final AccountServiceHelper accountServiceHelper;
     private final AccountServiceExpirationRepository accountServiceExpirationRepository;
 
@@ -51,7 +48,7 @@ public class RevisiumRequestRestController extends CommonRestController {
             RevisiumRequestRepository revisiumRequestRepository,
             PersonalAccountManager personalAccountManager,
             AccountHelper accountHelper,
-            ReviScanApiClient reviScanApiClient,
+            RevisiumApiClient reviScanApiClient,
             AccountServiceHelper accountServiceHelper,
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             AccountServiceExpirationRepository accountServiceExpirationRepository
@@ -109,12 +106,12 @@ public class RevisiumRequestRestController extends CommonRestController {
     }
 
     //Один реквест в Ревизиум
-    @GetMapping("/{accountId}/revisium-request/{revisiumRequestsId}")
+    @GetMapping("/{accountId}/revisium-request/{revisiumRequestId}")
     public ResponseEntity<RevisiumRequest> getOneRequest(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @ObjectId(RevisiumRequest.class) @PathVariable(value = "revisiumRequestsId") String revisiumRequestsId
+            @ObjectId(RevisiumRequest.class) @PathVariable(value = "revisiumRequestId") String revisiumRequestId
     ) {
-        RevisiumRequest revisiumRequest = revisiumRequestRepository.findByPersonalAccountIdAndId(accountId, revisiumRequestsId);
+        RevisiumRequest revisiumRequest = revisiumRequestRepository.findByPersonalAccountIdAndId(accountId, revisiumRequestId);
 
         return new ResponseEntity<>(revisiumRequest, HttpStatus.OK);
     }
@@ -128,10 +125,6 @@ public class RevisiumRequestRestController extends CommonRestController {
     ) {
 
         PersonalAccount account = personalAccountManager.findOne(accountId);
-
-        if (account == null) {
-            throw new ParameterValidationException("Аккаунт не найден");
-        }
 
         RevisiumRequestService revisiumRequestService = revisiumRequestServiceRepository
                 .findByPersonalAccountIdAndId(accountId, revisiumRequestServiceId);
@@ -164,8 +157,8 @@ public class RevisiumRequestRestController extends CommonRestController {
             SecurityContextHolderAwareRequestWrapper request
     ) {
 
-        //TODO (in future) Автопродление услуги
-        //TODO (in future) Transient поле для AccountServiceExpiration (Пока что не требуется)
+        //TODO revisium (in future) Автопродление услуги
+        //TODO revisium (in future) Transient поле для AccountServiceExpiration (Пока что не требуется)
 
         PersonalAccount account = personalAccountManager.findOne(accountId);
 
