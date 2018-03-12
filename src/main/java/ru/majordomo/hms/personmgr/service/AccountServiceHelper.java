@@ -37,7 +37,6 @@ public class AccountServiceHelper {
     private final AccountServiceExpirationRepository accountServiceExpirationRepository;
     private final RevisiumRequestRepository revisiumRequestRepository;
     private final RevisiumApiClient reviScanApiClient;
-    private final AccountHelper accountHelper;
     private final ApplicationEventPublisher publisher;
 
     @Autowired
@@ -48,7 +47,6 @@ public class AccountServiceHelper {
             AccountServiceExpirationRepository accountServiceExpirationRepository,
             RevisiumRequestRepository revisiumRequestRepository,
             RevisiumApiClient reviScanApiClient,
-            AccountHelper accountHelper,
             ApplicationEventPublisher publisher
     ) {
         this.accountServiceRepository = accountServiceRepository;
@@ -57,7 +55,6 @@ public class AccountServiceHelper {
         this.accountServiceExpirationRepository = accountServiceExpirationRepository;
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.reviScanApiClient = reviScanApiClient;
-        this.accountHelper = accountHelper;
         this.publisher = publisher;
     }
 
@@ -249,7 +246,7 @@ public class AccountServiceHelper {
                 .findByPersonalAccountIdAndAccountServiceId(account.getId(), accountService.getId());
 
         accountService.setEnabled(true);
-        
+
         LocalDate expireDate = LocalDate.now().plusMonths(months);
 
         if (accountServiceExpiration == null) {
@@ -291,11 +288,12 @@ public class AccountServiceHelper {
             default:
                 revisiumRequest.setSuccessCheck(false);
                 revisiumRequestRepository.save(revisiumRequest);
-                accountHelper.saveHistoryForOperatorService(
-                        account,
-                        "Ошибка при запросе проверки (check) сайта '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум. " +
-                                "Текст ошибки: '" + checkResponse.getErrorMessage() + "'"
-                );
+                //TODO revisium
+//                accountHelper.saveHistoryForOperatorService(
+//                        account,
+//                        "Ошибка при запросе проверки (check) сайта '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум. " +
+//                                "Текст ошибки: '" + checkResponse.getErrorMessage() + "'"
+//                );
                 break;
         }
 
