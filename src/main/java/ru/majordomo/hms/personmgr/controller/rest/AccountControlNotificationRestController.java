@@ -27,7 +27,7 @@ public class AccountControlNotificationRestController extends CommonRestControll
     }
 
     //Список всех нотификций
-    @GetMapping("/{accountId}/account-notification")
+    @GetMapping("/{accountId}/account-notice")
     public ResponseEntity<List<AccountControlNotification>> listAllNotifications(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
@@ -37,7 +37,7 @@ public class AccountControlNotificationRestController extends CommonRestControll
     }
 
     //Список всех не просмотренных нотификций
-    @GetMapping("/{accountId}/account-notification/new")
+    @GetMapping("/{accountId}/account-notice/new")
     public ResponseEntity<List<AccountControlNotification>> listNotViewedNotifications(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
@@ -46,7 +46,8 @@ public class AccountControlNotificationRestController extends CommonRestControll
         return new ResponseEntity<>(notifications, HttpStatus.OK);
     }
 
-    @PostMapping("/{accountId}/account-notification/confirm/{accountControlNotificationId}")
+    //Пометить прочитанным
+    @PostMapping("/{accountId}/account-notice/confirm/{accountControlNotificationId}")
     public ResponseEntity<Void> confirm(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "accountControlNotificationId") String accountControlNotificationId
