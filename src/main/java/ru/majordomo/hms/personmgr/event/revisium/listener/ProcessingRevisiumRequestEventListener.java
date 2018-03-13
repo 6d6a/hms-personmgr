@@ -41,7 +41,7 @@ public class ProcessingRevisiumRequestEventListener {
     private final RevisiumRequestRepository revisiumRequestRepository;
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final RevisiumRequestScheduler scheduler;
-    private final AccountNoticeRepository accountControlNotificationRepository;
+    private final AccountNoticeRepository accountNoticeRepository;
 
     @Autowired
     public ProcessingRevisiumRequestEventListener(
@@ -52,7 +52,7 @@ public class ProcessingRevisiumRequestEventListener {
             RevisiumRequestRepository revisiumRequestRepository,
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             RevisiumRequestScheduler scheduler,
-            AccountNoticeRepository accountControlNotificationRepository
+            AccountNoticeRepository accountNoticeRepository
     ) {
         this.revisiumApiClient = revisiumApiClient;
         this.publisher = publisher;
@@ -61,7 +61,7 @@ public class ProcessingRevisiumRequestEventListener {
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
         this.scheduler = scheduler;
-        this.accountControlNotificationRepository = accountControlNotificationRepository;
+        this.accountNoticeRepository = accountNoticeRepository;
     }
 
     @EventListener
@@ -106,18 +106,19 @@ public class ProcessingRevisiumRequestEventListener {
                     break;
             }
 
-            List<RevisiumRequest> revisiumRequests = revisiumRequestRepository.findByPersonalAccountIdAndRevisiumRequestServiceIdOrderByCreatedDesc(
-                    revisiumRequest.getPersonalAccountId(), revisiumRequest.getRevisiumRequestServiceId()
-            );
+            try {
 
-            if (revisiumRequests.size() > 1) {
+                List<RevisiumRequest> revisiumRequests = revisiumRequestRepository.findByPersonalAccountIdAndRevisiumRequestServiceIdOrderByCreatedDesc(
+                        revisiumRequest.getPersonalAccountId(), revisiumRequest.getRevisiumRequestServiceId()
+                );
 
-                GetResultResponse last = new Gson().fromJson(revisiumRequests.get(0).getResult(), GetResultResponse.class);
-                GetResultResponse previous = new Gson().fromJson(revisiumRequests.get(1).getResult(), GetResultResponse.class);
+                if (revisiumRequests.size() > 1) {
 
-                Boolean newAlertFound = false;
+                    GetResultResponse last = new Gson().fromJson(revisiumRequests.get(0).getResult(), GetResultResponse.class);
+                    GetResultResponse previous = new Gson().fromJson(revisiumRequests.get(1).getResult(), GetResultResponse.class);
 
-                if (!last.getResult().equals(previous.getResult())) {
+                    Boolean newAlertFound;
+
                     newAlertFound = isNewAlertIncoming(
                             last.getMonitoring().getHtmlMalware(), previous.getMonitoring().getHtmlMalware());
                     newAlertFound = isNewAlertIncoming(
@@ -146,19 +147,23 @@ public class ProcessingRevisiumRequestEventListener {
                             last.getMonitoring().getCms(), previous.getMonitoring().getCms()) ? true : newAlertFound;
                     newAlertFound = isNewAlertIncoming(
                             last.getMonitoring().getJsErrors(), previous.getMonitoring().getJsErrors()) ? true : newAlertFound;
+
+                    if (newAlertFound) {
+                        //TODO revisium письмо
+                        AccountNotice notification = new AccountNotice();
+                        notification.setPersonalAccountId(revisiumRequest.getPersonalAccountId());
+                        notification.setCreated(LocalDateTime.now());
+                        notification.setViewed(false);
+                        notification.setMessage(revisiumRequest.getId());
+                        notification.setType(AccountNoticeType.REVISIUM_ALERT);
+                        accountNoticeRepository.save(notification);
+                    }
+
                 }
 
-                if (newAlertFound) {
-                    //TODO revisium письмо
-                    AccountNotice notification = new AccountNotice();
-                    notification.setPersonalAccountId(revisiumRequest.getPersonalAccountId());
-                    notification.setCreated(LocalDateTime.now());
-                    notification.setViewed(false);
-                    notification.setMessage(revisiumRequest.getId());
-                    notification.setType(AccountNoticeType.REVISIUM_ALERT);
-                    accountControlNotificationRepository.save(notification);
-                }
-
+            } catch (Exception e) {
+                logger.error("Непредвиденная ошибка при срвнении результатов из Ревизиума. revisiumRequest ID: " + revisiumRequest.getId());
+                e.printStackTrace();
             }
 
         } catch (Exception e) {
