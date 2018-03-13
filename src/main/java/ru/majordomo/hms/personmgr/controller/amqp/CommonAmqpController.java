@@ -166,18 +166,23 @@ public class CommonAmqpController {
         }
     }
 
+    protected void saveHistory(String personalAccountId, String message, String operator){
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, message);
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(personalAccountId, params));
+    }
+
     private void saveAccountHistoryByMessageState(SimpleServiceMessage message, State state, String action) {
         if (state.equals(State.PROCESSED)) {
             ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
             if (businessAction != null) {
-                //Save history
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Заявка на " + action + " ресурса '" +
-                        resourceName + "' выполнена успешно (имя: " + message.getParam("name") + ")");
-                params.put(OPERATOR_KEY, "service");
+                String historyMessage = "Заявка на " + action + " ресурса '" +
+                        resourceName + "' выполнена успешно (имя: " + message.getParam("name") + ")";
 
-                publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
+                saveHistory(businessAction.getPersonalAccountId(), historyMessage, "service");
             }
         }
     }

@@ -47,28 +47,6 @@ public class AccountNotificationStat extends ModelBelongsToPersonalAccount {
 
     public AccountNotificationStat() {}
 
-    @PersistenceConstructor
-    public AccountNotificationStat(
-            String id,
-            String personalAccountId,
-            LocalDateTime created,
-            NotificationType notificationType,
-            AccountType accountType,
-            String templateName,
-            NotificationTransportType transportType,
-            Map<String, String> data
-    ) {
-        super();
-        this.setId(id);
-        this.setPersonalAccountId(personalAccountId);
-        this.created = created;
-        this.notificationType = notificationType;
-        this.data = data;
-        this.accountType = accountType;
-        this.templateName = templateName;
-        this.transportType = transportType;
-    }
-
     public AccountNotificationStat(
             PersonalAccount account,
             NotificationType notificationType,

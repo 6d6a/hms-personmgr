@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.event.accountStat.listener;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -17,6 +19,7 @@ import ru.majordomo.hms.personmgr.repository.AccountNotificationStatRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.AccountStatHelper;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.service.StatFeignClient;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.time.LocalDateTime;
@@ -36,19 +39,24 @@ public class AccountStatEventListener {
     private final PersonalAccountManager accountManager;
     private final AccountNotificationStatRepository accountNotificationStatRepository;
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
+    private final StatFeignClient statFeignClient;
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public AccountStatEventListener(
             RcUserFeignClient rcUserFeignClient,
             AccountStatHelper accountStatHelper,
             PersonalAccountManager accountManager,
             AccountNotificationStatRepository accountNotificationStatRepository,
-            ProcessingBusinessActionRepository processingBusinessActionRepository
+            ProcessingBusinessActionRepository processingBusinessActionRepository,
+            StatFeignClient statFeignClient
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountStatHelper = accountStatHelper;
         this.accountManager = accountManager;
         this.accountNotificationStatRepository = accountNotificationStatRepository;
         this.processingBusinessActionRepository = processingBusinessActionRepository;
+        this.statFeignClient = statFeignClient;
     }
 
     @EventListener
@@ -78,7 +86,6 @@ public class AccountStatEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void checkFirstRealPayment(PaymentWasReceivedEvent event) {
-
         SimpleServiceMessage message = event.getSource();
 
         // только если платеж реальных средств сохраняем в accountStat
@@ -137,10 +144,17 @@ public class AccountStatEventListener {
                         NotificationType.REMAINING_DAYS_MONEY_ENDS
                 );
 
+        //TODO удалить после теста
+        paymentWasRecievedAfterNotificaton = true;
+
         if (!paymentWasRecievedAfterNotificaton) {
             return;
         }
 
-//        statFeignClein
+        Map<String, Object> body = new HashMap<>();
+        body.put(RESOURCE_ID_KEY, NotificationType.REMAINING_DAYS_MONEY_ENDS);
+        body.put(NAME_KEY, "Платеж после уведомления");
+        body.put(ACCOUNT_WAS_ACTIVE_KEY, false);
+        statFeignClient.paymentAfterNotificationIncrement(body);
     }
 }

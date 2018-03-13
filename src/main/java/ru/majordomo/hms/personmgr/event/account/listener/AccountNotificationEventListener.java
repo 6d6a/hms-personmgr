@@ -31,9 +31,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static ru.majordomo.hms.personmgr.common.Constants.ACC_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.CLIENT_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_NEWS;
 
 @Component
@@ -48,6 +46,7 @@ public class AccountNotificationEventListener {
     private final PersonalAccountManager personalAccountManager;
     private final CartManager cartManager;
     private final AccountNotificationStatRepository accountNotificationStatRepository;
+    private final StatFeignClient statFeignClient;
 
     @Autowired
     public AccountNotificationEventListener(
@@ -58,7 +57,8 @@ public class AccountNotificationEventListener {
             BizMailFeignClient bizMailFeignClient,
             PersonalAccountManager personalAccountManager,
             CartManager cartManager,
-            AccountNotificationStatRepository accountNotificationStatRepository
+            AccountNotificationStatRepository accountNotificationStatRepository,
+            StatFeignClient statFeignClient
     ) {
         this.accountHelper = accountHelper;
         this.accountStatRepository = accountStatRepository;
@@ -68,6 +68,7 @@ public class AccountNotificationEventListener {
         this.personalAccountManager = personalAccountManager;
         this.cartManager = cartManager;
         this.accountNotificationStatRepository = accountNotificationStatRepository;
+        this.statFeignClient = statFeignClient;
     }
 
     @EventListener
@@ -117,6 +118,12 @@ public class AccountNotificationEventListener {
                 account, NotificationType.REMAINING_DAYS_MONEY_ENDS, NotificationTransportType.EMAIL, apiName);
 
         accountNotificationStatRepository.save(stat);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put(RESOURCE_ID_KEY, NotificationType.REMAINING_DAYS_MONEY_ENDS);
+        body.put(NAME_KEY, "MajordomoHmsMoneySoonEnd");
+        body.put(TYPE_KEY, NotificationTransportType.EMAIL);
+        statFeignClient.sendNotificaton(body);
     }
 
     @EventListener
@@ -135,6 +142,12 @@ public class AccountNotificationEventListener {
                 account, NotificationType.REMAINING_DAYS_MONEY_ENDS, NotificationTransportType.SMS, apiName);
 
         accountNotificationStatRepository.save(stat);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put(RESOURCE_ID_KEY, NotificationType.REMAINING_DAYS_MONEY_ENDS);
+        body.put(NAME_KEY, "MajordomoRemainingDays");
+        body.put(TYPE_KEY, NotificationTransportType.SMS);
+        statFeignClient.sendNotificaton(body);
     }
 
     @EventListener
