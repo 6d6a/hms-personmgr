@@ -18,6 +18,7 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import ru.majordomo.hms.personmgr.dto.revisium.CheckResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.GetResultResponse;
+import ru.majordomo.hms.personmgr.dto.revisium.GetStatResponse;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 
 import java.io.IOException;
@@ -48,6 +49,21 @@ public class RevisiumApiClient {
         List<ClientHttpRequestInterceptor> interceptors = restTemplate.getInterceptors();
         interceptors.add(new ReviscanApiHttpRequestInterceptor(key));
         restTemplate.setInterceptors(interceptors);
+    }
+
+    public GetStatResponse getStat() {
+
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(serverUrl)
+                .queryParam("action", "get_stat");
+
+        GetStatResponse getStatResponse = restTemplate.getForObject(builder.build().encode().toUri(), GetStatResponse.class);
+
+        if (getStatResponse.getErrorMessage() != null && !getStatResponse.getErrorMessage().equals("")) {
+            logger.error("Ошибка при запросе иформации об аккаунте: " + getStatResponse.getErrorMessage());
+            throw new ParameterValidationException("Ошибка при запросе иформации об аккаунте: " + getStatResponse.getErrorMessage());
+        }
+
+        return getStatResponse;
     }
 
     /*

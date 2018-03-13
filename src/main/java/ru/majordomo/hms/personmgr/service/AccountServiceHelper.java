@@ -9,11 +9,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.dto.revisium.CheckResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.ResultStatus;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -26,8 +29,7 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
 
-import static ru.majordomo.hms.personmgr.common.Constants.REVISIUM_SERVICE_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @Service
 public class AccountServiceHelper {
@@ -36,7 +38,7 @@ public class AccountServiceHelper {
     private final PaymentServiceRepository serviceRepository;
     private final AccountServiceExpirationRepository accountServiceExpirationRepository;
     private final RevisiumRequestRepository revisiumRequestRepository;
-    private final RevisiumApiClient reviScanApiClient;
+    private final RevisiumApiClient revisiumApiClient;
     private final ApplicationEventPublisher publisher;
 
     @Autowired
@@ -46,7 +48,7 @@ public class AccountServiceHelper {
             PaymentServiceRepository serviceRepository,
             AccountServiceExpirationRepository accountServiceExpirationRepository,
             RevisiumRequestRepository revisiumRequestRepository,
-            RevisiumApiClient reviScanApiClient,
+            RevisiumApiClient revisiumApiClient,
             ApplicationEventPublisher publisher
     ) {
         this.accountServiceRepository = accountServiceRepository;
@@ -54,7 +56,7 @@ public class AccountServiceHelper {
         this.serviceRepository = serviceRepository;
         this.accountServiceExpirationRepository = accountServiceExpirationRepository;
         this.revisiumRequestRepository = revisiumRequestRepository;
-        this.reviScanApiClient = reviScanApiClient;
+        this.revisiumApiClient = revisiumApiClient;
         this.publisher = publisher;
     }
 
@@ -273,7 +275,7 @@ public class AccountServiceHelper {
         revisiumRequest.setCreated(LocalDateTime.now());
         revisiumRequestRepository.save(revisiumRequest);
 
-        CheckResponse checkResponse = reviScanApiClient.check(revisiumRequestService.getSiteUrl());
+        CheckResponse checkResponse = revisiumApiClient.check(revisiumRequestService.getSiteUrl());
 
         switch (ResultStatus.valueOf(checkResponse.getStatus().toUpperCase())) {
             case COMPLETE:
@@ -288,12 +290,13 @@ public class AccountServiceHelper {
             default:
                 revisiumRequest.setSuccessCheck(false);
                 revisiumRequestRepository.save(revisiumRequest);
-                //TODO revisium
-//                accountHelper.saveHistoryForOperatorService(
-//                        account,
-//                        "Ошибка при запросе проверки (check) сайта '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум. " +
-//                                "Текст ошибки: '" + checkResponse.getErrorMessage() + "'"
-//                );
+
+                Map<String, String> paramsHistory = new HashMap<>();
+                paramsHistory.put(HISTORY_MESSAGE_KEY, "Ошибка при запросе проверки (check) сайта '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум. " +
+                                "Текст ошибки: '" + checkResponse.getErrorMessage() + "'");
+                paramsHistory.put(OPERATOR_KEY, "service");
+                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+
                 break;
         }
 

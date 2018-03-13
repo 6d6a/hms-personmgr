@@ -14,13 +14,11 @@ import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequest;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.AccountServiceExpirationRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
-import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import javax.validation.Valid;
@@ -39,31 +37,25 @@ public class RevisiumRequestRestController extends CommonRestController {
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final PersonalAccountManager personalAccountManager;
     private final AccountHelper accountHelper;
-    private final RevisiumApiClient reviScanApiClient;
     private final AccountServiceHelper accountServiceHelper;
-    private final AccountServiceExpirationRepository accountServiceExpirationRepository;
 
     @Autowired
     public RevisiumRequestRestController(
             RevisiumRequestRepository revisiumRequestRepository,
             PersonalAccountManager personalAccountManager,
             AccountHelper accountHelper,
-            RevisiumApiClient reviScanApiClient,
             AccountServiceHelper accountServiceHelper,
-            RevisiumRequestServiceRepository revisiumRequestServiceRepository,
-            AccountServiceExpirationRepository accountServiceExpirationRepository
+            RevisiumRequestServiceRepository revisiumRequestServiceRepository
     ) {
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.personalAccountManager = personalAccountManager;
         this.accountHelper = accountHelper;
-        this.reviScanApiClient = reviScanApiClient;
         this.accountServiceHelper = accountServiceHelper;
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
-        this.accountServiceExpirationRepository = accountServiceExpirationRepository;
     }
 
     //Список всех услуг Ревизиума
-    @GetMapping("/{accountId}/revisium-request-service")
+    @GetMapping("/{accountId}/revisium/services")
     public ResponseEntity<List<RevisiumRequestService>> listAllServices(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
@@ -73,7 +65,7 @@ public class RevisiumRequestRestController extends CommonRestController {
     }
 
     //Одна услуга Ревизиума
-    @GetMapping("/{accountId}/revisium-request-service/{revisiumRequestServiceId}")
+    @GetMapping("/{accountId}/revisium/services/{revisiumRequestServiceId}")
     public ResponseEntity<RevisiumRequestService> getOneService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(RevisiumRequestService.class) @PathVariable(value = "revisiumRequestServiceId") String revisiumRequestServiceId
@@ -84,7 +76,7 @@ public class RevisiumRequestRestController extends CommonRestController {
     }
 
     //Все реквесты в Ревизиум
-    @GetMapping("/{accountId}/revisium-request")
+    @GetMapping("/{accountId}/revisium/requests")
     public ResponseEntity<List<RevisiumRequest>> listAllRequests(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
@@ -94,7 +86,7 @@ public class RevisiumRequestRestController extends CommonRestController {
     }
 
     //Все реквесты в Ревизиум по одному сайту
-    @GetMapping("/{accountId}/revisium-request/{revisiumRequestServiceId}")
+    @GetMapping("/{accountId}/revisium/services/{revisiumRequestServiceId}/requests")
     public ResponseEntity<List<RevisiumRequest>> listAllByService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(RevisiumRequestService.class) @PathVariable(value = "revisiumRequestServiceId") String revisiumRequestServiceId
@@ -106,18 +98,23 @@ public class RevisiumRequestRestController extends CommonRestController {
     }
 
     //Один реквест в Ревизиум
-    @GetMapping("/{accountId}/revisium-request/{revisiumRequestId}")
+    @GetMapping("/{accountId}/revisium/services/{revisiumRequestServiceId}/requests/{revisiumRequestId}")
     public ResponseEntity<RevisiumRequest> getOneRequest(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @ObjectId(RevisiumRequest.class) @PathVariable(value = "revisiumRequestId") String revisiumRequestId
+            @ObjectId(RevisiumRequest.class) @PathVariable(value = "revisiumRequestId") String revisiumRequestId,
+            @ObjectId(RevisiumRequestService.class) @PathVariable(value = "revisiumRequestServiceId") String revisiumRequestServiceId
     ) {
-        RevisiumRequest revisiumRequest = revisiumRequestRepository.findByPersonalAccountIdAndId(accountId, revisiumRequestId);
+        RevisiumRequest revisiumRequest = revisiumRequestRepository.findByPersonalAccountIdAndRevisiumRequestServiceIdAndId(
+                accountId,
+                revisiumRequestServiceId,
+                revisiumRequestId
+        );
 
         return new ResponseEntity<>(revisiumRequest, HttpStatus.OK);
     }
 
     //Продление услуги вручную
-    @PostMapping("/{accountId}/revisium-request-service/{revisiumRequestServiceId}")
+    @PostMapping("/{accountId}/revisium/services/{revisiumRequestServiceId}")
     public ResponseEntity<Void> prolong(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(RevisiumRequestService.class) @PathVariable(value = "revisiumRequestServiceId") String revisiumRequestServiceId,
@@ -150,7 +147,7 @@ public class RevisiumRequestRestController extends CommonRestController {
 
 
     //Заказ услуги ревизиума
-    @PostMapping("/{accountId}/revisium-request")
+    @PostMapping("/{accountId}/revisium/services")
     public ResponseEntity<RevisiumRequest> request(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody @Valid RevisiumRequestBody revisiumRequestBody,

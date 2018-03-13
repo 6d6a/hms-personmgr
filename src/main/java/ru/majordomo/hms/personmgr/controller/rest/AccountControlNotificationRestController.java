@@ -6,9 +6,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.model.account.AccountControlNotification;
+import ru.majordomo.hms.personmgr.model.account.AccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.repository.AccountControlNotificationRepository;
+import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import java.util.List;
@@ -17,49 +17,49 @@ import java.util.List;
 @Validated
 public class AccountControlNotificationRestController extends CommonRestController {
 
-    private final AccountControlNotificationRepository accountControlNotificationRepository;
+    private final AccountNoticeRepository accountNoticeRepository;
 
     @Autowired
     public AccountControlNotificationRestController(
-            AccountControlNotificationRepository accountControlNotificationRepository
+            AccountNoticeRepository accountNoticeRepository
     ) {
-        this.accountControlNotificationRepository = accountControlNotificationRepository;
+        this.accountNoticeRepository = accountNoticeRepository;
     }
 
     //Список всех нотификций
-    @GetMapping("/{accountId}/account-notice")
-    public ResponseEntity<List<AccountControlNotification>> listAllNotifications(
+    @GetMapping("/{accountId}/account-notices")
+    public ResponseEntity<List<AccountNotice>> listAllNotices(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        List<AccountControlNotification> notifications = accountControlNotificationRepository.findByPersonalAccountId(accountId);
+        List<AccountNotice> notices = accountNoticeRepository.findByPersonalAccountId(accountId);
 
-        return new ResponseEntity<>(notifications, HttpStatus.OK);
+        return new ResponseEntity<>(notices, HttpStatus.OK);
     }
 
     //Список всех не просмотренных нотификций
-    @GetMapping("/{accountId}/account-notice/new")
-    public ResponseEntity<List<AccountControlNotification>> listNotViewedNotifications(
+    @GetMapping("/{accountId}/account-notices/new")
+    public ResponseEntity<List<AccountNotice>> listNotViewedNotifications(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        List<AccountControlNotification> notifications = accountControlNotificationRepository.findByPersonalAccountIdAndViewed(accountId, false);
+        List<AccountNotice> notices = accountNoticeRepository.findByPersonalAccountIdAndViewed(accountId, false);
 
-        return new ResponseEntity<>(notifications, HttpStatus.OK);
+        return new ResponseEntity<>(notices, HttpStatus.OK);
     }
 
     //Пометить прочитанным
-    @PostMapping("/{accountId}/account-notice/confirm/{accountControlNotificationId}")
+    @PostMapping("/{accountId}/account-notices/{accountNoticeId}/mark")
     public ResponseEntity<Void> confirm(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "accountControlNotificationId") String accountControlNotificationId
     ) {
-        AccountControlNotification notification = accountControlNotificationRepository.findByPersonalAccountIdAndId(accountId, accountControlNotificationId);
+        AccountNotice notification = accountNoticeRepository.findByPersonalAccountIdAndId(accountId, accountControlNotificationId);
 
         if (notification == null) {
             throw new ParameterValidationException("Уведомление с ID: '" + accountControlNotificationId + "' не найдено");
         }
 
         notification.setViewed(true);
-        accountControlNotificationRepository.save(notification);
+        accountNoticeRepository.save(notification);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

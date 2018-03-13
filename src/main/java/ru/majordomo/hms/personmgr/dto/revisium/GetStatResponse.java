@@ -12,25 +12,25 @@ public class GetStatResponse extends ApiResponse {
     private String balance;
 
     @JsonProperty("active_requests_per_hour")
-    private String activeRequestsPerHour;
+    private Integer activeRequestsPerHour;
 
     @JsonProperty("active_requests_per_day")
-    private String activeRequestsPerDay;
+    private Integer activeRequestsPerDay;
 
     @JsonProperty("max_requests_per_hour")
-    private String maxRequestsPerHour;
+    private Integer maxRequestsPerHour;
 
     @JsonProperty("max_requests_per_day")
-    private String maxRequestsPerDay;
+    private Integer maxRequestsPerDay;
 
     @JsonProperty("queued")
-    private String queued;
+    private Integer queued;
 
     @JsonProperty("queue_length")
-    private String queueLength;
+    private Integer queueLength;
 
     @JsonProperty("tasks_in_progress")
-    private String tasksInProgress;
+    private Integer tasksInProgress;
 
     @JsonProperty("key_expiration")
     private String keyExpiration;
