@@ -51,30 +51,31 @@ public class RevisiumRequestScheduler {
 
                 try {
 
-                    GetStatResponse getStatResponse = revisiumApiClient.getStat();
+                    if (!item.getExpireDate().isBefore(LocalDate.now()) && item.getAccountService().isEnabled()) {
 
-                    switch (ResultStatus.valueOf(getStatResponse.getStatus().toUpperCase())) {
-                        case COMPLETE:
-                            if (getStatResponse.getQueued() >= (getStatResponse.getQueueLength() - 3)) {
+                        GetStatResponse getStatResponse = revisiumApiClient.getStat();
+
+                        switch (ResultStatus.valueOf(getStatResponse.getStatus().toUpperCase())) {
+                            case COMPLETE:
+                                if (getStatResponse.getQueued() >= (getStatResponse.getQueueLength() - 3)) {
+                                    try {
+                                        //Проверка сайта происходит в течении примерно минуты => ждём около 100 секунд, пока очередь очистится
+                                        Thread.sleep(100000);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                break;
+                            default:
+                                //Ошибка при запросе статистики?
                                 try {
-                                    //Проверка сайта происходит в течении примерно минуты => ждём около 100 секунд, пока очередь очистится
-                                    Thread.sleep(100000);
+                                    Thread.sleep(10000);
                                 } catch (InterruptedException e) {
                                     e.printStackTrace();
                                 }
-                            }
-                            break;
-                        default:
-                            //Ошибка при запросе статистики?
-                            try {
-                                Thread.sleep(10000);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                            break;
-                    }
+                                break;
+                        }
 
-                    if (!item.getExpireDate().isBefore(LocalDate.now()) && item.getAccountService().isEnabled()) {
                         accountServiceHelper.revisiumCheckRequest(accountManager.findOne(item.getPersonalAccountId()), item);
                     }
 
