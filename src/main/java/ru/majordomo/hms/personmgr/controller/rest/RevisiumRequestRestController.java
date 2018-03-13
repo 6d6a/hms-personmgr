@@ -80,33 +80,31 @@ public class RevisiumRequestRestController extends CommonRestController {
         return new ResponseEntity<>(revisiumRequestService, HttpStatus.OK);
     }
 
-    //Все УСПЕШНЫЕ реквесты в Ревизиум
+    //Все УСПЕШНЫЕ реквесты в Ревизиум ЗА ПОСЛЕДНИЙ ГОД
     @GetMapping("/{accountId}/revisium/requests")
-    public ResponseEntity<Page<RevisiumRequest>> listAllRequests(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            Pageable pageable
+    public ResponseEntity<List<RevisiumRequest>> listAllRequests(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        Page<RevisiumRequest> revisiumRequests = revisiumRequestRepository.findByPersonalAccountIdAndSuccessGetResult(
+        List<RevisiumRequest> revisiumRequests = revisiumRequestRepository.findByPersonalAccountIdAndSuccessGetResultAndCreatedAfter(
                 accountId,
                 true,
-                pageable
+                LocalDateTime.now().minusYears(1L)
         );
 
         return new ResponseEntity<>(revisiumRequests, HttpStatus.OK);
     }
 
-    //Все УСПЕШНЫЕ реквесты в Ревизиум по одному сайту
+    //Все УСПЕШНЫЕ реквесты в Ревизиум по одному сайту ЗА ПОСЛЕДНИЙ ГОД
     @GetMapping("/{accountId}/revisium/services/{revisiumRequestServiceId}/requests")
-    public ResponseEntity<Page<RevisiumRequest>> listAllByService(
+    public ResponseEntity<List<RevisiumRequest>> listAllByService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @ObjectId(RevisiumRequestService.class) @PathVariable(value = "revisiumRequestServiceId") String revisiumRequestServiceId,
-            Pageable pageable
+            @ObjectId(RevisiumRequestService.class) @PathVariable(value = "revisiumRequestServiceId") String revisiumRequestServiceId
     ) {
-        Page<RevisiumRequest> revisiumRequests = revisiumRequestRepository.findByPersonalAccountIdAndRevisiumRequestServiceIdAndSuccessGetResult(
+        List<RevisiumRequest> revisiumRequests = revisiumRequestRepository.findByPersonalAccountIdAndRevisiumRequestServiceIdAndSuccessGetResultAndCreatedAfter(
                 accountId,
                 revisiumRequestServiceId,
                 true,
-                pageable
+                LocalDateTime.now().minusYears(1L)
         );
 
         return new ResponseEntity<>(revisiumRequests, HttpStatus.OK);
@@ -123,6 +121,22 @@ public class RevisiumRequestRestController extends CommonRestController {
                 accountId,
                 revisiumRequestServiceId,
                 revisiumRequestId
+        );
+
+        return new ResponseEntity<>(revisiumRequest, HttpStatus.OK);
+    }
+
+    //Один ПОСЛЕДНИЙ УСПЕШНЫЙ реквест в Ревизиум
+    @GetMapping("/{accountId}/revisium/services/{revisiumRequestServiceId}/requests/last")
+    public ResponseEntity<RevisiumRequest> getOneLastSuccessRequest(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @ObjectId(RevisiumRequestService.class) @PathVariable(value = "revisiumRequestServiceId") String revisiumRequestServiceId
+    ) {
+        RevisiumRequest revisiumRequest = revisiumRequestRepository
+                .findFirstByPersonalAccountIdAndRevisiumRequestServiceIdAndSuccessGetResultOrderByCreatedDesc(
+                        accountId,
+                        revisiumRequestServiceId,
+                        true
         );
 
         return new ResponseEntity<>(revisiumRequest, HttpStatus.OK);
