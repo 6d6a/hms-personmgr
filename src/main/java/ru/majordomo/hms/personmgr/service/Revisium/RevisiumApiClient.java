@@ -60,7 +60,6 @@ public class RevisiumApiClient {
 
         if (getStatResponse.getErrorMessage() != null && !getStatResponse.getErrorMessage().equals("")) {
             logger.error("Ошибка при запросе иформации об аккаунте: " + getStatResponse.getErrorMessage());
-            throw new ParameterValidationException("Ошибка при запросе иформации об аккаунте: " + getStatResponse.getErrorMessage());
         }
 
         return getStatResponse;
@@ -79,7 +78,6 @@ public class RevisiumApiClient {
 
         if (checkResponse.getErrorMessage() != null && !checkResponse.getErrorMessage().equals("")) {
             logger.error("Ошибка при запросе проверки сайта: " + checkResponse.getErrorMessage());
-            throw new ParameterValidationException("Ошибка при запросе проверки сайта: " + checkResponse.getErrorMessage());
         }
 
         return checkResponse;
@@ -94,7 +92,6 @@ public class RevisiumApiClient {
 
         if (getResultResponse.getErrorMessage() != null && !getResultResponse.getErrorMessage().equals("")) {
             logger.error("Ошибка при запросе результата проверки сайта: " + getResultResponse.getErrorMessage());
-            throw new ParameterValidationException("Ошибка при запросе результата проверки сайта: " + getResultResponse.getErrorMessage());
         }
 
         return getResultResponse;
