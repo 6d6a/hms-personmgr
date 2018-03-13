@@ -17,8 +17,6 @@ public class AccountNotice extends ModelBelongsToPersonalAccount {
     @NotNull
     private AccountNoticeType type;
 
-    private String message;
-
     @NotNull
     private Boolean viewed;
 

@@ -1,6 +1,8 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
@@ -70,29 +72,42 @@ public class RevisiumRequestRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(RevisiumRequestService.class) @PathVariable(value = "revisiumRequestServiceId") String revisiumRequestServiceId
     ) {
-        RevisiumRequestService revisiumRequestService = revisiumRequestServiceRepository.findByPersonalAccountIdAndId(accountId, revisiumRequestServiceId);
+        RevisiumRequestService revisiumRequestService = revisiumRequestServiceRepository.findByPersonalAccountIdAndId(
+                accountId,
+                revisiumRequestServiceId
+        );
 
         return new ResponseEntity<>(revisiumRequestService, HttpStatus.OK);
     }
 
-    //Все реквесты в Ревизиум
+    //Все УСПЕШНЫЕ реквесты в Ревизиум
     @GetMapping("/{accountId}/revisium/requests")
-    public ResponseEntity<List<RevisiumRequest>> listAllRequests(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    public ResponseEntity<Page<RevisiumRequest>> listAllRequests(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            Pageable pageable
     ) {
-        List<RevisiumRequest> revisiumRequests = revisiumRequestRepository.findByPersonalAccountId(accountId);
+        Page<RevisiumRequest> revisiumRequests = revisiumRequestRepository.findByPersonalAccountIdAndSuccessGetResult(
+                accountId,
+                true,
+                pageable
+        );
 
         return new ResponseEntity<>(revisiumRequests, HttpStatus.OK);
     }
 
-    //Все реквесты в Ревизиум по одному сайту
+    //Все УСПЕШНЫЕ реквесты в Ревизиум по одному сайту
     @GetMapping("/{accountId}/revisium/services/{revisiumRequestServiceId}/requests")
-    public ResponseEntity<List<RevisiumRequest>> listAllByService(
+    public ResponseEntity<Page<RevisiumRequest>> listAllByService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @ObjectId(RevisiumRequestService.class) @PathVariable(value = "revisiumRequestServiceId") String revisiumRequestServiceId
+            @ObjectId(RevisiumRequestService.class) @PathVariable(value = "revisiumRequestServiceId") String revisiumRequestServiceId,
+            Pageable pageable
     ) {
-        List<RevisiumRequest> revisiumRequests = revisiumRequestRepository
-                .findByPersonalAccountIdAndRevisiumRequestServiceId(accountId, revisiumRequestServiceId);
+        Page<RevisiumRequest> revisiumRequests = revisiumRequestRepository.findByPersonalAccountIdAndRevisiumRequestServiceIdAndSuccessGetResult(
+                accountId,
+                revisiumRequestServiceId,
+                true,
+                pageable
+        );
 
         return new ResponseEntity<>(revisiumRequests, HttpStatus.OK);
     }

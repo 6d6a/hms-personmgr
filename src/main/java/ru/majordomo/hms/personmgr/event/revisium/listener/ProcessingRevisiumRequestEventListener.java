@@ -15,7 +15,7 @@ import ru.majordomo.hms.personmgr.dto.revisium.ResultStatus;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessBulkRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.model.account.AccountNotice;
+import ru.majordomo.hms.personmgr.model.account.RevisiumAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequest;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
@@ -150,11 +150,12 @@ public class ProcessingRevisiumRequestEventListener {
 
                     if (newAlertFound) {
                         //TODO revisium письмо
-                        AccountNotice notification = new AccountNotice();
+                        RevisiumAccountNotice notification = new RevisiumAccountNotice();
                         notification.setPersonalAccountId(revisiumRequest.getPersonalAccountId());
                         notification.setCreated(LocalDateTime.now());
                         notification.setViewed(false);
-                        notification.setMessage(revisiumRequest.getId());
+                        notification.setRevisiumRequestServiceId(revisiumRequest.getRevisiumRequestServiceId());
+                        notification.setRevisiumRequestId(revisiumRequest.getId());
                         notification.setType(AccountNoticeType.REVISIUM_ALERT);
                         accountNoticeRepository.save(notification);
                     }
