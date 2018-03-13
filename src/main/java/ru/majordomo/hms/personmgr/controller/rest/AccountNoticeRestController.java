@@ -15,12 +15,12 @@ import java.util.List;
 
 @RestController
 @Validated
-public class AccountControlNotificationRestController extends CommonRestController {
+public class AccountNoticeRestController extends CommonRestController {
 
     private final AccountNoticeRepository accountNoticeRepository;
 
     @Autowired
-    public AccountControlNotificationRestController(
+    public AccountNoticeRestController(
             AccountNoticeRepository accountNoticeRepository
     ) {
         this.accountNoticeRepository = accountNoticeRepository;
@@ -50,12 +50,12 @@ public class AccountControlNotificationRestController extends CommonRestControll
     @PostMapping("/{accountId}/account-notices/{accountNoticeId}/mark")
     public ResponseEntity<Void> confirm(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @PathVariable(value = "accountControlNotificationId") String accountControlNotificationId
+            @PathVariable(value = "accountNoticeId") String accountNoticeId
     ) {
-        AccountNotice notification = accountNoticeRepository.findByPersonalAccountIdAndId(accountId, accountControlNotificationId);
+        AccountNotice notification = accountNoticeRepository.findByPersonalAccountIdAndId(accountId, accountNoticeId);
 
         if (notification == null) {
-            throw new ParameterValidationException("Уведомление с ID: '" + accountControlNotificationId + "' не найдено");
+            throw new ParameterValidationException("Уведомление с ID: '" + accountNoticeId + "' не найдено");
         }
 
         notification.setViewed(true);
