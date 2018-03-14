@@ -415,10 +415,10 @@ public abstract class Processor {
      */
     private Boolean checkAccountFtpUserLimits(PlanChangeAgreement planChangeAgreement) {
         Long count = accountCountersService.getCurrentFtpUserCount(account.getId());
-        Long freeLimit = planLimitsService.getFtpUserFreeLimit(newPlan);
-        if (planLimitsComparator(count, freeLimit) > 0) {
+        Long planLimit = planLimitsService.getFtpUserLimit(newPlan);
+        if (planLimitsComparator(count, planLimit) > 0) {
             planChangeAgreement.addError("Текущее количество FTP-пользователей больше, чем лимит на новом тарифном плане. "  +
-                    "Текущее количество: " + count + " Лимит: " + freeLimit);
+                    "Текущее количество: " + count + " Лимит: " + planLimit);
             return false;
         } else {
             return true;
