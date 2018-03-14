@@ -261,6 +261,9 @@ public class RevisiumRequestRestController extends CommonRestController {
 
         accountServiceHelper.revisiumCheckRequest(account, revisiumRequestService);
 
+        revisiumRequestService = revisiumRequestServiceRepository
+                .findByPersonalAccountIdAndId(accountId, revisiumRequestService.getId());
+
         return new ResponseEntity<>(revisiumRequestService, HttpStatus.CREATED);
     }
 }
