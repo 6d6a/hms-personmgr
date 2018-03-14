@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.exception;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import feign.codec.DecodeException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
@@ -11,8 +12,13 @@ import javax.validation.ConstraintViolationException;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class InternalApiException extends WithErrorsException {
+
+    public InternalApiException() {
+        this("Возникла непредвиденная ошибка");
+    }
 
     public InternalApiException(String message) {
         super(message);
@@ -27,8 +33,8 @@ public class InternalApiException extends WithErrorsException {
         setCode(httpStatus.value());
     }
 
-    public InternalApiException(Throwable cause, String traceId) {
-        this("Возникла непредвиденная ошибка", traceId);
+    public InternalApiException(Throwable cause) {
+        this("Возникла непредвиденная ошибка");
         ResponseStatus annotation = cause.getClass().getAnnotation(ResponseStatus.class);
 
         if (annotation != null) {
@@ -38,8 +44,8 @@ public class InternalApiException extends WithErrorsException {
         }
     }
 
-    public InternalApiException(ConstraintViolationException ex, String traceId) {
-        this(ex.getMessage(), traceId);
+    public InternalApiException(ConstraintViolationException ex) {
+        this(ex.getMessage());
         setException(ex.getClass().getSimpleName());
         setErrors(
                 ex.getConstraintViolations()
@@ -49,8 +55,8 @@ public class InternalApiException extends WithErrorsException {
         );
     }
 
-    public InternalApiException(DecodeException ex, String traceId) {
-        this(ex.getMessage(), traceId);
+    public InternalApiException(DecodeException ex) {
+        this(ex.getMessage());
         setException(ex.getClass().getSimpleName());
         setErrors(
                 Arrays.stream(ex.getStackTrace())
@@ -58,8 +64,8 @@ public class InternalApiException extends WithErrorsException {
                         StackTraceElement::getClassName, StackTraceElement::getMethodName)));
     }
 
-    public InternalApiException(MethodArgumentNotValidException ex, String traceId) {
-        this(ex.getMessage(), traceId);
+    public InternalApiException(MethodArgumentNotValidException ex) {
+        this(ex.getMessage());
         setException(ex.getClass().getSimpleName());
         setErrors(ex.getBindingResult().getFieldErrors()
                 .stream()

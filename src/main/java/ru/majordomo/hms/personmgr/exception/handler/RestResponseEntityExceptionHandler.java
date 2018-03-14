@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.sleuth.Tracer;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.data.rest.core.RepositoryConstraintViolationException;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -61,7 +62,8 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             WebRequest request
     ) {
         printLogError(ex);
-        InternalApiException apiException = new InternalApiException(ex.getMessage(), traceId());
+        InternalApiException apiException = new InternalApiException(ex.getMessage());
+        apiException.setTraceId(traceId());
         return handleExceptionInternal(apiException, apiException, headers, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -73,7 +75,8 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             final WebRequest request
     ) {
         printLogError(ex);
-        InternalApiException apiException = new InternalApiException(ex.getMessage(), traceId());
+        InternalApiException apiException = new InternalApiException(ex.getMessage());
+        apiException.setTraceId(traceId());
         return handleExceptionInternal(apiException, apiException, headers, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -85,7 +88,8 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             WebRequest request
     ) {
         printLogError(ex);
-        InternalApiException apiException = new InternalApiException(ex.getMessage(), traceId());
+        InternalApiException apiException = new InternalApiException(ex.getMessage());
+        apiException.setTraceId(traceId());
         return handleExceptionInternal(apiException, apiException, headers, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -97,8 +101,9 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             final WebRequest request
     ) {
         printLogError(ex);
-        InternalApiException exception = new InternalApiException(ex, traceId());
-        return handleExceptionInternal(exception, exception, headers, HttpStatus.BAD_REQUEST, request);
+        InternalApiException apiException = new InternalApiException(ex);
+        apiException.setTraceId(traceId());
+        return handleExceptionInternal(apiException, apiException, headers, HttpStatus.BAD_REQUEST, request);
     }
 
     @ExceptionHandler({Throwable.class})
@@ -142,19 +147,26 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
     }
 
     private BaseException convertThrowableToBaseException(Throwable ex) {
+        BaseException result;
+
         if (ex instanceof BaseException) {
-            ((BaseException) ex).setTraceId(traceId());
-            return (BaseException) ex;
+            result = (BaseException) ex;
+        } else if (ex instanceof RepositoryConstraintViolationException) {
+            result = new ru.majordomo.hms.personmgr.exception.RepositoryConstraintViolationException(
+                    (RepositoryConstraintViolationException) ex);
         } else if (ex instanceof ConstraintViolationException) {
-            return new InternalApiException((ConstraintViolationException) ex, traceId());
+            result = new InternalApiException((ConstraintViolationException) ex);
         } else if (ex instanceof InvalidDataAccessApiUsageException || ex instanceof DataAccessException) {
-            return new InternalApiException(ex, HttpStatus.CONFLICT, traceId());
+            result = new InternalApiException(ex, HttpStatus.CONFLICT, traceId());
         } else if (ex instanceof DecodeException) {
-            return new InternalApiException((DecodeException) ex, traceId());
+            result = new InternalApiException((DecodeException) ex);
         } else if (ex instanceof ResourceNotFoundException) {
-            return new ru.majordomo.hms.personmgr.exception.ResourceNotFoundException(ex.getMessage(), traceId());
+            result = new ru.majordomo.hms.personmgr.exception.ResourceNotFoundException(ex.getMessage());
         } else {
-            return new InternalApiException(ex, traceId());
+            result = new InternalApiException(ex);
         }
+
+        result.setTraceId(traceId());
+        return result;
     }
 }
