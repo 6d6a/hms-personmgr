@@ -208,8 +208,8 @@ public class RevisiumRequestRestController extends CommonRestController {
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.connect();
-            connection.setConnectTimeout(5);
-            connection.setReadTimeout(5);
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
 
             int code = connection.getResponseCode();
 
