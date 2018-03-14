@@ -28,6 +28,7 @@ import ru.majordomo.hms.personmgr.service.AccountTransferService;
 import ru.majordomo.hms.personmgr.service.AmqpSender;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 import ru.majordomo.hms.personmgr.service.BusinessHelper;
+import ru.majordomo.hms.personmgr.service.FtpUserService;
 import ru.majordomo.hms.personmgr.service.ResourceChecker;
 
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ROUTING_KEY;
@@ -52,6 +53,7 @@ public class CommonAmqpController {
     protected ResourceChecker resourceChecker;
     private AccountTransferService accountTransferService;
     protected AmqpSender amqpSender;
+    private FtpUserService ftpUserService;
 
     protected String resourceName = "";
 
@@ -104,6 +106,11 @@ public class CommonAmqpController {
     @Autowired
     public void setAmqpSender(AmqpSender amqpSender) {
         this.amqpSender = amqpSender;
+    }
+
+    @Autowired
+    public void setFtpUserService(FtpUserService ftpUserService) {
+        this.ftpUserService = ftpUserService;
     }
 
     @Value("${hms.instance.name}")
@@ -164,6 +171,7 @@ public class CommonAmqpController {
         try {
             State state = businessFlowDirector.processMessage(message);
 
+            processEventsByMessageStateForDelete(message, state);
             saveAccountHistoryByMessageStateForDelete(message, state);
             saveLogByMessageStateForDelete(message, state);
         } catch (Exception e) {
@@ -233,7 +241,7 @@ public class CommonAmqpController {
             ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
             if (businessAction != null) {
-                PersonalAccount account = accountManager.findOne(message.getAccountId());
+                PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
 
                 Map<String, String> params = new HashMap<>();
 
@@ -274,6 +282,11 @@ public class CommonAmqpController {
                     case DATABASE_CREATE_RC:
                         businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
                         sendToAppscat(message, businessOperation, DATABASE_CREATE);
+
+                        break;
+
+                    case FTP_USER_CREATE_RC:
+                        ftpUserService.processServices(account);
 
                         break;
                 }
@@ -360,6 +373,21 @@ public class CommonAmqpController {
                             }
                         }
                     }
+
+                    break;
+            }
+        }
+    }
+
+    private void processEventsByMessageStateForDelete(SimpleServiceMessage message, State state) {
+        ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+
+        if (businessAction != null) {
+            PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
+
+            switch (businessAction.getBusinessActionType()) {
+                case FTP_USER_DELETE_RC:
+                    ftpUserService.processServices(account);
 
                     break;
             }

@@ -195,6 +195,21 @@ public class AccountServiceHelper {
      * @param account   Аккаунт
      * @param serviceId id услуги
      */
+    public void leaveOnlyOneAccountService(PersonalAccount account, String serviceId) {
+        List<AccountService> accountServices = getAccountServices(account, serviceId);
+
+        if (accountServices.size() > 1) {
+            accountServices.remove(0);
+            accountServiceRepository.delete(accountServices);
+        }
+    }
+
+    /**
+     * Меняем статус услуги
+     *
+     * @param account   Аккаунт
+     * @param serviceId id услуги
+     */
     public void setLastBilledAccountService(PersonalAccount account, String serviceId) {
         List<AccountService> accountServices = getAccountServices(account, serviceId);
 

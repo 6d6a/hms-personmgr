@@ -37,7 +37,7 @@ import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
-import static ru.majordomo.hms.personmgr.common.Utils.planChangeComparator;
+import static ru.majordomo.hms.personmgr.common.Utils.planLimitsComparator;
 
 public abstract class Processor {
 
@@ -401,7 +401,7 @@ public abstract class Processor {
     private Boolean checkAccountDatabaseLimits(PlanChangeAgreement planChangeAgreement) {
         Long count = accountCountersService.getCurrentDatabaseCount(account.getId());
         Long freeLimit = planLimitsService.getDatabaseFreeLimit(newPlan);
-        if (planChangeComparator(count, freeLimit) > 0) {
+        if (planLimitsComparator(count, freeLimit) > 0) {
             planChangeAgreement.addError("Текущее количество баз данных больше, чем лимит на новом тарифном плане. " +
                     "Текущее количество: " + count + " Лимит: " + freeLimit);
             return false;
@@ -416,7 +416,7 @@ public abstract class Processor {
     private Boolean checkAccountFtpUserLimits(PlanChangeAgreement planChangeAgreement) {
         Long count = accountCountersService.getCurrentFtpUserCount(account.getId());
         Long freeLimit = planLimitsService.getFtpUserFreeLimit(newPlan);
-        if (planChangeComparator(count, freeLimit) > 0) {
+        if (planLimitsComparator(count, freeLimit) > 0) {
             planChangeAgreement.addError("Текущее количество FTP-пользователей больше, чем лимит на новом тарифном плане. "  +
                     "Текущее количество: " + count + " Лимит: " + freeLimit);
             return false;
@@ -431,7 +431,7 @@ public abstract class Processor {
     private Boolean checkAccountWebSiteLimits(PlanChangeAgreement planChangeAgreement) {
         Long count = accountCountersService.getCurrentWebSiteCount(account.getId());
         Long freeLimit = planLimitsService.getWebsiteFreeLimit(newPlan);
-        if (planChangeComparator(count, freeLimit) > 0) {
+        if (planLimitsComparator(count, freeLimit) > 0) {
             planChangeAgreement.addError("Текущее количество сайтов больше, чем лимит на новом тарифном плане. "  +
                     "Текущее количество: " + count + " Лимит: " + freeLimit);
             return false;
@@ -461,7 +461,7 @@ public abstract class Processor {
     private Boolean checkAccountQuotaLimits(PlanChangeAgreement planChangeAgreement) {
         Long count = accountCountersService.getCurrentQuotaUsed(account.getId());
         Long freeLimit = planLimitsService.getQuotaKBFreeLimit(newPlan);
-        if (planChangeComparator(count, freeLimit * 1024) > 0) {
+        if (planLimitsComparator(count, freeLimit * 1024) > 0) {
             planChangeAgreement.addError("Использованная квота превышает лимит на новом тарифном плане. "  +
                     "Текущая квота: " + (count / 1048576) + " MB Лимит: " + (freeLimit / 1024) + " MB");
             return false;
@@ -588,7 +588,7 @@ public abstract class Processor {
      * @param planFreeLimit бесплатно по тарифу
      */
     private void deleteOrAddAccountService(PersonalAccount account, String serviceId, Long currentCount, Long planFreeLimit) {
-        if (planChangeComparator(currentCount, planFreeLimit) <= 0) {
+        if (planLimitsComparator(currentCount, planFreeLimit) <= 0) {
             accountServiceHelper.deleteAccountServiceByServiceId(account, serviceId);
         } else {
             int notFreeServiceCount = (int) floor(currentCount - planFreeLimit);
