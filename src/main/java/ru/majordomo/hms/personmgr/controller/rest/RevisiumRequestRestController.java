@@ -143,8 +143,8 @@ public class RevisiumRequestRestController extends CommonRestController {
     }
 
     //Продление услуги вручную
-    @PostMapping("/{accountId}/revisium/services/{revisiumRequestServiceId}")
-    public ResponseEntity<Void> prolong(
+    @PostMapping("/{accountId}/revisium/services/{revisiumRequestServiceId}/prolong")
+    public ResponseEntity<RevisiumRequestService> prolong(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(RevisiumRequestService.class) @PathVariable(value = "revisiumRequestServiceId") String revisiumRequestServiceId,
             SecurityContextHolderAwareRequestWrapper request
@@ -170,14 +170,17 @@ public class RevisiumRequestRestController extends CommonRestController {
 
         accountServiceHelper.prolongAccountServiceExpiration(account, revisiumRequestService.getAccountServiceId(), 1L);
 
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        revisiumRequestService = revisiumRequestServiceRepository
+                .findByPersonalAccountIdAndId(accountId, revisiumRequestServiceId);
+
+        return new ResponseEntity<>(revisiumRequestService, HttpStatus.OK);
     }
 
 
 
     //Заказ услуги ревизиума
     @PostMapping("/{accountId}/revisium/services")
-    public ResponseEntity<RevisiumRequest> request(
+    public ResponseEntity<RevisiumRequestService> request(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody @Valid RevisiumRequestBody revisiumRequestBody,
             SecurityContextHolderAwareRequestWrapper request
@@ -250,8 +253,8 @@ public class RevisiumRequestRestController extends CommonRestController {
         revisiumRequestService.setAccountService(accountService);
         revisiumRequestServiceRepository.save(revisiumRequestService);
 
-        RevisiumRequest revisiumRequest = accountServiceHelper.revisiumCheckRequest(account, revisiumRequestService);
+        accountServiceHelper.revisiumCheckRequest(account, revisiumRequestService);
 
-        return new ResponseEntity<>(revisiumRequest, HttpStatus.OK);
+        return new ResponseEntity<>(revisiumRequestService, HttpStatus.CREATED);
     }
 }
