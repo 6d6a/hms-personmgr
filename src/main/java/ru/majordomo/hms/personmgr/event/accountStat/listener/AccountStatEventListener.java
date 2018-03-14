@@ -10,19 +10,23 @@ import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.PaymentWasReceivedEvent;
+import ru.majordomo.hms.personmgr.event.account.UserDisabledServiceEvent;
 import ru.majordomo.hms.personmgr.event.accountStat.AccountStatDomainUpdateEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountNotificationStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.QAccountNotificationStat;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountNotificationStatRepository;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.AccountStatHelper;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.service.StatFeignClient;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -40,6 +44,7 @@ public class AccountStatEventListener {
     private final AccountNotificationStatRepository accountNotificationStatRepository;
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
     private final StatFeignClient statFeignClient;
+    private final PaymentServiceRepository paymentServiceRepository;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -49,7 +54,8 @@ public class AccountStatEventListener {
             PersonalAccountManager accountManager,
             AccountNotificationStatRepository accountNotificationStatRepository,
             ProcessingBusinessActionRepository processingBusinessActionRepository,
-            StatFeignClient statFeignClient
+            StatFeignClient statFeignClient,
+            PaymentServiceRepository paymentServiceRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountStatHelper = accountStatHelper;
@@ -57,6 +63,7 @@ public class AccountStatEventListener {
         this.accountNotificationStatRepository = accountNotificationStatRepository;
         this.processingBusinessActionRepository = processingBusinessActionRepository;
         this.statFeignClient = statFeignClient;
+        this.paymentServiceRepository = paymentServiceRepository;
     }
 
     @EventListener
@@ -144,15 +151,13 @@ public class AccountStatEventListener {
                 .and(qStat.notificationType.eq(NotificationType.REMAINING_DAYS_MONEY_ENDS))
                 .and(qStat.transportType.in(EMAIL, SMS));
 
-        List<NotificationTransportType> types =
-                accountNotificationStatRepository.findAll(predicate)
-                    .stream()
-                    .map(AccountNotificationStat::getTransportType)
-                    .collect(Collectors.toList());
+        List<AccountNotificationStat> stats = accountNotificationStatRepository.findAll(predicate);
 
-        if (types.isEmpty()) {
+        if (stats == null || stats.isEmpty()) {
             return;
         }
+
+        List<NotificationTransportType> types = stats.stream().map(AccountNotificationStat::getTransportType).collect(Collectors.toList());
 
         Map<String, Object> body = new HashMap<>();
         body.put(RESOURCE_ID_KEY, NotificationType.REMAINING_DAYS_MONEY_ENDS);
@@ -160,5 +165,48 @@ public class AccountStatEventListener {
         body.put(ACCOUNT_WAS_ACTIVE_KEY, false);
         body.put(TYPES_KEY, types);
         statFeignClient.paymentAfterNotificationIncrement(body);
+    }
+
+
+    /**
+     * @param event содержит personalAccountId и paymentServiceId
+     *
+     * сохранение статистики об отключении доп услуг
+     * Условия
+     *              последнее уведомление об окончании средств отправлено менее 3 дней назад
+     *              услуга платная
+     */
+    @EventListener
+    @Async
+    public void saveStat(UserDisabledServiceEvent event) {
+        PersonalAccount account = accountManager.findOne(event.getSource());
+
+        PaymentService paymentService = paymentServiceRepository.findOne(event.getPaymentServiceId());
+        if (paymentService.getCost().compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        QAccountNotificationStat qStat = QAccountNotificationStat.accountNotificationStat;
+        BooleanBuilder builder = new BooleanBuilder();
+        Predicate predicate = builder
+                .and(qStat.personalAccountId.eq(account.getId()))
+                .and(qStat.accountType.eq(account.getAccountType()))
+                .and(qStat.created.after(LocalDateTime.now().minusDays(3)))
+                .and(qStat.notificationType.eq(NotificationType.REMAINING_DAYS_MONEY_ENDS))
+                .and(qStat.transportType.in(EMAIL, SMS));
+
+        List<AccountNotificationStat> stats = accountNotificationStatRepository.findAll(predicate);
+
+        if (stats == null || stats.isEmpty()) {
+            return;
+        }
+
+        Set<NotificationTransportType> types = stats.stream().map(AccountNotificationStat::getTransportType).collect(Collectors.toSet());
+
+        Map<String, Object> body = new HashMap<>();
+        body.put(RESOURCE_ID_KEY, event.getPaymentServiceId());
+        body.put(NAME_KEY, paymentService.getName());
+        body.put(TYPES_KEY, types);
+        statFeignClient.userDisabledServiceAfterNotificationIncrement(body);
     }
 }

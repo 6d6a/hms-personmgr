@@ -123,7 +123,7 @@ public class AccountNotificationEventListener {
         body.put(RESOURCE_ID_KEY, NotificationType.REMAINING_DAYS_MONEY_ENDS);
         body.put(NAME_KEY, "MajordomoHmsMoneySoonEnd");
         body.put(TYPE_KEY, NotificationTransportType.EMAIL);
-        statFeignClient.sendNotificaton(body);
+        statFeignClient.notificatonWasSendIncrement(body);
     }
 
     @EventListener
@@ -147,7 +147,7 @@ public class AccountNotificationEventListener {
         body.put(RESOURCE_ID_KEY, NotificationType.REMAINING_DAYS_MONEY_ENDS);
         body.put(NAME_KEY, "MajordomoRemainingDays");
         body.put(TYPE_KEY, NotificationTransportType.SMS);
-        statFeignClient.sendNotificaton(body);
+        statFeignClient.notificatonWasSendIncrement(body);
     }
 
     @EventListener
