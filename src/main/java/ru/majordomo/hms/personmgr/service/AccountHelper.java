@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -503,170 +504,178 @@ public class AccountHelper {
     }
 
     public void switchAccountResources(PersonalAccount account, Boolean state) {
-        switchWebSites(account, state);
-        switchDatabases(account, state);
-        switchMailboxes(account, state);
-        switchDomains(account, state);
-        switchFtpUsers(account, state);
-        switchUnixAccounts(account, state);
-        switchSslCertificates(account, state);
-    }
-
-    private <T extends Resource> void switchResource(Collection<T> resources, Boolean state) {
-        for (T resource: resources) {
-            switchResource(resource, state);
-        }
-    }
-
-    private void switchWebSites(PersonalAccount account, Boolean state){
         try {
+
             List<WebSite> webSites = rcUserFeignClient.getWebSites(account.getId());
-            switchResource(webSites, state);
+
+            for (WebSite webSite : webSites) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", webSite.getId());
+                message.addParam("switchedOn", state);
+
+                businessHelper.buildAction(BusinessActionType.WEB_SITE_UPDATE_RC, message);
+
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " сайта '" + webSite.getName() + "'";
+                saveHistoryForOperatorService(account, historyMessage);
+            }
+
         } catch (Exception e) {
             logger.error("account WebSite switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
-    }
 
-    private void switchDatabases(PersonalAccount account, Boolean state){
         try {
+
             List<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
-            switchResource(databaseUsers, state);
+
+            for (DatabaseUser databaseUser : databaseUsers) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", databaseUser.getId());
+                message.addParam("switchedOn", state);
+
+                businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
+
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " пользователя базы данных '" + databaseUser.getName() + "'";
+                saveHistoryForOperatorService(account, historyMessage);
+            }
+
         } catch (Exception e) {
             logger.error("account DatabaseUsers switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
-    }
 
-    private void switchMailboxes(PersonalAccount account, Boolean state){
         try {
+
             Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
-            switchResource(mailboxes, state);
+
+            for (Mailbox mailbox : mailboxes) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", mailbox.getId());
+                message.addParam("switchedOn", state);
+
+                businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
+
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getFullName() + "'";
+                saveHistoryForOperatorService(account, historyMessage);
+            }
+
         } catch (Exception e) {
             logger.error("account Mailboxes switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
-    }
 
-    private void switchDomains(PersonalAccount account, Boolean state){
         try {
+
             List<Domain> domains = rcUserFeignClient.getDomains(account.getId());
-            switchResource(domains, state);
+
+            for (Domain domain : domains) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", domain.getId());
+                message.addParam("switchedOn", state);
+
+                businessHelper.buildAction(BusinessActionType.DOMAIN_UPDATE_RC, message);
+
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " домена '" + domain.getName() + "'";
+                saveHistoryForOperatorService(account, historyMessage);
+            }
+
         } catch (Exception e) {
             logger.error("account Domains switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
-    }
 
-    private void switchFtpUsers(PersonalAccount account, Boolean state){
         try {
+
             List<FTPUser> ftpUsers = rcUserFeignClient.getFTPUsers(account.getId());
-            switchResource(ftpUsers, state);
+
+            for (FTPUser ftpUser : ftpUsers) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", ftpUser.getId());
+                message.addParam("switchedOn", state);
+
+                businessHelper.buildAction(BusinessActionType.FTP_USER_UPDATE_RC, message);
+
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " FTP-пользователя '" + ftpUser.getName() + "'";
+                saveHistoryForOperatorService(account, historyMessage);
+            }
+
         } catch (Exception e) {
             logger.error("account FTPUsers switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
-    }
 
-    private void switchUnixAccounts(PersonalAccount account, Boolean state) {
         try {
+
             Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
-            switchResource(unixAccounts, state);
+
+            for (UnixAccount unixAccount : unixAccounts) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setParams(new HashMap<>());
+                message.setAccountId(account.getId());
+                message.addParam("resourceId", unixAccount.getId());
+                message.addParam("switchedOn", state);
+
+                businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
+
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " UNIX-аккаунта '" + unixAccount.getName() + "'";
+                saveHistoryForOperatorService(account, historyMessage);
+            }
+
         } catch (Exception e) {
             logger.error("account UnixAccounts switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
     }
 
-    private void switchSslCertificates(PersonalAccount account, Boolean state) {
+    public void setWritableForAccountQuotaServices(PersonalAccount account, Boolean state) {
+
         try {
-            Collection<SSLCertificate> sslCertificates = rcUserFeignClient.getSSLCertificates(account.getId());
-            switchResource(sslCertificates, state);
+            Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
+
+            for (UnixAccount unixAccount : unixAccounts) {
+                setWritableForUnixAccount(account, unixAccount, state);
+            }
+
         } catch (Exception e) {
-            logger.error("account SSLCertificates switch failed for accountId: " + account.getId());
+            logger.error("account UnixAccounts writable switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
-    }
 
-    private <T extends Resource> void updateResource(T resource, SimpleServiceMessage message) {
         try {
-            BusinessActionType type = getUpdateActionTypeByResource(resource);
-            businessHelper.buildAction(type, message);
+
+            Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+            for (Mailbox mailbox : mailboxes) {
+                setWritableForMailbox(account, mailbox, state);
+            }
+
         } catch (Exception e) {
-            logger.error("account " + resource.getClass().getSimpleName() + " switch failed for accountId: "
-                    + resource.getAccountId() + " errorMessage: " + e.getMessage());
+            logger.error("account Mailbox writable switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
-    }
 
-    private <T extends Resource> SimpleServiceMessage createSwitchMessage(T resource, Boolean state){
-        SimpleServiceMessage message = new SimpleServiceMessage();
-                message.setAccountId(resource.getAccountId());
-                message.addParam("resourceId", resource.getId());
-                message.addParam("switchedOn", state);
-                return message;
-    }
+        try {
 
-    private <T extends Resource> void switchResource(T resource, Boolean state) {
-        SimpleServiceMessage message = createSwitchMessage(resource, state);
-        updateResource(resource, message);
+            Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
 
-        saveHistoryForResourceSwitch(resource, state);
-    }
+            for (Database database : databases) {
+                setWritableForDatabase(account, database, state);
+            }
 
-    private <T extends Resource> BusinessActionType getUpdateActionTypeByResource(T resource) {
-        if (resource instanceof WebSite) {
-            return BusinessActionType.WEB_SITE_UPDATE_RC;
-        } else if (resource instanceof Mailbox) {
-            return BusinessActionType.MAILBOX_UPDATE_RC;
-        } else if (resource instanceof Database) {
-            return BusinessActionType.DATABASE_UPDATE_RC;
-        } else if (resource instanceof DatabaseUser) {
-            return BusinessActionType.DATABASE_USER_UPDATE_RC;
-        } else if (resource instanceof FTPUser) {
-            return BusinessActionType.FTP_USER_UPDATE_RC;
-        } else if (resource instanceof Domain) {
-            return BusinessActionType.DOMAIN_UPDATE_RC;
-        } else if (resource instanceof UnixAccount) {
-            return  BusinessActionType.UNIX_ACCOUNT_UPDATE_RC;
-        } else if (resource instanceof SSLCertificate) {
-            return BusinessActionType.SSL_CERTIFICATE_UPDATE_RC;
-        } else {
-            String exceptionMessage = "Not implemented resource class " + resource.getClass().getName()
-                    + " in switchAbstractResource(" + resource.toString() + ")";
-            logger.error(exceptionMessage);
-            throw new InternalApiException(exceptionMessage);
+        } catch (Exception e) {
+            logger.error("account Database writable switch failed for accountId: " + account.getId());
+            e.printStackTrace();
         }
-    }
-
-    private <T extends Resource> String getResourceNameForHistory(T resource) {
-        if (resource instanceof WebSite) {
-            return "сайта";
-        } else if (resource instanceof Mailbox) {
-            return "почтового ящика";
-        } else if (resource instanceof Database) {
-            return "базы данных";
-        } else if (resource instanceof DatabaseUser) {
-            return "пользователя баз данных";
-        } else if (resource instanceof FTPUser) {
-            return "FTP-пользователя";
-        } else if (resource instanceof Domain) {
-            return "домена";
-        } else if (resource instanceof UnixAccount) {
-            return "UNIX-аккаунта";
-        } else if (resource instanceof SSLCertificate) {
-            return "SSL-сертификата";
-        } else  {
-            logger.error("Not implemented resource class " + resource.getClass().getName()
-                    + " in historyMessageForResourceSwitch(" + resource.toString() + ")");
-            return resource.getClass().getSimpleName();
-        }
-    }
-
-    private <T extends Resource> void saveHistoryForResourceSwitch(T resource, Boolean state) {
-        String resourceName = getResourceNameForHistory(resource);
-        String message = "Отправлена заявка на " + (state ? "включение " : "выключение ") + resourceName + " '" + resource.getName() + "'";
-        saveHistory(resource.getAccountId(), message, "service");
     }
 
     public void updateUnixAccountQuota(PersonalAccount account, Long quotaInBytes) {
@@ -696,8 +705,7 @@ public class AccountHelper {
         }
     }
 
-    public void disableAllSslCertificates(PersonalAccount account) {
-
+    public void deleteAllSslCertificates(PersonalAccount account) {
         Collection<SSLCertificate> sslCertificates = rcUserFeignClient.getSSLCertificates(account.getId());
 
         for (SSLCertificate sslCertificate : sslCertificates) {
@@ -708,10 +716,162 @@ public class AccountHelper {
 
             businessHelper.buildAction(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
 
-            String historyMessage = "Отправлена заявка на выключение SSL сертификата '" + sslCertificate.getName() + "'";
+            String historyMessage = "Отправлена заявка на удаление SSL сертификата '" + sslCertificate.getName() + "'";
             saveHistoryForOperatorService(account, historyMessage);
         }
+    }
 
+    public void deleteAllMailboxes(PersonalAccount account) {
+        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+        for (Mailbox mailbox : mailboxes) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", mailbox.getId());
+
+            businessHelper.buildAction(BusinessActionType.MAILBOX_DELETE_RC, message);
+
+            String historyMessage = "Отправлена заявка на удаление почтового ящика '" + mailbox.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void deleteAllDatabases(PersonalAccount account) {
+        Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+
+        for (Database database : databases) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", database.getId());
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_DELETE_RC, message);
+
+            String historyMessage = "Отправлена заявка на удаление базы данных '" + database.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void deleteAllDatabaseUsers(PersonalAccount account) {
+        Collection<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
+
+        for (DatabaseUser databaseUser : databaseUsers) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", databaseUser.getId());
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_USER_DELETE_RC, message);
+
+            String historyMessage = "Отправлена заявка на удаление пользователя баз данных '" + databaseUser.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void disableAndScheduleDeleteForAllMailboxes(PersonalAccount account) {
+        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+        for (Mailbox mailbox : mailboxes) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", mailbox.getId());
+            message.addParam("switchedOn", false);
+            message.addParam("willBeDeletedAfter", LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+
+            businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на выключение и отложенное удаление почтового ящика '" + mailbox.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void disableAndScheduleDeleteForAllDatabases(PersonalAccount account) {
+        Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+
+        for (Database database : databases) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", database.getId());
+            message.addParam("switchedOn", false);
+            message.addParam("willBeDeletedAfter", LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на выключение и отложенное удаление базы данных '" + database.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void disableAndScheduleDeleteForAllDatabaseUsers(PersonalAccount account) {
+        Collection<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
+
+        for (DatabaseUser databaseUser : databaseUsers) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", databaseUser.getId());
+            message.addParam("switchedOn", false);
+            message.addParam("willBeDeletedAfter", LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на выключение и отложенное удаление пользователя баз данных '" + databaseUser.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void unScheduleDeleteForAllMailboxes(PersonalAccount account) {
+        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+        for (Mailbox mailbox : mailboxes) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", mailbox.getId());
+            message.addParam("willBeDeletedAfter", null);
+
+            businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на отмену отложенного удаления почтового ящика '" + mailbox.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void unScheduleDeleteForAllDatabases(PersonalAccount account) {
+        Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+
+        for (Database database : databases) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", database.getId());
+            message.addParam("willBeDeletedAfter", null);
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на отмену отложенного удаления базы данных '" + database.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void unScheduleDeleteForAllDatabaseUsers(PersonalAccount account) {
+        Collection<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
+
+        for (DatabaseUser databaseUser : databaseUsers) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", databaseUser.getId());
+            message.addParam("willBeDeletedAfter", null);
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на отмену отложенного удаления пользователя баз данных '" + databaseUser.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
     }
 
     /*
@@ -814,24 +974,16 @@ public class AccountHelper {
         }
     }
 
-    private void setWritable(Quotable quotable, Boolean writable) {
-        Resource resource = (Resource) quotable;
-
-        SimpleServiceMessage message = new SimpleServiceMessage();
-        message.setParams(new HashMap<>());
-        message.setAccountId(resource.getAccountId());
-        message.addParam("resourceId", resource.getId());
-        message.addParam("writable", writable);
-
-        BusinessActionType type = getUpdateActionTypeByResource(resource);
-
-        businessHelper.buildAction(type, message);
-    }
-
     public void setWritableForUnixAccount(PersonalAccount account, UnixAccount unixAccount, boolean state) {
 
         try {
-            setWritable(unixAccount, state);
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", unixAccount.getId());
+            message.addParam("writable", state);
+
+            businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
                     " возможности записывать данные (writable) для UNIX-аккаунта '" + unixAccount.getName() + "'";
@@ -846,7 +998,13 @@ public class AccountHelper {
     public void setWritableForMailbox(PersonalAccount account, Mailbox mailbox, boolean state) {
 
         try {
-            setWritable(mailbox, state);
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", mailbox.getId());
+            message.addParam("writable", state);
+
+            businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
                     " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getFullName() + "'";
