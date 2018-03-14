@@ -38,7 +38,6 @@ apply plugin: 'ru.majordomo.gradle.plugins.copycompose'
 apply plugin: "com.ewerk.gradle.plugins.querydsl"
 apply from: "https://nexus.intr/repository/init/gradle-init/0.1/dockertask.gradle"
 apply plugin: "jacoco"
-apply plugin: 'maven-publish'
 apply plugin: "com.gorylenko.gradle-git-properties"
 
 version = '0.0.1-SNAPSHOT'
@@ -67,7 +66,7 @@ configurations {
 }
 
 dependencies {
-    compile('ru.majordomo.hms.rc.user:resources:1.5.11')
+    compile('ru.majordomo.hms.rc.user:resources:1.5.12')
     compile('ru.majordomo.hms.rc.staff:resources:1+')
 
     compile("dnsjava:dnsjava:2.1.7")
@@ -153,53 +152,4 @@ idea {
         sourceDirs += file(generatedSrcDir)
         generatedSourceDirs += file(generatedSrcDir)
     }
-}
-
-def versionPropsFile = file('version.properties')
-def versionBuild
-
-if (versionPropsFile.canRead()) {
-    def Properties versionProps = new Properties()
-    versionProps.load(new FileInputStream(versionPropsFile))
-    versionBuild = versionProps['VERSION_BUILD'].toInteger()
-} else {
-    throw new GradleException("Could not read version.properties!")
-}
-
-ext.autoIncrementBuildNumber = {
-    if (versionPropsFile.canRead()) {
-        def Properties versionProps = new Properties()
-        versionProps.load(new FileInputStream(versionPropsFile))
-        versionBuild = versionProps['VERSION_BUILD'].toInteger() + 1
-        versionProps['VERSION_BUILD'] = versionBuild.toString()
-        versionProps.store(versionPropsFile.newWriter(), null)
-    } else {
-        throw new GradleException("Could not read version.properties!")
-    }
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            groupId 'ru.majordomo.hms.personmgr'
-            artifactId 'majordomo-exceptions'
-            version '1.0.' + versionBuild
-            artifact exceptionJar
-        }
-    }
-    repositories {
-        maven {
-            url uri(mavenUrl)
-            credentials {
-                username = mavenUser
-                password = mavenPass
-            }
-        }
-    }
-}
-
-task exceptionJar(type: Jar, dependsOn: compileJava) {
-    baseName = 'resources'
-    from sourceSets.main.output.classesDir
-    include 'ru/majordomo/hms/personmgr/exception/**'
 }
