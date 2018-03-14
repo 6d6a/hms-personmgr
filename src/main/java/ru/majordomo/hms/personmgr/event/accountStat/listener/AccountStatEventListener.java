@@ -129,7 +129,7 @@ public class AccountStatEventListener {
      *              Последнее уведомление о нехватке средств отправлялось не более 3 дней назад
      */
     @EventListener
-    @Async("vipThreadPoolTaskExecutor")
+    @Async("threadPoolTaskExecutor")
     public void saveStatIfPaymentAfterNotification(PaymentWasReceivedEvent event) {
         SimpleServiceMessage message = event.getSource();
 
@@ -177,7 +177,7 @@ public class AccountStatEventListener {
      *              услуга платная
      */
     @EventListener
-    @Async
+    @Async("threadPoolTaskExecutor")
     public void saveStat(UserDisabledServiceEvent event) {
         PersonalAccount account = accountManager.findOne(event.getSource());
 
