@@ -208,8 +208,14 @@ public class RevisiumRequestRestController extends CommonRestController {
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.connect();
+            connection.setConnectTimeout(5);
+            connection.setReadTimeout(5);
 
             int code = connection.getResponseCode();
+
+            if (code == 301 || code == 302) {
+                throw new ParameterValidationException("Обнаружен редирект на " + connection.getHeaderField("Location"));
+            }
 
             if (code < 200 || code >= 300) {
                 throw new ParameterValidationException("Некорректный ответ от сайта");
