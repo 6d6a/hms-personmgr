@@ -8,9 +8,12 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 class ApiResponse {
 
+    @JsonProperty("status")
     private String status;
 
+    @JsonProperty("errorMessage")
     private String errorMessage;
 
+    @JsonProperty("strStatus")
     private String strStatus;
 }

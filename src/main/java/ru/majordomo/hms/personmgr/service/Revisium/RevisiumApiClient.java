@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.service.Revisium;
 
-import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +18,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import ru.majordomo.hms.personmgr.dto.revisium.CheckResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.GetResultResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.GetStatResponse;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 
 import java.io.IOException;
 import java.net.IDN;
@@ -31,6 +29,7 @@ import java.util.List;
 public class RevisiumApiClient {
 
     private String serverUrl;
+    private String key;
     private RestTemplate restTemplate;
 
     protected Logger logger = LoggerFactory.getLogger(getClass());
@@ -44,17 +43,20 @@ public class RevisiumApiClient {
     ) {
 
         this.serverUrl = serverUrl;
+        this.key = key;
 
         restTemplate = new RestTemplate();
         List<ClientHttpRequestInterceptor> interceptors = restTemplate.getInterceptors();
-        interceptors.add(new ReviscanApiHttpRequestInterceptor(key));
+//        interceptors.add(new RevisiumApiHttpRequestInterceptor(key));
         restTemplate.setInterceptors(interceptors);
     }
 
     public GetStatResponse getStat() {
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(serverUrl)
-                .queryParam("action", "get_stat");
+                .queryParam("action", "get_stat")
+                .queryParam("key", key)
+                .queryParam("api_ver", VERSION);
 
         GetStatResponse getStatResponse = restTemplate.getForObject(builder.build().encode().toUri(), GetStatResponse.class);
 
@@ -72,7 +74,9 @@ public class RevisiumApiClient {
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(serverUrl)
                 .queryParam("action", "check")
-                .queryParam("url", IDN.toASCII(siteUrl));
+                .queryParam("url", IDN.toASCII(siteUrl))
+                .queryParam("key", key)
+                .queryParam("api_ver", VERSION);
 
         CheckResponse checkResponse = restTemplate.getForObject(builder.build().encode().toUri(), CheckResponse.class);
 
@@ -86,7 +90,9 @@ public class RevisiumApiClient {
     public GetResultResponse getResult(String requestId) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(serverUrl)
                 .queryParam("action", "get_result")
-                .queryParam("request_id", requestId);
+                .queryParam("request_id", requestId)
+                .queryParam("key", key)
+                .queryParam("api_ver", VERSION);
 
         GetResultResponse getResultResponse = restTemplate.getForObject(builder.build().encode().toUri(), GetResultResponse.class);
 
@@ -97,35 +103,38 @@ public class RevisiumApiClient {
         return getResultResponse;
     }
 
-    class ReviscanApiHttpRequestInterceptor implements ClientHttpRequestInterceptor {
-
-        private final String key;
-
-        ReviscanApiHttpRequestInterceptor(String key) {
-            this.key = key;
-        }
-
-        @Override
-        public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
-            HttpHeaders httpHeaders = request.getHeaders();
-            httpHeaders.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-
-            HttpRequest requestWrapper = new HttpRequestWrapper(request) {
-                @Override
-                public URI getURI() {
-                    URI uri = super.getURI();
-
-                    UriComponentsBuilder builder = UriComponentsBuilder.fromUri(uri);
-                    builder.replaceQueryParam("key", key);
-                    builder.replaceQueryParam("api_ver", VERSION);
-
-                    UriComponents uriComponents = builder.build(true);
-
-                    return uriComponents.toUri();
-                }
-            };
-
-            return execution.execute(requestWrapper, body);
-        }
-    }
+    //TODO revisium (in future) Разобраться почему не работает
+//    class RevisiumApiHttpRequestInterceptor implements ClientHttpRequestInterceptor {
+//
+//        private final String key;
+//
+//        RevisiumApiHttpRequestInterceptor(String key) {
+//            this.key = key;
+//        }
+//
+//        @Override
+//        public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
+//            HttpHeaders httpHeaders = request.getHeaders();
+//            httpHeaders.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+//
+//            HttpRequest requestWrapper = new HttpRequestWrapper(request) {
+//                @Override
+//                public URI getURI() {
+//                    URI uri = super.getURI();
+//
+//                    UriComponentsBuilder builder = UriComponentsBuilder.fromUri(uri);
+//                    builder.replaceQueryParam("key", key);
+//                    builder.replaceQueryParam("api_ver", VERSION);
+//
+//                    UriComponents uriComponents = builder.build(true);
+//
+//                    logger.error(uriComponents.toUri().toString());
+//
+//                    return uriComponents.toUri();
+//                }
+//            };
+//
+//            return execution.execute(requestWrapper, body);
+//        }
+//    }
 }
