@@ -237,7 +237,7 @@ public class RevisiumRequestRestController extends CommonRestController {
         //Проверяем баланс аккаунта + добавляем услугу на аккаунт + добавляем до какого действует услуга
         accountHelper.checkBalance(account, paymentService);
 
-        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService).build();
+        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService).setComment(siteUrl).build();
 
         //Списываем
         accountHelper.charge(account, chargeMessage);

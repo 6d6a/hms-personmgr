@@ -275,29 +275,41 @@ public class AccountServiceHelper {
         revisiumRequest.setCreated(LocalDateTime.now());
         revisiumRequestRepository.save(revisiumRequest);
 
-        CheckResponse checkResponse = revisiumApiClient.check(revisiumRequestService.getSiteUrl());
+        try {
 
-        switch (ResultStatus.valueOf(checkResponse.getStatus().toUpperCase())) {
-            case COMPLETE:
-            case INCOMPLETE:
-                revisiumRequest.setRequestId(checkResponse.getRequestId());
-                revisiumRequest.setSuccessCheck(true);
-                revisiumRequest = revisiumRequestRepository.save(revisiumRequest);
-                publisher.publishEvent(new ProcessRevisiumRequestEvent(revisiumRequest));
-                break;
-            case CANCELED:
-            case FAILED:
-            default:
-                revisiumRequest.setSuccessCheck(false);
-                revisiumRequestRepository.save(revisiumRequest);
+            CheckResponse checkResponse = revisiumApiClient.check(revisiumRequestService.getSiteUrl());
 
-                Map<String, String> paramsHistory = new HashMap<>();
-                paramsHistory.put(HISTORY_MESSAGE_KEY, "Ошибка при запросе проверки (check) сайта '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум. " +
-                                "Текст ошибки: '" + checkResponse.getErrorMessage() + "'");
-                paramsHistory.put(OPERATOR_KEY, "service");
-                publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+            switch (ResultStatus.valueOf(checkResponse.getStatus().toUpperCase())) {
+                case COMPLETE:
+                case INCOMPLETE:
+                    revisiumRequest.setRequestId(checkResponse.getRequestId());
+                    revisiumRequest.setSuccessCheck(true);
+                    revisiumRequest = revisiumRequestRepository.save(revisiumRequest);
+                    publisher.publishEvent(new ProcessRevisiumRequestEvent(revisiumRequest));
+                    break;
+                case CANCELED:
+                case FAILED:
+                default:
+                    revisiumRequest.setSuccessCheck(false);
+                    revisiumRequestRepository.save(revisiumRequest);
 
-                break;
+                    Map<String, String> paramsHistory = new HashMap<>();
+                    paramsHistory.put(HISTORY_MESSAGE_KEY, "Ошибка при запросе проверки (check) сайта '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум. " +
+                            "Текст ошибки: '" + checkResponse.getErrorMessage() + "'");
+                    paramsHistory.put(OPERATOR_KEY, "service");
+                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+
+                    break;
+            }
+
+        } catch (Exception e) {
+
+            Map<String, String> paramsHistory = new HashMap<>();
+            paramsHistory.put(HISTORY_MESSAGE_KEY, "Ошибка при запросе проверки (check) сайта: '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум.");
+            paramsHistory.put(OPERATOR_KEY, "service");
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+
+            e.printStackTrace();
         }
 
         return revisiumRequest;
