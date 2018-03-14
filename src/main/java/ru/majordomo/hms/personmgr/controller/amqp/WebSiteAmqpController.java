@@ -9,11 +9,16 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
+import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ROUTING_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.ERROR_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.WEBSITE_CREATE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.WEBSITE_DELETE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.WEBSITE_UPDATE;
+import static ru.majordomo.hms.personmgr.common.Constants.SUCCESS_KEY;
 
 @Service
 public class WebSiteAmqpController extends CommonAmqpController  {
@@ -36,7 +41,23 @@ public class WebSiteAmqpController extends CommonAmqpController  {
                 handleUpdateEventFromRc(message, headers);
 
                 break;
-            case "appscat":
+            case APPSCAT_ROUTING_KEY:
+                try {
+                    PersonalAccount account = accountManager.findOne(message.getAccountId());
+
+                    resourceChecker.checkResource(account, ResourceType.WEB_SITE, message.getParams());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    message.addParam(SUCCESS_KEY, false);
+                    message.addParam(ERROR_MESSAGE_KEY, e.getMessage());
+
+                    try {
+                        amqpSender.send(WEBSITE_UPDATE, APPSCAT_ROUTING_KEY, message);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
                 businessHelper.buildActionByOperationId(BusinessActionType.WEB_SITE_UPDATE_RC, message, message.getOperationIdentity());
 
                 break;

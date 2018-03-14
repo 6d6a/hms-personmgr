@@ -395,6 +395,7 @@ public class AccountEventListener {
 
     /**
      * @param event должен содержать SimpleServiceMessage с информацией о платеже
+     *
      * При поступлении платежа на контактный номер телефона отправляется СМС
      *
      * Обрабатывается только реальный платеж, бонусные (например, при возврате), партнерские или кредитные игнорируются
@@ -432,7 +433,7 @@ public class AccountEventListener {
     /**
      * @param event должен содержать SimpleServiceMessage с информацией о платеже
      *
-     * Уведомление по СМС на контактный номер телефона о поступлении платежа
+     * При поступлении платежа производится попытка списания и включения аккаунта
      *
      * Обрабатываются все платежи, кроме кредитных
      */
@@ -441,7 +442,6 @@ public class AccountEventListener {
     public void onAccountSwitchByPaymentCreatedEvent(PaymentWasReceivedEvent event) {
         SimpleServiceMessage message = event.getSource();
 
-        //Если это кредитный платеж, то ничего делать не надо
         if (message.getParam("paymentTypeKind").equals(CREDIT_PAYMENT_TYPE_KIND)) {
             return;
         }
@@ -454,20 +454,17 @@ public class AccountEventListener {
             e.printStackTrace();
         }
 
-        // При задержке аккаунт мог мутировать
         PersonalAccount account = accountManager.findOne(message.getAccountId());
         if (account == null) {
             return;
         }
 
-        // Если баланс после пополнения положительный
         BigDecimal balance = accountHelper.getBalance(account);
         Plan plan = planRepository.findOne(account.getPlanId());
 
         if (!plan.isAbonementOnly()) {
 
             if (balance.compareTo(BigDecimal.ZERO) >= 0) {
-                // Обнуляем дату активации кредита
                 if (account.getCreditActivationDate() != null) {
                     accountManager.removeSettingByName(account.getId(), CREDIT_ACTIVATION_DATE);
                 }

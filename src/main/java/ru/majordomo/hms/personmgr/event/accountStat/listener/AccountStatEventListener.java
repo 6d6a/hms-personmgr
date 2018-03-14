@@ -1,19 +1,20 @@
 package ru.majordomo.hms.personmgr.event.accountStat.listener;
 
+import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.AccountType;
-import ru.majordomo.hms.personmgr.common.NotificationType;
-import ru.majordomo.hms.personmgr.common.Utils;
+import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.PaymentWasReceivedEvent;
 import ru.majordomo.hms.personmgr.event.accountStat.AccountStatDomainUpdateEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.model.account.AccountNotificationStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.QAccountNotificationStat;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.repository.AccountNotificationStatRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
@@ -23,9 +24,8 @@ import ru.majordomo.hms.personmgr.service.StatFeignClient;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_AUTO_RENEW_DOMAIN;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
@@ -135,19 +135,22 @@ public class AccountStatEventListener {
             return;
         }
 
-        boolean paymentWasRecievedAfterNotificaton = accountNotificationStatRepository
-                .existsByAccountTypeAndTransportTypeInAndPersonalAccountIdAndCreatedAfterAndNotificationType(
-                        AccountType.VIRTUAL_HOSTING,
-                        Arrays.asList(EMAIL, SMS),
-                        account.getId(),
-                        LocalDateTime.now().minusDays(3),
-                        NotificationType.REMAINING_DAYS_MONEY_ENDS
-                );
+        QAccountNotificationStat qStat = QAccountNotificationStat.accountNotificationStat;
+        BooleanBuilder builder = new BooleanBuilder();
+        Predicate predicate = builder
+                .and(qStat.personalAccountId.eq(account.getId()))
+                .and(qStat.accountType.eq(account.getAccountType()))
+                .and(qStat.created.after(LocalDateTime.now().minusDays(3)))
+                .and(qStat.notificationType.eq(NotificationType.REMAINING_DAYS_MONEY_ENDS))
+                .and(qStat.transportType.in(EMAIL, SMS));
 
-        //TODO удалить после теста
-        paymentWasRecievedAfterNotificaton = true;
+        List<NotificationTransportType> types =
+                accountNotificationStatRepository.findAll(predicate)
+                    .stream()
+                    .map(AccountNotificationStat::getTransportType)
+                    .collect(Collectors.toList());
 
-        if (!paymentWasRecievedAfterNotificaton) {
+        if (types.isEmpty()) {
             return;
         }
 
@@ -155,6 +158,7 @@ public class AccountStatEventListener {
         body.put(RESOURCE_ID_KEY, NotificationType.REMAINING_DAYS_MONEY_ENDS);
         body.put(NAME_KEY, "Платеж после уведомления");
         body.put(ACCOUNT_WAS_ACTIVE_KEY, false);
+        body.put(TYPES_KEY, types);
         statFeignClient.paymentAfterNotificationIncrement(body);
     }
 }
