@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service.Revisium;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.LaxRedirectStrategy;
@@ -15,6 +17,8 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.support.HttpRequestWrapper;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponents;
@@ -22,10 +26,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 import ru.majordomo.hms.personmgr.dto.revisium.CheckResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.GetResultResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.GetStatResponse;
+import ru.majordomo.hms.personmgr.dto.revisium.Monitoring;
 
 import java.io.IOException;
 import java.net.IDN;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -49,7 +56,13 @@ public class RevisiumApiClient {
 
         restTemplate = new RestTemplate();
 
-        //TODO (in future) Разобраться почему по дефолту не работает преход по редиректу при GET зпросе
+        //TODO (in future) Придумать лучший способ получть пустой массив как объект
+        ObjectMapper objMapper = new ObjectMapper().configure(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT, true);
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        converter.setObjectMapper(objMapper);
+        restTemplate.setMessageConverters(Collections.singletonList(converter));
+
+        //TODO (in future) Разобраться почему по дефолту не работает переход по редиректу при GET запросе
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
         HttpClient httpClient = HttpClientBuilder.create()
                 .setRedirectStrategy(new LaxRedirectStrategy())
@@ -100,6 +113,10 @@ public class RevisiumApiClient {
                 .queryParam("request_id", requestId);
 
         GetResultResponse getResultResponse = restTemplate.getForObject(builder.build().encode().toUri(), GetResultResponse.class);
+
+        if (getResultResponse.getMonitoring() == null) {
+            getResultResponse.setMonitoring(new Monitoring());
+        }
 
         if (getResultResponse.getErrorMessage() != null && !getResultResponse.getErrorMessage().equals("")) {
             logger.error("Ошибка при запросе результата проверки сайта: " + getResultResponse.getErrorMessage());
