@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.ChargeResult;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.event.account.AccountSendMailNotificationRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSendSmsNotificationRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
@@ -137,13 +138,13 @@ public class ChargeProcessor {
                 accountService = discountedService;
             }
 
-            if (chargeRequestItem.getAmount().compareTo(BigDecimal.ZERO) == 0) {
-                //TODO revisium (in future) переделать под автопроделние
+            if (accountService.getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME) {
+                //TODO revisium (in future) переделать под автопроделние (пока только отключение)
                 AccountServiceExpiration expiration = accountServiceExpirationRepository.findByPersonalAccountIdAndAccountServiceId(
-                        account.getId(), chargeRequestItem.getAccountServiceId()
+                        account.getId(), accountService.getId()
                 );
 
-                if (expiration != null && expiration.getExpireDate().isBefore(LocalDate.now())) {
+                if (expiration != null && expiration.getExpireDate().isBefore(chargeRequest.getChargeDate())) {
                     accountHelper.disableAdditionalService(accountService);
                     chargeRequestItem.setStatus(Status.CHARGED);
                 } else {

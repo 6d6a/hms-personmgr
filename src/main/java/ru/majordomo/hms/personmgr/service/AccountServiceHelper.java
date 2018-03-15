@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.dto.revisium.CheckResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.ResultStatus;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
@@ -363,25 +364,33 @@ public class AccountServiceHelper {
         List<AccountService> dailyServices = new ArrayList<>();
         List<AccountService> accountServices = account.getServices();
         if (accountServices == null || accountServices.isEmpty()) { return dailyServices;}
-        dailyServices = accountServices.stream().filter(accountService -> {
-                AccountServiceExpiration expiration = accountServiceExpirationRepository.findByPersonalAccountIdAndAccountServiceId(account.getId(), accountService.getId());
-                return accountService.isEnabled()
+        dailyServices = accountServices.stream().filter(accountService ->
+                accountService.isEnabled()
                         && accountService.getPaymentService() != null
-                        && (
-                                accountService.getLastBilled() == null
-                                        || accountService.getLastBilled().isBefore(chargeDate)
-                )
-                        && (accountService.getPaymentService().getCost().compareTo(BigDecimal.ZERO) > 0
-                                || (accountService.getPaymentService().getCost().compareTo(BigDecimal.ZERO) == 0
-                                        && expiration != null && expiration.getExpireDate().isBefore(LocalDate.now()))
-                );
-        }).collect(Collectors.toList());
+                        && accountService.getPaymentService().getCost().compareTo(BigDecimal.ZERO) > 0
+                        && (isRegularAccountServiceNeedDailyCharge(accountService, chargeDate) || isOneTimeAccountServiceExpired(account, accountService, chargeDate)))
+                .collect(Collectors.toList());
 
         //сортируем в порядке убывания paymentService.chargePriority
         //в начало попадет сервис с тарифом
         accountServices.sort(AccountService.ChargePriorityComparator);
 
         return dailyServices;
+    }
+
+    private Boolean isRegularAccountServiceNeedDailyCharge(AccountService accountService, LocalDateTime chargeDate) {
+
+        return accountService.getPaymentService().getPaymentType() != ServicePaymentType.ONE_TIME
+                && (accountService.getLastBilled() == null || accountService.getLastBilled().isBefore(chargeDate));
+    }
+
+    private Boolean isOneTimeAccountServiceExpired(PersonalAccount account, AccountService accountService, LocalDateTime chargeDate) {
+
+        AccountServiceExpiration expiration = accountServiceExpirationRepository.findByPersonalAccountIdAndAccountServiceId(account.getId(), accountService.getId());
+
+        return accountService.getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME
+                && expiration != null
+                && expiration.getExpireDate().isBefore(chargeDate.toLocalDate());
     }
 
     public String getPaymentServiceType(AccountService accountService) {
