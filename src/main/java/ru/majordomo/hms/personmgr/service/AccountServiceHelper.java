@@ -111,6 +111,7 @@ public class AccountServiceHelper {
             AccountService accountService = accountServices.get(0);
 
             accountService.setQuantity(quantity);
+            accountService.setEnabled(true);
 
             accountServiceRepository.save(accountService);
         } else {
