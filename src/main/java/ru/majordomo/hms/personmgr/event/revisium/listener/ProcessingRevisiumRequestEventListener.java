@@ -119,34 +119,38 @@ public class ProcessingRevisiumRequestEventListener {
 
                     Boolean newAlertFound;
 
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getHtmlMalware(), previous.getMonitoring().getHtmlMalware());
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getFilesMalware(), previous.getMonitoring().getFilesMalware()) ? true : newAlertFound;
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getBlacklistedUrls(), previous.getMonitoring().getBlacklistedUrls()) ? true : newAlertFound;
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getRedirects(), previous.getMonitoring().getRedirects()) ? true : newAlertFound;
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getBlacklisted(), previous.getMonitoring().getBlacklisted()) ? true : newAlertFound;
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getSuspiciousUrls(), previous.getMonitoring().getSuspiciousUrls()) ? true : newAlertFound;
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getExternalResources(), previous.getMonitoring().getExternalResources()) ? true : newAlertFound;
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getExternalLinks(), previous.getMonitoring().getExternalLinks()) ? true : newAlertFound;
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getIssues(), previous.getMonitoring().getIssues()) ? true : newAlertFound;
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getIp(), previous.getMonitoring().getIp()) ? true : newAlertFound;
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getDns(), previous.getMonitoring().getDns()) ? true : newAlertFound;
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getDnsExpiration(), previous.getMonitoring().getDnsExpiration()) ? true : newAlertFound;
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getCms(), previous.getMonitoring().getCms()) ? true : newAlertFound;
-                    newAlertFound = isNewAlertIncoming(
-                            last.getMonitoring().getJsErrors(), previous.getMonitoring().getJsErrors()) ? true : newAlertFound;
+                    if (last == null || previous == null) {
+                        newAlertFound = false;
+                    } else {
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getHtmlMalware(), previous.getMonitoring().getHtmlMalware());
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getFilesMalware(), previous.getMonitoring().getFilesMalware()) ? true : newAlertFound;
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getBlacklistedUrls(), previous.getMonitoring().getBlacklistedUrls()) ? true : newAlertFound;
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getRedirects(), previous.getMonitoring().getRedirects()) ? true : newAlertFound;
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getBlacklisted(), previous.getMonitoring().getBlacklisted()) ? true : newAlertFound;
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getSuspiciousUrls(), previous.getMonitoring().getSuspiciousUrls()) ? true : newAlertFound;
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getExternalResources(), previous.getMonitoring().getExternalResources()) ? true : newAlertFound;
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getExternalLinks(), previous.getMonitoring().getExternalLinks()) ? true : newAlertFound;
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getIssues(), previous.getMonitoring().getIssues()) ? true : newAlertFound;
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getIp(), previous.getMonitoring().getIp()) ? true : newAlertFound;
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getDns(), previous.getMonitoring().getDns()) ? true : newAlertFound;
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getDnsExpiration(), previous.getMonitoring().getDnsExpiration()) ? true : newAlertFound;
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getCms(), previous.getMonitoring().getCms()) ? true : newAlertFound;
+                        newAlertFound = isNewAlertIncoming(
+                                last.getMonitoring().getJsErrors(), previous.getMonitoring().getJsErrors()) ? true : newAlertFound;
+                    }
 
                     if (newAlertFound) {
                         //TODO revisium письмо
