@@ -46,6 +46,8 @@ public class Constants {
     public static final String ACCOUNT_ID_KEY = "accountId";
     public static final String PASSWORD_KEY = "password";
     public static final String NAME_KEY = "name";
+    public static final String ACCOUNT_WAS_ACTIVE_KEY = "accountWasActive";
+    public static final String TYPES_KEY = "types";
     public static final String TOKEN_KEY = "token";
     public static final String TYPE_KEY = "type";
     public static final String ACC_ID_KEY = "acc_id";
