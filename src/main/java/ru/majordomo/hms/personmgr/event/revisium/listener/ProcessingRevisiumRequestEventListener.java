@@ -182,6 +182,6 @@ public class ProcessingRevisiumRequestEventListener {
     }
 
     private Boolean isNewAlertIncoming(HashMap<MonitoringFlag, Integer> last, HashMap<MonitoringFlag, Integer> previous) {
-        return last != null && (previous == null || last.get(MonitoringFlag.ALERT) > previous.get(MonitoringFlag.ALERT));
+        return !last.isEmpty() && (previous.isEmpty() || last.get(MonitoringFlag.ALERT) > previous.get(MonitoringFlag.ALERT));
     }
 }

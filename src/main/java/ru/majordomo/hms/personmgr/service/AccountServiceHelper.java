@@ -263,6 +263,7 @@ public class AccountServiceHelper {
         }
 
         accountServiceExpiration.setExpireDate(expireDate);
+        accountServiceRepository.save(accountService);
         accountServiceExpirationRepository.save(accountServiceExpiration);
 
         return accountServiceExpiration;

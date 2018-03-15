@@ -132,6 +132,7 @@ public class RevisiumApiClient {
 
                     UriComponents uriComponents = builder.build(true);
 
+                    //TODO revisium убрать дебаг
                     logger.error(uriComponents.toUri().toString());
 
                     return uriComponents.toUri();

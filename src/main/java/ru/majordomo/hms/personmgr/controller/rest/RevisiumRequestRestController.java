@@ -163,7 +163,7 @@ public class RevisiumRequestRestController extends CommonRestController {
 
         accountHelper.checkBalance(account, paymentService);
 
-        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService).build();
+        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService).setComment(revisiumRequestService.getSiteUrl()).build();
         accountHelper.charge(account, chargeMessage);
 
         accountHelper.saveHistory(account, "Произведен заказ продления услуги " + paymentService.getName(), request);
