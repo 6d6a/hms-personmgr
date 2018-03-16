@@ -15,7 +15,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
@@ -236,35 +238,43 @@ public class AccountEventListener {
         }
     }
 
+
+    /**
+     * @param event должен содержать SimpleServiceMessage с информацией о платеже
+     *
+     * Начисление AccountPromotion для бесплатной регистрации домена .ru или .рф
+     *
+     * Обрабатывается только реальный платеж, бонусные (например, при возврате), партнерские или кредитные игнорируются
+     *
+     * Условия акции:
+     * При открытии нового аккаунта виртуального хостинга по тарифным планам «Безлимитный», «Безлимитный+», «Бизнес», «Бизнес+»
+     * мы бесплатно зарегистрируем на Вас 1 домен в зоне .ru или .рф при единовременной оплате за
+     * 3 месяца. Бонус предоставляется при открытии аккаунта для первого домена на аккаунте.
+     *
+     * Аккаунт считается новым, если на нём не было доменов
+     */
     @EventListener
     @Async("threadPoolTaskExecutor")
-    public void onAccountPromotionProcessByPaymentCreatedEvent(AccountPromotionProcessByPaymentCreatedEvent event) {
-
-        // Задержка
-        try {
-            Thread.sleep(10000);
-        } catch (Exception e) {
-            logger.debug("Exeption in AccountEventListener on sleep");
-            e.printStackTrace();
+    public void onAccountPromotionProcessByPayment(PaymentWasReceivedEvent event) {
+        SimpleServiceMessage message = event.getSource();
+        if (!message.getParam("paymentTypeKind").equals(REAL_PAYMENT_TYPE_KIND)) {
+            return;
         }
 
-        PersonalAccount account = event.getSource();
-        // При задержке аккаунт мог мутировать
-        account = accountManager.findOne(account.getId());
+        PersonalAccount account = accountManager.findOne(message.getAccountId());
+        if (account == null) {
+            return;
+        }
 
-        Map<String, ?> paramsForPublisher = event.getParams();
+        Map<String, ?> paramsForPublisher = message.getParams();
 
-        logger.debug("We got AccountPromotionProcessByPaymentCreatedEvent");
+        logger.debug("We got PaymentWasReceivedEvent");
 
-        // Пополнение баланса партнера при поступлении средств клиенту, если этот клиент регистрировался по промокоду
 
-        BigDecimal amount = getBigDecimalFromUnexpectedInput(paramsForPublisher.get("amount"));
+        BigDecimal amount = getBigDecimalFromUnexpectedInput(paramsForPublisher.get(AMOUNT_KEY));
         Plan plan = planRepository.findOne(account.getPlanId());
-        // При открытии нового аккаунта виртуального хостинга по тарифным планам «Безлимитный», «Безлимитный+», «Бизнес», «Бизнес+»
-        // мы бесплатно зарегистрируем на Вас 1 домен в зоне .ru или .рф при единовременной оплате за
-        // 3 месяца. Бонус предоставляется при открытии аккаунта для первого домена на аккаунте.
+
         if (amount.compareTo((plan.getService().getCost()).multiply(new BigDecimal(3L))) >= 0) {
-            //Проверка на то что аккаунт новый (на нём не было доменов)
             if (account.isAccountNew()) {
                 List<Domain> domains = accountHelper.getDomains(account);
                 if (!plan.isAbonementOnly() && plan.isActive() && !plan.getName().equals(ACTIVE_PLAN_NAME_WITHOUT_FREE_DOMAIN) && (domains == null || domains.size() == 0)) {
@@ -277,6 +287,37 @@ public class AccountEventListener {
             }
         }
 
+    }
+
+    /**
+     * @param event должен содержать SimpleServiceMessage с информацией о платеже
+     * Пополнение баланса партнера при поступлении средств клиенту, если этот клиент регистрировался по промокоду
+     *
+     * Обрабатывается только реальный платеж, бонусные (например, при возврате), партнерские или кредитные игнорируются
+     *
+     * Условия акции:
+     *              Аккаунт партнёра должен быть зарегистрирован менее года назад
+     *              Если зарегистрирован до 2018-01-25 00:00:00, то начисляется 25% от суммы платежа
+     *                                  после 2018-01-25 00:00:00, то начисляется 30%
+     */
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountPromotionProcessByPaymentCreatedEvent(PaymentWasReceivedEvent event) {
+        SimpleServiceMessage message = event.getSource();
+
+        if (!message.getParam("paymentTypeKind").equals(REAL_PAYMENT_TYPE_KIND)) {
+            return;
+        }
+
+        PersonalAccount account = accountManager.findOne(message.getAccountId());
+        if (account == null) {
+            return;
+        }
+
+        Map<String, ?> paramsForPublisher = message.getParams();
+        BigDecimal amount = getBigDecimalFromUnexpectedInput(paramsForPublisher.get(AMOUNT_KEY));
+
         if (accountPromocodeRepository.countByPersonalAccountIdAndOwnedByAccount(account.getId(), false) > 1) {
             logger.error("Account has more than one AccountPromocodes with OwnedByAccount == false. Id: " + account.getId());
             return;
@@ -285,97 +326,145 @@ public class AccountEventListener {
         // Проверка на то что аккаунт создан по партнерскому промокоду
         AccountPromocode accountPromocode = accountPromocodeRepository.findOneByPersonalAccountIdAndOwnedByAccount(account.getId(), false);
 
-        if (accountPromocode != null) {
+        if (accountPromocode == null) {
+            return;
+        }
 
-            // Аккаунт которому необходимо начислить средства
-            PersonalAccount accountForPartnerBonus = accountManager.findOne(accountPromocode.getOwnerPersonalAccountId());
+        // Аккаунт которому необходимо начислить средства
+        PersonalAccount accountForPartnerBonus = accountManager.findOne(accountPromocode.getOwnerPersonalAccountId());
 
-            if (accountForPartnerBonus == null) {
-                logger.error("PersonalAccount with ID: " + accountPromocode.getOwnerPersonalAccountId() + " not found.");
-                return;
-            }
+        if (accountForPartnerBonus == null) {
+            logger.error("PersonalAccount with ID: " + accountPromocode.getOwnerPersonalAccountId() + " not found.");
+            return;
+        }
 
-            // Проверка даты создания аккаунта
-            if (account.getCreated().isAfter(LocalDateTime.now().minusYears(1))) {
-                // Все условия выполнены
+        if (account.getCreated().isBefore(LocalDateTime.now().minusYears(1))) {
+            return;
+        }
 
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                LocalDateTime partnerBonusSwitchDate = LocalDateTime.parse(INCREASED_BONUS_PARTNER_DATE, formatter);
+        // Все условия выполнены
 
-                BigDecimal percent = new BigDecimal(BONUS_PARTNER_PERCENT);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        LocalDateTime partnerBonusSwitchDate = LocalDateTime.parse(INCREASED_BONUS_PARTNER_DATE, formatter);
 
-                if (account.getCreated().isAfter(partnerBonusSwitchDate)) {
-                    percent = new BigDecimal(INCREASED_BONUS_PARTNER_PERCENT);
-                }
+        BigDecimal percent = new BigDecimal(BONUS_PARTNER_PERCENT);
 
-                BigDecimal promocodeBonus = amount.multiply(percent);
+        if (account.getCreated().isAfter(partnerBonusSwitchDate)) {
+            percent = new BigDecimal(INCREASED_BONUS_PARTNER_PERCENT);
+        }
 
-                Map<String, Object> payment = new HashMap<>();
-                payment.put("accountId", accountForPartnerBonus.getName());
-                payment.put("paymentTypeId", BONUS_PARTNER_TYPE_ID);
-                payment.put("amount", promocodeBonus);
-                payment.put("message", "Бонусный платеж за использование промокода " + accountPromocode.getPromocode().getCode() + " на аккаунте: " + account.getName());
+        BigDecimal promocodeBonus = amount.multiply(percent);
 
-                try {
-                    String responseMessage = finFeignClient.addPayment(payment);
-                    logger.debug("Processed promocode addPayment: " + responseMessage);
+        Map<String, Object> payment = new HashMap<>();
+        payment.put("accountId", accountForPartnerBonus.getName());
+        payment.put("paymentTypeId", BONUS_PARTNER_TYPE_ID);
+        payment.put("amount", promocodeBonus);
+        payment.put("message", "Бонусный платеж за использование промокода " + accountPromocode.getPromocode().getCode() + " на аккаунте: " + account.getName());
 
-                    //Save history
-                    accountHelper.saveHistoryForOperatorService(account, "Произведено начисление процента от пополнения ("
-                            + promocodeBonus.toString() + " руб. от "
-                            + amount.toString() + " руб.) владельцу партнерского промокода"
-                            + accountPromocode.getPromocode().getCode() + " - " + accountForPartnerBonus.getName()
-                    );
+        try {
+            String responseMessage = finFeignClient.addPayment(payment);
+            logger.debug("Processed promocode addPayment: " + responseMessage);
 
-                    //Статистика
-                    AccountStat accountStat = new AccountStat();
-                    accountStat.setPersonalAccountId(accountForPartnerBonus.getId());
-                    accountStat.setCreated(LocalDateTime.now());
-                    accountStat.setType(AccountStatType.VIRTUAL_HOSTING_PARTNER_PROMOCODE_BALANCE_FILL);
+            //Save history
+            accountHelper.saveHistoryForOperatorService(account, "Произведено начисление процента от пополнения ("
+                    + promocodeBonus.toString() + " руб. от "
+                    + amount.toString() + " руб.) владельцу партнерского промокода"
+                    + accountPromocode.getPromocode().getCode() + " - " + accountForPartnerBonus.getName()
+            );
 
-                    Map<String, String> data = new HashMap<>();
-                    data.put("usedByPersonalAccountId", account.getId());
-                    data.put("usedByPersonalAccountName", account.getName());
-                    data.put("amount", String.valueOf(promocodeBonus));
+            //Статистика
+            AccountStat accountStat = new AccountStat();
+            accountStat.setPersonalAccountId(accountForPartnerBonus.getId());
+            accountStat.setCreated(LocalDateTime.now());
+            accountStat.setType(AccountStatType.VIRTUAL_HOSTING_PARTNER_PROMOCODE_BALANCE_FILL);
 
-                    accountStat.setData(data);
+            Map<String, String> data = new HashMap<>();
+            data.put("usedByPersonalAccountId", account.getId());
+            data.put("usedByPersonalAccountName", account.getName());
+            data.put("amount", String.valueOf(promocodeBonus));
 
-                    accountStatRepository.save(accountStat);
+            accountStat.setData(data);
 
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    logger.error("Exception in pm.payment.create AMQP listener: " + e.getMessage());
-                }
-            }
+            accountStatRepository.save(accountStat);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Exception in pm.payment.create AMQP listener: " + e.getMessage());
         }
     }
 
+    /**
+     * @param event должен содержать SimpleServiceMessage с информацией о платеже
+     *
+     * При поступлении платежа на контактный номер телефона отправляется СМС
+     *
+     * Обрабатывается только реальный платеж, бонусные (например, при возврате), партнерские или кредитные игнорируются
+     */
+    @EventListener
+    @Async
+    public void notifyByPayment(PaymentWasReceivedEvent event) {
+        SimpleServiceMessage message = event.getSource();
+
+        if (!message.getParam("paymentTypeKind").equals(REAL_PAYMENT_TYPE_KIND)) {
+            return;
+        }
+
+        PersonalAccount account = accountManager.findOne(message.getAccountId());
+        if (account == null) {
+            return;
+        }
+
+        try {
+            if (accountNotificationHelper.isSubscribedToSmsType(account, MailManagerMessageType.SMS_NEW_PAYMENT)) {
+
+                HashMap<String, String> paramsForSms = new HashMap<>();
+                paramsForSms.put("client_id", account.getAccountId());
+                paramsForSms.put("acc_id", account.getName());
+                paramsForSms.put("add_sum", Utils.formatBigDecimalWithCurrency(Utils.getBigDecimalFromUnexpectedInput(message.getParam(AMOUNT_KEY))));
+
+                accountNotificationHelper.sendSms(account, "MajordomoHMSNewPayment", 10, paramsForSms);
+            }
+        } catch (Exception e) {
+            logger.error("Can't send SMS for account " + account.getName() + ", exceptionMessage: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * @param event должен содержать SimpleServiceMessage с информацией о платеже
+     *
+     * При поступлении платежа производится попытка списания и включения аккаунта
+     *
+     * Обрабатываются все платежи, кроме кредитных
+     */
     @EventListener
     @Async("vipThreadPoolTaskExecutor")
-    public void onAccountSwitchByPaymentCreatedEvent(AccountSwitchByPaymentCreatedEvent event) {
+    public void onAccountSwitchByPaymentCreatedEvent(PaymentWasReceivedEvent event) {
+        SimpleServiceMessage message = event.getSource();
+
+        if (message.getParam("paymentTypeKind").equals(CREDIT_PAYMENT_TYPE_KIND)) {
+            return;
+        }
 
         // Задержка (К примеру, в случае возврата денег в процессе смены тарифа)
         try {
             Thread.sleep(20000);
         } catch (Exception e) {
-            logger.debug("Exception in AccountEventListener on sleep");
+            logger.error("Exception in class AccountEventListener.onAccountSwitchByPaymentCreatedEvent on sleep");
             e.printStackTrace();
         }
 
-        PersonalAccount account = event.getSource();
-        // При задержке аккаунт мог мутировать
-        account = accountManager.findOne(account.getId());
+        PersonalAccount account = accountManager.findOne(message.getAccountId());
+        if (account == null) {
+            return;
+        }
 
-        logger.debug("We got AccountSwitchByPaymentCreatedEvent");
-
-        // Если баланс после пополнения положительный
         BigDecimal balance = accountHelper.getBalance(account);
         Plan plan = planRepository.findOne(account.getPlanId());
 
         if (!plan.isAbonementOnly()) {
 
             if (balance.compareTo(BigDecimal.ZERO) >= 0) {
-                // Обнуляем дату активации кредита
                 if (account.getCreditActivationDate() != null) {
                     accountManager.removeSettingByName(account.getId(), CREDIT_ACTIVATION_DATE);
                 }

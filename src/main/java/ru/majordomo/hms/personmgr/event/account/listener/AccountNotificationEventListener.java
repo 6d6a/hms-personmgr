@@ -7,17 +7,22 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.common.NotificationTransportType;
+import ru.majordomo.hms.personmgr.common.NotificationType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
+import ru.majordomo.hms.personmgr.model.account.AccountNotificationStat;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.cart.Cart;
 import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
+import ru.majordomo.hms.personmgr.repository.AccountNotificationStatRepository;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -26,9 +31,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static ru.majordomo.hms.personmgr.common.Constants.ACC_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.CLIENT_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_NEWS;
 
 @Component
@@ -37,29 +40,35 @@ public class AccountNotificationEventListener {
 
     private final AccountHelper accountHelper;
     private final AccountStatRepository accountStatRepository;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
     private final AccountNotificationHelper accountNotificationHelper;
     private final BizMailFeignClient bizMailFeignClient;
     private final PersonalAccountManager personalAccountManager;
     private final CartManager cartManager;
+    private final AccountNotificationStatRepository accountNotificationStatRepository;
+    private final StatFeignClient statFeignClient;
 
     @Autowired
     public AccountNotificationEventListener(
             AccountHelper accountHelper,
             AccountStatRepository accountStatRepository,
-            PlanRepository planRepository,
+            PlanManager planManager,
             AccountNotificationHelper accountNotificationHelper,
             BizMailFeignClient bizMailFeignClient,
             PersonalAccountManager personalAccountManager,
-            CartManager cartManager
+            CartManager cartManager,
+            AccountNotificationStatRepository accountNotificationStatRepository,
+            StatFeignClient statFeignClient
     ) {
         this.accountHelper = accountHelper;
         this.accountStatRepository = accountStatRepository;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.accountNotificationHelper = accountNotificationHelper;
         this.bizMailFeignClient = bizMailFeignClient;
         this.personalAccountManager = personalAccountManager;
         this.cartManager = cartManager;
+        this.accountNotificationStatRepository = accountNotificationStatRepository;
+        this.statFeignClient = statFeignClient;
     }
 
     @EventListener
@@ -89,15 +98,32 @@ public class AccountNotificationEventListener {
                 hasActiveCredit && balanceIsPositive ? "работать в течение 14-дневного кредитного периода" : "отключены"
         );
 
+        Plan plan = planManager.findOne(account.getPlanId());
+        String cost = accountNotificationHelper.getCostAbonementForEmail(plan) + " руб/год.";
+        String balanceForEmail = accountNotificationHelper.formatBigDecimalForEmail(balance) + " руб.";
+        String domains = accountNotificationHelper.getDomainForEmailWithPrefixString(account);
+
         HashMap<String, String> paramsForEmail = new HashMap<>();
         paramsForEmail.put("acc_id", account.getName());
         paramsForEmail.put("what_happened", whatHappened);
         paramsForEmail.put("action_after", actionAfter);
-        paramsForEmail.put("domains", accountNotificationHelper.getDomainForEmailWithPrefixString(account));
-        paramsForEmail.put("balance", accountNotificationHelper.formatBigDecimalForEmail(balance) + " руб.");
-        paramsForEmail.put("cost", accountNotificationHelper.getCostAbonementForEmail(planRepository.findOne(account.getPlanId())) + " руб/год.");
+        paramsForEmail.put("domains", domains);
+        paramsForEmail.put("balance", balanceForEmail);
+        paramsForEmail.put("cost", cost);
         String apiName = "MajordomoHmsMoneySoonEnd";
+
         accountNotificationHelper.sendMail(account, apiName, 10, paramsForEmail);
+
+        AccountNotificationStat stat = new AccountNotificationStat(
+                account, NotificationType.REMAINING_DAYS_MONEY_ENDS, NotificationTransportType.EMAIL, apiName);
+
+        accountNotificationStatRepository.save(stat);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put(RESOURCE_ID_KEY, NotificationType.REMAINING_DAYS_MONEY_ENDS);
+        body.put(NAME_KEY, "MajordomoHmsMoneySoonEnd");
+        body.put(TYPE_KEY, NotificationTransportType.EMAIL);
+        statFeignClient.notificatonWasSendIncrement(body);
     }
 
     @EventListener
@@ -106,11 +132,22 @@ public class AccountNotificationEventListener {
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
         int remainingDays = event.getRemainingDays();
-
+        String apiName = "MajordomoRemainingDays";
         HashMap<String, String> paramsForSms = new HashMap<>();
         paramsForSms.put("remaining_days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
         paramsForSms.put("client_id", account.getAccountId());
-        accountNotificationHelper.sendSms(account, "MajordomoRemainingDays", 10, paramsForSms);
+        accountNotificationHelper.sendSms(account, apiName, 10, paramsForSms);
+
+        AccountNotificationStat stat = new AccountNotificationStat(
+                account, NotificationType.REMAINING_DAYS_MONEY_ENDS, NotificationTransportType.SMS, apiName);
+
+        accountNotificationStatRepository.save(stat);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put(RESOURCE_ID_KEY, NotificationType.REMAINING_DAYS_MONEY_ENDS);
+        body.put(NAME_KEY, "MajordomoRemainingDays");
+        body.put(TYPE_KEY, NotificationTransportType.SMS);
+        statFeignClient.notificatonWasSendIncrement(body);
     }
 
     @EventListener
@@ -190,7 +227,7 @@ public class AccountNotificationEventListener {
 
                 case 9:
                     //только для базовых тарифов
-                    VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) planRepository.findOne(account.getPlanId()).getPlanProperties();
+                    VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) planManager.findOne(account.getPlanId()).getPlanProperties();
                     if (!planProperties.isBusinessServices()) {
                         apiName = "MajordomoHmsCorporateTarif";
                     }
@@ -274,7 +311,7 @@ public class AccountNotificationEventListener {
 
         logger.debug("We got AccountDeactivatedSendMailEvent\n");
 
-        if (account.isActive() || planRepository.findOne(account.getPlanId()).isAbonementOnly()) { return;}
+        if (account.isActive() || planManager.findOne(account.getPlanId()).isAbonementOnly()) { return;}
 
         AccountStat accountStat = accountStatRepository.findFirstByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
                 account.getId(),

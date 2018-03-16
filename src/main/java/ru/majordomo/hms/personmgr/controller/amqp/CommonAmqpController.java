@@ -26,9 +26,9 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.service.AccountTransferService;
 import ru.majordomo.hms.personmgr.service.AmqpSender;
-import ru.majordomo.hms.personmgr.service.AppsCatService;
 import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
 import ru.majordomo.hms.personmgr.service.BusinessHelper;
+import ru.majordomo.hms.personmgr.service.ResourceChecker;
 
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ROUTING_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_CREATE;
@@ -49,8 +49,9 @@ public class CommonAmqpController {
     protected PersonalAccountManager accountManager;
     protected ApplicationEventPublisher publisher;
     protected BusinessHelper businessHelper;
+    protected ResourceChecker resourceChecker;
     private AccountTransferService accountTransferService;
-    private AmqpSender amqpSender;
+    protected AmqpSender amqpSender;
 
     protected String resourceName = "";
 
@@ -83,6 +84,11 @@ public class CommonAmqpController {
     @Autowired
     public void setBusinessHelper(BusinessHelper businessHelper) {
         this.businessHelper = businessHelper;
+    }
+
+    @Autowired
+    public void setResourceChecker(ResourceChecker resourceChecker) {
+        this.resourceChecker = resourceChecker;
     }
 
     @Autowired
@@ -166,18 +172,23 @@ public class CommonAmqpController {
         }
     }
 
+    protected void saveHistory(String personalAccountId, String message, String operator){
+        Map<String, String> params = new HashMap<>();
+        params.put(HISTORY_MESSAGE_KEY, message);
+        params.put(OPERATOR_KEY, operator);
+
+        publisher.publishEvent(new AccountHistoryEvent(personalAccountId, params));
+    }
+
     private void saveAccountHistoryByMessageState(SimpleServiceMessage message, State state, String action) {
         if (state.equals(State.PROCESSED)) {
             ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
             if (businessAction != null) {
-                //Save history
-                Map<String, String> params = new HashMap<>();
-                params.put(HISTORY_MESSAGE_KEY, "Заявка на " + action + " ресурса '" +
-                        resourceName + "' выполнена успешно (имя: " + message.getParam("name") + ")");
-                params.put(OPERATOR_KEY, "service");
+                String historyMessage = "Заявка на " + action + " ресурса '" +
+                        resourceName + "' выполнена успешно (имя: " + message.getParam("name") + ")";
 
-                publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
+                saveHistory(businessAction.getPersonalAccountId(), historyMessage, "service");
             }
         }
     }
@@ -297,57 +308,64 @@ public class CommonAmqpController {
                 case UNIX_ACCOUNT_UPDATE_RC:
                 case DATABASE_USER_UPDATE_RC:
                 case DATABASE_UPDATE_RC:
-                    businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                    if (businessOperation != null) {
-                        if (businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
-                            if (state.equals(State.PROCESSED)) {
-                                accountTransferService.checkOperationAfterUnixAccountAndDatabaseUpdate(businessOperation);
-                            } else if (state.equals(State.ERROR)) {
-                                businessOperation.setState(State.ERROR);
-                                processingBusinessOperationRepository.save(businessOperation);
+                    if (message.getOperationIdentity() != null) {
+                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        if (businessOperation != null) {
+                            if (businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
+                                if (state.equals(State.PROCESSED)) {
+                                    accountTransferService.checkOperationAfterUnixAccountAndDatabaseUpdate(businessOperation);
+                                } else if (state.equals(State.ERROR)) {
+                                    businessOperation.setState(State.ERROR);
+                                    processingBusinessOperationRepository.save(businessOperation);
 
-                                accountTransferService.revertTransfer(businessOperation);
-                            }
-                        } else if (businessOperation.getType() == BusinessOperationType.APP_INSTALL
-                                && businessAction.getBusinessActionType() == BusinessActionType.DATABASE_UPDATE_RC) {
-                            try {
-                                amqpSender.send(DATABASE_UPDATE, APPSCAT_ROUTING_KEY, message);
-                            } catch (Exception e) {
-                                e.printStackTrace();
+                                    accountTransferService.revertTransfer(businessOperation);
+                                }
+                            } else if (businessOperation.getType() == BusinessOperationType.APP_INSTALL
+                                    && businessAction.getBusinessActionType() == BusinessActionType.DATABASE_UPDATE_RC) {
+                                try {
+                                    amqpSender.send(DATABASE_UPDATE, APPSCAT_ROUTING_KEY, message);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
                             }
                         }
                     }
 
                     break;
                 case WEB_SITE_UPDATE_RC:
-                    businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                    if (businessOperation != null) {
-                        if (businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
-                            if (state.equals(State.PROCESSED)) {
-                                accountTransferService.checkOperationAfterWebSiteUpdate(businessOperation);
-                            } else if (state.equals(State.ERROR)) {
-                                businessOperation.setState(State.ERROR);
-                                processingBusinessOperationRepository.save(businessOperation);
+                    if (message.getOperationIdentity() != null) {
+                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        if (businessOperation != null) {
+                            if (businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
+                                if (state.equals(State.PROCESSED)) {
+                                    accountTransferService.checkOperationAfterWebSiteUpdate(businessOperation);
+                                } else if (state.equals(State.ERROR)) {
+                                    businessOperation.setState(State.ERROR);
+                                    processingBusinessOperationRepository.save(businessOperation);
 
-                                accountTransferService.revertTransferOnWebSitesFail(businessOperation);
-                            }
-                        } else if (businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
-                            try {
-                                amqpSender.send(WEBSITE_UPDATE, APPSCAT_ROUTING_KEY, message);
-                            } catch (Exception e) {
-                                e.printStackTrace();
+                                    accountTransferService.revertTransferOnWebSitesFail(businessOperation);
+                                }
+                            } else if (businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
+                                try {
+                                    amqpSender.send(WEBSITE_UPDATE, APPSCAT_ROUTING_KEY, message);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
                             }
                         }
                     }
 
                     break;
                 case DNS_RECORD_UPDATE_RC:
-                    businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                    if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
-                        if (state.equals(State.PROCESSED)) {
-                            accountTransferService.finishOperation(businessOperation);
+                    if (message.getOperationIdentity() != null) {
+                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
+                            if (state.equals(State.PROCESSED)) {
+                                accountTransferService.finishOperation(businessOperation);
+                            }
                         }
                     }
+
                     break;
             }
         }

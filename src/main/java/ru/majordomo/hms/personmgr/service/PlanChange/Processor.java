@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
@@ -55,6 +56,7 @@ public abstract class Processor {
     private AccountHistoryService accountHistoryService;
     private FinFeignClient finFeignClient;
     private PlanRepository planRepository;
+    private ResourceNormalizer resourceNormalizer;
 
     protected final PersonalAccount account;
     protected Plan currentPlan;
@@ -84,7 +86,8 @@ public abstract class Processor {
             AccountServiceHelper accountServiceHelper,
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher,
-            PlanRepository planRepository
+            PlanRepository planRepository,
+            ResourceNormalizer resourceNormalizer
     ) {
         this.finFeignClient = finFeignClient;
         this.accountAbonementManager = accountAbonementManager;
@@ -99,6 +102,7 @@ public abstract class Processor {
         this.accountHelper = accountHelper;
         this.publisher = publisher;
         this.planRepository = planRepository;
+        this.resourceNormalizer = resourceNormalizer;
     }
 
     void postConstruct() {
@@ -144,8 +148,8 @@ public abstract class Processor {
         //Укажем новый тариф
         accountManager.setPlanId(account.getId(), newPlan.getId());
 
-        //Разрешён ли сертификат на новом тарифе
-        sslCertAllowed();
+        //Проверим ресурсы на соответствие тарифу
+        checkResources();
 
         //При необходимости отправляем письмо в саппорт
         supportNotification();
@@ -245,10 +249,12 @@ public abstract class Processor {
         // Лимиты WebSite
         Boolean isWebSiteLimitsOk = checkAccountWebSiteLimits(planChangeAgreement);
 
+        Boolean isWebSitesOk = checkAccountWebSites(planChangeAgreement);
+
         // Лимиты Quota
         Boolean isQuotaLimitsOk = checkAccountQuotaLimits(planChangeAgreement);
 
-        if (!isDatabaseLimitsOk || !isFtpUserLimitsOk || !isWebSiteLimitsOk || !isQuotaLimitsOk) {
+        if (!isDatabaseLimitsOk || !isFtpUserLimitsOk || !isWebSiteLimitsOk || !isQuotaLimitsOk || !isWebSitesOk) {
             return planChangeAgreement;
         }
 
@@ -432,6 +438,21 @@ public abstract class Processor {
         } else {
             return true;
         }
+    }
+
+    /**
+     * Проверить WebSite аккаунта на соответствие их новому тарифу
+     */
+    private Boolean checkAccountWebSites(PlanChangeAgreement planChangeAgreement) {
+        try {
+            resourceNormalizer.normalizeResources(account, ResourceType.WEB_SITE, newPlan, false);
+        } catch (Exception e) {
+            e.printStackTrace();
+            planChangeAgreement.addError("Тариф не может быть изменен. Ошибка: " + e.getMessage());
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -625,14 +646,100 @@ public abstract class Processor {
         }
     }
 
-    private void sslCertAllowed() {
-        if (!newPlan.isSslCertificateAllowed()) {
+    private void checkResources() {
+        //Разрешены ли SSL-сертификаты на новом тарифе
+        normalizeSslCertificate();
 
-            accountHelper.disableAllSslCertificates(account);
+        //Разрешены ли почтовые ящики на новом тарифе
+        normalizeMailbox();
+
+        //Разрешены ли базы данных на новом тарифе
+        normalizeDatabase();
+
+        //Разрешены ли пользователи баз данных на новом тарифе
+        normalizeDatabaseUser();
+
+        //Разрешены ли установленные для сайтов serviceId на новом тарифе
+        normalizeWebSite();
+    }
+
+    private void normalizeMailbox() {
+        if (!newPlan.isMailboxAllowed()) {
+            accountHelper.disableAndScheduleDeleteForAllMailboxes(account);
 
             //Запишем в историю клиента
             Map<String, String> historyParams = new HashMap<>();
-            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отключны SSL сертификаты в соответствии с тарифным планом");
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта выключены и запланированы на удаление почтовые ящики в соответствии с тарифным планом");
+            historyParams.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        } else {
+            accountHelper.unScheduleDeleteForAllMailboxes(account);
+
+            //Запишем в историю клиента
+            Map<String, String> historyParams = new HashMap<>();
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отменено запланированное удаление почтовых ящиков в соответствии с тарифным планом");
+            historyParams.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        }
+    }
+
+    private void normalizeWebSite() {
+        resourceNormalizer.normalizeResources(account, ResourceType.WEB_SITE, newPlan, true);
+    }
+
+    private void normalizeSslCertificate() {
+        if (!newPlan.isSslCertificateAllowed()) {
+            accountHelper.deleteAllSslCertificates(account);
+
+            //Запишем в историю клиента
+            Map<String, String> historyParams = new HashMap<>();
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта удалены SSL сертификаты в соответствии с тарифным планом");
+            historyParams.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        }
+    }
+
+    private void normalizeDatabase() {
+        if (!newPlan.isDatabaseAllowed()) {
+            accountHelper.disableAndScheduleDeleteForAllDatabases(account);
+
+            //Запишем в историю клиента
+            Map<String, String> historyParams = new HashMap<>();
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта выключены и запланированы на удаление базы данных в соответствии с тарифным планом");
+            historyParams.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        }else {
+            accountHelper.unScheduleDeleteForAllDatabases(account);
+
+            //Запишем в историю клиента
+            Map<String, String> historyParams = new HashMap<>();
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отменено запланированное удаление баз данных в соответствии с тарифным планом");
+            historyParams.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        }
+    }
+
+    private void normalizeDatabaseUser() {
+        if (!newPlan.isDatabaseUserAllowed()) {
+            accountHelper.disableAndScheduleDeleteForAllDatabaseUsers(account);
+
+            //Запишем в историю клиента
+            Map<String, String> historyParams = new HashMap<>();
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта выключены и запланированы на удаление пользователи баз данных в соответствии с тарифным планом");
+            historyParams.put(OPERATOR_KEY, operator);
+
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+        }else {
+            accountHelper.unScheduleDeleteForAllDatabaseUsers(account);
+
+            //Запишем в историю клиента
+            Map<String, String> historyParams = new HashMap<>();
+            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отменено запланированное удаление пользователей баз данных в соответствии с тарифным планом");
             historyParams.put(OPERATOR_KEY, operator);
 
             publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));

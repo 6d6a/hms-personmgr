@@ -46,7 +46,7 @@ public class DomainTldRestController extends CommonRestController {
     public ResponseEntity<List<DomainTld>> listAll(
             @PathVariable(value = "accountId", required = false) String accountId
     ) {
-        List<DomainTld> domainTlds = repository.findAllByActive(true);
+        List<DomainTld> domainTlds = repository.findAll();
 
         List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountId(accountId);
         Map<String, BigDecimal> discountedCosts = new HashMap<>();
