@@ -162,7 +162,7 @@ public class AccountStatEventListener {
         Map<String, Object> body = new HashMap<>();
         body.put(RESOURCE_ID_KEY, NotificationType.REMAINING_DAYS_MONEY_ENDS);
         body.put(NAME_KEY, "Платеж после уведомления");
-        body.put(ACCOUNT_WAS_ACTIVE_KEY, false);
+        body.put(ACCOUNT_WAS_ACTIVE_KEY, account.isActive());
         body.put(TYPES_KEY, types);
         statFeignClient.paymentAfterNotificationIncrement(body);
     }
