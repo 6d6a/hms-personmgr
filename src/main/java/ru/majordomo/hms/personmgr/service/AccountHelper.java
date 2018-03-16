@@ -16,6 +16,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
@@ -36,6 +37,7 @@ import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 import ru.majordomo.hms.rc.user.resources.*;
@@ -63,6 +65,7 @@ public class AccountHelper {
     private final PlanRepository planRepository;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountServiceHelper accountServiceHelper;
+    private final PaymentServiceRepository paymentServiceRepository;
 
     @Autowired
     public AccountHelper(
@@ -78,7 +81,8 @@ public class AccountHelper {
             AccountOwnerManager accountOwnerManager,
             PlanRepository planRepository,
             AccountAbonementManager accountAbonementManager,
-            AccountServiceHelper accountServiceHelper
+            AccountServiceHelper accountServiceHelper,
+            PaymentServiceRepository paymentServiceRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -93,6 +97,7 @@ public class AccountHelper {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
         this.accountServiceHelper = accountServiceHelper;
+        this.paymentServiceRepository = paymentServiceRepository;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -956,7 +961,13 @@ public class AccountHelper {
 
     public void disableAdditionalService(AccountService accountService) {
         PersonalAccount account = accountManager.findOne(accountService.getPersonalAccountId());
-        accountServiceHelper.disableAccountService(account, accountService.getServiceId());
+
+        if (accountService.getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME) {
+            accountServiceHelper.disableAccountService(accountService);
+        } else {
+            accountServiceHelper.disableAccountService(account, accountService.getServiceId());
+        }
+
         String paymentServiceOldId = accountService.getPaymentService().getOldId();
         if (paymentServiceOldId.equals(ADDITIONAL_QUOTA_100_SERVICE_ID)) {
             account.setAddQuotaIfOverquoted(false);

@@ -188,7 +188,7 @@ public class AccountServiceHelper {
     }
 
     /**
-     * Выключаем услугу
+     * Выключаем все услуги с serviceId
      *
      * @param account   Аккаунт
      * @param serviceId id услуги
@@ -198,7 +198,16 @@ public class AccountServiceHelper {
     }
 
     /**
-     * Меняем статус услуги
+     * Выключаем услугу
+     *
+     * @param accountService   услуга
+     */
+    public void disableAccountService(AccountService accountService) {
+        setEnabledAccountService(accountService, false);
+    }
+
+    /**
+     * Меняем статус услуг
      *
      * @param account   Аккаунт
      * @param serviceId id услуги
@@ -209,6 +218,16 @@ public class AccountServiceHelper {
         accountServices.forEach(accountService -> accountService.setEnabled(enabled));
 
         accountServiceRepository.save(accountServices);
+    }
+
+    /**
+     * Меняем статус услуги
+     *
+     * @param accountService   услуга
+     */
+    public void setEnabledAccountService(AccountService accountService, boolean enabled) {
+        accountService.setEnabled(enabled);
+        accountServiceRepository.save(accountService);
     }
 
     /**
