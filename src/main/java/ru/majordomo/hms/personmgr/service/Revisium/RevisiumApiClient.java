@@ -56,7 +56,7 @@ public class RevisiumApiClient {
 
         restTemplate = new RestTemplate();
 
-        //TODO (in future) Придумать лучший способ получть пустой массив как объект
+        //TODO (in future) Придумать лучший способ получить пустой массив как объект
         ObjectMapper objMapper = new ObjectMapper().configure(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT, true);
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
         converter.setObjectMapper(objMapper);
@@ -148,9 +148,6 @@ public class RevisiumApiClient {
                     builder.replaceQueryParam("api_ver", VERSION);
 
                     UriComponents uriComponents = builder.build(true);
-
-                    //TODO revisium убрать дебаг
-                    logger.error(uriComponents.toUri().toString());
 
                     return uriComponents.toUri();
                 }

@@ -78,7 +78,7 @@ public class AccountNoticeRestController extends CommonRestController {
 
     //Пометить прочитанным
     @PostMapping("/{accountId}/account-notices/{accountNoticeId}/mark")
-    public ResponseEntity<Void> confirm(
+    public ResponseEntity<Void> mark(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "accountNoticeId") String accountNoticeId
     ) {
@@ -89,6 +89,24 @@ public class AccountNoticeRestController extends CommonRestController {
         }
 
         notification.setViewed(true);
+        accountNoticeRepository.save(notification);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    //Пометить НЕ прочитанным
+    @PostMapping("/{accountId}/account-notices/{accountNoticeId}/unmark")
+    public ResponseEntity<Void> unmark(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @PathVariable(value = "accountNoticeId") String accountNoticeId
+    ) {
+        AccountNotice notification = accountNoticeRepository.findByPersonalAccountIdAndId(accountId, accountNoticeId);
+
+        if (notification == null) {
+            throw new ParameterValidationException("Уведомление с ID: '" + accountNoticeId + "' не найдено");
+        }
+
+        notification.setViewed(false);
         accountNoticeRepository.save(notification);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
