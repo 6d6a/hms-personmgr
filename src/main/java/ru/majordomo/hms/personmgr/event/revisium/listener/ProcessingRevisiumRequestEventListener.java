@@ -23,6 +23,7 @@ import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
 import ru.majordomo.hms.personmgr.service.scheduler.RevisiumRequestScheduler;
 
@@ -42,6 +43,7 @@ public class ProcessingRevisiumRequestEventListener {
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final RevisiumRequestScheduler scheduler;
     private final AccountNoticeRepository accountNoticeRepository;
+    private final AccountNotificationHelper accountNotificationHelper;
 
     @Autowired
     public ProcessingRevisiumRequestEventListener(
@@ -52,7 +54,8 @@ public class ProcessingRevisiumRequestEventListener {
             RevisiumRequestRepository revisiumRequestRepository,
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             RevisiumRequestScheduler scheduler,
-            AccountNoticeRepository accountNoticeRepository
+            AccountNoticeRepository accountNoticeRepository,
+            AccountNotificationHelper accountNotificationHelper
     ) {
         this.revisiumApiClient = revisiumApiClient;
         this.publisher = publisher;
@@ -62,6 +65,7 @@ public class ProcessingRevisiumRequestEventListener {
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
         this.scheduler = scheduler;
         this.accountNoticeRepository = accountNoticeRepository;
+        this.accountNotificationHelper = accountNotificationHelper;
     }
 
     @EventListener
@@ -153,7 +157,6 @@ public class ProcessingRevisiumRequestEventListener {
                     }
 
                     if (newAlertFound) {
-                        //TODO revisium письмо
                         RevisiumAccountNotice notification = new RevisiumAccountNotice();
                         notification.setPersonalAccountId(revisiumRequest.getPersonalAccountId());
                         notification.setCreated(LocalDateTime.now());
@@ -162,12 +165,20 @@ public class ProcessingRevisiumRequestEventListener {
                         notification.setRevisiumRequestId(revisiumRequest.getId());
                         notification.setType(AccountNoticeType.REVISIUM_ALERT);
                         accountNoticeRepository.save(notification);
+
+                        PersonalAccount account = personalAccountManager.findOne(revisiumRequest.getPersonalAccountId());
+                        RevisiumRequestService revisiumRequestService = revisiumRequestServiceRepository.findOne(revisiumRequest.getRevisiumRequestServiceId());
+                        HashMap<String, String> parameters = new HashMap<>();
+                        parameters.put("client_id", account.getAccountId());
+                        parameters.put("site_url", revisiumRequestService.getSiteUrl());
+
+                        accountNotificationHelper.sendMail(account, "HmsMajordomoProverkaScanera", 10, parameters);
                     }
 
                 }
 
             } catch (Exception e) {
-                logger.error("Непредвиденная ошибка при срвнении результатов из Ревизиума. revisiumRequest ID: " + revisiumRequest.getId());
+                logger.error("Непредвиденная ошибка при сравнении результатов из Ревизиума. revisiumRequest ID: " + revisiumRequest.getId());
                 e.printStackTrace();
             }
 
