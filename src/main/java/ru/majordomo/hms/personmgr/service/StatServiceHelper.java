@@ -199,14 +199,21 @@ public class StatServiceHelper {
                 "plan");
 
         ProjectionOperation project = project("serviceId")
+                .and("_id").as("id")
                 .and("plan").size().as("plan")
-                .and("quantity").as("quantity");
+                .and("quantity").as("quantity")
+                .and("personalAccountId").as("personalAccountId");
 
         MatchOperation planFilter = match(Criteria.where("plan").is(0));
 
+        GroupOperation groupByAccountAndService = group("id")
+                .first("serviceId").as("serviceId")
+                .count().as("count")
+                .sum("quantity").as("quantity");
+
         GroupOperation group = group(
                 "serviceId")
-                .count().as("count")
+                .sum("count").as("count")
                 .first("serviceId").as("resourceId")
                 .sum("quantity").as("quantity");
 
@@ -217,6 +224,7 @@ public class StatServiceHelper {
                 lookup,
                 project,
                 planFilter,
+                groupByAccountAndService,
                 group,
                 sort
         );
