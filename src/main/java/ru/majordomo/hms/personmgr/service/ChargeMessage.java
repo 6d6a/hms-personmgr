@@ -18,6 +18,7 @@ public class ChargeMessage {
     private BigDecimal amount;
     private Boolean forceCharge;
     private Set<PaymentTypeKind> allowedPaymentTypeKinds;
+    private String comment;
 
     public BigDecimal getAmount() {
         return this.amount;
@@ -32,6 +33,7 @@ public class ChargeMessage {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         paymentOperation.put("chargeDate", this.chargeDate.format(formatter));
         paymentOperation.put("allowedPaymentTypeKinds", this.allowedPaymentTypeKinds);
+        paymentOperation.put("comment", this.comment);
 
         return paymentOperation;
     }
@@ -42,6 +44,7 @@ public class ChargeMessage {
         this.amount = builder.amount;
         this.forceCharge = builder.forceCharge;
         this.allowedPaymentTypeKinds = builder.allowedPaymentTypeKinds;
+        this.comment = builder.comment;
     }
 
     public static class Builder {
@@ -54,6 +57,7 @@ public class ChargeMessage {
         private BigDecimal amount;
         private Boolean forceCharge = false;
         private Set<PaymentTypeKind> allowedPaymentTypeKinds = new HashSet<>();
+        private String comment = "";
 
         public Builder(PaymentService paymentService) {
             this.paymentService = paymentService;
@@ -98,6 +102,11 @@ public class ChargeMessage {
             allowedPaymentTypeKinds.addAll(Collections.singletonList(
                     PaymentTypeKind.PARTNER
             ));
+            return this;
+        }
+
+        public Builder setComment(String comment) {
+            this.comment = comment;
             return this;
         }
 

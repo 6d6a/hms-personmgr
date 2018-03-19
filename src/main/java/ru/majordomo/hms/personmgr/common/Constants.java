@@ -159,6 +159,9 @@ public class Constants {
     public static final int ANTI_SPAM_ID = 13;
     public static final String ANTI_SPAM_SERVICE_ID = SERVICE_PREFIX + ANTI_SPAM_ID;
 
+    private static final String REVISIUM_ID = "revisium";
+    public static final String REVISIUM_SERVICE_ID = SERVICE_PREFIX + REVISIUM_ID;
+
     //Id услуги Доп.место в BillingDB
     public static final int ADDITIONAL_QUOTA_100_ID = 15;
     //Id услуги Доп.место
