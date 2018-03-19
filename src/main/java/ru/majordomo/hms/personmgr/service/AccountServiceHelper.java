@@ -111,6 +111,7 @@ public class AccountServiceHelper {
             AccountService accountService = accountServices.get(0);
 
             accountService.setQuantity(quantity);
+            accountService.setEnabled(true);
 
             accountServiceRepository.save(accountService);
         } else {
@@ -187,6 +188,21 @@ public class AccountServiceHelper {
         accountServices.forEach(accountService -> accountService.setEnabled(enabled));
 
         accountServiceRepository.save(accountServices);
+    }
+
+    /**
+     * Меняем статус услуги
+     *
+     * @param account   Аккаунт
+     * @param serviceId id услуги
+     */
+    public void leaveOnlyOneAccountService(PersonalAccount account, String serviceId) {
+        List<AccountService> accountServices = getAccountServices(account, serviceId);
+
+        if (accountServices.size() > 1) {
+            accountServices.remove(0);
+            accountServiceRepository.delete(accountServices);
+        }
     }
 
     /**
