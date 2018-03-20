@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Document
-public class AccountNotice extends ModelBelongsToPersonalAccount {
+public abstract class AccountNotice extends ModelBelongsToPersonalAccount {
 
     @NotNull
-    private AccountNoticeType type;
+    private final AccountNoticeType type;
 
     @NotNull
     private Boolean viewed;
