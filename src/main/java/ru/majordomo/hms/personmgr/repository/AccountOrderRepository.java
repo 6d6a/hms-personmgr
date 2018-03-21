@@ -18,5 +18,6 @@ public interface AccountOrderRepository<T extends AccountOrder> extends MongoRep
 {
     Page<T> findByPersonalAccountId(@Param("accountId") String accountId, Pageable pageable);
     T findOneByIdAndPersonalAccountId(@Param("id") String id, @Param("personalAccountId") String personalAccountId);
-    List<T> findAll(Predicate predicate);
+    boolean exists(Predicate predicate);
+    Page<T> findAll(Predicate predicate, Pageable pageable);
 }

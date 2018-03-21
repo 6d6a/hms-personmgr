@@ -1,5 +1,9 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import com.fasterxml.jackson.annotation.JsonView;
+import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,17 +13,20 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 import javax.validation.Valid;
 
 import ru.majordomo.hms.personmgr.common.OrderState;
+import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.dto.BitrixLicenseOrderRequest;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.order.BitrixLicenseOrder;
+import ru.majordomo.hms.personmgr.model.order.QBitrixLicenseOrder;
 import ru.majordomo.hms.personmgr.repository.BitrixLicenseOrderRepository;
 import ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager;
-import ru.majordomo.hms.personmgr.service.order.BitrixLicenseProlongManager;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static ru.majordomo.hms.personmgr.model.order.BitrixLicenseOrder.LicenseType.NEW;
@@ -30,17 +37,14 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
 
     private BitrixLicenseOrderRepository repository;
     private BitrixLicenseOrderManager bitrixLicenseOrderManager;
-    private BitrixLicenseProlongManager bitrixLicenseProlongManager;
 
     @Autowired
     public BitrixLicenseOrderRestController(
             BitrixLicenseOrderRepository repository,
-            BitrixLicenseOrderManager bitrixLicenseOrderManager,
-            BitrixLicenseProlongManager bitrixLicenseProlongManager
+            BitrixLicenseOrderManager bitrixLicenseOrderManager
     ) {
         this.repository = repository;
         this.bitrixLicenseOrderManager = bitrixLicenseOrderManager;
-        this.bitrixLicenseProlongManager = bitrixLicenseProlongManager;
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
@@ -56,18 +60,18 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
         return new ResponseEntity<>(order, HttpStatus.OK);
     }
 
-    @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
-    @GetMapping("/{accountId}/bitrix-license-order")
-    public ResponseEntity<Page<BitrixLicenseOrder>> getAll(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            Pageable pageable
-    ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        Page<BitrixLicenseOrder> orders = repository.findByPersonalAccountId(account.getId(), pageable);
-
-        return new ResponseEntity<>(orders, HttpStatus.OK);
-    }
+//    @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
+//    @GetMapping("/{accountId}/bitrix-license-order")
+//    public ResponseEntity<Page<BitrixLicenseOrder>> getAll(
+//            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+//            Pageable pageable
+//    ) {
+//        PersonalAccount account = accountManager.findOne(accountId);
+//
+//        Page<BitrixLicenseOrder> orders = repository.findByPersonalAccountId(account.getId(), pageable);
+//
+//        return new ResponseEntity<>(orders, HttpStatus.OK);
+//    }
 
     @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
     @GetMapping("/bitrix-license-order")
@@ -148,8 +152,59 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
         order.setPreviousOrder(previousOrder);
         order.setType(PROLONG);
 
-        bitrixLicenseProlongManager.create(order, operator);
+        bitrixLicenseOrderManager.create(order, operator);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @JsonView(Views.Public.class)
+    @GetMapping("/{accountId}/bitrix-license-order")
+    public ResponseEntity<Page<BitrixLicenseOrder>> getExpiring(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestParam(defaultValue = "") String search,
+            Pageable pageable
+    ) {
+        Predicate predicate = bySearch(accountId, search);
+
+        Page<BitrixLicenseOrder> orders = repository.findAll(predicate, pageable);
+
+        return new ResponseEntity<>(orders, HttpStatus.OK);
+    }
+
+    private Predicate bySearch(String personalAccountId, String search){
+        QBitrixLicenseOrder qOrder = QBitrixLicenseOrder.bitrixLicenseOrder;
+
+        BooleanBuilder builder = new BooleanBuilder()
+                .and(qOrder.personalAccountId.eq(personalAccountId));
+
+        switch (search) {
+            case "expiring":
+                builder = builder
+                        .and(qOrder.state.eq(OrderState.FINISHED))
+                        .and(qOrder.updated.after(LocalDateTime.now().minusDays(15)))
+                        .and(qOrder.updated.before(LocalDateTime.now()))
+                        .and(qOrder.id.notIn(bitrixLicenseOrderManager.getProlongedOrProlongingIds(personalAccountId)));
+                break;
+
+            case "expired":
+                builder = builder
+                        .and(qOrder.state.eq(OrderState.FINISHED))
+                        .and(qOrder.updated.after(LocalDateTime.now()))
+                        .and(qOrder.id.notIn(bitrixLicenseOrderManager.getProlongedOrProlongingIds(personalAccountId)));
+                break;
+
+            case "declined":
+                builder = builder.and(qOrder.state.eq(OrderState.DECLINED));
+                break;
+
+            case "new":
+                builder = builder.and(qOrder.state.eq(OrderState.NEW));
+                break;
+
+            case "in_progress":
+                builder = builder.and(qOrder.state.eq(OrderState.IN_PROGRESS));
+                break;
+        }
+        return builder.getValue();
     }
 }
