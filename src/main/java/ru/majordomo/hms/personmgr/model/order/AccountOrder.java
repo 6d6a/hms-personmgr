@@ -5,6 +5,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.annotation.Version;
 import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 
@@ -27,8 +30,11 @@ public abstract class AccountOrder extends ModelBelongsToPersonalAccount {
     private OrderState state;
     @NotNull
     private String operator;
-    @NotNull
+
+    @CreatedDate
     private LocalDateTime created;
-    @NotNull
+    @LastModifiedDate
     private LocalDateTime updated;
+    @Version
+    private Long version;
 }

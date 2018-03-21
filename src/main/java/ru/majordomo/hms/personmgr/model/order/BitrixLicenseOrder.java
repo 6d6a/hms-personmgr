@@ -17,5 +17,13 @@ public class BitrixLicenseOrder extends AccountOrder {
     private String serviceId;
     @Transient
     private String serviceName;
+
     private String documentNumber;
+    private LicenseType type;
+    private String previousOrderId;
+
+    @Transient
+    private BitrixLicenseOrder previousOrder;
+
+    public enum LicenseType {NEW, PROLONG}
 }

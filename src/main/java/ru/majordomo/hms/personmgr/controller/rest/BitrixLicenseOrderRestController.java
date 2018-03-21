@@ -1,8 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
-import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.types.Predicate;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,12 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -25,29 +17,34 @@ import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.dto.BitrixLicenseOrderRequest;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.order.BitrixLicenseOrder;
-import ru.majordomo.hms.personmgr.model.order.QAccountPartnerCheckoutOrder;
 import ru.majordomo.hms.personmgr.repository.BitrixLicenseOrderRepository;
-import ru.majordomo.hms.personmgr.service.BitrixLicenseOrderManager;
+import ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager;
+import ru.majordomo.hms.personmgr.service.order.BitrixLicenseProlongManager;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
+
+import static ru.majordomo.hms.personmgr.model.order.BitrixLicenseOrder.LicenseType.NEW;
+import static ru.majordomo.hms.personmgr.model.order.BitrixLicenseOrder.LicenseType.PROLONG;
 
 @RestController
 public class BitrixLicenseOrderRestController extends CommonRestController {
 
     private BitrixLicenseOrderRepository repository;
     private BitrixLicenseOrderManager bitrixLicenseOrderManager;
+    private BitrixLicenseProlongManager bitrixLicenseProlongManager;
 
     @Autowired
     public BitrixLicenseOrderRestController(
             BitrixLicenseOrderRepository repository,
-            BitrixLicenseOrderManager bitrixLicenseOrderManager
+            BitrixLicenseOrderManager bitrixLicenseOrderManager,
+            BitrixLicenseProlongManager bitrixLicenseProlongManager
     ) {
         this.repository = repository;
         this.bitrixLicenseOrderManager = bitrixLicenseOrderManager;
+        this.bitrixLicenseProlongManager = bitrixLicenseProlongManager;
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
-    @RequestMapping(value = "/{accountId}/bitrix-license-order/{orderId}",
-            method = RequestMethod.GET)
+    @GetMapping("/{accountId}/bitrix-license-order/{orderId}")
     public ResponseEntity<BitrixLicenseOrder> get(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(BitrixLicenseOrder.class) @PathVariable(value = "orderId") String orderId
@@ -60,8 +57,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
-    @RequestMapping(value = "/{accountId}/bitrix-license-order",
-            method = RequestMethod.GET)
+    @GetMapping("/{accountId}/bitrix-license-order")
     public ResponseEntity<Page<BitrixLicenseOrder>> getAll(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             Pageable pageable
@@ -74,8 +70,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
-    @RequestMapping(value = "/bitrix-license-order",
-            method = RequestMethod.GET)
+    @GetMapping("/bitrix-license-order")
     public ResponseEntity<Page<BitrixLicenseOrder>> getAllOrders(
             Pageable pageable,
             @RequestParam Map<String, String> search
@@ -94,8 +89,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
-    @RequestMapping(value = "/{accountId}/bitrix-license-order/{orderId}",
-            method = RequestMethod.POST)
+    @PostMapping("/{accountId}/bitrix-license-order/{orderId}")
     public ResponseEntity<Void> update(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(BitrixLicenseOrder.class) @PathVariable(value = "orderId") String orderId,
@@ -113,8 +107,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{accountId}/bitrix-license-order",
-            method = RequestMethod.POST)
+    @PostMapping("/{accountId}/bitrix-license-order")
     public ResponseEntity<Void> create(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody @Valid BitrixLicenseOrderRequest bitrixLicenseOrderRequest,
@@ -128,10 +121,35 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
         order.setPersonalAccountName(account.getName());
         order.setDomainName(bitrixLicenseOrderRequest.getDomainName());
         order.setServiceId(bitrixLicenseOrderRequest.getServiceId());
+        order.setType(NEW);
 
         bitrixLicenseOrderManager.create(order, operator);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PostMapping("/{accountId}/bitrix-license-order/{orderId}/prolong")
+    public ResponseEntity<Void> prolong(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @ObjectId(BitrixLicenseOrder.class) @PathVariable(value = "orderId") String orderId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        BitrixLicenseOrder previousOrder = repository.findOneByIdAndPersonalAccountId(orderId, account.getId());
+
+        String operator = request.getUserPrincipal().getName();
+
+        BitrixLicenseOrder order = new BitrixLicenseOrder();
+        order.setPersonalAccountId(account.getId());
+        order.setPersonalAccountName(account.getName());
+        order.setDomainName(previousOrder.getDomainName());
+        order.setServiceId(previousOrder.getServiceId());
+        order.setPreviousOrder(previousOrder);
+        order.setType(PROLONG);
+
+        bitrixLicenseProlongManager.create(order, operator);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
 }

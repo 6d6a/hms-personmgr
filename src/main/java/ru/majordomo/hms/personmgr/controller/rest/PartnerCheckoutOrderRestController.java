@@ -21,7 +21,7 @@ import ru.majordomo.hms.personmgr.dto.PartnerCheckoutOrderRequest;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.order.AccountPartnerCheckoutOrder;
 import ru.majordomo.hms.personmgr.repository.AccountPartnerCheckoutOrderRepository;
-import ru.majordomo.hms.personmgr.service.PartnerCheckoutOrderManager;
+import ru.majordomo.hms.personmgr.service.order.PartnerCheckoutOrderManager;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import javax.validation.Valid;

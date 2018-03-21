@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service;
+package ru.majordomo.hms.personmgr.service.order;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -7,24 +7,12 @@ import ru.majordomo.hms.personmgr.exception.IncorrectStateException;
 import ru.majordomo.hms.personmgr.model.order.AccountOrder;
 import ru.majordomo.hms.personmgr.repository.AccountOrderRepository;
 
-import java.time.LocalDateTime;
-
 public abstract class OrderManager<T extends AccountOrder> {
-    private AccountOrderRepository<T> accountOrderRepository;
-
-    protected void updateState(T accountOrder, OrderState newState, String operator) {
-        accountOrder.setState(newState);
-        accountOrder.setOperator(operator);
-        accountOrder.setUpdated(LocalDateTime.now());
-    }
+    protected AccountOrderRepository<T> accountOrderRepository;
 
     @Autowired
     public void setAccountOrderRepository(AccountOrderRepository<T> accountOrderRepository) {
         this.accountOrderRepository = accountOrderRepository;
-    }
-
-    protected void save(T accountOrder) {
-        accountOrderRepository.save(accountOrder);
     }
 
     protected void onCreate(T accountOrder) {}
@@ -35,8 +23,16 @@ public abstract class OrderManager<T extends AccountOrder> {
 
     protected void onFinish(T accountOrder) {}
 
+    protected void save(T accountOrder) {
+        accountOrderRepository.save(accountOrder);
+    }
+
+    protected void updateState(T accountOrder, OrderState newState, String operator) {
+        accountOrder.setState(newState);
+        accountOrder.setOperator(operator);
+    }
+
     public void create(T accountOrder, String operator) {
-        accountOrder.setCreated(LocalDateTime.now());
         updateState(accountOrder, OrderState.NEW, operator);
         onCreate(accountOrder);
 
