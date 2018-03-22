@@ -10,11 +10,11 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.GroupOperation;
 import org.springframework.data.mongodb.core.aggregation.MatchOperation;
 import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,10 +45,11 @@ import static ru.majordomo.hms.personmgr.common.Constants.*;
 @Service
 public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> {
 
-    private final int MAY_PROLONG_AFTER_MONTHS = 11;
-    private final int PROLONG_DAYS_AFTER_EXPIRED = 15;
-    private final String PROLONG_COST_PERCENT_BEFORE = "0.22";
-    private final String PROLONG_COST_PERCENT_AFTER = "0.6";
+    public final static int MAY_PROLONG_DAYS_BEFORE_EXPIRED = 15;
+
+    private final static int DAYS_AFTER_EXPIRED_WITH_MAX_DISCOUNT = 30;
+    private final static String PROLONG_DISCOUNT_MAX = "0.22";
+    private final static String PROLONG_DISCOUNT_MIN = "0.6";
 
     @Value("${mail_manager.bitrix_order_email}")
     protected String bitrixOrderEmail;
@@ -155,11 +156,11 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
                 .and(qOrder.type.eq(BitrixLicenseOrder.LicenseType.PROLONG))
                 .and(qOrder.state.notIn(OrderState.DECLINED));
 
-        return accountOrderRepository.exists(predicate);
+        return exists(predicate);
     }
 
     protected void onCreateByProlong(BitrixLicenseOrder order) {
-        BitrixLicenseOrder previousOrder = accountOrderRepository.findOne(order.getPreviousOrderId());
+        BitrixLicenseOrder previousOrder = repository.findOne(order.getPreviousOrderId());
 
         checkProlongLicenceOnCreate(previousOrder);
 
@@ -168,15 +169,17 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
         PaymentService paymentService = paymentServiceRepository.findOne(previousOrder.getServiceId());
 
 
-        BigDecimal discountPercent;
+        BigDecimal discount;
 
-        if(previousOrder.getUpdated().isBefore(LocalDateTime.now().plusDays(PROLONG_DAYS_AFTER_EXPIRED))){
-            discountPercent = new BigDecimal(PROLONG_COST_PERCENT_BEFORE);
+        if(previousOrder.getUpdated().plusYears(1).minusDays(DAYS_AFTER_EXPIRED_WITH_MAX_DISCOUNT)
+                .isBefore(LocalDateTime.now())
+        ){
+            discount = new BigDecimal(PROLONG_DISCOUNT_MAX);
         } else {
-            discountPercent = new BigDecimal(PROLONG_COST_PERCENT_AFTER);
+            discount = new BigDecimal(PROLONG_DISCOUNT_MIN);
         }
 
-        BigDecimal cost = paymentService.getCost().multiply(discountPercent);
+        BigDecimal cost = paymentService.getCost().multiply(discount);
 
         PersonalAccount account = personalAccountManager.findOne(order.getPersonalAccountId());
 
@@ -190,7 +193,7 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
         //Списываем деньги
         ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
                 .setAmount(cost)
-                .setComment("Скидка на продление, цена умножена на " + discountPercent)
+                .setComment("Скидка на продление, цена умножена на " + discount)
                 .build();
 
         SimpleServiceMessage response = accountHelper.block(account, chargeMessage);
@@ -231,9 +234,9 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
             throw new ParameterValidationException("Продлить можно только успешно заказанную лицензию");
         }
 
-        if (!previousOrder.getUpdated().plusMonths(MAY_PROLONG_AFTER_MONTHS).isBefore(LocalDateTime.now())) {
-            throw new ParameterValidationException("Заказ продления лицензии доступно через "
-                    + MAY_PROLONG_AFTER_MONTHS + " месяцев после заказа");
+        if (!previousOrder.getUpdated().plusYears(1).minusDays(MAY_PROLONG_DAYS_BEFORE_EXPIRED).isBefore(LocalDateTime.now())) {
+            throw new ParameterValidationException("Заказ продления лицензии доступно за "
+                    + MAY_PROLONG_DAYS_BEFORE_EXPIRED + " дней до истечения лицензии");
         }
 
         if (isProlonged(previousOrder)) {
@@ -279,7 +282,48 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
         GroupOperation group = group().addToSet("previousOrderId").as("ids");
 
         Aggregation aggregation = Aggregation.newAggregation(match, group);
-        return mongoOperations.aggregate(aggregation, BitrixLicenseOrder.class, IdsContainer.class)
-                .getMappedResults().get(0).getIds();
+
+        List<IdsContainer> idsContainers = mongoOperations.aggregate(aggregation, BitrixLicenseOrder.class, IdsContainer.class)
+                    .getMappedResults();
+
+        if (idsContainers.isEmpty()) {
+            return new ArrayList<>();
+        } else {
+            return idsContainers.get(0).getIds();
+        }
+    }
+
+    public Predicate getPredicate(
+            String personalAccountId,
+            LocalDateTime updatedAfter,
+            LocalDateTime updatedBefore,
+            OrderState state,
+            boolean excludeProlongedOrders
+    ){
+        QBitrixLicenseOrder qOrder = QBitrixLicenseOrder.bitrixLicenseOrder;
+
+        BooleanBuilder builder = new BooleanBuilder();
+
+        if (personalAccountId != null) {
+            builder = builder.and(qOrder.personalAccountId.eq(personalAccountId));
+        }
+
+        if (updatedBefore != null) {
+            builder = builder.and(qOrder.updated.before(updatedBefore));
+        }
+
+        if (updatedAfter != null) {
+            builder = builder.and(qOrder.updated.after(updatedAfter));
+        }
+
+        if (state != null) {
+            builder = builder.and(qOrder.state.eq(state));
+        }
+
+        if (excludeProlongedOrders) {
+            builder = builder.and(qOrder.id.notIn(getProlongedOrProlongingIds(personalAccountId)));
+        }
+
+        return builder.getValue();
     }
 }

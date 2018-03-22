@@ -1,15 +1,13 @@
 package ru.majordomo.hms.personmgr.event.account.listener;
 
+import com.querydsl.core.types.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.NotificationTransportType;
-import ru.majordomo.hms.personmgr.common.NotificationType;
-import ru.majordomo.hms.personmgr.common.Utils;
+import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -19,20 +17,24 @@ import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.cart.Cart;
 import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
+import ru.majordomo.hms.personmgr.model.order.BitrixLicenseOrder;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.AccountNotificationStatRepository;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.service.*;
+import ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_NEWS;
+import static ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager.MAY_PROLONG_DAYS_BEFORE_EXPIRED;
 
 @Component
 public class AccountNotificationEventListener {
@@ -47,6 +49,7 @@ public class AccountNotificationEventListener {
     private final CartManager cartManager;
     private final AccountNotificationStatRepository accountNotificationStatRepository;
     private final StatFeignClient statFeignClient;
+    private final BitrixLicenseOrderManager bitrixLicenseOrderManager;
 
     @Autowired
     public AccountNotificationEventListener(
@@ -58,7 +61,8 @@ public class AccountNotificationEventListener {
             PersonalAccountManager personalAccountManager,
             CartManager cartManager,
             AccountNotificationStatRepository accountNotificationStatRepository,
-            StatFeignClient statFeignClient
+            StatFeignClient statFeignClient,
+            BitrixLicenseOrderManager bitrixLicenseOrderManager
     ) {
         this.accountHelper = accountHelper;
         this.accountStatRepository = accountStatRepository;
@@ -69,6 +73,7 @@ public class AccountNotificationEventListener {
         this.cartManager = cartManager;
         this.accountNotificationStatRepository = accountNotificationStatRepository;
         this.statFeignClient = statFeignClient;
+        this.bitrixLicenseOrderManager = bitrixLicenseOrderManager;
     }
 
     @EventListener
@@ -380,6 +385,37 @@ public class AccountNotificationEventListener {
         parameters.put("domains", accountNotificationHelper.getDomainForEmail(account));
 
         accountNotificationHelper.sendMail(account, "MajordomoVHQuotaDiscard", 10, parameters);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(ProcessNotifyExpiringBitrixLicenseEvent event){
+        Predicate predicate = bitrixLicenseOrderManager
+                .getPredicate(
+                        null,
+                        LocalDateTime.now().minusYears(1),
+                        LocalDateTime.now().minusYears(1).plusDays(MAY_PROLONG_DAYS_BEFORE_EXPIRED),
+                        OrderState.FINISHED,
+                        true
+                );
+        List<Integer> daysForNotify = Arrays.asList(15,10,5,1);
+
+        bitrixLicenseOrderManager.findAll(predicate)
+                .stream()
+                .filter(order -> daysForNotify.contains(
+                        Utils.getDifferentInDaysBetweenDates(
+                                LocalDate.now(),
+                                order.getUpdated().toLocalDate().plusYears(1)
+                )))
+                .map(BitrixLicenseOrder::getPersonalAccountId)
+                .peek(logger::debug)
+                .collect(Collectors.toSet())
+                .forEach(personalAccountId -> {
+                    PersonalAccount account = personalAccountManager.findOne(personalAccountId);
+                    logger.debug("Send bitrix expiring for accId " + account.getAccountId());
+//                    accountNotificationHelper.sendMail(account, "HmsVHMajordomoOkonchaniesroka1CBitrix", null);
+                });
+
     }
 }
 
