@@ -16,13 +16,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 import javax.validation.Valid;
-import javax.validation.constraints.Pattern;
 
 import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.dto.BitrixLicenseOrderRequest;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.order.BitrixLicenseOrder;
+import ru.majordomo.hms.personmgr.repository.BitrixLicenseOrderRepository;
 import ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -34,12 +34,15 @@ import static ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager
 public class BitrixLicenseOrderRestController extends CommonRestController {
 
     private BitrixLicenseOrderManager manager;
+    private BitrixLicenseOrderRepository repository;
 
     @Autowired
     public BitrixLicenseOrderRestController(
-            BitrixLicenseOrderManager manager
+            BitrixLicenseOrderManager manager,
+            BitrixLicenseOrderRepository repository
     ) {
         this.manager = manager;
+        this.repository = repository;
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
@@ -50,7 +53,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        BitrixLicenseOrder order = manager.findOneByIdAndPersonalAccountId(orderId, account.getId());
+        BitrixLicenseOrder order = repository.findOneByIdAndPersonalAccountId(orderId, account.getId());
 
         return new ResponseEntity<>(order, HttpStatus.OK);
     }
@@ -63,7 +66,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        Page<BitrixLicenseOrder> orders = manager.findByPersonalAccountId(account.getId(), pageable);
+        Page<BitrixLicenseOrder> orders = repository.findByPersonalAccountId(account.getId(), pageable);
 
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
@@ -79,9 +82,9 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
         Page<BitrixLicenseOrder> orders;
 
         if (!accId.isEmpty()) {
-            orders = manager.findByPersonalAccountId(accId, pageable);
+            orders = repository.findByPersonalAccountId(accId, pageable);
         } else {
-            orders = manager.findAll(pageable);
+            orders = repository.findAll(pageable);
         }
 
         return new ResponseEntity<>(orders, HttpStatus.OK);
@@ -97,7 +100,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        BitrixLicenseOrder order = manager.findOneByIdAndPersonalAccountId(orderId, account.getId());
+        BitrixLicenseOrder order = repository.findOneByIdAndPersonalAccountId(orderId, account.getId());
 
         String operator = request.getUserPrincipal().getName();
 
@@ -162,7 +165,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
     ) {
         Predicate predicate = getPredicate(accountId, params);
 
-        Page<BitrixLicenseOrder> orders = manager.findAll(predicate, pageable);
+        Page<BitrixLicenseOrder> orders = repository.findAll(predicate, pageable);
 
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
