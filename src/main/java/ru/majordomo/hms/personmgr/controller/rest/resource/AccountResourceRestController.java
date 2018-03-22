@@ -27,12 +27,14 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
+import ru.majordomo.hms.personmgr.model.account.InfoBannerAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.PersonalInfo;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
@@ -56,6 +58,7 @@ public class AccountResourceRestController extends CommonRestController {
     private final SiFeignClient siFeignClient;
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountTransferService accountTransferService;
+    private final AccountNoticeRepository accountNoticeRepository;
 
     @Autowired
     public AccountResourceRestController(
@@ -68,7 +71,8 @@ public class AccountResourceRestController extends CommonRestController {
             PlanLimitsService planLimitsService,
             SiFeignClient siFeignClient,
             RcUserFeignClient rcUserFeignClient,
-            AccountTransferService accountTransferService
+            AccountTransferService accountTransferService,
+            AccountNoticeRepository accountNoticeRepository
     ) {
         this.sequenceCounterService = sequenceCounterService;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
@@ -80,6 +84,7 @@ public class AccountResourceRestController extends CommonRestController {
         this.siFeignClient = siFeignClient;
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountTransferService = accountTransferService;
+        this.accountNoticeRepository = accountNoticeRepository;
     }
 
 
@@ -179,6 +184,15 @@ public class AccountResourceRestController extends CommonRestController {
 
         accountServiceRepository.save(service);
         logger.debug("AccountService saved: " + service.toString());
+
+        InfoBannerAccountNotice notification = new InfoBannerAccountNotice();
+        notification.setPersonalAccountId(personalAccount.getId());
+        notification.setCreated(LocalDateTime.now());
+        notification.setViewed(false);
+        notification.setComponent("hello_user");
+
+        accountNoticeRepository.save(notification);
+        logger.debug("InfoBannerAccountNotice saved: " + service.toString());
 
         //Сохраним в мессагу квоту по тарифу
         Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);

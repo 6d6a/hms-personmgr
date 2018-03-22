@@ -8,7 +8,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import ru.majordomo.hms.personmgr.common.AccountNoticeType;
 import ru.majordomo.hms.personmgr.dto.revisium.GetResultResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.Monitoring;
 import ru.majordomo.hms.personmgr.dto.revisium.MonitoringFlag;
@@ -184,7 +183,7 @@ public class ProcessingRevisiumRequestEventListener {
                     notification.setViewed(false);
                     notification.setRevisiumRequestServiceId(revisiumRequest.getRevisiumRequestServiceId());
                     notification.setRevisiumRequestId(revisiumRequest.getId());
-                    notification.setType(AccountNoticeType.REVISIUM_ALERT);
+
                     accountNoticeRepository.save(notification);
 
                     PersonalAccount account = personalAccountManager.findOne(revisiumRequest.getPersonalAccountId());
