@@ -36,8 +36,11 @@ public abstract class AccountOrder extends ModelBelongsToPersonalAccount {
     @NotNull
     private String operator;
 
+    @JsonView(Views.Internal.class)
     @CreatedDate
     private LocalDateTime created;
+
+    @JsonView(Views.Public.class)
     @LastModifiedDate
     private LocalDateTime updated;
 

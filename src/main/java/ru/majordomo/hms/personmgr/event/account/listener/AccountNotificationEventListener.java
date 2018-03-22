@@ -396,6 +396,7 @@ public class AccountNotificationEventListener {
                         LocalDateTime.now().minusYears(1),
                         LocalDateTime.now().minusYears(1).plusDays(MAY_PROLONG_DAYS_BEFORE_EXPIRED),
                         OrderState.FINISHED,
+                        null,
                         true
                 );
         List<Integer> daysForNotify = Arrays.asList(15,10,5,1);

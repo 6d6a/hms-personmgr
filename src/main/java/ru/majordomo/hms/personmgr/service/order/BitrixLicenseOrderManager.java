@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.IdsContainer;
+import ru.majordomo.hms.personmgr.dto.appscat.AppType;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -32,10 +33,7 @@ import ru.majordomo.hms.personmgr.model.order.BitrixLicenseOrder;
 import ru.majordomo.hms.personmgr.model.order.QBitrixLicenseOrder;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
-import ru.majordomo.hms.personmgr.service.ChargeMessage;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
+import ru.majordomo.hms.personmgr.service.*;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.group;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
@@ -61,6 +59,7 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
     private final FinFeignClient finFeignClient;
     private final AccountNotificationHelper accountNotificationHelper;
     private final MongoOperations mongoOperations;
+    private final AppscatFeignClient appscatFeignClient;
 
     @Autowired
     public BitrixLicenseOrderManager(
@@ -70,7 +69,8 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
             PaymentServiceRepository paymentServiceRepository,
             FinFeignClient finFeignClient,
             AccountNotificationHelper accountNotificationHelper,
-            MongoOperations mongoOperations
+            MongoOperations mongoOperations,
+            AppscatFeignClient appscatFeignClient
     ){
         this.publisher = publisher;
         this.accountHelper = accountHelper;
@@ -79,6 +79,7 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
         this.finFeignClient = finFeignClient;
         this.accountNotificationHelper = accountNotificationHelper;
         this.mongoOperations = mongoOperations;
+        this.appscatFeignClient = appscatFeignClient;
     }
 
     @Override
@@ -160,19 +161,16 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
     }
 
     protected void onCreateByProlong(BitrixLicenseOrder order) {
-        BitrixLicenseOrder previousOrder = repository.findOne(order.getPreviousOrderId());
+        BitrixLicenseOrder previousOrder = order.getPreviousOrder();
 
         checkProlongLicenceOnCreate(previousOrder);
 
-        order.setPreviousOrder(previousOrder);
-
         PaymentService paymentService = paymentServiceRepository.findOne(previousOrder.getServiceId());
-
 
         BigDecimal discount;
 
-        if(previousOrder.getUpdated().plusYears(1).minusDays(DAYS_AFTER_EXPIRED_WITH_MAX_DISCOUNT)
-                .isBefore(LocalDateTime.now())
+        if(previousOrder.getUpdated().plusYears(1).plusDays(DAYS_AFTER_EXPIRED_WITH_MAX_DISCOUNT)
+                .isAfter(LocalDateTime.now())
         ){
             discount = new BigDecimal(PROLONG_DISCOUNT_MAX);
         } else {
@@ -245,6 +243,9 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
     }
 
     private void onCreateByNewLicence(BitrixLicenseOrder order){
+
+        checkThatServiceIdIsBitrixLicense(order.getServiceId());
+
         PaymentService paymentService = paymentServiceRepository.findOne(order.getServiceId());
         BigDecimal cost = paymentService.getCost();
 
@@ -298,6 +299,7 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
             LocalDateTime updatedAfter,
             LocalDateTime updatedBefore,
             OrderState state,
+            String domain,
             boolean excludeProlongedOrders
     ){
         QBitrixLicenseOrder qOrder = QBitrixLicenseOrder.bitrixLicenseOrder;
@@ -320,10 +322,28 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
             builder = builder.and(qOrder.state.eq(state));
         }
 
+        if (domain != null) {
+            builder = builder.and(qOrder.domainName.eq(domain));
+        }
+
         if (excludeProlongedOrders) {
             builder = builder.and(qOrder.id.notIn(getProlongedOrProlongingIds(personalAccountId)));
         }
 
         return builder.getValue();
+    }
+
+    private void checkThatServiceIdIsBitrixLicense(String serviceId){
+        AppType appType = appscatFeignClient.getAppTypeByInternalName("BITRIX");
+
+        if (appType
+                .getServiceIds()
+                .entrySet()
+                .stream()
+                .map(Map.Entry::getValue)
+                .noneMatch(string -> string.equals(serviceId))
+                ) {
+            throw  new ParameterValidationException("serviceId лицензии указан некорректно");
+        }
     }
 }

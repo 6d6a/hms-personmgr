@@ -12,6 +12,7 @@ import org.springframework.security.web.servletapi.SecurityContextHolderAwareReq
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 import javax.validation.Valid;
@@ -54,18 +55,18 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
         return new ResponseEntity<>(order, HttpStatus.OK);
     }
 
-//    @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
-//    @GetMapping("/{accountId}/bitrix-license-order")
-//    public ResponseEntity<Page<BitrixLicenseOrder>> getAll(
-//            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-//            Pageable pageable
-//    ) {
-//        PersonalAccount account = accountManager.findOne(accountId);
-//
-//        Page<BitrixLicenseOrder> orders = manager.findByPersonalAccountId(account.getId(), pageable);
-//
-//        return new ResponseEntity<>(orders, HttpStatus.OK);
-//    }
+    @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
+    @GetMapping("/{accountId}/bitrix-license-order")
+    public ResponseEntity<Page<BitrixLicenseOrder>> getAll(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            Pageable pageable
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Page<BitrixLicenseOrder> orders = manager.findByPersonalAccountId(account.getId(), pageable);
+
+        return new ResponseEntity<>(orders, HttpStatus.OK);
+    }
 
     @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
     @GetMapping("/bitrix-license-order")
@@ -144,6 +145,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
         order.setDomainName(previousOrder.getDomainName());
         order.setServiceId(previousOrder.getServiceId());
         order.setPreviousOrder(previousOrder);
+        order.setPreviousOrderId(orderId);
         order.setType(PROLONG);
 
         manager.create(order, operator);
@@ -152,27 +154,36 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
     }
 
     @JsonView(Views.Public.class)
-    @GetMapping("/{accountId}/bitrix-license-order")
+    @GetMapping("/{accountId}/bitrix-license-order/search")
     public ResponseEntity<Page<BitrixLicenseOrder>> getExpiring(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @Valid @Pattern(regexp = "^expiring$|^expired$|^declined$|^new$|^in_progress$")
-            @RequestParam(defaultValue = "") String search,
+            @RequestParam(required = false) Map<String, String> params,
             Pageable pageable
     ) {
-        Predicate predicate = bySearch(accountId, search);
+        Predicate predicate = getPredicate(accountId, params);
 
         Page<BitrixLicenseOrder> orders = manager.findAll(predicate, pageable);
 
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
 
-    private Predicate bySearch(String personalAccountId, String search){
-        LocalDateTime updatedAfter = null;
-        LocalDateTime updatedBefore = null;
-        OrderState state = null;
-        boolean excludeProlongedOrders = false;
+    private Predicate getPredicate(String personalAccountId, Map<String, String> params){
+        String afterString = params.getOrDefault("after", "");
+        LocalDateTime updatedAfter = afterString.isEmpty() ? null : LocalDateTime.parse(afterString, DateTimeFormatter.ISO_DATE);
 
-        switch (search) {
+        String beforeString = params.getOrDefault("before", "");
+        LocalDateTime updatedBefore = beforeString.isEmpty() ? null : LocalDateTime.parse(beforeString, DateTimeFormatter.ISO_DATE);
+
+        String stateString = params.getOrDefault("state", "");
+        OrderState state = stateString.isEmpty() ? null : OrderState.valueOf(stateString.toUpperCase());
+
+        String domain = params.getOrDefault("domain", null);
+
+        boolean excludeProlongedOrders = Boolean.valueOf(params.getOrDefault("excludeProlonged", null));
+        switch (params.getOrDefault("preset", "")) {
+            case "":
+                break;
+
             case "expiring":
                 updatedAfter = LocalDateTime.now().minusYears(1);
                 updatedBefore = updatedAfter.plusDays(MAY_PROLONG_DAYS_BEFORE_EXPIRED);
@@ -182,6 +193,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
                 break;
             case "expired":
                 updatedBefore = LocalDateTime.now().minusYears(1);
+                updatedAfter = updatedBefore.minusMonths(3);
                 state = OrderState.FINISHED;
                 excludeProlongedOrders = true;
 
@@ -199,6 +211,6 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
 
                 break;
         }
-        return manager.getPredicate(personalAccountId, updatedAfter, updatedBefore, state, excludeProlongedOrders);
+        return manager.getPredicate(personalAccountId, updatedAfter, updatedBefore, state, domain, excludeProlongedOrders);
     }
 }

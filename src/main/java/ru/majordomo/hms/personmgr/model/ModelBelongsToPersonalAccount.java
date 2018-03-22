@@ -1,10 +1,12 @@
 package ru.majordomo.hms.personmgr.model;
 
+import com.fasterxml.jackson.annotation.JsonView;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 
 import javax.validation.constraints.NotNull;
 
+import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -12,11 +14,13 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
  * Класс наследуемый документами принадлежащими Аккаунту
  */
 public class ModelBelongsToPersonalAccount extends BaseModel {
+    @JsonView(Views.Internal.class)
     @Indexed
     @NotNull
     @ObjectId(PersonalAccount.class)
     private String personalAccountId;
 
+    @JsonView(Views.Public.class)
     @Transient
     private String personalAccountName;
 
