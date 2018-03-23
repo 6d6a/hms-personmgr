@@ -11,7 +11,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
@@ -22,7 +24,6 @@ import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.dto.BitrixLicenseOrderRequest;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.order.BitrixLicenseOrder;
-import ru.majordomo.hms.personmgr.repository.BitrixLicenseOrderRepository;
 import ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -34,15 +35,12 @@ import static ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager
 public class BitrixLicenseOrderRestController extends CommonRestController {
 
     private BitrixLicenseOrderManager manager;
-    private BitrixLicenseOrderRepository repository;
 
     @Autowired
     public BitrixLicenseOrderRestController(
-            BitrixLicenseOrderManager manager,
-            BitrixLicenseOrderRepository repository
+            BitrixLicenseOrderManager manager
     ) {
         this.manager = manager;
-        this.repository = repository;
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
@@ -53,7 +51,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        BitrixLicenseOrder order = repository.findOneByIdAndPersonalAccountId(orderId, account.getId());
+        BitrixLicenseOrder order = manager.findOneByIdAndPersonalAccountId(orderId, account.getId());
 
         return new ResponseEntity<>(order, HttpStatus.OK);
     }
@@ -66,7 +64,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        Page<BitrixLicenseOrder> orders = repository.findByPersonalAccountId(account.getId(), pageable);
+        Page<BitrixLicenseOrder> orders = manager.findByPersonalAccountId(account.getId(), pageable);
 
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
@@ -82,9 +80,9 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
         Page<BitrixLicenseOrder> orders;
 
         if (!accId.isEmpty()) {
-            orders = repository.findByPersonalAccountId(accId, pageable);
+            orders = manager.findByPersonalAccountId(accId, pageable);
         } else {
-            orders = repository.findAll(pageable);
+            orders = manager.findAll(pageable);
         }
 
         return new ResponseEntity<>(orders, HttpStatus.OK);
@@ -100,7 +98,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        BitrixLicenseOrder order = repository.findOneByIdAndPersonalAccountId(orderId, account.getId());
+        BitrixLicenseOrder order = manager.findOneByIdAndPersonalAccountId(orderId, account.getId());
 
         String operator = request.getUserPrincipal().getName();
 
@@ -165,17 +163,19 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
     ) {
         Predicate predicate = getPredicate(accountId, params);
 
-        Page<BitrixLicenseOrder> orders = repository.findAll(predicate, pageable);
+        Page<BitrixLicenseOrder> orders = manager.findAll(predicate, pageable);
+
+        orders.forEach(manager::mongoAfterConvertByPredicate);
 
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
 
     private Predicate getPredicate(String personalAccountId, Map<String, String> params){
         String afterString = params.getOrDefault("after", "");
-        LocalDateTime updatedAfter = afterString.isEmpty() ? null : LocalDateTime.parse(afterString, DateTimeFormatter.ISO_DATE);
+        LocalDateTime updatedAfter = afterString.isEmpty() ? null : LocalDateTime.of(LocalDate.parse(afterString, DateTimeFormatter.ISO_DATE), LocalTime.MIN);
 
         String beforeString = params.getOrDefault("before", "");
-        LocalDateTime updatedBefore = beforeString.isEmpty() ? null : LocalDateTime.parse(beforeString, DateTimeFormatter.ISO_DATE);
+        LocalDateTime updatedBefore = beforeString.isEmpty() ? null : LocalDateTime.of(LocalDate.parse(beforeString, DateTimeFormatter.ISO_DATE), LocalTime.MIN);
 
         String stateString = params.getOrDefault("state", "");
         OrderState state = stateString.isEmpty() ? null : OrderState.valueOf(stateString.toUpperCase());

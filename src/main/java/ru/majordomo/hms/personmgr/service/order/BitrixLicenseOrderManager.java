@@ -346,4 +346,23 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
             throw  new ParameterValidationException("serviceId лицензии указан некорректно");
         }
     }
+
+    public void mongoAfterConvertByPredicate(BitrixLicenseOrder order){
+        PersonalAccount account = personalAccountManager.findOne(order.getPersonalAccountId());
+
+        if (account != null) {
+            order.setPersonalAccountName(account.getName());
+        }
+
+        PaymentService paymentService = paymentServiceRepository.findOne(order.getServiceId());
+
+        if (paymentService != null) {
+            order.setServiceName(paymentService.getName());
+        }
+
+        if (order.getPreviousOrderId() != null && !order.getPreviousOrderId().isEmpty()) {
+            BitrixLicenseOrder previousOrder = repository.findOne(order.getPreviousOrderId());
+            order.setPreviousOrder(previousOrder);
+        }
+    }
 }
