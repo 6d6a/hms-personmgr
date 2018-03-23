@@ -10,13 +10,11 @@ import org.springframework.data.repository.NoRepositoryBean;
 
 import ru.majordomo.hms.personmgr.model.order.AccountOrder;
 
-
 @NoRepositoryBean
 public interface AccountOrderRepository<T extends AccountOrder> extends MongoRepository<T, String>,
         QueryDslPredicateExecutor<T>
 {
     Page<T> findByPersonalAccountId(@Param("accountId") String accountId, Pageable pageable);
-    Page<T> findAll(Pageable pageable);
     T findOneByIdAndPersonalAccountId(@Param("id") String id, @Param("personalAccountId") String personalAccountId);
     boolean exists(Predicate predicate);
     Page<T> findAll(Predicate predicate, Pageable pageable);

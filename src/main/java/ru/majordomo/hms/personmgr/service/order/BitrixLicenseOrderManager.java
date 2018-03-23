@@ -347,22 +347,27 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
         }
     }
 
-    public void mongoAfterConvertByPredicate(BitrixLicenseOrder order){
-        PersonalAccount account = personalAccountManager.findOne(order.getPersonalAccountId());
+    public void mongoAfterConvert(BitrixLicenseOrder order){
+        try {
+            PersonalAccount account = mongoOperations.findById(order.getPersonalAccountId(), PersonalAccount.class);
 
-        if (account != null) {
-            order.setPersonalAccountName(account.getName());
-        }
+            if (account != null) {
+                order.setPersonalAccountName(account.getName());
+            }
 
-        PaymentService paymentService = paymentServiceRepository.findOne(order.getServiceId());
+            PaymentService paymentService = mongoOperations.findById(order.getServiceId(), PaymentService.class);
 
-        if (paymentService != null) {
-            order.setServiceName(paymentService.getName());
-        }
+            if (paymentService != null) {
+                order.setServiceName(paymentService.getName());
+            }
 
-        if (order.getPreviousOrderId() != null && !order.getPreviousOrderId().isEmpty()) {
-            BitrixLicenseOrder previousOrder = repository.findOne(order.getPreviousOrderId());
-            order.setPreviousOrder(previousOrder);
+            if (order.getPreviousOrderId() != null && !order.getPreviousOrderId().isEmpty()) {
+                BitrixLicenseOrder previousOrder = mongoOperations.findById(order.getPreviousOrderId(), BitrixLicenseOrder.class);
+                order.setPreviousOrder(previousOrder);
+            }
+        } catch (Exception ignore){
+            log.error("Catch exception in " + getClass().getName() + ".mongoAfterConvert(String '"
+                    + order.getId() + "') message: " + ignore.getMessage());
         }
     }
 }

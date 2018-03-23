@@ -83,6 +83,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
             orders = manager.findByPersonalAccountId(accId, pageable);
         } else {
             orders = manager.findAll(pageable);
+            orders.forEach(manager::mongoAfterConvert);
         }
 
         return new ResponseEntity<>(orders, HttpStatus.OK);
@@ -165,7 +166,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
 
         Page<BitrixLicenseOrder> orders = manager.findAll(predicate, pageable);
 
-        orders.forEach(manager::mongoAfterConvertByPredicate);
+        orders.forEach(manager::mongoAfterConvert);
 
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
