@@ -177,7 +177,7 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
             discount = new BigDecimal(PROLONG_DISCOUNT_MIN);
         }
 
-        BigDecimal cost = paymentService.getCost().multiply(discount);
+        BigDecimal cost = paymentService.getCost().multiply(discount).setScale(0, BigDecimal.ROUND_CEILING);
 
         PersonalAccount account = personalAccountManager.findOne(order.getPersonalAccountId());
 
