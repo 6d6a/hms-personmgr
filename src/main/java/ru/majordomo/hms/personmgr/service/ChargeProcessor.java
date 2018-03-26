@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.ChargeResult;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.event.account.AccountSendMailNotificationRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSendSmsNotificationRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
@@ -26,7 +27,9 @@ import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequestItem;
 import ru.majordomo.hms.personmgr.model.charge.Status;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.model.service.DiscountedService;
+import ru.majordomo.hms.personmgr.repository.AccountServiceExpirationRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 
 @Service
@@ -44,6 +47,7 @@ public class ChargeProcessor {
     private final ApplicationEventPublisher publisher;
     private final BatchJobManager batchJobManager;
     private final DiscountServiceHelper discountServiceHelper;
+    private final AccountServiceExpirationRepository accountServiceExpirationRepository;
 
     public ChargeProcessor(
             ChargeRequestManager chargeRequestManager,
@@ -56,7 +60,8 @@ public class ChargeProcessor {
             Charger charger,
             ApplicationEventPublisher publisher,
             BatchJobManager batchJobManager,
-            DiscountServiceHelper discountServiceHelper
+            DiscountServiceHelper discountServiceHelper,
+            AccountServiceExpirationRepository accountServiceExpirationRepository
     ) {
         this.chargeRequestManager = chargeRequestManager;
         this.accountManager = accountManager;
@@ -69,6 +74,7 @@ public class ChargeProcessor {
         this.publisher = publisher;
         this.batchJobManager = batchJobManager;
         this.discountServiceHelper = discountServiceHelper;
+        this.accountServiceExpirationRepository = accountServiceExpirationRepository;
     }
 
     @SchedulerLock(name="processCharges")
@@ -132,32 +138,46 @@ public class ChargeProcessor {
                 accountService = discountedService;
             }
 
-            ChargeResult chargeResult = charger.makeCharge(accountService, chargeRequest.getChargeDate());
-            if (chargeResult.isSuccess()) {
-                dailyCost = dailyCost.add(accountServiceHelper.getDailyCostForService(accountService, chargeRequest.getChargeDate()));
-                chargeRequestItem.setStatus(Status.CHARGED);
-            } else if (!chargeResult.isSuccess() && !chargeResult.isGotException()) {
-                switch (accountServiceHelper.getPaymentServiceType(accountService)) {
-                    case "PLAN":
-                        try {
-                            disableAndNotifyAccountByReasonNotEnoughMoney(account);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+            if (accountService.getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME) {
+                //TODO revisium (in future) переделать под автопроделние (пока только отключение)
+                AccountServiceExpiration expiration = accountServiceExpirationRepository.findByPersonalAccountIdAndAccountServiceId(
+                        account.getId(), accountService.getId()
+                );
 
-                        chargeRequestItem.setStatus(Status.SKIPPED);
-                        chargeRequest.setStatus(Status.SKIPPED);
-
-                        chargeRequestManager.save(chargeRequest);
-
-                        return chargeResult;
-                    case "ADDITIONAL_SERVICE":
-                    default:
-                        accountHelper.disableAdditionalService(accountService);
+                if (expiration != null && expiration.getExpireDate().isBefore(chargeRequest.getChargeDate())) {
+                    accountHelper.disableAdditionalService(accountService);
+                    chargeRequestItem.setStatus(Status.CHARGED);
+                } else {
+                    chargeRequestItem.setStatus(Status.SKIPPED);
                 }
-                chargeRequestItem.setStatus(Status.SKIPPED);
             } else {
-                chargeRequestItem.setStatus(Status.ERROR);
+                ChargeResult chargeResult = charger.makeCharge(accountService, chargeRequest.getChargeDate());
+                if (chargeResult.isSuccess()) {
+                    dailyCost = dailyCost.add(accountServiceHelper.getDailyCostForService(accountService, chargeRequest.getChargeDate()));
+                    chargeRequestItem.setStatus(Status.CHARGED);
+                } else if (!chargeResult.isSuccess() && !chargeResult.isGotException()) {
+                    switch (accountServiceHelper.getPaymentServiceType(accountService)) {
+                        case "PLAN":
+                            try {
+                                disableAndNotifyAccountByReasonNotEnoughMoney(account);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+
+                            chargeRequestItem.setStatus(Status.SKIPPED);
+                            chargeRequest.setStatus(Status.SKIPPED);
+
+                            chargeRequestManager.save(chargeRequest);
+
+                            return chargeResult;
+                        case "ADDITIONAL_SERVICE":
+                        default:
+                            accountHelper.disableAdditionalService(accountService);
+                    }
+                    chargeRequestItem.setStatus(Status.SKIPPED);
+                } else {
+                    chargeRequestItem.setStatus(Status.ERROR);
+                }
             }
         }
 

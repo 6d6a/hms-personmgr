@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -8,35 +9,56 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import ru.majordomo.hms.personmgr.common.ServicePaymentType;
+import ru.majordomo.hms.personmgr.dto.revisium.CheckResponse;
+import ru.majordomo.hms.personmgr.dto.revisium.ResultStatus;
+import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.event.revisium.ProcessRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequest;
+import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.repository.*;
+import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
 
-import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @Service
 public class AccountServiceHelper {
     private final AccountServiceRepository accountServiceRepository;
     private final PlanRepository planRepository;
     private final PaymentServiceRepository serviceRepository;
+    private final AccountServiceExpirationRepository accountServiceExpirationRepository;
+    private final RevisiumRequestRepository revisiumRequestRepository;
+    private final RevisiumApiClient revisiumApiClient;
+    private final ApplicationEventPublisher publisher;
 
     @Autowired
     public AccountServiceHelper(
             AccountServiceRepository accountServiceRepository,
             PlanRepository planRepository,
-            PaymentServiceRepository serviceRepository
+            PaymentServiceRepository serviceRepository,
+            AccountServiceExpirationRepository accountServiceExpirationRepository,
+            RevisiumRequestRepository revisiumRequestRepository,
+            RevisiumApiClient revisiumApiClient,
+            ApplicationEventPublisher publisher
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.planRepository = planRepository;
         this.serviceRepository = serviceRepository;
+        this.accountServiceExpirationRepository = accountServiceExpirationRepository;
+        this.revisiumRequestRepository = revisiumRequestRepository;
+        this.revisiumApiClient = revisiumApiClient;
+        this.publisher = publisher;
     }
 
     /**
@@ -111,6 +133,7 @@ public class AccountServiceHelper {
             AccountService accountService = accountServices.get(0);
 
             accountService.setQuantity(quantity);
+            accountService.setEnabled(true);
 
             accountServiceRepository.save(accountService);
         } else {
@@ -166,7 +189,7 @@ public class AccountServiceHelper {
     }
 
     /**
-     * Выключаем услугу
+     * Выключаем все услуги с serviceId
      *
      * @param account   Аккаунт
      * @param serviceId id услуги
@@ -176,7 +199,16 @@ public class AccountServiceHelper {
     }
 
     /**
-     * Меняем статус услуги
+     * Выключаем услугу
+     *
+     * @param accountService   услуга
+     */
+    public void disableAccountService(AccountService accountService) {
+        setEnabledAccountService(accountService, false);
+    }
+
+    /**
+     * Меняем статус услуг
      *
      * @param account   Аккаунт
      * @param serviceId id услуги
@@ -192,6 +224,31 @@ public class AccountServiceHelper {
     /**
      * Меняем статус услуги
      *
+     * @param accountService   услуга
+     */
+    public void setEnabledAccountService(AccountService accountService, boolean enabled) {
+        accountService.setEnabled(enabled);
+        accountServiceRepository.save(accountService);
+    }
+
+    /**
+     * Меняем статус услуги
+     *
+     * @param account   Аккаунт
+     * @param serviceId id услуги
+     */
+    public void leaveOnlyOneAccountService(PersonalAccount account, String serviceId) {
+        List<AccountService> accountServices = getAccountServices(account, serviceId);
+
+        if (accountServices.size() > 1) {
+            accountServices.remove(0);
+            accountServiceRepository.delete(accountServices);
+        }
+    }
+
+    /**
+     * Меняем статус услуги
+     *
      * @param account   Аккаунт
      * @param serviceId id услуги
      */
@@ -201,6 +258,98 @@ public class AccountServiceHelper {
         accountServices.forEach(accountService -> accountService.setLastBilled(LocalDateTime.now()));
 
         accountServiceRepository.save(accountServices);
+    }
+
+    public PaymentService getRevisiumPaymentService() {
+
+        PaymentService paymentService = serviceRepository.findByOldId(REVISIUM_SERVICE_ID);
+
+        if (paymentService == null) {
+            throw new ParameterValidationException("paymentService with id '" + REVISIUM_SERVICE_ID + "' not found");
+        }
+
+        return paymentService;
+    }
+
+    public AccountServiceExpiration prolongAccountServiceExpiration(PersonalAccount account, String accountServiceId, Long months) {
+
+        AccountService accountService = accountServiceRepository
+                .findByPersonalAccountIdAndId(account.getId(), accountServiceId);
+
+        if (accountService == null) {
+            throw new ParameterValidationException("AccountService с ID " + accountServiceId + " не найден");
+        }
+
+        AccountServiceExpiration accountServiceExpiration = accountServiceExpirationRepository
+                .findByPersonalAccountIdAndAccountServiceId(account.getId(), accountService.getId());
+
+        accountService.setEnabled(true);
+
+        LocalDate expireDate = LocalDate.now().plusMonths(months);
+
+        if (accountServiceExpiration == null) {
+            accountServiceExpiration = new AccountServiceExpiration();
+            accountServiceExpiration.setAccountServiceId(accountService.getId());
+            accountServiceExpiration.setCreatedDate(LocalDate.now());
+            accountServiceExpiration.setAccountService(accountService);
+            accountServiceExpiration.setPersonalAccountId(account.getId());
+        } else if (accountServiceExpiration.getExpireDate().isAfter(LocalDate.now())) {
+            expireDate = accountServiceExpiration.getExpireDate().plusMonths(months);
+        }
+
+        accountServiceExpiration.setExpireDate(expireDate);
+        accountServiceRepository.save(accountService);
+        accountServiceExpirationRepository.save(accountServiceExpiration);
+
+        return accountServiceExpiration;
+    }
+
+    public RevisiumRequest revisiumCheckRequest(PersonalAccount account, RevisiumRequestService revisiumRequestService) {
+        //Запрос в Ревизиум и обработка
+        RevisiumRequest revisiumRequest = new RevisiumRequest();
+        revisiumRequest.setRevisiumRequestServiceId(revisiumRequestService.getId());
+        revisiumRequest.setPersonalAccountId(revisiumRequestService.getPersonalAccountId());
+        revisiumRequest.setCreated(LocalDateTime.now());
+        revisiumRequestRepository.save(revisiumRequest);
+
+        try {
+
+            CheckResponse checkResponse = revisiumApiClient.check(revisiumRequestService.getSiteUrl());
+
+            switch (ResultStatus.valueOf(checkResponse.getStatus().toUpperCase())) {
+                case COMPLETE:
+                case INCOMPLETE:
+                    revisiumRequest.setRequestId(checkResponse.getRequestId());
+                    revisiumRequest.setSuccessCheck(true);
+                    revisiumRequest = revisiumRequestRepository.save(revisiumRequest);
+                    publisher.publishEvent(new ProcessRevisiumRequestEvent(revisiumRequest));
+                    break;
+                case CANCELED:
+                case FAILED:
+                default:
+                    revisiumRequest.setSuccessCheck(false);
+                    revisiumRequestRepository.save(revisiumRequest);
+
+                    Map<String, String> paramsHistory = new HashMap<>();
+                    paramsHistory.put(HISTORY_MESSAGE_KEY, "Ошибка при запросе проверки (check) сайта '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум. " +
+                            "Текст ошибки: '" + checkResponse.getErrorMessage() + "'");
+                    paramsHistory.put(OPERATOR_KEY, "service");
+                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+
+                    break;
+            }
+
+        } catch (Exception e) {
+
+            Map<String, String> paramsHistory = new HashMap<>();
+            paramsHistory.put(HISTORY_MESSAGE_KEY, "Ошибка при запросе проверки (check) сайта: '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум.");
+            paramsHistory.put(OPERATOR_KEY, "service");
+            publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
+
+            e.printStackTrace();
+        }
+
+        return revisiumRequest;
     }
 
     //получить PaymentService для услуги SMS-уведомлений
@@ -254,18 +403,30 @@ public class AccountServiceHelper {
         dailyServices = accountServices.stream().filter(accountService ->
                 accountService.isEnabled()
                         && accountService.getPaymentService() != null
-                        && (
-                                accountService.getLastBilled() == null
-                                        || accountService.getLastBilled().isBefore(chargeDate)
-                )
                         && accountService.getPaymentService().getCost().compareTo(BigDecimal.ZERO) > 0
-        ).collect(Collectors.toList());
+                        && (isRegularAccountServiceNeedDailyCharge(accountService, chargeDate) || isOneTimeAccountServiceExpired(account, accountService, chargeDate)))
+                .collect(Collectors.toList());
 
         //сортируем в порядке убывания paymentService.chargePriority
         //в начало попадет сервис с тарифом
         accountServices.sort(AccountService.ChargePriorityComparator);
 
         return dailyServices;
+    }
+
+    private Boolean isRegularAccountServiceNeedDailyCharge(AccountService accountService, LocalDateTime chargeDate) {
+
+        return accountService.getPaymentService().getPaymentType() != ServicePaymentType.ONE_TIME
+                && (accountService.getLastBilled() == null || accountService.getLastBilled().isBefore(chargeDate));
+    }
+
+    private Boolean isOneTimeAccountServiceExpired(PersonalAccount account, AccountService accountService, LocalDateTime chargeDate) {
+
+        AccountServiceExpiration expiration = accountServiceExpirationRepository.findByPersonalAccountIdAndAccountServiceId(account.getId(), accountService.getId());
+
+        return accountService.getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME
+                && expiration != null
+                && expiration.getExpireDate().isBefore(chargeDate.toLocalDate());
     }
 
     public String getPaymentServiceType(AccountService accountService) {

@@ -39,6 +39,7 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.BusinessHelper;
 import ru.majordomo.hms.personmgr.service.PlanBuilder;
 import ru.majordomo.hms.personmgr.service.PlanCheckerService;
+import ru.majordomo.hms.personmgr.service.ResourceChecker;
 
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.Matchers.any;
@@ -76,6 +77,9 @@ public class PlanRestControllerTest {
 
     @MockBean(name="businessHelper")
     private BusinessHelper businessHelper;
+
+    @MockBean(name = "resourceChecker")
+    private ResourceChecker resourceChecker;
 
     @MockBean
     private Tracer tracer;

@@ -31,10 +31,7 @@ import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverConfirmedEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverEvent;
+import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
@@ -501,6 +498,9 @@ public class PersonalAccountRestController extends CommonRestController {
             publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
 
             accountHelper.saveHistory(account, (addQuotaIfOverquoted ? "Включено" : "Выключено") + " добавление квоты при превышении доступной по тарифу", request);
+
+            String quotaServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
+            publisher.publishEvent(new UserDisabledServiceEvent(account.getId(), quotaServiceId));
         }
 
         if (requestBody.get(AccountSetting.AUTO_BILL_SENDING.name()) != null) {

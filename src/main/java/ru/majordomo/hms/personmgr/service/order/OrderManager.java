@@ -1,30 +1,24 @@
-package ru.majordomo.hms.personmgr.service;
+package ru.majordomo.hms.personmgr.service.order;
 
+import com.querydsl.core.types.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.exception.IncorrectStateException;
 import ru.majordomo.hms.personmgr.model.order.AccountOrder;
 import ru.majordomo.hms.personmgr.repository.AccountOrderRepository;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class OrderManager<T extends AccountOrder> {
-    private AccountOrderRepository<T> accountOrderRepository;
-
-    protected void updateState(T accountOrder, OrderState newState, String operator) {
-        accountOrder.setState(newState);
-        accountOrder.setOperator(operator);
-        accountOrder.setUpdated(LocalDateTime.now());
-    }
+    protected AccountOrderRepository<T> repository;
 
     @Autowired
     public void setAccountOrderRepository(AccountOrderRepository<T> accountOrderRepository) {
-        this.accountOrderRepository = accountOrderRepository;
-    }
-
-    protected void save(T accountOrder) {
-        accountOrderRepository.save(accountOrder);
+        this.repository = accountOrderRepository;
     }
 
     protected void onCreate(T accountOrder) {}
@@ -35,8 +29,16 @@ public abstract class OrderManager<T extends AccountOrder> {
 
     protected void onFinish(T accountOrder) {}
 
+    protected void save(T accountOrder) {
+        repository.save(accountOrder);
+    }
+
+    protected void updateState(T accountOrder, OrderState newState, String operator) {
+        accountOrder.setState(newState);
+        accountOrder.setOperator(operator);
+    }
+
     public void create(T accountOrder, String operator) {
-        accountOrder.setCreated(LocalDateTime.now());
         updateState(accountOrder, OrderState.NEW, operator);
         onCreate(accountOrder);
 
@@ -75,5 +77,31 @@ public abstract class OrderManager<T extends AccountOrder> {
             case IN_PROGRESS:
                 throw new IncorrectStateException("Состояние не может быть изменено на " + OrderState.IN_PROGRESS.name());
         }
+    }
+
+    public Page<T> findByPersonalAccountId(String accountId, Pageable pageable){
+        return repository.findByPersonalAccountId(accountId, pageable);
+    }
+
+    public T findOneByIdAndPersonalAccountId(String id, String personalAccountId){
+        return repository.findOneByIdAndPersonalAccountId(id, personalAccountId);
+    }
+
+    public boolean exists(Predicate predicate){
+        return repository.exists(predicate);
+    }
+
+    public Page<T> findAll(Predicate predicate, Pageable pageable){
+        return repository.findAll(predicate, pageable);
+    }
+
+    public List<T> findAll(Predicate predicate){
+        List<T> result = new ArrayList<>();
+        repository.findAll(predicate).iterator().forEachRemaining(result::add);
+        return result;
+    }
+
+    public Page<T> findAll(Pageable pageable){
+        return repository.findAll(pageable);
     }
 }

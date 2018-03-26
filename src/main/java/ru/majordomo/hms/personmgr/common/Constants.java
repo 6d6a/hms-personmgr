@@ -46,6 +46,8 @@ public class Constants {
     public static final String ACCOUNT_ID_KEY = "accountId";
     public static final String PASSWORD_KEY = "password";
     public static final String NAME_KEY = "name";
+    public static final String ACCOUNT_WAS_ACTIVE_KEY = "accountWasActive";
+    public static final String TYPES_KEY = "types";
     public static final String TOKEN_KEY = "token";
     public static final String TYPE_KEY = "type";
     public static final String ACC_ID_KEY = "acc_id";
@@ -90,6 +92,7 @@ public class Constants {
     public static final String APPSCAT_DB_HOST_KEY = "DB_HOST";
     public static final String TRANSFER_DATABASES_KEY = "transferDatabases";
     public static final String SERVICE_ID_KEY = "serviceId";
+    public static final String APPLICATION_SERVICE_ID_KEY = "applicationServiceId";
     public static final String OLD_UNIX_ACCOUNT_SERVER_ID_KEY = "oldUnixAccountServerId";
     public static final String NEW_UNIX_ACCOUNT_SERVER_ID_KEY = "newUnixAccountServerId";
     public static final String OLD_SERVER_NAME_KEY = "oldServerName";
@@ -155,6 +158,9 @@ public class Constants {
 
     public static final int ANTI_SPAM_ID = 13;
     public static final String ANTI_SPAM_SERVICE_ID = SERVICE_PREFIX + ANTI_SPAM_ID;
+
+    private static final String REVISIUM_ID = "revisium";
+    public static final String REVISIUM_SERVICE_ID = SERVICE_PREFIX + REVISIUM_ID;
 
     //Id услуги Доп.место в BillingDB
     public static final int ADDITIONAL_QUOTA_100_ID = 15;

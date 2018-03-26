@@ -14,8 +14,6 @@ import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.account.AccountDomainAutoRenewCompletedEvent;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.accountStat.AccountStatDomainUpdateEvent;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -51,36 +49,34 @@ public class DomainAmqpController extends CommonAmqpController {
             State state = businessFlowDirector.processMessage(message);
             ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
 
-            if (businessAction != null) {
-                String domainName = (String) businessAction.getParam("name");
+            if (businessAction == null) {
+                return;
+            }
+            String domainName = (String) businessAction.getParam("name");
 
-                if (state == State.PROCESSED) {
-                    PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
+            if (state == State.PROCESSED) {
+                PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
 
-                    if (businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_CREATE_RC)) {
-                        if (account.isAccountNew()) {
-                            accountManager.setAccountNew(account.getId(), false);
-                        }
-                        if ((Boolean) businessAction.getParam("register")) {
-                            HashMap<String, String> data = new HashMap<>();
-                            data.put("personId", (String) businessAction.getParam("personId"));
-                            data.put(DOMAIN_NAME_KEY, domainName);
-                            data.put(ACCOUNT_ID_KEY, message.getAccountId());
-                            accountStatHelper.add(account.getId(), AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN, data);
-                        }
+                if (businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_CREATE_RC)) {
+                    if (account.isAccountNew()) {
+                        accountManager.setAccountNew(account.getId(), false);
                     }
-
-                    cartManager.deleteCartItemByName(businessAction.getPersonalAccountId(), domainName);
-
-                    //Save history
-                    Map<String, String> params = new HashMap<>();
-                    params.put(HISTORY_MESSAGE_KEY, "Заявка на создание домена выполнена успешно (имя: " + domainName + ")");
-                    params.put(OPERATOR_KEY, "service");
-
-                    publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), params));
-                } else {
-                    cartManager.setProcessingByName(businessAction.getPersonalAccountId(), domainName, false);
+                    if ((Boolean) businessAction.getParam("register")) {
+                        HashMap<String, String> data = new HashMap<>();
+                        data.put("personId", (String) businessAction.getParam("personId"));
+                        data.put(DOMAIN_NAME_KEY, domainName);
+                        data.put(ACCOUNT_ID_KEY, message.getAccountId());
+                        accountStatHelper.add(account.getId(), AccountStatType.VIRTUAL_HOSTING_REGISTER_DOMAIN, data);
+                    }
                 }
+
+                cartManager.deleteCartItemByName(businessAction.getPersonalAccountId(), domainName);
+
+                saveHistory(businessAction.getPersonalAccountId(),
+                        "Заявка на создание домена выполнена успешно (имя: " + domainName + ")",
+                        "service");
+            } else {
+                cartManager.setProcessingByName(businessAction.getPersonalAccountId(), domainName, false);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -96,50 +92,41 @@ public class DomainAmqpController extends CommonAmqpController {
         try {
             State state = businessFlowDirector.processMessage(message);
 
-            if (state == State.PROCESSED) {
-                ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
-
-                if (businessAction != null) {
-                    String domainName = (String) message.getParam(NAME_KEY);
-
-                    Map<String, String> paramsHistory;
-                    if (businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_UPDATE_RC)
-                            && businessAction.getParam("renew") != null
-                            && (Boolean) businessAction.getParam("renew")
-                            ) {
-                        String renewAction = "продление";
-                        boolean statDataAutoRenew = false;
-
-                        if (businessAction.getParam(AUTO_RENEW_KEY) != null &&
-                                (Boolean) businessAction.getParam(AUTO_RENEW_KEY)
-                                ) {
-                            Map<String, String> params = new HashMap<>();
-                            params.put(RESOURCE_ID_KEY, (String) businessAction.getParam(RESOURCE_ID_KEY));
-
-                            publisher.publishEvent(new AccountDomainAutoRenewCompletedEvent(businessAction.getPersonalAccountId(), params));
-                            renewAction = "автопродление";
-                            statDataAutoRenew = true;
-                        }
-
-                        message.addParam(AUTO_RENEW_KEY, statDataAutoRenew);
-                        publisher.publishEvent(new AccountStatDomainUpdateEvent(message));
-
-                        //Save history
-                        paramsHistory = new HashMap<>();
-                        paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на " + renewAction + " домена выполнена успешно (имя: " + domainName + ")");
-                        paramsHistory.put(OPERATOR_KEY, "service");
-
-                        publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), paramsHistory));
-                    } else {
-                        //Save history
-                        paramsHistory = new HashMap<>();
-                        paramsHistory.put(HISTORY_MESSAGE_KEY, "Заявка на обновление домена выполнена успешно (имя: " + domainName + ")");
-                        paramsHistory.put(OPERATOR_KEY, "service");
-
-                        publisher.publishEvent(new AccountHistoryEvent(businessAction.getPersonalAccountId(), paramsHistory));
-                    }
-                }
+            if (state != State.PROCESSED) {
+                logger.error("State is not PROCESSED" );
+                return;
             }
+
+            ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+
+            if (businessAction == null) {
+                logger.error("Не найден ProcessingBusinessAction с actionIdentity " + message.getActionIdentity());
+                return;
+            }
+
+            String renewAction = "обновление";
+            String domainName = (String) message.getParam(NAME_KEY);
+            if (businessAction.getBusinessActionType().equals(BusinessActionType.DOMAIN_UPDATE_RC)
+                    && businessAction.getParam("renew") != null
+                    && (Boolean) businessAction.getParam("renew")
+            ) {
+                renewAction = "продление";
+                boolean statDataAutoRenew = false;
+
+                if (businessAction.getParam(AUTO_RENEW_KEY) != null &&
+                        (Boolean) businessAction.getParam(AUTO_RENEW_KEY)
+                ) {
+                    renewAction = "автопродление";
+                    statDataAutoRenew = true;
+                }
+                message.addParam(AUTO_RENEW_KEY, statDataAutoRenew);
+                publisher.publishEvent(new AccountStatDomainUpdateEvent(message));
+            }
+
+            saveHistory(businessAction.getPersonalAccountId(),
+                    "Заявка на " + renewAction + " домена выполнена успешно (имя: " + domainName + ")",
+                    "service");
+
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Got Exception in DomainAmqpController.update " + e.getMessage());

@@ -1,11 +1,11 @@
-package ru.majordomo.hms.personmgr.event.accountStat;
+package ru.majordomo.hms.personmgr.event.account;
 
 import org.springframework.context.ApplicationEvent;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
-public class AccountStatCheckFirstPaymentEvent extends ApplicationEvent {
+public class PaymentWasReceivedEvent extends ApplicationEvent {
 
-    public AccountStatCheckFirstPaymentEvent(SimpleServiceMessage message) {
+    public PaymentWasReceivedEvent(SimpleServiceMessage message) {
         super(message);
     }
 
@@ -13,5 +13,4 @@ public class AccountStatCheckFirstPaymentEvent extends ApplicationEvent {
     public SimpleServiceMessage getSource() {
         return (SimpleServiceMessage) super.getSource();
     }
-
 }

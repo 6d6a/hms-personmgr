@@ -12,10 +12,12 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
@@ -36,6 +38,7 @@ import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 import ru.majordomo.hms.rc.user.resources.*;
@@ -63,6 +66,7 @@ public class AccountHelper {
     private final PlanRepository planRepository;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountServiceHelper accountServiceHelper;
+    private final PaymentServiceRepository paymentServiceRepository;
 
     @Autowired
     public AccountHelper(
@@ -78,7 +82,8 @@ public class AccountHelper {
             AccountOwnerManager accountOwnerManager,
             PlanRepository planRepository,
             AccountAbonementManager accountAbonementManager,
-            AccountServiceHelper accountServiceHelper
+            AccountServiceHelper accountServiceHelper,
+            PaymentServiceRepository paymentServiceRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -93,6 +98,7 @@ public class AccountHelper {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
         this.accountServiceHelper = accountServiceHelper;
+        this.paymentServiceRepository = paymentServiceRepository;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -704,8 +710,7 @@ public class AccountHelper {
         }
     }
 
-    public void disableAllSslCertificates(PersonalAccount account) {
-
+    public void deleteAllSslCertificates(PersonalAccount account) {
         Collection<SSLCertificate> sslCertificates = rcUserFeignClient.getSSLCertificates(account.getId());
 
         for (SSLCertificate sslCertificate : sslCertificates) {
@@ -716,10 +721,162 @@ public class AccountHelper {
 
             businessHelper.buildAction(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
 
-            String historyMessage = "Отправлена заявка на выключение SSL сертификата '" + sslCertificate.getName() + "'";
+            String historyMessage = "Отправлена заявка на удаление SSL сертификата '" + sslCertificate.getName() + "'";
             saveHistoryForOperatorService(account, historyMessage);
         }
+    }
 
+    public void deleteAllMailboxes(PersonalAccount account) {
+        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+        for (Mailbox mailbox : mailboxes) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", mailbox.getId());
+
+            businessHelper.buildAction(BusinessActionType.MAILBOX_DELETE_RC, message);
+
+            String historyMessage = "Отправлена заявка на удаление почтового ящика '" + mailbox.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void deleteAllDatabases(PersonalAccount account) {
+        Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+
+        for (Database database : databases) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", database.getId());
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_DELETE_RC, message);
+
+            String historyMessage = "Отправлена заявка на удаление базы данных '" + database.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void deleteAllDatabaseUsers(PersonalAccount account) {
+        Collection<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
+
+        for (DatabaseUser databaseUser : databaseUsers) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", databaseUser.getId());
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_USER_DELETE_RC, message);
+
+            String historyMessage = "Отправлена заявка на удаление пользователя баз данных '" + databaseUser.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void disableAndScheduleDeleteForAllMailboxes(PersonalAccount account) {
+        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+        for (Mailbox mailbox : mailboxes) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", mailbox.getId());
+            message.addParam("switchedOn", false);
+            message.addParam("willBeDeletedAfter", LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+
+            businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на выключение и отложенное удаление почтового ящика '" + mailbox.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void disableAndScheduleDeleteForAllDatabases(PersonalAccount account) {
+        Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+
+        for (Database database : databases) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", database.getId());
+            message.addParam("switchedOn", false);
+            message.addParam("willBeDeletedAfter", LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на выключение и отложенное удаление базы данных '" + database.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void disableAndScheduleDeleteForAllDatabaseUsers(PersonalAccount account) {
+        Collection<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
+
+        for (DatabaseUser databaseUser : databaseUsers) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", databaseUser.getId());
+            message.addParam("switchedOn", false);
+            message.addParam("willBeDeletedAfter", LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на выключение и отложенное удаление пользователя баз данных '" + databaseUser.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void unScheduleDeleteForAllMailboxes(PersonalAccount account) {
+        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+
+        for (Mailbox mailbox : mailboxes) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", mailbox.getId());
+            message.addParam("willBeDeletedAfter", null);
+
+            businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на отмену отложенного удаления почтового ящика '" + mailbox.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void unScheduleDeleteForAllDatabases(PersonalAccount account) {
+        Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+
+        for (Database database : databases) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", database.getId());
+            message.addParam("willBeDeletedAfter", null);
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на отмену отложенного удаления базы данных '" + database.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
+    }
+
+    public void unScheduleDeleteForAllDatabaseUsers(PersonalAccount account) {
+        Collection<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
+
+        for (DatabaseUser databaseUser : databaseUsers) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setParams(new HashMap<>());
+            message.setAccountId(account.getId());
+            message.addParam("resourceId", databaseUser.getId());
+            message.addParam("willBeDeletedAfter", null);
+
+            businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
+
+            String historyMessage = "Отправлена заявка на отмену отложенного удаления пользователя баз данных '" + databaseUser.getName() + "'";
+            saveHistoryForOperatorService(account, historyMessage);
+        }
     }
 
     /*
@@ -956,7 +1113,13 @@ public class AccountHelper {
 
     public void disableAdditionalService(AccountService accountService) {
         PersonalAccount account = accountManager.findOne(accountService.getPersonalAccountId());
-        accountServiceHelper.disableAccountService(account, accountService.getServiceId());
+
+        if (accountService.getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME) {
+            accountServiceHelper.disableAccountService(accountService);
+        } else {
+            accountServiceHelper.disableAccountService(account, accountService.getServiceId());
+        }
+
         String paymentServiceOldId = accountService.getPaymentService().getOldId();
         if (paymentServiceOldId.equals(ADDITIONAL_QUOTA_100_SERVICE_ID)) {
             account.setAddQuotaIfOverquoted(false);

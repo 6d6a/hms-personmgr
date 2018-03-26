@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.UserDisabledServiceEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -320,6 +321,7 @@ public class AccountServiceRestController extends CommonRestController {
         } else {
             if (accountHasService) {
                 disableCustomService(account, paymentService);
+                publisher.publishEvent(new UserDisabledServiceEvent(account.getId(), paymentService.getId()));
             }
         }
     }

@@ -35,5 +35,11 @@ public class BitrixLicenseOrderMongoEventListener extends AbstractMongoEventList
         if (paymentService != null) {
             order.setServiceName(paymentService.getName());
         }
+
+        if (order.getPreviousOrderId() != null && !order.getPreviousOrderId().isEmpty()) {
+            BitrixLicenseOrder previousOrder = mongoOperations.findById(
+                            order.getPreviousOrderId(), BitrixLicenseOrder.class);
+            order.setPreviousOrder(previousOrder);
+        }
     }
 }
