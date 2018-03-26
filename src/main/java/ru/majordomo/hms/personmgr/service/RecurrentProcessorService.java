@@ -191,11 +191,7 @@ public class RecurrentProcessorService {
 
         List<AccountServiceExpiration> expirations = accountServiceExpirationRepository.findByPersonalAccountId(account.getId());
         for (AccountServiceExpiration item : expirations) {
-            if (item.getAccountService().getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME
-                    && item.getAutoRenew()
-                    //За 5 дней до и 5 дней после выключения
-                    && item.getExpireDate().isAfter(LocalDate.now().minusDays(5L))
-                    && item.getExpireDate().isBefore(LocalDate.now().plusDays(5L))) {
+            if (accountHelper.isExpirationServiceNeedProlong(item)) {
                 sum = sum.add(item.getAccountService().getPaymentService().getCost());
             }
         }

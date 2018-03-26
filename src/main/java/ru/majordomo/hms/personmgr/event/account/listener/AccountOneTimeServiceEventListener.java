@@ -66,11 +66,7 @@ public class AccountOneTimeServiceEventListener {
 
             Boolean prolongSuccessful = false;
 
-            if (item.getAccountService().getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME
-                    && item.getAutoRenew()
-                    //Автопродление за 5 дней до и 5 дней после выключения
-                    && item.getExpireDate().isAfter(LocalDate.now().minusDays(5L))
-                    && item.getExpireDate().isBefore(LocalDate.now().plusDays(5L))) {
+            if (accountHelper.isExpirationServiceNeedProlong(item)) {
                 try {
                     //Попытка продлить
                     ChargeMessage chargeMessage = new ChargeMessage.Builder(item.getAccountService().getPaymentService())
