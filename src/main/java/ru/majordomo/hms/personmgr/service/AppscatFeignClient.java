@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import ru.majordomo.hms.personmgr.config.FeignConfig;
 import ru.majordomo.hms.personmgr.dto.AppscatApp;
+import ru.majordomo.hms.personmgr.dto.appscat.AppType;
 
 @FeignClient(name = "appscat", configuration = FeignConfig.class)
 public interface AppscatFeignClient {
@@ -15,4 +16,7 @@ public interface AppscatFeignClient {
 
     @RequestMapping(method = RequestMethod.GET, value = "/app/{id}", consumes = "application/json")
     AppscatApp getApp(@PathVariable("id") String id);
+
+    @RequestMapping(method = RequestMethod.GET, value = "/app_type/internal-name/{internalName}", consumes = "application/json")
+    AppType getAppTypeByInternalName(@PathVariable("internalName") String internalName);
 }
