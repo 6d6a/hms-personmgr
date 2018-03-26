@@ -5,11 +5,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
+import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
+import ru.majordomo.hms.personmgr.repository.AccountServiceExpirationRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -34,6 +37,7 @@ public class RecurrentProcessorService {
     private final DomainTldService domainTldService;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
     private final FinFeignClient finFeignClient;
+    private final AccountServiceExpirationRepository accountServiceExpirationRepository;
 
     private static TemporalAdjuster FIFTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(50));
     private static TemporalAdjuster TWENTY_FIVE_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(25));
@@ -46,7 +50,8 @@ public class RecurrentProcessorService {
             RcUserFeignClient rcUserFeignClient,
             DomainTldService domainTldService,
             DomainRegistrarFeignClient domainRegistrarFeignClient,
-            FinFeignClient finFeignClient
+            FinFeignClient finFeignClient,
+            AccountServiceExpirationRepository accountServiceExpirationRepository
     ) {
         this.accountAbonementManager = accountAbonementManager;
         this.accountHelper = accountHelper;
@@ -55,6 +60,7 @@ public class RecurrentProcessorService {
         this.domainTldService = domainTldService;
         this.domainRegistrarFeignClient = domainRegistrarFeignClient;
         this.finFeignClient = finFeignClient;
+        this.accountServiceExpirationRepository = accountServiceExpirationRepository;
     }
 
     public void processRecurrent(PersonalAccount account) {
@@ -93,6 +99,18 @@ public class RecurrentProcessorService {
                     realBalance = realBalance.subtract(domainRecurrentSum); //Предположим что уже потратили на продление
                 }
             }
+
+            //Сервисы ревизиума (ONE-TIME услуги) -------------
+            BigDecimal oneTimeRecurrentSum = getOneTimeRecurrentSum(account);
+            if (oneTimeRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
+                if (realBalance.compareTo(oneTimeRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает на one-time
+                    iNeedMoreMoney = iNeedMoreMoney.add(oneTimeRecurrentSum.subtract(realBalance)); //На реккурент
+                    realBalance = BigDecimal.ZERO;
+                } else {
+                    realBalance = realBalance.subtract(oneTimeRecurrentSum);
+                }
+            }
+
             BigDecimal availableBalance = realBalance.add(bonusBalance); //Разделение на бонусы и реальные больше не требуется
 
 
@@ -147,6 +165,7 @@ public class RecurrentProcessorService {
                         + ". Бонусы: " + bonusBalance
                         + ". За домены: " + domainRecurrentSum
                         + ". За абонементы: " + abonementRecurrentSum
+                        + ". За one-time услуги: " + oneTimeRecurrentSum
                         + ". За остальные услуги: " + servicesRecurrentSum;
 
                 accountHelper.saveHistoryForOperatorService(account, message);
@@ -164,6 +183,24 @@ public class RecurrentProcessorService {
             logger.error("Ошибка при выполнени реккурентов для аккаунта: " + account.getName());
             accountHelper.saveHistoryForOperatorService(account, "Непредвиденная ошибка при выполнении реккурента для аккаунта : " + account.getName());
         }
+    }
+
+    private BigDecimal getOneTimeRecurrentSum(PersonalAccount account) {
+
+        BigDecimal sum = BigDecimal.ZERO;
+
+        List<AccountServiceExpiration> expirations = accountServiceExpirationRepository.findByPersonalAccountId(account.getId());
+        for (AccountServiceExpiration item : expirations) {
+            if (item.getAccountService().getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME
+                    && item.getAutoRenew()
+                    //За 5 дней до и 5 дней после выключения
+                    && item.getExpireDate().isAfter(LocalDate.now().minusDays(5L))
+                    && item.getExpireDate().isBefore(LocalDate.now().plusDays(5L))) {
+                sum = sum.add(item.getAccountService().getPaymentService().getCost());
+            }
+        }
+
+        return sum;
     }
 
     private BigDecimal getDomainRecurrentSum(String accountId) {

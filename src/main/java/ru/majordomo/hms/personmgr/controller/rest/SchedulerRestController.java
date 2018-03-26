@@ -101,6 +101,10 @@ public class SchedulerRestController extends CommonRestController {
                 publisher.publishEvent(new ProcessBulkRevisiumRequestEvent());
 
                 break;
+            case "process_one_time_services":
+                publisher.publishEvent(new ProcessOneTimeServiceEvent());
+
+                break;
             default:
                 throw new ParameterValidationException("Неизвестный параметр scheduleAction");
         }

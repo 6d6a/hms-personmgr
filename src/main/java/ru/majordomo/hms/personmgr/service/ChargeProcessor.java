@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,6 +21,7 @@ import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.event.account.AccountSendMailNotificationRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSendSmsNotificationRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
+import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.manager.BatchJobManager;
 import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -29,6 +32,7 @@ import ru.majordomo.hms.personmgr.model.charge.Status;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.model.service.DiscountedService;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceExpirationRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 
@@ -139,17 +143,7 @@ public class ChargeProcessor {
             }
 
             if (accountService.getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME) {
-                //TODO revisium (in future) переделать под автопроделние (пока только отключение)
-                AccountServiceExpiration expiration = accountServiceExpirationRepository.findByPersonalAccountIdAndAccountServiceId(
-                        account.getId(), accountService.getId()
-                );
-
-                if (expiration != null && expiration.getExpireDate().isBefore(chargeRequest.getChargeDate())) {
-                    accountHelper.disableAdditionalService(accountService);
-                    chargeRequestItem.setStatus(Status.CHARGED);
-                } else {
-                    chargeRequestItem.setStatus(Status.SKIPPED);
-                }
+                chargeRequestItem.setStatus(Status.SKIPPED);
             } else {
                 ChargeResult chargeResult = charger.makeCharge(accountService, chargeRequest.getChargeDate());
                 if (chargeResult.isSuccess()) {
