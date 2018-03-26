@@ -186,9 +186,6 @@ public class RevisiumRequestRestController extends CommonRestController {
             SecurityContextHolderAwareRequestWrapper request
     ) {
 
-        //TODO revisium (in future) Автопродление услуги
-        //TODO revisium (in future) Transient поле для AccountServiceExpiration (Пока что не требуется)
-
         PersonalAccount account = personalAccountManager.findOne(accountId);
 
         if (account == null) {
@@ -235,7 +232,7 @@ public class RevisiumRequestRestController extends CommonRestController {
         PaymentService paymentService = accountServiceHelper.getRevisiumPaymentService();
 
         //Проверяем баланс аккаунта + добавляем услугу на аккаунт + добавляем до какого действует услуга
-        accountHelper.checkBalance(account, paymentService);
+        accountHelper.checkBalanceWithoutBonus(account, paymentService);
 
         ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService).setComment(siteUrl).build();
 

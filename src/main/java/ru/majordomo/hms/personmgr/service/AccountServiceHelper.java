@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ import ru.majordomo.hms.personmgr.dto.revisium.CheckResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.ResultStatus;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessRevisiumRequestEvent;
+import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -34,6 +37,9 @@ import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @Service
 public class AccountServiceHelper {
+
+    private final static Logger logger = LoggerFactory.getLogger(AccountServiceHelper.class);
+
     private final AccountServiceRepository accountServiceRepository;
     private final PlanRepository planRepository;
     private final PaymentServiceRepository serviceRepository;
@@ -293,6 +299,7 @@ public class AccountServiceHelper {
             accountServiceExpiration.setCreatedDate(LocalDate.now());
             accountServiceExpiration.setAccountService(accountService);
             accountServiceExpiration.setPersonalAccountId(account.getId());
+            accountServiceExpiration.setAutoRenew(true);
         } else if (accountServiceExpiration.getExpireDate().isAfter(LocalDate.now())) {
             expireDate = accountServiceExpiration.getExpireDate().plusMonths(months);
         }
@@ -404,7 +411,7 @@ public class AccountServiceHelper {
                 accountService.isEnabled()
                         && accountService.getPaymentService() != null
                         && accountService.getPaymentService().getCost().compareTo(BigDecimal.ZERO) > 0
-                        && (isRegularAccountServiceNeedDailyCharge(accountService, chargeDate) || isOneTimeAccountServiceExpired(account, accountService, chargeDate)))
+                        && (isRegularAccountServiceNeedDailyCharge(accountService, chargeDate)))
                 .collect(Collectors.toList());
 
         //сортируем в порядке убывания paymentService.chargePriority
@@ -418,15 +425,6 @@ public class AccountServiceHelper {
 
         return accountService.getPaymentService().getPaymentType() != ServicePaymentType.ONE_TIME
                 && (accountService.getLastBilled() == null || accountService.getLastBilled().isBefore(chargeDate));
-    }
-
-    private Boolean isOneTimeAccountServiceExpired(PersonalAccount account, AccountService accountService, LocalDateTime chargeDate) {
-
-        AccountServiceExpiration expiration = accountServiceExpirationRepository.findByPersonalAccountIdAndAccountServiceId(account.getId(), accountService.getId());
-
-        return accountService.getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME
-                && expiration != null
-                && expiration.getExpireDate().isBefore(chargeDate.toLocalDate());
     }
 
     public String getPaymentServiceType(AccountService accountService) {

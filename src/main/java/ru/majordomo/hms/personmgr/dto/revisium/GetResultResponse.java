@@ -156,5 +156,5 @@ public class GetResultResponse extends ApiResponse {
     }
     */
     @JsonProperty("monitoring")
-    private Monitoring monitoring;
+    private Monitoring monitoring = new Monitoring();
 }

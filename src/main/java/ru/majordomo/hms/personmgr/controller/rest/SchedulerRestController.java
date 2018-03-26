@@ -101,6 +101,10 @@ public class SchedulerRestController extends CommonRestController {
                 publisher.publishEvent(new ProcessBulkRevisiumRequestEvent());
 
                 break;
+            case "process_one_time_services":
+                publisher.publishEvent(new ProcessOneTimeServiceEvent());
+
+                break;
             case "process_notify_expiring_bitrix_license":
                 publisher.publishEvent(new ProcessNotifyExpiringBitrixLicenseEvent());
 

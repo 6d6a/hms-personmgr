@@ -118,7 +118,7 @@ public class DomainService {
             //на почту за сколько дней до
             List<Integer> daysBeforeExpiredForEmail = Arrays.asList(30, 25, 20, 15, 10, 7, 5, 3, 2, 1);
             //на почту через сколько дней после
-            List<Integer> daysAfterExperedForEmail = Arrays.asList(1, 5, 10, 15, 20, 25, 30);
+            List<Integer> daysAfterExperedForEmail = Arrays.asList(1, 5, 10, 15, 20, 25);
             //по sms за сколько дней до
             Integer daysBeforeExpiredForSms = 5;
 

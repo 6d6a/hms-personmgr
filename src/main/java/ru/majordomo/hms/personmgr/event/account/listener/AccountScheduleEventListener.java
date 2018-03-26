@@ -7,21 +7,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import ru.majordomo.hms.personmgr.event.account.CleanBusinessActionsEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessAbonementsAutoRenewEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessAccountDeactivatedSendMailEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessDomainsAutoRenewEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessExpiringAbonementsEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessExpiringDomainsEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessNotifyExpiredAbonementsEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessNotifyInactiveLongTimeEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessRecurrentsEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessSendInfoMailEvent;
-import ru.majordomo.hms.personmgr.service.scheduler.AbonementsScheduler;
-import ru.majordomo.hms.personmgr.service.scheduler.BusinessActionsScheduler;
-import ru.majordomo.hms.personmgr.service.scheduler.RecurrentsScheduler;
-import ru.majordomo.hms.personmgr.service.scheduler.DomainsScheduler;
-import ru.majordomo.hms.personmgr.service.scheduler.NotificationScheduler;
+import ru.majordomo.hms.personmgr.event.account.*;
+import ru.majordomo.hms.personmgr.service.scheduler.*;
 
 @Component
 public class AccountScheduleEventListener {
@@ -32,6 +19,7 @@ public class AccountScheduleEventListener {
     private final BusinessActionsScheduler businessActionsScheduler;
     private final AbonementsScheduler abonementsScheduler;
     private final RecurrentsScheduler recurrentsScheduler;
+    private final OneTimeServiceScheduler oneTimeServiceScheduler;
 
 
     @Autowired
@@ -40,13 +28,15 @@ public class AccountScheduleEventListener {
             DomainsScheduler domainsScheduler,
             BusinessActionsScheduler businessActionsScheduler,
             AbonementsScheduler abonementsScheduler,
-            RecurrentsScheduler recurrentsScheduler
+            RecurrentsScheduler recurrentsScheduler,
+            OneTimeServiceScheduler oneTimeServiceScheduler
     ) {
         this.notificationScheduler = notificationScheduler;
         this.domainsScheduler = domainsScheduler;
         this.businessActionsScheduler = businessActionsScheduler;
         this.abonementsScheduler = abonementsScheduler;
         this.recurrentsScheduler = recurrentsScheduler;
+        this.oneTimeServiceScheduler = oneTimeServiceScheduler;
     }
 
     @EventListener
@@ -127,5 +117,13 @@ public class AccountScheduleEventListener {
         logger.debug("We got ProcessRecurrentsEvent");
 
         recurrentsScheduler.processRecurrents();
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(ProcessOneTimeServiceEvent event) {
+        logger.debug("We got ProcessOneTimeServiceEvent");
+
+        oneTimeServiceScheduler.processExpiringAbonements();
     }
 }

@@ -24,4 +24,7 @@ public class AccountServiceExpiration extends ModelBelongsToPersonalAccount {
     private LocalDate createdDate;
 
     private LocalDate expireDate;
+
+    //carefully, связано с реккурентами
+    private Boolean autoRenew;
 }

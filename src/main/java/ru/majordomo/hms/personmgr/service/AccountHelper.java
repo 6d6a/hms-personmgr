@@ -10,6 +10,7 @@ import org.springframework.security.web.servletapi.SecurityContextHolderAwareReq
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
@@ -36,6 +37,7 @@ import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
@@ -1136,5 +1138,13 @@ public class AccountHelper {
 //            TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
         }
         this.saveHistoryForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
+    }
+
+    public Boolean isExpirationServiceNeedProlong(AccountServiceExpiration expiration) {
+        return expiration.getAccountService().getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME
+                && expiration.getAutoRenew()
+                //Автопродление за 5 дней до и 5 дней после выключения
+                && expiration.getExpireDate().isAfter(LocalDate.now().minusDays(5L))
+                && expiration.getExpireDate().isBefore(LocalDate.now().plusDays(5L));
     }
 }
