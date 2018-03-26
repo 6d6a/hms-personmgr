@@ -82,7 +82,7 @@ public class AccountOneTimeServiceEventListener {
                                     formatBigDecimalWithCurrency(item.getAccountService().getPaymentService().getCost())
                     );
                 } catch (NotEnoughMoneyException e) {
-                    logger.info("Недостаочно денег на аккаунте '" + item.getPersonalAccountId() + "' для продления услуги с AccountServiceId: " + item.getAccountServiceId());
+                    logger.info("Недостаточно денег на аккаунте '" + item.getPersonalAccountId() + "' для продления услуги с AccountServiceId: " + item.getAccountServiceId());
                 } catch (Exception e) {
                     logger.error("Неизвестная ошибка на аккаунте '" + item.getPersonalAccountId() + "' при продлении услуги с AccountServiceId: " + item.getAccountServiceId()
                             + " " + e.getMessage());
