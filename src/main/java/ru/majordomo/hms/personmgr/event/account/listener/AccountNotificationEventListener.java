@@ -413,8 +413,7 @@ public class AccountNotificationEventListener {
                 .collect(Collectors.toSet())
                 .forEach(personalAccountId -> {
                     PersonalAccount account = personalAccountManager.findOne(personalAccountId);
-                    logger.debug("Send bitrix expiring for accId " + account.getAccountId());
-//                    accountNotificationHelper.sendMail(account, "HmsVHMajordomoOkonchaniesroka1CBitrix", null);
+                    accountNotificationHelper.sendMail(account, "HmsVHMajordomoOkonchaniesroka1CBitrix", null);
                 });
 
     }

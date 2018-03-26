@@ -15,6 +15,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Arrays;
 import java.util.Map;
 
 import javax.validation.Valid;
@@ -22,6 +24,7 @@ import javax.validation.Valid;
 import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.dto.BitrixLicenseOrderRequest;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.order.BitrixLicenseOrder;
 import ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager;
@@ -172,48 +175,54 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
     }
 
     private Predicate getPredicate(String personalAccountId, Map<String, String> params){
-        String afterString = params.getOrDefault("after", "");
-        LocalDateTime updatedAfter = afterString.isEmpty() ? null : LocalDateTime.of(LocalDate.parse(afterString, DateTimeFormatter.ISO_DATE), LocalTime.MIN);
-
-        String beforeString = params.getOrDefault("before", "");
-        LocalDateTime updatedBefore = beforeString.isEmpty() ? null : LocalDateTime.of(LocalDate.parse(beforeString, DateTimeFormatter.ISO_DATE), LocalTime.MIN);
-
-        String stateString = params.getOrDefault("state", "");
-        OrderState state = stateString.isEmpty() ? null : OrderState.valueOf(stateString.toUpperCase());
-
+        LocalDateTime updatedAfter;
+        LocalDateTime updatedBefore;
+        OrderState state;
         String domain = params.getOrDefault("domain", null);
-
         boolean excludeProlongedOrders = Boolean.valueOf(params.getOrDefault("excludeProlonged", null));
-        switch (params.getOrDefault("preset", "")) {
-            case "":
-                break;
 
-            case "expiring":
-                updatedAfter = LocalDateTime.now().minusYears(1);
-                updatedBefore = updatedAfter.plusDays(MAY_PROLONG_DAYS_BEFORE_EXPIRED);
-                state = OrderState.FINISHED;
-                excludeProlongedOrders = true;
+        try {
+            String afterString = params.getOrDefault("after", "");
+            updatedAfter = afterString.isEmpty() ? null : LocalDateTime.of(LocalDate.parse(afterString, DateTimeFormatter.ISO_DATE), LocalTime.MIN);
 
-                break;
-            case "expired":
-                updatedBefore = LocalDateTime.now().minusYears(1);
-                updatedAfter = updatedBefore.minusMonths(3);
-                state = OrderState.FINISHED;
-                excludeProlongedOrders = true;
+            String beforeString = params.getOrDefault("before", "");
+            updatedBefore = beforeString.isEmpty() ? null : LocalDateTime.of(LocalDate.parse(beforeString, DateTimeFormatter.ISO_DATE), LocalTime.MIN);
 
-                break;
-            case "declined":
-                state = OrderState.DECLINED;
+            String stateString = params.getOrDefault("state", "");
+            state = stateString.isEmpty() ? null : OrderState.valueOf(stateString.toUpperCase());
 
-                break;
-            case "new":
-                state = OrderState.NEW;
+            switch (params.getOrDefault("preset", "")) {
+                case "expiring":
+                    updatedAfter = LocalDateTime.now().minusYears(1);
+                    updatedBefore = updatedAfter.plusDays(MAY_PROLONG_DAYS_BEFORE_EXPIRED);
+                    state = OrderState.FINISHED;
+                    excludeProlongedOrders = true;
 
-                break;
-            case "in_progress":
-                state = OrderState.IN_PROGRESS;
+                    break;
+                case "expired":
+                    updatedBefore = LocalDateTime.now().minusYears(1);
+                    updatedAfter = updatedBefore.minusMonths(3);
+                    state = OrderState.FINISHED;
+                    excludeProlongedOrders = true;
 
-                break;
+                    break;
+                case "declined":
+                    state = OrderState.DECLINED;
+
+                    break;
+                case "new":
+                    state = OrderState.NEW;
+
+                    break;
+                case "in_progress":
+                    state = OrderState.IN_PROGRESS;
+
+                    break;
+            }
+        } catch (DateTimeParseException e) {
+            throw new ParameterValidationException("Некорректный формат даты, необходимо указывать дату в формате 'YYYY-MM-DD'");
+        } catch (IllegalArgumentException e) {
+            throw new ParameterValidationException("state должен быть одним из " + Arrays.asList(OrderState.values()));
         }
         return manager.getPredicate(personalAccountId, updatedAfter, updatedBefore, state, domain, excludeProlongedOrders);
     }

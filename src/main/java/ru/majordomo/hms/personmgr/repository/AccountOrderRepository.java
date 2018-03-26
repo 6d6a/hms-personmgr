@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.repository;
 
-import com.querydsl.core.types.Predicate;
 import feign.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +15,4 @@ public interface AccountOrderRepository<T extends AccountOrder> extends MongoRep
 {
     Page<T> findByPersonalAccountId(@Param("accountId") String accountId, Pageable pageable);
     T findOneByIdAndPersonalAccountId(@Param("id") String id, @Param("personalAccountId") String personalAccountId);
-    boolean exists(Predicate predicate);
-    Page<T> findAll(Predicate predicate, Pageable pageable);
 }

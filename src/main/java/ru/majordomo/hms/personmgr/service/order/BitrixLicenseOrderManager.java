@@ -46,8 +46,8 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
     public final static int MAY_PROLONG_DAYS_BEFORE_EXPIRED = 15;
 
     private final static int DAYS_AFTER_EXPIRED_WITH_MAX_DISCOUNT = 30;
-    private final static String PROLONG_DISCOUNT_MAX = "0.22";
-    private final static String PROLONG_DISCOUNT_MIN = "0.6";
+    private final static BigDecimal PROLONG_DISCOUNT_MAX = new BigDecimal("0.22");
+    private final static BigDecimal PROLONG_DISCOUNT_MIN = new BigDecimal("0.6");
 
     @Value("${mail_manager.bitrix_order_email}")
     protected String bitrixOrderEmail;
@@ -172,9 +172,9 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
         if(previousOrder.getUpdated().plusYears(1).plusDays(DAYS_AFTER_EXPIRED_WITH_MAX_DISCOUNT)
                 .isAfter(LocalDateTime.now())
         ){
-            discount = new BigDecimal(PROLONG_DISCOUNT_MAX);
+            discount = PROLONG_DISCOUNT_MAX;
         } else {
-            discount = new BigDecimal(PROLONG_DISCOUNT_MIN);
+            discount = PROLONG_DISCOUNT_MIN;
         }
 
         BigDecimal cost = paymentService.getCost().multiply(discount).setScale(0, BigDecimal.ROUND_CEILING);
