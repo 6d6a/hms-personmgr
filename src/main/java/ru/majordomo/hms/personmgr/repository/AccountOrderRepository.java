@@ -10,7 +10,9 @@ import org.springframework.data.repository.NoRepositoryBean;
 import ru.majordomo.hms.personmgr.model.order.AccountOrder;
 
 @NoRepositoryBean
-public interface AccountOrderRepository<T extends AccountOrder> extends MongoRepository<T, String> {
+public interface AccountOrderRepository<T extends AccountOrder> extends MongoRepository<T, String>,
+        QueryDslPredicateExecutor<T>
+{
     Page<T> findByPersonalAccountId(@Param("accountId") String accountId, Pageable pageable);
     T findOneByIdAndPersonalAccountId(@Param("id") String id, @Param("personalAccountId") String personalAccountId);
 }
