@@ -10,7 +10,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.PROPERTY,
-        property = "exception")
+        property = "exception",
+        defaultImpl = InternalApiException.class)
 @JsonSubTypes({
         @JsonSubTypes.Type(value = NotEnoughMoneyException.class, name = "NotEnoughMoneyException"),
         @JsonSubTypes.Type(value = BusinessActionNotFoundException.class, name = "BusinessActionNotFoundException"),

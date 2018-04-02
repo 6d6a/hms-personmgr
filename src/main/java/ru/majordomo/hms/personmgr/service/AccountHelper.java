@@ -21,6 +21,7 @@ import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.exception.BaseException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -38,7 +39,6 @@ import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
-import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 import ru.majordomo.hms.rc.user.resources.*;
@@ -66,7 +66,6 @@ public class AccountHelper {
     private final PlanRepository planRepository;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountServiceHelper accountServiceHelper;
-    private final PaymentServiceRepository paymentServiceRepository;
 
     @Autowired
     public AccountHelper(
@@ -82,8 +81,7 @@ public class AccountHelper {
             AccountOwnerManager accountOwnerManager,
             PlanRepository planRepository,
             AccountAbonementManager accountAbonementManager,
-            AccountServiceHelper accountServiceHelper,
-            PaymentServiceRepository paymentServiceRepository
+            AccountServiceHelper accountServiceHelper
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -98,7 +96,6 @@ public class AccountHelper {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
         this.accountServiceHelper = accountServiceHelper;
-        this.paymentServiceRepository = paymentServiceRepository;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -313,56 +310,19 @@ public class AccountHelper {
         return getDayCostByService(service, chargeDate);
     }
 
+
+    /**
+     * @param account
+     * @param chargeMessage
+     * @return
+     * @throws BaseException from finansier
+     */
     public SimpleServiceMessage charge(PersonalAccount account, ChargeMessage chargeMessage) {
-
-        SimpleServiceMessage response;
-
-        try {
-            response = finFeignClient.charge(account.getId(), chargeMessage.getFullMessage());
-        } catch (Exception e) {
-            if (!(e instanceof FeignException) || ((FeignException) e).status() != 400 ) {
-                logger.error("Exception in AccountHelper.charge " + e.getMessage());
-                e.printStackTrace();
-                throw e;
-            }
-            throw new NotEnoughMoneyException("Произошла ошибка при списании средств." +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()),
-                    chargeMessage.getAmount()
-            );
-        }
-
-        if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
-            throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()),
-                    chargeMessage.getAmount()
-            );
-        }
-
-        return response;
+        return finFeignClient.charge(account.getId(), chargeMessage);
     }
 
-    //TODO на самом деле сюда ещё должна быть возможность передать discountedService
-    public SimpleServiceMessage block(PersonalAccount account, ChargeMessage chargeMessage) {
-        SimpleServiceMessage response;
-        try {
-            response = finFeignClient.block(account.getId(), chargeMessage.getFullMessage());
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Exception in AccountHelper.block " + e.getMessage());
-            throw new NotEnoughMoneyException("Произошла ошибка при блокировке средств." +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()),
-                    chargeMessage.getAmount()
-            );
-        }
-
-        if (response != null && (response.getParam("success") == null || !((boolean) response.getParam("success")))) {
-            throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
-                    " Стоимость услуги: " + formatBigDecimalWithCurrency(chargeMessage.getAmount()),
-                    chargeMessage.getAmount()
-            );
-        }
-
-        return response;
+    public SimpleServiceMessage block(PersonalAccount account, ChargeMessage chargeMessage) throws BaseException {
+            return finFeignClient.block(account.getId(), chargeMessage);
     }
 
     public SimpleServiceMessage changePassword(PersonalAccount account, String newPassword) {
