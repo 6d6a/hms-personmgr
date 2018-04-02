@@ -312,15 +312,33 @@ public class AccountHelper {
 
 
     /**
-     * @param account
-     * @param chargeMessage
-     * @return
-     * @throws BaseException from finansier
+     * @param account PersonalAccount
+     * @param chargeMessage ChargeMessage
+     * @return SimpleServiceMessage with param documentNumber of this success charge
+     *
+     * @throws BaseException inherited
+     * @throws NotEnoughMoneyException in case not enough money
+     * @throws InternalApiException in case request is not valid
+     * @throws InternalApiException in case can't convert response body to BaseException
+     *
+     * @see ru.majordomo.hms.personmgr.exception.handler.MajordomoFeignErrorDecoder
      */
-    public SimpleServiceMessage charge(PersonalAccount account, ChargeMessage chargeMessage) {
+    public SimpleServiceMessage charge(PersonalAccount account, ChargeMessage chargeMessage) throws BaseException{
         return finFeignClient.charge(account.getId(), chargeMessage);
     }
 
+    /**
+     * @param account PersonalAccount
+     * @param chargeMessage ChargeMessage
+     * @return SimpleServiceMessage with param documentNumber of this success block
+     *
+     * @throws BaseException inherited
+     * @throws NotEnoughMoneyException in case not enough money
+     * @throws InternalApiException in case request is not valid
+     * @throws InternalApiException in case can't convert response body to BaseException
+     *
+     * @see ru.majordomo.hms.personmgr.exception.handler.MajordomoFeignErrorDecoder
+     */
     public SimpleServiceMessage block(PersonalAccount account, ChargeMessage chargeMessage) throws BaseException {
             return finFeignClient.block(account.getId(), chargeMessage);
     }
