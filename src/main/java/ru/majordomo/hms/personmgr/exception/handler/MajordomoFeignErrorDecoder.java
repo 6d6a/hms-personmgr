@@ -7,7 +7,6 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.majordomo.hms.personmgr.exception.BaseException;
-import ru.majordomo.hms.personmgr.exception.InternalApiException;
 
 import java.io.IOException;
 
@@ -16,10 +15,6 @@ public class MajordomoFeignErrorDecoder implements ErrorDecoder {
     private ErrorDecoder delegate = new ErrorDecoder.Default();
     private Logger logger = LoggerFactory.getLogger(getClass());
     private final ObjectMapper mapper = new ObjectMapper();
-
-    private void printError(String message) {
-        logger.error(message);
-    }
 
     @Override
     public Exception decode(String methodKey, Response response) {
@@ -36,9 +31,9 @@ public class MajordomoFeignErrorDecoder implements ErrorDecoder {
                 try {
                     return mapper.readValue(new String(responseBody), BaseException.class);
                 } catch (Throwable ignore) {
-                    printError("Can't convert body to majordomo exception, exceptionMessage: " + ignore.getMessage() + " responseBody: " + new String(responseBody));
-                    ignore.printStackTrace();
-                    return new InternalApiException();
+                    logger.error("Can't convert body to majordomo exception, exceptionMessage: " + ignore.getMessage()
+                            + " responseBody: " + new String(responseBody));
+                    return delegate.decode(methodKey, response);
                 }
             }
         }
