@@ -1,45 +1,35 @@
 package ru.majordomo.hms.personmgr.service;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Data;
 import ru.majordomo.hms.personmgr.dto.PaymentTypeKind;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+@Data
 public class ChargeMessage {
 
     // required
-    private PaymentService paymentService;
+    private final String serviceId;
 
     // non required
-    private LocalDateTime chargeDate;
-    private BigDecimal amount;
-    private Boolean forceCharge;
-    private Set<PaymentTypeKind> allowedPaymentTypeKinds;
-    private String comment;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private final LocalDateTime chargeDate;
+    private final BigDecimal amount;
+    private final Boolean forceCharge;
+    private final Set<PaymentTypeKind> allowedPaymentTypeKinds;
+    private final String comment;
 
     public BigDecimal getAmount() {
         return this.amount;
     }
 
-    public Map<String, Object> getFullMessage() {
-        Map<String, Object> paymentOperation = new HashMap<>();
-
-        paymentOperation.put("serviceId", this.paymentService.getId());
-        paymentOperation.put("amount", this.amount);
-        paymentOperation.put("forceCharge", this.forceCharge);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        paymentOperation.put("chargeDate", this.chargeDate.format(formatter));
-        paymentOperation.put("allowedPaymentTypeKinds", this.allowedPaymentTypeKinds);
-        paymentOperation.put("comment", this.comment);
-
-        return paymentOperation;
-    }
-
     private ChargeMessage(Builder builder) {
-        this.paymentService = builder.paymentService;
+        this.serviceId = builder.paymentService.getId();
         this.chargeDate = builder.chargeDate;
         this.amount = builder.amount;
         this.forceCharge = builder.forceCharge;
@@ -48,6 +38,14 @@ public class ChargeMessage {
     }
 
     public static class Builder {
+
+        private static final Set<PaymentTypeKind> PAYMENT_TYPE_KINDS = new HashSet<>(
+                Arrays.asList(
+                        PaymentTypeKind.REAL,
+                        PaymentTypeKind.PARTNER,
+                        PaymentTypeKind.BONUS,
+                        PaymentTypeKind.CREDIT
+        ));
 
         // required
         private PaymentService paymentService;
@@ -62,12 +60,21 @@ public class ChargeMessage {
         public Builder(PaymentService paymentService) {
             this.paymentService = paymentService;
             this.amount = paymentService.getCost();
-            allowedPaymentTypeKinds.addAll(Arrays.asList(
-                    PaymentTypeKind.REAL,
-                    PaymentTypeKind.PARTNER,
-                    PaymentTypeKind.BONUS,
-                    PaymentTypeKind.CREDIT
-            ));
+            if (paymentService.getPaymentTypeKinds().isEmpty()) {
+                allowedPaymentTypeKinds = PAYMENT_TYPE_KINDS;
+            } else {
+                allowedPaymentTypeKinds = paymentService.getPaymentTypeKinds();
+            }
+        }
+
+        public <T extends AccountService> Builder(T accountService) {
+            this.paymentService = accountService.getPaymentService();
+            this.amount = accountService.getCost();
+            if (accountService.getPaymentService().getPaymentTypeKinds().isEmpty()) {
+                allowedPaymentTypeKinds = PAYMENT_TYPE_KINDS;
+            } else {
+                allowedPaymentTypeKinds = accountService.getPaymentService().getPaymentTypeKinds();
+            }
         }
 
         public Builder setChargeDate(LocalDateTime chargeDate) {

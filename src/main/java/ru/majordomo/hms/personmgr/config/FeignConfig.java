@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.config;
 
+import feign.codec.ErrorDecoder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +16,7 @@ import java.util.Collections;
 
 import feign.Request;
 import feign.RequestInterceptor;
+import ru.majordomo.hms.personmgr.exception.handler.MajordomoFeignErrorDecoder;
 import ru.majordomo.hms.personmgr.security.OAuth2FeignRequestInterceptor;
 
 @Configuration
@@ -71,6 +73,11 @@ public class FeignConfig {
     @Bean
     public Request.Options options() {
         return new Request.Options(connectTimeout, readTimeout);
+    }
+
+    @Bean
+    public ErrorDecoder errorDecoder() {
+        return new MajordomoFeignErrorDecoder();
     }
 
 }

@@ -7,7 +7,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.web.bind.annotation.PathVariable;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 @Service
@@ -18,7 +17,7 @@ public class FinFeignClientFallback implements FinFeignClient {
     }
 
     @Override
-    public SimpleServiceMessage charge(String accountId, Map<String, Object> paymentOperation) {
+    public SimpleServiceMessage charge(String accountId, ChargeMessage chargeMessage) {
         return null;
     }
 
@@ -28,7 +27,7 @@ public class FinFeignClientFallback implements FinFeignClient {
     }
 
     @Override
-    public SimpleServiceMessage block(String accountId, Map<String, Object> paymentOperation) {
+    public SimpleServiceMessage block(String accountId, ChargeMessage chargeMessage) {
         return null;
     }
 

@@ -22,10 +22,10 @@ public interface FinFeignClient {
     BigDecimal getOverallPaymentAmount(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/payment_operations/charge", consumes = "application/json")
-    SimpleServiceMessage charge(@PathVariable("accountId") String accountId, Map<String, Object> paymentOperation);
+    SimpleServiceMessage charge(@PathVariable("accountId") String accountId, ChargeMessage chargeMessage);
 
     @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/payment_operations/block", consumes = "application/json")
-    SimpleServiceMessage block(@PathVariable("accountId") String accountId, Map<String, Object> paymentOperation);
+    SimpleServiceMessage block(@PathVariable("accountId") String accountId, ChargeMessage chargeMessage);
 
     @RequestMapping(method = RequestMethod.DELETE, value = "/{accountId}/payment_operations/{documentNumber}", consumes = "application/json")
     SimpleServiceMessage unblock(@PathVariable("accountId") String accountId, @PathVariable("documentNumber") String documentNumber);

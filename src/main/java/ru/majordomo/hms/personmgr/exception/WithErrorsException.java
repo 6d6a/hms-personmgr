@@ -10,6 +10,8 @@ import java.util.Map;
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public abstract class WithErrorsException extends BaseException {
 
+    public WithErrorsException() {}
+
     @Setter
     @Getter
     private Map errors;

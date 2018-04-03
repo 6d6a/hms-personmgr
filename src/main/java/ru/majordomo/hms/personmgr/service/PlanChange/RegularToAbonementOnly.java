@@ -6,7 +6,6 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
 
 import java.math.BigDecimal;
-import java.util.Map;
 
 public class RegularToAbonementOnly extends Processor {
 

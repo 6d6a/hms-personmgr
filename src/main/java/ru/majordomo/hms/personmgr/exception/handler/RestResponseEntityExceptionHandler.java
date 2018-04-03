@@ -2,9 +2,11 @@ package ru.majordomo.hms.personmgr.exception.handler;
 
 import feign.codec.DecodeException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.sleuth.Tracer;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.data.rest.core.RepositoryConstraintViolationException;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -25,6 +27,7 @@ import ru.majordomo.hms.personmgr.exception.InternalApiException;
 
 import javax.validation.ConstraintViolationException;
 import java.util.Arrays;
+import java.util.function.Function;
 
 @Component
 @ControllerAdvice
@@ -32,9 +35,25 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
 
     private Tracer tracer;
 
+    private Function<Throwable, InternalApiException> convertToInternalApiException;
+
     @Autowired
     public void setTracer(Tracer tracer) {
         this.tracer = tracer;
+    }
+
+    @Autowired
+    public void setConvertToInternalApiException(@Value("${spring.profiles.active}") String profile) {
+        switch (profile) {
+            case "dev":
+                this.convertToInternalApiException = ex -> new InternalApiException(ex.getMessage());
+                break;
+
+            case "prod":
+            default:
+                this.convertToInternalApiException = InternalApiException::new;
+                break;
+        }
     }
 
     public RestResponseEntityExceptionHandler() {
@@ -45,12 +64,23 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         return tracer.getCurrentSpan().traceIdString();
     }
 
-    private void printLogError(Throwable ex){
-        logger.error(
-                "Handling exception " + ex.getClass().getName()
-                        + "; exceptionMessage: " + ex.getMessage()
-                        + "; stackTrace: " + Arrays.asList(ex.getStackTrace()).toString()
-        );
+    private void printLogError(Throwable ex, WebRequest request){
+        if (ex instanceof BaseException) {
+            logger.error(
+                    "Handling exception " + ex.getClass().getName()
+                            + "; exceptionMessage: " + ex.getMessage()
+                            + "; requestDescription: " + request.getDescription(true)
+                            + "; parameters: " + request.getParameterMap()
+            );
+        } else {
+            logger.error(
+                    "Handling exception " + ex.getClass().getName()
+                            + "; exceptionMessage: " + ex.getMessage()
+                            + "; requestDescription: " + request.getDescription(true)
+                            + "; parameters: " + request.getParameterMap()
+                            + "; stackTrace: " + Arrays.asList(ex.getStackTrace()).toString()
+            );
+        }
     }
 
     @Override
@@ -60,8 +90,9 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             HttpStatus status,
             WebRequest request
     ) {
-        printLogError(ex);
-        InternalApiException apiException = new InternalApiException(ex.getMessage(), traceId());
+        printLogError(ex, request);
+        InternalApiException apiException = new InternalApiException(ex.getMessage());
+        apiException.setTraceId(traceId());
         return handleExceptionInternal(apiException, apiException, headers, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -72,8 +103,9 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             final HttpStatus status,
             final WebRequest request
     ) {
-        printLogError(ex);
-        InternalApiException apiException = new InternalApiException(ex.getMessage(), traceId());
+        printLogError(ex, request);
+        InternalApiException apiException = new InternalApiException(ex.getMessage());
+        apiException.setTraceId(traceId());
         return handleExceptionInternal(apiException, apiException, headers, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -84,8 +116,9 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             HttpStatus status,
             WebRequest request
     ) {
-        printLogError(ex);
-        InternalApiException apiException = new InternalApiException(ex.getMessage(), traceId());
+        printLogError(ex, request);
+        InternalApiException apiException = new InternalApiException(ex.getMessage());
+        apiException.setTraceId(traceId());
         return handleExceptionInternal(apiException, apiException, headers, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -96,9 +129,10 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
             final HttpStatus status,
             final WebRequest request
     ) {
-        printLogError(ex);
-        InternalApiException exception = new InternalApiException(ex, traceId());
-        return handleExceptionInternal(exception, exception, headers, HttpStatus.BAD_REQUEST, request);
+        printLogError(ex, request);
+        InternalApiException apiException = new InternalApiException(ex);
+        apiException.setTraceId(traceId());
+        return handleExceptionInternal(apiException, apiException, headers, HttpStatus.BAD_REQUEST, request);
     }
 
     @ExceptionHandler({Throwable.class})
@@ -106,7 +140,7 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
 
         throwIfAccessDeniedException(ex);
 
-        printLogError(ex);
+        printLogError(ex, request);
 
         HttpStatus httpStatus = getHttpStatus(ex);
 
@@ -142,19 +176,26 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
     }
 
     private BaseException convertThrowableToBaseException(Throwable ex) {
+        BaseException result;
+
         if (ex instanceof BaseException) {
-            ((BaseException) ex).setTraceId(traceId());
-            return (BaseException) ex;
+            result = (BaseException) ex;
+        } else if (ex instanceof RepositoryConstraintViolationException) {
+            result = new ru.majordomo.hms.personmgr.exception.RepositoryConstraintViolationException(
+                    (RepositoryConstraintViolationException) ex);
         } else if (ex instanceof ConstraintViolationException) {
-            return new InternalApiException((ConstraintViolationException) ex, traceId());
+            result = new InternalApiException((ConstraintViolationException) ex);
         } else if (ex instanceof InvalidDataAccessApiUsageException || ex instanceof DataAccessException) {
-            return new InternalApiException(ex, HttpStatus.CONFLICT, traceId());
+            result = new InternalApiException(ex, HttpStatus.CONFLICT, traceId());
         } else if (ex instanceof DecodeException) {
-            return new InternalApiException((DecodeException) ex, traceId());
+            result = new InternalApiException((DecodeException) ex);
         } else if (ex instanceof ResourceNotFoundException) {
-            return new ru.majordomo.hms.personmgr.exception.ResourceNotFoundException(ex.getMessage(), traceId());
+            result = new ru.majordomo.hms.personmgr.exception.ResourceNotFoundException(ex.getMessage());
         } else {
-            return new InternalApiException(ex, traceId());
+            result = convertToInternalApiException.apply(ex);
         }
+
+        result.setTraceId(traceId());
+        return result;
     }
 }

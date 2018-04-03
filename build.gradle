@@ -38,6 +38,7 @@ apply plugin: 'ru.majordomo.gradle.plugins.copycompose'
 apply plugin: "com.ewerk.gradle.plugins.querydsl"
 apply from: "https://nexus.intr/repository/init/gradle-init/0.1/dockertask.gradle"
 apply plugin: "jacoco"
+apply plugin: 'maven-publish'
 apply plugin: "com.gorylenko.gradle-git-properties"
 
 version = '0.0.1-SNAPSHOT'
@@ -95,10 +96,10 @@ dependencies {
     compile group: 'org.apache.httpcomponents', name: 'httpmime', version: '4.3.1'
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
 
-    compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version: '1.9.13'
-    compile group: 'org.codehaus.jackson', name: 'jackson-core-asl', version: '1.9.13'
-
-    compile("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.8.6")
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.4'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.4'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.9.4'
+    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: '2.9.4'
 
     compile("commons-validator:commons-validator:1.6")
     compile("com.google.guava:guava:23.0")
@@ -152,4 +153,55 @@ idea {
         sourceDirs += file(generatedSrcDir)
         generatedSourceDirs += file(generatedSrcDir)
     }
+}
+
+def versionPropsFile = file('version.properties')
+def versionBuild
+
+if (versionPropsFile.canRead()) {
+    def Properties versionProps = new Properties()
+    versionProps.load(new FileInputStream(versionPropsFile))
+    versionBuild = versionProps['VERSION_BUILD'].toInteger()
+} else {
+    throw new GradleException("Could not read version.properties!")
+}
+
+ext.autoIncrementBuildNumber = {
+    if (versionPropsFile.canRead()) {
+        def Properties versionProps = new Properties()
+        versionProps.load(new FileInputStream(versionPropsFile))
+        versionBuild = versionProps['VERSION_BUILD'].toInteger() + 1
+        versionProps['VERSION_BUILD'] = versionBuild.toString()
+        versionProps.store(versionPropsFile.newWriter(), null)
+    } else {
+        throw new GradleException("Could not read version.properties!")
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId 'ru.majordomo.hms.personmgr'
+            artifactId 'exceptions'
+            version '1.0.' + versionBuild
+            artifact exceptionJar
+        }
+    }
+    repositories {
+        maven {
+            url uri(mavenUrl)
+            credentials {
+                username = mavenUser
+                password = mavenPass
+            }
+        }
+    }
+}
+
+publish.doFirst autoIncrementBuildNumber
+
+task exceptionJar(type: Jar, dependsOn: compileJava) {
+    baseName = 'exceptions'
+    from sourceSets.main.output.classesDir
+    include 'ru/majordomo/hms/personmgr/exception/**'
 }

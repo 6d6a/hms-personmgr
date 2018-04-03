@@ -2,7 +2,6 @@ package ru.majordomo.hms.personmgr.service.PlanChange;
 
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.plan.Plan;
 
 public class AbonementOnlyToRegularDecline extends AbonementOnlyToRegular {
     private boolean refund = true;
