@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.exception;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import feign.codec.DecodeException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
