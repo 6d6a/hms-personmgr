@@ -12,7 +12,6 @@ import javax.validation.ConstraintViolationException;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class InternalApiException extends WithErrorsException {
 
