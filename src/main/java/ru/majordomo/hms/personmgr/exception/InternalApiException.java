@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.exception;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import feign.codec.DecodeException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
@@ -11,6 +12,7 @@ import javax.validation.ConstraintViolationException;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class InternalApiException extends WithErrorsException {
 
