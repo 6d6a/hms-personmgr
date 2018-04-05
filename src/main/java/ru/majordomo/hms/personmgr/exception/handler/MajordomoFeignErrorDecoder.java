@@ -31,7 +31,7 @@ public class MajordomoFeignErrorDecoder implements ErrorDecoder {
                 try {
                     return mapper.readValue(new String(responseBody), BaseException.class);
                 } catch (Throwable ignore) {
-                    logger.error("Can't convert body to majordomo exception, exceptionMessage: " + ignore.getMessage()
+                    logger.warn("Can't convert body to majordomo exception, exceptionMessage: " + ignore.getMessage()
                             + " responseBody: " + new String(responseBody));
                     return delegate.decode(methodKey, response);
                 }

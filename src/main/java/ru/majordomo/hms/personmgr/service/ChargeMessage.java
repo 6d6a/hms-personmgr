@@ -39,14 +39,6 @@ public class ChargeMessage {
 
     public static class Builder {
 
-        private static final Set<PaymentTypeKind> PAYMENT_TYPE_KINDS = new HashSet<>(
-                Arrays.asList(
-                        PaymentTypeKind.REAL,
-                        PaymentTypeKind.PARTNER,
-                        PaymentTypeKind.BONUS,
-                        PaymentTypeKind.CREDIT
-        ));
-
         // required
         private PaymentService paymentService;
 
@@ -61,7 +53,13 @@ public class ChargeMessage {
             this.paymentService = paymentService;
             this.amount = paymentService.getCost();
             if (paymentService.getPaymentTypeKinds().isEmpty()) {
-                allowedPaymentTypeKinds = PAYMENT_TYPE_KINDS;
+                allowedPaymentTypeKinds = new HashSet<>(
+                        Arrays.asList(
+                                PaymentTypeKind.REAL,
+                                PaymentTypeKind.PARTNER,
+                                PaymentTypeKind.BONUS,
+                                PaymentTypeKind.CREDIT
+                        ));
             } else {
                 allowedPaymentTypeKinds = paymentService.getPaymentTypeKinds();
             }
@@ -71,7 +69,13 @@ public class ChargeMessage {
             this.paymentService = accountService.getPaymentService();
             this.amount = accountService.getCost();
             if (accountService.getPaymentService().getPaymentTypeKinds().isEmpty()) {
-                allowedPaymentTypeKinds = PAYMENT_TYPE_KINDS;
+                allowedPaymentTypeKinds = new HashSet<>(
+                        Arrays.asList(
+                                PaymentTypeKind.REAL,
+                                PaymentTypeKind.PARTNER,
+                                PaymentTypeKind.BONUS,
+                                PaymentTypeKind.CREDIT
+                        ));
             } else {
                 allowedPaymentTypeKinds = accountService.getPaymentService().getPaymentTypeKinds();
             }
