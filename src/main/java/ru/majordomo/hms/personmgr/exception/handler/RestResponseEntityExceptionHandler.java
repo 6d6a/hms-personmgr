@@ -65,22 +65,13 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
     }
 
     private void printLogError(Throwable ex, WebRequest request){
-        if (ex instanceof BaseException) {
-            logger.error(
-                    "Handling exception " + ex.getClass().getName()
-                            + "; exceptionMessage: " + ex.getMessage()
-                            + "; requestDescription: " + request.getDescription(true)
-                            + "; parameters: " + request.getParameterMap()
-            );
-        } else {
-            logger.error(
-                    "Handling exception " + ex.getClass().getName()
-                            + "; exceptionMessage: " + ex.getMessage()
-                            + "; requestDescription: " + request.getDescription(true)
-                            + "; parameters: " + request.getParameterMap()
-                            + "; stackTrace: " + Arrays.asList(ex.getStackTrace()).toString()
-            );
-        }
+        logger.error(
+                "Handling exception " + ex.getClass().getName()
+                        + "; exceptionMessage: " + ex.getMessage()
+                        + "; requestDescription: " + request.getDescription(true)
+                        + "; parameters: " + request.getParameterMap()
+                        + "; stackTrace: " + Arrays.asList(ex.getStackTrace()).toString()
+        );
     }
 
     @Override
