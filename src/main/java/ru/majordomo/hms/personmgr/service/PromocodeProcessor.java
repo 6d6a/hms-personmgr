@@ -229,6 +229,7 @@ public class PromocodeProcessor {
         accountPromocode.setPersonalAccountId(account.getId());
 
         accountPromocodeRepository.save(accountPromocode);
+        logger.info("On account " + account.getId() + " added promocode " + promocode.toString());
     }
 
     private Promocode generatePromocode(PromocodeType type, String actionId) {

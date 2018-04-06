@@ -105,14 +105,17 @@ public class AccountResourceRestController extends CommonRestController {
             return this.createErrorResponse("Необходимо согласиться с условиями оферты");
         }
 
-        //Create pm, si and fin account
-        String accountId = String.valueOf(sequenceCounterService.getNextSequence("PersonalAccount"));
         String password = randomAlphabetic(8);
 
         Plan plan = planRepository.findByOldId((String) message.getParam("plan"));
 
         if (plan == null) {
             logger.debug("No plan found with OldId: " + message.getParam("plan"));
+            return this.createErrorResponse("Не найден тарифный план с id: " + message.getParam("plan"));
+        }
+
+        if (!plan.isActive()) {
+            logger.info("Попытка регистрации на неактивном тарифе. message: " + message.toString());
             return this.createErrorResponse("Не найден тарифный план с id: " + message.getParam("plan"));
         }
 
@@ -134,74 +137,19 @@ public class AccountResourceRestController extends CommonRestController {
             return this.createErrorResponse("Не указан, либо неверно указан тип владельца аккаунта");
         }
 
-        //Создаем PersonalAccount
-        PersonalAccount personalAccount = new PersonalAccount();
-        personalAccount.setAccountType(AccountType.VIRTUAL_HOSTING);
-        personalAccount.setPlanId(plan.getId());
-        personalAccount.setAccountId(accountId);
-        personalAccount.setId(accountId);
-        personalAccount.setClientId(accountId);
-        personalAccount.setName(VH_ACCOUNT_PREFIX + accountId);
-        personalAccount.setActive(!plan.isAbonementOnly());
-        personalAccount.setCreated(LocalDateTime.now());
-        personalAccount.setAccountNew(true);
-        personalAccount.setCredit(false);
-        personalAccount.setCreditPeriod("P14D");
+        PersonalAccount personalAccount = createPersonalAccount(plan);
 
-        //Установка уведомлений по-умолчанию (почтовая информационная рассылка)
-        Set<MailManagerMessageType> defaultNotifications = new HashSet<>();
-        defaultNotifications.add(MailManagerMessageType.EMAIL_NEWS);
-        personalAccount.setNotifications(defaultNotifications);
+        createAccountOwner(personalAccount, emails, accountOwnerType, message);
 
-        accountManager.insert(personalAccount);
-        logger.debug("personalAccount saved: " + personalAccount.toString());
+        createAccountService(personalAccount, plan);
 
-        //Сохраняем данные о владельце аккаунта
-        ContactInfo contactInfo = new ContactInfo();
-        contactInfo.setEmailAddresses(emails);
+        createInfoBannerAccountNotice(personalAccount);
 
-        AccountOwner accountOwner = new AccountOwner();
-        accountOwner.setPersonalAccountId(personalAccount.getId());
-        accountOwner.setContactInfo(contactInfo);
-        accountOwner.setName((String) message.getParam("name"));
-        accountOwner.setType(accountOwnerType);
-
-        String inn = (String) message.getParam("inn");
-        if (inn != null) {
-            PersonalInfo personalInfo = new PersonalInfo();
-            personalInfo.setInn(inn);
-
-            accountOwner.setPersonalInfo(personalInfo);
-        }
-
-        accountOwnerManager.insert(accountOwner);
-        logger.debug("accountOwner saved: " + accountOwner.toString());
-
-        //Создаем AccountService с выбранным тарифом
-        AccountService service = new AccountService();
-        service.setPersonalAccountId(personalAccount.getId());
-        service.setServiceId(plan.getServiceId());
-
-        accountServiceRepository.save(service);
-        logger.debug("AccountService saved: " + service.toString());
-
-        InfoBannerAccountNotice notification = new InfoBannerAccountNotice();
-        notification.setPersonalAccountId(personalAccount.getId());
-        notification.setCreated(LocalDateTime.now());
-        notification.setViewed(false);
-        notification.setComponent("hello_user");
-
-        accountNoticeRepository.save(notification);
-        logger.debug("InfoBannerAccountNotice saved: " + service.toString());
+        promocodeProcessor.generatePartnerPromocode(personalAccount);
 
         //Сохраним в мессагу квоту по тарифу
         Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
         message.addParam("quota", planQuotaKBFreeLimit);
-
-        //генерируем партнерский промокод
-        promocodeProcessor.generatePartnerPromocode(personalAccount);
-        logger.debug("PartnerPromocode generated");
-
         message.setAccountId(personalAccount.getId());
         message.addParam("username", personalAccount.getName());
         message.addParam(PASSWORD_KEY, password);
@@ -340,4 +288,80 @@ public class AccountResourceRestController extends CommonRestController {
 //
 //        return this.createSuccessResponse(businessAction);
 //    }
+
+    private PersonalAccount createPersonalAccount(Plan plan){
+        String accountId = String.valueOf(sequenceCounterService.getNextSequence("PersonalAccount"));
+
+        PersonalAccount personalAccount = new PersonalAccount();
+        personalAccount.setAccountType(AccountType.VIRTUAL_HOSTING);
+        personalAccount.setPlanId(plan.getId());
+        personalAccount.setAccountId(accountId);
+        personalAccount.setId(accountId);
+        personalAccount.setClientId(accountId);
+        personalAccount.setName(VH_ACCOUNT_PREFIX + accountId);
+        personalAccount.setActive(!plan.isAbonementOnly());
+        personalAccount.setCreated(LocalDateTime.now());
+        personalAccount.setAccountNew(true);
+        personalAccount.setCredit(false);
+        personalAccount.setCreditPeriod("P14D");
+
+        //Установка уведомлений по-умолчанию (почтовая информационная рассылка)
+        Set<MailManagerMessageType> defaultNotifications = new HashSet<>();
+        defaultNotifications.add(MailManagerMessageType.EMAIL_NEWS);
+        personalAccount.setNotifications(defaultNotifications);
+
+        accountManager.insert(personalAccount);
+        logger.debug("personalAccount saved: " + personalAccount.toString());
+
+        return personalAccount;
+    }
+
+    private void createAccountOwner(
+            PersonalAccount personalAccount,
+            List<String> emails,
+            AccountOwner.Type accountOwnerType,
+            SimpleServiceMessage message
+    ) {
+        String name = (String) message.getParam("name");
+        String inn = (String) message.getParam("inn");
+
+        ContactInfo contactInfo = new ContactInfo();
+        contactInfo.setEmailAddresses(emails);
+
+        AccountOwner accountOwner = new AccountOwner();
+        accountOwner.setPersonalAccountId(personalAccount.getId());
+        accountOwner.setContactInfo(contactInfo);
+        accountOwner.setName(name);
+        accountOwner.setType(accountOwnerType);
+
+        if (inn != null) {
+            PersonalInfo personalInfo = new PersonalInfo();
+            personalInfo.setInn(inn);
+
+            accountOwner.setPersonalInfo(personalInfo);
+        }
+
+        accountOwnerManager.insert(accountOwner);
+        logger.debug("accountOwner saved: " + accountOwner.toString());
+    }
+
+    private void createAccountService(PersonalAccount personalAccount, Plan plan) {
+        AccountService service = new AccountService();
+        service.setPersonalAccountId(personalAccount.getId());
+        service.setServiceId(plan.getServiceId());
+
+        accountServiceRepository.save(service);
+        logger.debug("AccountService saved: " + service.toString());
+    }
+
+    private void createInfoBannerAccountNotice(PersonalAccount personalAccount){
+        InfoBannerAccountNotice notification = new InfoBannerAccountNotice();
+        notification.setPersonalAccountId(personalAccount.getId());
+        notification.setCreated(LocalDateTime.now());
+        notification.setViewed(false);
+        notification.setComponent("hello_user");
+
+        accountNoticeRepository.save(notification);
+        logger.debug("InfoBannerAccountNotice saved: " + notification.toString());
+    }
 }
