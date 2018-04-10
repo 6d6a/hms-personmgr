@@ -257,36 +257,46 @@ public class AccountEventListener {
     @Async("threadPoolTaskExecutor")
     public void onAccountPromotionProcessByPayment(PaymentWasReceivedEvent event) {
         SimpleServiceMessage message = event.getSource();
-        if (!message.getParam("paymentTypeKind").equals(REAL_PAYMENT_TYPE_KIND)) {
+        Map<String, ?> params = message.getParams();
+
+        if (!params.get("paymentTypeKind").equals(REAL_PAYMENT_TYPE_KIND)) {
+            logger.info("paymentTypeKind is not real, message: " + message.toString());
             return;
         }
 
         PersonalAccount account = accountManager.findOne(message.getAccountId());
-        if (account == null) {
+        if (account == null || !account.isAccountNew()) {
+            logger.info("account is null or not new, message: " + message.toString());
             return;
         }
 
-        Map<String, ?> paramsForPublisher = message.getParams();
-
-        logger.debug("We got PaymentWasReceivedEvent");
-
-
-        BigDecimal amount = getBigDecimalFromUnexpectedInput(paramsForPublisher.get(AMOUNT_KEY));
         Plan plan = planRepository.findOne(account.getPlanId());
-
-        if (amount.compareTo((plan.getService().getCost()).multiply(new BigDecimal(3L))) >= 0) {
-            if (account.isAccountNew()) {
-                List<Domain> domains = accountHelper.getDomains(account);
-                if (!plan.isAbonementOnly() && plan.isActive() && !plan.getName().equals(ACTIVE_PLAN_NAME_WITHOUT_FREE_DOMAIN) && (domains == null || domains.size() == 0)) {
-                    Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
-                    List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
-                    if (accountPromotions == null || accountPromotions.isEmpty()) {
-                        accountHelper.giveGift(account, promotion);
-                    }
-                }
-            }
+        if (!plan.isActive() || plan.isAbonementOnly() || plan.getOldId().equals(((Integer) PLAN_START_ID).toString())) {
+            logger.info("plan is abonementOnly or 'start' or not active, message: " + message.toString());
+            return;
         }
 
+        BigDecimal costFor3Month = plan.getService().getCost().multiply(new BigDecimal(3L));
+        BigDecimal amount = getBigDecimalFromUnexpectedInput(params.get(AMOUNT_KEY));
+        if (amount.compareTo(costFor3Month) < 0) {
+            logger.info("amount less than cost for 3 month, message: " + message.toString());
+            return;
+        }
+
+        List<Domain> domains = accountHelper.getDomains(account);
+        if (domains != null && !domains.isEmpty()) {
+            logger.info("account has domains, message: " + message.toString());
+            return;
+        }
+
+        Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
+        List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
+        if (accountPromotions != null && !accountPromotions.isEmpty()) {
+            logger.info("account has accountPromotions with id " + promotion.getId() + " , message: " + message.toString());
+            return;
+        }
+
+        accountHelper.giveGift(account, promotion);
     }
 
     /**

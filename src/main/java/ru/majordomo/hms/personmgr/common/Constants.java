@@ -68,7 +68,6 @@ public class Constants {
     public static final String AMOUNT_KEY = "amount";
     public static final String FREE_DOMAIN_PROMOTION = "free_domain";
     public static final String DOMAIN_DISCOUNT_RU_RF = "domain_discount_ru_rf";
-    public static final String ACTIVE_PLAN_NAME_WITHOUT_FREE_DOMAIN = "Старт";
     public static final String MAILING_TYPE_INFO = "info";
     public static final String MAILING_TYPE_TECH = "tech";
     public static final String MAILBOX_ANTISPAM_FIELD = "antiSpamEnabled";
