@@ -165,7 +165,7 @@ public class BusinessFlowDirector {
                 case SSL_CERTIFICATE_CREATE:
                 case SSL_CERTIFICATE_UPDATE:
                     if (message.getParam("isSafeBrowsing") != null)
-                        businessOperation.addPublicParam("exception", message.getParam("isSafeBrowsing"));
+                        businessOperation.addPublicParam("isSafeBrowsing", message.getParam("isSafeBrowsing"));
             }
         } catch (Exception ignore) {
             ignore.printStackTrace();
