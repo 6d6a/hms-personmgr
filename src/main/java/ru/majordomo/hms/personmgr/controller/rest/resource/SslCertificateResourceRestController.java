@@ -102,10 +102,9 @@ public class SslCertificateResourceRestController extends CommonRestController {
             e.printStackTrace();
         }
 
-        //TODO раскомментировать после теста
-//        if (!canOrderSSL || hasAlienNS) {
-//            throw new ParameterValidationException("Домен должен быть делегирован на наши DNS-серверы (ns.majordomo.ru, ns2.majordomo.ru и ns3.majordomo.ru)");
-//        }
+        if (!canOrderSSL || hasAlienNS) {
+            throw new ParameterValidationException("Домен должен быть делегирован на наши DNS-серверы (ns.majordomo.ru, ns2.majordomo.ru и ns3.majordomo.ru)");
+        }
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.SSL_CERTIFICATE_CREATE, BusinessActionType.SSL_CERTIFICATE_CREATE_RC, message);
 
