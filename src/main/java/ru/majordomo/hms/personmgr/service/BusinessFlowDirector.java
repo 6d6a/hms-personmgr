@@ -104,8 +104,7 @@ public class BusinessFlowDirector {
                             break;
                         case ERROR:
                             businessOperation.setState(businessAction.getState());
-                            if (message.getParam("errorMessage") != null && !message.getParam("errorMessage").equals(""))
-                                businessOperation.addPublicParam("message", String.valueOf(message.getParam("errorMessage")));
+                            fillPublicParamsToBusinessOperation(message, businessOperation);
                     }
                     logger.debug("ProcessingBusinessOperation -> " + businessOperation.getState() + ", operationIdentity: " +
                             message.getOperationIdentity()
@@ -154,6 +153,23 @@ public class BusinessFlowDirector {
                 e.printStackTrace();
                 logger.error("Exception in ru.majordomo.hms.personmgr.service.BusinessFlowDirector.processBlockedPayment #2 " + e.getMessage());
             }
+        }
+    }
+
+    private void fillPublicParamsToBusinessOperation(SimpleServiceMessage message, ProcessingBusinessOperation businessOperation) {
+        try {
+            if (message.getParam("errorMessage") != null && !message.getParam("errorMessage").equals(""))
+                businessOperation.addPublicParam("message", String.valueOf(message.getParam("errorMessage")));
+
+            switch (businessOperation.getType()) {
+                case SSL_CERTIFICATE_CREATE:
+                case SSL_CERTIFICATE_UPDATE:
+                    if (message.getParam("isSafeBrowsing") != null)
+                        businessOperation.addPublicParam("exception", message.getParam("isSafeBrowsing"));
+            }
+        } catch (Exception ignore) {
+            ignore.printStackTrace();
+            logger.error("Catch exception in fillPublicParams, message: " + ignore.getMessage());
         }
     }
 }
