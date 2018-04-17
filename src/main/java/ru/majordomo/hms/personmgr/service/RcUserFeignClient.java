@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import ru.majordomo.hms.personmgr.config.FeignConfig;
 import ru.majordomo.hms.personmgr.common.Count;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import java.util.Collection;
@@ -82,7 +83,7 @@ public interface RcUserFeignClient {
     Collection<SSLCertificate> getSSLCertificates(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/domain/find", consumes = "application/json")
-    Domain findDomain(@RequestParam("name") String name);
+    Domain findDomain(@RequestParam("name") String name) throws ResourceNotFoundException;
 
     @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/account-move", consumes = "application/json")
     Boolean moveAccount(@PathVariable("accountId") String accountId, @RequestBody Map<String, String> message);

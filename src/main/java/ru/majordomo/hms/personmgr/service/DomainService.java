@@ -21,6 +21,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -238,20 +239,14 @@ public class DomainService {
 
         try {
             domains.add(rcUserFeignClient.findDomain(domainName));
-        } catch (Exception e) {
-            if (!(e instanceof FeignException) || ((FeignException) e).status() != 404 ) {
-                e.printStackTrace();
-                throw e;
-            }
+        } catch (ResourceNotFoundException ignore) {
+            logger.info("rc-user: домен " + domainName + " не найден");
         }
 
         try {
             domains.add(rcUserFeignClient.findDomain(IDN.toASCII(domainName)));
-        } catch (Exception e) {
-            if (!(e instanceof FeignException) || ((FeignException) e).status() != 404 ) {
-                e.printStackTrace();
-                throw e;
-            }
+        } catch (ResourceNotFoundException ignore) {
+            logger.info("rc-user: домен " + domainName + " не найден");
         }
 
         return domains;
