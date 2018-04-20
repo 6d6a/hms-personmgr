@@ -182,14 +182,6 @@ public class CommonRestController {
         });
     }
 
-//    protected void saveHistory(SecurityContextHolderAwareRequestWrapper request, String accountId, String message) {
-//        String operator = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "service";
-//        Map<String, String> params = new HashMap<>();
-//        params.put(HISTORY_MESSAGE_KEY, message);
-//        params.put(OPERATOR_KEY, operator);
-//        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-//    }
-
     protected String getAccountIdFromNameOrAccountId(String accountId) {
         String personalAccountId = accountId;
 
