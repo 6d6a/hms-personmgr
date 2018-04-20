@@ -7,13 +7,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.security.core.Authentication;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -23,6 +20,7 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
+import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 import ru.majordomo.hms.personmgr.service.BusinessHelper;
 import ru.majordomo.hms.personmgr.service.PlanCheckerService;
 import ru.majordomo.hms.personmgr.service.ResourceChecker;
@@ -39,6 +37,12 @@ public class CommonRestController {
     protected PlanCheckerService planCheckerService;
     protected BusinessHelper businessHelper;
     protected ResourceChecker resourceChecker;
+    protected AccountHistoryService history;
+
+    @Autowired
+    public void setAccountHistoryService(AccountHistoryService history) {
+        this.history = history;
+    }
 
     @Autowired
     public void setAccountManager(PersonalAccountManager accountManager) {
@@ -178,13 +182,13 @@ public class CommonRestController {
         });
     }
 
-    protected void saveHistory(SecurityContextHolderAwareRequestWrapper request, String accountId, String message) {
-        String operator = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "service";
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, message);
-        params.put(OPERATOR_KEY, operator);
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
-    }
+//    protected void saveHistory(SecurityContextHolderAwareRequestWrapper request, String accountId, String message) {
+//        String operator = request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "service";
+//        Map<String, String> params = new HashMap<>();
+//        params.put(HISTORY_MESSAGE_KEY, message);
+//        params.put(OPERATOR_KEY, operator);
+//        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+//    }
 
     protected String getAccountIdFromNameOrAccountId(String accountId) {
         String personalAccountId = accountId;

@@ -11,17 +11,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.dto.revisium.CheckResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.ResultStatus;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessRevisiumRequestEvent;
-import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -47,6 +43,7 @@ public class AccountServiceHelper {
     private final RevisiumRequestRepository revisiumRequestRepository;
     private final RevisiumApiClient revisiumApiClient;
     private final ApplicationEventPublisher publisher;
+    private final AccountHistoryService history;
 
     @Autowired
     public AccountServiceHelper(
@@ -56,7 +53,8 @@ public class AccountServiceHelper {
             AccountServiceExpirationRepository accountServiceExpirationRepository,
             RevisiumRequestRepository revisiumRequestRepository,
             RevisiumApiClient revisiumApiClient,
-            ApplicationEventPublisher publisher
+            ApplicationEventPublisher publisher,
+            AccountHistoryService history
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.planRepository = planRepository;
@@ -65,6 +63,7 @@ public class AccountServiceHelper {
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.revisiumApiClient = revisiumApiClient;
         this.publisher = publisher;
+        this.history = history;
     }
 
     /**
@@ -336,23 +335,18 @@ public class AccountServiceHelper {
                 default:
                     revisiumRequest.setSuccessCheck(false);
                     revisiumRequestRepository.save(revisiumRequest);
-
-                    Map<String, String> paramsHistory = new HashMap<>();
-                    paramsHistory.put(HISTORY_MESSAGE_KEY, "Ошибка при запросе проверки (check) сайта '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум. " +
-                            "Текст ошибки: '" + checkResponse.getErrorMessage() + "'");
-                    paramsHistory.put(OPERATOR_KEY, "service");
-                    publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
-
+                    history.save(
+                            account,
+                            "Ошибка при запросе проверки (check) сайта '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум. Текст ошибки: '" + checkResponse.getErrorMessage() + "'",
+                            "service");
                     break;
             }
 
         } catch (Exception e) {
-
-            Map<String, String> paramsHistory = new HashMap<>();
-            paramsHistory.put(HISTORY_MESSAGE_KEY, "Ошибка при запросе проверки (check) сайта: '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум.");
-            paramsHistory.put(OPERATOR_KEY, "service");
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), paramsHistory));
-
+            history.save(
+                    account,
+                    "Ошибка при запросе проверки (check) сайта: '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум.",
+                    "service");
             e.printStackTrace();
         }
 

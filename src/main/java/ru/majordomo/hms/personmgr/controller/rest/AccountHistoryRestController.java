@@ -29,6 +29,9 @@ import ru.majordomo.hms.personmgr.repository.AccountHistoryRepository;
 import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
+
 @RestController
 @Validated
 public class AccountHistoryRestController extends CommonRestController {
@@ -109,8 +112,8 @@ public class AccountHistoryRestController extends CommonRestController {
             @RequestBody Map<String, String> requestBody,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        String historyMessage = requestBody.get("historyMessage");
-        String operator = requestBody.get("operator");
+        String historyMessage = requestBody.get(HISTORY_MESSAGE_KEY);
+        String operator = requestBody.get(OPERATOR_KEY);
         operator = (operator == null || operator.equals("")) ? request.getUserPrincipal().getName() : operator;
 
         if (historyMessage != null && operator != null) {

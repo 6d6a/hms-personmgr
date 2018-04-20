@@ -24,19 +24,19 @@ import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_ID_KEY;
 public class ResourceNormalizer {
     private final RcUserFeignClient rcUserFeignClient;
     private final RcStaffFeignClient rcStaffFeignClient;
-    private final AccountHelper accountHelper;
     private final BusinessHelper businessHelper;
+    private final AccountHistoryService history;
 
     public ResourceNormalizer(
             RcUserFeignClient rcUserFeignClient,
             RcStaffFeignClient rcStaffFeignClient,
-            AccountHelper accountHelper,
-            BusinessHelper businessHelper
+            BusinessHelper businessHelper,
+            AccountHistoryService history
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;
-        this.accountHelper = accountHelper;
         this.businessHelper = businessHelper;
+        this.history = history;
     }
 
     public void normalizeResources(PersonalAccount account, ResourceType resourceType, Plan plan, boolean applyChanges) {
@@ -115,7 +115,7 @@ public class ResourceNormalizer {
 
                             String historyMessage = "Отправлена заявка на изменение serviceId сайта '" + webSite.getName() + "'";
 
-                            accountHelper.saveHistoryForOperatorService(account, historyMessage);
+                            history.saveForOperatorService(account, historyMessage);
                         }
                     }
                 }

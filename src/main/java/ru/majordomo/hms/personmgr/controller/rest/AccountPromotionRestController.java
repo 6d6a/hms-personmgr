@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
@@ -14,13 +13,9 @@ import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @RestController
 @RequestMapping("/{accountId}/account-promotion")
@@ -55,8 +50,7 @@ public class AccountPromotionRestController extends CommonRestController {
             SecurityContextHolderAwareRequestWrapper request
     ) {
         accountPromotionManager.switchAccountPromotionById(accountPromotionId);
-
-        saveHistory(accountId, "AccountPromotion Id: '" + accountPromotionId + "' был изменён оператором", request);
+        history.save(accountId, "AccountPromotion Id: '" + accountPromotionId + "' был изменён оператором", request);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -83,17 +77,8 @@ public class AccountPromotionRestController extends CommonRestController {
 
         accountPromotionManager.insert(accountPromotion);
 
-        saveHistory(accountId, "Создан новый accountPromotion с ID: '" + accountPromotion.getId() + "'", request);
+        history.save(accountId, "Создан новый accountPromotion с ID: '" + accountPromotion.getId() + "'", request);
 
         return new ResponseEntity<>(accountPromotion, HttpStatus.OK);
-    }
-
-    private void saveHistory(String personalAccountId, String message, SecurityContextHolderAwareRequestWrapper request) {
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, message);
-        params.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(personalAccountId, params));
     }
 }

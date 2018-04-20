@@ -18,7 +18,6 @@ import java.util.*;
 
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
@@ -60,6 +59,7 @@ public class DomainService {
     private final PromotionRepository promotionRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     private final BusinessHelper businessHelper;
+    private final AccountHistoryService history;
 
     @Autowired
     public DomainService(
@@ -73,7 +73,8 @@ public class DomainService {
             AccountPromotionManager accountPromotionManager,
             PromotionRepository promotionRepository,
             AccountNotificationHelper accountNotificationHelper,
-            BusinessHelper businessHelper
+            BusinessHelper businessHelper,
+            AccountHistoryService history
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
@@ -86,6 +87,7 @@ public class DomainService {
         this.promotionRepository = promotionRepository;
         this.accountNotificationHelper = accountNotificationHelper;
         this.businessHelper = businessHelper;
+        this.history = history;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -204,7 +206,7 @@ public class DomainService {
                 } catch (NotEnoughMoneyException e) {
                     //Если денег не хватает
                     //Запишем попытку в историю клиента
-                    accountHelper.saveHistoryForOperatorService(account, "Автоматическое продление " + domain.getName() + " невозможно, на счету " + balance + " руб.");
+                    history.saveForOperatorService(account, "Автоматическое продление " + domain.getName() + " невозможно, на счету " + balance + " руб.");
 
                     domainNotProlong.add(domain);
                 }
@@ -492,13 +494,8 @@ public class DomainService {
                 (isDiscountedDomain ?
                         "регистрацию со скидкой (actionPromotion Id: " + message.getParam("domainDiscountPromotionId") + " )" :
                         "регистрацию");
-        //Save history
-        String operator = account.getName();
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, "Поступила заявка на " + actionText +" домена (имя: " + message.getParam("name") + ")");
-        params.put(OPERATOR_KEY, operator);
 
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+        history.save(account, "Поступила заявка на " + actionText +" домена (имя: " + message.getParam("name") + ")", account.getName());
 
         return processingBusinessAction;
     }

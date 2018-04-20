@@ -35,7 +35,6 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.time.temporal.ChronoUnit.DAYS;
@@ -61,6 +60,7 @@ public class AbonementService {
     private final AccountStatHelper accountStatHelper;
     private final AccountNotificationHelper accountNotificationHelper;
     private final ChargeHelper chargeHelper;
+    private final AccountHistoryService history;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -75,7 +75,8 @@ public class AbonementService {
             ApplicationEventPublisher publisher,
             AccountStatHelper accountStatHelper,
             AccountNotificationHelper accountNotificationHelper,
-            ChargeHelper chargeHelper
+            ChargeHelper chargeHelper,
+            AccountHistoryService history
     ) {
         this.planManager = planManager;
         this.abonementRepository = abonementRepository;
@@ -87,6 +88,7 @@ public class AbonementService {
         this.accountStatHelper = accountStatHelper;
         this.accountNotificationHelper = accountNotificationHelper;
         this.chargeHelper = chargeHelper;
+        this.history = history;
     }
 
     /**
@@ -322,7 +324,7 @@ public class AbonementService {
 
                         renewAbonement(account, accountAbonement);
 
-                        accountHelper.saveHistoryForOperatorService(account,
+                        history.saveForOperatorService(account,
                                 "Автоматическое продление абонемента. Со счета аккаунта списано " +
                                 formatBigDecimalWithCurrency(abonementCost) +
                                 " Новый срок окончания: " + accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
@@ -332,7 +334,7 @@ public class AbonementService {
                         //Удаляем абонемент и включаем услуги хостинга по тарифу
                         processAccountAbonementDelete(account, accountAbonement);
 
-                        accountHelper.saveHistoryForOperatorService(account, "Абонемент удален, так как средств на счету аккаунта не достаточно. Стоимость абонемента: " +
+                        history.saveForOperatorService(account, "Абонемент удален, так как средств на счету аккаунта не достаточно. Стоимость абонемента: " +
                                 formatBigDecimalWithCurrency(abonementCost) +
                                 " Баланс: " + formatBigDecimalWithCurrency(balance) +
                                 " Дата окончания: " + currentExpired
@@ -347,7 +349,7 @@ public class AbonementService {
                 //Удаляем абонемент и включаем услуги хостинга по тарифу
                 processAccountAbonementDelete(account, accountAbonement);
 
-                accountHelper.saveHistoryForOperatorService(
+                history.saveForOperatorService(
                         account,
                         "Бонусный абонемент удален. Обычный абонемент не был предзаказн. Дата окончания: " + currentExpired
                 );
@@ -449,7 +451,7 @@ public class AbonementService {
 
         if (abonement != null) {
             addAbonement(account, abonement.getId(), false);
-            accountHelper.saveHistoryForOperatorService(account, "Добавлен абонемент на тестовый период (14 дней)");
+            history.saveForOperatorService(account, "Добавлен абонемент на тестовый период (14 дней)");
         }
     }
 

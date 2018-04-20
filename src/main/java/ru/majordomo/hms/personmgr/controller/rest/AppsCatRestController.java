@@ -52,8 +52,7 @@ public class AppsCatRestController extends CommonRestController {
 
         businessAction = appsCatService.processInstall(message);
 
-        saveHistory(request, accountId,
-                "Поступила заявка на установку приложения для сайта (имя: " + message.getParam("name") + ")");
+        history.save(accountId,"Поступила заявка на установку приложения для сайта (имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }

@@ -38,7 +38,7 @@ public class DnsRecordResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DNS_RECORD_CREATE, BusinessActionType.DNS_RECORD_CREATE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на создание днс-записи (имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на создание днс-записи (имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -64,7 +64,7 @@ public class DnsRecordResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DNS_RECORD_UPDATE, BusinessActionType.DNS_RECORD_UPDATE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на обновление днс-записи (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");//Save history
+        history.save(accountId, "Поступила заявка на обновление днс-записи (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -83,7 +83,7 @@ public class DnsRecordResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DNS_RECORD_DELETE, BusinessActionType.DNS_RECORD_DELETE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на удаление днс-записи (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на удаление днс-записи (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }

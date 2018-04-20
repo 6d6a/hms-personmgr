@@ -21,7 +21,6 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.common.SeoType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.seo.SeoOrderedEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -34,8 +33,6 @@ import ru.majordomo.hms.personmgr.service.ChargeMessage;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_NAME_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SEO_ORDER_CREATE;
 
@@ -53,7 +50,8 @@ public class SeoRestController extends CommonRestController {
             AccountSeoOrderRepository accountSeoOrderRepository,
             SeoRepository seoRepository,
             AccountHelper accountHelper,
-            ApplicationEventPublisher publisher) {
+            ApplicationEventPublisher publisher
+    ) {
         this.accountSeoOrderRepository = accountSeoOrderRepository;
         this.seoRepository = seoRepository;
         this.accountHelper = accountHelper;
@@ -142,14 +140,7 @@ public class SeoRestController extends CommonRestController {
 
         publisher.publishEvent(new SeoOrderedEvent(account.getId(), params));
 
-        //Save history
-        String operator = request.getUserPrincipal().getName();
-        Map<String, String> paramsHistory = new HashMap<>();
-        paramsHistory.put(HISTORY_MESSAGE_KEY, "Произведен заказ услуги '" + seo.getName() +
-                "' для домена '" + domainName + "'");
-        paramsHistory.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(accountId, paramsHistory));
+        history.save(accountId, "Произведен заказ услуги '" + seo.getName() + "' для домена '" + domainName + "'", request);
 
         return new ResponseEntity<>(
                 this.createSuccessResponse("Произведен заказ услуги '" + seo.getName() +

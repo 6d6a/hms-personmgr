@@ -7,14 +7,12 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
@@ -28,8 +26,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.ACCOUNT_CREATE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.ACCOUNT_DELETE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.ACCOUNT_UPDATE;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @Service
 public class AccountAmqpController extends CommonAmqpController {
@@ -111,18 +107,7 @@ public class AccountAmqpController extends CommonAmqpController {
                                 message.setParams(businessOperation.getParams());
                                 message.addParam("quota", (Long) businessOperation.getParams().get("quota") * 1024);
                                 businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
-
-                                try {
-                                    //Save history
-                                    Map<String, String> params = new HashMap<>();
-                                    params.put(HISTORY_MESSAGE_KEY, "Заявка на первичное создание UNIX-аккаунта отправлена (имя: " + message.getParam("name") + ")");
-                                    params.put(OPERATOR_KEY, "service");
-
-                                    publisher.publishEvent(new AccountHistoryEvent(message.getAccountId(), params));
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                    logger.error("Got Exception in AccountAmqpController.create " + e.getMessage());
-                                }
+                                history.saveForOperatorService(account, "Заявка на первичное создание UNIX-аккаунта отправлена (имя: " + message.getParam("name") + ")");
                             }
                         }
                     } else {

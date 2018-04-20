@@ -59,7 +59,7 @@ public class WebSiteResourceRestController extends CommonRestController {
                 message
         );
 
-        saveHistory(request, accountId, "Поступила заявка на создание сайта (имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на создание сайта (имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -97,7 +97,7 @@ public class WebSiteResourceRestController extends CommonRestController {
                 message
         );
 
-        saveHistory(request, accountId, "Поступила заявка на обновление сайта (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на обновление сайта (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -120,7 +120,7 @@ public class WebSiteResourceRestController extends CommonRestController {
                 message
         );
 
-        saveHistory(request, accountId, "Поступила заявка на удаление сайта (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на удаление сайта (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }

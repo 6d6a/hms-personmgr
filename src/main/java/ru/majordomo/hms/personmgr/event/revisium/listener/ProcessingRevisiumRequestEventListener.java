@@ -22,7 +22,7 @@ import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
 import ru.majordomo.hms.personmgr.service.scheduler.RevisiumRequestScheduler;
@@ -37,35 +37,35 @@ public class ProcessingRevisiumRequestEventListener {
 
     private final RevisiumApiClient revisiumApiClient;
     private final ApplicationEventPublisher publisher;
-    private final AccountHelper accountHelper;
     private final PersonalAccountManager personalAccountManager;
     private final RevisiumRequestRepository revisiumRequestRepository;
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final RevisiumRequestScheduler scheduler;
     private final AccountNoticeRepository accountNoticeRepository;
     private final AccountNotificationHelper accountNotificationHelper;
+    private final AccountHistoryService history;
 
     @Autowired
     public ProcessingRevisiumRequestEventListener(
             RevisiumApiClient revisiumApiClient,
             ApplicationEventPublisher publisher,
-            AccountHelper accountHelper,
             PersonalAccountManager personalAccountManager,
             RevisiumRequestRepository revisiumRequestRepository,
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             RevisiumRequestScheduler scheduler,
             AccountNoticeRepository accountNoticeRepository,
-            AccountNotificationHelper accountNotificationHelper
+            AccountNotificationHelper accountNotificationHelper,
+            AccountHistoryService history
     ) {
         this.revisiumApiClient = revisiumApiClient;
         this.publisher = publisher;
-        this.accountHelper = accountHelper;
         this.personalAccountManager = personalAccountManager;
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
         this.scheduler = scheduler;
         this.accountNoticeRepository = accountNoticeRepository;
         this.accountNotificationHelper = accountNotificationHelper;
+        this.history = history;
     }
 
     @EventListener
@@ -105,7 +105,7 @@ public class ProcessingRevisiumRequestEventListener {
                     revisiumRequestRepository.save(revisiumRequest);
                     PersonalAccount account = personalAccountManager.findOne(revisiumRequest.getPersonalAccountId());
                     RevisiumRequestService revisiumRequestService = revisiumRequestServiceRepository.findOne(revisiumRequest.getRevisiumRequestServiceId());
-                    accountHelper.saveHistoryForOperatorService(
+                    history.saveForOperatorService(
                             account,
                             "Результат проверки (get_result) сайта '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум содержит ошибку. " +
                                     "Текст ошибки: '" + getResultResponse.getErrorMessage() + "'"

@@ -26,6 +26,7 @@ import ru.majordomo.hms.personmgr.repository.AccountDocumentRepository;
 import ru.majordomo.hms.personmgr.repository.DocumentOrderRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
 import ru.majordomo.hms.personmgr.service.Document.DocumentBuilder;
@@ -35,7 +36,6 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
-import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -60,6 +60,7 @@ public class AccountDocumentRestController {
     private final DocumentOrderRepository documentOrderRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     private final String documentOrderEmail;
+    private final AccountHistoryService history;
 
     private List<DocumentType> defaultDocumentTypes = Arrays.asList(
             VIRTUAL_HOSTING_BUDGET_CONTRACT,
@@ -79,7 +80,8 @@ public class AccountDocumentRestController {
             PaymentServiceRepository paymentServiceRepository,
             DocumentOrderRepository documentOrderRepository,
             AccountNotificationHelper accountNotificationHelper,
-            @Value("${mail_manager.document_order_email}") String documentOrderEmail
+            @Value("${mail_manager.document_order_email}") String documentOrderEmail,
+            AccountHistoryService history
     ){
         this.documentBuilderFactory = documentBuilderFactory;
         this.accountDocumentRepository = accountDocumentRepository;
@@ -89,6 +91,7 @@ public class AccountDocumentRestController {
         this.documentOrderRepository = documentOrderRepository;
         this.accountNotificationHelper = accountNotificationHelper;
         this.documentOrderEmail = documentOrderEmail;
+        this.history = history;
     }
 
     @GetMapping("/old/{documentType}")
@@ -309,7 +312,7 @@ public class AccountDocumentRestController {
             //Отправка письма c документами секретарю
             sendDocumentOrderToSecretary(account, documentOrder, domains, fileMap, operator);
 
-            accountHelper.saveHistory(accountId, "Заказан пакет документов " + documentOrder.toString(), operator);
+            history.save(accountId, "Заказан пакет документов " + documentOrder.toString(), operator);
 
         } catch (Exception e){
             logger.error("Не удалось списать за пакет документов " + e.getMessage());
@@ -601,7 +604,7 @@ public class AccountDocumentRestController {
             zipFileByteArray = getZipFileByteArray(fileMap, account.getAccountId());
         } catch (IOException e) {
             logger.error("Не удалось создать архив с документами перед отправкой секретарю. ErrorMessage: " + e.getMessage());
-            accountHelper.saveHistory(account,"Не удалось создать архив с документами перед отправкой секретарю. ErrorMessage: " + e.getMessage(), operatorName);
+            history.save(account,"Не удалось создать архив с документами перед отправкой секретарю. ErrorMessage: " + e.getMessage(), operatorName);
             e.printStackTrace();
             throw new InternalApiException("Возникла ошибка при создании архива с документами, попробуйте позже");
         }

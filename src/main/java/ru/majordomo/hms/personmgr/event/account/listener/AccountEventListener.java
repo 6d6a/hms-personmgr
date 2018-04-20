@@ -58,6 +58,7 @@ public class AccountEventListener {
     private final AccountAbonementManager accountAbonementManager;
     private final AccountNotificationHelper accountNotificationHelper;
     private final ChargeHelper chargeHelper;
+    private final AccountHistoryService history;
 
     @Autowired
     public AccountEventListener(
@@ -74,7 +75,8 @@ public class AccountEventListener {
             PersonalAccountManager accountManager,
             AccountAbonementManager accountAbonementManager,
             AccountNotificationHelper accountNotificationHelper,
-            ChargeHelper chargeHelper
+            ChargeHelper chargeHelper,
+            AccountHistoryService history
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -90,6 +92,7 @@ public class AccountEventListener {
         this.accountAbonementManager = accountAbonementManager;
         this.accountNotificationHelper = accountNotificationHelper;
         this.chargeHelper = chargeHelper;
+        this.history = history;
     }
 
     @EventListener
@@ -170,7 +173,7 @@ public class AccountEventListener {
         accountNotificationHelper.sendMail(account, "MajordomoHMSPasswordChangeRequest", 10, parameters);
 
         //Запишем в историю клиента
-        accountHelper.saveHistoryForOperatorService(account, "Получена заявка на смену пароля к панели управления с IP: " + ip);
+        history.saveForOperatorService(account, "Получена заявка на смену пароля к панели управления с IP: " + ip);
     }
 
     @EventListener
@@ -191,7 +194,7 @@ public class AccountEventListener {
         String ip = (String) params.get(IP_KEY);
 
         //Запишем в историю клиента
-        accountHelper.saveHistoryForOperatorService(account, "Произведена смена пароля к панели управления с IP: " + ip);
+        history.saveForOperatorService(account, "Произведена смена пароля к панели управления с IP: " + ip);
     }
 
     @EventListener
@@ -205,7 +208,7 @@ public class AccountEventListener {
         String ip = (String) params.get(IP_KEY);
 
         //Запишем в историю клиента
-        accountHelper.saveHistoryForOperatorService(account, "Произведена смена пароля к панели управления с IP: " + ip);
+        history.saveForOperatorService(account, "Произведена смена пароля к панели управления с IP: " + ip);
 
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("acc_id", account.getAccountId());
@@ -376,7 +379,7 @@ public class AccountEventListener {
             logger.debug("Processed promocode addPayment: " + responseMessage);
 
             //Save history
-            accountHelper.saveHistoryForOperatorService(account, "Произведено начисление процента от пополнения ("
+            history.saveForOperatorService(account, "Произведено начисление процента от пополнения ("
                     + promocodeBonus.toString() + " руб. от "
                     + amount.toString() + " руб.) владельцу партнерского промокода"
                     + accountPromocode.getPromocode().getCode() + " - " + accountForPartnerBonus.getName()

@@ -5,11 +5,13 @@ import org.springframework.context.ApplicationEvent;
 import java.util.Map;
 
 public class AccountHistoryEvent extends ApplicationEvent {
-    private Map<String, ?> params;
+    private String operator;
+    private String message;
 
-    public AccountHistoryEvent(String source, Map<String, ?> params) {
-        super(source);
-        this.params = params;
+    public AccountHistoryEvent(String personalAccountId, String message, String operator) {
+        super(personalAccountId);
+        this.operator = operator;
+        this.message = message;
     }
 
     public AccountHistoryEvent(String source) {
@@ -21,7 +23,11 @@ public class AccountHistoryEvent extends ApplicationEvent {
         return (String) super.getSource();
     }
 
-    public Map<String, ?> getParams() {
-        return params;
+    public String getOperator() {
+        return operator;
+    }
+
+    public String getMessage() {
+        return message;
     }
 }

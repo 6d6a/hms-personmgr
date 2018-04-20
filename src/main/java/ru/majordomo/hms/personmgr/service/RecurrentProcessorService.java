@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
-import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -38,6 +37,7 @@ public class RecurrentProcessorService {
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
     private final FinFeignClient finFeignClient;
     private final AccountServiceExpirationRepository accountServiceExpirationRepository;
+    private final AccountHistoryService history;
 
     private static TemporalAdjuster FIFTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(50));
     private static TemporalAdjuster TWENTY_FIVE_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(25));
@@ -51,7 +51,8 @@ public class RecurrentProcessorService {
             DomainTldService domainTldService,
             DomainRegistrarFeignClient domainRegistrarFeignClient,
             FinFeignClient finFeignClient,
-            AccountServiceExpirationRepository accountServiceExpirationRepository
+            AccountServiceExpirationRepository accountServiceExpirationRepository,
+            AccountHistoryService history
     ) {
         this.accountAbonementManager = accountAbonementManager;
         this.accountHelper = accountHelper;
@@ -61,6 +62,7 @@ public class RecurrentProcessorService {
         this.domainRegistrarFeignClient = domainRegistrarFeignClient;
         this.finFeignClient = finFeignClient;
         this.accountServiceExpirationRepository = accountServiceExpirationRepository;
+        this.history = history;
     }
 
     public void processRecurrent(PersonalAccount account) {
@@ -168,7 +170,7 @@ public class RecurrentProcessorService {
                         + ". За one-time услуги: " + oneTimeRecurrentSum
                         + ". За остальные услуги: " + servicesRecurrentSum;
 
-                accountHelper.saveHistoryForOperatorService(account, message);
+                history.saveForOperatorService(account, message);
 
                 try {
                     finFeignClient.repeatPayment(account.getId(), sumToChargeFromCart);
@@ -181,7 +183,7 @@ public class RecurrentProcessorService {
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Ошибка при выполнени реккурентов для аккаунта: " + account.getName());
-            accountHelper.saveHistoryForOperatorService(account, "Непредвиденная ошибка при выполнении реккурента для аккаунта : " + account.getName());
+            history.saveForOperatorService(account, "Непредвиденная ошибка при выполнении реккурента для аккаунта : " + account.getName());
         }
     }
 

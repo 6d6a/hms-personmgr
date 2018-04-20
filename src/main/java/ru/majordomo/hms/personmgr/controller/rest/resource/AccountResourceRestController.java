@@ -208,7 +208,7 @@ public class AccountResourceRestController extends CommonRestController {
             Boolean success = rcUserFeignClient.moveAccount(accountId, body);
 
             if (success) {
-                saveHistory(request, accountId, "Сервер аккаунта " + accountId + " изменён на " + desiredServerId);
+                history.save(accountId, "Сервер аккаунта " + accountId + " изменён на " + desiredServerId, request);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -249,7 +249,7 @@ public class AccountResourceRestController extends CommonRestController {
 
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-        saveHistory(request, accountId, "Поступила заявка на перенос акканута на serverId: " + desiredServerId);
+        history.save(accountId, "Поступила заявка на перенос акканута на serverId: " + desiredServerId, request);
 
         return this.createSuccessResponse(businessAction);
     }

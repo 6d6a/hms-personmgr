@@ -53,7 +53,7 @@ public class MailboxResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.MAILBOX_CREATE, BusinessActionType.MAILBOX_CREATE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на создание почтового ящика (имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на создание почтового ящика (имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -89,7 +89,7 @@ public class MailboxResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.MAILBOX_UPDATE, BusinessActionType.MAILBOX_UPDATE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на обновление почтового ящика (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на обновление почтового ящика (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -108,7 +108,7 @@ public class MailboxResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.MAILBOX_DELETE, BusinessActionType.MAILBOX_DELETE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на удаление почтового ящика (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на удаление почтового ящика (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
