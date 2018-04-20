@@ -20,7 +20,7 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.service.AccountHistoryService;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.service.BusinessHelper;
 import ru.majordomo.hms.personmgr.service.PlanCheckerService;
 import ru.majordomo.hms.personmgr.service.ResourceChecker;
@@ -37,10 +37,10 @@ public class CommonRestController {
     protected PlanCheckerService planCheckerService;
     protected BusinessHelper businessHelper;
     protected ResourceChecker resourceChecker;
-    protected AccountHistoryService history;
+    protected AccountHistoryManager history;
 
     @Autowired
-    public void setAccountHistoryService(AccountHistoryService history) {
+    public void setAccountHistoryService(AccountHistoryManager history) {
         this.history = history;
     }
 

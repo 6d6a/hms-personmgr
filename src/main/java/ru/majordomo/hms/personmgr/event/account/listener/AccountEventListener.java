@@ -24,6 +24,7 @@ import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -58,7 +59,7 @@ public class AccountEventListener {
     private final AccountAbonementManager accountAbonementManager;
     private final AccountNotificationHelper accountNotificationHelper;
     private final ChargeHelper chargeHelper;
-    private final AccountHistoryService history;
+    private final AccountHistoryManager history;
 
     @Autowired
     public AccountEventListener(
@@ -76,7 +77,7 @@ public class AccountEventListener {
             AccountAbonementManager accountAbonementManager,
             AccountNotificationHelper accountNotificationHelper,
             ChargeHelper chargeHelper,
-            AccountHistoryService history
+            AccountHistoryManager history
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;

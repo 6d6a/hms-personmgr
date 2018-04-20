@@ -27,6 +27,7 @@ import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -60,7 +61,7 @@ public class AbonementService {
     private final AccountStatHelper accountStatHelper;
     private final AccountNotificationHelper accountNotificationHelper;
     private final ChargeHelper chargeHelper;
-    private final AccountHistoryService history;
+    private final AccountHistoryManager history;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -76,7 +77,7 @@ public class AbonementService {
             AccountStatHelper accountStatHelper,
             AccountNotificationHelper accountNotificationHelper,
             ChargeHelper chargeHelper,
-            AccountHistoryService history
+            AccountHistoryManager history
     ) {
         this.planManager = planManager;
         this.abonementRepository = abonementRepository;

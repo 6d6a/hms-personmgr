@@ -10,6 +10,7 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
@@ -25,13 +26,13 @@ public class ResourceNormalizer {
     private final RcUserFeignClient rcUserFeignClient;
     private final RcStaffFeignClient rcStaffFeignClient;
     private final BusinessHelper businessHelper;
-    private final AccountHistoryService history;
+    private final AccountHistoryManager history;
 
     public ResourceNormalizer(
             RcUserFeignClient rcUserFeignClient,
             RcStaffFeignClient rcStaffFeignClient,
             BusinessHelper businessHelper,
-            AccountHistoryService history
+            AccountHistoryManager history
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;

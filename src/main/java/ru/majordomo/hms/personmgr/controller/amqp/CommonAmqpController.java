@@ -18,6 +18,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
 import ru.majordomo.hms.personmgr.event.webSite.WebSiteCreatedEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
@@ -46,14 +47,14 @@ public class CommonAmqpController {
     private AccountTransferService accountTransferService;
     protected AmqpSender amqpSender;
     private FtpUserService ftpUserService;
-    protected AccountHistoryService history;
+    protected AccountHistoryManager history;
 
     protected String resourceName = "";
 
     protected String instanceName;
 
     @Autowired
-    public void setAccountHistoryService(AccountHistoryService history) {
+    public void setAccountHistoryService(AccountHistoryManager history) {
         this.history = history;
     }
 

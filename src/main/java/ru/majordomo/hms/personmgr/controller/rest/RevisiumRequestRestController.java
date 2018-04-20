@@ -17,7 +17,6 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
@@ -39,7 +38,6 @@ public class RevisiumRequestRestController extends CommonRestController {
     private final PersonalAccountManager personalAccountManager;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
-    private final AccountHistoryService history;
 
     @Autowired
     public RevisiumRequestRestController(
@@ -47,15 +45,13 @@ public class RevisiumRequestRestController extends CommonRestController {
             PersonalAccountManager personalAccountManager,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
-            RevisiumRequestServiceRepository revisiumRequestServiceRepository,
-            AccountHistoryService history
+            RevisiumRequestServiceRepository revisiumRequestServiceRepository
     ) {
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.personalAccountManager = personalAccountManager;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
-        this.history = history;
     }
 
     //Список всех услуг Ревизиума

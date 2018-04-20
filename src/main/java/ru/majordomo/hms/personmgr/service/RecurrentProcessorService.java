@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
@@ -37,7 +38,7 @@ public class RecurrentProcessorService {
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
     private final FinFeignClient finFeignClient;
     private final AccountServiceExpirationRepository accountServiceExpirationRepository;
-    private final AccountHistoryService history;
+    private final AccountHistoryManager history;
 
     private static TemporalAdjuster FIFTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(50));
     private static TemporalAdjuster TWENTY_FIVE_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(25));
@@ -52,7 +53,7 @@ public class RecurrentProcessorService {
             DomainRegistrarFeignClient domainRegistrarFeignClient,
             FinFeignClient finFeignClient,
             AccountServiceExpirationRepository accountServiceExpirationRepository,
-            AccountHistoryService history
+            AccountHistoryManager history
     ) {
         this.accountAbonementManager = accountAbonementManager;
         this.accountHelper = accountHelper;

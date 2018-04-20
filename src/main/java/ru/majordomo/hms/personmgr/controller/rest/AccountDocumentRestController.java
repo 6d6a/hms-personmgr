@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -17,16 +15,13 @@ import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
-import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountDocument;
 import ru.majordomo.hms.personmgr.model.account.DocumentOrder;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountDocumentRepository;
 import ru.majordomo.hms.personmgr.repository.DocumentOrderRepository;
-import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
 import ru.majordomo.hms.personmgr.service.Document.DocumentBuilder;
@@ -48,19 +43,14 @@ import static ru.majordomo.hms.personmgr.common.DocumentType.*;
 
 @RestController
 @RequestMapping("/{accountId}/document")
-public class AccountDocumentRestController {
-
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+public class AccountDocumentRestController extends CommonRestController {
 
     private final DocumentBuilderFactory documentBuilderFactory;
     private final AccountDocumentRepository accountDocumentRepository;
     private final AccountHelper accountHelper;
-    private final PersonalAccountManager personalAccountManager;
-    private final PaymentServiceRepository paymentServiceRepository;
     private final DocumentOrderRepository documentOrderRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     private final String documentOrderEmail;
-    private final AccountHistoryService history;
 
     private List<DocumentType> defaultDocumentTypes = Arrays.asList(
             VIRTUAL_HOSTING_BUDGET_CONTRACT,
@@ -76,22 +66,16 @@ public class AccountDocumentRestController {
             DocumentBuilderFactory documentBuilderFactory,
             AccountDocumentRepository accountDocumentRepository,
             AccountHelper accountHelper,
-            PersonalAccountManager personalAccountManager,
-            PaymentServiceRepository paymentServiceRepository,
             DocumentOrderRepository documentOrderRepository,
             AccountNotificationHelper accountNotificationHelper,
-            @Value("${mail_manager.document_order_email}") String documentOrderEmail,
-            AccountHistoryService history
+            @Value("${mail_manager.document_order_email}") String documentOrderEmail
     ){
         this.documentBuilderFactory = documentBuilderFactory;
         this.accountDocumentRepository = accountDocumentRepository;
         this.accountHelper = accountHelper;
-        this.personalAccountManager = personalAccountManager;
-        this.paymentServiceRepository = paymentServiceRepository;
         this.documentOrderRepository = documentOrderRepository;
         this.accountNotificationHelper = accountNotificationHelper;
         this.documentOrderEmail = documentOrderEmail;
-        this.history = history;
     }
 
     @GetMapping("/old/{documentType}")
@@ -136,7 +120,7 @@ public class AccountDocumentRestController {
             throw new ResourceNotFoundException("Не найден заказ документов");
         }
 
-        PersonalAccount account = personalAccountManager.findOne(documentOrder.getPersonalAccountId());
+        PersonalAccount account = accountManager.findOne(documentOrder.getPersonalAccountId());
 
         documentOrder.getParams().put("withoutStamp", "true");
 
@@ -221,7 +205,7 @@ public class AccountDocumentRestController {
 
         validatePostalAddressInDocumentOrder(documentOrder);
 
-        PersonalAccount account = personalAccountManager.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         defaultDocumentTypes.forEach(documentType ->{
             try {
@@ -279,7 +263,7 @@ public class AccountDocumentRestController {
             @RequestBody DocumentOrder documentOrder,
             SecurityContextHolderAwareRequestWrapper request
     ){
-        PersonalAccount account = personalAccountManager.findOne(accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
 
         Boolean agreement = documentOrder.getAgreement();
 

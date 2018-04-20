@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promocode.UnknownPromocode;
@@ -40,7 +41,7 @@ public class PromocodeProcessor {
     private final PromotionRepository promotionRepository;
     private final AccountHelper accountHelper;
     private final UnknownPromocodeRepository unknownPromocodeRepository;
-    private final AccountHistoryService history;
+    private final AccountHistoryManager history;
 
     private final List<String> badWordPatterns = Arrays.asList(
             "FUCK",
@@ -87,7 +88,7 @@ public class PromocodeProcessor {
             PromotionRepository promotionRepository,
             AccountHelper accountHelper,
             UnknownPromocodeRepository unknownPromocodeRepository,
-            AccountHistoryService history
+            AccountHistoryManager history
     ) {
         this.promocodeRepository = promocodeRepository;
         this.accountPromocodeRepository = accountPromocodeRepository;

@@ -10,6 +10,7 @@ import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlan
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
@@ -50,7 +51,7 @@ public abstract class Processor {
     private AccountQuotaService accountQuotaService;
     private PersonalAccountManager accountManager;
     private ApplicationEventPublisher publisher;
-    private AccountHistoryService history;
+    private AccountHistoryManager history;
     private FinFeignClient finFeignClient;
     private PlanRepository planRepository;
     private ResourceNormalizer resourceNormalizer;
@@ -74,7 +75,7 @@ public abstract class Processor {
             FinFeignClient finFeignClient,
             AccountAbonementManager accountAbonementManager,
             AccountStatRepository accountStatRepository,
-            AccountHistoryService history,
+            AccountHistoryManager history,
             PersonalAccountManager accountManager,
             PaymentServiceRepository paymentServiceRepository,
             AccountCountersService accountCountersService,

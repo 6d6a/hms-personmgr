@@ -78,7 +78,6 @@ public class PersonalAccountRestController extends CommonRestController {
     private final Factory planChangeFactory;
     private final AccountNotificationHelper accountNotificationHelper;
     private final SiFeignClient siFeignClient;
-    private final AccountHistoryService history;
 
     @Autowired
     public PersonalAccountRestController(
@@ -93,8 +92,7 @@ public class PersonalAccountRestController extends CommonRestController {
             AccountServiceHelper accountServiceHelper,
             Factory planChangeFactory,
             AccountNotificationHelper accountNotificationHelper,
-            SiFeignClient siFeignClient,
-            AccountHistoryService history
+            SiFeignClient siFeignClient
     ) {
         this.planRepository = planRepository;
         this.accountOwnerManager = accountOwnerManager;
@@ -104,7 +102,6 @@ public class PersonalAccountRestController extends CommonRestController {
         this.tokenHelper = tokenHelper;
         this.notificationRepository = notificationRepository;
         this.siFeignClient = siFeignClient;
-        this.history = history;
         this.accountServiceRepository = accountServiceRepository;
         this.accountServiceHelper = accountServiceHelper;
         this.planChangeFactory = planChangeFactory;

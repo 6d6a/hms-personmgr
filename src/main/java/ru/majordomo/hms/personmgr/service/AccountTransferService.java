@@ -15,6 +15,7 @@ import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.AccountTransferRequest;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
@@ -68,7 +69,7 @@ public class AccountTransferService {
     private final BusinessHelper businessHelper;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
-    private final AccountHistoryService history;
+    private final AccountHistoryManager history;
 
     public AccountTransferService(
             RcUserFeignClient rcUserFeignClient,
@@ -76,7 +77,7 @@ public class AccountTransferService {
             BusinessHelper businessHelper,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
             ProcessingBusinessActionRepository processingBusinessActionRepository,
-            AccountHistoryService history
+            AccountHistoryManager history
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;

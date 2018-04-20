@@ -13,7 +13,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.repository.AccountServiceExpirationRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.AccountHistoryService;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
 
@@ -30,7 +30,7 @@ public class AccountOneTimeServiceEventListener {
     private final AccountServiceExpirationRepository accountServiceExpirationRepository;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
-    private final AccountHistoryService history;
+    private final AccountHistoryManager history;
 
     @Autowired
     public AccountOneTimeServiceEventListener(
@@ -38,7 +38,7 @@ public class AccountOneTimeServiceEventListener {
             AccountServiceExpirationRepository accountServiceExpirationRepository,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
-            AccountHistoryService history
+            AccountHistoryManager history
     ) {
         this.personalAccountManager = personalAccountManager;
         this.accountServiceExpirationRepository = accountServiceExpirationRepository;

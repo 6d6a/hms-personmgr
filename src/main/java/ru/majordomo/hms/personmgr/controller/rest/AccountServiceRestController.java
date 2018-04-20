@@ -52,7 +52,6 @@ public class AccountServiceRestController extends CommonRestController {
     private final PlanRepository planRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     private final DiscountServiceHelper discountServiceHelper;
-    private final AccountHistoryService history;
 
     @Autowired
     public AccountServiceRestController(
@@ -63,8 +62,7 @@ public class AccountServiceRestController extends CommonRestController {
             AccountAbonementManager accountAbonementManager,
             PlanRepository planRepository,
             AccountNotificationHelper accountNotificationHelper,
-            DiscountServiceHelper discountServiceHelper,
-            AccountHistoryService history
+            DiscountServiceHelper discountServiceHelper
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.serviceRepository = serviceRepository;
@@ -74,7 +72,6 @@ public class AccountServiceRestController extends CommonRestController {
         this.planRepository = planRepository;
         this.accountNotificationHelper = accountNotificationHelper;
         this.discountServiceHelper = discountServiceHelper;
-        this.history = history;
     }
 
     @GetMapping(value = "/{accountId}/account-service/{accountServiceId}")

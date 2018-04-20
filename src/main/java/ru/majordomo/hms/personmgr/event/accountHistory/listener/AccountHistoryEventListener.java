@@ -10,21 +10,21 @@ import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryImportEvent;
 import ru.majordomo.hms.personmgr.importing.AccountHistoryDBImportService;
-import ru.majordomo.hms.personmgr.service.AccountHistoryService;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 
 @Component
 public class AccountHistoryEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountHistoryEventListener.class);
 
-    private final AccountHistoryService accountHistoryService;
+    private final AccountHistoryManager AccountHistoryManager;
     private final AccountHistoryDBImportService accountHistoryDBImportService;
 
     @Autowired
     public AccountHistoryEventListener(
-            AccountHistoryService accountHistoryService,
+            AccountHistoryManager AccountHistoryManager,
             AccountHistoryDBImportService accountHistoryDBImportService
     ) {
-        this.accountHistoryService = accountHistoryService;
+        this.AccountHistoryManager = AccountHistoryManager;
         this.accountHistoryDBImportService = accountHistoryDBImportService;
     }
 
@@ -32,7 +32,7 @@ public class AccountHistoryEventListener {
     @Async("threadPoolTaskExecutor")
     public void onAccountHistoryEvent(AccountHistoryEvent event) {
         try {
-            accountHistoryService.addMessage(event.getSource(), event.getMessage(), event.getOperator());
+            AccountHistoryManager.addMessage(event.getSource(), event.getMessage(), event.getOperator());
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("[AccountHistoryEventListener] accountHistoryService.addMessage Exception: " + e.getMessage());

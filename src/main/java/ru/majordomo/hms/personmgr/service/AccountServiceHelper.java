@@ -19,6 +19,7 @@ import ru.majordomo.hms.personmgr.dto.revisium.CheckResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.ResultStatus;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequest;
@@ -43,7 +44,7 @@ public class AccountServiceHelper {
     private final RevisiumRequestRepository revisiumRequestRepository;
     private final RevisiumApiClient revisiumApiClient;
     private final ApplicationEventPublisher publisher;
-    private final AccountHistoryService history;
+    private final AccountHistoryManager history;
 
     @Autowired
     public AccountServiceHelper(
@@ -54,7 +55,7 @@ public class AccountServiceHelper {
             RevisiumRequestRepository revisiumRequestRepository,
             RevisiumApiClient revisiumApiClient,
             ApplicationEventPublisher publisher,
-            AccountHistoryService history
+            AccountHistoryManager history
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.planRepository = planRepository;

@@ -11,22 +11,22 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
-import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 
 @Component
 public class AccountPromotionManagerImpl implements AccountPromotionManager {
     private final AccountPromotionRepository repository;
     private final MongoOperations mongoOperations;
-    private final AccountHistoryService history;
+    private final AccountHistoryManager history;
 
     @Autowired
     public AccountPromotionManagerImpl(
             AccountPromotionRepository repository,
             MongoOperations mongoOperations,
-            AccountHistoryService history
+            AccountHistoryManager history
     ) {
         this.repository = repository;
         this.mongoOperations = mongoOperations;

@@ -4,7 +4,6 @@ import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Predicate;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.querydsl.binding.QuerydslPredicate;
@@ -25,8 +24,6 @@ import ru.majordomo.hms.personmgr.model.account.AccountHistory;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.QAccountHistory;
 import ru.majordomo.hms.personmgr.querydsl.AccountHistoryQuerydslBinderCustomizer;
-import ru.majordomo.hms.personmgr.repository.AccountHistoryRepository;
-import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
@@ -36,25 +33,13 @@ import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 @Validated
 public class AccountHistoryRestController extends CommonRestController {
 
-    private final AccountHistoryRepository accountHistoryRepository;
-    private final AccountHistoryService accountHistoryService;
-
-    @Autowired
-    public AccountHistoryRestController(
-            AccountHistoryRepository accountHistoryRepository,
-            AccountHistoryService accountHistoryService
-    ) {
-        this.accountHistoryRepository = accountHistoryRepository;
-        this.accountHistoryService = accountHistoryService;
-    }
-
     @PreAuthorize("hasAuthority('ACCOUNT_HISTORY_VIEW')")
     @RequestMapping(value = "/{accountId}/account-history/{accountHistoryId}", method = RequestMethod.GET)
     public ResponseEntity<AccountHistory> getAccountHistory(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountHistory.class) @PathVariable(value = "accountHistoryId") String accountHistoryId
     ) {
-        AccountHistory accountHistory = accountHistoryRepository.findByIdAndPersonalAccountId(accountHistoryId, accountId);
+        AccountHistory accountHistory = history.findByIdAndPersonalAccountId(accountHistoryId, accountId);
 
         if(accountHistory == null){
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -84,7 +69,7 @@ public class AccountHistoryRestController extends CommonRestController {
             predicate = ExpressionUtils.allOf(predicate, personalAccountIdPredicate);
         }
 
-        Page<AccountHistory> accountHistories = accountHistoryRepository.findAll(predicate, pageable);
+        Page<AccountHistory> accountHistories = history.findAll(predicate, pageable);
 
         return new ResponseEntity<>(accountHistories, HttpStatus.OK);
     }
@@ -98,7 +83,7 @@ public class AccountHistoryRestController extends CommonRestController {
             ) Predicate predicate,
             Pageable pageable
     ) {
-        Page<AccountHistory> accountHistories = accountHistoryRepository.findAll(predicate, pageable);
+        Page<AccountHistory> accountHistories = history.findAll(predicate, pageable);
 
         return new ResponseEntity<>(accountHistories, HttpStatus.OK);
     }
@@ -117,7 +102,7 @@ public class AccountHistoryRestController extends CommonRestController {
         operator = (operator == null || operator.equals("")) ? request.getUserPrincipal().getName() : operator;
 
         if (historyMessage != null && operator != null) {
-            accountHistoryService.addMessage(accountId, historyMessage, operator);
+            history.addMessage(accountId, historyMessage, operator);
         }
 
         return new ResponseEntity<>(HttpStatus.OK);

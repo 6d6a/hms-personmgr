@@ -22,7 +22,7 @@ import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
-import ru.majordomo.hms.personmgr.service.AccountHistoryService;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
 import ru.majordomo.hms.personmgr.service.scheduler.RevisiumRequestScheduler;
@@ -43,7 +43,7 @@ public class ProcessingRevisiumRequestEventListener {
     private final RevisiumRequestScheduler scheduler;
     private final AccountNoticeRepository accountNoticeRepository;
     private final AccountNotificationHelper accountNotificationHelper;
-    private final AccountHistoryService history;
+    private final AccountHistoryManager history;
 
     @Autowired
     public ProcessingRevisiumRequestEventListener(
@@ -55,7 +55,7 @@ public class ProcessingRevisiumRequestEventListener {
             RevisiumRequestScheduler scheduler,
             AccountNoticeRepository accountNoticeRepository,
             AccountNotificationHelper accountNotificationHelper,
-            AccountHistoryService history
+            AccountHistoryManager history
     ) {
         this.revisiumApiClient = revisiumApiClient;
         this.publisher = publisher;

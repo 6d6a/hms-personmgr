@@ -22,6 +22,7 @@ import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
@@ -59,7 +60,7 @@ public class DomainService {
     private final PromotionRepository promotionRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     private final BusinessHelper businessHelper;
-    private final AccountHistoryService history;
+    private final AccountHistoryManager history;
 
     @Autowired
     public DomainService(
@@ -74,7 +75,7 @@ public class DomainService {
             PromotionRepository promotionRepository,
             AccountNotificationHelper accountNotificationHelper,
             BusinessHelper businessHelper,
-            AccountHistoryService history
+            AccountHistoryManager history
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;

@@ -27,6 +27,7 @@ import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -65,7 +66,7 @@ public class AccountHelper {
     private final PlanRepository planRepository;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountServiceHelper accountServiceHelper;
-    private final AccountHistoryService history;
+    private final AccountHistoryManager history;
 
     @Autowired
     public AccountHelper(
@@ -82,7 +83,7 @@ public class AccountHelper {
             PlanRepository planRepository,
             AccountAbonementManager accountAbonementManager,
             AccountServiceHelper accountServiceHelper,
-            AccountHistoryService history
+            AccountHistoryManager history
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;

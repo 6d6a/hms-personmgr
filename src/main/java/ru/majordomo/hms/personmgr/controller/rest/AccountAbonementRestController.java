@@ -32,7 +32,6 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.AccountHistoryService;
 import ru.majordomo.hms.personmgr.service.PlanChange.Factory;
 import ru.majordomo.hms.personmgr.service.PlanChange.Processor;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
@@ -48,7 +47,6 @@ public class AccountAbonementRestController extends CommonRestController {
     private final AccountHelper accountHelper;
     private final Factory planChangeFactory;
     private final PlanManager planManager;
-    private final AccountHistoryService history;
 
     @Autowired
     public AccountAbonementRestController(
@@ -57,8 +55,7 @@ public class AccountAbonementRestController extends CommonRestController {
             AbonementRepository abonementRepository,
             AccountHelper accountHelper,
             Factory planChangeFactory,
-            PlanManager planManager,
-            AccountHistoryService history
+            PlanManager planManager
     ) {
         this.accountAbonementManager = accountAbonementManager;
         this.abonementService = abonementService;
@@ -66,7 +63,6 @@ public class AccountAbonementRestController extends CommonRestController {
         this.accountHelper = accountHelper;
         this.planChangeFactory = planChangeFactory;
         this.planManager = planManager;
-        this.history = history;
     }
 
     @GetMapping("/{accountAbonementId}")
