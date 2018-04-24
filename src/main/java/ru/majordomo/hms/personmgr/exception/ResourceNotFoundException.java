@@ -14,8 +14,4 @@ public class ResourceNotFoundException extends BaseException {
         super(message);
     }
 
-    public ResourceNotFoundException(String message, String traceId) {
-        super(message, traceId);
-    }
-
 }

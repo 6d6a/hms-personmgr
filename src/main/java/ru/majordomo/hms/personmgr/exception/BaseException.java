@@ -14,19 +14,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
         defaultImpl = InternalApiException.class)
 @JsonSubTypes({
         @JsonSubTypes.Type(value = NotEnoughMoneyException.class, name = "NotEnoughMoneyException"),
-        @JsonSubTypes.Type(value = BusinessActionNotFoundException.class, name = "BusinessActionNotFoundException"),
-        @JsonSubTypes.Type(value = DomainNotAvailableException.class, name = "DomainNotAvailableException"),
-        @JsonSubTypes.Type(value = IncorrectStateException.class, name = "IncorrectStateException"),
         @JsonSubTypes.Type(value = ParameterWithRoleSecurityException.class, name = "ParameterWithRoleSecurityException"),
         @JsonSubTypes.Type(value = ParameterValidationException.class, name = "ParameterValidationException"),
         @JsonSubTypes.Type(value = ResourceNotFoundException.class, name = "ResourceNotFoundException"),
-        @JsonSubTypes.Type(value = DomainNotAvailableException.class, name = "DomainNotAvailableException"),
-        @JsonSubTypes.Type(value = NegativeAmountException.class, name = "NegativeAmountException"),
-        @JsonSubTypes.Type(value = PaymentCreditAlreadyExistException.class, name = "PaymentCreditAlreadyExistException"),
-        @JsonSubTypes.Type(value = PaymentMoreThenOneCreditException.class, name = "PaymentMoreThenOneCreditException"),
-        @JsonSubTypes.Type(value = PaymentTypeNotFoundException.class, name = "PaymentTypeNotFoundException"),
-        @JsonSubTypes.Type(value = PaymentWrongAmountException.class, name = "PaymentWrongAmountException"),
-        @JsonSubTypes.Type(value = RepositoryConstraintViolationException.class, name = "RepositoryConstraintViolationException"),
+        @JsonSubTypes.Type(value = RepositoryConstraintViolationException.class, name = "RepositoryConstraintViolationException")
 })
 
 @Data

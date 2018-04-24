@@ -8,7 +8,7 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.processingBusinessAction.ProcessingBusinessActionNewEvent;
-import ru.majordomo.hms.personmgr.exception.BusinessActionNotFoundException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.model.business.BusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
@@ -72,19 +72,18 @@ public class BusinessHelper {
     ) {
         BusinessAction businessAction = businessActionRepository.findByBusinessActionType(businessActionType);
 
-        ProcessingBusinessAction processingBusinessAction;
-
-        if (businessAction != null) {
-            processingBusinessAction = new ProcessingBusinessAction(businessAction);
-
-            processingBusinessAction.setMessage(message);
-            processingBusinessAction.setOperationId(message.getOperationIdentity());
-            processingBusinessAction.setParams(message.getParams());
-            processingBusinessAction.setState(State.NEED_TO_PROCESS);
-            processingBusinessAction.setPersonalAccountId(message.getAccountId());
-        } else {
-            throw new BusinessActionNotFoundException();
+        if (businessAction == null) {
+            throw new ResourceNotFoundException("BusinessAction with type " + businessActionType + " not found");
         }
+
+        ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(businessAction);
+
+        processingBusinessAction.setMessage(message);
+        processingBusinessAction.setOperationId(message.getOperationIdentity());
+        processingBusinessAction.setParams(message.getParams());
+        processingBusinessAction.setState(State.NEED_TO_PROCESS);
+        processingBusinessAction.setPersonalAccountId(message.getAccountId());
+
         processingBusinessActionRepository.save(processingBusinessAction);
 
         publisher.publishEvent(new ProcessingBusinessActionNewEvent(processingBusinessAction));

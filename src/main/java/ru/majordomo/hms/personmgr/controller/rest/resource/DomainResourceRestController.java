@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
-import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
@@ -12,7 +11,6 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
-import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
@@ -92,18 +90,10 @@ public class DomainResourceRestController extends CommonRestController {
 
         String parentDomainId = (String) message.getParam("parentDomainId");
         if (parentDomainId != null && !parentDomainId.equals("")) {
-            try {
-                Domain parentDomain = rcUserFeignClient.getDomain(accountId, parentDomainId);
+            Domain parentDomain = rcUserFeignClient.getDomain(accountId, parentDomainId);
 
-                domainName = domainName.substring(domainName.length() - 1).equals(".") ?
-                        domainName + parentDomain.getName() : domainName + "." + parentDomain.getName();
-            } catch (Exception e) {
-                if (!(e instanceof FeignException) || ((FeignException) e).status() != 404 ) {
-                    e.printStackTrace();
-                    throw e;
-                }
-                throw new ResourceNotFoundException("Домен c ID: " + parentDomainId + " не найден на аккаунте.");
-            }
+            domainName = domainName.substring(domainName.length() - 1).equals(".") ?
+                    domainName + parentDomain.getName() : domainName + "." + parentDomain.getName();
         }
 
         domainService.checkBlacklist(domainName, accountId);
@@ -115,7 +105,7 @@ public class DomainResourceRestController extends CommonRestController {
             //Проверить домен на премиальность
             AvailabilityInfo availabilityInfo = domainRegistrarFeignClient.getAvailabilityInfo(domainName);
             if (!availabilityInfo.getFree()) {
-                throw new DomainNotAvailableException("Домен: " + domainName + " по данным whois занят.");
+                throw new ResourceNotFoundException("Домен: " + domainName + " по данным whois занят.");
             }
 
             List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountId(account.getId());
