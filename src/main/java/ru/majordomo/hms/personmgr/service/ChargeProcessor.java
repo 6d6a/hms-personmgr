@@ -159,7 +159,9 @@ public class ChargeProcessor {
                             }
 
                             chargeRequestItem.setStatus(Status.SKIPPED);
+                            chargeRequestItem.setMessage(chargeResult.getMessage());
                             chargeRequest.setStatus(Status.SKIPPED);
+                            chargeRequestItem.setMessage(chargeResult.getMessage());
 
                             chargeRequestManager.save(chargeRequest);
 
@@ -169,8 +171,11 @@ public class ChargeProcessor {
                             accountHelper.disableAdditionalService(accountService);
                     }
                     chargeRequestItem.setStatus(Status.SKIPPED);
+                    chargeRequestItem.setMessage(chargeResult.getMessage());
                 } else {
                     chargeRequestItem.setStatus(Status.ERROR);
+                    chargeRequestItem.setMessage(chargeResult.getMessage());
+                    chargeRequestItem.setException(chargeResult.getException());
                 }
             }
         }
@@ -183,6 +188,8 @@ public class ChargeProcessor {
             } catch (Exception e) {
                 e.printStackTrace();
                 chargeRequest.setStatus(Status.ERROR);
+                chargeRequest.setMessage(e.getMessage());
+                chargeRequest.setException(e.getClass().getName());
             }
             // Если были списания, то отправить уведомления
             notifyAccountRemainingDays(account, dailyCost);

@@ -30,4 +30,11 @@ public interface ChargeRequestItem {
 
     void setChargeDate(LocalDate chargeDate);
 
+    void setMessage(String message);
+
+    String getMessage();
+
+    String getException();
+
+    void setException(String exception);
 }
