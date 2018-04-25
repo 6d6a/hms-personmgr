@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import ru.majordomo.hms.personmgr.common.OrderState;
-import ru.majordomo.hms.personmgr.exception.IncorrectStateException;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.order.AccountOrder;
 import ru.majordomo.hms.personmgr.repository.AccountOrderRepository;
 
@@ -75,7 +75,7 @@ public abstract class OrderManager<T extends AccountOrder> {
                 decline(accountOrder, operator);
                 break;
             case IN_PROGRESS:
-                throw new IncorrectStateException("Состояние не может быть изменено на " + OrderState.IN_PROGRESS.name());
+                throw new ParameterValidationException("Состояние не может быть изменено на " + OrderState.IN_PROGRESS.name());
         }
     }
 

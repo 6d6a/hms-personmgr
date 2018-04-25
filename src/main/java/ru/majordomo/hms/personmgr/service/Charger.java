@@ -71,11 +71,11 @@ public class Charger {
             response = accountHelper.charge(account, chargeMessage);
         } catch (NotEnoughMoneyException e) {
             logger.info("Error. accountHelper.charge returned NotEnoughMoneyException for service: " + accountService.toString());
-            return ChargeResult.error();
+            return ChargeResult.error(e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in Charger.makeCharge " + e.getMessage());
-            return ChargeResult.errorWithException();
+            return ChargeResult.errorWithException(e);
         }
 
         if (response != null && response.getParam("success") != null && ((boolean) response.getParam("success"))) {
@@ -89,6 +89,7 @@ public class Charger {
             logger.info("Error. Charge Processor returned false for service: " + accountService.toString());
         }
 
-        return ChargeResult.error();
+        return ChargeResult.error("Not success response. response: " +
+                (response == null ? " null" : response.toString()));
     }
 }
