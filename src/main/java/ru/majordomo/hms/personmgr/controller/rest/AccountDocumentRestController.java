@@ -48,7 +48,7 @@ import static ru.majordomo.hms.personmgr.common.DocumentType.*;
 
 @RestController
 @RequestMapping("/{accountId}/document")
-public class AccountDocumentRestController {
+public class AccountDocumentRestController { 
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
