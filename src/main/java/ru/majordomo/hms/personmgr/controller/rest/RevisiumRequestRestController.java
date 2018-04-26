@@ -164,7 +164,7 @@ public class RevisiumRequestRestController extends CommonRestController {
         ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService).setComment(revisiumRequestService.getSiteUrl()).build();
         accountHelper.charge(account, chargeMessage);
 
-        accountHelper.saveHistory(account, "Произведен заказ продления услуги " + paymentService.getName(), request);
+        history.save(account, "Произведен заказ продления услуги " + paymentService.getName(), request);
 
         accountServiceHelper.prolongAccountServiceExpiration(account, revisiumRequestService.getAccountServiceId(), 1L);
 
@@ -240,7 +240,7 @@ public class RevisiumRequestRestController extends CommonRestController {
         //Добавляем услугу
         AccountService accountService = accountServiceHelper.addAccountService(account, paymentService.getId());
 
-        accountHelper.saveHistory(account, "Произведен заказ услуги " + paymentService.getName(), request);
+        history.save(account, "Произведен заказ услуги " + paymentService.getName(), request);
 
         //Дата окончания действия услуги
         accountServiceHelper.prolongAccountServiceExpiration(account, accountService.getId(), 1L);

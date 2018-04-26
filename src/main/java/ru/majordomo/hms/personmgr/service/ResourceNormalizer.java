@@ -10,6 +10,7 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
@@ -24,19 +25,19 @@ import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_ID_KEY;
 public class ResourceNormalizer {
     private final RcUserFeignClient rcUserFeignClient;
     private final RcStaffFeignClient rcStaffFeignClient;
-    private final AccountHelper accountHelper;
     private final BusinessHelper businessHelper;
+    private final AccountHistoryManager history;
 
     public ResourceNormalizer(
             RcUserFeignClient rcUserFeignClient,
             RcStaffFeignClient rcStaffFeignClient,
-            AccountHelper accountHelper,
-            BusinessHelper businessHelper
+            BusinessHelper businessHelper,
+            AccountHistoryManager history
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;
-        this.accountHelper = accountHelper;
         this.businessHelper = businessHelper;
+        this.history = history;
     }
 
     public void normalizeResources(PersonalAccount account, ResourceType resourceType, Plan plan, boolean applyChanges) {
@@ -115,7 +116,7 @@ public class ResourceNormalizer {
 
                             String historyMessage = "Отправлена заявка на изменение serviceId сайта '" + webSite.getName() + "'";
 
-                            accountHelper.saveHistoryForOperatorService(account, historyMessage);
+                            history.saveForOperatorService(account, historyMessage);
                         }
                     }
                 }

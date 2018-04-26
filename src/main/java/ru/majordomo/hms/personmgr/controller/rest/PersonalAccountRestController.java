@@ -92,7 +92,8 @@ public class PersonalAccountRestController extends CommonRestController {
             AccountServiceHelper accountServiceHelper,
             Factory planChangeFactory,
             AccountNotificationHelper accountNotificationHelper,
-            SiFeignClient siFeignClient) {
+            SiFeignClient siFeignClient
+    ) {
         this.planRepository = planRepository;
         this.accountOwnerManager = accountOwnerManager;
         this.rcUserFeignClient = rcUserFeignClient;
@@ -255,7 +256,7 @@ public class PersonalAccountRestController extends CommonRestController {
         accountOwnerManager.save(accountOwner);
 
         String ip = getClientIP(request);
-        accountHelper.saveHistoryForOperatorService(account,
+        history.saveForOperatorService(account,
                 "С IP " + ip + "подтверждено изменение контактных адресов с "
                         + oldEmails
                         + " на " + newEmails.toString()
@@ -425,7 +426,7 @@ public class PersonalAccountRestController extends CommonRestController {
         } else {
             code = accountHelper.giveGooglePromocode(account);
             message.put("promocode", code);
-            accountHelper.saveHistory(account, "Пользователю выдан промокод google adwords (" + code + ")", request);
+            history.save(account, "Пользователю выдан промокод google adwords (" + code + ")", request);
         }
 
         return new ResponseEntity<>(
@@ -450,7 +451,7 @@ public class PersonalAccountRestController extends CommonRestController {
         accountManager.setCreditActivationDate(accountId, newCreditActivationDate);
 
         String operator = request.getUserPrincipal().getName();
-        accountHelper.saveHistory(
+        history.save(
                 accountId,
                 "Дата активации кредита изменена с " + account.getCreditActivationDate() + " на " + newCreditActivationDate,
                 operator
@@ -486,7 +487,7 @@ public class PersonalAccountRestController extends CommonRestController {
             }
             accountManager.setCredit(accountId, credit);
 
-            accountHelper.saveHistory(account, (credit ? "Включен" : "Выключен") + " кредит", request);
+            history.save(account, (credit ? "Включен" : "Выключен") + " кредит", request);
         }
 
         if (requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED.name()) != null) {
@@ -497,7 +498,7 @@ public class PersonalAccountRestController extends CommonRestController {
             account.setAddQuotaIfOverquoted(addQuotaIfOverquoted);
             publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
 
-            accountHelper.saveHistory(account, (addQuotaIfOverquoted ? "Включено" : "Выключено") + " добавление квоты при превышении доступной по тарифу", request);
+            history.save(account, (addQuotaIfOverquoted ? "Включено" : "Выключено") + " добавление квоты при превышении доступной по тарифу", request);
 
             String quotaServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
             publisher.publishEvent(new UserDisabledServiceEvent(account.getId(), quotaServiceId));
@@ -507,7 +508,7 @@ public class PersonalAccountRestController extends CommonRestController {
             Boolean autoBillSending = (Boolean) requestBody.get(AccountSetting.AUTO_BILL_SENDING.name());
             accountManager.setAutoBillSending(accountId, autoBillSending);
 
-            accountHelper.saveHistory(account, (autoBillSending ? "Включена" : "Выключена") + " автоматическая отправка бухгалтерских документов", request);
+            history.save(account, (autoBillSending ? "Включена" : "Выключена") + " автоматическая отправка бухгалтерских документов", request);
         }
 
         if (requestBody.get(AccountSetting.NOTIFY_DAYS.name()) != null) {
@@ -520,7 +521,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
             accountManager.setNotifyDays(accountId, notifyDays);
 
-            accountHelper.saveHistory(account, "Установлен срок отправки уведомлений об окончании оплаченного периода хостинга на '" + notifyDays + "' дней", request);
+            history.save(account, "Установлен срок отправки уведомлений об окончании оплаченного периода хостинга на '" + notifyDays + "' дней", request);
         }
 
         if (requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name()) != null) {
@@ -536,7 +537,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
             accountManager.setSmsPhoneNumber(accountId, smsPhoneNumber);
 
-            accountHelper.saveHistory(account, "Установлен телефон для СМС-уведомлений на '" + smsPhoneNumber + "'", request);
+            history.save(account, "Установлен телефон для СМС-уведомлений на '" + smsPhoneNumber + "'", request);
         }
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -558,7 +559,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         accountManager.setNotifications(accountId, filteredNotifications);
 
-        accountHelper.saveHistory(account, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + filteredNotifications + "]", request);
+        history.save(account, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + filteredNotifications + "]", request);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -628,7 +629,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         accountHelper.switchAccountActiveState(account, !account.isActive());
 
-        accountHelper.saveHistory(account, "Аккаунт " + (!account.isActive() ? "включен" : "выключен"), request);
+        history.save(account, "Аккаунт " + (!account.isActive() ? "включен" : "выключен"), request);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -654,7 +655,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         accountManager.setDeleted(accountId, delete);
 
-        accountHelper.saveHistory(account, "Аккаунт " + (delete ? "удален" : "воскрешен"), request);
+        history.save(account, "Аккаунт " + (delete ? "удален" : "воскрешен"), request);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -683,7 +684,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
         accountManager.setNotifications(account.getId(), notifications);
         String message = "Уведомления [" + pattern + "] изменены c [" + oldNotificationsAsString + "] на [" + newNotificationsAsString + "]";
-        accountHelper.saveHistory(account, message, request);
+        history.save(account, message, request);
     }
 
     private void setNotification(String accountId, MailManagerMessageType messageType, boolean state, SecurityContextHolderAwareRequestWrapper request) {
@@ -707,7 +708,7 @@ public class PersonalAccountRestController extends CommonRestController {
         }
         if (change) {
             accountManager.setNotifications(accountId, notifications);
-            accountHelper.saveHistory(account, notification.getName() + (state ? " включено." : " отключено."), request);
+            history.save(account, notification.getName() + (state ? " включено." : " отключено."), request);
         }
     }
 }

@@ -59,7 +59,7 @@ public class DatabaseResourceRestController extends CommonRestController {
                 message
         );
 
-        saveHistory(request, accountId, "Поступила заявка на создание базы данных (имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на создание базы данных (имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -97,7 +97,7 @@ public class DatabaseResourceRestController extends CommonRestController {
                 message
         );
 
-        saveHistory(request, accountId,"Поступила заявка на обновление базы данных (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        history.save(accountId,"Поступила заявка на обновление базы данных (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -120,7 +120,7 @@ public class DatabaseResourceRestController extends CommonRestController {
                 message
         );
 
-        saveHistory(request, accountId, "Поступила заявка на удаление базы данных (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на удаление базы данных (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }

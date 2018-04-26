@@ -39,7 +39,7 @@ public class FtpUserResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_CREATE, BusinessActionType.FTP_USER_CREATE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на создание FTP-пользователя (имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на создание FTP-пользователя (имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -62,7 +62,7 @@ public class FtpUserResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_UPDATE, BusinessActionType.FTP_USER_UPDATE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на обновление FTP-пользователя (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на обновление FTP-пользователя (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -81,7 +81,7 @@ public class FtpUserResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_DELETE, BusinessActionType.FTP_USER_DELETE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на удаление FTP-пользователя (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на удаление FTP-пользователя (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }

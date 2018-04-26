@@ -6,6 +6,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
@@ -19,7 +20,7 @@ public class Factory {
     private final FinFeignClient finFeignClient;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountStatRepository accountStatRepository;
-    private final AccountHistoryService accountHistoryService;
+    private final AccountHistoryManager AccountHistoryManager;
     private final PersonalAccountManager accountManager;
     private final PaymentServiceRepository paymentServiceRepository;
     private final AccountCountersService accountCountersService;
@@ -36,7 +37,7 @@ public class Factory {
             FinFeignClient finFeignClient,
             AccountAbonementManager accountAbonementManager,
             AccountStatRepository accountStatRepository,
-            AccountHistoryService accountHistoryService,
+            AccountHistoryManager AccountHistoryManager,
             PersonalAccountManager accountManager,
             PaymentServiceRepository paymentServiceRepository,
             AccountCountersService accountCountersService,
@@ -51,7 +52,7 @@ public class Factory {
         this.finFeignClient = finFeignClient;
         this.accountAbonementManager = accountAbonementManager;
         this.accountStatRepository = accountStatRepository;
-        this.accountHistoryService = accountHistoryService;
+        this.AccountHistoryManager = AccountHistoryManager;
         this.accountManager = accountManager;
         this.paymentServiceRepository = paymentServiceRepository;
         this.accountCountersService = accountCountersService;
@@ -101,7 +102,7 @@ public class Factory {
                 finFeignClient,
                 accountAbonementManager,
                 accountStatRepository,
-                accountHistoryService,
+                AccountHistoryManager,
                 accountManager,
                 paymentServiceRepository,
                 accountCountersService,

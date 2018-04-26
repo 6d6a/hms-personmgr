@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
-import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -20,7 +19,6 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.BaseException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
@@ -64,6 +62,7 @@ public class AccountHelper {
     private final PlanRepository planRepository;
     private final AccountAbonementManager accountAbonementManager;
     private final AccountServiceHelper accountServiceHelper;
+    private final AccountHistoryManager history;
     private final PlanManager planManager;
 
     @Autowired
@@ -81,6 +80,7 @@ public class AccountHelper {
             PlanRepository planRepository,
             AccountAbonementManager accountAbonementManager,
             AccountServiceHelper accountServiceHelper,
+            AccountHistoryManager history,
             PlanManager planManager
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
@@ -96,6 +96,7 @@ public class AccountHelper {
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
         this.accountServiceHelper = accountServiceHelper;
+        this.history = history;
         this.planManager = planManager;
     }
 
@@ -381,7 +382,7 @@ public class AccountHelper {
 
             accountPromotionManager.insert(accountPromotion);
 
-            saveHistoryForOperatorService(account, "Добавлен бонус " + accountPromotion.getPromotion().getName());
+            history.saveForOperatorService(account, "Добавлен бонус " + accountPromotion.getPromotion().getName());
         }
     }
 
@@ -461,7 +462,7 @@ public class AccountHelper {
 
     public void switchAccountActiveState(PersonalAccount account, Boolean state) {
         if (account.isActive() != state) {
-            saveHistoryForOperatorService(account, "Аккаунт " + (state ? "включен" : "выключен"));
+            history.saveForOperatorService(account, "Аккаунт " + (state ? "включен" : "выключен"));
 
             accountManager.setActive(account.getId(), state);
             switchAccountResources(account, state);
@@ -483,7 +484,7 @@ public class AccountHelper {
 
             String historyMessage = "Отправлена заявка на" + (state ? "включение" : "отключение") + "анти-спама у почтового ящика '"
                     + mailbox.getFullName() + "' в связи с " + (state ? "включением" : "отключением") + " услуги";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
         }
     }
 
@@ -502,7 +503,7 @@ public class AccountHelper {
                 businessHelper.buildAction(BusinessActionType.WEB_SITE_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " сайта '" + webSite.getName() + "'";
-                saveHistoryForOperatorService(account, historyMessage);
+                history.saveForOperatorService(account, historyMessage);
             }
 
         } catch (Exception e) {
@@ -524,7 +525,7 @@ public class AccountHelper {
                 businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " пользователя базы данных '" + databaseUser.getName() + "'";
-                saveHistoryForOperatorService(account, historyMessage);
+                history.saveForOperatorService(account, historyMessage);
             }
 
         } catch (Exception e) {
@@ -546,7 +547,7 @@ public class AccountHelper {
                 businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getFullName() + "'";
-                saveHistoryForOperatorService(account, historyMessage);
+                history.saveForOperatorService(account, historyMessage);
             }
 
         } catch (Exception e) {
@@ -568,7 +569,7 @@ public class AccountHelper {
                 businessHelper.buildAction(BusinessActionType.DOMAIN_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " домена '" + domain.getName() + "'";
-                saveHistoryForOperatorService(account, historyMessage);
+                history.saveForOperatorService(account, historyMessage);
             }
 
         } catch (Exception e) {
@@ -590,7 +591,7 @@ public class AccountHelper {
                 businessHelper.buildAction(BusinessActionType.FTP_USER_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " FTP-пользователя '" + ftpUser.getName() + "'";
-                saveHistoryForOperatorService(account, historyMessage);
+                history.saveForOperatorService(account, historyMessage);
             }
 
         } catch (Exception e) {
@@ -612,7 +613,7 @@ public class AccountHelper {
                 businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " UNIX-аккаунта '" + unixAccount.getName() + "'";
-                saveHistoryForOperatorService(account, historyMessage);
+                history.saveForOperatorService(account, historyMessage);
             }
 
         } catch (Exception e) {
@@ -679,7 +680,7 @@ public class AccountHelper {
 
                     String historyMessage = "Отправлена заявка на установку новой квоты в значение '" + quotaInBytes +
                             " байт' для UNIX-аккаунта '" + unixAccount.getName() + "'";
-                    saveHistoryForOperatorService(account, historyMessage);
+                    history.saveForOperatorService(account, historyMessage);
                 }
             }
 
@@ -701,7 +702,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
 
             String historyMessage = "Отправлена заявка на удаление SSL сертификата '" + sslCertificate.getName() + "'";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
         }
     }
 
@@ -717,7 +718,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.MAILBOX_DELETE_RC, message);
 
             String historyMessage = "Отправлена заявка на удаление почтового ящика '" + mailbox.getName() + "'";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
         }
     }
 
@@ -733,7 +734,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.DATABASE_DELETE_RC, message);
 
             String historyMessage = "Отправлена заявка на удаление базы данных '" + database.getName() + "'";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
         }
     }
 
@@ -749,7 +750,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.DATABASE_USER_DELETE_RC, message);
 
             String historyMessage = "Отправлена заявка на удаление пользователя баз данных '" + databaseUser.getName() + "'";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
         }
     }
 
@@ -767,7 +768,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на выключение и отложенное удаление почтового ящика '" + mailbox.getName() + "'";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
         }
     }
 
@@ -785,7 +786,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.DATABASE_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на выключение и отложенное удаление базы данных '" + database.getName() + "'";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
         }
     }
 
@@ -803,7 +804,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на выключение и отложенное удаление пользователя баз данных '" + databaseUser.getName() + "'";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
         }
     }
 
@@ -820,7 +821,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на отмену отложенного удаления почтового ящика '" + mailbox.getName() + "'";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
         }
     }
 
@@ -837,7 +838,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.DATABASE_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на отмену отложенного удаления базы данных '" + database.getName() + "'";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
         }
     }
 
@@ -854,7 +855,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на отмену отложенного удаления пользователя баз данных '" + databaseUser.getName() + "'";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
         }
     }
 
@@ -971,7 +972,7 @@ public class AccountHelper {
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
                     " возможности записывать данные (writable) для UNIX-аккаунта '" + unixAccount.getName() + "'";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
 
         } catch (Exception e) {
             logger.error("account unixAccount [" + unixAccount.getId() + "] writable switch failed for accountId: " + account.getId());
@@ -992,7 +993,7 @@ public class AccountHelper {
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
                     " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getFullName() + "'";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
 
 
         } catch (Exception e) {
@@ -1014,41 +1015,12 @@ public class AccountHelper {
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
                     " возможности записывать данные (writable) для базы данных '" + database.getName() + "'";
-            saveHistoryForOperatorService(account, historyMessage);
+            history.saveForOperatorService(account, historyMessage);
 
         } catch (Exception e) {
             logger.error("account Database [" + database.getName() + "] writable switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
-    }
-
-    public void saveHistory(PersonalAccount account, String message, SecurityContextHolderAwareRequestWrapper request) {
-        saveHistory(account.getId(), message, request);
-    }
-
-    public void saveHistory(String personalAccountId, String message, SecurityContextHolderAwareRequestWrapper request) {
-        String operator = "unknown";
-        try {
-            operator = request.getUserPrincipal().getName();
-        } catch (Throwable ignore) {}
-
-        saveHistory(personalAccountId, message, operator);
-    }
-
-    public void saveHistoryForOperatorService(PersonalAccount account, String message) {
-        this.saveHistory(account, message, "service");
-    }
-
-    public void saveHistory(PersonalAccount account, String message, String operator) {
-        this.saveHistory(account.getId(), message, operator);
-    }
-
-    public void saveHistory(String personalAccountId, String message, String operator) {
-        Map<String, String> paramsHistory = new HashMap<>();
-        paramsHistory.put(HISTORY_MESSAGE_KEY, message);
-        paramsHistory.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(personalAccountId, paramsHistory));
     }
 
     public Boolean hasActiveCredit(PersonalAccount account) {
@@ -1080,7 +1052,7 @@ public class AccountHelper {
         if (account.getCreditActivationDate() == null) {
             LocalDateTime now = LocalDateTime.now();
             accountManager.setCreditActivationDate(account.getId(), now);
-            saveHistoryForOperatorService(account, "Установлена дата активации кредита на " + now);
+            history.saveForOperatorService(account, "Установлена дата активации кредита на " + now);
         }
     }
 
@@ -1114,7 +1086,7 @@ public class AccountHelper {
 //            Для SMS достаточно выключать сервис
 //            TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
         }
-        this.saveHistoryForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
+        history.saveForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
     }
 
     public Boolean isExpirationServiceNeedProlong(AccountServiceExpiration expiration) {

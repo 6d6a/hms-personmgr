@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 import javax.validation.Valid;
 
 import ru.majordomo.hms.personmgr.event.account.AccountOwnerChangeEmailEvent;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -37,9 +36,7 @@ import ru.majordomo.hms.personmgr.model.account.QAccountOwner;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.MAILING_TYPE_INFO;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_NEWS;
 import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
 
@@ -97,7 +94,6 @@ public class AccountOwnerRestController extends CommonRestController {
 
         //Запишем инфу о произведенном изменении владельца в историю клиента
         String operator = request.getUserPrincipal().getName();
-        Map<String, String> params = new HashMap<>();
 
         String ip = getClientIP(request);
         if (changeEmail) {
@@ -115,10 +111,7 @@ public class AccountOwnerRestController extends CommonRestController {
             historyMessage += " Ожидается подтверждение смены контактных Email на " + owner.getContactInfo().getEmailAddresses();
         }
 
-        params.put(HISTORY_MESSAGE_KEY, historyMessage);
-        params.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(accountId, params));
+        history.save(accountId, historyMessage, operator);
 
         return new ResponseEntity<>(savedOwner, HttpStatus.OK);
     }

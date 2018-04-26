@@ -1,42 +1,36 @@
 package ru.majordomo.hms.personmgr.manager.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
-import org.springframework.integration.annotation.Publisher;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
-
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 
 @Component
 public class AccountPromotionManagerImpl implements AccountPromotionManager {
     private final AccountPromotionRepository repository;
     private final MongoOperations mongoOperations;
-    private final ApplicationEventPublisher publisher;
+    private final AccountHistoryManager history;
 
     @Autowired
     public AccountPromotionManagerImpl(
             AccountPromotionRepository repository,
             MongoOperations mongoOperations,
-            ApplicationEventPublisher publisher
+            AccountHistoryManager history
     ) {
         this.repository = repository;
         this.mongoOperations = mongoOperations;
-        this.publisher = publisher;
+        this.history = history;
     }
 
     @Override
@@ -142,13 +136,11 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
 
             mongoOperations.updateFirst(query, update, AccountPromotion.class);
 
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "AccountPromotion Id: " + id + " Action Id: " + actionId + " помечен как " +
-                    (status ? "активный" : "неактивный")
+            history.save(
+                    accountPromotion.getPersonalAccountId(),
+                    "AccountPromotion Id: " + id + " Action Id: " + actionId + " помечен как " + (status ? "активный" : "неактивный"),
+                    "service"
             );
-            params.put(OPERATOR_KEY, "service");
-
-            publisher.publishEvent(new AccountHistoryEvent(accountPromotion.getPersonalAccountId(), params));
         }
     }
 

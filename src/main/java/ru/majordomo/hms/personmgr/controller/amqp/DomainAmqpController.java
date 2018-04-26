@@ -72,7 +72,7 @@ public class DomainAmqpController extends CommonAmqpController {
 
                 cartManager.deleteCartItemByName(businessAction.getPersonalAccountId(), domainName);
 
-                saveHistory(businessAction.getPersonalAccountId(),
+                history.save(businessAction.getPersonalAccountId(),
                         "Заявка на создание домена выполнена успешно (имя: " + domainName + ")",
                         "service");
             } else {
@@ -123,7 +123,7 @@ public class DomainAmqpController extends CommonAmqpController {
                 publisher.publishEvent(new AccountStatDomainUpdateEvent(message));
             }
 
-            saveHistory(businessAction.getPersonalAccountId(),
+            history.save(businessAction.getPersonalAccountId(),
                     "Заявка на " + renewAction + " домена выполнена успешно (имя: " + domainName + ")",
                     "service");
 

@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.event.account.AccountProcessOneTimeServiceEvent;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -14,6 +13,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.repository.AccountServiceExpirationRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
 
@@ -30,18 +30,21 @@ public class AccountOneTimeServiceEventListener {
     private final AccountServiceExpirationRepository accountServiceExpirationRepository;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
+    private final AccountHistoryManager history;
 
     @Autowired
     public AccountOneTimeServiceEventListener(
             PersonalAccountManager personalAccountManager,
             AccountServiceExpirationRepository accountServiceExpirationRepository,
             AccountHelper accountHelper,
-            AccountServiceHelper accountServiceHelper
+            AccountServiceHelper accountServiceHelper,
+            AccountHistoryManager history
     ) {
         this.personalAccountManager = personalAccountManager;
         this.accountServiceExpirationRepository = accountServiceExpirationRepository;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
+        this.history = history;
     }
 
     @EventListener
@@ -77,7 +80,7 @@ public class AccountOneTimeServiceEventListener {
                     accountServiceHelper.prolongAccountServiceExpiration(account, item.getAccountService().getId(), 1L);
                     prolongSuccessful = true;
 
-                    accountHelper.saveHistoryForOperatorService(account,
+                    history.saveForOperatorService(account,
                             "Автоматическое продление услуги: '" + item.getAccountService().getPaymentService().getName() + "'. Со счета аккаунта списано " +
                                     formatBigDecimalWithCurrency(item.getAccountService().getPaymentService().getCost())
                     );

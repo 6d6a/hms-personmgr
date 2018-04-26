@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.service;
 
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -15,8 +14,8 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.AccountTransferRequest;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
@@ -40,7 +39,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_STR
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_TYPE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DELAY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DNS_RECORD_SENT_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_UNIX_ACCOUNT_SERVER_ID_KEY;
@@ -52,7 +50,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.OLD_HTTP_PROXY_IP_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_SERVER_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_UNIX_ACCOUNT_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_WEBSITE_SERVER_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PM_PARAM_PREFIX_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.REVERTING_KEY;
@@ -72,7 +69,7 @@ public class AccountTransferService {
     private final BusinessHelper businessHelper;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
-    private final ApplicationEventPublisher publisher;
+    private final AccountHistoryManager history;
 
     public AccountTransferService(
             RcUserFeignClient rcUserFeignClient,
@@ -80,14 +77,14 @@ public class AccountTransferService {
             BusinessHelper businessHelper,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
             ProcessingBusinessActionRepository processingBusinessActionRepository,
-            ApplicationEventPublisher publisher
+            AccountHistoryManager history
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;
         this.businessHelper = businessHelper;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
         this.processingBusinessActionRepository = processingBusinessActionRepository;
-        this.publisher = publisher;
+        this.history = history;
     }
 
     public ProcessingBusinessAction startTransfer(SimpleServiceMessage message) {
@@ -119,13 +116,11 @@ public class AccountTransferService {
         Boolean reverting = (Boolean) processingBusinessOperation.getParam(REVERTING_KEY);
 
         if (reverting == null || !reverting) {
-            //Save history
-            String operator = "service";
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Произошла ошибка во время переноса аккаунта, производится откат изменений.");
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(processingBusinessOperation.getPersonalAccountId(), params));
+            history.save(
+                    processingBusinessOperation.getPersonalAccountId(),
+                    "Произошла ошибка во время переноса аккаунта, производится откат изменений.",
+                    "service"
+            );
 
             processingBusinessOperation.addParam(REVERTING_KEY, true);
             processingBusinessOperation.addParam(REVERTING_KEY, true);
@@ -466,13 +461,11 @@ public class AccountTransferService {
             processingBusinessOperation.setState(State.PROCESSED);
             processingBusinessOperationRepository.save(processingBusinessOperation);
 
-            //Save history
-            String operator = "service";
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Перенос аккаунта успешно завершен. ДНС-записи изменены.");
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(processingBusinessOperation.getPersonalAccountId(), params));
+            history.save(
+                    processingBusinessOperation.getPersonalAccountId(),
+                    "Перенос аккаунта успешно завершен. ДНС-записи изменены.",
+                    "service"
+            );
         }
     }
 
@@ -651,13 +644,11 @@ public class AccountTransferService {
         if (processingBusinessAction == null) {
             processingBusinessOperation.setState(State.PROCESSED);
 
-            //Save history
-            String operator = "service";
-            Map<String, String> params = new HashMap<>();
-            params.put(HISTORY_MESSAGE_KEY, "Перенос аккаунта успешно завершен. ДНС-записи изменены.");
-            params.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(processingBusinessOperation.getPersonalAccountId(), params));
+            history.save(
+                    processingBusinessOperation.getPersonalAccountId(),
+                    "Перенос аккаунта успешно завершен. ДНС-записи изменены.",
+                    "service"
+            );
         }
 
         processingBusinessOperationRepository.save(processingBusinessOperation);

@@ -43,7 +43,7 @@ public class PersonResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.PERSON_CREATE, BusinessActionType.PERSON_CREATE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на создание персоны (имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на создание персоны (имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -62,7 +62,7 @@ public class PersonResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.PERSON_UPDATE, BusinessActionType.PERSON_UPDATE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на обновление персоны (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на обновление персоны (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -81,7 +81,7 @@ public class PersonResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.PERSON_DELETE, BusinessActionType.PERSON_DELETE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на удаление персоны (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на удаление персоны (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")",request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }

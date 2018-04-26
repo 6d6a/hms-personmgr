@@ -108,7 +108,7 @@ public class SslCertificateResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.SSL_CERTIFICATE_CREATE, BusinessActionType.SSL_CERTIFICATE_CREATE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на создание SSL-сертификата (имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на создание SSL-сертификата (имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -127,7 +127,7 @@ public class SslCertificateResourceRestController extends CommonRestController {
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.SSL_CERTIFICATE_DELETE, BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
 
-        saveHistory(request, accountId, "Поступила заявка на удаление SSL-сертификата (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")");
+        history.save(accountId, "Поступила заявка на удаление SSL-сертификата (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }

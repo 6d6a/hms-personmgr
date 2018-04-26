@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.test.context.ActiveProfiles;
@@ -19,6 +20,7 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.config.AppConfigTest;
 import ru.majordomo.hms.personmgr.config.MongoConfigTest;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
@@ -38,6 +40,9 @@ public class AccountPromotionManagerImplTest {
 
     @Autowired
     private AccountPromotionRepository repository;
+
+    @MockBean(name="accountHistoryManager")
+    private AccountHistoryManager accountHistoryManager;
 
     @Before
     public void setUp() throws Exception {

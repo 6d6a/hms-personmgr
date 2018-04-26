@@ -7,10 +7,10 @@ import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
@@ -35,8 +35,6 @@ import java.util.Map;
 import static java.lang.Math.floor;
 import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Utils.planLimitsComparator;
 
 public abstract class Processor {
@@ -53,7 +51,7 @@ public abstract class Processor {
     private AccountQuotaService accountQuotaService;
     private PersonalAccountManager accountManager;
     private ApplicationEventPublisher publisher;
-    private AccountHistoryService accountHistoryService;
+    private AccountHistoryManager history;
     private FinFeignClient finFeignClient;
     private PlanRepository planRepository;
     private ResourceNormalizer resourceNormalizer;
@@ -77,7 +75,7 @@ public abstract class Processor {
             FinFeignClient finFeignClient,
             AccountAbonementManager accountAbonementManager,
             AccountStatRepository accountStatRepository,
-            AccountHistoryService accountHistoryService,
+            AccountHistoryManager history,
             PersonalAccountManager accountManager,
             PaymentServiceRepository paymentServiceRepository,
             AccountCountersService accountCountersService,
@@ -92,7 +90,7 @@ public abstract class Processor {
         this.finFeignClient = finFeignClient;
         this.accountAbonementManager = accountAbonementManager;
         this.accountStatRepository = accountStatRepository;
-        this.accountHistoryService = accountHistoryService;
+        this.history = history;
         this.accountManager = accountManager;
         this.paymentServiceRepository = paymentServiceRepository;
         this.accountCountersService = accountCountersService;
@@ -307,7 +305,7 @@ public abstract class Processor {
 
             try {
                 finFeignClient.addPayment(payment);
-                accountHistoryService.addMessage(
+                history.addMessage(
                         account.getId(),
                         "Возврат средств при отказе от абонемента: " + cashBackAmount + " руб.",
                         operator);
@@ -630,7 +628,7 @@ public abstract class Processor {
      * Сохраним в историю запись об изменении тарифного плана
      */
     private void saveHistory() {
-        accountHistoryService.addMessage(account.getId(), "Произведена смена тарифа с " +
+        history.addMessage(account.getId(), "Произведена смена тарифа с " +
                 currentPlan.getName() + " на " + newPlan.getName(), operator);
     }
 
@@ -666,22 +664,10 @@ public abstract class Processor {
     private void normalizeMailbox() {
         if (!newPlan.isMailboxAllowed()) {
             accountHelper.disableAndScheduleDeleteForAllMailboxes(account);
-
-            //Запишем в историю клиента
-            Map<String, String> historyParams = new HashMap<>();
-            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта выключены и запланированы на удаление почтовые ящики в соответствии с тарифным планом");
-            historyParams.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+            history.save(account, "Для аккаунта выключены и запланированы на удаление почтовые ящики в соответствии с тарифным планом", operator);
         } else {
             accountHelper.unScheduleDeleteForAllMailboxes(account);
-
-            //Запишем в историю клиента
-            Map<String, String> historyParams = new HashMap<>();
-            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отменено запланированное удаление почтовых ящиков в соответствии с тарифным планом");
-            historyParams.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+            history.save(account, "Для аккаунта отменено запланированное удаление почтовых ящиков в соответствии с тарифным планом", operator);
         }
     }
 
@@ -692,57 +678,27 @@ public abstract class Processor {
     private void normalizeSslCertificate() {
         if (!newPlan.isSslCertificateAllowed()) {
             accountHelper.deleteAllSslCertificates(account);
-
-            //Запишем в историю клиента
-            Map<String, String> historyParams = new HashMap<>();
-            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта удалены SSL сертификаты в соответствии с тарифным планом");
-            historyParams.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+            history.save(account, "Для аккаунта удалены SSL сертификаты в соответствии с тарифным планом", operator);
         }
     }
 
     private void normalizeDatabase() {
         if (!newPlan.isDatabaseAllowed()) {
             accountHelper.disableAndScheduleDeleteForAllDatabases(account);
-
-            //Запишем в историю клиента
-            Map<String, String> historyParams = new HashMap<>();
-            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта выключены и запланированы на удаление базы данных в соответствии с тарифным планом");
-            historyParams.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+            history.save(account.getId(), "Для аккаунта выключены и запланированы на удаление базы данных в соответствии с тарифным планом", operator);
         }else {
             accountHelper.unScheduleDeleteForAllDatabases(account);
-
-            //Запишем в историю клиента
-            Map<String, String> historyParams = new HashMap<>();
-            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отменено запланированное удаление баз данных в соответствии с тарифным планом");
-            historyParams.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+            history.save(account, "Для аккаунта отменено запланированное удаление баз данных в соответствии с тарифным планом", operator);
         }
     }
 
     private void normalizeDatabaseUser() {
         if (!newPlan.isDatabaseUserAllowed()) {
             accountHelper.disableAndScheduleDeleteForAllDatabaseUsers(account);
-
-            //Запишем в историю клиента
-            Map<String, String> historyParams = new HashMap<>();
-            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта выключены и запланированы на удаление пользователи баз данных в соответствии с тарифным планом");
-            historyParams.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+            history.save(account.getId(), "Для аккаунта выключены и запланированы на удаление пользователи баз данных в соответствии с тарифным планом", operator);
         }else {
             accountHelper.unScheduleDeleteForAllDatabaseUsers(account);
-
-            //Запишем в историю клиента
-            Map<String, String> historyParams = new HashMap<>();
-            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отменено запланированное удаление пользователей баз данных в соответствии с тарифным планом");
-            historyParams.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+            history.save(account.getId(), "Для аккаунта отменено запланированное удаление пользователей баз данных в соответствии с тарифным планом", operator);
         }
     }
 
@@ -750,14 +706,7 @@ public abstract class Processor {
         if (account.isCredit()) {
             accountManager.removeSettingByName(account.getId(), CREDIT_ACTIVATION_DATE);
             accountManager.setCredit(account.getId(), false);
-
-            //Запишем в историю клиента
-            Map<String, String> historyParams = new HashMap<>();
-            historyParams.put(HISTORY_MESSAGE_KEY, "Для аккаунта отключен кредит в связи " +
-                    "с переходом на тариф с обязательным абонементом");
-            historyParams.put(OPERATOR_KEY, operator);
-
-            publisher.publishEvent(new AccountHistoryEvent(account.getId(), historyParams));
+            history.save(account.getId(), "Для аккаунта отключен кредит в связи с переходом на тариф с обязательным абонементом", operator);
         }
     }
 }

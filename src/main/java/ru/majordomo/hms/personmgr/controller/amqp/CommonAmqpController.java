@@ -16,28 +16,21 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.event.webSite.WebSiteCreatedEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
-import ru.majordomo.hms.personmgr.service.AccountTransferService;
-import ru.majordomo.hms.personmgr.service.AmqpSender;
-import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
-import ru.majordomo.hms.personmgr.service.BusinessHelper;
-import ru.majordomo.hms.personmgr.service.FtpUserService;
-import ru.majordomo.hms.personmgr.service.ResourceChecker;
+import ru.majordomo.hms.personmgr.service.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ROUTING_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_CREATE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_UPDATE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_USER_CREATE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.WEBSITE_UPDATE;
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 
@@ -54,10 +47,16 @@ public class CommonAmqpController {
     private AccountTransferService accountTransferService;
     protected AmqpSender amqpSender;
     private FtpUserService ftpUserService;
+    protected AccountHistoryManager history;
 
     protected String resourceName = "";
 
     protected String instanceName;
+
+    @Autowired
+    public void setAccountHistoryService(AccountHistoryManager history) {
+        this.history = history;
+    }
 
     @Autowired
     public void setBusinessFlowDirector(BusinessFlowDirector businessFlowDirector) {
@@ -180,14 +179,6 @@ public class CommonAmqpController {
         }
     }
 
-    protected void saveHistory(String personalAccountId, String message, String operator){
-        Map<String, String> params = new HashMap<>();
-        params.put(HISTORY_MESSAGE_KEY, message);
-        params.put(OPERATOR_KEY, operator);
-
-        publisher.publishEvent(new AccountHistoryEvent(personalAccountId, params));
-    }
-
     private void saveAccountHistoryByMessageState(SimpleServiceMessage message, State state, String action) {
         if (state.equals(State.PROCESSED)) {
             ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
@@ -196,7 +187,7 @@ public class CommonAmqpController {
                 String historyMessage = "Заявка на " + action + " ресурса '" +
                         resourceName + "' выполнена успешно (имя: " + message.getParam("name") + ")";
 
-                saveHistory(businessAction.getPersonalAccountId(), historyMessage, "service");
+                history.save(businessAction.getPersonalAccountId(), historyMessage, "service");
             }
         }
     }

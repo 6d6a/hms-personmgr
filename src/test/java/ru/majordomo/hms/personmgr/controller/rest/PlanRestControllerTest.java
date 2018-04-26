@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.config.AppConfigTest;
 import ru.majordomo.hms.personmgr.config.MongoConfigTest;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.impl.PersonalAccountManagerImpl;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -59,6 +60,9 @@ public class PlanRestControllerTest {
 
     @MockBean(name="paymentServiceRepository")
     private PaymentServiceRepository paymentServiceRepository;
+
+    @MockBean(name="accountHistoryManager")
+    private AccountHistoryManager accountHistoryManager;
 
     @MockBean(name="accountServiceRepository")
     private AccountServiceRepository accountServiceRepository;

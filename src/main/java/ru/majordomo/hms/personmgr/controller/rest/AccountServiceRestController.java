@@ -125,7 +125,7 @@ public class AccountServiceRestController extends CommonRestController {
 
         AccountService accountService = accountServiceHelper.addAccountService(account, paymentServiceId);
 
-        accountHelper.saveHistory(account, "Произведен заказ услуги " + paymentService.getName(), request);
+        history.save(account, "Произведен заказ услуги " + paymentService.getName(), request);
 
         return new ResponseEntity<>(accountService, HttpStatus.OK);
     }
@@ -184,7 +184,7 @@ public class AccountServiceRestController extends CommonRestController {
 
         processCustomService(account, paymentService, enabled);
 
-        accountHelper.saveHistory(
+        history.save(
                 account,
                 "Произведено " + (enabled ? "включение" : "отключение") + " услуги " + paymentService.getName(),
                 request
@@ -232,7 +232,7 @@ public class AccountServiceRestController extends CommonRestController {
 
         accountHelper.switchAntiSpamForMailboxes(account, enabled);
 
-        accountHelper.saveHistory(
+        history.save(
                 account,
                 "Произведено " + (enabled ? "включение" : "отключение") + " услуги " + paymentService.getName(),
                 request
@@ -287,8 +287,7 @@ public class AccountServiceRestController extends CommonRestController {
         accountServiceHelper.deleteAccountServiceById(account, accountServiceId);
 
         if (serviceName != null) {
-            accountHelper.saveHistory(
-                    accountId, "Произведено удаление услуги '" + serviceName + "', id: " + accountServiceId, request);
+            history.save(accountId, "Произведено удаление услуги '" + serviceName + "', id: " + accountServiceId, request);
         }
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);

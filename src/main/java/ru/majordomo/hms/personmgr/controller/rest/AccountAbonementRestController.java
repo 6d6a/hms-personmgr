@@ -101,7 +101,7 @@ public class AccountAbonementRestController extends CommonRestController {
             accountAbonementManager.setAutorenew(accountAbonement.getId(), autorenew);
 
             String operator = request.getUserPrincipal().getName();
-            accountHelper.saveHistory(
+            history.save(
                     account,
                     (autorenew ? "Включено" : "Выключено") +
                             " автопродление абонемента '" + accountAbonement.getAbonement().getName() + "'",
@@ -128,7 +128,7 @@ public class AccountAbonementRestController extends CommonRestController {
 
         String operator = request.getUserPrincipal().getName();
 
-        StringJoiner history = new StringJoiner(", ","Абонемент аккаунта изменён: ", "");
+        StringJoiner historyJoiner = new StringJoiner(", ","Абонемент аккаунта изменён: ", "");
 
         update.keySet().forEach(key -> {
             switch (key) {
@@ -138,7 +138,7 @@ public class AccountAbonementRestController extends CommonRestController {
                         throw new ParameterValidationException(
                                 "Нельзя устанавливать дату создания абонемента позже текущей даты");
                     }
-                    history.add(
+                    historyJoiner.add(
                             new StringBuilder("дата создания с ").append(accountAbonement.getCreated().toString())
                                 .append(" на ").append(created.toString()));
                     accountAbonement.setCreated(created);
@@ -150,7 +150,7 @@ public class AccountAbonementRestController extends CommonRestController {
                         throw new ParameterValidationException(
                                 "Нельзя устанавливать дату истечения абонемента раньше текущей даты");
                     }
-                    history.add(
+                    historyJoiner.add(
                             new StringBuilder("дата истечения с ").append(accountAbonement.getExpired().toString())
                             .append(" на ").append(expired.toString()));
                     accountAbonement.setExpired(expired);
@@ -162,7 +162,7 @@ public class AccountAbonementRestController extends CommonRestController {
                     if (abonement == null) {
                         throw new ResourceNotFoundException("Абонемент с id " + abonementId + " не найден");
                     }
-                    history.add(
+                    historyJoiner.add(
                             new StringBuilder("абонемент с id ").append(accountAbonement.getAbonementId())
                                     .append(" и именем ").append(accountAbonement.getAbonement().getName())
                             .append(" на ").append(abonementId).append(" с именем ").append(abonement.getName()));
@@ -171,7 +171,7 @@ public class AccountAbonementRestController extends CommonRestController {
                     break;
                 case "autorenew":
                     Boolean autorenew = Boolean.valueOf(update.get(key));
-                    history.add(
+                    historyJoiner.add(
                             new StringBuilder((autorenew ? "Включено" : "Выключено") + 
                             " автопродление '" + accountAbonement.getAbonement().getName() + "'"));
 
@@ -181,7 +181,7 @@ public class AccountAbonementRestController extends CommonRestController {
             }
         });
         accountAbonementManager.save(accountAbonement);
-        accountHelper.saveHistory(account, history.toString(), operator);
+        history.save(account, historyJoiner.toString(), operator);
         return ResponseEntity.ok(accountAbonement);
     }
 
@@ -206,7 +206,7 @@ public class AccountAbonementRestController extends CommonRestController {
         abonementService.deleteAbonement(account, accountAbonementId);
 
         String operator = request.getUserPrincipal().getName();
-        accountHelper.saveHistory(account, "Произведен отказ от абонемента", operator);
+        history.save(account, "Произведен отказ от абонемента", operator);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -248,7 +248,7 @@ public class AccountAbonementRestController extends CommonRestController {
         planChangeProcessor.process();
 
         String operator = request.getUserPrincipal().getName();
-        accountHelper.saveHistory(account,
+        history.save(account,
                 "Произведен отказ от абонемента" + (refund ? " с возвратом средств" : " без возврата средств"),
                 operator
         );
@@ -305,7 +305,7 @@ public class AccountAbonementRestController extends CommonRestController {
             accountHelper.enableAccount(account);
         }
 
-        accountHelper.saveHistory(account, "Произведен заказ абонемента " + abonement.getName(), request);
+        history.save(account, "Произведен заказ абонемента " + abonement.getName(), request);
 
         return new ResponseEntity<>(newAccountAbonement, HttpStatus.OK);
     }
@@ -343,7 +343,7 @@ public class AccountAbonementRestController extends CommonRestController {
 
         abonementService.prolongAbonement(account, accountAbonement);
 
-        accountHelper.saveHistory(
+        history.save(
                 account,
                 "Произведен заказ продления абонемента " + accountAbonement.getAbonement().getName(),
                 request);
@@ -387,7 +387,7 @@ public class AccountAbonementRestController extends CommonRestController {
             accountHelper.enableAccount(account);
         }
 
-        saveHistory(request, accountId, message);
+        history.save(accountId, message, request);
 
         return ResponseEntity.ok(createSuccessResponse(message));
     }
