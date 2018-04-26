@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.model.charge;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.bson.types.Decimal128;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.CompoundIndexes;
@@ -17,6 +19,8 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+@Data
+@EqualsAndHashCode(callSuper = true)
 @Document
 @CompoundIndexes({
         @CompoundIndex(name = "personalAccountId_chargeDate", def = "{'personalAccountId' : 1, 'chargeDate': 1}", unique = true)
@@ -43,31 +47,9 @@ public class ChargeRequest extends VersionedModelBelongsToPersonalAccount implem
 
     private Set<ChargeRequestItem> chargeRequests = new HashSet<>();
 
-    @Override
-    public Status getStatus() {
-        return status;
-    }
+    private String message;
 
-    @Override
-    public void setStatus(Status status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getCreated() {
-        return created;
-    }
-
-    public void setCreated(LocalDateTime created) {
-        this.created = created;
-    }
-
-    public LocalDateTime getUpdated() {
-        return updated;
-    }
-
-    public void setUpdated(LocalDateTime updated) {
-        this.updated = updated;
-    }
+    private String exception;
 
     @Override
     public BigDecimal getAmount() {
@@ -77,30 +59,6 @@ public class ChargeRequest extends VersionedModelBelongsToPersonalAccount implem
     @Override
     public void setAmount(BigDecimal amount) {
         this.amount = new Decimal128(amount);
-    }
-
-    @Override
-    public String getAccountServiceId() {
-        return accountServiceId;
-    }
-
-    @Override
-    public void setAccountServiceId(String accountServiceId) {
-        this.accountServiceId = accountServiceId;
-    }
-
-    @Override
-    public LocalDate getChargeDate() {
-        return chargeDate;
-    }
-
-    @Override
-    public void setChargeDate(LocalDate chargeDate) {
-        this.chargeDate = chargeDate;
-    }
-
-    public Set<ChargeRequestItem> getChargeRequests() {
-        return chargeRequests;
     }
 
     public void setChargeRequests(Set<ChargeRequestItem> chargeRequests) {
@@ -114,16 +72,5 @@ public class ChargeRequest extends VersionedModelBelongsToPersonalAccount implem
             chargeRequests.add(item);
             setAmount(getAmount().add(item.getAmount()));
         }
-    }
-
-    @Override
-    public String toString() {
-        return "ChargeRequest{" +
-                "status=" + status +
-                ", amount=" + amount +
-                ", accountServiceId='" + accountServiceId + '\'' +
-                ", chargeDate=" + chargeDate +
-                ", chargeRequests=" + chargeRequests +
-                "} " + super.toString();
     }
 }

@@ -1,7 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
 import com.google.common.net.InternetDomainName;
-import feign.FeignException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,8 +17,10 @@ import java.util.*;
 
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.exception.DomainNotAvailableException;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
@@ -241,20 +242,14 @@ public class DomainService {
 
         try {
             domains.add(rcUserFeignClient.findDomain(domainName));
-        } catch (Exception e) {
-            if (!(e instanceof FeignException) || ((FeignException) e).status() != 404 ) {
-                e.printStackTrace();
-                throw e;
-            }
+        } catch (ResourceNotFoundException ignore) {
+            logger.info("rc-user: домен " + domainName + " не найден");
         }
 
         try {
             domains.add(rcUserFeignClient.findDomain(IDN.toASCII(domainName)));
-        } catch (Exception e) {
-            if (!(e instanceof FeignException) || ((FeignException) e).status() != 404 ) {
-                e.printStackTrace();
-                throw e;
-            }
+        } catch (ResourceNotFoundException ignore) {
+            logger.info("rc-user: домен " + domainName + " не найден");
         }
 
         return domains;
@@ -272,7 +267,7 @@ public class DomainService {
         List<Domain> domainsByName = getDomainsByName(domainName);
         if (!domainsByName.isEmpty() || blackListService.domainExistsInControlBlackList(domainName)) {
             logger.debug("domain: " + domainName + " exists in control BlackList");
-            throw new DomainNotAvailableException("Домен " + domainName
+            throw new ParameterValidationException("Домен " + domainName
                     + " уже присутствует в системе и не может быть добавлен.");
         }
 
@@ -296,7 +291,7 @@ public class DomainService {
 
             if (!existOnAccount) {
                 logger.debug("domain: " + domainName + " exists in control BlackList");
-                throw new DomainNotAvailableException("Домен " + domain.topPrivateDomain().toString()
+                throw new ParameterValidationException("Домен " + domain.topPrivateDomain().toString()
                         + " уже присутствует в системе и не может быть добавлен.");
             }
         }
@@ -506,7 +501,7 @@ public class DomainService {
 
         if (domainTld == null) {
             logger.error("Домен: " + domainName + " недоступен. Зона домена отсутствует в системе");
-            throw new DomainNotAvailableException("Домен: " + domainName + " недоступен. Зона домена отсутствует в системе");
+            throw new ParameterValidationException("Домен: " + domainName + " недоступен. Зона домена отсутствует в системе");
         }
 
         return domainTld;
@@ -524,12 +519,12 @@ public class DomainService {
 
         if (availabilityInfo == null) {
             logger.error("Домен: " + domainName + ". Сервис регистрации недоступен.");
-            throw new DomainNotAvailableException("Домен: " + domainName + ". Сервис регистрации недоступен.");
+            throw new InternalApiException("Домен: " + domainName + ". Сервис регистрации недоступен.");
         }
 
         if (!availabilityInfo.getFree()) {
             logger.error("Домен: " + domainName + " по данным whois занят.");
-            throw new DomainNotAvailableException("Домен: " + domainName + " по данным whois занят.");
+            throw new ParameterValidationException("Домен: " + domainName + " по данным whois занят.");
         }
 
         return availabilityInfo;

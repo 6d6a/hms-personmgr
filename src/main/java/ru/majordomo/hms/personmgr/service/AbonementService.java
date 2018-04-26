@@ -44,6 +44,7 @@ import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_ABONEMENT;
 import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND;
 import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_MIN_COST_TO_ORDER_ABONEMENT;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_ABONEMENT_EXPIRING;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
@@ -295,6 +296,13 @@ public class AbonementService {
     }
 
     public void processAbonementsAutoRenewByAccount(PersonalAccount account) {
+
+        //TODO переделать после гранд-рефакторинга услуг +
+        //+ после того как аб-т заканчивается, переводим на тариф Безлимитный
+        if (!accountHelper.isAbonementMinCostOrderAllowed(account)) {
+            return;
+        }
+
         //В итоге нам нужно получить абонементы которые закончились сегодня и раньше
         LocalDateTime expireEnd = LocalDateTime.now();
 

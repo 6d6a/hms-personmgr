@@ -23,11 +23,7 @@ import ru.majordomo.hms.personmgr.exception.BaseException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
-import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
-import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
-import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.manager.*;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -67,6 +63,7 @@ public class AccountHelper {
     private final AccountAbonementManager accountAbonementManager;
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHistoryManager history;
+    private final PlanManager planManager;
 
     @Autowired
     public AccountHelper(
@@ -83,7 +80,8 @@ public class AccountHelper {
             PlanRepository planRepository,
             AccountAbonementManager accountAbonementManager,
             AccountServiceHelper accountServiceHelper,
-            AccountHistoryManager history
+            AccountHistoryManager history,
+            PlanManager planManager
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -99,6 +97,7 @@ public class AccountHelper {
         this.accountAbonementManager = accountAbonementManager;
         this.accountServiceHelper = accountServiceHelper;
         this.history = history;
+        this.planManager = planManager;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -1096,5 +1095,15 @@ public class AccountHelper {
                 //Автопродление за 5 дней до и 5 дней после выключения
                 && expiration.getExpireDate().isAfter(LocalDate.now().minusDays(5L))
                 && expiration.getExpireDate().isBefore(LocalDate.now().plusDays(5L));
+    }
+
+    //На тарифах, дешевле 245р, не даём покупать и продлевать абонемент
+    public Boolean isAbonementMinCostOrderAllowed(PersonalAccount account) {
+        Plan plan = planManager.findOne(account.getPlanId());
+        if (!plan.isActive() && !plan.isAbonementOnly()
+                && plan.getService().getCost().compareTo(BigDecimal.valueOf(PLAN_MIN_COST_TO_ORDER_ABONEMENT)) < 0) {
+            return false;
+        }
+        return true;
     }
 }
