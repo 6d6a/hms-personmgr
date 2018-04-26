@@ -1097,4 +1097,14 @@ public class AccountHelper {
                 && expiration.getExpireDate().isAfter(LocalDate.now().minusDays(5L))
                 && expiration.getExpireDate().isBefore(LocalDate.now().plusDays(5L));
     }
+
+    //На тарифах, дешевле 245р, не даём покупать и продлевать абонемент
+    public Boolean isAbonementMinCostOrderAllowed(PersonalAccount account) {
+        Plan plan = planManager.findOne(account.getPlanId());
+        if (!plan.isActive() && !plan.isAbonementOnly()
+                && plan.getService().getCost().compareTo(BigDecimal.valueOf(PLAN_MIN_COST_TO_ORDER_ABONEMENT)) < 0) {
+            return false;
+        }
+        return true;
+    }
 }

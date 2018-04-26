@@ -19,8 +19,8 @@ public abstract class WithErrorsException extends BaseException {
     public WithErrorsException(String message) {
         super(message);
     }
-
-    public WithErrorsException(String message, String traceId) {
-        super(message, traceId);
+    public WithErrorsException(String message, Map errors) {
+        super(message);
+        this.errors = errors;
     }
 }
