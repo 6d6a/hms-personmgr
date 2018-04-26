@@ -29,12 +29,15 @@ import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.PlanChange.Factory;
 import ru.majordomo.hms.personmgr.service.PlanChange.Processor;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
+
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_MIN_COST_TO_ORDER_ABONEMENT;
 
 @RestController
 @RequestMapping("/{accountId}/account-abonements")
@@ -277,6 +280,10 @@ public class AccountAbonementRestController extends CommonRestController {
 
         Abonement abonement = abonementRepository.findOne(abonementId);
 
+        //TODO переделать после гранд-рефакторинга услуг +
+        //+ по окончанию средств на тарифах дешевле 245р клиент автоматически переводится на Безлимитный.
+        abonementMinCostOrderAllownes(account);
+
         if (abonement.isInternal()) {
             throw new ParameterValidationException("Нельзя заказать тестовый абонемент");
         }
@@ -301,6 +308,14 @@ public class AccountAbonementRestController extends CommonRestController {
         return new ResponseEntity<>(newAccountAbonement, HttpStatus.OK);
     }
 
+    //На тарифах, дешевле 245р, не даём покупать и продлевать абонемент
+    private void abonementMinCostOrderAllownes (PersonalAccount account) {
+        Plan plan = planManager.findOne(account.getPlanId());
+        if (!plan.isActive() && plan.getService().getCost().compareTo(BigDecimal.valueOf(PLAN_MIN_COST_TO_ORDER_ABONEMENT)) < 0) {
+            throw new ParameterValidationException("Обслуживание по тарифу \"" + plan.getName() +  "\" прекращено");
+        }
+    }
+
     @PostMapping("/{accountAbonementId}/prolong")
     public ResponseEntity<Object> prolongAccountAbonement(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -316,6 +331,10 @@ public class AccountAbonementRestController extends CommonRestController {
         if (accountAbonement.getAbonement().isInternal()) {
             throw new ParameterValidationException("Продление абонемента на пробном периоде не доступно");
         }
+
+        //TODO переделать после гранд-рефакторинга услуг +
+        //+ после того как аб-т заканчивается, переводим на тариф Безлимитный
+        abonementMinCostOrderAllownes(account);
 
         //Абонемент нельзя продлить более чем на три года "всего", т.е. два срока абонемента
         LocalDateTime expiredMinus3periods = accountAbonement
