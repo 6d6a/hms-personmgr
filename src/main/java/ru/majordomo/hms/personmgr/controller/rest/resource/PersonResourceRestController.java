@@ -134,7 +134,7 @@ public class PersonResourceRestController extends CommonRestController {
             throw new InternalApiException();
         }
 
-        if (clientInfoResponse.getClient().getParentClientId().equals(MJ_PARENT_CLIENT_ID_IN_REGISTRANT)) {
+        if (!clientInfoResponse.getClient().getParentClientId().equals(MJ_PARENT_CLIENT_ID_IN_REGISTRANT)) {
             throw new ParameterValidationException("Клиент не обслуживается на партнерском договоре");
         }
 
