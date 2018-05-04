@@ -88,5 +88,5 @@ public interface RcUserFeignClient {
     Boolean moveAccount(@PathVariable("accountId") String accountId, @RequestBody Map<String, String> message);
 
     @GetMapping(value = "/{accountId}/person/find", consumes = "application/json")
-    List<Person> getPersonsByAccountIdAndNicHandle (@PathVariable("accountId") String accountId, @RequestParam String nicHandle);
+    List<Person> getPersonsByAccountIdAndNicHandle (@PathVariable("accountId") String accountId, @RequestParam("nicHandle") String nicHandle);
 }
