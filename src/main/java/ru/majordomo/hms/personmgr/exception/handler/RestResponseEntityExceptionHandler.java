@@ -120,6 +120,7 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
 
         BaseException baseException = convertThrowableToBaseException(ex);
         baseException.setCode(httpStatus.value());
+        baseException.setTraceId(traceId());
 
         return handleExceptionInternal(
                 baseException,
@@ -151,26 +152,41 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
     }
 
     private BaseException convertThrowableToBaseException(Throwable ex) {
-        BaseException result;
+        if (ex instanceof BaseException) { return (BaseException) ex; }
 
-        if (ex instanceof BaseException) {
-            result = (BaseException) ex;
-        } else if (ex instanceof RepositoryConstraintViolationException) {
-            result = new ru.majordomo.hms.personmgr.exception.RepositoryConstraintViolationException(
-                    (RepositoryConstraintViolationException) ex);
-        } else if (ex instanceof ConstraintViolationException) {
-            result = new ParameterValidationException((ConstraintViolationException) ex);
-        } else if (ex instanceof InvalidDataAccessApiUsageException || ex instanceof DataAccessException) {
-            result = new InternalApiException(ex, HttpStatus.CONFLICT, traceId());
-        } else if (ex instanceof DecodeException) {
-            result = new ParameterValidationException((DecodeException) ex);
-        } else if (ex instanceof ResourceNotFoundException) {
-            result = new ru.majordomo.hms.personmgr.exception.ResourceNotFoundException(ex.getMessage());
-        } else {
-            result = new InternalApiException();
-        }
+        try {
+            if (ex instanceof RepositoryConstraintViolationException) {
+                return new ru.majordomo.hms.personmgr.exception.RepositoryConstraintViolationException(
+                        (RepositoryConstraintViolationException) ex);
+            }
+        } catch (Throwable ignore) {}
 
-        result.setTraceId(traceId());
-        return result;
+        try {
+            if (ex instanceof ConstraintViolationException) {
+                return new ParameterValidationException((ConstraintViolationException) ex);
+            }
+        } catch (Throwable ignore) {}
+
+        try {
+            if (ex instanceof DataAccessException) {
+                BaseException result = new InternalApiException(ex.getMessage());
+                result.setCode(HttpStatus.CONFLICT.value());
+                return result;
+            }
+        } catch (Throwable ignore) {}
+
+        try {
+            if (ex instanceof DecodeException) {
+                return new ParameterValidationException((DecodeException) ex);
+            }
+        } catch (Throwable ignore) {}
+
+        try {
+            if (ex instanceof ResourceNotFoundException) {
+                return new ru.majordomo.hms.personmgr.exception.ResourceNotFoundException(ex.getMessage());
+            }
+        } catch (Throwable ignore) {}
+
+        return new InternalApiException();
     }
 }
