@@ -26,6 +26,8 @@ import ru.majordomo.hms.personmgr.service.Rpc.RegRpcClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Person;
 
+import javax.validation.Valid;
+
 import static ru.majordomo.hms.personmgr.common.Constants.MJ_PARENT_CLIENT_ID_IN_REGISTRANT;
 
 @RestController
@@ -118,7 +120,7 @@ public class PersonResourceRestController extends CommonRestController {
 
     @PostMapping("/add-partner-person")
     public Person addPartnerPersonFromRegistrant(
-            @RequestBody NicHandleAndPassword credentials,
+            @Valid @RequestBody NicHandleAndPassword credentials,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
