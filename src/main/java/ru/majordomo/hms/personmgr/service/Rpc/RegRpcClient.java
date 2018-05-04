@@ -3,19 +3,26 @@ package ru.majordomo.hms.personmgr.service.Rpc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import ru.majordomo.hms.personmgr.dto.rpc.DomainCertificateResponse;
-import ru.majordomo.hms.personmgr.dto.rpc.DomainsResponse;
-import ru.majordomo.hms.personmgr.dto.rpc.RegistrantDomain;
+import ru.majordomo.hms.personmgr.dto.request.NicHandleAndPassword;
+import ru.majordomo.hms.personmgr.dto.rpc.*;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.*;
 
 @Service
-public class RegRpcClient extends RpcClient{
+public class RegRpcClient {
 
     private static final String DOMAIN_CONTROLLER = "domains.";
     private static final String GET_CERTIFICATE_METHOD = DOMAIN_CONTROLLER + "get_certificate";
     private static final String GET_DOMAINS_METHOD = DOMAIN_CONTROLLER + "get_domains";
+
+    private static final String CLIENTS_GET_CLIENT_INFO = "clients.get_client_info";
+
+    private final URL serverURL;
+    private final String serviceLogin;
+    private final String servicePassword;
 
     @Autowired
     public RegRpcClient(
@@ -23,12 +30,22 @@ public class RegRpcClient extends RpcClient{
             @Value("${rpc.registrant.login}") String login,
             @Value("${rpc.registrant.password}") String password
     ) throws MalformedURLException {
-        super(serverURL, login, password);
+        this.serverURL = new URL(serverURL);
+        this.serviceLogin = login;
+        this.servicePassword = password;
+    }
+
+    private RpcClient newConnection() throws InternalApiException {
+        try {
+            return new RpcClient(serviceLogin, servicePassword, serverURL);
+        } catch (Exception e) {
+            throw new InternalApiException();
+        }
     }
 
     public byte[] getDomainCertificateInPng(String domainId, Boolean withoutStamp){
 
-        DomainCertificateResponse response = callMethodNew(
+        DomainCertificateResponse response = newConnection().call(
                 GET_CERTIFICATE_METHOD,
                 Arrays.asList(domainId, withoutStamp),
                 DomainCertificateResponse.class
@@ -41,9 +58,7 @@ public class RegRpcClient extends RpcClient{
         Map<String, String> params = new HashMap<>();
         params.put("domain_name", name);
 
-        DomainsResponse response;
-
-        response = callMethodNew(
+        DomainsResponse response = newConnection().call(
                 GET_DOMAINS_METHOD,
                 Arrays.asList(params, offset , limit),
                 DomainsResponse.class
@@ -52,5 +67,13 @@ public class RegRpcClient extends RpcClient{
         if (response == null || response.getCount() == 0) { return new ArrayList<>(); }
 
         return response.getDomains();
+    }
+
+    public ClientInfoResponse getClientInfo(String clientId) {
+        return newConnection().call(ClientInfoResponse.class, CLIENTS_GET_CLIENT_INFO, clientId);
+    }
+
+    public ClientsLoginResponse loginAsClient(NicHandleAndPassword credentials) {
+        return newConnection().loginAsClient(credentials.getNicHandle(), credentials.getPassword());
     }
 }

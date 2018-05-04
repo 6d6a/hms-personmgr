@@ -50,6 +50,9 @@ public interface RcUserFeignClient {
     @GetMapping(value = "/{accountId}/person/{personId}", consumes = "application/json")
     Person getPerson(@PathVariable("accountId") String accountId, @PathVariable("personId") String personId);
 
+    @GetMapping(value = "/{accountId}/person", consumes = "application/json")
+    List<Person> getPersons(@PathVariable("accountId") String accountId);
+
     @PostMapping(value = "/{accountId}/person", consumes = "application/json")
     Person addPersonByNicHandle(@PathVariable("accountId") String accountId, @RequestBody Map<String, String> requestBody);
 

@@ -6,13 +6,15 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.dto.rpc.Contract;
 import ru.majordomo.hms.personmgr.dto.rpc.ContractResponse;
 import ru.majordomo.hms.personmgr.dto.rpc.HtmlToPdfResponse;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Base64;
 
 @Service
-public class MajordomoRpcClient extends RpcClient {
+public class MajordomoRpcClient {
 
     private static final String CONTRACT_CONTROLLER = "contracts.";
     private static final String GET_ACTIVE_CONTRACT_BY_TYPE_METHOD = CONTRACT_CONTROLLER + "get_active_contract_by_type";
@@ -24,17 +26,31 @@ public class MajordomoRpcClient extends RpcClient {
     private static final String VH_BUDGET_CONTRACT = "hms_virtual_hosting_budget_contract";
     private static final String NOTICE_RF = "hms_notice_rf";
 
+    private final URL serverURL;
+    private final String serviceLogin;
+    private final String servicePassword;
+
     @Autowired
     public MajordomoRpcClient(
             @Value("${rpc.majordomo.url}") String serverURL,
             @Value("${rpc.majordomo.login}") String login,
             @Value("${rpc.majordomo.password}") String password
     ) throws MalformedURLException {
-        super(serverURL, login, password);
+        this.serverURL = new URL(serverURL);
+        this.serviceLogin = login;
+        this.servicePassword = password;
+    }
+
+    public RpcClient newConnection() throws InternalApiException {
+        try {
+            return new RpcClient(serviceLogin, servicePassword, serverURL);
+        } catch (Exception e) {
+            throw new InternalApiException();
+        }
     }
 
     private Contract getActiveContractByType(String type) {
-        return callMethodNew(
+        return newConnection().call(
                 GET_ACTIVE_CONTRACT_BY_TYPE_METHOD,
                 Arrays.asList(type),
                 ContractResponse.class
@@ -42,7 +58,7 @@ public class MajordomoRpcClient extends RpcClient {
     }
 
     public Contract getContractById(String id){
-        return callMethodNew(
+        return newConnection().call(
                 GET_CONTRACT_BY_ID_METHOD,
                 Arrays.asList(id),
                 ContractResponse.class
@@ -50,7 +66,7 @@ public class MajordomoRpcClient extends RpcClient {
     }
 
     public byte[] convertHtmlToPdfFile(String html){
-        HtmlToPdfResponse htmlToPdfResponse = callMethodNew(
+        HtmlToPdfResponse htmlToPdfResponse = newConnection().call(
                 CONVERT_HTML_TO_PDF, Arrays.asList(html), HtmlToPdfResponse.class
         );
         return Base64.getDecoder().decode(htmlToPdfResponse.getPdfFileInBase64());
