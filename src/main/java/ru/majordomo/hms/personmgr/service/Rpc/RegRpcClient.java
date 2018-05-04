@@ -3,7 +3,7 @@ package ru.majordomo.hms.personmgr.service.Rpc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import ru.majordomo.hms.personmgr.dto.request.NicHandleAndPassword;
+import ru.majordomo.hms.personmgr.dto.request.Credentials;
 import ru.majordomo.hms.personmgr.dto.rpc.*;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 
@@ -73,7 +73,7 @@ public class RegRpcClient {
         return newConnection().call(ClientInfoResponse.class, CLIENTS_GET_CLIENT_INFO, clientId);
     }
 
-    public ClientsLoginResponse loginAsClient(NicHandleAndPassword credentials) {
-        return newConnection().loginAsClient(credentials.getNicHandle(), credentials.getPassword());
+    public ClientsLoginResponse loginAsClient(Credentials credentials) {
+        return newConnection().loginAsClient(credentials.getLogin(), credentials.getPassword());
     }
 }

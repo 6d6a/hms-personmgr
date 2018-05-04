@@ -7,14 +7,13 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
-import ru.majordomo.hms.personmgr.dto.request.NicHandleAndPassword;
+import ru.majordomo.hms.personmgr.dto.request.Credentials;
 import ru.majordomo.hms.personmgr.dto.rpc.ClientInfoResponse;
 import ru.majordomo.hms.personmgr.dto.rpc.ClientsLoginResponse;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
@@ -120,14 +119,10 @@ public class PersonResourceRestController extends CommonRestController {
 
     @PostMapping("/add-partner-person")
     public Person addPartnerPersonFromRegistrant(
-            @Valid @RequestBody NicHandleAndPassword credentials,
+            @Valid @RequestBody Credentials credentials,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        if (!rcUserFeignClient.getPersonsByAccountIdAndNicHandle(accountId, credentials.getNicHandle()).isEmpty()) {
-            throw new ParameterValidationException("На аккаунте уже присутствует персона с Nic-Handle " + credentials.getNicHandle());
-        }
-
         ClientsLoginResponse clientsLoginResponse = regRpcClient.loginAsClient(credentials);
         if (!clientsLoginResponse.getSuccess()) {
             throw new ParameterValidationException("Nic-Handle или пароль указаны неверно");
@@ -142,19 +137,20 @@ public class PersonResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Клиент не обслуживается на партнерском договоре");
         }
 
-        if (!clientInfoResponse.getClient().getNicHandle().equals(credentials.getNicHandle())) {
-            throw new ParameterValidationException("Nic-Handle персоны не совпадает с переданным в запросе");
+        String nicHandle = clientInfoResponse.getClient().getNicHandle();
+
+        if (!rcUserFeignClient.getPersonsByAccountIdAndNicHandle(accountId, nicHandle).isEmpty()) {
+            throw new ParameterValidationException("На аккаунте уже присутствует персона с Nic-Handle " + nicHandle);
         }
 
         Map<String, String> params = new HashMap<>();
-        params.put("nicHandle", credentials.getNicHandle());
+        params.put("nicHandle", nicHandle);
 
         try {
             Person person = rcUserFeignClient.addPersonByNicHandle(accountId, params);
             history.save(
                     accountId,
-                    "На аккаунт добавлена персона по Nic-Handle " + credentials.getNicHandle()
-                            + " и паролю. Person: " + person.toString(),
+                    "На аккаунт добавлена персона по логину и паролю. Person: " + person.toString(),
                     request
             );
             return person;

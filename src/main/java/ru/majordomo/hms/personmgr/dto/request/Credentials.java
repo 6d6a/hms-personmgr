@@ -4,10 +4,10 @@ import lombok.Data;
 import org.hibernate.validator.constraints.NotBlank;
 
 @Data
-public class NicHandleAndPassword {
+public class Credentials {
 
-    @NotBlank(message = "Не указан Nic-Handle")
-    private String nicHandle;
+    @NotBlank(message = "Не указан логин")
+    private String login;
 
     @NotBlank(message = "Не указан пароль")
     private String password;
