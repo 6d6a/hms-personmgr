@@ -124,6 +124,10 @@ public class PersonResourceRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
+        if (!rcUserFeignClient.getPersonsByAccountIdAndNicHandle(accountId, credentials.getNicHandle()).isEmpty()) {
+            throw new ParameterValidationException("На аккаунте уже присутствует персона с Nic-Handle " + credentials.getNicHandle());
+        }
+
         ClientsLoginResponse clientsLoginResponse = regRpcClient.loginAsClient(credentials);
         if (!clientsLoginResponse.getSuccess()) {
             throw new ParameterValidationException("Nic-Handle или пароль указаны неверно");
@@ -142,23 +146,20 @@ public class PersonResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Nic-Handle персоны не совпадает с переданным в запросе");
         }
 
-//        if (rcUserFeignClient.getPersons(accountId)
-//                .stream()
-//                .anyMatch(p -> credentials.getNicHandle().equals(p.getNicHandle()))
-//        ) {
-//            throw new ParameterValidationException("На аккаунте уже есть персона с Nic-Handle");
-//        }
-
         Map<String, String> params = new HashMap<>();
         params.put("nicHandle", credentials.getNicHandle());
 
-        Person person = rcUserFeignClient.addPersonByNicHandle(accountId, params);
-        history.save(
-                accountId,
-                "На аккаунт добавлена персона по Nic-Handle " + credentials.getNicHandle()
-                        + " и паролю. Person: " + person.toString(),
-                request
-        );
-        return person;
+        try {
+            Person person = rcUserFeignClient.addPersonByNicHandle(accountId, params);
+            history.save(
+                    accountId,
+                    "На аккаунт добавлена персона по Nic-Handle " + credentials.getNicHandle()
+                            + " и паролю. Person: " + person.toString(),
+                    request
+            );
+            return person;
+        } catch (Exception e) {
+            throw new InternalApiException();
+        }
     }
 }
