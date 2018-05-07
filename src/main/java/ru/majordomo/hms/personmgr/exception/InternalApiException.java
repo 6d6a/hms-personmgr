@@ -13,10 +13,4 @@ public class InternalApiException extends BaseException{
     public InternalApiException(String message) {
         super(message);
     }
-
-    public InternalApiException(Throwable cause, HttpStatus httpStatus, String traceId) {
-        this(cause.getMessage());
-        setTraceId(traceId);
-        setCode(httpStatus.value());
-    }
 }

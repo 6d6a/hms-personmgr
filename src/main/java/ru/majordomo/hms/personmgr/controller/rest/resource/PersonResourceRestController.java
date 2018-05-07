@@ -6,29 +6,42 @@ import org.springframework.security.web.servletapi.SecurityContextHolderAwareReq
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
+import ru.majordomo.hms.personmgr.dto.request.Credentials;
+import ru.majordomo.hms.personmgr.dto.rpc.ClientInfoResponse;
+import ru.majordomo.hms.personmgr.dto.rpc.ClientsLoginResponse;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.service.Rpc.RegRpcClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Person;
+
+import javax.validation.Valid;
+
+import static ru.majordomo.hms.personmgr.common.Constants.MJ_PARENT_CLIENT_ID_IN_REGISTRANT;
 
 @RestController
 @RequestMapping("/{accountId}/person")
 @Validated
 public class PersonResourceRestController extends CommonRestController {
     private final RcUserFeignClient rcUserFeignClient;
+    private final RegRpcClient regRpcClient;
 
     public PersonResourceRestController(
-            RcUserFeignClient rcUserFeignClient
+            RcUserFeignClient rcUserFeignClient,
+            RegRpcClient regRpcClient
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
+        this.regRpcClient = regRpcClient;
     }
 
     @PostMapping
@@ -102,5 +115,47 @@ public class PersonResourceRestController extends CommonRestController {
         logger.debug("Adding person by nicHandle: " + nicHandle);
 
         return rcUserFeignClient.addPersonByNicHandle(accountId, requestBody);
+    }
+
+    @PostMapping("/add-partner-person")
+    public Person addPartnerPersonFromRegistrant(
+            @Valid @RequestBody Credentials credentials,
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        ClientsLoginResponse clientsLoginResponse = regRpcClient.loginAsClient(credentials);
+        if (!clientsLoginResponse.getSuccess()) {
+            throw new ParameterValidationException("Nic-Handle или пароль указаны неверно");
+        }
+
+        ClientInfoResponse clientInfoResponse = regRpcClient.getClientInfo(clientsLoginResponse.getClientId());
+        if (!clientInfoResponse.getSuccess()) {
+            throw new InternalApiException();
+        }
+
+        if (!clientInfoResponse.getClient().getParentClientId().equals(MJ_PARENT_CLIENT_ID_IN_REGISTRANT)) {
+            throw new ParameterValidationException("Клиент не обслуживается на партнерском договоре");
+        }
+
+        String nicHandle = clientInfoResponse.getClient().getNicHandle();
+
+        if (!rcUserFeignClient.getPersonsByAccountIdAndNicHandle(accountId, nicHandle).isEmpty()) {
+            throw new ParameterValidationException("На аккаунте уже присутствует персона с Nic-Handle " + nicHandle);
+        }
+
+        Map<String, String> params = new HashMap<>();
+        params.put("nicHandle", nicHandle);
+
+        try {
+            Person person = rcUserFeignClient.addPersonByNicHandle(accountId, params);
+            history.save(
+                    accountId,
+                    "На аккаунт добавлена персона по логину и паролю. Person: " + person.toString(),
+                    request
+            );
+            return person;
+        } catch (Exception e) {
+            throw new InternalApiException();
+        }
     }
 }

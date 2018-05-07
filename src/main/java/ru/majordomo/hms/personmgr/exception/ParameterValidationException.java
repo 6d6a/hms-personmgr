@@ -25,7 +25,6 @@ public class ParameterValidationException extends WithErrorsException {
     }
 
     public ParameterValidationException(MethodArgumentNotValidException ex) {
-        setException(ex.getClass().getSimpleName());
         setErrors(ex.getBindingResult().getFieldErrors()
                 .stream()
                 .collect(Collectors.toMap(FieldError::getField, FieldError::getDefaultMessage)));
@@ -34,7 +33,6 @@ public class ParameterValidationException extends WithErrorsException {
 
     public ParameterValidationException(DecodeException ex) {
         this(ex.getMessage());
-        setException(ex.getClass().getSimpleName());
         setErrors(
                 Arrays.stream(ex.getStackTrace())
                         .collect(Collectors.toMap(
@@ -43,7 +41,6 @@ public class ParameterValidationException extends WithErrorsException {
 
     public ParameterValidationException(ConstraintViolationException ex) {
         this(ex.getMessage());
-        setException(ex.getClass().getSimpleName());
         setErrors(
                 ex.getConstraintViolations()
                         .stream()
