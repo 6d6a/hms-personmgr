@@ -25,10 +25,11 @@ import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 import ru.majordomo.hms.rc.user.resources.Redirect;
-import ru.majordomo.hms.rc.user.resources.RedirectItem;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
 import javax.validation.Valid;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjuster;
@@ -41,10 +42,9 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.REDIRECT_POST;
 import static ru.majordomo.hms.personmgr.common.FieldRoles.REDIRECT_PATCH;
 
 @RestController
-@RequestMapping("/{accountId}/redirect")
+//@RequestMapping("/{accountId}/redirect")
 @Validated
 public class RedirectServiceRestController extends CommonRestController {
-
     private static final TemporalAdjuster PLUS_ONE_YEAR = TemporalAdjusters.ofDateAdjuster(date -> date.plusYears(1));
     private static final int LIMIT_REDIRECT_FOR_DOMAIN = 10;
 
@@ -63,23 +63,21 @@ public class RedirectServiceRestController extends CommonRestController {
         this.accountRedirectServiceRepository = accountRedirectServiceRepository;
     }
 
-    @GetMapping("/service")
+    @GetMapping("/{accountId}/account-service-redirect")
     public List<RedirectAccountService> getService(
             @PathVariable @ObjectId(PersonalAccount.class) String accountId
     ) {
         return accountRedirectServiceRepository.findByPersonalAccountId(accountId);
     }
 
-    @PostMapping("/buy")
+    @PostMapping("/{accountId}/redirect/buy")
     public ResponseEntity buy(
             @PathVariable @ObjectId(PersonalAccount.class) String accountId,
             @Valid @RequestBody RedirectServiceBuyRequest body,
             SecurityContextHolderAwareRequestWrapper request
     ){
         PersonalAccount account = accountManager.findOne(accountId);
-        if (!account.isActive()) {
-            throw new ParameterValidationException("Заказ услуги на неактивном аккаунте невозможен");
-        }
+        assertAccountIsActive(account);
 
         Domain domain = rcUserFeignClient.getDomain(accountId, body.getDomainId());
 
@@ -95,7 +93,7 @@ public class RedirectServiceRestController extends CommonRestController {
             redirectAccountService.setActive(true);
             accountRedirectServiceRepository.save(redirectAccountService);
         } else {
-            throw new ParameterValidationException("Переадресация для домен " + domain.getName() + " оплачена до "
+            throw new ParameterValidationException("Переадресация для домена " + domain.getName() + " уже оплачена до "
                     + redirectAccountService.getExpireDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
         }
 
@@ -104,13 +102,14 @@ public class RedirectServiceRestController extends CommonRestController {
         return new ResponseEntity(HttpStatus.NO_CONTENT);
     }
 
-    @PostMapping("")
+    @PostMapping("/{accountId}/redirect")
     public ResponseEntity<SimpleServiceMessage> create(
             @PathVariable @ObjectId(PersonalAccount.class) String accountId,
             @RequestBody SimpleServiceMessage body,
             SecurityContextHolderAwareRequestWrapper request,
             Authentication authentication
     ) {
+        validateRedirectItems((List) body.getParam("redirectItems"));
 
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
             checkParamsWithRoles(body.getParams(), REDIRECT_POST, authentication);
@@ -119,42 +118,24 @@ public class RedirectServiceRestController extends CommonRestController {
         }
 
         PersonalAccount account = accountManager.findOne(accountId);
-        if (!account.isActive()) {
-            throw new ParameterValidationException("Аккаунт не активен");
-        }
-
-        List<RedirectItem> redirectItems = (List<RedirectItem>) body.getParam("redirectItems");
-        if (redirectItems == null) {
-            throw new ParameterValidationException("Список перенаправлений не может быть пуст");
-        }
-
-        if (redirectItems.size() > LIMIT_REDIRECT_FOR_DOMAIN) {
-            throw new ParameterValidationException("Доступно не более 10 перенаправлений для одного домена");
-        }
+        assertAccountIsActive(account);
 
         Domain domain = rcUserFeignClient.getDomain(accountId, (String) body.getParam("domainId"));
-        if (domain == null) {
-            throw new ParameterValidationException("Домен не найден на аккаунте");
-        }
 
-        boolean serviceIsPaid = accountRedirectServiceRepository
-                .existsByPersonalAccountIdAndFullDomainNameAndExpireDateAfter(account.getId(), domain.getName(), LocalDate.now());
-
-        if (!serviceIsPaid) {
-            throw new ParameterValidationException("Для создания перенаправления закажите услугу");
-        }
+        assertServiceIsPaid(accountId, domain.getName());
 
         assertDomainNotExistsOnWebsite(accountId, domain.getId());
 
         accountRedirectServiceRepository.findByPersonalAccountIdAndFullDomainName(accountId, domain.getName());
 
+        checkRedirectLimits(account, body);
 
         String name = body.getParam("name") == null || body.getParam("name").toString().isEmpty() ? domain.getName() : body.getParam("name").toString();
 
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(accountId);
         message.addParam("domainId", domain.getId());
-        message.addParam("redirectItems", redirectItems);
+        message.addParam("redirectItems", message.getParam("redirectItems"));
         message.addParam("name", name);
 
         ProcessingBusinessAction action = businessHelper.buildActionAndOperation(BusinessOperationType.REDIRECT_CREATE, BusinessActionType.REDIRECT_CREATE_RC, message);
@@ -164,7 +145,7 @@ public class RedirectServiceRestController extends CommonRestController {
         return new ResponseEntity<>(createSuccessResponse(action), HttpStatus.ACCEPTED);
     }
 
-    @PatchMapping("/{resourceId}")
+    @PatchMapping("/{accountId}/redirect/{resourceId}")
     public ResponseEntity<SimpleServiceMessage> update(
             @PathVariable @ObjectId(PersonalAccount.class) String accountId,
             @PathVariable String resourceId,
@@ -173,32 +154,26 @@ public class RedirectServiceRestController extends CommonRestController {
             Authentication authentication
     ) {
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
-            checkParamsWithRoles(message.getParams(), REDIRECT_POST, authentication);
+            checkParamsWithRoles(message.getParams(), REDIRECT_PATCH, authentication);
         } else {
-            checkParamsWithRolesAndDeleteRestricted(message.getParams(), REDIRECT_POST, authentication);
-        }
-
-        if (message.getParam("redirectItems") != null
-                && ((List<Map>) message.getParam("redirectItems")).size() > LIMIT_REDIRECT_FOR_DOMAIN) {
-            throw new ParameterValidationException("Доступно не более 10 перенаправлений для одного домена");
+            checkParamsWithRolesAndDeleteRestricted(message.getParams(), REDIRECT_PATCH, authentication);
         }
 
         PersonalAccount account = accountManager.findOne(accountId);
-        if (!account.isActive()) {
-            throw new ParameterValidationException("Аккаунт не активен");
-        }
+
+        assertAccountIsActive(account);
+
+        validateRedirectItems((List) message.getParam("redirectItems"));
+
+        checkRedirectLimits(account, message);
 
         Redirect redirect = rcUserFeignClient.getRedirect(accountId, resourceId);
+
+        assertServiceIsPaid(accountId, redirect.getDomain().getName());
 
         message.setAccountId(accountId);
         message.addParam("resourceId", resourceId);
 
-        boolean serviceIsPaid = accountRedirectServiceRepository
-                .existsByPersonalAccountIdAndFullDomainNameAndExpireDateAfter(account.getId(), redirect.getDomain().getName(), LocalDate.now());
-
-        if (!serviceIsPaid) {
-            throw new ParameterValidationException("Для создания перенаправления закажите услугу");
-        }
 
         ProcessingBusinessAction action = businessHelper.buildActionAndOperation(BusinessOperationType.REDIRECT_UPDATE, BusinessActionType.REDIRECT_UPDATE_RC, message);
 
@@ -207,7 +182,7 @@ public class RedirectServiceRestController extends CommonRestController {
         return new ResponseEntity<>(createSuccessResponse(action), HttpStatus.ACCEPTED);
     }
 
-    @DeleteMapping("/{resourceId}")
+    @DeleteMapping("/{accountId}/redirect/{resourceId}")
     public ResponseEntity<SimpleServiceMessage> delete(
             @PathVariable @ObjectId(PersonalAccount.class) String accountId,
             @PathVariable String resourceId,
@@ -250,7 +225,55 @@ public class RedirectServiceRestController extends CommonRestController {
         } catch (ResourceNotFoundException ignored) {} //this is normal
 
         if (webSite != null) {
-            throw new ParameterValidationException("Домен используется уже используется на сайте " + webSite.getName());
+            throw new ParameterValidationException("Домен уже используется на сайте " + webSite.getName());
+        }
+    }
+
+    private void checkRedirectLimits(PersonalAccount account, SimpleServiceMessage message) {
+        List<Map> redirectItems = (List<Map>) message.getParam("redirectItems");
+        if (redirectItems != null
+                && (redirectItems).size() > LIMIT_REDIRECT_FOR_DOMAIN) {
+            throw new ParameterValidationException("Доступно не более 10 перенаправлений для одного домена");
+        }
+    }
+
+    private void assertIsUrl(String url) {
+        try {
+            new URL(url);
+        } catch (MalformedURLException e) {
+            throw new ParameterValidationException("Невалидный URL : " + url);
+        }
+    }
+
+    private void assertIsUrlPath(String path) {
+        try {
+            new URL("http", "localhost", path);
+        } catch (MalformedURLException e) {
+            throw new ParameterValidationException("Невалидный URL path: " + path);
+        }
+    }
+
+    private void assertServiceIsPaid(String accountId, String domainName) {
+        boolean serviceIsPaid = accountRedirectServiceRepository
+                .existsByPersonalAccountIdAndFullDomainNameAndExpireDateAfter(accountId, domainName, LocalDate.now());
+
+        if (!serviceIsPaid) {
+            throw new ParameterValidationException("Для управления перенаправлением для домена " + domainName + " закажите услугу");
+        }
+    }
+
+    private void assertAccountIsActive(PersonalAccount account) {
+        if (!account.isActive()) {
+            throw new ParameterValidationException("Аккаунт не активен");
+        }
+    }
+
+    private void validateRedirectItems(List list) {
+        if (list != null) {
+            for(Object o: list) {
+                assertIsUrlPath(((Map<String, String>) o).get("sourcePath"));
+                assertIsUrl(((Map<String, String>) o).get("targetUrl"));
+            }
         }
     }
 }
