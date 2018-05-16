@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.controller.rest;
+package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.dto.request.RedirectServiceBuyRequest;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -21,6 +22,7 @@ import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
 import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
+import ru.majordomo.hms.personmgr.service.NsCheckService;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
@@ -42,7 +44,6 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.REDIRECT_POST;
 import static ru.majordomo.hms.personmgr.common.FieldRoles.REDIRECT_PATCH;
 
 @RestController
-//@RequestMapping("/{accountId}/redirect")
 @Validated
 public class RedirectServiceRestController extends CommonRestController {
     private static final TemporalAdjuster PLUS_ONE_YEAR = TemporalAdjusters.ofDateAdjuster(date -> date.plusYears(1));
@@ -51,16 +52,19 @@ public class RedirectServiceRestController extends CommonRestController {
     private AccountHelper accountHelper;
     private RcUserFeignClient rcUserFeignClient;
     private AccountRedirectServiceRepository accountRedirectServiceRepository;
+    private NsCheckService nsCheckService;
 
     @Autowired
     public RedirectServiceRestController(
             AccountHelper accountHelper,
             RcUserFeignClient rcUserFeignClient,
-            AccountRedirectServiceRepository accountRedirectServiceRepository
+            AccountRedirectServiceRepository accountRedirectServiceRepository,
+            NsCheckService nsCheckService
     ) {
         this.accountHelper = accountHelper;
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountRedirectServiceRepository = accountRedirectServiceRepository;
+        this.nsCheckService = nsCheckService;
     }
 
     @GetMapping("/{accountId}/account-service-redirect")
@@ -80,6 +84,12 @@ public class RedirectServiceRestController extends CommonRestController {
         assertAccountIsActive(account);
 
         Domain domain = rcUserFeignClient.getDomain(accountId, body.getDomainId());
+
+        if (!nsCheckService.checkOurNs(domain)) {
+            throw new ParameterValidationException(
+                    "Домен должен быть делегирован на наши DNS-серверы (ns.majordomo.ru, ns2.majordomo.ru и ns3.majordomo.ru)"
+            );
+        }
 
         RedirectAccountService redirectAccountService = accountRedirectServiceRepository
                 .findByPersonalAccountIdAndFullDomainName(account.getId(), domain.getName());
