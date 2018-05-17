@@ -68,10 +68,18 @@ public class RedirectServiceRestController extends CommonRestController {
     }
 
     @GetMapping("/{accountId}/account-service-redirect")
-    public List<RedirectAccountService> getService(
+    public List<RedirectAccountService> getServices(
             @PathVariable @ObjectId(PersonalAccount.class) String accountId
     ) {
         return accountRedirectServiceRepository.findByPersonalAccountId(accountId);
+    }
+
+    @GetMapping("/{accountId}/account-service-redirect/{serviceId}")
+    public RedirectAccountService getService(
+            @PathVariable @ObjectId(PersonalAccount.class) String accountId,
+            @PathVariable @ObjectId(RedirectAccountService.class) String serviceId
+    ) {
+        return accountRedirectServiceRepository.findByPersonalAccountIdAndId(accountId, serviceId);
     }
 
     @PostMapping("/{accountId}/redirect/buy")
@@ -97,7 +105,7 @@ public class RedirectServiceRestController extends CommonRestController {
         if (redirectAccountService == null) {
             chargeByRedirect(account, domain);
             addRedirectService(account, domain);
-        } else if (redirectAccountService.getExpireDate().isAfter(LocalDate.now())){
+        } else if (redirectAccountService.getExpireDate().isBefore(LocalDate.now())){
             chargeByRedirect(account, domain);
             redirectAccountService.setExpireDate(LocalDate.now().with(PLUS_ONE_YEAR));
             redirectAccountService.setActive(true);
