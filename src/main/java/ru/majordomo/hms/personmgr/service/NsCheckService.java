@@ -27,6 +27,11 @@ public class NsCheckService {
         Boolean hasAlienNS = false;
 
         try {
+            if (domain.getParentDomainId() != null) {
+                Domain originDomain = rcUserFeignClient.getDomain(domain.getAccountId(), domain.getParentDomainId());
+                return checkOurNs(originDomain);
+            }
+
             Lookup lookup = new Lookup(IDN.toASCII(domain.getName()), Type.NS);
             lookup.setResolver(new SimpleResolver("8.8.8.8"));
             lookup.setCache(null);

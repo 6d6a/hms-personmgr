@@ -153,7 +153,7 @@ public class RedirectServiceRestController extends CommonRestController {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(accountId);
         message.addParam("domainId", domain.getId());
-        message.addParam("redirectItems", message.getParam("redirectItems"));
+        message.addParam("redirectItems", body.getParam("redirectItems"));
         message.addParam("name", name);
 
         ProcessingBusinessAction action = businessHelper.buildActionAndOperation(BusinessOperationType.REDIRECT_CREATE, BusinessActionType.REDIRECT_CREATE_RC, message);
