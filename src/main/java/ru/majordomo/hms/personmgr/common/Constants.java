@@ -163,6 +163,8 @@ public class Constants {
     private static final String REVISIUM_ID = "revisium";
     public static final String REVISIUM_SERVICE_ID = SERVICE_PREFIX + REVISIUM_ID;
 
+    public static final String REDIRECT_SERVICE_OLD_ID = SERVICE_PREFIX + "redirect";
+
     //Id услуги Доп.место в BillingDB
     public static final int ADDITIONAL_QUOTA_100_ID = 15;
     //Id услуги Доп.место
@@ -349,6 +351,10 @@ public class Constants {
         public static final String WEBSITE_UPDATE = "website.update";
         public static final String WEBSITE_DELETE = "website.delete";
 
+        public static final String REDIRECT_CREATE = "redirect.create";
+        public static final String REDIRECT_UPDATE = "redirect.update";
+        public static final String REDIRECT_DELETE = "redirect.delete";
+
         public static final String APPS_CAT_INSTALL = "appscat.install";
 
         public static Set<String> ALL_EXCHANGES;
@@ -393,6 +399,9 @@ public class Constants {
                     WEBSITE_CREATE,
                     WEBSITE_UPDATE,
                     WEBSITE_DELETE,
+                    REDIRECT_CREATE,
+                    REDIRECT_UPDATE,
+                    REDIRECT_DELETE,
                     APPS_CAT_INSTALL
             ));
         }
