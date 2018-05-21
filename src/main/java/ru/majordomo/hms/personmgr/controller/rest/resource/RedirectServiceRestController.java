@@ -127,8 +127,6 @@ public class RedirectServiceRestController extends CommonRestController {
             SecurityContextHolderAwareRequestWrapper request,
             Authentication authentication
     ) {
-        validateRedirectItems((List) body.getParam("redirectItems"));
-
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
             checkParamsWithRoles(body.getParams(), REDIRECT_POST, authentication);
         } else {
@@ -180,8 +178,6 @@ public class RedirectServiceRestController extends CommonRestController {
         PersonalAccount account = accountManager.findOne(accountId);
 
         assertAccountIsActive(account);
-
-        validateRedirectItems((List) message.getParam("redirectItems"));
 
         checkRedirectLimits(account, message);
 
@@ -255,22 +251,6 @@ public class RedirectServiceRestController extends CommonRestController {
         }
     }
 
-    private void assertIsUrl(String url) {
-        try {
-            new URL(url);
-        } catch (MalformedURLException e) {
-            throw new ParameterValidationException("Невалидный URL : " + url);
-        }
-    }
-
-    private void assertIsUrlPath(String path) {
-        try {
-            new URL("http", "localhost", path);
-        } catch (MalformedURLException e) {
-            throw new ParameterValidationException("Невалидный URL path: " + path);
-        }
-    }
-
     private void assertServiceIsPaid(String accountId, String domainName) {
         boolean serviceIsPaid = accountRedirectServiceRepository
                 .existsByPersonalAccountIdAndFullDomainNameAndExpireDateAfter(accountId, domainName, LocalDate.now());
@@ -283,15 +263,6 @@ public class RedirectServiceRestController extends CommonRestController {
     private void assertAccountIsActive(PersonalAccount account) {
         if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт не активен");
-        }
-    }
-
-    private void validateRedirectItems(List list) {
-        if (list != null) {
-            for(Object o: list) {
-                assertIsUrlPath(((Map<String, String>) o).get("sourcePath"));
-                assertIsUrl(((Map<String, String>) o).get("targetUrl"));
-            }
         }
     }
 }
