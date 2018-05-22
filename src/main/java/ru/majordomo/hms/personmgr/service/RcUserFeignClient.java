@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.config.FeignConfig;
 import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import java.util.Collection;
@@ -95,4 +96,7 @@ public interface RcUserFeignClient {
 
     @GetMapping(value = "/{accountId}/person/find", consumes = "application/json")
     List<Person> getPersonsByAccountIdAndNicHandle (@PathVariable("accountId") String accountId, @RequestParam("nicHandle") String nicHandle);
+
+    @GetMapping(value = "{accountId}/redirect", consumes = "application/json")
+    List<Redirect> getRedirects(String accountId);
 }
