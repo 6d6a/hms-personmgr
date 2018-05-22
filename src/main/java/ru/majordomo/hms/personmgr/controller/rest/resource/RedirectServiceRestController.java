@@ -47,7 +47,7 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.REDIRECT_PATCH;
 public class RedirectServiceRestController extends CommonRestController {
     private static final TemporalAdjuster PLUS_ONE_YEAR = TemporalAdjusters.ofDateAdjuster(date -> date.plusYears(1));
     private static final int LIMIT_REDIRECT_FOR_DOMAIN = 10;
-    private static final int CAN_PROLONG_DAYS_EXPIRING = 5;
+    private static final int MAX_YEARS_PROLONG = 3;
 
     private AccountHelper accountHelper;
     private RcUserFeignClient rcUserFeignClient;
@@ -82,6 +82,66 @@ public class RedirectServiceRestController extends CommonRestController {
         return accountRedirectServiceRepository.findByPersonalAccountIdAndId(accountId, serviceId);
     }
 
+    @PostMapping("/{accountId}/redirect/{serviceId}/prolong")
+    public ResponseEntity prolong(
+            @PathVariable @ObjectId(PersonalAccount.class) String accountId,
+            @PathVariable @ObjectId(RedirectAccountService.class) String serviceId,
+            SecurityContextHolderAwareRequestWrapper request
+    ){
+        PersonalAccount account = accountManager.findOne(accountId);
+        assertAccountIsActive(account);
+
+        RedirectAccountService redirectAccountService = accountRedirectServiceRepository
+                .findByPersonalAccountIdAndId(account.getId(), serviceId);
+
+        Domain domain;
+        try {
+            domain = rcUserFeignClient.findDomain(redirectAccountService.getFullDomainName());
+            if (domain == null || !domain.getAccountId().equals(accountId)) {
+                throw new ParameterValidationException(
+                        "Домен с именем " + redirectAccountService.getFullDomainName() + " не найден на аккаунте");
+            }
+        } catch (ResourceNotFoundException e) {
+            throw new ParameterValidationException("Домен с именем " + redirectAccountService.getFullDomainName() + " не найден на аккаунте");
+        }
+
+        if (!nsCheckService.checkOurNs(domain)) {
+            throw new ParameterValidationException(
+                    "Домен должен быть делегирован на наши DNS-серверы (ns.majordomo.ru, ns2.majordomo.ru и ns3.majordomo.ru)"
+            );
+        }
+
+        if (redirectAccountService.getExpireDate().isBefore(LocalDate.now())){
+            chargeByRedirect(account, domain);
+            redirectAccountService.setExpireDate(LocalDate.now().with(PLUS_ONE_YEAR));
+            redirectAccountService.setActive(true);
+            accountRedirectServiceRepository.save(redirectAccountService);
+            history.save(account, "Продлена истёкшая услуга перенаправления для домена: " + domain.getName(), request);
+        } else if (
+                redirectAccountService.getExpireDate()
+                        .isBefore(
+                                LocalDate.now().plusYears(MAX_YEARS_PROLONG)
+                        )
+                || redirectAccountService.getExpireDate()
+                        .isEqual(
+                                LocalDate.now().plusYears(MAX_YEARS_PROLONG)
+                        )
+        ){
+            chargeByRedirect(account, domain);
+            redirectAccountService.setExpireDate(redirectAccountService.getExpireDate().with(PLUS_ONE_YEAR));
+            redirectAccountService.setActive(true);
+            accountRedirectServiceRepository.save(redirectAccountService);
+            history.save(account, "Продлена услуга перенаправления для домена: " + domain.getName(), request);
+        } else {
+            throw new ParameterValidationException("Переадресация для домена " + domain.getName() + " уже оплачена до "
+                    + redirectAccountService.getExpireDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
+        }
+
+        publisher.publishEvent(new RedirectWasProlongEvent(accountId, domain.getName()));
+
+        return new ResponseEntity(HttpStatus.NO_CONTENT);
+    }
+
     @PostMapping("/{accountId}/redirect/buy")
     public ResponseEntity buy(
             @PathVariable @ObjectId(PersonalAccount.class) String accountId,
@@ -106,21 +166,8 @@ public class RedirectServiceRestController extends CommonRestController {
             chargeByRedirect(account, domain);
             addRedirectService(account, domain);
             history.save(account, "Заказана услуга перенаправления для домена: " + domain.getName(), request);
-        } else if (redirectAccountService.getExpireDate().isBefore(LocalDate.now())){
-            chargeByRedirect(account, domain);
-            redirectAccountService.setExpireDate(LocalDate.now().with(PLUS_ONE_YEAR));
-            redirectAccountService.setActive(true);
-            accountRedirectServiceRepository.save(redirectAccountService);
-            history.save(account, "Продлена истёкшая услуга перенаправления для домена: " + domain.getName(), request);
-        } else if (redirectAccountService.getExpireDate().isAfter(LocalDate.now().minusDays(CAN_PROLONG_DAYS_EXPIRING))){
-            chargeByRedirect(account, domain);
-            redirectAccountService.setExpireDate(redirectAccountService.getExpireDate().with(PLUS_ONE_YEAR));
-            redirectAccountService.setActive(true);
-            accountRedirectServiceRepository.save(redirectAccountService);
-            history.save(account, "Продлена услуга перенаправления для домена: " + domain.getName(), request);
         } else {
-            throw new ParameterValidationException("Переадресация для домена " + domain.getName() + " уже оплачена до "
-                    + redirectAccountService.getExpireDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
+            throw new ParameterValidationException("Можно заказать только одну услугу переадресации для одного домена");
         }
 
         publisher.publishEvent(new RedirectWasProlongEvent(accountId, domain.getName()));
