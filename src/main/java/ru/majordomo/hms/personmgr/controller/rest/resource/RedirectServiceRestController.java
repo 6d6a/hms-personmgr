@@ -12,6 +12,7 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.dto.request.RedirectServiceBuyRequest;
+import ru.majordomo.hms.personmgr.event.account.RedirectWasProlongEvent;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
@@ -30,8 +31,6 @@ import ru.majordomo.hms.rc.user.resources.Redirect;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
 import javax.validation.Valid;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjuster;
@@ -48,6 +47,7 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.REDIRECT_PATCH;
 public class RedirectServiceRestController extends CommonRestController {
     private static final TemporalAdjuster PLUS_ONE_YEAR = TemporalAdjusters.ofDateAdjuster(date -> date.plusYears(1));
     private static final int LIMIT_REDIRECT_FOR_DOMAIN = 10;
+    private static final int CAN_PROLONG_DAYS_EXPIRING = 5;
 
     private AccountHelper accountHelper;
     private RcUserFeignClient rcUserFeignClient;
@@ -105,17 +105,25 @@ public class RedirectServiceRestController extends CommonRestController {
         if (redirectAccountService == null) {
             chargeByRedirect(account, domain);
             addRedirectService(account, domain);
+            history.save(account, "Заказана услуга перенаправления для домена: " + domain.getName(), request);
         } else if (redirectAccountService.getExpireDate().isBefore(LocalDate.now())){
             chargeByRedirect(account, domain);
             redirectAccountService.setExpireDate(LocalDate.now().with(PLUS_ONE_YEAR));
             redirectAccountService.setActive(true);
             accountRedirectServiceRepository.save(redirectAccountService);
+            history.save(account, "Продлена истёкшая услуга перенаправления для домена: " + domain.getName(), request);
+        } else if (redirectAccountService.getExpireDate().isAfter(LocalDate.now().minusDays(CAN_PROLONG_DAYS_EXPIRING))){
+            chargeByRedirect(account, domain);
+            redirectAccountService.setExpireDate(redirectAccountService.getExpireDate().with(PLUS_ONE_YEAR));
+            redirectAccountService.setActive(true);
+            accountRedirectServiceRepository.save(redirectAccountService);
+            history.save(account, "Продлена услуга перенаправления для домена: " + domain.getName(), request);
         } else {
             throw new ParameterValidationException("Переадресация для домена " + domain.getName() + " уже оплачена до "
                     + redirectAccountService.getExpireDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
         }
 
-        history.save(account, "Заказана услуга перенаправления для домена: " + domain.getName(), request);
+        publisher.publishEvent(new RedirectWasProlongEvent(accountId, domain.getName()));
 
         return new ResponseEntity(HttpStatus.NO_CONTENT);
     }
