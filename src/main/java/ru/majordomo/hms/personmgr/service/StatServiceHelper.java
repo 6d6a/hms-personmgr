@@ -248,6 +248,7 @@ public class StatServiceHelper {
         AccountServiceCounter redirectCounter = getAccountServiceCounterForRedirectServices(accountIds);
 
         List<AccountServiceCounter> result = new ArrayList<>(accountServiceCounters.size() + 1);
+        result.addAll(accountServiceCounters);
         result.add(redirectCounter);
         return result;
     }
