@@ -15,10 +15,9 @@ import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.repository.AbonementRepository;
-import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
-import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
+import ru.majordomo.hms.personmgr.repository.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -26,12 +25,14 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_FIRST_REAL_PAYMENT;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_PLAN_CHANGE;
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_NAME_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.REDIRECT_SERVICE_OLD_ID;
 
 @Service
 public class StatServiceHelper {
@@ -43,6 +44,7 @@ public class StatServiceHelper {
     private final PersonalAccountManager accountManager;
     private final PaymentServiceRepository paymentServiceRepository;
     private final AccountStatRepository accountStatRepository;
+    private final AccountRedirectServiceRepository accountRedirectServiceRepository;
 
     @Autowired
     public StatServiceHelper(
@@ -51,7 +53,8 @@ public class StatServiceHelper {
             PlanRepository planRepository,
             PersonalAccountManager accountManager,
             PaymentServiceRepository paymentServiceRepository,
-            AccountStatRepository accountStatRepository
+            AccountStatRepository accountStatRepository,
+            AccountRedirectServiceRepository accountRedirectServiceRepository
     ) {
         this.mongoOperations = mongoOperations;
         this.abonementRepository = abonementRepository;
@@ -59,6 +62,7 @@ public class StatServiceHelper {
         this.accountManager = accountManager;
         this.paymentServiceRepository = paymentServiceRepository;
         this.accountStatRepository = accountStatRepository;
+        this.accountRedirectServiceRepository = accountRedirectServiceRepository;
     }
 
     public List<PlanCounter> getAllPlanCounters() {
@@ -241,7 +245,29 @@ public class StatServiceHelper {
 
         accountServiceCounters.forEach(element -> element.setName(paymentServiceRepository.findOne(element.getResourceId()).getName()));
 
+        AccountServiceCounter redirectCounter = getAccountServiceCounterForRedirectServices(accountIds);
+        accountServiceCounters.add(redirectCounter);
+
         return accountServiceCounters;
+    }
+
+    private AccountServiceCounter getAccountServiceCounterForRedirectServices(List<String> accountIds) {
+        PaymentService paymentService = paymentServiceRepository.findByOldId(REDIRECT_SERVICE_OLD_ID);
+
+        Stream<RedirectAccountService> redirectAccountServices = accountRedirectServiceRepository
+                .findByPersonalAccountIdInAndExpireDateAfter(
+                        accountIds, LocalDate.now()
+                );
+
+        int count = redirectAccountServices.map(RedirectAccountService::getPersonalAccountId).collect(Collectors.toSet()).size();
+        int quantity = redirectAccountServices.collect(Collectors.toSet()).size();
+
+        AccountServiceCounter counter = new AccountServiceCounter();
+        counter.setCount(count);
+        counter.setQuantity(quantity);
+        counter.setResourceId(paymentService.getId());
+        counter.setName(paymentService.getName());
+        return counter;
     }
 
     public List<DomainCounter> getDomainCountersByDateAndStatType(LocalDate date, AccountStatType type) {
