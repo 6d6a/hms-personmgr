@@ -246,21 +246,26 @@ public class StatServiceHelper {
         accountServiceCounters.forEach(element -> element.setName(paymentServiceRepository.findOne(element.getResourceId()).getName()));
 
         AccountServiceCounter redirectCounter = getAccountServiceCounterForRedirectServices(accountIds);
-        accountServiceCounters.add(redirectCounter);
 
-        return accountServiceCounters;
+        List<AccountServiceCounter> result = new ArrayList<>(accountServiceCounters.size() + 1);
+        result.add(redirectCounter);
+        return result;
     }
 
     private AccountServiceCounter getAccountServiceCounterForRedirectServices(List<String> accountIds) {
         PaymentService paymentService = paymentServiceRepository.findByOldId(REDIRECT_SERVICE_OLD_ID);
 
-        Stream<RedirectAccountService> redirectAccountServices = accountRedirectServiceRepository
+        List<RedirectAccountService> redirectAccountServices = accountRedirectServiceRepository
                 .findByPersonalAccountIdInAndExpireDateAfter(
                         accountIds, LocalDate.now()
                 );
 
-        int count = redirectAccountServices.map(RedirectAccountService::getPersonalAccountId).collect(Collectors.toSet()).size();
-        int quantity = redirectAccountServices.collect(Collectors.toSet()).size();
+        int quantity = redirectAccountServices.size();
+        int count = redirectAccountServices
+                .stream()
+                .map(RedirectAccountService::getPersonalAccountId)
+                .collect(Collectors.toSet())
+                .size();
 
         AccountServiceCounter counter = new AccountServiceCounter();
         counter.setCount(count);
