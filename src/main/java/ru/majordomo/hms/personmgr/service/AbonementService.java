@@ -26,6 +26,7 @@ import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbone
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -41,16 +42,16 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static ru.majordomo.hms.personmgr.common.AbonementType.VIRTUAL_HOSTING_PLAN;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE;
+import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_CHANGE_ARCHIVAL_PLAN_TO_ACTIVE_PLAN;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_ABONEMENT;
-import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND;
-import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND;
-import static ru.majordomo.hms.personmgr.common.Constants.PLAN_MIN_COST_TO_ORDER_ABONEMENT;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_ABONEMENT_EXPIRING;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
 @Service
 public class AbonementService {
     private final static Logger logger = LoggerFactory.getLogger(AbonementService.class);
+    private final static BigDecimal UNLIMITED_PLAN_COST = BigDecimal.valueOf(245);
 
     private final PlanManager planManager;
     private final AbonementRepository abonementRepository;
@@ -63,6 +64,7 @@ public class AbonementService {
     private final AccountNotificationHelper accountNotificationHelper;
     private final ChargeHelper chargeHelper;
     private final AccountHistoryManager history;
+    private final PersonalAccountManager accountManager;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -78,7 +80,8 @@ public class AbonementService {
             AccountStatHelper accountStatHelper,
             AccountNotificationHelper accountNotificationHelper,
             ChargeHelper chargeHelper,
-            AccountHistoryManager history
+            AccountHistoryManager history,
+            PersonalAccountManager accountManager
     ) {
         this.planManager = planManager;
         this.abonementRepository = abonementRepository;
@@ -91,6 +94,7 @@ public class AbonementService {
         this.accountNotificationHelper = accountNotificationHelper;
         this.chargeHelper = chargeHelper;
         this.history = history;
+        this.accountManager = accountManager;
     }
 
     /**
@@ -324,8 +328,9 @@ public class AbonementService {
             BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
             String currentExpired = accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
 
-            // Если абонемент не бонусный (internal) и стоит автопродление
-            if (!accountAbonement.getAbonement().isInternal() && accountAbonement.isAutorenew()) {
+            if (!accountAbonement.getAbonement().isInternal() && accountHelper.needChangeArchivePlanToUnlimitedPlan(account)) {
+                processArchivalAbonement(account, accountAbonement);
+            } else if (!accountAbonement.getAbonement().isInternal() && accountAbonement.isAutorenew()) {
                     logger.debug("Abonement has autorenew option enabled");
 
                     if (balance.compareTo(abonementCost) >= 0) {
@@ -364,6 +369,17 @@ public class AbonementService {
                 );
             }
         });
+    }
+
+    private void processArchivalAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
+        accountHelper.changeArchivalPlanToActive(account, accountAbonement);
+
+        history.saveForOperatorService(
+                account,
+                "Архивный тариф, абонемент удален, дата окончания: " + accountAbonement.getExpired().toString()
+        );
+
+        chargeHelper.prepareAndProcessChargeRequest(account.getId(), LocalDate.now());
     }
 
     private Plan getAccountPlan(PersonalAccount account) {
@@ -422,10 +438,7 @@ public class AbonementService {
             publisher.publishEvent(new AccountSendEmailWithExpiredAbonementEvent(account));
         }
 
-        Map<String, String> data = new HashMap<>();
-        data.put("expireEnd", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-        data.put("abonementId", accountAbonement.getAbonementId());
-        accountStatHelper.add(account.getId(), reason, data);
+        accountStatHelper.abonementDelete(accountAbonement);
 
         //Создаем AccountService с выбранным тарифом
         addPlanServicesAfterAbonementExpire(account);

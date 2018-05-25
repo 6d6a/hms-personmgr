@@ -24,6 +24,7 @@ import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.*;
+import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -64,6 +65,7 @@ public class AccountHelper {
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHistoryManager history;
     private final PlanManager planManager;
+    private final AccountStatHelper accountStatHelper;
 
     @Autowired
     public AccountHelper(
@@ -81,7 +83,8 @@ public class AccountHelper {
             AccountAbonementManager accountAbonementManager,
             AccountServiceHelper accountServiceHelper,
             AccountHistoryManager history,
-            PlanManager planManager
+            PlanManager planManager,
+            AccountStatHelper accountStatHelper
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -98,6 +101,7 @@ public class AccountHelper {
         this.accountServiceHelper = accountServiceHelper;
         this.history = history;
         this.planManager = planManager;
+        this.accountStatHelper = accountStatHelper;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -1105,5 +1109,40 @@ public class AccountHelper {
             return false;
         }
         return true;
+    }
+
+    public boolean needChangeArchivePlanToUnlimitedPlan(PersonalAccount account) {
+        Plan plan = planManager.findOne(account.getPlanId());
+        if (plan.isActive()) {
+            return false;
+        } else if (plan.getService().getCost().compareTo(getArchivalFallbackPlan().getService().getCost()) < 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public Plan getArchivalFallbackPlan() {
+        return planManager.findByOldId(String.valueOf(PLAN_UNLIMITED_ID));
+    }
+
+    public Plan getPlan(PersonalAccount account) {
+        return planManager.findOne(account.getPlanId());
+    }
+
+    public void changeArchivalPlanToActive(PersonalAccount account, AccountAbonement accountAbonement) {
+        accountAbonementManager.delete(accountAbonement);
+        accountStatHelper.abonementDelete(accountAbonement);
+        changeArchivalPlanToActive(account);
+    }
+
+    public void changeArchivalPlanToActive(PersonalAccount account) {
+        Plan currentPlan = getPlan(account);
+        accountServiceHelper.deleteAccountServiceByServiceId(account, currentPlan.getServiceId());
+
+        Plan fallbackPlan = getArchivalFallbackPlan();
+        accountManager.setPlanId(account.getId(), fallbackPlan.getId());
+        accountServiceHelper.addAccountService(account, fallbackPlan.getServiceId());
+        accountStatHelper.archivalPlanChange(account.getId(), currentPlan.getId(), fallbackPlan.getId());
     }
 }
