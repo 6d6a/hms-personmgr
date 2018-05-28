@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.config.FeignConfig;
 import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import java.util.Collection;
@@ -44,6 +45,9 @@ public interface RcUserFeignClient {
     @GetMapping(value = "/{accountId}/website/{webSiteId}", consumes = "application/json")
     WebSite getWebSite(@PathVariable("accountId") String accountId, @PathVariable("webSiteId") String webSiteId);
 
+    @GetMapping(value = "/{accountId}/website/find", consumes = "application/json")
+    WebSite getWebSiteByDomainId(@PathVariable("accountId") String accountId, @RequestParam("domainId") String domainId);
+
     @GetMapping(value = "/{accountId}/website", consumes = "application/json")
     List<WebSite> getWebSites(@PathVariable("accountId") String accountId);
 
@@ -61,6 +65,9 @@ public interface RcUserFeignClient {
 
     @GetMapping(value = "/{accountId}/domain/{domainId}", consumes = "application/json")
     Domain getDomain(@PathVariable("accountId") String accountId, @PathVariable("domainId") String domainId);
+
+    @GetMapping(value = "{accountId}/redirect/{redirectId}", consumes = "application/json")
+    Redirect getRedirect(@PathVariable("accountId") String accountId, @PathVariable("redirectId") String redirectId);
 
     @GetMapping(value = "/domain/filter", consumes = "application/json")
     List<Domain> getExpiringDomains(
@@ -89,4 +96,7 @@ public interface RcUserFeignClient {
 
     @GetMapping(value = "/{accountId}/person/find", consumes = "application/json")
     List<Person> getPersonsByAccountIdAndNicHandle (@PathVariable("accountId") String accountId, @RequestParam("nicHandle") String nicHandle);
+
+    @GetMapping(value = "{accountId}/redirect", consumes = "application/json")
+    List<Redirect> getRedirects(String accountId);
 }

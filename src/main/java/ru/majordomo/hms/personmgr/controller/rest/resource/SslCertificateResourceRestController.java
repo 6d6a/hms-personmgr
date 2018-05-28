@@ -6,7 +6,6 @@ import org.springframework.security.web.servletapi.SecurityContextHolderAwareReq
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.IDN;
 import java.net.UnknownHostException;
 
 import org.xbill.DNS.*;
@@ -18,6 +17,7 @@ import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.service.NsCheckService;
 import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
@@ -28,12 +28,15 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 public class SslCertificateResourceRestController extends CommonRestController {
 
     private final RcUserFeignClient rcUserFeignClient;
+    private final NsCheckService nsCheckService;
 
     @Autowired
     public SslCertificateResourceRestController(
-            RcUserFeignClient rcUserFeignClient
+            RcUserFeignClient rcUserFeignClient,
+            NsCheckService nsCheckService
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
+        this.nsCheckService = nsCheckService;
     }
 
     @PostMapping
@@ -56,53 +59,28 @@ public class SslCertificateResourceRestController extends CommonRestController {
 
         String domainName = (String) message.getParam("name");
 
-        Boolean canOrderSSL = false;
-        Boolean hasAlienNS = false;
+        boolean canOrderSSL = false;
+        Domain domain = rcUserFeignClient.findDomain(domainName);
 
-        try {
-            Domain domain = rcUserFeignClient.findDomain(domainName);
+        if (domain != null) {
+            if (!accountId.equals(domain.getAccountId())) {
+                throw new ParameterValidationException("Домен не найден на вашем аккаунте");
+            }
+            if (domain.getParentDomainId() != null) {
+                Domain parentDomain = rcUserFeignClient.getDomain(accountId, domain.getParentDomainId());
 
-            if (domain != null) {
-                if (!accountId.equals(domain.getAccountId())) {
-                    throw new ParameterValidationException("Домен не найден на вашем аккаунте");
-                }
-                if (domain.getParentDomainId() != null) {
-                    Domain parentDomain = rcUserFeignClient.getDomain(accountId, domain.getParentDomainId());
-
-                    if (parentDomain != null) {
-                        if (!accountId.equals(parentDomain.getAccountId())) {
-                            throw new ParameterValidationException("Основной домен для поддомена не найден на вашем аккаунте");
-                        }
-                        domainName = parentDomain.getName();
+                if (parentDomain != null) {
+                    if (!accountId.equals(parentDomain.getAccountId())) {
+                        throw new ParameterValidationException("Основной домен для поддомена не найден на вашем аккаунте");
                     }
                 }
+                canOrderSSL = nsCheckService.checkOurNs(parentDomain);
+            } else {
+                canOrderSSL = nsCheckService.checkOurNs(domain);
             }
-            //TODO не ясно для чего было так сделано (InternetDomainName.from(IDN.toASCII(domainName)).topPrivateDomain().toString())
-            //но в новой гуаве оно перестало понимать наши домены третьего уровня типа blabla.org.ru (ищет по org.ru NS-ки)
-            Lookup lookup = new Lookup(IDN.toASCII(domainName), Type.NS);
-            lookup.setResolver(new SimpleResolver("8.8.8.8"));
-            lookup.setCache(null);
-
-            Record[] records = lookup.run();
-
-            if (records != null) {
-                for (Record record : records) {
-                    NSRecord nsRecord = (NSRecord) record;
-                    if (nsRecord.getTarget().equals(Name.fromString("ns.majordomo.ru.")) ||
-                            nsRecord.getTarget().equals(Name.fromString("ns2.majordomo.ru.")) ||
-                            nsRecord.getTarget().equals(Name.fromString("ns3.majordomo.ru.")) ) {
-                        canOrderSSL = true;
-                    } else {
-                        hasAlienNS = true;
-                    }
-                }
-            }
-        } catch (UnknownHostException | TextParseException e) {
-            logger.error("Ошибка при получении NS-записей: " + e.getMessage());
-            e.printStackTrace();
         }
 
-        if (!canOrderSSL || hasAlienNS) {
+        if (!canOrderSSL) {
             throw new ParameterValidationException("Домен должен быть делегирован на наши DNS-серверы (ns.majordomo.ru, ns2.majordomo.ru и ns3.majordomo.ru)");
         }
 
