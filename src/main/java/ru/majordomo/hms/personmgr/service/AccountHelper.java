@@ -1118,7 +1118,7 @@ public class AccountHelper {
 
     public boolean needChangeArchivalPlanToFallbackPlan(PersonalAccount account) {
         Plan plan = planManager.findOne(account.getPlanId());
-        if (plan.isActive()) {
+        if (plan.isActive() || plan.isAbonementOnly()) {
             return false;
         } else if (plan.getService().getCost().compareTo(getArchivalFallbackPlan().getService().getCost()) < 0) {
             return true;
