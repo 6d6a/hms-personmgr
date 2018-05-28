@@ -19,7 +19,6 @@ public class AccountScheduleEventListener {
     private final BusinessActionsScheduler businessActionsScheduler;
     private final AbonementsScheduler abonementsScheduler;
     private final RecurrentsScheduler recurrentsScheduler;
-    private final OneTimeServiceScheduler oneTimeServiceScheduler;
 
 
     @Autowired
@@ -28,15 +27,13 @@ public class AccountScheduleEventListener {
             DomainsScheduler domainsScheduler,
             BusinessActionsScheduler businessActionsScheduler,
             AbonementsScheduler abonementsScheduler,
-            RecurrentsScheduler recurrentsScheduler,
-            OneTimeServiceScheduler oneTimeServiceScheduler
+            RecurrentsScheduler recurrentsScheduler
     ) {
         this.notificationScheduler = notificationScheduler;
         this.domainsScheduler = domainsScheduler;
         this.businessActionsScheduler = businessActionsScheduler;
         this.abonementsScheduler = abonementsScheduler;
         this.recurrentsScheduler = recurrentsScheduler;
-        this.oneTimeServiceScheduler = oneTimeServiceScheduler;
     }
 
     @EventListener
@@ -117,13 +114,5 @@ public class AccountScheduleEventListener {
         logger.debug("We got ProcessRecurrentsEvent");
 
         recurrentsScheduler.processRecurrents();
-    }
-
-    @EventListener
-    @Async("threadPoolTaskExecutor")
-    public void on(ProcessOneTimeServiceEvent event) {
-        logger.debug("We got ProcessOneTimeServiceEvent");
-
-        oneTimeServiceScheduler.processExpiringAbonements();
     }
 }
