@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -30,7 +30,7 @@ import static java.time.temporal.ChronoUnit.DAYS;
 public class RecurrentProcessorService {
     private final static Logger logger = LoggerFactory.getLogger(RecurrentProcessorService.class);
 
-    private final AccountAbonementManager accountAbonementManager;
+    private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final AccountHelper accountHelper;
     private final PlanRepository planRepository;
     private final RcUserFeignClient rcUserFeignClient;
@@ -45,7 +45,7 @@ public class RecurrentProcessorService {
 
     @Autowired
     public RecurrentProcessorService(
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             AccountHelper accountHelper,
             PlanRepository planRepository,
             RcUserFeignClient rcUserFeignClient,

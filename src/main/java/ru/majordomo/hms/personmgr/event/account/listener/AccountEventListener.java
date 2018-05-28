@@ -21,7 +21,7 @@ import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
@@ -56,7 +56,7 @@ public class AccountEventListener {
     private final PromotionRepository promotionRepository;
     private final AbonementService abonementService;
     private final PersonalAccountManager accountManager;
-    private final AccountAbonementManager accountAbonementManager;
+    private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final AccountNotificationHelper accountNotificationHelper;
     private final ChargeHelper chargeHelper;
     private final AccountHistoryManager history;
@@ -74,7 +74,7 @@ public class AccountEventListener {
             PromotionRepository promotionRepository,
             AbonementService abonementService,
             PersonalAccountManager accountManager,
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             AccountNotificationHelper accountNotificationHelper,
             ChargeHelper chargeHelper,
             AccountHistoryManager history

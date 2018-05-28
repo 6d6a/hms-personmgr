@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,7 @@ import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -44,7 +45,6 @@ import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_ABONEMENT;
 import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND;
 import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND;
-import static ru.majordomo.hms.personmgr.common.Constants.PLAN_MIN_COST_TO_ORDER_ABONEMENT;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_ABONEMENT_EXPIRING;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
@@ -55,7 +55,7 @@ public class AbonementService {
     private final PlanManager planManager;
     private final AbonementRepository abonementRepository;
     private final PaymentServiceRepository paymentServiceRepository;
-    private final AccountAbonementManager accountAbonementManager;
+    private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final ApplicationEventPublisher publisher;
@@ -71,7 +71,7 @@ public class AbonementService {
             PlanManager planManager,
             AbonementRepository abonementRepository,
             PaymentServiceRepository paymentServiceRepository,
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
             ApplicationEventPublisher publisher,

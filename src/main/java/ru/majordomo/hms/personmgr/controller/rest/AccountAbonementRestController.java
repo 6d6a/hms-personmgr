@@ -24,12 +24,11 @@ import java.util.StringJoiner;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
-import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
@@ -37,14 +36,12 @@ import ru.majordomo.hms.personmgr.service.PlanChange.Factory;
 import ru.majordomo.hms.personmgr.service.PlanChange.Processor;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
-import static ru.majordomo.hms.personmgr.common.Constants.PLAN_MIN_COST_TO_ORDER_ABONEMENT;
-
 @RestController
 @RequestMapping("/{accountId}/account-abonements")
 @Validated
 public class AccountAbonementRestController extends CommonRestController {
 
-    private final AccountAbonementManager accountAbonementManager;
+    private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final AbonementRepository abonementRepository;
     private final AbonementService abonementService;
     private final AccountHelper accountHelper;
@@ -53,7 +50,7 @@ public class AccountAbonementRestController extends CommonRestController {
 
     @Autowired
     public AccountAbonementRestController(
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             AbonementService abonementService,
             AbonementRepository abonementRepository,
             AccountHelper accountHelper,

@@ -13,7 +13,7 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -32,7 +32,7 @@ public class AccountAmqpController extends CommonAmqpController {
     private final BusinessHelper businessHelper;
     private final PromocodeProcessor promocodeProcessor;
     private final AbonementService abonementService;
-    private final AccountAbonementManager accountAbonementManager;
+    private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final PromotionRepository promotionRepository;
     private final AccountHelper accountHelper;
 
@@ -41,7 +41,7 @@ public class AccountAmqpController extends CommonAmqpController {
             BusinessHelper businessHelper,
             PromocodeProcessor promocodeProcessor,
             AbonementService abonementService,
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             PromotionRepository promotionRepository,
             AccountHelper accountHelper) {
         this.businessHelper = businessHelper;

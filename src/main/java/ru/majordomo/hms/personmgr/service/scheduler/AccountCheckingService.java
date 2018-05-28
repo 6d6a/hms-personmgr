@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -23,14 +23,14 @@ import ru.majordomo.hms.personmgr.service.JongoManager;
 public class AccountCheckingService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final PersonalAccountManager personalAccountManager;
-    private final AccountAbonementManager accountAbonementManager;
+    private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final PlanRepository planRepository;
     private final AccountServiceHelper accountServiceHelper;
     private final JongoManager jongoManager;
 
     public AccountCheckingService(
             PersonalAccountManager personalAccountManager,
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             PlanRepository planRepository,
             AccountServiceHelper accountServiceHelper,
             JongoManager jongoManager

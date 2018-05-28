@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -31,7 +31,7 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 public class AccountAbonementDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountAbonementDBImportService.class);
 
-    private AccountAbonementManager accountAbonementManager;
+    private AbonementManager<AccountAbonement> accountAbonementManager;
     private PlanRepository planRepository;
     private PersonalAccountManager accountManager;
     private NamedParameterJdbcTemplate jdbcTemplate;
@@ -39,7 +39,7 @@ public class AccountAbonementDBImportService {
     @Autowired
     public AccountAbonementDBImportService(
             NamedParameterJdbcTemplate jdbcTemplate,
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             PlanRepository planRepository,
             PersonalAccountManager accountManager
     ) {

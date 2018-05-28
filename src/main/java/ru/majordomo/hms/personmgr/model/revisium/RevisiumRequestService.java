@@ -6,6 +6,7 @@ import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -19,11 +20,13 @@ import java.time.LocalDateTime;
 public class RevisiumRequestService extends ModelBelongsToPersonalAccount {
 
     @NotNull
-    @ObjectId(AccountService.class)
-    private String accountServiceId;
+    @ObjectId(AccountServiceAbonement.class)
+    private String accountServiceAbonementId;
 
     @Transient
-    private AccountService accountService;
+    private AccountServiceAbonement accountServiceAbonement;
+
+    private boolean active;
 
     @Transient
     private LocalDate expireDate;

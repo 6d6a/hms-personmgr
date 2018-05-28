@@ -20,7 +20,7 @@ import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.UserDisabledServiceEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -48,7 +48,7 @@ public class AccountServiceRestController extends CommonRestController {
     private final PaymentServiceRepository serviceRepository;
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHelper accountHelper;
-    private final AccountAbonementManager accountAbonementManager;
+    private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final PlanRepository planRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     private final DiscountServiceHelper discountServiceHelper;
@@ -59,7 +59,7 @@ public class AccountServiceRestController extends CommonRestController {
             PaymentServiceRepository serviceRepository,
             AccountServiceHelper accountServiceHelper,
             AccountHelper accountHelper,
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             PlanRepository planRepository,
             AccountNotificationHelper accountNotificationHelper,
             DiscountServiceHelper discountServiceHelper

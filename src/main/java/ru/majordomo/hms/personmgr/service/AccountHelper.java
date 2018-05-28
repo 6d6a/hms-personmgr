@@ -24,6 +24,7 @@ import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.*;
+import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -60,7 +61,7 @@ public class AccountHelper {
     private final PromocodeRepository promocodeRepository;
     private final AccountOwnerManager accountOwnerManager;
     private final PlanRepository planRepository;
-    private final AccountAbonementManager accountAbonementManager;
+    private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHistoryManager history;
     private final PlanManager planManager;
@@ -78,7 +79,7 @@ public class AccountHelper {
             PromocodeRepository promocodeRepository,
             AccountOwnerManager accountOwnerManager,
             PlanRepository planRepository,
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             AccountServiceHelper accountServiceHelper,
             AccountHistoryManager history,
             PlanManager planManager
