@@ -3,7 +3,6 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
@@ -32,6 +31,7 @@ import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
@@ -40,7 +40,6 @@ import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.time.temporal.ChronoUnit.DAYS;
-import static ru.majordomo.hms.personmgr.common.AbonementType.VIRTUAL_HOSTING_PLAN;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_ABONEMENT;
 import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND;
@@ -494,7 +493,7 @@ public class AbonementService {
         abonement.setInternal(true);
         abonement.setName(plan.getName() + suffixName(period));
         abonement.setServiceId(paymentService.getId());
-        abonement.setType(VIRTUAL_HOSTING_PLAN);
+        abonement.setType(Feature.VIRTUAL_HOSTING_PLAN);
         abonement.setPeriod(period.toString());
 
         abonementRepository.insert(abonement);

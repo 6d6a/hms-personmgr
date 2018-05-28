@@ -2,6 +2,8 @@ package ru.majordomo.hms.personmgr.model.plan;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -25,7 +27,16 @@ import static ru.majordomo.hms.personmgr.common.ResourceType.*;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ServicePlan extends BaseModel {
+    @NotBlank
+    private String name;
+
     @NotNull
+    private Feature feature;
+
+    @Indexed
+    private boolean active;
+
+    @NotBlank
     @Indexed
     private String serviceId;
 
