@@ -17,7 +17,6 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Arrays;
 
@@ -42,7 +41,6 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static ru.majordomo.hms.personmgr.common.AbonementType.VIRTUAL_HOSTING_PLAN;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE;
-import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_CHANGE_ARCHIVAL_PLAN_TO_ACTIVE_PLAN;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_ABONEMENT;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_ABONEMENT_EXPIRING;
@@ -303,9 +301,9 @@ public class AbonementService {
 
         //TODO переделать после гранд-рефакторинга услуг +
         //+ после того как аб-т заканчивается, переводим на тариф Безлимитный
-        if (!accountHelper.isAbonementMinCostOrderAllowed(account)) {
-            return;
-        }
+//        if (!accountHelper.isAbonementMinCostOrderAllowed(account)) {
+//            return;
+//        }
 
         //В итоге нам нужно получить абонементы которые закончились сегодня и раньше
         LocalDateTime expireEnd = LocalDateTime.now();
@@ -328,7 +326,7 @@ public class AbonementService {
             BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
             String currentExpired = accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
 
-            if (!accountAbonement.getAbonement().isInternal() && accountHelper.needChangeArchivePlanToUnlimitedPlan(account)) {
+            if (!accountAbonement.getAbonement().isInternal() && accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
                 processArchivalAbonement(account, accountAbonement);
             } else if (!accountAbonement.getAbonement().isInternal() && accountAbonement.isAutorenew()) {
                     logger.debug("Abonement has autorenew option enabled");
@@ -372,7 +370,15 @@ public class AbonementService {
     }
 
     private void processArchivalAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
-        accountHelper.changeArchivalPlanToActive(account, accountAbonement);
+        logger.info("processArchivalAbonement( PersonalAccount (id='" + account.getId()
+                + "'), AccountAbonement(id='" + accountAbonement.getId()
+                + "', Abonement(id=" + accountAbonement.getAbonement().getId() + "'));"
+        );
+
+        accountAbonementManager.delete(accountAbonement);
+        accountStatHelper.abonementDelete(accountAbonement);
+
+        accountHelper.changeArchivalPlanToActive(account);
 
         history.saveForOperatorService(
                 account,

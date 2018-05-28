@@ -208,7 +208,8 @@ public class ChargeProcessor {
      *  отправляет письмо
      */
     private void processNotEnoughMoneyPersonalAccount(PersonalAccount account) {
-        if (accountHelper.needChangeArchivePlanToUnlimitedPlan(account)) {
+        if (accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+            logger.info("changeArchivalPlanToActive(PersonalAccount(id='" + account.getId() + "'))");
             accountHelper.changeArchivalPlanToActive(account);
         }
 
