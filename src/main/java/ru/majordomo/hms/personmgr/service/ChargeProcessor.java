@@ -8,20 +8,16 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.ChargeResult;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.event.account.AccountSendMailNotificationRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSendSmsNotificationRemainingDaysEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
-import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.manager.BatchJobManager;
 import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -30,9 +26,7 @@ import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequestItem;
 import ru.majordomo.hms.personmgr.model.charge.Status;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
-import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.model.service.DiscountedService;
-import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceExpirationRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 
@@ -153,8 +147,9 @@ public class ChargeProcessor {
                     switch (accountServiceHelper.getPaymentServiceType(accountService)) {
                         case "PLAN":
                             try {
-                                disableAndNotifyAccountByReasonNotEnoughMoney(account);
+                                processNotEnoughMoneyPersonalAccount(account);
                             } catch (Exception e) {
+                                logger.error(e.getMessage());
                                 e.printStackTrace();
                             }
 
@@ -207,17 +202,19 @@ public class ChargeProcessor {
     }
 
     /**
+     *  Если тариф архивный и дешевле 245 рублей в месяц, то тариф меняется на безлимитный
      *  Выключает аккаунт
      *  пишет в статистику причину о нехватке средств
      *  отправляет письмо
      */
-    private void disableAndNotifyAccountByReasonNotEnoughMoney(PersonalAccount account) {
-        accountHelper.disableAccount(account);
-        switch (account.getAccountType()) {
-            case VIRTUAL_HOSTING:
-            default:
-                accountStatHelper.add(account.getId(), AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
+    private void processNotEnoughMoneyPersonalAccount(PersonalAccount account) {
+        if (accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+            logger.info("changeArchivalPlanToActive(PersonalAccount(id='" + account.getId() + "'))");
+            accountHelper.changeArchivalPlanToActive(account);
         }
+
+        accountHelper.disableAccount(account);
+        accountStatHelper.notMoney(account);
         accountNotificationHelper.sendMailForDeactivatedAccount(account, LocalDate.now());
     }
 

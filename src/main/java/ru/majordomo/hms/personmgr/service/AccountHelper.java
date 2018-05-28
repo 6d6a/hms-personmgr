@@ -15,6 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import ru.majordomo.hms.personmgr.common.AccountNoticeType;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -25,6 +26,7 @@ import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.*;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
+import ru.majordomo.hms.personmgr.model.account.ArchivalPlanAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
@@ -34,6 +36,7 @@ import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
@@ -64,6 +67,8 @@ public class AccountHelper {
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHistoryManager history;
     private final PlanManager planManager;
+    private final AccountStatHelper accountStatHelper;
+    private final AccountNoticeRepository accountNoticeRepository;
 
     @Autowired
     public AccountHelper(
@@ -81,7 +86,9 @@ public class AccountHelper {
             AccountAbonementManager accountAbonementManager,
             AccountServiceHelper accountServiceHelper,
             AccountHistoryManager history,
-            PlanManager planManager
+            PlanManager planManager,
+            AccountStatHelper accountStatHelper,
+            AccountNoticeRepository accountNoticeRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -98,6 +105,8 @@ public class AccountHelper {
         this.accountServiceHelper = accountServiceHelper;
         this.history = history;
         this.planManager = planManager;
+        this.accountStatHelper = accountStatHelper;
+        this.accountNoticeRepository = accountNoticeRepository;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -1105,5 +1114,52 @@ public class AccountHelper {
             return false;
         }
         return true;
+    }
+
+    public boolean needChangeArchivalPlanToFallbackPlan(PersonalAccount account) {
+        Plan plan = planManager.findOne(account.getPlanId());
+        if (plan.isActive() || plan.isAbonementOnly()) {
+            return false;
+        } else if (plan.getService().getCost().compareTo(getArchivalFallbackPlan().getService().getCost()) < 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public Plan getArchivalFallbackPlan() {
+        return planManager.findByOldId(String.valueOf(PLAN_UNLIMITED_ID));
+    }
+
+    public Plan getPlan(PersonalAccount account) {
+        return planManager.findOne(account.getPlanId());
+    }
+
+    public void changeArchivalPlanToActive(PersonalAccount account) {
+        Plan currentPlan = getPlan(account);
+        accountServiceHelper.deleteAccountServiceByServiceId(account, currentPlan.getServiceId());
+
+        Plan fallbackPlan = getArchivalFallbackPlan();
+        accountManager.setPlanId(account.getId(), fallbackPlan.getId());
+        accountServiceHelper.addAccountService(account, fallbackPlan.getServiceId());
+        accountStatHelper.archivalPlanChange(account.getId(), currentPlan.getId(), fallbackPlan.getId());
+        addArchivalPlanAccountNoticeRepository(account, currentPlan);
+
+        history.save(account, "Архивный тариф " + currentPlan.getName() + " был изменен на тариф "
+                + fallbackPlan.getName() + " по причине прекращения поддержки");
+    }
+
+    public void addArchivalPlanAccountNoticeRepository(PersonalAccount account, Plan plan) {
+        if (!accountNoticeRepository.existsByPersonalAccountIdAndTypeAndViewed(
+                account.getId(), AccountNoticeType.ARCHIVAL_PLAN_CHANGE, false)
+        ) {
+            ArchivalPlanAccountNotice notification = new ArchivalPlanAccountNotice();
+            notification.setPersonalAccountId(account.getId());
+            notification.setCreated(LocalDateTime.now());
+            notification.setViewed(false);
+            notification.setOldPlanName(plan.getName());
+
+            accountNoticeRepository.save(notification);
+        }
     }
 }

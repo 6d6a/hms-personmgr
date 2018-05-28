@@ -17,7 +17,6 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Arrays;
 
@@ -44,7 +43,6 @@ import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_ABONEMENT;
 import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND;
 import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND;
-import static ru.majordomo.hms.personmgr.common.Constants.PLAN_MIN_COST_TO_ORDER_ABONEMENT;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_ABONEMENT_EXPIRING;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
@@ -296,13 +294,6 @@ public class AbonementService {
     }
 
     public void processAbonementsAutoRenewByAccount(PersonalAccount account) {
-
-        //TODO переделать после гранд-рефакторинга услуг +
-        //+ после того как аб-т заканчивается, переводим на тариф Безлимитный
-        if (!accountHelper.isAbonementMinCostOrderAllowed(account)) {
-            return;
-        }
-
         //В итоге нам нужно получить абонементы которые закончились сегодня и раньше
         LocalDateTime expireEnd = LocalDateTime.now();
 
@@ -324,8 +315,9 @@ public class AbonementService {
             BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
             String currentExpired = accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
 
-            // Если абонемент не бонусный (internal) и стоит автопродление
-            if (!accountAbonement.getAbonement().isInternal() && accountAbonement.isAutorenew()) {
+            if (!accountAbonement.getAbonement().isInternal() && accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+                processArchivalAbonement(account, accountAbonement);
+            } else if (!accountAbonement.getAbonement().isInternal() && accountAbonement.isAutorenew()) {
                     logger.debug("Abonement has autorenew option enabled");
 
                     if (balance.compareTo(abonementCost) >= 0) {
@@ -364,6 +356,25 @@ public class AbonementService {
                 );
             }
         });
+    }
+
+    private void processArchivalAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
+        logger.info("processArchivalAbonement( PersonalAccount (id='" + account.getId()
+                + "'), AccountAbonement(id='" + accountAbonement.getId()
+                + "', Abonement(id=" + accountAbonement.getAbonement().getId() + "'));"
+        );
+
+        accountAbonementManager.delete(accountAbonement);
+        accountStatHelper.abonementDelete(accountAbonement);
+
+        accountHelper.changeArchivalPlanToActive(account);
+
+        history.saveForOperatorService(
+                account,
+                "Архивный тариф, абонемент удален, дата окончания: " + accountAbonement.getExpired().toString()
+        );
+
+        chargeHelper.prepareAndProcessChargeRequest(account.getId(), LocalDate.now());
     }
 
     private Plan getAccountPlan(PersonalAccount account) {
@@ -422,10 +433,7 @@ public class AbonementService {
             publisher.publishEvent(new AccountSendEmailWithExpiredAbonementEvent(account));
         }
 
-        Map<String, String> data = new HashMap<>();
-        data.put("expireEnd", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-        data.put("abonementId", accountAbonement.getAbonementId());
-        accountStatHelper.add(account.getId(), reason, data);
+        accountStatHelper.abonementDelete(accountAbonement);
 
         //Создаем AccountService с выбранным тарифом
         addPlanServicesAfterAbonementExpire(account);
