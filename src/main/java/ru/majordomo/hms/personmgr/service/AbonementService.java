@@ -25,7 +25,6 @@ import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbone
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
-import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -42,14 +41,14 @@ import static java.time.temporal.ChronoUnit.DAYS;
 import static ru.majordomo.hms.personmgr.common.AbonementType.VIRTUAL_HOSTING_PLAN;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_ABONEMENT;
-import static ru.majordomo.hms.personmgr.common.Constants.*;
+import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND;
+import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_ABONEMENT_EXPIRING;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
 @Service
 public class AbonementService {
     private final static Logger logger = LoggerFactory.getLogger(AbonementService.class);
-    private final static BigDecimal UNLIMITED_PLAN_COST = BigDecimal.valueOf(245);
 
     private final PlanManager planManager;
     private final AbonementRepository abonementRepository;
@@ -62,7 +61,6 @@ public class AbonementService {
     private final AccountNotificationHelper accountNotificationHelper;
     private final ChargeHelper chargeHelper;
     private final AccountHistoryManager history;
-    private final PersonalAccountManager accountManager;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -78,8 +76,7 @@ public class AbonementService {
             AccountStatHelper accountStatHelper,
             AccountNotificationHelper accountNotificationHelper,
             ChargeHelper chargeHelper,
-            AccountHistoryManager history,
-            PersonalAccountManager accountManager
+            AccountHistoryManager history
     ) {
         this.planManager = planManager;
         this.abonementRepository = abonementRepository;
@@ -92,7 +89,6 @@ public class AbonementService {
         this.accountNotificationHelper = accountNotificationHelper;
         this.chargeHelper = chargeHelper;
         this.history = history;
-        this.accountManager = accountManager;
     }
 
     /**
@@ -298,13 +294,6 @@ public class AbonementService {
     }
 
     public void processAbonementsAutoRenewByAccount(PersonalAccount account) {
-
-        //TODO переделать после гранд-рефакторинга услуг +
-        //+ после того как аб-т заканчивается, переводим на тариф Безлимитный
-//        if (!accountHelper.isAbonementMinCostOrderAllowed(account)) {
-//            return;
-//        }
-
         //В итоге нам нужно получить абонементы которые закончились сегодня и раньше
         LocalDateTime expireEnd = LocalDateTime.now();
 
