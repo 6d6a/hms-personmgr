@@ -30,10 +30,8 @@ import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequestItem;
 import ru.majordomo.hms.personmgr.model.charge.Status;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
-import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.model.service.DiscountedService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.AccountServiceExpirationRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 
 @Service
@@ -51,7 +49,6 @@ public class ChargeProcessor {
     private final ApplicationEventPublisher publisher;
     private final BatchJobManager batchJobManager;
     private final DiscountServiceHelper discountServiceHelper;
-    private final AccountServiceExpirationRepository accountServiceExpirationRepository;
 
     public ChargeProcessor(
             ChargeRequestManager chargeRequestManager,
@@ -64,8 +61,7 @@ public class ChargeProcessor {
             Charger charger,
             ApplicationEventPublisher publisher,
             BatchJobManager batchJobManager,
-            DiscountServiceHelper discountServiceHelper,
-            AccountServiceExpirationRepository accountServiceExpirationRepository
+            DiscountServiceHelper discountServiceHelper
     ) {
         this.chargeRequestManager = chargeRequestManager;
         this.accountManager = accountManager;
@@ -78,7 +74,6 @@ public class ChargeProcessor {
         this.publisher = publisher;
         this.batchJobManager = batchJobManager;
         this.discountServiceHelper = discountServiceHelper;
-        this.accountServiceExpirationRepository = accountServiceExpirationRepository;
     }
 
     @SchedulerLock(name="processCharges")

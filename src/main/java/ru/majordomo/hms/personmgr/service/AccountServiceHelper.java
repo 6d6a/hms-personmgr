@@ -28,7 +28,6 @@ import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequest;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
-import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
@@ -43,7 +42,6 @@ public class AccountServiceHelper {
     private final AccountServiceRepository accountServiceRepository;
     private final PlanRepository planRepository;
     private final PaymentServiceRepository serviceRepository;
-    private final AccountServiceExpirationRepository accountServiceExpirationRepository;
     private final RevisiumRequestRepository revisiumRequestRepository;
     private final RevisiumApiClient revisiumApiClient;
     private final ApplicationEventPublisher publisher;
@@ -56,7 +54,6 @@ public class AccountServiceHelper {
             AccountServiceRepository accountServiceRepository,
             PlanRepository planRepository,
             PaymentServiceRepository serviceRepository,
-            AccountServiceExpirationRepository accountServiceExpirationRepository,
             RevisiumRequestRepository revisiumRequestRepository,
             RevisiumApiClient revisiumApiClient,
             ApplicationEventPublisher publisher,
@@ -67,7 +64,6 @@ public class AccountServiceHelper {
         this.accountServiceRepository = accountServiceRepository;
         this.planRepository = planRepository;
         this.serviceRepository = serviceRepository;
-        this.accountServiceExpirationRepository = accountServiceExpirationRepository;
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.revisiumApiClient = revisiumApiClient;
         this.publisher = publisher;

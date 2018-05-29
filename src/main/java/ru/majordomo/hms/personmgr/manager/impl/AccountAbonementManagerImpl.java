@@ -119,6 +119,11 @@ public class AccountAbonementManagerImpl implements AbonementManager<AccountAbon
     }
 
     @Override
+    public List<AccountAbonement> findAllByPersonalAccountId(String personalAccountId) {
+        return repository.findAllByPersonalAccountId(personalAccountId);
+    }
+
+    @Override
     public void deleteByPersonalAccountId(String personalAccountId) {
         repository.deleteByPersonalAccountId(personalAccountId);
     }

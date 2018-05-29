@@ -81,8 +81,16 @@ public class SchedulerRestController extends CommonRestController {
                 publisher.publishEvent(new ProcessExpiringAbonementsEvent());
 
                 break;
+            case "process_expiring_service_abonements":
+                publisher.publishEvent(new ProcessExpiringServiceAbonementsEvent());
+
+                break;
             case "process_abonements_auto_renew":
                 publisher.publishEvent(new ProcessAbonementsAutoRenewEvent());
+
+                break;
+            case "process_service_abonements_auto_renew":
+                publisher.publishEvent(new ProcessServiceAbonementsAutoRenewEvent());
 
                 break;
             case "process_notify_expired_abonements":
@@ -99,10 +107,6 @@ public class SchedulerRestController extends CommonRestController {
                 break;
             case "process_bulk_revisium_requests":
                 publisher.publishEvent(new ProcessBulkRevisiumRequestEvent());
-
-                break;
-            case "process_one_time_services":
-                publisher.publishEvent(new ProcessOneTimeServiceEvent());
 
                 break;
             case "process_notify_expiring_bitrix_license":

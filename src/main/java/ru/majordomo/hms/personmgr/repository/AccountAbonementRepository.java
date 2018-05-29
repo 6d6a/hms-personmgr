@@ -20,6 +20,7 @@ public interface AccountAbonementRepository extends MongoRepository<AccountAbone
     Page<AccountAbonement> findByAbonementId(@Param("abonementId") String abonementId, Pageable pageable);
     @RestResource(path = "findListByPersonalAccountId", rel = "findListByPersonalAccountId")
     AccountAbonement findByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
+    List<AccountAbonement> findAllByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
     Page<AccountAbonement> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId, Pageable pageable);
     List<AccountAbonement> findByPersonalAccountIdAndExpiredAfter(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired);
     List<AccountAbonement> findByPersonalAccountIdAndExpiredBefore(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired);

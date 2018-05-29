@@ -94,10 +94,26 @@ public class AccountScheduleEventListener {
 
     @EventListener
     @Async("threadPoolTaskExecutor")
+    public void on(ProcessExpiringServiceAbonementsEvent event) {
+        logger.debug("We got ProcessExpiringServiceAbonementsEvent");
+
+        abonementsScheduler.processExpiringServiceAbonements();
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
     public void on(ProcessAbonementsAutoRenewEvent event) {
         logger.debug("We got ProcessAbonementsAutoRenewEvent");
 
         abonementsScheduler.processAbonementsAutoRenew();
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(ProcessServiceAbonementsAutoRenewEvent event) {
+        logger.debug("We got ProcessServiceAbonementsAutoRenewEvent");
+
+        abonementsScheduler.processServiceAbonementsAutoRenew();
     }
 
     @EventListener

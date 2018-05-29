@@ -5,14 +5,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
+import ru.majordomo.hms.personmgr.dto.PaymentTypeKind;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
-import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
-import ru.majordomo.hms.personmgr.repository.AccountServiceExpirationRepository;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -31,13 +32,13 @@ public class RecurrentProcessorService {
     private final static Logger logger = LoggerFactory.getLogger(RecurrentProcessorService.class);
 
     private final AbonementManager<AccountAbonement> accountAbonementManager;
+    private final AbonementManager<AccountServiceAbonement> accountServiceAbonementManager;
     private final AccountHelper accountHelper;
     private final PlanRepository planRepository;
     private final RcUserFeignClient rcUserFeignClient;
     private final DomainTldService domainTldService;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
     private final FinFeignClient finFeignClient;
-    private final AccountServiceExpirationRepository accountServiceExpirationRepository;
     private final AccountHistoryManager history;
 
     private static TemporalAdjuster FIFTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(50));
@@ -52,7 +53,7 @@ public class RecurrentProcessorService {
             DomainTldService domainTldService,
             DomainRegistrarFeignClient domainRegistrarFeignClient,
             FinFeignClient finFeignClient,
-            AccountServiceExpirationRepository accountServiceExpirationRepository,
+            AbonementManager<AccountServiceAbonement> accountServiceAbonementManager,
             AccountHistoryManager history
     ) {
         this.accountAbonementManager = accountAbonementManager;
@@ -62,8 +63,8 @@ public class RecurrentProcessorService {
         this.domainTldService = domainTldService;
         this.domainRegistrarFeignClient = domainRegistrarFeignClient;
         this.finFeignClient = finFeignClient;
-        this.accountServiceExpirationRepository = accountServiceExpirationRepository;
         this.history = history;
+        this.accountServiceAbonementManager = accountServiceAbonementManager;
     }
 
     public void processRecurrent(PersonalAccount account) {
@@ -103,18 +104,21 @@ public class RecurrentProcessorService {
                 }
             }
 
-            //Сервисы ревизиума (ONE-TIME услуги) -------------
-            BigDecimal oneTimeRecurrentSum = getOneTimeRecurrentSum(account);
-            if (oneTimeRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
-                if (realBalance.compareTo(oneTimeRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает на one-time
-                    iNeedMoreMoney = iNeedMoreMoney.add(oneTimeRecurrentSum.subtract(realBalance)); //На реккурент
+            //Абонементы на услуги которые нельзя продлевать за бонусы -------------
+            BigDecimal ServiceAbonementRecurrentSumBonusProhibited = getServiceAbonementRecurrentBonusProhibitedSum(account);
+            if (ServiceAbonementRecurrentSumBonusProhibited.compareTo(BigDecimal.ZERO) > 0) {
+                if (realBalance.compareTo(ServiceAbonementRecurrentSumBonusProhibited) < 0) { //Остатка бонусных не хватает
+                    iNeedMoreMoney = iNeedMoreMoney.add(ServiceAbonementRecurrentSumBonusProhibited.subtract(realBalance)); //На реккурент
                     realBalance = BigDecimal.ZERO;
                 } else {
-                    realBalance = realBalance.subtract(oneTimeRecurrentSum);
+                    realBalance = realBalance.subtract(ServiceAbonementRecurrentSumBonusProhibited);
                 }
             }
 
-            BigDecimal availableBalance = realBalance.add(bonusBalance); //Разделение на бонусы и реальные больше не требуется
+            //-------------
+            //Разделение на бонусы и реальные больше не требуется!
+            BigDecimal availableBalance = realBalance.add(bonusBalance);
+            //-------------
 
 
             //Абонементы -------------
@@ -129,6 +133,16 @@ public class RecurrentProcessorService {
                 }
             }
 
+            //Отсавшиеся абонементы на услуги которые можно за бонусы -------------
+            BigDecimal ServiceAbonementRecurrentSum = getServiceAbonementRecurrentOtherSum(account);
+            if (ServiceAbonementRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
+                if (availableBalance.compareTo(ServiceAbonementRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает
+                    iNeedMoreMoney = iNeedMoreMoney.add(ServiceAbonementRecurrentSum.subtract(availableBalance)); //На реккурент
+                    availableBalance = BigDecimal.ZERO;
+                } else {
+                    availableBalance = realBalance.subtract(ServiceAbonementRecurrentSum);
+                }
+            }
 
             //Сервисы -------------
             BigDecimal servicesRecurrentSum = BigDecimal.ZERO;
@@ -168,8 +182,9 @@ public class RecurrentProcessorService {
                         + ". Бонусы: " + bonusBalance
                         + ". За домены: " + domainRecurrentSum
                         + ". За абонементы: " + abonementRecurrentSum
-                        + ". За one-time услуги: " + oneTimeRecurrentSum
-                        + ". За остальные услуги: " + servicesRecurrentSum;
+                        + ". За абонементы на услуги, которые нельзя за бонусы: " + ServiceAbonementRecurrentSumBonusProhibited
+                        + ". За абонементы на услуги: " + ServiceAbonementRecurrentSum
+                        + ". За остальные услуги: " + servicesRecurrentSum + ".";
 
                 history.saveForOperatorService(account, message);
 
@@ -188,17 +203,65 @@ public class RecurrentProcessorService {
         }
     }
 
-    private BigDecimal getOneTimeRecurrentSum(PersonalAccount account) {
+    private BigDecimal getServiceAbonementRecurrentBonusProhibitedSum(PersonalAccount account) {
 
         BigDecimal sum = BigDecimal.ZERO;
 
-        List<AccountServiceExpiration> expirations = accountServiceExpirationRepository.findByPersonalAccountId(account.getId());
-        for (AccountServiceExpiration item : expirations) {
-            if (accountHelper.isExpirationServiceNeedProlong(item)) {
-                sum = sum.add(item.getAccountService().getPaymentService().getCost());
+        List<AccountServiceAbonement> accountServiceAbonements = accountServiceAbonementManager.findAllByPersonalAccountId(account.getId());
+        LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+
+        // тарифы и услуги - за 5, 4, 3, 2, 1 день до истечения + в день истечения + через 1, 2, 3, 4, 5 дней после
+        if (accountServiceAbonements != null) {
+            for (AccountServiceAbonement abonement : accountServiceAbonements) {
+
+                PaymentService s = abonement.getAbonement().getService();
+                Boolean bonusProhibited = false;
+                if (s.getPaymentTypeKinds() != null && !s.getPaymentTypeKinds().isEmpty() && !s.getPaymentTypeKinds().contains(PaymentTypeKind.BONUS)) {
+                    bonusProhibited = true;
+                }
+
+                if (bonusProhibited) {
+                    if (!abonement.getAbonement().isInternal()) {
+                        // Проверям сколько осталось у абонементу
+                        // Если истекает через 5 дней или меньше - добавляем стоимость абонемента
+                        if (abonement.getExpired().isBefore(chargeDate.plusDays(5L))) {
+                            sum = sum.add(abonement.getAbonement().getService().getCost());
+                        }
+                    }
+                }
             }
         }
+        return sum;
+    }
 
+    private BigDecimal getServiceAbonementRecurrentOtherSum(PersonalAccount account) {
+
+        BigDecimal sum = BigDecimal.ZERO;
+
+        List<AccountServiceAbonement> accountServiceAbonements = accountServiceAbonementManager.findAllByPersonalAccountId(account.getId());
+        LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+
+        // тарифы и услуги - за 5, 4, 3, 2, 1 день до истечения + в день истечения + через 1, 2, 3, 4, 5 дней после
+        if (accountServiceAbonements != null) {
+            for (AccountServiceAbonement abonement : accountServiceAbonements) {
+
+                PaymentService s = abonement.getAbonement().getService();
+                Boolean bonusProhibited = false;
+                if (s.getPaymentTypeKinds() != null && !s.getPaymentTypeKinds().isEmpty() && !s.getPaymentTypeKinds().contains(PaymentTypeKind.BONUS)) {
+                    bonusProhibited = true;
+                }
+
+                if (!bonusProhibited) {
+                    if (!abonement.getAbonement().isInternal()) {
+                        // Проверям сколько осталось у абонементу
+                        // Если истекает через 5 дней или меньше - добавляем стоимость абонемента
+                        if (abonement.getExpired().isBefore(chargeDate.plusDays(5L))) {
+                            sum = sum.add(abonement.getAbonement().getService().getCost());
+                        }
+                    }
+                }
+            }
+        }
         return sum;
     }
 

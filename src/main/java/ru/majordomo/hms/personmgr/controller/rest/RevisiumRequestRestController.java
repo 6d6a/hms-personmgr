@@ -172,11 +172,6 @@ public class RevisiumRequestRestController extends CommonRestController {
 
         accountHelper.checkBalanceWithoutBonus(account, paymentService);
 
-        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService).setComment(revisiumRequestService.getSiteUrl()).build();
-        accountHelper.charge(account, chargeMessage);
-
-        history.save(account, "Произведен заказ продления услуги " + paymentService.getName(), request);
-
         if (revisiumRequestService.getAccountServiceAbonement() == null) {
             serviceAbonementService.addAbonement(account, plan.getNotInternalAbonementId(), paymentService.getId(), true);
         } else {
@@ -187,6 +182,8 @@ public class RevisiumRequestRestController extends CommonRestController {
 
         revisiumRequestService = revisiumRequestServiceRepository
                 .findByPersonalAccountIdAndId(accountId, revisiumRequestServiceId);
+
+        history.save(account, "Произведен заказ продления услуги " + paymentService.getName(), request);
 
         return new ResponseEntity<>(revisiumRequestService, HttpStatus.OK);
     }
@@ -246,13 +243,8 @@ public class RevisiumRequestRestController extends CommonRestController {
         //Услуга ревизиума
         PaymentService paymentService = accountServiceHelper.getRevisiumPaymentService();
 
-        //Проверяем баланс аккаунта + добавляем услугу на аккаунт + добавляем до какого действует услуга
+        //Проверяем баланс аккаунта
         accountHelper.checkBalanceWithoutBonus(account, paymentService);
-
-        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService).setComment(siteUrl).build();
-
-        //Списываем
-        accountHelper.charge(account, chargeMessage);
 
         history.save(account, "Произведен заказ услуги " + paymentService.getName(), request);
 
