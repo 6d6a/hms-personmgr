@@ -6,6 +6,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.querydsl.QueryDslPredicateExecutor;
 import org.springframework.data.repository.query.Param;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 
 import java.util.List;
@@ -41,4 +42,10 @@ public interface ServicePlanRepository extends MongoRepository<ServicePlan, Stri
     @Override
     @CacheEvict(value = "servicePlans", allEntries = true)
     void deleteAll();
+
+    @CacheEvict("servicePlans")
+    List<ServicePlan> findAllByFeature(@Param("feature") Feature feature);
+
+    @CacheEvict("servicePlans")
+    ServicePlan findOneByFeatureAndActive(@Param("feature") Feature feature, boolean active);
 }

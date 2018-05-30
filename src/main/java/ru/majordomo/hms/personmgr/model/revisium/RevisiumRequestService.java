@@ -13,6 +13,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 @Data
@@ -20,12 +21,14 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 @Document
 public class RevisiumRequestService extends ModelBelongsToPersonalAccount {
 
-    @NotNull
     @ObjectId(AccountServiceAbonement.class)
     private String accountServiceAbonementId;
 
     @Transient
     private AccountServiceAbonement accountServiceAbonement;
+
+    @ObjectId(PaymentService.class)
+    private String serviceId;
 
     private boolean active;
 

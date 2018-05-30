@@ -261,6 +261,7 @@ public class RevisiumRequestRestController extends CommonRestController {
         revisiumRequestService.setCreated(LocalDateTime.now());
         revisiumRequestService.setSiteUrl(siteUrl);
         revisiumRequestService.setActive(true);
+        revisiumRequestService.setServiceId(paymentService.getId());
         revisiumRequestServiceRepository.save(revisiumRequestService);
 
         accountServiceHelper.revisiumCheckRequest(account, revisiumRequestService);
