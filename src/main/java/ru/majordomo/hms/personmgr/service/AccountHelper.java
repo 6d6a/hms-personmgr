@@ -15,9 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import ru.majordomo.hms.personmgr.common.AccountNoticeType;
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.ServicePaymentType;
+import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.exception.BaseException;
@@ -1131,6 +1129,18 @@ public class AccountHelper {
         return planManager.findByOldId(String.valueOf(PLAN_UNLIMITED_ID));
     }
 
+    public Plan getArchivalFallbackPlan(Plan currentPlan) {
+        if (currentPlan.getOldId().equals(MAIL_PLAN_OLD_ID)) {
+            return planManager.findByOldId(String.valueOf(PLAN_START_ID));
+        } else {
+            return getArchivalFallbackPlan();
+        }
+    }
+
+    public void setPlanId(String personalAccountId, String planId) {
+        accountManager.setPlanId(personalAccountId, planId);
+    }
+
     public Plan getPlan(PersonalAccount account) {
         return planManager.findOne(account.getPlanId());
     }
@@ -1139,7 +1149,7 @@ public class AccountHelper {
         Plan currentPlan = getPlan(account);
         accountServiceHelper.deleteAccountServiceByServiceId(account, currentPlan.getServiceId());
 
-        Plan fallbackPlan = getArchivalFallbackPlan();
+        Plan fallbackPlan = getArchivalFallbackPlan(currentPlan);
         accountManager.setPlanId(account.getId(), fallbackPlan.getId());
         accountServiceHelper.addAccountService(account, fallbackPlan.getServiceId());
         accountStatHelper.archivalPlanChange(account.getId(), currentPlan.getId(), fallbackPlan.getId());
