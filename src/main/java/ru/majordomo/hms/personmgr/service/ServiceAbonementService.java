@@ -112,6 +112,7 @@ public class ServiceAbonementService { //dis name
 
         AccountServiceAbonement accountServiceAbonement = new AccountServiceAbonement();
         accountServiceAbonement.setAbonementId(abonementId);
+        accountServiceAbonement.setAbonement(abonement);
         accountServiceAbonement.setPersonalAccountId(account.getId());
         accountServiceAbonement.setCreated(LocalDateTime.now());
         accountServiceAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
