@@ -45,4 +45,8 @@ public interface AccountHistoryManager {
     }
 
     void save(String personalAccountId, String message, String operator);
+
+    default void save(PersonalAccount account, String message) {
+        save(account.getId(), message, "service");
+    }
 }

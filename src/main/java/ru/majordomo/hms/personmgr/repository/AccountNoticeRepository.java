@@ -26,4 +26,5 @@ public interface AccountNoticeRepository extends MongoRepository<AccountNotice, 
             @Param("personalAccountId") String personalAccountId,
             @Param("id") String id
     );
+    boolean existsByPersonalAccountIdAndTypeAndViewed(String personalAccountId, AccountNoticeType type, Boolean viewed);
 }
