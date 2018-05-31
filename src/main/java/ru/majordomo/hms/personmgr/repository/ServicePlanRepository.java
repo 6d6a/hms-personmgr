@@ -47,5 +47,5 @@ public interface ServicePlanRepository extends MongoRepository<ServicePlan, Stri
     List<ServicePlan> findAllByFeature(@Param("feature") Feature feature);
 
     @CacheEvict("servicePlans")
-    ServicePlan findOneByFeatureAndActive(@Param("feature") Feature feature, boolean active);
+    ServicePlan findOneByFeatureAndActive(@Param("feature") Feature feature, @Param("active") boolean active);
 }
