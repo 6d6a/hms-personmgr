@@ -165,8 +165,12 @@ public class AccountQuotaService {
         if (filteredResources != null && !filteredResources.isEmpty()) {
             accountHelper.setWritableForAccountQuotaServicesByList(account, writableState, filteredResources);
 
+            //Для аккаунтов без квоты, например, Парковка+
+            Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
+            boolean hasFreeQuota = planQuotaKBFreeLimit != null && planQuotaKBFreeLimit.compareTo(0L) > 0;
+
             //при отключении хотя бы одного ресурса отправляем письмо
-            if (!writableState) {
+            if (!writableState && hasFreeQuota) {
                 Map<String, String> params = new HashMap<>();
                 params.put(SERVICE_NAME_KEY, plan.getName());
                 publisher.publishEvent(new AccountQuotaDiscardEvent(account, params));
