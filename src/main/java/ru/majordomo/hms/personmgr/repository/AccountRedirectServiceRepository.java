@@ -12,4 +12,5 @@ public interface AccountRedirectServiceRepository extends MongoRepository<Redire
     boolean existsByPersonalAccountIdAndFullDomainNameAndExpireDateAfter(String personalAccountId, String fullDomainName, LocalDate date);
     RedirectAccountService findByPersonalAccountIdAndId(String accountId, String serviceId);
     List<RedirectAccountService> findByPersonalAccountIdInAndExpireDateAfter(List<String> personalAccountIds, LocalDate date);
+    RedirectAccountService findByAccountServiceAbonementId(String accountServiceAbonementId);
 }

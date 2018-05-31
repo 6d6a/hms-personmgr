@@ -37,7 +37,6 @@ public class RedirectAccountService extends ModelBelongsToPersonalAccount {
     @DomainName
     private String fullDomainName;
 
-    @Deprecated
     @NotNull
     private LocalDate createdDate;
 

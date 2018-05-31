@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.*;
+import ru.majordomo.hms.personmgr.event.account.RedirectWasProlongEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
@@ -14,10 +15,13 @@ import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
+import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 
@@ -51,6 +55,7 @@ public class ServiceAbonementService { //dis name
     private final AccountNotificationHelper accountNotificationHelper;
     private final ChargeHelper chargeHelper;
     private final AccountHistoryManager history;
+    private final AccountRedirectServiceRepository accountRedirectServiceRepository;
 
     private static TemporalAdjuster FIVE_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(5));
 
@@ -66,7 +71,8 @@ public class ServiceAbonementService { //dis name
             AccountStatHelper accountStatHelper,
             AccountNotificationHelper accountNotificationHelper,
             ChargeHelper chargeHelper,
-            AccountHistoryManager history
+            AccountHistoryManager history,
+            AccountRedirectServiceRepository accountRedirectServiceRepository
     ) {
         this.servicePlanRepository = servicePlanRepository;
         this.abonementRepository = abonementRepository;
@@ -79,6 +85,7 @@ public class ServiceAbonementService { //dis name
         this.accountNotificationHelper = accountNotificationHelper;
         this.chargeHelper = chargeHelper;
         this.history = history;
+        this.accountRedirectServiceRepository = accountRedirectServiceRepository;
     }
 
     /**
@@ -281,7 +288,7 @@ public class ServiceAbonementService { //dis name
                     } else {
                         logger.debug("Account balance is too low to buy new service abonement. Balance: " + balance + " abonementCost: " + abonementCost);
 
-                        //Удаляем абонемент и включаем услуги хостинга по тарифу
+                        //Удаляем абонемент и включаем услуги по тарифу
                         processAccountAbonementDelete(account, accountServiceAbonement);
 
                         history.saveForOperatorService(account, "Абонемент на услугу удален, так как средств на счету аккаунта не достаточно. Стоимость абонемента: " +
@@ -373,6 +380,13 @@ public class ServiceAbonementService { //dis name
      */
     private void processServicePlanServicesAfterAbonementExpire(PersonalAccount account, AccountServiceAbonement accountServiceAbonement) {
         ServicePlan servicePlan = getServicePlan(accountServiceAbonement);
+
+        if (servicePlan.getFeature() == Feature.REDIRECT) {
+            RedirectAccountService redirectAccountService = accountRedirectServiceRepository.findByAccountServiceAbonementId(accountServiceAbonement.getId());
+            publisher.publishEvent(new RedirectWasProlongEvent(redirectAccountService.getPersonalAccountId(), redirectAccountService.getFullDomainName()));
+            redirectAccountService.setActive(false);
+            accountRedirectServiceRepository.save(redirectAccountService);
+        }
 
         if (!servicePlan.isAbonementOnly() && !accountServiceHelper.accountHasService(account, servicePlan.getServiceId())) {
             accountServiceHelper.addAccountService(account, servicePlan.getServiceId());

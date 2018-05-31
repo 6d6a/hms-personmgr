@@ -119,21 +119,23 @@ public class RedirectServiceRestController extends CommonRestController {
             );
         }
 
-        if (redirectAccountService.getExpireDate().isBefore(LocalDate.now())){
+        if (redirectAccountService.getAccountServiceAbonement() == null) {
 
-            serviceAbonementService.prolongAbonement(
-                    account, redirectAccountService.getAccountServiceAbonement());
+            ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.REDIRECT, true);
+
+            serviceAbonementService.addAbonement(
+                    account, servicePlan.getNotInternalAbonementId(), servicePlan.getServiceId(), true);
 
             redirectAccountService.setExpireDate(LocalDate.now().with(PLUS_ONE_YEAR));
             redirectAccountService.setActive(true);
             accountRedirectServiceRepository.save(redirectAccountService);
             history.save(account, "Продлена истёкшая услуга перенаправления для домена: " + domain.getName(), request);
         } else if (
-                redirectAccountService.getExpireDate()
+                redirectAccountService.getAccountServiceAbonement().getExpired().toLocalDate()
                         .isBefore(
                                 LocalDate.now().plusYears(MAX_YEARS_PROLONG)
                         )
-                || redirectAccountService.getExpireDate()
+                || redirectAccountService.getAccountServiceAbonement().getExpired().toLocalDate()
                         .isEqual(
                                 LocalDate.now().plusYears(MAX_YEARS_PROLONG)
                         )
@@ -148,7 +150,7 @@ public class RedirectServiceRestController extends CommonRestController {
             history.save(account, "Продлена услуга перенаправления для домена: " + domain.getName(), request);
         } else {
             throw new ParameterValidationException("Переадресация для домена " + domain.getName() + " уже оплачена до "
-                    + redirectAccountService.getExpireDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
+                    + redirectAccountService.getAccountServiceAbonement().getExpired().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
         }
 
         publisher.publishEvent(new RedirectWasProlongEvent(accountId, domain.getName()));
