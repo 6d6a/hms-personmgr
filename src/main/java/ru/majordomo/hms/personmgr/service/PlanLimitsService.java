@@ -90,6 +90,12 @@ public class PlanLimitsService {
         return planProperties.getQuotaKBLimit().getFreeLimit();
     }
 
+    public Long getQuotaKBLimit(Plan plan) {
+        VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
+
+        return planProperties.getQuotaKBLimit().getLimit();
+    }
+
     private PlanProperties getPlanProperties(String accountId) {
         PersonalAccount personalAccount = accountManager.findOne(accountId);
 
