@@ -8,12 +8,12 @@ import java.time.LocalDate;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class DeferredTariffChangeNotice extends AccountNotice {
+public class DeferredPlanChangeNotice extends AccountNotice {
     private String newPlanName;
     private String newPlanId;
     private LocalDate willBeChangedAfter;
 
-    public DeferredTariffChangeNotice() {
-        super(AccountNoticeType.DEFERRED_TARIFF_CHANGE);
+    public DeferredPlanChangeNotice() {
+        super(AccountNoticeType.DEFERRED_PLAN_CHANGE);
     }
 }
