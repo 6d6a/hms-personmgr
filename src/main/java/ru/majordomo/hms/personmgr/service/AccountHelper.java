@@ -1130,7 +1130,7 @@ public class AccountHelper {
     }
 
     public Plan getArchivalFallbackPlan(Plan currentPlan) {
-        if (currentPlan.getOldId().equals(MAIL_PLAN_OLD_ID)) {
+        if (currentPlan.getOldId().equals(MAIL_PLAN_OLD_ID) || currentPlan.getOldId().equals(SITE_VISITKA_PLAN_OLD_ID)) {
             return planManager.findByOldId(String.valueOf(PLAN_START_ID));
         } else {
             return getArchivalFallbackPlan();
