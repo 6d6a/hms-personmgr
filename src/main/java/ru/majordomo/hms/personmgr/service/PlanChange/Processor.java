@@ -221,21 +221,22 @@ public abstract class Processor {
                     return planChangeAgreement;
                 }
             }
+        }
 
-            if (newAbonementRequired) {
-                planChangeAgreement.setBalanceChanges(true);
+        if (newAbonementRequired) {
+            planChangeAgreement.setBalanceChanges(true);
 
-                if (newBalanceAfterCashBack.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) {
-                    // Денег на новый абонемент не хватает
-                    planChangeAgreement.setNeedToFeelBalance(
-                            newPlan.getNotInternalAbonement().getService().getCost().subtract(newBalanceAfterCashBack)
-                    );
-                }
-
-                planChangeAgreement.setBalanceAfterOperation(
-                        newBalanceAfterCashBack.subtract(newPlan.getNotInternalAbonement().getService().getCost())
+            //TODO Проверить не тестовый ли абонемент
+            if (newBalanceAfterCashBack.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) {
+                // Денег на новый абонемент не хватает
+                planChangeAgreement.setNeedToFeelBalance(
+                        newPlan.getNotInternalAbonement().getService().getCost().subtract(newBalanceAfterCashBack)
                 );
             }
+
+            planChangeAgreement.setBalanceAfterOperation(
+                    newBalanceAfterCashBack.subtract(newPlan.getNotInternalAbonement().getService().getCost())
+            );
         }
 
         // Лимиты Database
