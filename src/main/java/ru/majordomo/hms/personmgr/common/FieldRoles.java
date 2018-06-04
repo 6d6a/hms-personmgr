@@ -22,12 +22,19 @@ public class FieldRoles {
     public static final Map<String, String> DNS_RECORD_PATCH = new HashMap<>();
     public static final Map<String, String> RESOURCE_WRITABLE = new HashMap<>();
     public static final Map<String, String> RESOURCE_SERVICE_ID = new HashMap<>();
+    public static final Map<String, String> REDIRECT_POST = new HashMap<>();
+    public static final Map<String, String> REDIRECT_PATCH = new HashMap<>();
 
     static {
         RESOURCE_SWITCHED_ON.put("switchedOn", RESOURCE_SWITCHED_ON_EDIT);
         RESOURCE_WILL_BE_DELETED_AFTER.put("willBeDeletedAfter", RESOURCE_WILL_BE_DELETED_AFTER_EDIT);
         RESOURCE_WRITABLE.put("writable", RESOURCE_WRITABLE_EDIT);
         RESOURCE_SERVICE_ID.put("serviceId", TRANSFER_ACCOUNT);
+
+        REDIRECT_POST.putAll(RESOURCE_SWITCHED_ON);
+        REDIRECT_POST.putAll(RESOURCE_WILL_BE_DELETED_AFTER);
+        REDIRECT_POST.putAll(RESOURCE_SERVICE_ID);
+        REDIRECT_PATCH.putAll(REDIRECT_POST);
 
         MAILBOX_PATCH.put("mailFromAllowed", MAILBOX_MAIL_FROM_ALLOWED_EDIT);
         MAILBOX_PATCH.put("mailSpool", MAILBOX_MAIL_SPOOL_EDIT);

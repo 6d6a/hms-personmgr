@@ -83,6 +83,9 @@ public class AccountQuotaService {
         Boolean addQuotaServiceState;
         Long currentQuotaUsed = accountCountersService.getCurrentQuotaUsed(account.getId());
         Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
+        Long planQuotaKBLimit = planLimitsService.getQuotaKBLimit(plan);
+
+        boolean hasZeroPlanQuotaKBLimit = planQuotaKBLimit != null && planQuotaKBLimit.compareTo(0L) == 0;
 
         String quotaServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
         List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), quotaServiceId);
@@ -103,7 +106,7 @@ public class AccountQuotaService {
         if (currentQuotaUsed > planQuotaKBFreeLimit * 1024) {
             //Превышение квоты есть
             overquotedState = true;
-            if (account.isAddQuotaIfOverquoted()) {
+            if (account.isAddQuotaIfOverquoted() && !hasZeroPlanQuotaKBLimit) {
                 writableState = true;
                 addQuotaServiceState = true;
             } else {
@@ -165,8 +168,12 @@ public class AccountQuotaService {
         if (filteredResources != null && !filteredResources.isEmpty()) {
             accountHelper.setWritableForAccountQuotaServicesByList(account, writableState, filteredResources);
 
+            //Для аккаунтов без квоты, например, Парковка+
+            Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
+            boolean hasFreeQuota = planQuotaKBFreeLimit != null && planQuotaKBFreeLimit.compareTo(0L) > 0;
+
             //при отключении хотя бы одного ресурса отправляем письмо
-            if (!writableState) {
+            if (!writableState && hasFreeQuota) {
                 Map<String, String> params = new HashMap<>();
                 params.put(SERVICE_NAME_KEY, plan.getName());
                 publisher.publishEvent(new AccountQuotaDiscardEvent(account, params));

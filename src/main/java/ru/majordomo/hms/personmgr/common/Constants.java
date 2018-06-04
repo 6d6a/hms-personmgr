@@ -135,6 +135,8 @@ public class Constants {
     public static final int PLAN_UNLIMITED_PLUS_ID = 9805;
     public static final int PLAN_BUSINESS_ID = 9806;
     public static final int PLAN_BUSINESS_PLUS_ID = 9807;
+    public static final String SITE_VISITKA_PLAN_OLD_ID = "9801";
+    public static final String MAIL_PLAN_OLD_ID = "137";
     public static final String TECHNICAL_SUPPORT_EMAIL = "support@majordomo.ru";
     public static final Long PLAN_MIN_COST_TO_ORDER_ABONEMENT = 245L;
 
@@ -162,6 +164,8 @@ public class Constants {
 
     private static final String REVISIUM_ID = "revisium";
     public static final String REVISIUM_SERVICE_ID = SERVICE_PREFIX + REVISIUM_ID;
+
+    public static final String REDIRECT_SERVICE_OLD_ID = SERVICE_PREFIX + "redirect";
 
     //Id услуги Доп.место в BillingDB
     public static final int ADDITIONAL_QUOTA_100_ID = 15;
@@ -349,6 +353,10 @@ public class Constants {
         public static final String WEBSITE_UPDATE = "website.update";
         public static final String WEBSITE_DELETE = "website.delete";
 
+        public static final String REDIRECT_CREATE = "redirect.create";
+        public static final String REDIRECT_UPDATE = "redirect.update";
+        public static final String REDIRECT_DELETE = "redirect.delete";
+
         public static final String APPS_CAT_INSTALL = "appscat.install";
 
         public static Set<String> ALL_EXCHANGES;
@@ -393,6 +401,9 @@ public class Constants {
                     WEBSITE_CREATE,
                     WEBSITE_UPDATE,
                     WEBSITE_DELETE,
+                    REDIRECT_CREATE,
+                    REDIRECT_UPDATE,
+                    REDIRECT_DELETE,
                     APPS_CAT_INSTALL
             ));
         }
