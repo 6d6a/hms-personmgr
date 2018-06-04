@@ -83,6 +83,9 @@ public class AccountQuotaService {
         Boolean addQuotaServiceState;
         Long currentQuotaUsed = accountCountersService.getCurrentQuotaUsed(account.getId());
         Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
+        Long planQuotaKBLimit = planLimitsService.getQuotaKBLimit(plan);
+
+        boolean hasZeroPlanQuotaKBLimit = planQuotaKBLimit != null && planQuotaKBLimit.compareTo(0L) == 0;
 
         String quotaServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
         List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), quotaServiceId);
@@ -103,7 +106,7 @@ public class AccountQuotaService {
         if (currentQuotaUsed > planQuotaKBFreeLimit * 1024) {
             //Превышение квоты есть
             overquotedState = true;
-            if (account.isAddQuotaIfOverquoted()) {
+            if (account.isAddQuotaIfOverquoted() && !hasZeroPlanQuotaKBLimit) {
                 writableState = true;
                 addQuotaServiceState = true;
             } else {
