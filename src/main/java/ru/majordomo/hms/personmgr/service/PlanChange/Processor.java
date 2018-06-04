@@ -194,7 +194,6 @@ public abstract class Processor {
 
         // На бесплатном тестовом абонементе можно менять тариф туда сюда без ограничений
         if (!hasFreeTestAbonement()) {
-
             if (!ignoreRestricts) {
                 // С бизнеса можно только на бизнес
                 if (!checkBusinessPlan(planChangeAgreement)) {
@@ -223,10 +222,9 @@ public abstract class Processor {
             }
         }
 
-        if (newAbonementRequired) {
+        if ((hasFreeTestAbonement() && newPlan.getFree14DaysAbonement() == null) || newAbonementRequired) {
             planChangeAgreement.setBalanceChanges(true);
 
-            //TODO Проверить не тестовый ли абонемент
             if (newBalanceAfterCashBack.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) {
                 // Денег на новый абонемент не хватает
                 planChangeAgreement.setNeedToFeelBalance(
