@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Example;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -13,6 +14,7 @@ import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
+import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.DeferredPlanChangeNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -47,6 +49,7 @@ public class ArchivalPlanProcessor {
     private MongoOperations mongoOperations;
     private AccountStatHelper accountStatHelper;
     private ChargeHelper chargeHelper;
+    private AbonementService abonementService;
 
     @Autowired
     public ArchivalPlanProcessor(
@@ -59,7 +62,8 @@ public class ArchivalPlanProcessor {
             AccountAbonementManager accountAbonementManager,
             MongoOperations mongoOperations,
             AccountStatHelper accountStatHelper,
-            ChargeHelper chargeHelper
+            ChargeHelper chargeHelper,
+            AbonementService abonementService
     ) {
         this.accountNoticeRepository = accountNoticeRepository;
         this.planManager = planManager;
@@ -71,6 +75,7 @@ public class ArchivalPlanProcessor {
         this.mongoOperations = mongoOperations;
         this.accountStatHelper = accountStatHelper;
         this.chargeHelper = chargeHelper;
+        this.abonementService = abonementService;
     }
 
     public void createDeferredTariffChangeNoticeForDaily() {
@@ -89,14 +94,12 @@ public class ArchivalPlanProcessor {
 
                 LocalDate changeAfter = getChargeAfter(remainingDays);
 
-                Plan fallbackPlan = accountHelper.getArchivalFallbackPlan(currentPlan);
-
-                addDeferredTariffChangeNotice(account, fallbackPlan, changeAfter);
+                addDeferredTariffChangeNotice(account, changeAfter);
 
                 history.saveForOperatorService(
                         account,
-                        "Текущий архивный тариф " + currentPlan.getName() + " " + changeAfter.toString()
-                                + " будет изменен на " + fallbackPlan.getName()
+                        "Текущий архивный тариф " + currentPlan.getName()
+                                + " будет изменен на подходящий тариф после " + changeAfter.toString()
                 );
             }
         }
@@ -120,7 +123,7 @@ public class ArchivalPlanProcessor {
         BigDecimal balance = accountHelper.getBalance(account);
 
         if (balance.compareTo(BigDecimal.ZERO) <= 0) {
-            System.out.println(String.format(template, account.getId(), minPeriod, "баланс равен " + balance));
+            log.info(String.format(template, account.getId(), minPeriod, "баланс равен " + balance));
             return minPeriod;
         }
 
@@ -139,25 +142,23 @@ public class ArchivalPlanProcessor {
                 .add(plan.getService().getCost().divide(BigDecimal.valueOf(30), 4, BigDecimal.ROUND_HALF_UP));
 
         if (dailyCost.compareTo(BigDecimal.ZERO) == 0) {
-            System.out.println(String.format(template, account.getId(), maxPeriod, "дневное списание = 0"));
+            log.info(String.format(template, account.getId(), maxPeriod, "дневное списание = 0"));
             return maxPeriod;
         }
 
         int remainingDays = balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN).intValue();
 
-        if (remainingDays >= 3 && remainingDays <= maxPeriod) {
-            System.out.println(String.format(template, account.getId(), remainingDays, "ok"));
+        if (remainingDays >= minPeriod && remainingDays <= maxPeriod) {
+            log.info(String.format(template, account.getId(), remainingDays, "ok"));
             return remainingDays;
         } else {
-            System.out.println(String.format(template, account.getId(), maxPeriod, "выходит за пределы перида для смены, days: " + remainingDays));
+            log.info(String.format(template, account.getId(), maxPeriod, "выходит за пределы перида для смены, days: " + remainingDays));
             return maxPeriod;
         }
     }
 
-    private void addDeferredTariffChangeNotice(PersonalAccount account, Plan fallbackPlan, LocalDate changeAfter) {
+    private void addDeferredTariffChangeNotice(PersonalAccount account, LocalDate changeAfter) {
         DeferredPlanChangeNotice notice = new DeferredPlanChangeNotice();
-        notice.setNewPlanId(fallbackPlan.getId());
-        notice.setNewPlanName(fallbackPlan.getName());
         notice.setPersonalAccountId(account.getId());
         notice.setWillBeChangedAfter(changeAfter);
         accountNoticeRepository.save(notice);
@@ -268,5 +269,50 @@ public class ArchivalPlanProcessor {
         System.out.println("size: " + accountIds.size());
 
         return message;
+    }
+
+    //Обрабатываются только аккаунты с посуточными списаниями (без абонементов),
+    // абонементы обработаются после их окончания
+    public void processDeferredPlanChange() {
+        DeferredPlanChangeNotice example = new DeferredPlanChangeNotice();
+        example.setWasChanged(false);
+
+        List<DeferredPlanChangeNotice> notices = accountNoticeRepository.findAll(Example.of(example));
+
+        for (DeferredPlanChangeNotice notice : notices) {
+            if (notice.getWillBeChangedAfter().isAfter(LocalDate.now())) {
+                return;
+            }
+
+            PersonalAccount account = accountManager.findOne(notice.getPersonalAccountId());
+            if (!accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+                log.info("account with id " + account.getId()
+                        + " already change plan to active, passed deferred plan change");
+                return;
+            }
+
+            AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+            if (accountAbonement != null) {
+                log.error("account with id " + account.getId() + " and archival plan has abonement");
+                return;
+            }
+
+            Plan currentPlan = planManager.findOne(account.getPlanId());
+            StringBuilder historyMessage = new StringBuilder(" текущий тариф: ").append(currentPlan.getName());
+
+            Plan abonementFallbackPlan = abonementService.getArchivalFallbackPlan(currentPlan);
+            if (abonementFallbackPlan == null) {
+                historyMessage.append(", смена на активный тариф с посуточными списаниями");
+                accountHelper.changeArchivalPlanToActive(account);
+            } else {
+                historyMessage.append(", попытка покупки абонемента по тарифу ").append(abonementFallbackPlan.getName());
+                abonementService.changeArchivalAbonementToActive(account, abonementFallbackPlan);
+            }
+
+            history.save(account, historyMessage.toString());
+
+            notice.setWasChanged(true);
+            accountNoticeRepository.save(notice);
+        }
     }
 }

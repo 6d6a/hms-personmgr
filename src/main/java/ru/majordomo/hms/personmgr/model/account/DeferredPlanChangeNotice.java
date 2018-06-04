@@ -4,14 +4,16 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import ru.majordomo.hms.personmgr.common.AccountNoticeType;
 
+import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class DeferredPlanChangeNotice extends AccountNotice {
-    private String newPlanName;
-    private String newPlanId;
+    @NotNull
     private LocalDate willBeChangedAfter;
+
+    private boolean wasChanged = false;
 
     public DeferredPlanChangeNotice() {
         super(AccountNoticeType.DEFERRED_PLAN_CHANGE);

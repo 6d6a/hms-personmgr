@@ -109,6 +109,10 @@ public class SchedulerRestController extends CommonRestController {
                 publisher.publishEvent(new ProcessNotifyExpiringBitrixLicenseEvent());
 
                 break;
+            case "process_deferred_plan_change":
+                publisher.publishEvent(new DeferredPlanChangeEvent());
+
+                break;
             default:
                 throw new ParameterValidationException("Неизвестный параметр scheduleAction");
         }
