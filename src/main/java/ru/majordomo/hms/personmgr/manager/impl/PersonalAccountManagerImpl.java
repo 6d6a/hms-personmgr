@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -30,6 +31,7 @@ import java.util.stream.Stream;
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.dto.IdsContainer;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -547,5 +549,35 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
         if (!exists(id)) {
             throw new ResourceNotFoundException("Аккаунт с id: " + id + " не найден");
         }
+    }
+
+    @Override
+    public List<String> findAccountIdsNotDeletedByPlanIdsInAndAccountIsActive(List<String> planIds, boolean accountIsActive) {
+        Aggregation aggregation = newAggregation(
+                Aggregation.match(
+                        new Criteria()
+                                .andOperator(
+                                        new Criteria()
+                                                .orOperator(
+                                                        Criteria.where("deleted").exists(false),
+                                                        Criteria.where("deleted").is(null)
+                                                ),
+                                        Criteria.where("planId").in(planIds),
+                                        Criteria.where("active").is(accountIsActive)
+                                )
+                ),
+                Aggregation.group().addToSet("id").as("ids")
+        );
+
+        List<String> accountIds = new ArrayList<>();
+
+        List<IdsContainer> idsContainers = mongoOperations.aggregate(aggregation, PersonalAccount.class, IdsContainer.class)
+                .getMappedResults();
+
+        if (idsContainers != null && !idsContainers.isEmpty()) {
+            accountIds = idsContainers.get(0).getIds();
+        }
+
+        return accountIds;
     }
 }
