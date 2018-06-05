@@ -99,7 +99,7 @@ public class ServiceAbonementService { //dis name
 
         PaymentService paymentService = paymentServiceRepository.findOne(serviceId);
 
-        ServicePlan plan = servicePlanRepository.findByServiceId(paymentService.getId());
+        ServicePlan plan = servicePlanRepository.findByServiceId(paymentService.getId(), true);
 
         Abonement abonement = checkAbonementAllownes(plan, abonementId);
 
@@ -313,7 +313,7 @@ public class ServiceAbonementService { //dis name
     }
 
     private ServicePlan getServicePlan(AccountServiceAbonement serviceAbonement) {
-        ServicePlan plan = servicePlanRepository.findByServiceId(serviceAbonement.getAbonement().getServiceId());
+        ServicePlan plan = servicePlanRepository.findByServiceId(serviceAbonement.getAbonement().getServiceId(), true);
 
         if (plan == null) {
             throw new ResourceNotFoundException("ServicePlan not found");

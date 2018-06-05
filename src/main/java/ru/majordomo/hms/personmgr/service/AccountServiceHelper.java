@@ -359,7 +359,7 @@ public class AccountServiceHelper {
     public boolean hasSmsNotifications(PersonalAccount account) {
         PaymentService paymentService = this.getSmsPaymentServiceByPlanId(account.getPlanId());
         AccountService accountSmsService = accountServiceRepository.findOneByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
-        ServicePlan plan = servicePlanRepository.findByServiceId(paymentService.getId());
+        ServicePlan plan = servicePlanRepository.findByServiceId(paymentService.getId(), true);
         if (accountSmsService == null) {
             List<AccountServiceAbonement> abonements = abonementManager.findByPersonalAccountIdAndAbonementId(account.getId(), plan.getNotInternalAbonement().getId());
             if (!abonements.isEmpty()) {

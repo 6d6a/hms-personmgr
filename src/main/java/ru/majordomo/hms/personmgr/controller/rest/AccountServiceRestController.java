@@ -21,15 +21,17 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.UserDisabledServiceEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
+import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.DiscountedService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -49,9 +51,13 @@ public class AccountServiceRestController extends CommonRestController {
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHelper accountHelper;
     private final AbonementManager<AccountAbonement> accountAbonementManager;
+    private final AbonementManager<AccountServiceAbonement> accountServiceAbonementManager;
     private final PlanRepository planRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     private final DiscountServiceHelper discountServiceHelper;
+    private final ServiceAbonementRepository serviceAbonementRepository;
+    private final ServicePlanRepository servicePlanRepository;
+    private final ServiceAbonementService serviceAbonementService;
 
     @Autowired
     public AccountServiceRestController(
@@ -60,9 +66,13 @@ public class AccountServiceRestController extends CommonRestController {
             AccountServiceHelper accountServiceHelper,
             AccountHelper accountHelper,
             AbonementManager<AccountAbonement> accountAbonementManager,
+            AbonementManager<AccountServiceAbonement> accountServiceAbonementManager,
             PlanRepository planRepository,
             AccountNotificationHelper accountNotificationHelper,
-            DiscountServiceHelper discountServiceHelper
+            DiscountServiceHelper discountServiceHelper,
+            ServiceAbonementRepository serviceAbonementRepository,
+            ServicePlanRepository servicePlanRepository,
+            ServiceAbonementService serviceAbonementService
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.serviceRepository = serviceRepository;
@@ -72,6 +82,10 @@ public class AccountServiceRestController extends CommonRestController {
         this.planRepository = planRepository;
         this.accountNotificationHelper = accountNotificationHelper;
         this.discountServiceHelper = discountServiceHelper;
+        this.serviceAbonementRepository = serviceAbonementRepository;
+        this.servicePlanRepository = servicePlanRepository;
+        this.serviceAbonementService = serviceAbonementService;
+        this.accountServiceAbonementManager = accountServiceAbonementManager;
     }
 
     @GetMapping(value = "/{accountId}/account-service/{accountServiceId}")
@@ -150,6 +164,52 @@ public class AccountServiceRestController extends CommonRestController {
         return new ResponseEntity<>(accountServices.get(0), HttpStatus.OK);
     }
 
+    @GetMapping("/{accountId}/account-abonement-service-sms-notification")
+    public ResponseEntity<AccountServiceAbonement> getSmsAbonementService(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
+
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
+        Abonement abonement = plan.getNotInternalAbonement();
+
+        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), abonement.getId());
+
+        if (accountServiceAbonements == null || accountServiceAbonements.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } else if (accountServiceAbonements.size() > 1) {
+            throw new ParameterValidationException(
+                    "На аккаунте обнаружено больше одного абонемента на услугу '" + paymentService.getName()
+                            + "'. Пожалуйста, обратитесь в финансовый отдел.");}
+
+        return new ResponseEntity<>(accountServiceAbonements.get(0), HttpStatus.OK);
+    }
+
+    @PostMapping("/{accountId}/account-service-sms-notification/abonement")
+    public ResponseEntity<AccountServiceAbonement> addSmsServiceAbonement(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
+
+        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
+
+        if (accountServices != null && accountServices.size() > 1) {
+            throw new ParameterValidationException(
+                    "На аккаунте обнаружено больше одной услуги '" + paymentService.getName()
+                            + "'. Пожалуйста, обратитесь в финансовый отдел.");
+        }
+
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
+        AccountServiceAbonement abonement = serviceAbonementService.addAbonement(
+                account, plan.getNotInternalAbonementId(), paymentService.getId(), true);
+
+        return new ResponseEntity<>(abonement, HttpStatus.OK);
+    }
+
     @PostMapping("/{accountId}/account-service-sms-notification")
     public ResponseEntity<SimpleServiceMessage> addSmsService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -161,6 +221,17 @@ public class AccountServiceRestController extends CommonRestController {
         Utils.checkRequiredParams(requestBody, ACCOUNT_SERVICE_ENABLE);
 
         Boolean enabled = (Boolean) requestBody.get(ENABLED_KEY);
+
+        PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
+
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
+        Abonement abonement = plan.getNotInternalAbonement();
+
+        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), abonement.getId());
+
+        if (accountServiceAbonements != null && !accountServiceAbonements.isEmpty()) {
+            throw new ParameterValidationException("При активном абонементе нельзя " + (enabled ? "включить" : "отключить") + "услугу");
+        }
 
         if (enabled) {
 
@@ -179,8 +250,6 @@ public class AccountServiceRestController extends CommonRestController {
                 throw new ParameterValidationException(message);
             }
         }
-
-        PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
 
         processCustomService(account, paymentService, enabled);
 
@@ -214,6 +283,53 @@ public class AccountServiceRestController extends CommonRestController {
         return new ResponseEntity<>(accountServices.get(0), HttpStatus.OK);
     }
 
+    @GetMapping("/{accountId}/account-abonement-service-anti-spam")
+    public ResponseEntity<AccountServiceAbonement> getAntiAbonementSpamService(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        PaymentService paymentService = getPaymentServiceByOldId(ANTI_SPAM_SERVICE_ID);
+
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ANTI_SPAM, true);
+        Abonement abonement = plan.getNotInternalAbonement();
+
+        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), abonement.getId());
+
+        if (accountServiceAbonements == null || accountServiceAbonements.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } else if (accountServiceAbonements.size() > 1) {
+            throw new ParameterValidationException(
+                    "На аккаунте обнаружено больше одного абонемента на услугу '" + paymentService.getName()
+                            + "'. Пожалуйста, обратитесь в финансовый отдел на почту billing@majordomo.ru");
+        }
+
+        return new ResponseEntity<>(accountServiceAbonements.get(0), HttpStatus.OK);
+    }
+
+    @PostMapping("/{accountId}/account-service-anti-spam/abonement")
+    public ResponseEntity<AccountServiceAbonement> addAntiSpamServiceAbonement(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        PaymentService paymentService = getPaymentServiceByOldId(ANTI_SPAM_SERVICE_ID);
+
+        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
+
+        if (accountServices != null && accountServices.size() > 1) {
+            throw new ParameterValidationException(
+                    "На аккаунте обнаружено больше одной услуги '" + paymentService.getName()
+                            + "'. Пожалуйста, обратитесь в финансовый отдел.");
+        }
+
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ANTI_SPAM, true);
+        AccountServiceAbonement abonement = serviceAbonementService.addAbonement(
+                account, plan.getNotInternalAbonementId(), paymentService.getId(), true);
+
+        return new ResponseEntity<>(abonement, HttpStatus.OK);
+    }
+
     @PostMapping("/{accountId}/account-service-anti-spam")
     public ResponseEntity<SimpleServiceMessage> addAntiSpamService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -228,6 +344,15 @@ public class AccountServiceRestController extends CommonRestController {
 
         PaymentService paymentService = getPaymentServiceByOldId(ANTI_SPAM_SERVICE_ID);
 
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ANTI_SPAM, true);
+        Abonement abonement = plan.getNotInternalAbonement();
+
+        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), abonement.getId());
+
+        if (accountServiceAbonements != null && !accountServiceAbonements.isEmpty()) {
+            throw new ParameterValidationException("При активном абонементе нельзя " + (enabled ? "включить" : "отключить") + "услугу");
+        }
+
         processCustomService(account, paymentService, enabled);
 
         accountHelper.switchAntiSpamForMailboxes(account, enabled);
@@ -239,6 +364,24 @@ public class AccountServiceRestController extends CommonRestController {
         );
 
         return new ResponseEntity<>(this.createSuccessResponse("accountService " + (enabled ? "enabled" : "disabled") + " for anti-spam"), HttpStatus.OK);
+    }
+
+    @PostMapping("/{accountId}/account-service/{accountServiceAbonementId}/prolong")
+    public ResponseEntity<AccountServiceAbonement> prolongSmsServiceAbonement(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @PathVariable(value = "accountServiceAbonementId") String accountServiceAbonementId
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        AccountServiceAbonement accountServiceAbonement = accountServiceAbonementManager.findByIdAndPersonalAccountId(accountServiceAbonementId, accountId);
+
+        if (accountServiceAbonement == null) {
+            throw new ParameterValidationException("Абонемент на услугу не найден.");
+        }
+
+        serviceAbonementService.prolongAbonement(account, accountServiceAbonement);
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PreAuthorize("hasAuthority('MANAGE_SERVICES')")

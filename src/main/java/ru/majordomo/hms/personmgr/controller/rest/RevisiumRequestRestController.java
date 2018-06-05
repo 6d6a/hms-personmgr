@@ -168,7 +168,7 @@ public class RevisiumRequestRestController extends CommonRestController {
         }
 
         PaymentService paymentService = accountServiceHelper.getRevisiumPaymentService();
-        ServicePlan plan = servicePlanRepository.findByServiceId(paymentService.getId());
+        ServicePlan plan = servicePlanRepository.findByServiceId(paymentService.getId(), true);
 
         accountHelper.checkBalanceWithoutBonus(account, paymentService);
 
@@ -249,7 +249,7 @@ public class RevisiumRequestRestController extends CommonRestController {
         history.save(account, "Произведен заказ услуги " + paymentService.getName(), request);
 
         //Дата окончания действия услуги
-        ServicePlan plan = servicePlanRepository.findByServiceId(paymentService.getId());
+        ServicePlan plan = servicePlanRepository.findByServiceId(paymentService.getId(), true);
         AccountServiceAbonement abonement = serviceAbonementService.addAbonement(
                 account, plan.getNotInternalAbonementId(), paymentService.getId(), true);
 

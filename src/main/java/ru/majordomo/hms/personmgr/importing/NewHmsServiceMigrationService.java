@@ -171,7 +171,7 @@ public class NewHmsServiceMigrationService {
                 log.info("migrateAccountExpirationServices [working with accountServiceExpiration for acc: " + accountServiceExpiration.getPersonalAccountId() +
                         " accountService: " + accountServiceExpiration.getAccountService().getName() + "]");
 
-                ServicePlan servicePlan = servicePlanRepository.findByServiceId(accountServiceExpiration.getAccountService().getServiceId());
+                ServicePlan servicePlan = servicePlanRepository.findByServiceId(accountServiceExpiration.getAccountService().getServiceId(), true);
 
                 AccountServiceAbonement accountServiceAbonement = new AccountServiceAbonement();
                 accountServiceAbonement.setPersonalAccountId(accountServiceExpiration.getPersonalAccountId());

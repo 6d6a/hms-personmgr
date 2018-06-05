@@ -16,8 +16,6 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Past;
 import java.time.LocalDate;
 
-//TODO после рефакторинга нужно будет перенести в общий список услуг и добавить обработку удаления и добавления услуги
-
 @Document
 @Data
 @EqualsAndHashCode(callSuper = true)

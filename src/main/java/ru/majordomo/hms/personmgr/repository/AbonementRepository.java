@@ -23,4 +23,7 @@ public interface AbonementRepository extends MongoRepository<Abonement, String> 
             @Param("internal") boolean internal,
             @Param("period") String period
     );
+    List<Abonement> findByServiceId(
+            @Param("serviceId") String serviceId
+    );
 }

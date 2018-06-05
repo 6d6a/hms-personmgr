@@ -17,7 +17,7 @@ public interface ServicePlanRepository extends MongoRepository<ServicePlan, Stri
     List<ServicePlan> findAll();
 
     @Cacheable("servicePlans")
-    ServicePlan findByServiceId(@Param("serviceId") String serviceId);
+    ServicePlan findByServiceId(@Param("serviceId") String serviceId, @Param("active") boolean active);
 
     @Override
     @CachePut("servicePlans")
