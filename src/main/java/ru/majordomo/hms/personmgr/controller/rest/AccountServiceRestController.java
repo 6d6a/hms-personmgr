@@ -204,10 +204,18 @@ public class AccountServiceRestController extends CommonRestController {
         }
 
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
-        AccountServiceAbonement abonement = serviceAbonementService.addAbonement(
+        Abonement abonement = plan.getNotInternalAbonement();
+
+        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), abonement.getId());
+
+        if (accountServiceAbonements != null && !accountServiceAbonements.isEmpty()) {
+            throw new ParameterValidationException("Абонемент уже куплен");
+        }
+
+        AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(
                 account, plan.getNotInternalAbonementId(), paymentService.getId(), true);
 
-        return new ResponseEntity<>(abonement, HttpStatus.OK);
+        return new ResponseEntity<>(accountServiceAbonement, HttpStatus.OK);
     }
 
     @PostMapping("/{accountId}/account-service-sms-notification")
@@ -324,10 +332,18 @@ public class AccountServiceRestController extends CommonRestController {
         }
 
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ANTI_SPAM, true);
-        AccountServiceAbonement abonement = serviceAbonementService.addAbonement(
+        Abonement abonement = plan.getNotInternalAbonement();
+
+        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), abonement.getId());
+
+        if (accountServiceAbonements != null && !accountServiceAbonements.isEmpty()) {
+            throw new ParameterValidationException("Абонемент уже куплен");
+        }
+
+        AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(
                 account, plan.getNotInternalAbonementId(), paymentService.getId(), true);
 
-        return new ResponseEntity<>(abonement, HttpStatus.OK);
+        return new ResponseEntity<>(accountServiceAbonement, HttpStatus.OK);
     }
 
     @PostMapping("/{accountId}/account-service-anti-spam")
