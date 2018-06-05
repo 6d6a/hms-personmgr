@@ -115,4 +115,6 @@ public interface PersonalAccountManager {
     void setNotifications(String id, Set<MailManagerMessageType> notifications);
 
     List<PersonalAccount> findByCreatedDate(LocalDate date);
+
+    List<String> findAccountIdsNotDeletedByPlanIdsInAndAccountIsActive(List<String> planIds, boolean accountIsActive);
 }

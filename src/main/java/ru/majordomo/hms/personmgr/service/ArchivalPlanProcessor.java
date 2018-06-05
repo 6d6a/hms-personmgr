@@ -4,12 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
-import org.springframework.data.mongodb.core.MongoOperations;
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.Utils;
-import ru.majordomo.hms.personmgr.dto.IdsContainer;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -29,9 +25,8 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
-import static ru.majordomo.hms.personmgr.common.Constants.SITE_VISITKA_PLAN_OLD_ID;
+
 
 @Service
 public class ArchivalPlanProcessor {
@@ -46,9 +41,6 @@ public class ArchivalPlanProcessor {
     private AccountHistoryManager history;
     private AccountServiceHelper accountServiceHelper;
     private AccountAbonementManager accountAbonementManager;
-    private MongoOperations mongoOperations;
-    private AccountStatHelper accountStatHelper;
-    private ChargeHelper chargeHelper;
     private AbonementService abonementService;
 
     @Autowired
@@ -60,9 +52,6 @@ public class ArchivalPlanProcessor {
             AccountHistoryManager history,
             AccountServiceHelper accountServiceHelper,
             AccountAbonementManager accountAbonementManager,
-            MongoOperations mongoOperations,
-            AccountStatHelper accountStatHelper,
-            ChargeHelper chargeHelper,
             AbonementService abonementService
     ) {
         this.accountNoticeRepository = accountNoticeRepository;
@@ -72,9 +61,6 @@ public class ArchivalPlanProcessor {
         this.history = history;
         this.accountServiceHelper = accountServiceHelper;
         this.accountAbonementManager = accountAbonementManager;
-        this.mongoOperations = mongoOperations;
-        this.accountStatHelper = accountStatHelper;
-        this.chargeHelper = chargeHelper;
         this.abonementService = abonementService;
     }
 
@@ -169,38 +155,15 @@ public class ArchivalPlanProcessor {
                 .filter(plan -> !plan.isAbonementOnly()
                         && !plan.isActive()
                         && plan.getService().getCost().compareTo(accountHelper.getArchivalFallbackPlan().getService().getCost()) < 0)
-                .map(Plan::getId).collect(Collectors.toList());
+                .map(Plan::getId)
+                .collect(Collectors.toList());
     }
 
     private List<String> getAccountIdWithArchivalPlanAndActive(boolean accountIsActive) {
         List<String> planIds = archivalTariffIds();
-
-        Aggregation aggregation = newAggregation(
-                Aggregation.match(
-                        new Criteria()
-                                .andOperator(
-                                        new Criteria()
-                                                .orOperator(
-                                                        Criteria.where("deleted").exists(false),
-                                                        Criteria.where("deleted").is(null)
-                                                ),
-                                        Criteria.where("planId").in(planIds),
-                                        Criteria.where("active").is(accountIsActive)
-                                )
-                ),
-                Aggregation.group().addToSet("accountId").as("ids")
+        return accountManager.findAccountIdsNotDeletedByPlanIdsInAndAccountIsActive(
+                planIds, accountIsActive
         );
-
-        List<String> accountIds = new ArrayList<>();
-
-        List<IdsContainer> idsContainers = mongoOperations.aggregate(aggregation, PersonalAccount.class, IdsContainer.class)
-                .getMappedResults();
-
-        if (idsContainers != null && !idsContainers.isEmpty()) {
-            accountIds = idsContainers.get(0).getIds();
-        }
-
-        return accountIds;
     }
 
     private List<String> filterByWithoutAbonement(List<String> accountIds) {
@@ -226,7 +189,7 @@ public class ArchivalPlanProcessor {
 
         StringBuilder result = new StringBuilder(String.format(messagePattern, "hasAbonement", "accountId", "oldPlan", "newPlan", "costDiff", "deactivatedDays"));
 
-        System.out.println(String.format(messagePattern,"accountId", "oldPlan", "newPlan", "costDiff", "deactivatedDays"));
+        log.info(String.format(messagePattern,"accountId", "oldPlan", "newPlan", "costDiff", "deactivatedDays"));
 
         accountIds.forEach(accountId -> {
             try {
@@ -257,7 +220,7 @@ public class ArchivalPlanProcessor {
                         newPlan.getService().getCost().subtract(currentPlan.getService().getCost()),
                         account.getDeactivated() == null ? "null" : Utils.getDifferentInDaysBetweenDates(account.getDeactivated().toLocalDate(), LocalDate.now())
                 );
-                result.append(message + "\n");
+                result.append(message).append("\n");
             } catch (Throwable e) {
                 log.error("accountId " + accountId + " Ошибка при смене тарифа : " + e.getMessage());
                 e.printStackTrace();
@@ -265,8 +228,8 @@ public class ArchivalPlanProcessor {
 
         });
         String message = result.toString();
-        System.out.println(message);
-        System.out.println("size: " + accountIds.size());
+        log.info(message);
+        log.info("size: " + accountIds.size());
 
         return message;
     }
