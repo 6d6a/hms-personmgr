@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.*;
+import ru.majordomo.hms.personmgr.event.account.RedirectWasDisabledEvent;
 import ru.majordomo.hms.personmgr.event.account.RedirectWasProlongEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
@@ -384,10 +385,16 @@ public class ServiceAbonementService { //dis name
 
         if (servicePlan.getFeature() == Feature.REDIRECT) {
             RedirectAccountService redirectAccountService = accountRedirectServiceRepository.findByAccountServiceAbonementId(accountServiceAbonement.getId());
-            publisher.publishEvent(new RedirectWasProlongEvent(redirectAccountService.getPersonalAccountId(), redirectAccountService.getFullDomainName()));
+            publisher.publishEvent(new RedirectWasDisabledEvent(redirectAccountService.getPersonalAccountId(), redirectAccountService.getFullDomainName()));
             redirectAccountService.setActive(false);
             accountRedirectServiceRepository.save(redirectAccountService);
         }
+
+        /* Отключение Feature.ANTI_SPAM не требуется, так как мы добавляем посуточную услугу
+        if (servicePlan.getFeature() == Feature.ANTI_SPAM) {
+            accountHelper.switchAntiSpamForMailboxes(account, false);
+        }
+        */
 
         if (!servicePlan.isAbonementOnly() && !accountServiceHelper.accountHasService(account, servicePlan.getServiceId())) {
             accountServiceHelper.addAccountService(account, servicePlan.getServiceId());
