@@ -369,24 +369,21 @@ public class AbonementService {
 
         Plan fallbackPlan = getArchivalFallbackPlan(getAccountPlan(account));
         if (fallbackPlan == null) {
-            defaultProcessArchival(account, accountAbonement);
+            defaultProcessArchival(account);
         } else {
-            changeArchivalAbonementToActive(account, fallbackPlan, accountAbonement);
+            changeArchivalAbonementToActive(account, fallbackPlan);
         }
     }
 
-    public void defaultProcessArchival(PersonalAccount account, AccountAbonement accountAbonement) {
+    public void defaultProcessArchival(PersonalAccount account) {
         accountHelper.changeArchivalPlanToActive(account);
 
-        history.saveForOperatorService(
-                account,
-                "Архивный тариф, абонемент удален, дата окончания: " + accountAbonement.getExpired().toString()
-        );
+        history.saveForOperatorService(account, "Архивный тариф, абонемент удален");
 
         chargeHelper.prepareAndProcessChargeRequest(account.getId(), LocalDate.now());
     }
 
-    public void changeArchivalAbonementToActive(PersonalAccount account, Plan fallbackPlan, AccountAbonement currentAccountAbonement) {
+    public void changeArchivalAbonementToActive(PersonalAccount account, Plan fallbackPlan) {
         Plan currentPlan = accountHelper.getPlan(account);
         accountServiceHelper.deleteAccountServiceByServiceId(account, currentPlan.getServiceId());
         try {
@@ -413,7 +410,7 @@ public class AbonementService {
                 e.printStackTrace();
             }
             account.setPlanId(currentPlan.getId());
-            defaultProcessArchival(account, currentAccountAbonement);
+            defaultProcessArchival(account);
         }
     }
 

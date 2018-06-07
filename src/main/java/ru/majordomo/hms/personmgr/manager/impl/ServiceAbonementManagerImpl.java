@@ -198,6 +198,11 @@ public class ServiceAbonementManagerImpl implements AbonementManager<AccountServ
         mongoOperations.updateFirst(query, update, AccountServiceAbonement.class);
     }
 
+    @Override
+    public boolean existsByPersonalAccountIdAndExpiredAfter(String personalAccountId, LocalDateTime expired) {
+        return repository.existsByPersonalAccountIdAndExpiredAfter(personalAccountId, expired);
+    }
+
     private void checkById(String id) {
         if (!exists(id)) {
             throw new ResourceNotFoundException("ServiceAbonement с id: " + id + " не найден");

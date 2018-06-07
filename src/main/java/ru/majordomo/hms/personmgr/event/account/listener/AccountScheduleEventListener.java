@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.event.account.*;
+import ru.majordomo.hms.personmgr.service.ArchivalPlanProcessor;
 import ru.majordomo.hms.personmgr.service.scheduler.*;
 
 @Component
@@ -19,7 +20,7 @@ public class AccountScheduleEventListener {
     private final BusinessActionsScheduler businessActionsScheduler;
     private final AbonementsScheduler abonementsScheduler;
     private final RecurrentsScheduler recurrentsScheduler;
-
+    private final ArchivalPlanProcessor archivalPlanProcessor;
 
     @Autowired
     public AccountScheduleEventListener(
@@ -27,13 +28,15 @@ public class AccountScheduleEventListener {
             DomainsScheduler domainsScheduler,
             BusinessActionsScheduler businessActionsScheduler,
             AbonementsScheduler abonementsScheduler,
-            RecurrentsScheduler recurrentsScheduler
+            RecurrentsScheduler recurrentsScheduler,
+            ArchivalPlanProcessor archivalPlanProcessor
     ) {
         this.notificationScheduler = notificationScheduler;
         this.domainsScheduler = domainsScheduler;
         this.businessActionsScheduler = businessActionsScheduler;
         this.abonementsScheduler = abonementsScheduler;
         this.recurrentsScheduler = recurrentsScheduler;
+        this.archivalPlanProcessor = archivalPlanProcessor;
     }
 
     @EventListener
@@ -130,5 +133,13 @@ public class AccountScheduleEventListener {
         logger.debug("We got ProcessRecurrentsEvent");
 
         recurrentsScheduler.processRecurrents();
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(DeferredPlanChangeEvent event) {
+        logger.debug("We got DeferredPlanChangeEvent");
+
+        archivalPlanProcessor.processDeferredPlanChange();
     }
 }

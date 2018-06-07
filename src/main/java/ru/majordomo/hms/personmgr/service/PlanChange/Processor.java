@@ -194,7 +194,6 @@ public abstract class Processor {
 
         // На бесплатном тестовом абонементе можно менять тариф туда сюда без ограничений
         if (!hasFreeTestAbonement()) {
-
             if (!ignoreRestricts) {
                 // С бизнеса можно только на бизнес
                 if (!checkBusinessPlan(planChangeAgreement)) {
@@ -221,21 +220,21 @@ public abstract class Processor {
                     return planChangeAgreement;
                 }
             }
+        }
 
-            if (newAbonementRequired) {
-                planChangeAgreement.setBalanceChanges(true);
+        if ((hasFreeTestAbonement() && newPlan.getFree14DaysAbonement() == null) || newAbonementRequired) {
+            planChangeAgreement.setBalanceChanges(true);
 
-                if (newBalanceAfterCashBack.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) {
-                    // Денег на новый абонемент не хватает
-                    planChangeAgreement.setNeedToFeelBalance(
-                            newPlan.getNotInternalAbonement().getService().getCost().subtract(newBalanceAfterCashBack)
-                    );
-                }
-
-                planChangeAgreement.setBalanceAfterOperation(
-                        newBalanceAfterCashBack.subtract(newPlan.getNotInternalAbonement().getService().getCost())
+            if (newBalanceAfterCashBack.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) {
+                // Денег на новый абонемент не хватает
+                planChangeAgreement.setNeedToFeelBalance(
+                        newPlan.getNotInternalAbonement().getService().getCost().subtract(newBalanceAfterCashBack)
                 );
             }
+
+            planChangeAgreement.setBalanceAfterOperation(
+                    newBalanceAfterCashBack.subtract(newPlan.getNotInternalAbonement().getService().getCost())
+            );
         }
 
         // Лимиты Database

@@ -70,4 +70,6 @@ public interface AbonementManager<T extends AccountAbonement> {
     void setExpired(String id, LocalDateTime expired);
 
     void setAutorenew(String id, boolean autorenew);
+
+    boolean existsByPersonalAccountIdAndExpiredAfter(String personalAccountId, LocalDateTime expired);
 }
