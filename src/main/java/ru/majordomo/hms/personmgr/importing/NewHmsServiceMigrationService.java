@@ -99,7 +99,7 @@ public class NewHmsServiceMigrationService {
         abonementService.setName("СМС уведомления (годовой абонемент)");
         abonementService.setOldId("service_21_abonement_P1Y");
         abonementService.setLimit(0);
-        abonementService.setCost(BigDecimal.valueOf(500));
+        abonementService.setCost(BigDecimal.valueOf(499));
         abonementService.setActive(true);
         abonementService.setAccountType(AccountType.VIRTUAL_HOSTING);
         abonementService.setPaymentType(ServicePaymentType.ONE_TIME);
@@ -132,7 +132,7 @@ public class NewHmsServiceMigrationService {
         abonementService.setName("Защита от спама и вирусов (годовой абонемент)");
         abonementService.setOldId("service_13_abonement_P1Y");
         abonementService.setLimit(0);
-        abonementService.setCost(BigDecimal.valueOf(500));
+        abonementService.setCost(BigDecimal.valueOf(499));
         abonementService.setActive(true);
         abonementService.setAccountType(AccountType.VIRTUAL_HOSTING);
         abonementService.setPaymentType(ServicePaymentType.ONE_TIME);
