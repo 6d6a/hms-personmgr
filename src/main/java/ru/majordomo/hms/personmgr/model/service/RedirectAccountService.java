@@ -22,7 +22,6 @@ import java.time.LocalDate;
 @CompoundIndex(unique = true, def = "{fullDomainName : 1 , personalAccountId : 1}")
 public class RedirectAccountService extends ModelBelongsToPersonalAccount {
 
-    @ObjectId(AccountServiceAbonement.class)
     private String accountServiceAbonementId;
 
     @Transient

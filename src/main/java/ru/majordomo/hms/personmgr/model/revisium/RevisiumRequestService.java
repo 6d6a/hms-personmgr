@@ -21,7 +21,6 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 @Document
 public class RevisiumRequestService extends ModelBelongsToPersonalAccount {
 
-    @ObjectId(AccountServiceAbonement.class)
     private String accountServiceAbonementId;
 
     @Transient
