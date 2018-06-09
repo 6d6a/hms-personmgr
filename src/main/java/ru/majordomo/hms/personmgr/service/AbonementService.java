@@ -388,7 +388,7 @@ public class AbonementService {
         accountServiceHelper.deleteAccountServiceByServiceId(account, currentPlan.getServiceId());
 
         //Парковку+ без доменов нужно выключить
-        //Если есть домены, то меняем на безлимитный
+        //Если есть домены, то меняем на старт
         if (account.getPlanId().equals(PLAN_PARKING_PLUS_ID_STRING)) {
             List<Domain> domains = accountHelper.getDomains(account);
             if (domains == null || domains.isEmpty()) {
