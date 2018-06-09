@@ -174,7 +174,9 @@ public class RevisiumRequestRestController extends CommonRestController {
         accountHelper.checkBalanceWithoutBonus(account, paymentService);
 
         if (revisiumRequestService.getAccountServiceAbonement() == null) {
-            serviceAbonementService.addAbonement(account, plan.getNotInternalAbonementId(), Feature.REVISIUM, true);
+            AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(account, plan.getNotInternalAbonementId(), Feature.REVISIUM, true);
+            revisiumRequestService.setAccountServiceAbonementId(accountServiceAbonement.getId());
+            revisiumRequestService.setAccountServiceAbonement(accountServiceAbonement);
         } else {
             serviceAbonementService.prolongAbonement(account, revisiumRequestService.getAccountServiceAbonement());
         }

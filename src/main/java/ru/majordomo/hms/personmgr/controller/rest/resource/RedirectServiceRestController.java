@@ -123,9 +123,11 @@ public class RedirectServiceRestController extends CommonRestController {
 
             ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.REDIRECT, true);
 
-            serviceAbonementService.addAbonement(
+            AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(
                     account, servicePlan.getNotInternalAbonementId(), Feature.REDIRECT, true);
 
+            redirectAccountService.setAccountServiceAbonementId(accountServiceAbonement.getId());
+            redirectAccountService.setAccountServiceAbonement(accountServiceAbonement);
             redirectAccountService.setExpireDate(LocalDate.now().with(PLUS_ONE_YEAR));
             redirectAccountService.setActive(true);
             accountRedirectServiceRepository.save(redirectAccountService);

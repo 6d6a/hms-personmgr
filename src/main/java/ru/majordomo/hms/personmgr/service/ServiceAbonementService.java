@@ -211,7 +211,8 @@ public class ServiceAbonementService { //dis name
                 needSendEmail = true;
             }
 
-            //TODO SERVICE_ABONEMENT смс и письмо - новые шаблоны
+            //TODO пока что не отправялем никаких писем
+            //(учесть при рефакторинге всей логики писем)
 
             if (needSendEmail) {
 //                logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
@@ -357,8 +358,9 @@ public class ServiceAbonementService { //dis name
             needToSendMail = true;
         }
         if (needToSendMail) {
-            //TODO SERVICE_ABONEMENT письмо
-//            publisher.publishEvent(new AccountSendEmailWithExpiredAbonementEvent(account));
+            ///TODO пока что не отправялем никаких писем
+            //(учесть при рефакторинге всей логики писем)
+            //publisher.publishEvent(new AccountSendEmailWithExpiredAbonementEvent(account));
         }
 
         Map<String, String> data = new HashMap<>();
