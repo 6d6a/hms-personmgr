@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.config.FeignConfig;
 import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
-import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import java.util.Collection;

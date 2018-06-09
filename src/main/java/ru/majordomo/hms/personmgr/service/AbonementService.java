@@ -386,6 +386,18 @@ public class AbonementService {
     public void changeArchivalAbonementToActive(PersonalAccount account, Plan fallbackPlan) {
         Plan currentPlan = accountHelper.getPlan(account);
         accountServiceHelper.deleteAccountServiceByServiceId(account, currentPlan.getServiceId());
+
+        //Парковку+ без доменов нужно выключить
+        //Если есть домены, то меняем на безлимитный
+        if (account.getPlanId().equals(PLAN_PARKING_PLUS_ID_STRING)) {
+            List<Domain> domains = accountHelper.getDomains(account);
+            if (domains == null || domains.isEmpty()) {
+                accountHelper.disableAccount(account);
+                history.save(account, "Архивный абонемент 'Парковка+' удален после истечения, аккаунт отключен.");
+                return;
+            }
+        }
+
         try {
             Abonement fallbackAbonement = getFallbackAbonement(fallbackPlan);
             //Тут может выпасть исключение, если тариф не совпадает с покупаемым абонементом или нехватает денег
@@ -430,6 +442,7 @@ public class AbonementService {
 
     public Plan getArchivalFallbackPlan(Plan currentPlan) {
         switch (currentPlan.getOldId()) {
+            case PLAN_PARKING_PLUS_ID_STRING:
             case SITE_VISITKA_PLAN_OLD_ID:
                 return planManager.findByOldId(String.valueOf(PLAN_PARKING_DOMAINS_ID));
             default:

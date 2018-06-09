@@ -138,4 +138,12 @@ public class AccountScheduleEventListener {
 
         archivalPlanProcessor.processDeferredPlanChange();
     }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(ProcessChargeInactiveAccountEvent event) {
+        logger.debug("We got ProcessChargeInactiveAccountEvent");
+
+        archivalPlanProcessor.processChargeRemainderForInactiveLongTime();
+    }
 }

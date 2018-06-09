@@ -454,6 +454,16 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
+    public void setDeactivated(String id, LocalDateTime deactivated) {
+        checkById(id);
+
+        Query query = new Query(new Criteria("_id").is(id));
+        Update update = new Update().set("deactivated", deactivated);
+
+        mongoOperations.updateFirst(query, update, PersonalAccount.class);
+    }
+
+    @Override
     public void setAccountNew(String id, Boolean accountNew) {
         setSettingByName(id, NEW_ACCOUNT, accountNew);
     }
@@ -576,6 +586,33 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
 
         if (idsContainers != null && !idsContainers.isEmpty()) {
             accountIds = idsContainers.get(0).getIds();
+        }
+
+        return accountIds;
+    }
+
+    @Override
+    public List<String> findByActiveAndDeactivatedBefore(boolean active, LocalDateTime deactivated) {
+        Aggregation aggregation = newAggregation(
+                Aggregation.match(
+                        new Criteria()
+                                .andOperator(
+                                        Criteria.where("deactivated").lte(deactivated),
+                                        Criteria.where("active").is(active)
+                                )
+                ),
+                Aggregation.group().addToSet("id").as("ids")
+        );
+
+        List<String> accountIds;
+
+        List<IdsContainer> idsContainers = mongoOperations.aggregate(aggregation, PersonalAccount.class, IdsContainer.class)
+                .getMappedResults();
+
+        if (idsContainers != null && !idsContainers.isEmpty()) {
+            accountIds = idsContainers.get(0).getIds();
+        } else {
+            accountIds = new ArrayList<>();
         }
 
         return accountIds;

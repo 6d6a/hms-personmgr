@@ -127,6 +127,7 @@ public class Constants {
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;
     public static final int PLAN_PARKING_PLUS_ID = 124;
+    public static final String PLAN_PARKING_PLUS_ID_STRING = "124";
     public static final int PLAN_UNLIMITED_ID = 9802;
     public static final String PLAN_UNLIMITED_SERVICE_ID = PLAN_SERVICE_PREFIX + PLAN_UNLIMITED_ID;
     public static final int PLAN_PARKING_DOMAINS_ID = 9803;
@@ -166,6 +167,7 @@ public class Constants {
     public static final String REVISIUM_SERVICE_ID = SERVICE_PREFIX + REVISIUM_ID;
 
     public static final String REDIRECT_SERVICE_OLD_ID = SERVICE_PREFIX + "redirect";
+    public static final String ACCESS_TO_CONTROL_PANEL_SERVICE_OLD_ID = SERVICE_PREFIX + "access_to_control_panel";
 
     //Id услуги Доп.место в BillingDB
     public static final int ADDITIONAL_QUOTA_100_ID = 15;

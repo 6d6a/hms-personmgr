@@ -6,16 +6,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.Utils;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
+import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.DeferredPlanChangeNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
+import ru.majordomo.hms.personmgr.service.scheduler.AccountCheckingService;
+import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,12 +30,14 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.lang.String.format;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 
 @Service
 public class ArchivalPlanProcessor {
     private final static Logger log = LoggerFactory.getLogger(ArchivalPlanProcessor.class);
+    private final int CHARGE_MONEY_AFTER_DAYS_INACTIVE = 180;
     private final static TemporalAdjuster MAX_PERIOD_ARCHIVAL_PLAN_MUST_BE_CHANGED =
             TemporalAdjusters.ofDateAdjuster(date -> date.plusMonths(3));
 
@@ -42,6 +49,8 @@ public class ArchivalPlanProcessor {
     private AccountServiceHelper accountServiceHelper;
     private AccountAbonementManager accountAbonementManager;
     private AbonementService abonementService;
+    private AccountStatHelper accountStatHelper;
+    private AccountCheckingService accountCheckingService;
 
     @Autowired
     public ArchivalPlanProcessor(
@@ -52,7 +61,9 @@ public class ArchivalPlanProcessor {
             AccountHistoryManager history,
             AccountServiceHelper accountServiceHelper,
             AccountAbonementManager accountAbonementManager,
-            AbonementService abonementService
+            AbonementService abonementService,
+            AccountStatHelper accountStatHelper,
+            AccountCheckingService accountCheckingService
     ) {
         this.accountNoticeRepository = accountNoticeRepository;
         this.planManager = planManager;
@@ -62,6 +73,8 @@ public class ArchivalPlanProcessor {
         this.accountServiceHelper = accountServiceHelper;
         this.accountAbonementManager = accountAbonementManager;
         this.abonementService = abonementService;
+        this.accountStatHelper = accountStatHelper;
+        this.accountCheckingService = accountCheckingService;
     }
 
     public void createDeferredTariffChangeNoticeForDaily() {
@@ -105,11 +118,11 @@ public class ArchivalPlanProcessor {
     private int computeRemainingDays(PersonalAccount account, Plan plan) {
         String template = "%10s | %5s | причина: %1s";
         int maxPeriod = 92;
-        int minPeriod = 3;
+        int minPeriod = 6;
         BigDecimal balance = accountHelper.getBalance(account);
 
         if (balance.compareTo(BigDecimal.ZERO) <= 0) {
-            log.info(String.format(template, account.getId(), minPeriod, "баланс равен " + balance));
+            log.info(format(template, account.getId(), minPeriod, "баланс равен " + balance));
             return minPeriod;
         }
 
@@ -128,17 +141,17 @@ public class ArchivalPlanProcessor {
                 .add(plan.getService().getCost().divide(BigDecimal.valueOf(30), 4, BigDecimal.ROUND_HALF_UP));
 
         if (dailyCost.compareTo(BigDecimal.ZERO) == 0) {
-            log.info(String.format(template, account.getId(), maxPeriod, "дневное списание = 0"));
+            log.info(format(template, account.getId(), maxPeriod, "дневное списание = 0"));
             return maxPeriod;
         }
 
         int remainingDays = balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN).intValue();
 
         if (remainingDays >= minPeriod && remainingDays <= maxPeriod) {
-            log.info(String.format(template, account.getId(), remainingDays, "ok"));
+            log.info(format(template, account.getId(), remainingDays, "ok"));
             return remainingDays;
         } else {
-            log.info(String.format(template, account.getId(), maxPeriod, "выходит за пределы перида для смены, days: " + remainingDays));
+            log.info(format(template, account.getId(), maxPeriod, "выходит за пределы перида для смены, days: " + remainingDays));
             return maxPeriod;
         }
     }
@@ -152,8 +165,10 @@ public class ArchivalPlanProcessor {
 
     private List<String> archivalTariffIds() {
         return planManager.findAll().stream()
-                .filter(plan -> !plan.isAbonementOnly()
-                        && !plan.isActive()
+                .filter(plan ->
+//                        !plan.isAbonementOnly()
+//                        &&
+                                !plan.isActive()
                         && plan.getService().getCost().compareTo(accountHelper.getArchivalFallbackPlan().getService().getCost()) < 0)
                 .map(Plan::getId)
                 .collect(Collectors.toList());
@@ -182,14 +197,15 @@ public class ArchivalPlanProcessor {
         Map<String, Plan> archivalToActive = new HashMap<>();
         archivalToActive.put(MAIL_PLAN_OLD_ID, startPlan);
         archivalToActive.put(SITE_VISITKA_PLAN_OLD_ID, parkingPlan);
+        archivalToActive.put(PLAN_PARKING_PLUS_ID_STRING, parkingPlan);
 
         List<String> accountIds = getAccountIdWithArchivalPlanAndActive(false);
 
         String messagePattern = "%10s | %15s | %15s | %10s | %5s";
 
-        StringBuilder result = new StringBuilder(String.format(messagePattern, "hasAbonement", "accountId", "oldPlan", "newPlan", "costDiff", "deactivatedDays"));
+        StringBuilder result = new StringBuilder(format(messagePattern, "hasAbonement", "accountId", "oldPlan", "newPlan", "costDiff", "deactivatedDays"));
 
-        log.info(String.format(messagePattern,"accountId", "oldPlan", "newPlan", "costDiff", "deactivatedDays"));
+        log.info(format(messagePattern,"accountId", "oldPlan", "newPlan", "costDiff", "deactivatedDays"));
 
         accountIds.forEach(accountId -> {
             try {
@@ -203,16 +219,17 @@ public class ArchivalPlanProcessor {
                 accountServiceHelper.deleteAccountServiceByServiceId(account, currentPlan.getServiceId());
                 log.info("accountId " + accountId + " удалены сервисы старого тарифа с serviceId " + currentPlan.getServiceId());
 
-                accountServiceHelper.addAccountService(account, newPlan.getServiceId());
-                log.info("accountId " + accountId + " добавлен сервис нового тарифа с serviceId " + newPlan.getServiceId());
-
+                if (!newPlan.isAbonementOnly()) {
+                    accountServiceHelper.addAccountService(account, newPlan.getServiceId());
+                    log.info("accountId " + accountId + " добавлен сервис нового тарифа с serviceId " + newPlan.getServiceId());
+                }
                 accountHelper.addArchivalPlanAccountNoticeRepository(account, currentPlan);
                 log.info("accountId " + accountId + " добавлен notice для архивного тарифа");
 
                 history.save(account, "В связи с нахождением аккаунта в выключенном состоянии и прекращением " +
                         "поддержки архивный тариф " + currentPlan.getName() + " заменен на " + newPlan.getName());
 
-                String message = String.format(messagePattern,
+                String message = format(messagePattern,
                         accountAbonementManager.findByPersonalAccountId(accountId) != null,
                         accountId,
                         currentPlan.getName(),
@@ -244,6 +261,9 @@ public class ArchivalPlanProcessor {
 
         for (DeferredPlanChangeNotice notice : notices) {
             if (notice.getWillBeChangedAfter().isAfter(LocalDate.now())) {
+                notice.setWasChanged(true);
+                accountNoticeRepository.save(notice);
+                history.save(notice.getPersonalAccountId(),"Смена архивного тарифа на активный не потребовалась", "service");
                 return;
             }
 
@@ -276,6 +296,50 @@ public class ArchivalPlanProcessor {
 
             notice.setWasChanged(true);
             accountNoticeRepository.save(notice);
+        }
+    }
+
+    public void processChargeRemainderForInactiveLongTime() {
+        PaymentService accessToTheControlPanelService = accountServiceHelper.getAccessToTheControlPanelService();
+
+        if (accessToTheControlPanelService == null) {
+            throw new InternalApiException("Услуга для списания с неактивных аккаунтов не найден");
+        }
+
+        BigDecimal fullCost = accessToTheControlPanelService.getCost();
+
+        List<String> accountIds = accountManager.findByActiveAndDeactivatedBefore(
+                false, LocalDateTime.now().minusDays(CHARGE_MONEY_AFTER_DAYS_INACTIVE)
+        );
+
+        for (String accountId: accountIds) {
+            PersonalAccount account = accountManager.findOne(accountId);
+            BigDecimal balance;
+            try {
+                balance = accountHelper.getBalance(account);
+            } catch (Exception e) {
+                log.error("не удалось получить баланс для списания с неактивных аккаунтов, accountId: "+ accountId + " message: " + e.getMessage());
+                continue;
+            }
+
+            if (balance.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal amount = balance.compareTo(fullCost) > 0 ? fullCost : balance;
+                try {
+                    accountHelper.charge(
+                            account,
+                            ChargeMessage.builder(accessToTheControlPanelService)
+                                    .setAmount(amount)
+                                    .build()
+                    );
+                    history.save(
+                            account,
+                            "Аккаунт неактивен более " + CHARGE_MONEY_AFTER_DAYS_INACTIVE
+                                    + " дней. Списано " + amount + " руб."
+                    );
+                } catch (Exception ignore) {
+                    log.error("Ошибка при списании с неактивного аккаунта с id " + accountId + " message: " + ignore.getMessage());
+                }
+            }
         }
     }
 }

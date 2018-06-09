@@ -235,21 +235,6 @@ public class AccountHelper {
     }
 
     /**
-     * Проверим не отрицательный ли баланс
-     *
-     * @param account Аккаунт
-     */
-    public void checkBalance(PersonalAccount account) {
-        BigDecimal available = getBalance(account);
-
-        if (available.compareTo(BigDecimal.ZERO) < 0) {
-            throw new NotEnoughMoneyException("Баланс аккаунта отрицательный: " + formatBigDecimalWithCurrency(available),
-                    available
-            );
-        }
-    }
-
-    /**
      * Проверим хватает ли баланса на услугу
      *
      * @param account Аккаунт
@@ -1106,17 +1091,12 @@ public class AccountHelper {
 
     //На тарифах, дешевле 245р, не даём покупать и продлевать абонемент
     public Boolean isAbonementMinCostOrderAllowed(PersonalAccount account) {
-        Plan plan = planManager.findOne(account.getPlanId());
-        if (!plan.isActive() && !plan.isAbonementOnly()
-                && plan.getService().getCost().compareTo(BigDecimal.valueOf(PLAN_MIN_COST_TO_ORDER_ABONEMENT)) < 0) {
-            return false;
-        }
-        return true;
+        return !needChangeArchivalPlanToFallbackPlan(account);
     }
 
     public boolean needChangeArchivalPlanToFallbackPlan(PersonalAccount account) {
         Plan plan = planManager.findOne(account.getPlanId());
-        if (plan.isActive() || plan.isAbonementOnly()) {
+        if (plan.isActive()) {
             return false;
         } else if (plan.getService().getCost().compareTo(getArchivalFallbackPlan().getService().getCost()) < 0) {
             return true;
@@ -1130,10 +1110,14 @@ public class AccountHelper {
     }
 
     public Plan getArchivalFallbackPlan(Plan currentPlan) {
-        if (currentPlan.getOldId().equals(MAIL_PLAN_OLD_ID) || currentPlan.getOldId().equals(SITE_VISITKA_PLAN_OLD_ID)) {
-            return planManager.findByOldId(String.valueOf(PLAN_START_ID));
-        } else {
-            return getArchivalFallbackPlan();
+        switch (currentPlan.getOldId()) {
+            case MAIL_PLAN_OLD_ID:
+            case SITE_VISITKA_PLAN_OLD_ID:
+            case PLAN_PARKING_PLUS_ID_STRING:
+                return planManager.findByOldId(String.valueOf(PLAN_START_ID));
+
+            default:
+                return getArchivalFallbackPlan();
         }
     }
 

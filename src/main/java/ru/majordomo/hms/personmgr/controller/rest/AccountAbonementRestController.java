@@ -280,8 +280,6 @@ public class AccountAbonementRestController extends CommonRestController {
 
         Abonement abonement = abonementRepository.findOne(abonementId);
 
-        //TODO переделать после гранд-рефакторинга услуг +
-        //+ по окончанию средств на тарифах дешевле 245р клиент автоматически переводится на Безлимитный.
         if (!accountHelper.isAbonementMinCostOrderAllowed(account)) {
             throw new ParameterValidationException("Обслуживание по тарифу \"" + planManager.findOne(account.getPlanId()).getName() +  "\" прекращено");
         }
@@ -326,8 +324,6 @@ public class AccountAbonementRestController extends CommonRestController {
             throw new ParameterValidationException("Продление абонемента на пробном периоде не доступно");
         }
 
-        //TODO переделать после гранд-рефакторинга услуг +
-        //+ после того как аб-т заканчивается, переводим на тариф Безлимитный
         if (!accountHelper.isAbonementMinCostOrderAllowed(account)) {
             throw new ParameterValidationException("Обслуживание по тарифу \"" + planManager.findOne(account.getPlanId()).getName() +  "\" прекращено");
         }
