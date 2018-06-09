@@ -124,7 +124,7 @@ public class RedirectServiceRestController extends CommonRestController {
             ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.REDIRECT, true);
 
             serviceAbonementService.addAbonement(
-                    account, servicePlan.getNotInternalAbonementId(), servicePlan.getServiceId(), true);
+                    account, servicePlan.getNotInternalAbonementId(), Feature.REDIRECT, true);
 
             redirectAccountService.setExpireDate(LocalDate.now().with(PLUS_ONE_YEAR));
             redirectAccountService.setActive(true);
@@ -183,7 +183,7 @@ public class RedirectServiceRestController extends CommonRestController {
             ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.REDIRECT, true);
 
             AccountServiceAbonement abonement = serviceAbonementService.addAbonement(
-                    account, servicePlan.getNotInternalAbonementId(), servicePlan.getServiceId(), true);
+                    account, servicePlan.getNotInternalAbonementId(), Feature.REDIRECT, true);
 
             addRedirectService(account, domain, abonement);
             history.save(account, "Заказана услуга перенаправления для домена: " + domain.getName(), request);

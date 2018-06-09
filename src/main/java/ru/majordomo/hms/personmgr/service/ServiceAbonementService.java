@@ -96,11 +96,9 @@ public class ServiceAbonementService { //dis name
      * @param abonementId id абонемента
      * @param autorenew автопродление абонемента
      */
-    public AccountServiceAbonement addAbonement(PersonalAccount account, String abonementId, String serviceId, Boolean autorenew) {
+    public AccountServiceAbonement addAbonement(PersonalAccount account, String abonementId, Feature feature, Boolean autorenew) {
 
-        PaymentService paymentService = paymentServiceRepository.findOne(serviceId);
-
-        ServicePlan plan = servicePlanRepository.findByServiceId(paymentService.getId(), true);
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
 
         Abonement abonement = checkAbonementAllownes(plan, abonementId);
 
@@ -314,7 +312,7 @@ public class ServiceAbonementService { //dis name
     }
 
     private ServicePlan getServicePlan(AccountServiceAbonement serviceAbonement) {
-        ServicePlan plan = servicePlanRepository.findByServiceId(serviceAbonement.getAbonement().getServiceId(), true);
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(serviceAbonement.getAbonement().getType(), true);
 
         if (plan == null) {
             throw new ResourceNotFoundException("ServicePlan not found");

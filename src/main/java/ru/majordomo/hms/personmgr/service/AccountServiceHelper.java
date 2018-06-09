@@ -23,6 +23,7 @@ import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequest;
@@ -359,7 +360,7 @@ public class AccountServiceHelper {
     public boolean hasSmsNotifications(PersonalAccount account) {
         PaymentService paymentService = this.getSmsPaymentServiceByPlanId(account.getPlanId());
         AccountService accountSmsService = accountServiceRepository.findOneByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
-        ServicePlan plan = servicePlanRepository.findByServiceId(paymentService.getId(), true);
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
         if (accountSmsService == null) {
             List<AccountServiceAbonement> abonements = abonementManager.findByPersonalAccountIdAndAbonementId(account.getId(), plan.getNotInternalAbonement().getId());
             if (!abonements.isEmpty()) {

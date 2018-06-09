@@ -11,6 +11,7 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequest;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
@@ -168,12 +169,12 @@ public class RevisiumRequestRestController extends CommonRestController {
         }
 
         PaymentService paymentService = accountServiceHelper.getRevisiumPaymentService();
-        ServicePlan plan = servicePlanRepository.findByServiceId(paymentService.getId(), true);
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.REVISIUM, true);
 
         accountHelper.checkBalanceWithoutBonus(account, paymentService);
 
         if (revisiumRequestService.getAccountServiceAbonement() == null) {
-            serviceAbonementService.addAbonement(account, plan.getNotInternalAbonementId(), paymentService.getId(), true);
+            serviceAbonementService.addAbonement(account, plan.getNotInternalAbonementId(), Feature.REVISIUM, true);
         } else {
             serviceAbonementService.prolongAbonement(account, revisiumRequestService.getAccountServiceAbonement());
         }
@@ -249,9 +250,9 @@ public class RevisiumRequestRestController extends CommonRestController {
         history.save(account, "Произведен заказ услуги " + paymentService.getName(), request);
 
         //Дата окончания действия услуги
-        ServicePlan plan = servicePlanRepository.findByServiceId(paymentService.getId(), true);
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.REVISIUM, true);
         AccountServiceAbonement abonement = serviceAbonementService.addAbonement(
-                account, plan.getNotInternalAbonementId(), paymentService.getId(), true);
+                account, plan.getNotInternalAbonementId(), Feature.REVISIUM, true);
 
         //Ревизиум сервис
         revisiumRequestService = new RevisiumRequestService();

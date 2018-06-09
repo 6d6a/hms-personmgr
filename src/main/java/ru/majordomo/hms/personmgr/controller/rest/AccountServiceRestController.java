@@ -213,7 +213,7 @@ public class AccountServiceRestController extends CommonRestController {
         }
 
         AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(
-                account, plan.getNotInternalAbonementId(), paymentService.getId(), true);
+                account, plan.getNotInternalAbonementId(), Feature.SMS_NOTIFICATIONS, true);
 
         return new ResponseEntity<>(accountServiceAbonement, HttpStatus.OK);
     }
@@ -341,7 +341,7 @@ public class AccountServiceRestController extends CommonRestController {
         }
 
         AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(
-                account, plan.getNotInternalAbonementId(), paymentService.getId(), true);
+                account, plan.getNotInternalAbonementId(), Feature.ANTI_SPAM, true);
 
         accountHelper.switchAntiSpamForMailboxes(account, true);
 
