@@ -179,6 +179,11 @@ public class ServiceAbonementManagerImpl implements AbonementManager<AccountServ
     }
 
     @Override
+    public List<AccountServiceAbonement> findByPersonalAccountIdAndAbonementIdIn(String personalAccountId, List<String> abonementIds) {
+        return repository.findByPersonalAccountIdAndAbonementIdIn(personalAccountId, abonementIds);
+    }
+
+    @Override
     public void setExpired(String id, LocalDateTime expired) {
         checkById(id);
 

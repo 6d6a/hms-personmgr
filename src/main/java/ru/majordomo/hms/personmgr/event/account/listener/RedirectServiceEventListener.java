@@ -54,7 +54,7 @@ public class RedirectServiceEventListener {
                     SimpleServiceMessage message = new SimpleServiceMessage();
                     message.setAccountId(accountId);
                     message.addParam("resourceId", redirect.getId());
-                    message.addParam("switchedOn", false);
+                    message.addParam("switchedOn", state);
                     businessHelper.buildActionAndOperation(BusinessOperationType.REDIRECT_UPDATE, BusinessActionType.REDIRECT_UPDATE_RC, message);
                 });
     }

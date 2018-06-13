@@ -173,9 +173,8 @@ public class AccountServiceRestController extends CommonRestController {
         PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
 
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
-        Abonement abonement = plan.getNotInternalAbonement();
 
-        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), abonement.getId());
+        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
 
         if (accountServiceAbonements == null || accountServiceAbonements.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -204,9 +203,8 @@ public class AccountServiceRestController extends CommonRestController {
         }
 
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
-        Abonement abonement = plan.getNotInternalAbonement();
 
-        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), abonement.getId());
+        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
 
         if (accountServiceAbonements != null && !accountServiceAbonements.isEmpty()) {
             throw new ParameterValidationException("Абонемент уже куплен");
@@ -233,9 +231,8 @@ public class AccountServiceRestController extends CommonRestController {
         PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
 
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
-        Abonement abonement = plan.getNotInternalAbonement();
 
-        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), abonement.getId());
+        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
 
         if (accountServiceAbonements != null && !accountServiceAbonements.isEmpty()) {
             throw new ParameterValidationException("При активном абонементе нельзя " + (enabled ? "включить" : "отключить") + "услугу");
@@ -300,9 +297,8 @@ public class AccountServiceRestController extends CommonRestController {
         PaymentService paymentService = getPaymentServiceByOldId(ANTI_SPAM_SERVICE_ID);
 
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ANTI_SPAM, true);
-        Abonement abonement = plan.getNotInternalAbonement();
 
-        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), abonement.getId());
+        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
 
         if (accountServiceAbonements == null || accountServiceAbonements.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -332,9 +328,8 @@ public class AccountServiceRestController extends CommonRestController {
         }
 
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ANTI_SPAM, true);
-        Abonement abonement = plan.getNotInternalAbonement();
 
-        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), abonement.getId());
+        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
 
         if (accountServiceAbonements != null && !accountServiceAbonements.isEmpty()) {
             throw new ParameterValidationException("Абонемент уже куплен");
@@ -363,9 +358,8 @@ public class AccountServiceRestController extends CommonRestController {
         PaymentService paymentService = getPaymentServiceByOldId(ANTI_SPAM_SERVICE_ID);
 
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ANTI_SPAM, true);
-        Abonement abonement = plan.getNotInternalAbonement();
 
-        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementId(account.getId(), abonement.getId());
+        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
 
         if (accountServiceAbonements != null && !accountServiceAbonements.isEmpty()) {
             throw new ParameterValidationException("При активном абонементе нельзя " + (enabled ? "включить" : "отключить") + "услугу");

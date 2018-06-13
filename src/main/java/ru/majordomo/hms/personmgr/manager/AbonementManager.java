@@ -67,6 +67,8 @@ public interface AbonementManager<T extends AccountAbonement> {
 
     List<T> findByPersonalAccountIdAndAbonementId(String personalAccountId, String abonementId);
 
+    List<T> findByPersonalAccountIdAndAbonementIdIn(String personalAccountId, List<String> abonementIds);
+
     void setExpired(String id, LocalDateTime expired);
 
     void setAutorenew(String id, boolean autorenew);

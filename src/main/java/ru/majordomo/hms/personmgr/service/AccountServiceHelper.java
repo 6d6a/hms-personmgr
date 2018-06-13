@@ -362,7 +362,8 @@ public class AccountServiceHelper {
         AccountService accountSmsService = accountServiceRepository.findOneByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
         if (accountSmsService == null) {
-            List<AccountServiceAbonement> abonements = abonementManager.findByPersonalAccountIdAndAbonementId(account.getId(), plan.getNotInternalAbonement().getId());
+            List<String> abonementIds = plan.getAbonementIds();
+            List<AccountServiceAbonement> abonements = abonementManager.findByPersonalAccountIdAndAbonementIdIn(account.getId(), abonementIds);
             if (!abonements.isEmpty()) {
                 return true;
             }

@@ -33,6 +33,7 @@ public interface AccountAbonementRepository extends MongoRepository<AccountAbone
     List<AccountAbonement> findByPersonalAccountIdAndExpiredAfterAndAutorenew(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired, @Param("autorenew") String autorenew);
     List<AccountAbonement> findByPersonalAccountIdAndExpiredBeforeAndAutorenew(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired, @Param("autorenew") String autorenew);
     List<AccountAbonement> findByPersonalAccountIdAndAbonementId(@Param("personalAccountId") String personalAccountId, @Param("abonementId") String abonementId);
+    List<AccountAbonement> findByPersonalAccountIdAndAbonementIdIn(@Param("personalAccountId") String personalAccountId, @Param("abonementIds") List<String> abonementIds);
 
     @Query("{}")
     Stream<AccountAbonement> findAllStream();

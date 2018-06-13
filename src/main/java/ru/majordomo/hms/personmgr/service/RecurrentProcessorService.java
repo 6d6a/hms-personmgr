@@ -105,13 +105,13 @@ public class RecurrentProcessorService {
             }
 
             //Абонементы на услуги которые нельзя продлевать за бонусы -------------
-            BigDecimal ServiceAbonementRecurrentSumBonusProhibited = getServiceAbonementRecurrentBonusProhibitedSum(account);
-            if (ServiceAbonementRecurrentSumBonusProhibited.compareTo(BigDecimal.ZERO) > 0) {
-                if (realBalance.compareTo(ServiceAbonementRecurrentSumBonusProhibited) < 0) { //Остатка бонусных не хватает
-                    iNeedMoreMoney = iNeedMoreMoney.add(ServiceAbonementRecurrentSumBonusProhibited.subtract(realBalance)); //На реккурент
+            BigDecimal serviceAbonementRecurrentSumBonusProhibited = getServiceAbonementRecurrentBonusProhibitedSum(account);
+            if (serviceAbonementRecurrentSumBonusProhibited.compareTo(BigDecimal.ZERO) > 0) {
+                if (realBalance.compareTo(serviceAbonementRecurrentSumBonusProhibited) < 0) { //Остатка бонусных не хватает
+                    iNeedMoreMoney = iNeedMoreMoney.add(serviceAbonementRecurrentSumBonusProhibited.subtract(realBalance)); //На реккурент
                     realBalance = BigDecimal.ZERO;
                 } else {
-                    realBalance = realBalance.subtract(ServiceAbonementRecurrentSumBonusProhibited);
+                    realBalance = realBalance.subtract(serviceAbonementRecurrentSumBonusProhibited);
                 }
             }
 
@@ -182,7 +182,7 @@ public class RecurrentProcessorService {
                         + ". Бонусы: " + bonusBalance
                         + ". За домены: " + domainRecurrentSum
                         + ". За абонементы: " + abonementRecurrentSum
-                        + ". За абонементы на услуги, которые нельзя за бонусы: " + ServiceAbonementRecurrentSumBonusProhibited
+                        + ". За абонементы на услуги, которые нельзя за бонусы: " + serviceAbonementRecurrentSumBonusProhibited
                         + ". За абонементы на услуги: " + ServiceAbonementRecurrentSum
                         + ". За остальные услуги: " + servicesRecurrentSum + ".";
 
