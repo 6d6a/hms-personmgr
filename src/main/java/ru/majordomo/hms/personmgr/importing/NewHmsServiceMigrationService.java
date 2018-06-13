@@ -16,7 +16,9 @@ import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
+import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceExpirationRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
@@ -31,6 +33,7 @@ public class NewHmsServiceMigrationService {
     private final ServicePlanRepository servicePlanRepository;
     private final PaymentServiceRepository paymentServiceRepository;
     private final AbonementRepository abonementRepository;
+    private final AccountRedirectServiceRepository accountRedirectServiceRepository;
 
     public NewHmsServiceMigrationService(
             AccountServiceRepository accountServiceRepository,
@@ -38,13 +41,16 @@ public class NewHmsServiceMigrationService {
             AccountServiceExpirationRepository accountServiceExpirationRepository,
             ServicePlanRepository servicePlanRepository,
             PaymentServiceRepository paymentServiceRepository,
-            AbonementRepository abonementRepository) {
+            AbonementRepository abonementRepository,
+            AccountRedirectServiceRepository accountRedirectServiceRepository
+    ) {
         this.accountServiceRepository = accountServiceRepository;
         this.serviceAbonementManager = serviceAbonementManager;
         this.accountServiceExpirationRepository = accountServiceExpirationRepository;
         this.servicePlanRepository = servicePlanRepository;
         this.paymentServiceRepository = paymentServiceRepository;
         this.abonementRepository = abonementRepository;
+        this.accountRedirectServiceRepository = accountRedirectServiceRepository;
     }
 
     public void migrateServicePlans() {
@@ -171,7 +177,7 @@ public class NewHmsServiceMigrationService {
                 log.info("migrateAccountExpirationServices [working with accountServiceExpiration for acc: " + accountServiceExpiration.getPersonalAccountId() +
                         " accountService: " + accountServiceExpiration.getAccountService().getName() + "]");
 
-                ServicePlan servicePlan = servicePlanRepository.findByServiceId(accountServiceExpiration.getAccountService().getServiceId(), true);
+                ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.REVISIUM, true);
 
                 AccountServiceAbonement accountServiceAbonement = new AccountServiceAbonement();
                 accountServiceAbonement.setPersonalAccountId(accountServiceExpiration.getPersonalAccountId());
@@ -202,27 +208,26 @@ public class NewHmsServiceMigrationService {
         log.info("deleteUnusedAccountServices [stopped]");
     }
 
-//    public void migrateAccountRedirectServices() {
-//        log.info("migrateAccountExpirationServices [started]");
-//
-//        try (Stream<AccountServiceExpiration> accountServiceExpirationStream = accountServiceExpirationRepository.findAllStream()) {
-//            accountServiceExpirationStream.forEach(accountServiceExpiration -> {
-//                log.info("migrateAccountExpirationServices [working with accountServiceExpiration for acc: " + accountServiceExpiration.getPersonalAccountId() +
-//                        " accountService: " + accountServiceExpiration.getAccountService().getName() + "]");
-//
-//                ServicePlan servicePlan = servicePlanRepository.findByServiceId(accountServiceExpiration.getAccountService().getServiceId());
-//
-//                AccountServiceAbonement accountServiceAbonement = new AccountServiceAbonement();
-//                accountServiceAbonement.setPersonalAccountId(accountServiceExpiration.getPersonalAccountId());
-//                accountServiceAbonement.setAbonementId(servicePlan.getNotInternalAbonementId());
-//                accountServiceAbonement.setCreated(accountServiceExpiration.getCreatedDate().atStartOfDay());
-//                accountServiceAbonement.setExpired(accountServiceExpiration.getExpireDate().atStartOfDay());
-//                accountServiceAbonement.setAutorenew(accountServiceExpiration.getAutoRenew());
-//
-//                serviceAbonementManager.save(accountServiceAbonement);
-//            });
-//        }
-//
-//        log.info("migrateAccountExpirationServices [stopped]");
-//    }
+    public void migrateAccountRedirectServices() {
+        log.info("migrateAccountRedirectServices [started]");
+
+        try (Stream<RedirectAccountService> accountRedirectServiceRepositoryAllStream = accountRedirectServiceRepository.findAllStream()) {
+            accountRedirectServiceRepositoryAllStream.forEach(redirectAccountService -> {
+                log.info("migrateAccountRedirectServices [working with RedirectAccountService for acc: " + redirectAccountService.getPersonalAccountId() + "]");
+
+                ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.REDIRECT, true);
+
+                AccountServiceAbonement accountServiceAbonement = new AccountServiceAbonement();
+                accountServiceAbonement.setPersonalAccountId(redirectAccountService.getPersonalAccountId());
+                accountServiceAbonement.setAbonementId(servicePlan.getNotInternalAbonementId());
+                accountServiceAbonement.setCreated(redirectAccountService.getCreatedDate().atStartOfDay());
+                accountServiceAbonement.setExpired(redirectAccountService.getExpireDate().atStartOfDay());
+                accountServiceAbonement.setAutorenew(redirectAccountService.isAutoRenew());
+
+                serviceAbonementManager.save(accountServiceAbonement);
+            });
+        }
+
+        log.info("migrateAccountRedirectServices [stopped]");
+    }
 }
