@@ -39,6 +39,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_STR
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_POSTPROCESSOR_TYPE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DELAY_MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DNS_RECORD_SENT_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_UNIX_ACCOUNT_SERVER_ID_KEY;
@@ -50,6 +51,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.OLD_HTTP_PROXY_IP_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_SERVER_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_UNIX_ACCOUNT_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_WEBSITE_SERVER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.OWNER_NAME_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.PM_PARAM_PREFIX_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.REVERTING_KEY;
@@ -631,6 +633,8 @@ public class AccountTransferService {
                     dnsRecordMessage.setAccountId(accountTransferRequest.getAccountId());
                     dnsRecordMessage.setOperationIdentity(accountTransferRequest.getOperationId());
                     dnsRecordMessage.addParam(RESOURCE_ID_KEY, String.valueOf(dnsResourceRecord.getRecordId()));
+                    dnsRecordMessage.addParam(NAME_KEY, String.valueOf(dnsResourceRecord.getName()));
+                    dnsRecordMessage.addParam(OWNER_NAME_KEY, String.valueOf(dnsResourceRecord.getOwnerName()));
                     dnsRecordMessage.addParam(DATA_KEY, newNginxHost);
 
                     processingBusinessAction = updateDNSRecord(dnsRecordMessage);
