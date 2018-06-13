@@ -25,12 +25,13 @@ import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbone
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
@@ -39,7 +40,6 @@ import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.time.temporal.ChronoUnit.DAYS;
-import static ru.majordomo.hms.personmgr.common.AbonementType.VIRTUAL_HOSTING_PLAN;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_ABONEMENT;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
@@ -53,7 +53,7 @@ public class AbonementService {
     private final PlanManager planManager;
     private final AbonementRepository abonementRepository;
     private final PaymentServiceRepository paymentServiceRepository;
-    private final AccountAbonementManager accountAbonementManager;
+    private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final ApplicationEventPublisher publisher;
@@ -69,7 +69,7 @@ public class AbonementService {
             PlanManager planManager,
             AbonementRepository abonementRepository,
             PaymentServiceRepository paymentServiceRepository,
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
             ApplicationEventPublisher publisher,
@@ -417,7 +417,6 @@ public class AbonementService {
     private Abonement getFallbackAbonement(Plan fallbackPlan) throws ParameterValidationException {
         Optional<Abonement> fallbackAbonement = fallbackPlan.getAbonements().stream().filter(abonement ->
                 !abonement.isInternal()
-                        && abonement.getType().equals(VIRTUAL_HOSTING_PLAN)
                         && abonement.getPeriod().equals("P1Y")
         ).findFirst();
         if (!fallbackAbonement.isPresent()) {
@@ -562,7 +561,7 @@ public class AbonementService {
         abonement.setInternal(true);
         abonement.setName(plan.getName() + suffixName(period));
         abonement.setServiceId(paymentService.getId());
-        abonement.setType(VIRTUAL_HOSTING_PLAN);
+        abonement.setType(Feature.VIRTUAL_HOSTING_PLAN);
         abonement.setPeriod(period.toString());
 
         abonementRepository.insert(abonement);

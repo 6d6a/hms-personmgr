@@ -9,16 +9,21 @@ import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.dto.revisium.RevisiumRequestBody;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
+import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequest;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
+import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
+import ru.majordomo.hms.personmgr.service.ServiceAbonementService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import javax.validation.Valid;
@@ -38,6 +43,8 @@ public class RevisiumRequestRestController extends CommonRestController {
     private final PersonalAccountManager personalAccountManager;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
+    private final ServiceAbonementService serviceAbonementService;
+    private final ServicePlanRepository servicePlanRepository;
 
     @Autowired
     public RevisiumRequestRestController(
@@ -45,13 +52,17 @@ public class RevisiumRequestRestController extends CommonRestController {
             PersonalAccountManager personalAccountManager,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
-            RevisiumRequestServiceRepository revisiumRequestServiceRepository
+            RevisiumRequestServiceRepository revisiumRequestServiceRepository,
+            ServiceAbonementService serviceAbonementService,
+            ServicePlanRepository servicePlanRepository
     ) {
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.personalAccountManager = personalAccountManager;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
+        this.serviceAbonementService = serviceAbonementService;
+        this.servicePlanRepository = servicePlanRepository;
     }
 
     //Список всех услуг Ревизиума
@@ -158,18 +169,24 @@ public class RevisiumRequestRestController extends CommonRestController {
         }
 
         PaymentService paymentService = accountServiceHelper.getRevisiumPaymentService();
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.REVISIUM, true);
 
-        accountHelper.checkBalance(account, paymentService);
+        accountHelper.checkBalanceWithoutBonus(account, paymentService);
 
-        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService).setComment(revisiumRequestService.getSiteUrl()).build();
-        accountHelper.charge(account, chargeMessage);
-
-        history.save(account, "Произведен заказ продления услуги " + paymentService.getName(), request);
-
-        accountServiceHelper.prolongAccountServiceExpiration(account, revisiumRequestService.getAccountServiceId(), 1L);
+        if (revisiumRequestService.getAccountServiceAbonement() == null) {
+            AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(account, plan.getNotInternalAbonementId(), Feature.REVISIUM, true);
+            revisiumRequestService.setAccountServiceAbonementId(accountServiceAbonement.getId());
+            revisiumRequestService.setAccountServiceAbonement(accountServiceAbonement);
+        } else {
+            serviceAbonementService.prolongAbonement(account, revisiumRequestService.getAccountServiceAbonement());
+        }
+        revisiumRequestService.setActive(true);
+        revisiumRequestServiceRepository.save(revisiumRequestService);
 
         revisiumRequestService = revisiumRequestServiceRepository
                 .findByPersonalAccountIdAndId(accountId, revisiumRequestServiceId);
+
+        history.save(account, "Произведен заказ продления услуги " + paymentService.getName(), request);
 
         return new ResponseEntity<>(revisiumRequestService, HttpStatus.OK);
     }
@@ -229,29 +246,25 @@ public class RevisiumRequestRestController extends CommonRestController {
         //Услуга ревизиума
         PaymentService paymentService = accountServiceHelper.getRevisiumPaymentService();
 
-        //Проверяем баланс аккаунта + добавляем услугу на аккаунт + добавляем до какого действует услуга
+        //Проверяем баланс аккаунта
         accountHelper.checkBalanceWithoutBonus(account, paymentService);
-
-        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService).setComment(siteUrl).build();
-
-        //Списываем
-        accountHelper.charge(account, chargeMessage);
-
-        //Добавляем услугу
-        AccountService accountService = accountServiceHelper.addAccountService(account, paymentService.getId());
 
         history.save(account, "Произведен заказ услуги " + paymentService.getName(), request);
 
         //Дата окончания действия услуги
-        accountServiceHelper.prolongAccountServiceExpiration(account, accountService.getId(), 1L);
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.REVISIUM, true);
+        AccountServiceAbonement abonement = serviceAbonementService.addAbonement(
+                account, plan.getNotInternalAbonementId(), Feature.REVISIUM, true);
 
         //Ревизиум сервис
         revisiumRequestService = new RevisiumRequestService();
         revisiumRequestService.setPersonalAccountId(account.getId());
-        revisiumRequestService.setAccountServiceId(accountService.getId());
+        revisiumRequestService.setAccountServiceAbonementId(abonement.getId());
+        revisiumRequestService.setAccountServiceAbonement(abonement);
         revisiumRequestService.setCreated(LocalDateTime.now());
         revisiumRequestService.setSiteUrl(siteUrl);
-        revisiumRequestService.setAccountService(accountService);
+        revisiumRequestService.setActive(true);
+        revisiumRequestService.setServiceId(paymentService.getId());
         revisiumRequestServiceRepository.save(revisiumRequestService);
 
         accountServiceHelper.revisiumCheckRequest(account, revisiumRequestService);

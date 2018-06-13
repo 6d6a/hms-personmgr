@@ -10,9 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRenewEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountProcessNotifyExpiredAbonementsEvent;
+import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 
@@ -44,13 +42,31 @@ public class AbonementsScheduler {
         logger.info("Ended processExpiringAbonements");
     }
 
-    //Выполняем обработку абонементов с истекающим сроком действия в 01:32:00 каждый день
+    //Выполняем обработку абонементов на услуги с истекающим сроком действия в 00:42:00 каждый день
+    @SchedulerLock(name = "processExpiringServiceAbonements")
+    public void processExpiringServiceAbonements() {
+        logger.info("Started processExpiringServiceAbonements");
+        List<String> personalAccountIds = accountManager.findAllNotDeletedAccountIds();
+        personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountProcessExpiringServiceAbonementsEvent(accountId)));
+        logger.info("Ended processExpiringServiceAbonements");
+    }
+
+    //Выполняем обработку абонементов с истекающим сроком действия в 01:44:00 каждый день
     @SchedulerLock(name = "processAbonementAutoRenew")
     public void processAbonementsAutoRenew() {
         logger.info("Started processAbonementsAutoRenew");
         List<String> personalAccountIds = accountManager.findAllNotDeletedAccountIds();
         personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountProcessAbonementsAutoRenewEvent(accountId)));
         logger.info("Ended processAbonementsAutoRenew");
+    }
+
+    //Выполняем обработку абонементов с истекающим сроком действия в 01:54:00 каждый день
+    @SchedulerLock(name = "processServiceAbonementAutoRenew")
+    public void processServiceAbonementsAutoRenew() {
+        logger.info("Started processServiceAbonementsAutoRenew");
+        List<String> personalAccountIds = accountManager.findAllNotDeletedAccountIds();
+        personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountProcessServiceAbonementsAutoRenewEvent(accountId)));
+        logger.info("Ended processServiceAbonementsAutoRenew");
     }
 
     //Выполняем отправку писем истекшим абонементом в 02:42:00 каждый день

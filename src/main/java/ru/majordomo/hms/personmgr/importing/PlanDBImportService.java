@@ -15,11 +15,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import ru.majordomo.hms.personmgr.common.AbonementType;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.DBType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanPropertyLimit;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
@@ -171,7 +171,7 @@ public class PlanDBImportService {
         abonement.setServiceId(AbonementFinServiceId);
         abonement.setName(abonementName);
         abonement.setPeriod("P1Y");
-        abonement.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+        abonement.setType(Feature.VIRTUAL_HOSTING_PLAN);
         abonement.setInternal(false);
 
         abonementRepository.save(abonement);
@@ -197,7 +197,7 @@ public class PlanDBImportService {
             abonement3m.setServiceId(paymentService3m.getId());
             abonement3m.setName(rs.getString("username") + " (абонемент на 3 месяца)");
             abonement3m.setPeriod("P3M");
-            abonement3m.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+            abonement3m.setType(Feature.VIRTUAL_HOSTING_PLAN);
             abonement3m.setInternal(true);
 
             abonementRepository.save(abonement3m);
@@ -217,7 +217,7 @@ public class PlanDBImportService {
             abonement1m.setServiceId(paymentService1m.getId());
             abonement1m.setName(rs.getString("username") + " (абонемент на 1 месяц)");
             abonement1m.setPeriod("P1M");
-            abonement1m.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+            abonement1m.setType(Feature.VIRTUAL_HOSTING_PLAN);
             abonement1m.setInternal(true);
 
             abonementRepository.save(abonement1m);
@@ -247,7 +247,7 @@ public class PlanDBImportService {
             abonement14d.setServiceId(paymentService14d.getId());
             abonement14d.setName(rs.getString("username") + " (абонемент на 14 дней)");
             abonement14d.setPeriod("P14D");
-            abonement14d.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+            abonement14d.setType(Feature.VIRTUAL_HOSTING_PLAN);
             abonement14d.setInternal(true);
 
             abonementRepository.save(abonement14d);
@@ -272,7 +272,7 @@ public class PlanDBImportService {
             abonement3m.setServiceId(paymentService3m.getId());
             abonement3m.setName(rs.getString("username") + " (абонемент на 3 месяца)");
             abonement3m.setPeriod("P3M");
-            abonement3m.setType(AbonementType.VIRTUAL_HOSTING_PLAN);
+            abonement3m.setType(Feature.VIRTUAL_HOSTING_PLAN);
             abonement3m.setInternal(true);
 
             abonementRepository.save(abonement3m);

@@ -4,14 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventListener;
 import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
+
+import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
-import ru.majordomo.hms.personmgr.model.service.AccountService;
-import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
-
-import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 @Component
 public class RevisiumRequestServiceMongoEventListener extends AbstractMongoEventListener<RevisiumRequestService> {
@@ -33,16 +30,10 @@ public class RevisiumRequestServiceMongoEventListener extends AbstractMongoEvent
             service.setPersonalAccountName(account.getName());
         }
 
-        AccountService accountService = mongoOperations.findById(service.getAccountServiceId(), AccountService.class);
+        AccountServiceAbonement accountServiceAbonement = mongoOperations.findById(service.getAccountServiceAbonementId(), AccountServiceAbonement.class);
 
-        if (accountService != null) {
-            service.setAccountService(accountService);
-
-            AccountServiceExpiration accountServiceExpiration = mongoOperations
-                    .findOne(new Query(where("accountServiceId")
-                            .is(accountService.getId())), AccountServiceExpiration.class);
-
-            service.setExpireDate(accountServiceExpiration.getExpireDate());
+        if (accountServiceAbonement != null) {
+            service.setAccountServiceAbonement(accountServiceAbonement);
         }
     }
 }

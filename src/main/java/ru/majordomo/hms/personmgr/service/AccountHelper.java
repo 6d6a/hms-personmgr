@@ -23,6 +23,7 @@ import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.*;
+import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ArchivalPlanAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -32,7 +33,6 @@ import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
-import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
@@ -61,7 +61,7 @@ public class AccountHelper {
     private final PromocodeRepository promocodeRepository;
     private final AccountOwnerManager accountOwnerManager;
     private final PlanRepository planRepository;
-    private final AccountAbonementManager accountAbonementManager;
+    private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHistoryManager history;
     private final PlanManager planManager;
@@ -81,7 +81,7 @@ public class AccountHelper {
             PromocodeRepository promocodeRepository,
             AccountOwnerManager accountOwnerManager,
             PlanRepository planRepository,
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             AccountServiceHelper accountServiceHelper,
             AccountHistoryManager history,
             PlanManager planManager,
@@ -1094,14 +1094,6 @@ public class AccountHelper {
 //            TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
         }
         history.saveForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
-    }
-
-    public Boolean isExpirationServiceNeedProlong(AccountServiceExpiration expiration) {
-        return expiration.getAccountService().getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME
-                && expiration.getAutoRenew()
-                //Автопродление за 5 дней до и 5 дней после выключения
-                && expiration.getExpireDate().isAfter(LocalDate.now().minusDays(5L))
-                && expiration.getExpireDate().isBefore(LocalDate.now().plusDays(5L));
     }
 
     //На тарифах, дешевле 245р, не даём покупать и продлевать абонемент

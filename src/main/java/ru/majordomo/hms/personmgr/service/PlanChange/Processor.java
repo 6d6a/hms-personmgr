@@ -8,7 +8,7 @@ import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
@@ -41,7 +41,7 @@ public abstract class Processor {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    protected AccountAbonementManager accountAbonementManager;
+    protected AbonementManager<AccountAbonement> accountAbonementManager;
     protected AccountHelper accountHelper;
     private AccountCountersService accountCountersService;
     private PlanLimitsService planLimitsService;
@@ -73,7 +73,7 @@ public abstract class Processor {
 
     void init(
             FinFeignClient finFeignClient,
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             AccountStatRepository accountStatRepository,
             AccountHistoryManager history,
             PersonalAccountManager accountManager,

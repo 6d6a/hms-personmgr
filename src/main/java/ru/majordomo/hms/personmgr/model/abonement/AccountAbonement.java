@@ -15,7 +15,6 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.personmgr.validation.UniquePersonalAccountIdModel;
 
 @Document
-@UniquePersonalAccountIdModel(AccountAbonement.class)
 public class AccountAbonement extends VersionedModelBelongsToPersonalAccount {
     @NotNull
     @ObjectId(Abonement.class)

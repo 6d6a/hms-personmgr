@@ -19,13 +19,16 @@ import ru.majordomo.hms.personmgr.dto.revisium.CheckResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.ResultStatus;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequest;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
-import ru.majordomo.hms.personmgr.model.service.AccountServiceExpiration;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
@@ -40,31 +43,34 @@ public class AccountServiceHelper {
     private final AccountServiceRepository accountServiceRepository;
     private final PlanRepository planRepository;
     private final PaymentServiceRepository serviceRepository;
-    private final AccountServiceExpirationRepository accountServiceExpirationRepository;
     private final RevisiumRequestRepository revisiumRequestRepository;
     private final RevisiumApiClient revisiumApiClient;
     private final ApplicationEventPublisher publisher;
     private final AccountHistoryManager history;
+    private final AbonementManager<AccountServiceAbonement> abonementManager;
+    private final ServicePlanRepository servicePlanRepository;
 
     @Autowired
     public AccountServiceHelper(
             AccountServiceRepository accountServiceRepository,
             PlanRepository planRepository,
             PaymentServiceRepository serviceRepository,
-            AccountServiceExpirationRepository accountServiceExpirationRepository,
             RevisiumRequestRepository revisiumRequestRepository,
             RevisiumApiClient revisiumApiClient,
             ApplicationEventPublisher publisher,
-            AccountHistoryManager history
+            AccountHistoryManager history,
+            AbonementManager<AccountServiceAbonement> abonementManager,
+            ServicePlanRepository servicePlanRepository
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.planRepository = planRepository;
         this.serviceRepository = serviceRepository;
-        this.accountServiceExpirationRepository = accountServiceExpirationRepository;
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.revisiumApiClient = revisiumApiClient;
         this.publisher = publisher;
         this.history = history;
+        this.abonementManager = abonementManager;
+        this.servicePlanRepository = servicePlanRepository;
     }
 
     /**
@@ -277,40 +283,6 @@ public class AccountServiceHelper {
         return paymentService;
     }
 
-    public AccountServiceExpiration prolongAccountServiceExpiration(PersonalAccount account, String accountServiceId, Long months) {
-
-        AccountService accountService = accountServiceRepository
-                .findByPersonalAccountIdAndId(account.getId(), accountServiceId);
-
-        if (accountService == null) {
-            throw new ParameterValidationException("AccountService с ID " + accountServiceId + " не найден");
-        }
-
-        AccountServiceExpiration accountServiceExpiration = accountServiceExpirationRepository
-                .findByPersonalAccountIdAndAccountServiceId(account.getId(), accountService.getId());
-
-        accountService.setEnabled(true);
-
-        LocalDate expireDate = LocalDate.now().plusMonths(months);
-
-        if (accountServiceExpiration == null) {
-            accountServiceExpiration = new AccountServiceExpiration();
-            accountServiceExpiration.setAccountServiceId(accountService.getId());
-            accountServiceExpiration.setCreatedDate(LocalDate.now());
-            accountServiceExpiration.setAccountService(accountService);
-            accountServiceExpiration.setPersonalAccountId(account.getId());
-            accountServiceExpiration.setAutoRenew(true);
-        } else if (accountServiceExpiration.getExpireDate().isAfter(LocalDate.now())) {
-            expireDate = accountServiceExpiration.getExpireDate().plusMonths(months);
-        }
-
-        accountServiceExpiration.setExpireDate(expireDate);
-        accountServiceRepository.save(accountService);
-        accountServiceExpirationRepository.save(accountServiceExpiration);
-
-        return accountServiceExpiration;
-    }
-
     public RevisiumRequest revisiumCheckRequest(PersonalAccount account, RevisiumRequestService revisiumRequestService) {
         //Запрос в Ревизиум и обработка
         RevisiumRequest revisiumRequest = new RevisiumRequest();
@@ -388,6 +360,14 @@ public class AccountServiceHelper {
     public boolean hasSmsNotifications(PersonalAccount account) {
         PaymentService paymentService = this.getSmsPaymentServiceByPlanId(account.getPlanId());
         AccountService accountSmsService = accountServiceRepository.findOneByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
+        if (accountSmsService == null) {
+            List<String> abonementIds = plan.getAbonementIds();
+            List<AccountServiceAbonement> abonements = abonementManager.findByPersonalAccountIdAndAbonementIdIn(account.getId(), abonementIds);
+            if (!abonements.isEmpty()) {
+                return true;
+            }
+        }
         return (accountSmsService != null && accountSmsService.isEnabled());
     }
 

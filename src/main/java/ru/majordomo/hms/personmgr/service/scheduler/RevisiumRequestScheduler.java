@@ -50,35 +50,36 @@ public class RevisiumRequestScheduler {
             for (RevisiumRequestService item: revisiumRequestServices) {
 
                 try {
+                    if (item.isActive()) {
+                        if (item.getAccountServiceAbonement() == null || item.getAccountServiceAbonement().getExpired().isBefore(LocalDateTime.now())) {
+                            item.setActive(false);
+                            revisiumRequestServiceRepository.save(item);
+                        } else {
+                            GetStatResponse getStatResponse = revisiumApiClient.getStat();
 
-                    if (!item.getExpireDate().isBefore(LocalDate.now()) && item.getAccountService().isEnabled()) {
-
-                        GetStatResponse getStatResponse = revisiumApiClient.getStat();
-
-                        switch (ResultStatus.valueOf(getStatResponse.getStatus().toUpperCase())) {
-                            case COMPLETE:
-                                if (getStatResponse.getQueued() >= (getStatResponse.getQueueLength() - 3)) {
+                            switch (ResultStatus.valueOf(getStatResponse.getStatus().toUpperCase())) {
+                                case COMPLETE:
+                                    if (getStatResponse.getQueued() >= (getStatResponse.getQueueLength() - 3)) {
+                                        try {
+                                            //Проверка сайта происходит в течении примерно минуты => ждём около 100 секунд, пока очередь очистится
+                                            Thread.sleep(100000);
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                    break;
+                                default:
+                                    //Ошибка при запросе статистики?
                                     try {
-                                        //Проверка сайта происходит в течении примерно минуты => ждём около 100 секунд, пока очередь очистится
-                                        Thread.sleep(100000);
+                                        Thread.sleep(10000);
                                     } catch (InterruptedException e) {
                                         e.printStackTrace();
                                     }
-                                }
-                                break;
-                            default:
-                                //Ошибка при запросе статистики?
-                                try {
-                                    Thread.sleep(10000);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                                break;
+                                    break;
+                            }
+                            accountServiceHelper.revisiumCheckRequest(accountManager.findOne(item.getPersonalAccountId()), item);
                         }
-
-                        accountServiceHelper.revisiumCheckRequest(accountManager.findOne(item.getPersonalAccountId()), item);
                     }
-
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
