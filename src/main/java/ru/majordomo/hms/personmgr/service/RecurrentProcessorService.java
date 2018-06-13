@@ -134,13 +134,13 @@ public class RecurrentProcessorService {
             }
 
             //Отсавшиеся абонементы на услуги которые можно за бонусы -------------
-            BigDecimal ServiceAbonementRecurrentSum = getServiceAbonementRecurrentOtherSum(account);
-            if (ServiceAbonementRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
-                if (availableBalance.compareTo(ServiceAbonementRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает
-                    iNeedMoreMoney = iNeedMoreMoney.add(ServiceAbonementRecurrentSum.subtract(availableBalance)); //На реккурент
+            BigDecimal serviceAbonementRecurrentSum = getServiceAbonementRecurrentOtherSum(account);
+            if (serviceAbonementRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
+                if (availableBalance.compareTo(serviceAbonementRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает
+                    iNeedMoreMoney = iNeedMoreMoney.add(serviceAbonementRecurrentSum.subtract(availableBalance)); //На реккурент
                     availableBalance = BigDecimal.ZERO;
                 } else {
-                    availableBalance = realBalance.subtract(ServiceAbonementRecurrentSum);
+                    availableBalance = realBalance.subtract(serviceAbonementRecurrentSum);
                 }
             }
 
@@ -183,7 +183,7 @@ public class RecurrentProcessorService {
                         + ". За домены: " + domainRecurrentSum
                         + ". За абонементы: " + abonementRecurrentSum
                         + ". За абонементы на услуги, которые нельзя за бонусы: " + serviceAbonementRecurrentSumBonusProhibited
-                        + ". За абонементы на услуги: " + ServiceAbonementRecurrentSum
+                        + ". За абонементы на услуги: " + serviceAbonementRecurrentSum
                         + ". За остальные услуги: " + servicesRecurrentSum + ".";
 
                 history.saveForOperatorService(account, message);
