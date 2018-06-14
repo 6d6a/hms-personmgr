@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import static java.time.temporal.ChronoUnit.DAYS;
 
 public class AbonementOnlyToAbonementOnly extends Processor {
+
     public AbonementOnlyToAbonementOnly(PersonalAccount account, Plan newPlan) {
         super(account, newPlan);
     }
@@ -46,7 +47,9 @@ public class AbonementOnlyToAbonementOnly extends Processor {
 
     @Override
     void deleteServices() {
+        deleteRegularAbonement();
         deletePlanService();
+        executeCashBackPayment(true);
     }
 
     @Override
