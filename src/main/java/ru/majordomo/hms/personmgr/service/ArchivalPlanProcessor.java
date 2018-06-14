@@ -11,7 +11,6 @@ import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
-import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.DeferredPlanChangeNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -19,8 +18,6 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
-import ru.majordomo.hms.personmgr.service.scheduler.AccountCheckingService;
-import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -49,8 +46,6 @@ public class ArchivalPlanProcessor {
     private AccountServiceHelper accountServiceHelper;
     private AccountAbonementManager accountAbonementManager;
     private AbonementService abonementService;
-    private AccountStatHelper accountStatHelper;
-    private AccountCheckingService accountCheckingService;
 
     @Autowired
     public ArchivalPlanProcessor(
@@ -61,9 +56,7 @@ public class ArchivalPlanProcessor {
             AccountHistoryManager history,
             AccountServiceHelper accountServiceHelper,
             AccountAbonementManager accountAbonementManager,
-            AbonementService abonementService,
-            AccountStatHelper accountStatHelper,
-            AccountCheckingService accountCheckingService
+            AbonementService abonementService
     ) {
         this.accountNoticeRepository = accountNoticeRepository;
         this.planManager = planManager;
@@ -73,8 +66,6 @@ public class ArchivalPlanProcessor {
         this.accountServiceHelper = accountServiceHelper;
         this.accountAbonementManager = accountAbonementManager;
         this.abonementService = abonementService;
-        this.accountStatHelper = accountStatHelper;
-        this.accountCheckingService = accountCheckingService;
     }
 
     public void createDeferredTariffChangeNoticeForDaily() {
