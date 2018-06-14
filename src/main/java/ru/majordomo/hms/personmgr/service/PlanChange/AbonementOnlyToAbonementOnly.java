@@ -35,7 +35,7 @@ public class AbonementOnlyToAbonementOnly extends Processor {
             //Округлим до двух знаков в большую сторону
             remainedServiceCost = remainedServiceCost.setScale(2, RoundingMode.HALF_UP);
 
-            //За парковку только возвращаем средства
+            //Не можем вернуть отрицательное количество неиспользованных средств
             if (remainedServiceCost.compareTo(BigDecimal.ZERO) > 0) {
                 return remainedServiceCost;
             }
