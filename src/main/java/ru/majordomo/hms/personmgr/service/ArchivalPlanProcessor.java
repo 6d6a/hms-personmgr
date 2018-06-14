@@ -7,10 +7,7 @@ import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
-import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
-import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.manager.PlanManager;
+import ru.majordomo.hms.personmgr.manager.*;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.DeferredPlanChangeNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -44,7 +41,7 @@ public class ArchivalPlanProcessor {
     private AccountHelper accountHelper;
     private AccountHistoryManager history;
     private AccountServiceHelper accountServiceHelper;
-    private AccountAbonementManager accountAbonementManager;
+    private AbonementManager<AccountAbonement> accountAbonementManager;
     private AbonementService abonementService;
 
     @Autowired
@@ -55,7 +52,7 @@ public class ArchivalPlanProcessor {
             AccountHelper accountHelper,
             AccountHistoryManager history,
             AccountServiceHelper accountServiceHelper,
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             AbonementService abonementService
     ) {
         this.accountNoticeRepository = accountNoticeRepository;

@@ -20,9 +20,7 @@ public class AccountScheduleEventListener {
     private final BusinessActionsScheduler businessActionsScheduler;
     private final AbonementsScheduler abonementsScheduler;
     private final RecurrentsScheduler recurrentsScheduler;
-    private final OneTimeServiceScheduler oneTimeServiceScheduler;
     private final ArchivalPlanProcessor archivalPlanProcessor;
-
 
     @Autowired
     public AccountScheduleEventListener(
@@ -31,7 +29,6 @@ public class AccountScheduleEventListener {
             BusinessActionsScheduler businessActionsScheduler,
             AbonementsScheduler abonementsScheduler,
             RecurrentsScheduler recurrentsScheduler,
-            OneTimeServiceScheduler oneTimeServiceScheduler,
             ArchivalPlanProcessor archivalPlanProcessor
     ) {
         this.notificationScheduler = notificationScheduler;
@@ -39,7 +36,6 @@ public class AccountScheduleEventListener {
         this.businessActionsScheduler = businessActionsScheduler;
         this.abonementsScheduler = abonementsScheduler;
         this.recurrentsScheduler = recurrentsScheduler;
-        this.oneTimeServiceScheduler = oneTimeServiceScheduler;
         this.archivalPlanProcessor = archivalPlanProcessor;
     }
 
@@ -101,10 +97,26 @@ public class AccountScheduleEventListener {
 
     @EventListener
     @Async("threadPoolTaskExecutor")
+    public void on(ProcessExpiringServiceAbonementsEvent event) {
+        logger.debug("We got ProcessExpiringServiceAbonementsEvent");
+
+        abonementsScheduler.processExpiringServiceAbonements();
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
     public void on(ProcessAbonementsAutoRenewEvent event) {
         logger.debug("We got ProcessAbonementsAutoRenewEvent");
 
         abonementsScheduler.processAbonementsAutoRenew();
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(ProcessServiceAbonementsAutoRenewEvent event) {
+        logger.debug("We got ProcessServiceAbonementsAutoRenewEvent");
+
+        abonementsScheduler.processServiceAbonementsAutoRenew();
     }
 
     @EventListener
@@ -121,14 +133,6 @@ public class AccountScheduleEventListener {
         logger.debug("We got ProcessRecurrentsEvent");
 
         recurrentsScheduler.processRecurrents();
-    }
-
-    @EventListener
-    @Async("threadPoolTaskExecutor")
-    public void on(ProcessOneTimeServiceEvent event) {
-        logger.debug("We got ProcessOneTimeServiceEvent");
-
-        oneTimeServiceScheduler.processExpiringAbonements();
     }
 
     @EventListener

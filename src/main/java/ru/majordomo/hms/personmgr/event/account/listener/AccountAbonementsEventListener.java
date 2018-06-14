@@ -9,10 +9,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountProcessAbonementsAutoRenewEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringAbonementsEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountProcessNotifyExpiredAbonementsEvent;
+import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -22,6 +19,7 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
+import ru.majordomo.hms.personmgr.service.ServiceAbonementService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -35,6 +33,7 @@ public class AccountAbonementsEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountAbonementsEventListener.class);
 
     private final AbonementService abonementService;
+    private final ServiceAbonementService serviceAbonementService;
     private final AccountHelper accountHelper;
     private final AccountStatRepository accountStatRepository;
     private final ApplicationEventPublisher publisher;
@@ -50,7 +49,8 @@ public class AccountAbonementsEventListener {
             ApplicationEventPublisher publisher,
             PlanRepository planRepository,
             AccountNotificationHelper accountNotificationHelper,
-            PersonalAccountManager personalAccountManager
+            PersonalAccountManager personalAccountManager,
+            ServiceAbonementService serviceAbonementService
     ) {
         this.abonementService = abonementService;
         this.accountHelper = accountHelper;
@@ -59,6 +59,7 @@ public class AccountAbonementsEventListener {
         this.planRepository = planRepository;
         this.accountNotificationHelper = accountNotificationHelper;
         this.personalAccountManager = personalAccountManager;
+        this.serviceAbonementService = serviceAbonementService;
     }
 
     @EventListener
@@ -78,6 +79,21 @@ public class AccountAbonementsEventListener {
 
     @EventListener
     @Async("threadPoolTaskExecutor")
+    public void onAccountProcessExpiringServiceAbonementsEvent(AccountProcessExpiringServiceAbonementsEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        logger.debug("We got AccountProcessExpiringServiceAbonementsEvent");
+
+        try {
+            serviceAbonementService.processExpiringAbonementsByAccount(account);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.event.account.listener.AccountAbonementsEventListener.onAccountProcessExpiringServiceAbonementsEvent " + e.getMessage());
+        }
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
     public void onAccountProcessAbonementsAutoRenewEvent(AccountProcessAbonementsAutoRenewEvent event) {
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
@@ -85,6 +101,21 @@ public class AccountAbonementsEventListener {
 
         try {
             abonementService.processAbonementsAutoRenewByAccount(account);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Exception in ru.majordomo.hms.personmgr.event.account.listener.AccountAbonementsEventListener.onAccountProcessExpiringAbonementsEvent " + e.getMessage());
+        }
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountProcessServiceAbonementsAutoRenewEvent(AccountProcessServiceAbonementsAutoRenewEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        logger.debug("We got AccountProcessAbonementsAutoRenewEvent");
+
+        try {
+            serviceAbonementService.processAbonementsAutoRenewByAccount(account);
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in ru.majordomo.hms.personmgr.event.account.listener.AccountAbonementsEventListener.onAccountProcessExpiringAbonementsEvent " + e.getMessage());

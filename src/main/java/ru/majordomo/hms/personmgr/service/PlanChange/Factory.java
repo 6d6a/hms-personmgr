@@ -4,9 +4,10 @@ import org.apache.commons.lang.NotImplementedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
@@ -18,7 +19,7 @@ import ru.majordomo.hms.personmgr.service.*;
 public class Factory {
 
     private final FinFeignClient finFeignClient;
-    private final AccountAbonementManager accountAbonementManager;
+    private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final AccountStatRepository accountStatRepository;
     private final AccountHistoryManager AccountHistoryManager;
     private final PersonalAccountManager accountManager;
@@ -35,7 +36,7 @@ public class Factory {
     @Autowired
     public Factory(
             FinFeignClient finFeignClient,
-            AccountAbonementManager accountAbonementManager,
+            AbonementManager<AccountAbonement> accountAbonementManager,
             AccountStatRepository accountStatRepository,
             AccountHistoryManager AccountHistoryManager,
             PersonalAccountManager accountManager,

@@ -16,15 +16,16 @@ import ru.majordomo.hms.personmgr.event.account.RedirectWasProlongEvent;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
+import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
+import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
 import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.ChargeMessage;
-import ru.majordomo.hms.personmgr.service.NsCheckService;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
+import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 import ru.majordomo.hms.rc.user.resources.Redirect;
@@ -32,6 +33,7 @@ import ru.majordomo.hms.rc.user.resources.WebSite;
 
 import javax.validation.Valid;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
@@ -53,18 +55,24 @@ public class RedirectServiceRestController extends CommonRestController {
     private RcUserFeignClient rcUserFeignClient;
     private AccountRedirectServiceRepository accountRedirectServiceRepository;
     private NsCheckService nsCheckService;
+    private ServicePlanRepository servicePlanRepository;
+    private ServiceAbonementService serviceAbonementService;
 
     @Autowired
     public RedirectServiceRestController(
             AccountHelper accountHelper,
             RcUserFeignClient rcUserFeignClient,
             AccountRedirectServiceRepository accountRedirectServiceRepository,
-            NsCheckService nsCheckService
+            NsCheckService nsCheckService,
+            ServicePlanRepository servicePlanRepository,
+            ServiceAbonementService serviceAbonementService
     ) {
         this.accountHelper = accountHelper;
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountRedirectServiceRepository = accountRedirectServiceRepository;
         this.nsCheckService = nsCheckService;
+        this.servicePlanRepository = servicePlanRepository;
+        this.serviceAbonementService = serviceAbonementService;
     }
 
     @GetMapping("/{accountId}/account-service-redirect")
@@ -111,30 +119,40 @@ public class RedirectServiceRestController extends CommonRestController {
             );
         }
 
-        if (redirectAccountService.getExpireDate().isBefore(LocalDate.now())){
-            chargeByRedirect(account, domain);
+        if (redirectAccountService.getAccountServiceAbonement() == null) {
+
+            ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.REDIRECT, true);
+
+            AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(
+                    account, servicePlan.getNotInternalAbonementId(), Feature.REDIRECT, true);
+
+            redirectAccountService.setAccountServiceAbonementId(accountServiceAbonement.getId());
+            redirectAccountService.setAccountServiceAbonement(accountServiceAbonement);
             redirectAccountService.setExpireDate(LocalDate.now().with(PLUS_ONE_YEAR));
             redirectAccountService.setActive(true);
             accountRedirectServiceRepository.save(redirectAccountService);
             history.save(account, "Продлена истёкшая услуга перенаправления для домена: " + domain.getName(), request);
         } else if (
-                redirectAccountService.getExpireDate()
+                redirectAccountService.getAccountServiceAbonement().getExpired().toLocalDate()
                         .isBefore(
                                 LocalDate.now().plusYears(MAX_YEARS_PROLONG)
                         )
-                || redirectAccountService.getExpireDate()
+                || redirectAccountService.getAccountServiceAbonement().getExpired().toLocalDate()
                         .isEqual(
                                 LocalDate.now().plusYears(MAX_YEARS_PROLONG)
                         )
         ){
-            chargeByRedirect(account, domain);
+
+            serviceAbonementService.prolongAbonement(
+                    account, redirectAccountService.getAccountServiceAbonement());
+
             redirectAccountService.setExpireDate(redirectAccountService.getExpireDate().with(PLUS_ONE_YEAR));
             redirectAccountService.setActive(true);
             accountRedirectServiceRepository.save(redirectAccountService);
             history.save(account, "Продлена услуга перенаправления для домена: " + domain.getName(), request);
         } else {
             throw new ParameterValidationException("Переадресация для домена " + domain.getName() + " уже оплачена до "
-                    + redirectAccountService.getExpireDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
+                    + redirectAccountService.getAccountServiceAbonement().getExpired().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
         }
 
         publisher.publishEvent(new RedirectWasProlongEvent(accountId, domain.getName()));
@@ -163,8 +181,13 @@ public class RedirectServiceRestController extends CommonRestController {
                 .findByPersonalAccountIdAndFullDomainName(account.getId(), domain.getName());
 
         if (redirectAccountService == null) {
-            chargeByRedirect(account, domain);
-            addRedirectService(account, domain);
+
+            ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.REDIRECT, true);
+
+            AccountServiceAbonement abonement = serviceAbonementService.addAbonement(
+                    account, servicePlan.getNotInternalAbonementId(), Feature.REDIRECT, true);
+
+            addRedirectService(account, domain, abonement);
             history.save(account, "Заказана услуга перенаправления для домена: " + domain.getName(), request);
         } else {
             throw new ParameterValidationException("Можно заказать только одну услугу переадресации для одного домена");
@@ -265,24 +288,16 @@ public class RedirectServiceRestController extends CommonRestController {
         return new ResponseEntity<>(createSuccessResponse(action), HttpStatus.ACCEPTED);
     }
 
-    private void chargeByRedirect(PersonalAccount account, Domain domain) throws NotEnoughMoneyException {
-        PaymentService paymentService = paymentServiceRepository.findByOldId(REDIRECT_SERVICE_OLD_ID);
-
-        accountHelper.charge(
-                account,
-                new ChargeMessage.Builder(paymentService)
-                        .setComment(domain.getName())
-                        .build()
-        );
-    }
-
-    private void addRedirectService(PersonalAccount account, Domain domain) {
+    private void addRedirectService(PersonalAccount account, Domain domain, AccountServiceAbonement abonement) {
         RedirectAccountService redirectAccountService = new RedirectAccountService();
         redirectAccountService.setFullDomainName(domain.getName());
         redirectAccountService.setPersonalAccountId(account.getId());
         redirectAccountService.setAutoRenew(true);
         redirectAccountService.setCreatedDate(LocalDate.now());
         redirectAccountService.setExpireDate(LocalDate.now().with(PLUS_ONE_YEAR));
+        redirectAccountService.setAccountServiceAbonementId(abonement.getId());
+        redirectAccountService.setAccountServiceAbonement(abonement);
+        redirectAccountService.setServiceId(abonement.getAbonement().getServiceId());
         redirectAccountService.setActive(true);
         accountRedirectServiceRepository.insert(redirectAccountService);
     }
@@ -307,8 +322,10 @@ public class RedirectServiceRestController extends CommonRestController {
     }
 
     private void assertServiceIsPaid(String accountId, String domainName) {
-        boolean serviceIsPaid = accountRedirectServiceRepository
-                .existsByPersonalAccountIdAndFullDomainNameAndExpireDateAfter(accountId, domainName, LocalDate.now());
+
+        RedirectAccountService ras = accountRedirectServiceRepository.findByPersonalAccountIdAndFullDomainName(accountId, domainName);
+
+        boolean serviceIsPaid = ras.getAccountServiceAbonement().getExpired().isAfter(LocalDateTime.now());
 
         if (!serviceIsPaid) {
             throw new ParameterValidationException("Для управления перенаправлением для домена " + domainName + " закажите услугу");

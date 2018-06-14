@@ -13,7 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import ru.majordomo.hms.personmgr.config.AppConfigTest;
 import ru.majordomo.hms.personmgr.config.MongoConfigTest;
-import ru.majordomo.hms.personmgr.manager.AccountAbonementManager;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 
@@ -32,7 +32,7 @@ import java.util.List;
 @ActiveProfiles("test")
 public class AccountAbonementManagerImplTest {
     @Autowired
-    private AccountAbonementManager accountAbonementManager;
+    private AbonementManager<AccountAbonement> accountAbonementManager;
 
     @Autowired
     private AccountAbonementRepository repository;
