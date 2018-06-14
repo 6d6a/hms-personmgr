@@ -119,6 +119,10 @@ public class SchedulerRestController extends CommonRestController {
                 publisher.publishEvent(new DeferredPlanChangeEvent());
 
                 break;
+            case "process_charge_inactive_account_long_time":
+                publisher.publishEvent(new ProcessChargeInactiveAccountEvent());
+
+                break;
             default:
                 throw new ParameterValidationException("Неизвестный параметр scheduleAction");
         }

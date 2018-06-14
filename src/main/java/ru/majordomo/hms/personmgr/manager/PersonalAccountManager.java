@@ -117,4 +117,8 @@ public interface PersonalAccountManager {
     List<PersonalAccount> findByCreatedDate(LocalDate date);
 
     List<String> findAccountIdsNotDeletedByPlanIdsInAndAccountIsActive(List<String> planIds, boolean accountIsActive);
+
+    List<String> findByActiveAndDeactivatedBefore(boolean active, LocalDateTime deactivated);
+
+    void setDeactivated(String id, LocalDateTime deactivated);
 }

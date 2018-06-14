@@ -432,4 +432,8 @@ public class AccountServiceHelper {
         }
         return cost;
     }
+
+    public PaymentService getAccessToTheControlPanelService() {
+        return serviceRepository.findByOldId(ACCESS_TO_CONTROL_PANEL_SERVICE_OLD_ID);
+    }
 }

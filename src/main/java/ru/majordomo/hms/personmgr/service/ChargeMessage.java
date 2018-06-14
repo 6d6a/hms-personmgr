@@ -37,6 +37,10 @@ public class ChargeMessage {
         this.comment = builder.comment;
     }
 
+    public static Builder builder(PaymentService paymentService) {
+        return new Builder(paymentService);
+    }
+
     public static class Builder {
 
         // required
