@@ -13,19 +13,19 @@ import java.time.Period;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 
-public class AbonementOnlyToRegular extends Processor {
+public class AbonementOnlyToAbonementOnly extends Processor {
 
-    AbonementOnlyToRegular(PersonalAccount account, Plan newPlan) {
+    public AbonementOnlyToAbonementOnly(PersonalAccount account, Plan newPlan) {
         super(account, newPlan);
     }
 
     @Override
-    public Boolean needToAddAbonement() {
-        return false;
+    Boolean needToAddAbonement() {
+        return true;
     }
 
     @Override
-    public BigDecimal calcCashBackAmount() {
+    BigDecimal calcCashBackAmount() {
         if (currentAccountAbonement == null || currentAccountAbonement.getAbonement().isInternal()) {
             return BigDecimal.ZERO;
         }
@@ -61,14 +61,9 @@ public class AbonementOnlyToRegular extends Processor {
 
     @Override
     void deleteServices() {
-        if (currentAccountAbonement == null) {
-            deletePlanService();
-            return;
-        }
-
         deleteRegularAbonement();
-
-        executeCashBackPayment(ignoreRestricts);
+        deletePlanService();
+        executeCashBackPayment(true);
     }
 
     @Override

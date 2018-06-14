@@ -83,7 +83,7 @@ public class Factory {
             }
         } else {
             if (currentPlan.isAbonementOnly() && newPlan.isAbonementOnly()) {
-                throw new NotImplementedException();
+                processor = new AbonementOnlyToAbonementOnly(account, newPlan);
             } else if (currentPlan.isAbonementOnly() && !newPlan.isAbonementOnly()) {
                 processor = new AbonementOnlyToRegular(account, newPlan);
             } else if (!currentPlan.isAbonementOnly() && newPlan.isAbonementOnly()) {
