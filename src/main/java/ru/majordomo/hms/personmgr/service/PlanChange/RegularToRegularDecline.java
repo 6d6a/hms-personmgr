@@ -34,11 +34,11 @@ public class RegularToRegularDecline extends RegularToRegular {
         }
 
         if (hasFreeTestAbonement()) {
-            deleteFreeTestAbonement();
+            deleteAbonements();
             return;
         }
 
-        deleteRegularAbonement();
+        deleteAbonements();
 
         if (refund) {
             executeCashBackPayment(true);

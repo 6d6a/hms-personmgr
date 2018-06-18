@@ -95,13 +95,11 @@ public class RegularToRegular extends Processor {
 
         if (hasFreeTestAbonement()) {
             freeTestAbonementExpired = currentAccountAbonement.getExpired();
-
-            deleteFreeTestAbonement();
+            deleteAbonements();
             return;
         }
 
-        deleteRegularAbonement();
-
+        deleteAbonements();
         executeCashBackPayment(ignoreRestricts);
     }
 

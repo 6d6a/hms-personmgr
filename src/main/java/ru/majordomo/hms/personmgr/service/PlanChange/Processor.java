@@ -511,26 +511,8 @@ public abstract class Processor {
         return accountAbonement;
     }
 
-    void deleteRegularAbonement() {
-        List<AccountAbonement> accountAbonements = accountAbonementManager.findByPersonalAccountIdAndAbonementId(
-                account.getId(),
-                currentPlan.getNotInternalAbonementId()
-        );
-
-        if (accountAbonements != null && !accountAbonements.isEmpty()) {
-            accountAbonementManager.delete(accountAbonements);
-        }
-    }
-
-    void deleteFreeTestAbonement() {
-        List<AccountAbonement> accountAbonements = accountAbonementManager.findByPersonalAccountIdAndAbonementId(
-                account.getId(),
-                currentPlan.getFree14DaysAbonement().getId()
-        );
-
-        if (accountAbonements != null && !accountAbonements.isEmpty()) {
-            accountAbonementManager.delete(accountAbonements);
-        }
+    void deleteAbonements() {
+        accountAbonementManager.deleteByPersonalAccountId(account.getId());
     }
 
     /**
