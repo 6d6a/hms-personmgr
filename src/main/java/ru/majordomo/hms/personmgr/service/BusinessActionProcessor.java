@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestination;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
@@ -31,7 +32,8 @@ public class BusinessActionProcessor {
         switch (destination.getType()) {
             case AMQP:
                 AmqpMessageDestination amqpMessageDestination = (AmqpMessageDestination) action.getDestination();
-                amqpSender.send(amqpMessageDestination.getExchange(), amqpMessageDestination.getRoutingKey(), action.getMessage());
+                String realRoutingKey = getRealRoutingKey(amqpMessageDestination.getRoutingKey(), action.getMessage());
+                amqpSender.send(amqpMessageDestination.getExchange(), realRoutingKey, action.getMessage());
 
                 break;
             case MAIL_MANAGER:
@@ -41,6 +43,14 @@ public class BusinessActionProcessor {
         }
 
         return action;
+    }
+
+    private String getRealRoutingKey(String routingKey, SimpleServiceMessage serviceMessage) {
+        if (routingKey.startsWith("te")) {
+            return (String) serviceMessage.getParam("realRoutingKey");
+        } else {
+            return routingKey;
+        }
     }
 
 }
