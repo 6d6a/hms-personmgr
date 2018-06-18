@@ -61,7 +61,7 @@ public class AbonementOnlyToAbonementOnly extends Processor {
 
     @Override
     void deleteServices() {
-        deleteRegularAbonement();
+        deleteAbonements();
         deletePlanService();
         executeCashBackPayment(true);
     }

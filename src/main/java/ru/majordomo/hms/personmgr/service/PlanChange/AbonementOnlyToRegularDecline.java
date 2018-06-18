@@ -33,7 +33,7 @@ public class AbonementOnlyToRegularDecline extends AbonementOnlyToRegular {
             return;
         }
 
-        deleteRegularAbonement();
+        deleteAbonements();
 
         if (refund) {
             executeCashBackPayment(true);

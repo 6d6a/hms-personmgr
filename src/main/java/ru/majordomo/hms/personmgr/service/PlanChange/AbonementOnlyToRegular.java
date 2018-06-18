@@ -66,7 +66,7 @@ public class AbonementOnlyToRegular extends Processor {
             return;
         }
 
-        deleteRegularAbonement();
+        deleteAbonements();
 
         executeCashBackPayment(ignoreRestricts);
     }
