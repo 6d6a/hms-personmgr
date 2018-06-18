@@ -28,11 +28,10 @@ public class RegularToAbonementOnly extends Processor {
     void deleteServices() {
         if (currentAccountAbonement == null) {
             deletePlanService();
-            return;
-        }
-
-        if (hasFreeTestAbonement()) {
+        } else if (hasFreeTestAbonement()) {
             deleteFreeTestAbonement();
+        } else {
+            deleteRegularAbonement();
         }
     }
 
