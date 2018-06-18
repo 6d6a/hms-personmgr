@@ -36,31 +36,28 @@ public class WebSiteAmqpController extends CommonAmqpController  {
     public void update(Message amqpMessage, @Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         String provider = headers.get("provider");
         String realProviderName = provider.replaceAll("^" + instanceName + "\\.", "");
-        switch (realProviderName) {
-            case "rc-user":
-                handleUpdateEventFromRc(message, headers);
+        if (realProviderName.equals("rc-user")) {
+            handleUpdateEventFromRc(message, headers);
+        } else  if (realProviderName.startsWith("te.")) {
+            handleUpdateEventFromTE(message, headers);
+        } else if (realProviderName.equals(APPSCAT_ROUTING_KEY)) {
+            try {
+                PersonalAccount account = accountManager.findOne(message.getAccountId());
 
-                break;
-            case APPSCAT_ROUTING_KEY:
+                resourceChecker.checkResource(account, ResourceType.WEB_SITE, message.getParams());
+            } catch (Exception e) {
+                e.printStackTrace();
+                message.addParam(SUCCESS_KEY, false);
+                message.addParam(ERROR_MESSAGE_KEY, e.getMessage());
+
                 try {
-                    PersonalAccount account = accountManager.findOne(message.getAccountId());
-
-                    resourceChecker.checkResource(account, ResourceType.WEB_SITE, message.getParams());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    message.addParam(SUCCESS_KEY, false);
-                    message.addParam(ERROR_MESSAGE_KEY, e.getMessage());
-
-                    try {
-                        amqpSender.send(WEBSITE_UPDATE, APPSCAT_ROUTING_KEY, message);
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                    }
+                    amqpSender.send(WEBSITE_UPDATE, APPSCAT_ROUTING_KEY, message);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
                 }
+            }
 
-                businessHelper.buildActionByOperationId(BusinessActionType.WEB_SITE_UPDATE_RC, message, message.getOperationIdentity());
-
-                break;
+            businessHelper.buildActionByOperationId(BusinessActionType.WEB_SITE_UPDATE_RC, message, message.getOperationIdentity());
         }
     }
 
