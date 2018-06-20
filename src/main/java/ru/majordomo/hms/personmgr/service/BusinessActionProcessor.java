@@ -46,8 +46,8 @@ public class BusinessActionProcessor {
     }
 
     private String getRealRoutingKey(String routingKey, SimpleServiceMessage serviceMessage) {
-        if (routingKey.startsWith("te")) {
-            return (String) serviceMessage.getParam("realRoutingKey");
+        if (routingKey.startsWith("te") && serviceMessage.getParam("realRoutingKey") != null) {
+            return (String) serviceMessage.getParams().remove("realRoutingKey");
         } else {
             return routingKey;
         }
