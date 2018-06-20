@@ -222,7 +222,11 @@ public abstract class Processor {
             }
         }
 
-        if ((hasFreeTestAbonement() && newPlan.getFree14DaysAbonement() == null) || newAbonementRequired) {
+        if (
+            (hasFreeTestAbonement() && newPlan.getFree14DaysAbonement() == null)
+            ||
+            (!hasFreeTestAbonement() && newAbonementRequired)
+        ) {
             planChangeAgreement.setBalanceChanges(true);
 
             if (newBalanceAfterCashBack.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) {
