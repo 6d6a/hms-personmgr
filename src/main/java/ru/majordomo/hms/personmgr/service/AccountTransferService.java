@@ -210,7 +210,11 @@ public class AccountTransferService {
                 throw new ParameterValidationException("Старый сервер не найден");
             }
 
-            teParams.put(DATASOURCE_URI_KEY, "rsync://" + oldServer.getName() + accountTransferRequest.getUnixAccountHomeDir());
+            String dataSourceUri = "rsync://" + oldServer.getName() + accountTransferRequest.getUnixAccountHomeDir();
+            if (!dataSourceUri.endsWith("/")) {
+                dataSourceUri = dataSourceUri + "/";
+            }
+            teParams.put(DATASOURCE_URI_KEY, dataSourceUri);
             teParams.put(OLD_SERVER_NAME_KEY, oldServer.getName());
             teParams.put(
                     OLD_HTTP_PROXY_IP_KEY,
@@ -569,9 +573,12 @@ public class AccountTransferService {
                 if (accountTransferRequest.isTransferData()) {
                     Map<String, Object> teParams = new HashMap<>();
 
-                    teParams.put(DATASOURCE_URI_KEY, "rsync://" + oldServer.getName() +
-                             webSite.getUnixAccount().getHomeDir()+
-                            "/" + webSite.getDocumentRoot());
+                    String dataSourceUri = "rsync://" + oldServer.getName() + webSite.getUnixAccount().getHomeDir()+
+                            "/" + webSite.getDocumentRoot();
+                    if (!dataSourceUri.endsWith("/")) {
+                        dataSourceUri = dataSourceUri + "/";
+                    }
+                    teParams.put(DATASOURCE_URI_KEY, dataSourceUri);
 
                     teParams.put(DATA_POSTPROCESSOR_TYPE_KEY, DATA_POSTPROCESSOR_STRING_REPLACE_ACTION);
 
