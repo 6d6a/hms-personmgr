@@ -198,9 +198,9 @@ public class DomainService {
 
                 DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domain.getName(), domain.getRegSpec().getRegistrar());
 
-                AvailabilityInfo availabilityInfo = domainRegistrarFeignClient.getAvailabilityInfo(domain.getName());
-                if (availabilityInfo.getPremiumPrice() != null && (availabilityInfo.getPremiumPrice().compareTo(BigDecimal.ZERO) > 0)) {
-                    domainTld.getRenewService().setCost(availabilityInfo.getPremiumPrice());
+                BigDecimal pricePremium = domainRegistrarFeignClient.getRenewPremiumPrice(domain.getName());
+                if (pricePremium != null && pricePremium.compareTo(BigDecimal.ZERO) > 0) {
+                    domainTld.getRenewService().setCost(pricePremium);
                 }
                 try {
                     accountHelper.checkBalance(account, domainTld.getRenewService());
