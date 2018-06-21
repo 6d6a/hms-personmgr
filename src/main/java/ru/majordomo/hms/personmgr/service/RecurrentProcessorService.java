@@ -294,11 +294,11 @@ public class RecurrentProcessorService {
                     if (days.contains(daysToExpired)) {
                         DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domain.getName(), domain.getRegSpec().getRegistrar());
 
-                        AvailabilityInfo availabilityInfo = domainRegistrarFeignClient.getAvailabilityInfo(domain.getName());
+                        BigDecimal pricePremium = domainRegistrarFeignClient.getRenewPremiumPrice(domain.getName());
                         BigDecimal domainRenewCost = domainTld.getRenewService().getCost();
 
-                        if (availabilityInfo.getPremiumPrice() != null && (availabilityInfo.getPremiumPrice().compareTo(BigDecimal.ZERO) > 0)) {
-                            domainRenewCost = availabilityInfo.getPremiumPrice();
+                        if (pricePremium != null && pricePremium.compareTo(BigDecimal.ZERO) > 0) {
+                            domainRenewCost = pricePremium;
                         }
 
                         if (domainRenewCost != null && domainRenewCost.compareTo(BigDecimal.ZERO) > 0) {
