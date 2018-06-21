@@ -147,6 +147,10 @@ public class CommonAmqpController {
         }
     }
 
+    void handleUpdateEventFromTE(SimpleServiceMessage message, Map<String, String> headers) {
+        handleUpdateEventFromRc(message, headers);
+    }
+
     void handleUpdateEventFromRc(SimpleServiceMessage message, Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received update message from " + provider + ": " + message.toString());

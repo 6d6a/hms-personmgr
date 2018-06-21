@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.TE_PARAMS_KEY;
 import static ru.majordomo.hms.personmgr.common.SecurityConstants.*;
 
 public class FieldRoles {
@@ -24,16 +25,19 @@ public class FieldRoles {
     public static final Map<String, String> RESOURCE_SERVICE_ID = new HashMap<>();
     public static final Map<String, String> REDIRECT_POST = new HashMap<>();
     public static final Map<String, String> REDIRECT_PATCH = new HashMap<>();
+    public static final Map<String, String> RESOURCE_TE_PARAMS = new HashMap<>();
 
     static {
         RESOURCE_SWITCHED_ON.put("switchedOn", RESOURCE_SWITCHED_ON_EDIT);
         RESOURCE_WILL_BE_DELETED_AFTER.put("willBeDeletedAfter", RESOURCE_WILL_BE_DELETED_AFTER_EDIT);
         RESOURCE_WRITABLE.put("writable", RESOURCE_WRITABLE_EDIT);
         RESOURCE_SERVICE_ID.put("serviceId", TRANSFER_ACCOUNT);
+        RESOURCE_TE_PARAMS.put(TE_PARAMS_KEY, TE_PARAMS_SEND_ALLOWED);
 
         REDIRECT_POST.putAll(RESOURCE_SWITCHED_ON);
         REDIRECT_POST.putAll(RESOURCE_WILL_BE_DELETED_AFTER);
         REDIRECT_POST.putAll(RESOURCE_SERVICE_ID);
+        REDIRECT_POST.putAll(RESOURCE_TE_PARAMS);
         REDIRECT_PATCH.putAll(REDIRECT_POST);
 
         MAILBOX_PATCH.put("mailFromAllowed", MAILBOX_MAIL_FROM_ALLOWED_EDIT);
@@ -47,6 +51,7 @@ public class FieldRoles {
         WEB_SITE_PATCH.put("ddosProtection", WEBSITE_DDOS_PROTECTION_EDIT);
         WEB_SITE_PATCH.putAll(RESOURCE_SWITCHED_ON);
         WEB_SITE_PATCH.putAll(RESOURCE_WILL_BE_DELETED_AFTER);
+        WEB_SITE_PATCH.putAll(RESOURCE_TE_PARAMS);
 
         WEB_SITE_POST.putAll(WEB_SITE_PATCH);
 
@@ -54,17 +59,21 @@ public class FieldRoles {
         DATABASE_PATCH.putAll(RESOURCE_WILL_BE_DELETED_AFTER);
         DATABASE_PATCH.putAll(RESOURCE_WRITABLE);
         DATABASE_PATCH.putAll(RESOURCE_SERVICE_ID);
+        DATABASE_PATCH.putAll(RESOURCE_TE_PARAMS);
 
         DATABASE_POST.putAll(RESOURCE_SWITCHED_ON);
+        DATABASE_POST.putAll(RESOURCE_TE_PARAMS);
         DATABASE_POST.putAll(RESOURCE_WRITABLE);
 
         DATABASE_USER_PATCH.putAll(RESOURCE_SWITCHED_ON);
         DATABASE_USER_PATCH.putAll(RESOURCE_WILL_BE_DELETED_AFTER);
         DATABASE_USER_PATCH.putAll(RESOURCE_SERVICE_ID);
+        DATABASE_USER_PATCH.putAll(RESOURCE_TE_PARAMS);
         DATABASE_USER_PATCH.put("maxCpuTimePerSecond", DATABASE_USER_MAX_CPU_TIME_PER_SECOND_EDIT);
 
         DATABASE_USER_POST.put("maxCpuTimePerSecond", DATABASE_USER_MAX_CPU_TIME_PER_SECOND_EDIT);
         DATABASE_USER_POST.putAll(RESOURCE_SWITCHED_ON);
+        DATABASE_USER_POST.putAll(RESOURCE_TE_PARAMS);
 
         UNIX_ACCOUNT_PATCH.put("sendmailAllowed", UNIX_ACCOUNT_SENDMAIL_ALLOWED_EDIT);
         UNIX_ACCOUNT_PATCH.put("quota", UNIX_ACCOUNT_QUOTA_EDIT);
@@ -72,6 +81,7 @@ public class FieldRoles {
         UNIX_ACCOUNT_PATCH.putAll(RESOURCE_SWITCHED_ON);
         UNIX_ACCOUNT_PATCH.putAll(RESOURCE_WILL_BE_DELETED_AFTER);
         UNIX_ACCOUNT_PATCH.putAll(RESOURCE_WRITABLE);
+        UNIX_ACCOUNT_PATCH.putAll(RESOURCE_TE_PARAMS);
 
         UNIX_ACCOUNT_POST.putAll(UNIX_ACCOUNT_PATCH);
 

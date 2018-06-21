@@ -4,6 +4,8 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 
 import java.io.*;
 import java.math.BigDecimal;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
@@ -247,5 +249,13 @@ public class Utils {
             result.append(Utils.pluralizef("%d день", "%d дня", "%d дней", period.getDays()));
         }
         return result.toString().isEmpty() ? period.toString() : result.toString();
+    }
+
+    public static Boolean isInsideInRootDir(String insideDir, String rootDir) {
+        Path rootPath = Paths.get(rootDir);
+
+        Path insidePath = rootPath.resolve(insideDir);
+
+        return insidePath.normalize().startsWith(rootPath);
     }
 }

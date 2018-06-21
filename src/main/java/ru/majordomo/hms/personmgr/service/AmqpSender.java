@@ -41,7 +41,7 @@ public class AmqpSender {
     }
 
     public void send(String exchange, String routingKey, SimpleServiceMessage message) {
-        if (!routingKey.startsWith(instanceName + ".")) {
+        if (!routingKey.startsWith(instanceName + ".") && !routingKey.startsWith("te.")) {
             routingKey = instanceName + "." + routingKey;
         }
 

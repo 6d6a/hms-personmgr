@@ -12,4 +12,5 @@ public class SecurityConstants {
     public static final String UNIX_ACCOUNT_QUOTA_EDIT = "UNIX_ACCOUNT_QUOTA_EDIT";
     public static final String TRANSFER_ACCOUNT = "TRANSFER_ACCOUNT";
     public static final String DATABASE_USER_MAX_CPU_TIME_PER_SECOND_EDIT = "DATABASE_USER_MAX_CPU_TIME_PER_SECOND_EDIT";
+    public static final String TE_PARAMS_SEND_ALLOWED = "TE_PARAMS_SEND_ALLOWED";
 }
