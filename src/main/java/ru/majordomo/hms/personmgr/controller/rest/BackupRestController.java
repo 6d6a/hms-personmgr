@@ -142,19 +142,18 @@ public class BackupRestController extends CommonRestController{
         message.addParam(DATASOURCE_URI_KEY, format("rsync://restic@bareos.intr/restic/%s/ids/%s%s", serverName, snapshotId, pathFrom));
         message.addParam(DELETE_EXTRANEOUS_KEY, deleteExtraneous);
 
-//        ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
-//                BusinessOperationType.FILE_BACKUP_RESTORE, FILE_BACKUP_RESTORE_TE, message);
-//
-//        history.save(
-//                accountId,
-//                format("Поступила заявка на восстановление из резервной копии (snapshotId: %s, time: %s) %s",
-//                        snapshotId, snapshot.getTime(), restoreRequest.toString()
-//                ),
-//                request
-//        );
-//
-//        return ResponseEntity.accepted().body(createSuccessResponse(action));
-        return ResponseEntity.accepted().body(message);
+        ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
+                BusinessOperationType.FILE_BACKUP_RESTORE, FILE_BACKUP_RESTORE_TE, message);
+
+        history.save(
+                accountId,
+                format("Поступила заявка на восстановление из резервной копии (snapshotId: %s, time: %s) %s",
+                        snapshotId, snapshot.getTime(), restoreRequest.toString()
+                ),
+                request
+        );
+
+        return ResponseEntity.accepted().body(createSuccessResponse(action));
     }
 
     private String createPathTo(String pathFrom) {
