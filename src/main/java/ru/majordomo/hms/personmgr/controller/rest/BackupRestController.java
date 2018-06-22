@@ -107,14 +107,16 @@ public class BackupRestController extends CommonRestController{
 
         String homeDir = normalizeHomeDir(unixAccount.getHomeDir());
 
-        pathFrom = normalizePathFrom(homeDir + pathFrom);
+        pathFrom = normalizePathFrom(homeDir + "/" + pathFrom);
 
         assertPathFromInsideHomeDir(pathFrom, homeDir);
 
         if (pathTo == null) {
             pathTo = createPathTo(pathFrom);
+        } else if (pathTo.isEmpty()) {
+            pathTo = normalizePathTo(pathFrom, homeDir);
         } else {
-            pathTo = normalizePathTo(pathFrom, homeDir + pathTo);
+            pathTo = normalizePathTo(pathFrom, homeDir + "/" + pathTo.replaceAll("^/+", ""));
         }
 
 //        checkPaths(pathFrom, pathTo, homeDir);
@@ -164,7 +166,6 @@ public class BackupRestController extends CommonRestController{
     }
 
     private String createPathTo(String pathFrom) {
-        String pathTo;
         List<String> locationsFrom = Arrays.asList(pathFrom.split("/"));
         return String.join("/", locationsFrom.subList(0, locationsFrom.size() - 1)) + "/";
     }
@@ -191,7 +192,7 @@ public class BackupRestController extends CommonRestController{
     }
 
     private String normalizeHomeDir(String sourceHomeDir) {
-        return sourceHomeDir.endsWith("/") ? sourceHomeDir : sourceHomeDir + "/";
+        return sourceHomeDir.replaceAll("/+$", "");
     }
 
     private String getRoutingKeyForTE(Server server) {
