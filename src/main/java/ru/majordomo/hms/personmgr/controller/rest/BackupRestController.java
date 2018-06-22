@@ -140,7 +140,10 @@ public class BackupRestController extends CommonRestController{
         message.setObjRef(format("http://%s/%s/%s", RC_USER_APP_NAME, UNIX_ACCOUNT_RESOURCE_NAME, unixAccount.getId()));
         message.addParam(DATA_DESTINATION_URI_KEY, format("file://%s", pathTo));
         message.addParam(DATASOURCE_URI_KEY, format("rsync://restic@bareos.intr/restic/%s/ids/%s%s", serverName, snapshotId, pathFrom));
-        message.addParam(DELETE_EXTRANEOUS_KEY, deleteExtraneous);
+
+        Map<String, Object> dataSourceParams = new HashMap<>();
+        dataSourceParams.put(DELETE_EXTRANEOUS_KEY, deleteExtraneous);
+        message.addParam(DATA_SOURCE_PARAMS_KEY, dataSourceParams);
 
         ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
                 BusinessOperationType.FILE_BACKUP_RESTORE, FILE_BACKUP_RESTORE_TE, message);
@@ -153,7 +156,11 @@ public class BackupRestController extends CommonRestController{
                 request
         );
 
-        return ResponseEntity.accepted().body(createSuccessResponse(action));
+        SimpleServiceMessage body = new SimpleServiceMessage();
+        body.setActionIdentity(action.getId());
+        body.setOperationIdentity(action.getOperationId());
+
+        return ResponseEntity.accepted().body(body);
     }
 
     private String createPathTo(String pathFrom) {

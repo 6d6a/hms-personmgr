@@ -108,6 +108,7 @@ public class Constants {
     public static final String DATASOURCE_URI_KEY = "datasourceUri";
     public static final String DATA_DESTINATION_URI_KEY = "datadestinationUri";
     public static final String DELETE_EXTRANEOUS_KEY = "deleteExtraneous";
+    public static final String DATA_SOURCE_PARAMS_KEY = "dataSourceParams";
     public static final String TE_PARAMS_KEY = "teParams";
     public static final String PM_PARAM_PREFIX_KEY = "pmParam_";
     public static final String DATA_POSTPROCESSOR_ARGS_KEY = "dataPostprocessorArgs";
