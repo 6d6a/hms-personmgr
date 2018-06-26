@@ -13,6 +13,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.request.FileRestoreRequest;
 import ru.majordomo.hms.personmgr.dto.request.MysqlRestoreRequest;
 import ru.majordomo.hms.personmgr.dto.request.RestoreRequest;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.service.restic.Snapshot;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -74,7 +75,7 @@ public class BackupRestController extends CommonRestController{
             case MYSQL:
                 return getDbSnapshots(accountId, authentication);
             default:
-                throw new ParameterValidationException("Неизвестный тип хранилища");
+                throw new ParameterValidationException("Неизвестный тип восстановления");
         }
     }
 
@@ -92,7 +93,7 @@ public class BackupRestController extends CommonRestController{
             @ObjectId(PersonalAccount.class) @PathVariable String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        logger.debug("Try restore from backup accountId: " + accountId + " " + restoreRequest.toString());
+        logger.info("Try restore from backup accountId: %s %s", accountId, restoreRequest.toString());
 
         SimpleServiceMessage result;
 
@@ -136,6 +137,11 @@ public class BackupRestController extends CommonRestController{
             throw new ParameterValidationException("Восстановление из резервной копии недоступно");
         }
 
+        if (snapshot.getPaths().size() != 1) {
+            logger.error("Имя файла дампа базы данных не найдено в snapshot.getPaths() snapshot: %s", snapshot);
+            throw new InternalApiException();
+        }
+
         Server server = getServerByServiceId(database.getServiceId());
 
         SimpleServiceMessage message = new SimpleServiceMessage();
@@ -143,7 +149,7 @@ public class BackupRestController extends CommonRestController{
         message.addParam("realRoutingKey", getRoutingKeyForTE(server));
         message.setObjRef(format("http://%s/%s/%s", RC_USER_APP_NAME, DATABASE_RESOURCE_NAME, database.getId()));
         message.addParam(DATASOURCE_URI_KEY, format(
-                "%s/mysql/ids/%s", mysqlBackupStorage, snapshot.getShortId())
+                "%s/mysql/ids/%s/%s", mysqlBackupStorage, snapshot.getShortId(), snapshot.getPaths().get(0))
         );
 
         ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
