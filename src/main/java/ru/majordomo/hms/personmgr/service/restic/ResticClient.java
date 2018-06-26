@@ -19,33 +19,35 @@ import static java.lang.String.format;
 public class ResticClient {
 
     private final static Logger log = LoggerFactory.getLogger(ResticClient.class);
-    private String resticUrl;
+    private String fileBackupStorage;
+    private String mysqlBackupStorage;
 
     @Autowired
     public ResticClient(
-            @Value("${restic.url}") String resticUrl
+            @Value("${backup.file.url}") String fileBackupStorage,
+            @Value("${backup.mysql.url}") String mysqlBackupStorage
     ) throws MalformedURLException {
-        new URL(resticUrl);
-        this.resticUrl = resticUrl;
+        new URL(fileBackupStorage);
+        new URL(mysqlBackupStorage);
+        this.fileBackupStorage = fileBackupStorage;
+        this.mysqlBackupStorage = mysqlBackupStorage;
     }
 
-    public List<Snapshot> getSnapshots(String homeDir, String serverName) {
-        String snapshotsUrl =
-                format(
-                        "%s/_snapshot/%s%s",
-                        resticUrl,
-                        serverName,
-                        homeDir
-                );
+    public List<Snapshot> getFileSnapshots(String homeDir, String serverName) {
+        String snapshotsUrl = format("%s/_snapshot/%s%s", fileBackupStorage, serverName, homeDir);
+
         try {
-            SnapshotsResponse response = new RestTemplate().getForObject(snapshotsUrl, SnapshotsResponse.class);
+            SnapshotList response = new RestTemplate().getForObject(snapshotsUrl, SnapshotList.class);
 
             if (response == null) {
                 log.error("SnapshotResponse = null from '" + snapshotsUrl + "' return empty list");
                 return Collections.emptyList();
             }
 
-            response.forEach(snapshot -> snapshot.setServerName(serverName));
+            response.forEach(snapshot -> {
+                snapshot.setPaths(null);
+                snapshot.setServerName(serverName);
+            });
 
             return response;
 
@@ -58,11 +60,38 @@ public class ResticClient {
         }
     }
 
-    public Optional<Snapshot> getSnapshot(String homeDir, String serverName, String snapshotId) {
-        return getSnapshots(homeDir, serverName)
+    public Optional<Snapshot> getFileSnapshot(String homeDir, String serverName, String snapshotId) {
+        return getFileSnapshots(homeDir, serverName)
                 .stream()
                 .filter(snapshot -> snapshot.getShortId().equals(snapshotId))
                 .findFirst();
     }
 
+    public List<Snapshot> getDBSnapshots(String accountIdNotPersonalAccountId) {
+        String snapshotsUrl = format("%s/_dump/%s", mysqlBackupStorage, accountIdNotPersonalAccountId);
+        try {
+            SnapshotList response = new RestTemplate().getForObject(snapshotsUrl, SnapshotList.class);
+
+            if (response == null) {
+                log.error("SnapshotResponse = null from '" + snapshotsUrl + "' return empty list");
+                return Collections.emptyList();
+            }
+
+            return response;
+
+        } catch (Exception e) {
+            log.error("Can't fetch snapshots from '" + snapshotsUrl
+                    + "' return empty list, exceptionClass: " + e.getClass().getName()
+                    + " exception : " + e.getMessage()
+            );
+            return Collections.emptyList();
+        }
+    }
+
+    public Optional<Snapshot> getDBSnapshot(String accountIdNotPersonalAccountId, String snapshotId) {
+        return getDBSnapshots(accountIdNotPersonalAccountId)
+                .stream()
+                .filter(snapshot -> snapshot.getShortId().equals(snapshotId))
+                .findFirst();
+    }
 }

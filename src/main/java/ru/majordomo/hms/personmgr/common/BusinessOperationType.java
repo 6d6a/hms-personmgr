@@ -48,7 +48,8 @@ public enum BusinessOperationType {
     REDIRECT_CREATE,
     REDIRECT_UPDATE,
     REDIRECT_DELETE,
-    FILE_BACKUP_RESTORE;
+    FILE_BACKUP_RESTORE,
+    DATABASE_BACKUP_RESTORE;
 
     public static Map<BusinessOperationType, String> BUSINESS_OPERATION_TYPE2HUMAN = new HashMap<>();
 
@@ -98,5 +99,6 @@ public enum BusinessOperationType {
         BUSINESS_OPERATION_TYPE2HUMAN.put(REDIRECT_UPDATE, "Обновление перенаправления");
         BUSINESS_OPERATION_TYPE2HUMAN.put(REDIRECT_DELETE, "Удаление перенаправления");
         BUSINESS_OPERATION_TYPE2HUMAN.put(FILE_BACKUP_RESTORE, "Восстановление файлов из резервной копии");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DATABASE_BACKUP_RESTORE, "Восстановление базы данных из резервной копии");
     }
 }
