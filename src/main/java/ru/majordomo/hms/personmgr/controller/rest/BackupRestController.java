@@ -143,7 +143,7 @@ public class BackupRestController extends CommonRestController{
         message.addParam("realRoutingKey", getRoutingKeyForTE(server));
         message.setObjRef(format("http://%s/%s/%s", RC_USER_APP_NAME, DATABASE_RESOURCE_NAME, database.getId()));
         message.addParam(DATASOURCE_URI_KEY, format(
-                "http://%s/mysql/ids/%s", mysqlBackupStorage, snapshot.getShortId())
+                "%s/mysql/ids/%s", mysqlBackupStorage, snapshot.getShortId())
         );
 
         ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
