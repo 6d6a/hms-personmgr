@@ -19,14 +19,15 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
+import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
-import ru.majordomo.hms.personmgr.repository.AbonementRepository;
-import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
+import ru.majordomo.hms.personmgr.repository.*;
+import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
@@ -57,6 +58,8 @@ public class ServiceAbonementService { //dis name
     private final ChargeHelper chargeHelper;
     private final AccountHistoryManager history;
     private final AccountRedirectServiceRepository accountRedirectServiceRepository;
+    private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
+    private final RcUserFeignClient rcUserFeignClient;
 
     private static TemporalAdjuster FIVE_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(5));
 
@@ -73,7 +76,9 @@ public class ServiceAbonementService { //dis name
             AccountNotificationHelper accountNotificationHelper,
             ChargeHelper chargeHelper,
             AccountHistoryManager history,
-            AccountRedirectServiceRepository accountRedirectServiceRepository
+            AccountRedirectServiceRepository accountRedirectServiceRepository,
+            RevisiumRequestServiceRepository revisiumRequestServiceRepository,
+            RcUserFeignClient rcUserFeignClient
     ) {
         this.servicePlanRepository = servicePlanRepository;
         this.abonementRepository = abonementRepository;
@@ -87,6 +92,8 @@ public class ServiceAbonementService { //dis name
         this.chargeHelper = chargeHelper;
         this.history = history;
         this.accountRedirectServiceRepository = accountRedirectServiceRepository;
+        this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
+        this.rcUserFeignClient = rcUserFeignClient;
     }
 
     /**
@@ -251,6 +258,38 @@ public class ServiceAbonementService { //dis name
         });
     }
 
+    public boolean isRevisiumServiceAbonementAllowedToProlong(PersonalAccount account, AccountServiceAbonement accountServiceAbonement) {
+
+        RevisiumRequestService revisiumRequestService = revisiumRequestServiceRepository
+                .findByPersonalAccountIdAndAccountServiceAbonementId(account.getId(), accountServiceAbonement.getId());
+
+        if (revisiumRequestService == null) {
+            //Абонемент не принадлежит сервису ревизиума -> проверка не требуется
+            return true;
+        }
+
+        String siteUrl = revisiumRequestService.getSiteUrl();
+
+        URL url;
+        try {
+            url = new URL(siteUrl);
+        } catch (MalformedURLException e) {
+            return false;
+        }
+
+        String domainName = url.getHost();
+        domainName = domainName.startsWith("www.") ? domainName.substring(4) : domainName;
+
+        Domain domain;
+        try {
+            domain = rcUserFeignClient.findDomain(domainName);
+        } catch (ru.majordomo.hms.personmgr.exception.ResourceNotFoundException e) {
+            return false;
+        }
+
+        return domain != null && domain.getAccountId().equals(account.getId());
+    }
+
     public void processAbonementsAutoRenewByAccount(PersonalAccount account) {
 
         //В итоге нам нужно получить абонементы которые закончились сегодня и раньше
@@ -278,14 +317,27 @@ public class ServiceAbonementService { //dis name
                     logger.debug("Abonement has autorenew option enabled");
 
                     if (balance.compareTo(abonementCost) >= 0) {
-                        logger.debug("Buying new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
+                        if (isRevisiumServiceAbonementAllowedToProlong(account, accountServiceAbonement)) {
+                            logger.debug("Buying new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
 
-                        prolongAbonement(account, accountServiceAbonement);
+                            prolongAbonement(account, accountServiceAbonement);
 
-                        history.saveForOperatorService(account,
-                                "Автоматическое продление абонемента на услугу. Со счета аккаунта списано " +
-                                formatBigDecimalWithCurrency(abonementCost) +
-                                " Новый срок окончания: " + accountServiceAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                            history.saveForOperatorService(account,
+                                    "Автоматическое продление абонемента на услугу. Со счета аккаунта списано " +
+                                            formatBigDecimalWithCurrency(abonementCost) +
+                                            " Новый срок окончания: " + accountServiceAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                        } else {
+                            logger.debug("Domain in Revisium Service not found on account: " + account.getId());
+
+                            //Удаляем абонемент и включаем услуги по тарифу
+                            processAccountAbonementDelete(account, accountServiceAbonement);
+
+                            history.saveForOperatorService(account, "Абонемент на услугу удален, так как не найден домен, для которого была подключена услуга ревизиума. Стоимость абонемента: " +
+                                    formatBigDecimalWithCurrency(abonementCost) +
+                                    " Баланс: " + formatBigDecimalWithCurrency(balance) +
+                                    " Дата окончания: " + currentExpired
+                            );
+                        }
                     } else {
                         logger.debug("Account balance is too low to buy new service abonement. Balance: " + balance + " abonementCost: " + abonementCost);
 
