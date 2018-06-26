@@ -19,14 +19,9 @@ public class Snapshot {
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime time;
 
-    //TODO убрать говно после теста
     @JsonSetter("time")
     public void setTime(String time) {
-//        try {
-            this.time = LocalDateTime.parse(time, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-//        } catch (Exception e) {
-//            this.time = LocalDateTime.parse(time.replaceAll("\\+(\\d){4}$", "+03:00"), DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-//        }
+        this.time = LocalDateTime.parse(time, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
     }
 
     @JsonProperty("short_id")
