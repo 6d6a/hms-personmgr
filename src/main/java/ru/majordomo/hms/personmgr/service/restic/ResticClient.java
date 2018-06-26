@@ -67,8 +67,8 @@ public class ResticClient {
                 .findFirst();
     }
 
-    public List<Snapshot> getDBSnapshots(String accountIdNotPersonalAccountId) {
-        String snapshotsUrl = format("%s/_dump/%s", mysqlBackupStorage, accountIdNotPersonalAccountId);
+    public List<Snapshot> getDBSnapshots(String personalAccountId) {
+        String snapshotsUrl = format("%s/_dump/%s", mysqlBackupStorage, personalAccountId);
         try {
             SnapshotList response = new RestTemplate().getForObject(snapshotsUrl, SnapshotList.class);
 
@@ -88,8 +88,8 @@ public class ResticClient {
         }
     }
 
-    public Optional<Snapshot> getDBSnapshot(String accountIdNotPersonalAccountId, String snapshotId) {
-        return getDBSnapshots(accountIdNotPersonalAccountId)
+    public Optional<Snapshot> getDBSnapshot(String personalAccountId, String snapshotId) {
+        return getDBSnapshots(personalAccountId)
                 .stream()
                 .filter(snapshot -> snapshot.getShortId().equals(snapshotId))
                 .findFirst();

@@ -125,7 +125,7 @@ public class BackupRestController extends CommonRestController{
         checkDatabase(database);
 
         Optional<Snapshot> snapshotOptional = resticClient.getDBSnapshot(
-                account.getAccountId(), restoreRequest.getSnapshotId());
+                account.getId(), restoreRequest.getSnapshotId());
 
         if (!snapshotOptional.isPresent()) {
             throw new ParameterValidationException(
@@ -187,8 +187,7 @@ public class BackupRestController extends CommonRestController{
             return Collections.emptyList();
         }
 
-        //Нужно использовать accountId, так как по нему определяется префикс имени базы
-        List<Snapshot> response = resticClient.getDBSnapshots(account.getAccountId());
+        List<Snapshot> response = resticClient.getDBSnapshots(account.getId());
 
         LocalDate minTimeForBackup = LocalDate.now().minusDays(daysAccessToBackup);
 
