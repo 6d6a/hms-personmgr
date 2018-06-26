@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
 import ru.majordomo.hms.personmgr.dto.PaymentTypeKind;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
@@ -40,6 +39,7 @@ public class RecurrentProcessorService {
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
     private final FinFeignClient finFeignClient;
     private final AccountHistoryManager history;
+    private final ServiceAbonementService serviceAbonementService;
 
     private static TemporalAdjuster FIFTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(50));
     private static TemporalAdjuster TWENTY_FIVE_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(25));
@@ -54,8 +54,8 @@ public class RecurrentProcessorService {
             DomainRegistrarFeignClient domainRegistrarFeignClient,
             FinFeignClient finFeignClient,
             AbonementManager<AccountServiceAbonement> accountServiceAbonementManager,
-            AccountHistoryManager history
-    ) {
+            AccountHistoryManager history,
+            ServiceAbonementService serviceAbonementService) {
         this.accountAbonementManager = accountAbonementManager;
         this.accountHelper = accountHelper;
         this.planRepository = planRepository;
@@ -65,6 +65,7 @@ public class RecurrentProcessorService {
         this.finFeignClient = finFeignClient;
         this.history = history;
         this.accountServiceAbonementManager = accountServiceAbonementManager;
+        this.serviceAbonementService = serviceAbonementService;
     }
 
     public void processRecurrent(PersonalAccount account) {
@@ -220,8 +221,8 @@ public class RecurrentProcessorService {
                     bonusProhibited = true;
                 }
 
-                if (bonusProhibited) {
-                    if (!abonement.getAbonement().isInternal()) {
+                if (bonusProhibited && abonement.isAutorenew()) {
+                    if (!abonement.getAbonement().isInternal() && serviceAbonementService.isRevisiumServiceAbonementAllowedToProlong(account, abonement)) {
                         // Проверям сколько осталось у абонементу
                         // Если истекает через 5 дней или меньше - добавляем стоимость абонемента
                         if (abonement.getExpired().isBefore(chargeDate.plusDays(5L))) {
@@ -251,8 +252,8 @@ public class RecurrentProcessorService {
                     bonusProhibited = true;
                 }
 
-                if (!bonusProhibited) {
-                    if (!abonement.getAbonement().isInternal()) {
+                if (!bonusProhibited && abonement.isAutorenew()) {
+                    if (!abonement.getAbonement().isInternal() && serviceAbonementService.isRevisiumServiceAbonementAllowedToProlong(account, abonement)) {
                         // Проверям сколько осталось у абонементу
                         // Если истекает через 5 дней или меньше - добавляем стоимость абонемента
                         if (abonement.getExpired().isBefore(chargeDate.plusDays(5L))) {

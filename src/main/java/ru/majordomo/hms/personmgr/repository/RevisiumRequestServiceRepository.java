@@ -10,4 +10,5 @@ public interface RevisiumRequestServiceRepository extends MongoRepository<Revisi
     List<RevisiumRequestService> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
     RevisiumRequestService findByPersonalAccountIdAndId(@Param("personalAccountId") String personalAccountId, @Param("id") String id);
     RevisiumRequestService findByPersonalAccountIdAndSiteUrl(@Param("personalAccountId") String personalAccountId, @Param("siteUrl") String siteUrl);
+    RevisiumRequestService findByPersonalAccountIdAndAccountServiceAbonementId(@Param("personalAccountId") String personalAccountId, @Param("accountServiceAbonementId") String accountServiceAbonementId);
 }
