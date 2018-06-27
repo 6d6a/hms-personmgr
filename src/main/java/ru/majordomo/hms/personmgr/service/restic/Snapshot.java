@@ -9,6 +9,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 public class Snapshot {
@@ -26,4 +28,6 @@ public class Snapshot {
     private String shortId;
 
     private String serverName;
+
+    private List<String> paths;
 }

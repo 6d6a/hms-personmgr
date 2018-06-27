@@ -1,17 +1,21 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.StorageType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.request.FileRestoreRequest;
+import ru.majordomo.hms.personmgr.dto.request.MysqlRestoreRequest;
+import ru.majordomo.hms.personmgr.dto.request.RestoreRequest;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.service.restic.Snapshot;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.service.RcStaffFeignClient;
@@ -19,6 +23,7 @@ import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.service.restic.ResticClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.staff.resources.Server;
+import ru.majordomo.hms.rc.user.resources.Database;
 import ru.majordomo.hms.rc.user.resources.UnixAccount;
 
 import javax.validation.Valid;
@@ -27,6 +32,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
+import static ru.majordomo.hms.personmgr.common.BusinessActionType.DATABASE_RESTORE_TE;
 import static ru.majordomo.hms.personmgr.common.BusinessActionType.FILE_BACKUP_RESTORE_TE;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.Utils.isInsideInRootDir;
@@ -39,36 +45,172 @@ public class BackupRestController extends CommonRestController{
     private RcStaffFeignClient rcStaffFeignClient;
     private ResticClient resticClient;
 
+    private String mysqlBackupStorage;
     private final static String RC_USER_APP_NAME = "rc-user";
     private final static String UNIX_ACCOUNT_RESOURCE_NAME = "unix-account";
+    private final static String DATABASE_RESOURCE_NAME = "database";
 
     @Autowired
     public BackupRestController(
             RcUserFeignClient rcUserFeignClient,
             RcStaffFeignClient rcStaffFeignClient,
-            ResticClient resticClient
+            ResticClient resticClient,
+            @Value("${backup.mysql.url}") String mysqlBackupStorage
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;
         this.resticClient = resticClient;
+        this.mysqlBackupStorage = mysqlBackupStorage;
+    }
+
+    @GetMapping("/{accountId}/backup")
+    public List<Snapshot> getSnapshots(
+            @ObjectId(PersonalAccount.class) @PathVariable String accountId,
+            @RequestParam StorageType type,
+            Authentication authentication
+    ) {
+        switch (type) {
+            case FILE:
+                return getFileSnapshots(accountId, authentication);
+            case MYSQL:
+                return getDbSnapshots(accountId, authentication);
+            default:
+                throw new ParameterValidationException("Неизвестный тип восстановления");
+        }
     }
 
     @GetMapping("/{accountId}/file-backup")
     public List<Snapshot> getSnapshot(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @ObjectId(PersonalAccount.class) @PathVariable String accountId,
             Authentication authentication
     ) {
+        return getFileSnapshots(accountId, authentication);
+    }
+
+    @PostMapping("/{accountId}/backup/restore")
+    public ResponseEntity<SimpleServiceMessage> restore(
+            @Valid @RequestBody RestoreRequest restoreRequest,
+            @ObjectId(PersonalAccount.class) @PathVariable String accountId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        logger.info("Try restore from backup accountId: %s %s", accountId, restoreRequest.toString());
+
+        SimpleServiceMessage result;
+
+        if (restoreRequest instanceof MysqlRestoreRequest) {
+            result = restoreMysql(accountId, (MysqlRestoreRequest) restoreRequest, request);
+        } else if (restoreRequest instanceof FileRestoreRequest) {
+            result = restoreFileBackup(accountId, (FileRestoreRequest) restoreRequest, request);
+        } else {
+            throw new ParameterValidationException("Неизвестный тип восстановления");
+        }
+
+        return ResponseEntity.accepted().body(result);
+    }
+
+    private SimpleServiceMessage restoreMysql(
+            String accountId,
+            MysqlRestoreRequest restoreRequest,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
         PersonalAccount account = accountManager.findOne(accountId);
+        assertAccountIsActive(account);
+
+        int daysAccessToBackup = daysAccessToBackup(account);
+        if (daysAccessToBackup == 0) {
+            throw new ParameterValidationException("Восстановление из резервных копий недоступно");
+        }
+
+        Database database = rcUserFeignClient.getDatabase(accountId, restoreRequest.getDatabaseId());
+        checkDatabase(database);
+
+        Optional<Snapshot> snapshotOptional = resticClient.getDBSnapshot(
+                account.getId(), restoreRequest.getSnapshotId());
+
+        if (!snapshotOptional.isPresent()) {
+            throw new ParameterValidationException(
+                    "Резервная копия с id " + restoreRequest.getSnapshotId() + " не найдена");
+        }
+
+        Snapshot snapshot = snapshotOptional.get();
+        if (snapshot.getTime().toLocalDate().isBefore(LocalDate.now().minusDays(daysAccessToBackup))) {
+            throw new ParameterValidationException("Восстановление из резервной копии недоступно");
+        }
+
+        if (snapshot.getPaths().size() != 1) {
+            logger.error("Имя файла дампа базы данных не найдено в snapshot.getPaths() snapshot: %s", snapshot);
+            throw new InternalApiException();
+        }
+
+        Server server = getServerByServiceId(database.getServiceId());
+
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(accountId);
+        message.addParam("realRoutingKey", getRoutingKeyForTE(server));
+        message.setObjRef(format("http://%s/%s/%s", RC_USER_APP_NAME, DATABASE_RESOURCE_NAME, database.getId()));
+        message.addParam(DATASOURCE_URI_KEY, format(
+                "%s/mysql/ids/%s/%s", mysqlBackupStorage, snapshot.getShortId(), snapshot.getPaths().get(0))
+        );
+
+        ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
+                BusinessOperationType.DATABASE_BACKUP_RESTORE, DATABASE_RESTORE_TE, message);
+
+        history.save(
+                accountId,
+                format("Поступила заявка на восстановление базы данных (databaseId='%s') из резервной копии " +
+                                "(snapshotId: %s, time: %s) %s",
+                        database.getId(), snapshot.getShortId(), snapshot.getTime(), restoreRequest.toString()
+                ),
+                request
+        );
+
+        SimpleServiceMessage result = new SimpleServiceMessage();
+        result.setOperationIdentity(action.getOperationId());
+        result.setActionIdentity(action.getId());
+        return result;
+    }
+
+    private void checkDatabase(Database database) {
+        if (!database.isSwitchedOn()) {
+            throw new ParameterValidationException("База данных отключена");
+        }
+        if (!database.getWritable()) {
+            throw new ParameterValidationException("Запись в базу данных запрещена");
+        }
+    }
+
+    private List<Snapshot> getDbSnapshots(String personalAccountId, Authentication authentication) {
+        PersonalAccount account = accountManager.findOne(personalAccountId);
 
         int daysAccessToBackup = daysAccessToBackup(account);
         if (daysAccessToBackup == 0) {
             return Collections.emptyList();
         }
 
-        UnixAccount unixAccount = getUnixAccount(accountId);
+        List<Snapshot> response = resticClient.getDBSnapshots(account.getId());
+
+        LocalDate minTimeForBackup = LocalDate.now().minusDays(daysAccessToBackup);
+
+        return response
+                .stream()
+                .filter(i ->
+                        i.getTime().toLocalDate()
+                                .isAfter(minTimeForBackup))
+                .collect(Collectors.toList());
+    }
+
+    private List<Snapshot> getFileSnapshots(String personalAccountId, Authentication authentication) {
+        PersonalAccount account = accountManager.findOne(personalAccountId);
+
+        int daysAccessToBackup = daysAccessToBackup(account);
+        if (daysAccessToBackup == 0) {
+            return Collections.emptyList();
+        }
+
+        UnixAccount unixAccount = getUnixAccount(personalAccountId);
         Server server = getServer(unixAccount.getServerId());
 
-        List<Snapshot> response = resticClient.getSnapshots(unixAccount.getHomeDir(), server.getName());
+        List<Snapshot> response = resticClient.getFileSnapshots(unixAccount.getHomeDir(), server.getName());
 
         LocalDate minTimeForBackup = LocalDate.now().minusDays(daysAccessToBackup);
 
@@ -81,9 +223,19 @@ public class BackupRestController extends CommonRestController{
     }
 
     @PostMapping("/{accountId}/file-backup/restore")
-    public ResponseEntity<SimpleServiceMessage> restore(
+    public ResponseEntity<SimpleServiceMessage> restoreFiles(
             @Valid @RequestBody FileRestoreRequest restoreRequest,
             @ObjectId(PersonalAccount.class) @PathVariable String accountId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        SimpleServiceMessage body = restoreFileBackup(accountId, restoreRequest, request);
+
+        return ResponseEntity.accepted().body(body);
+    }
+
+    private SimpleServiceMessage restoreFileBackup(
+            String accountId,
+            FileRestoreRequest restoreRequest,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         logger.debug("Try restore file from backup accountId: " + accountId + restoreRequest.toString());
@@ -124,7 +276,7 @@ public class BackupRestController extends CommonRestController{
         Server server = getServer(unixAccount.getServerId());
         serverName = serverName == null || serverName.isEmpty() ? server.getName() : serverName;
 
-        Optional<Snapshot> snapshotOptional = resticClient.getSnapshot(unixAccount.getHomeDir(), serverName, snapshotId);
+        Optional<Snapshot> snapshotOptional = resticClient.getFileSnapshot(unixAccount.getHomeDir(), serverName, snapshotId);
 
         if (!snapshotOptional.isPresent()) {
             throw new ParameterValidationException("Резервная копия не найдена");
@@ -158,11 +310,10 @@ public class BackupRestController extends CommonRestController{
                 request
         );
 
-        SimpleServiceMessage body = new SimpleServiceMessage();
-        body.setActionIdentity(action.getId());
-        body.setOperationIdentity(action.getOperationId());
-
-        return ResponseEntity.accepted().body(body);
+        SimpleServiceMessage result = new SimpleServiceMessage();
+        result.setActionIdentity(action.getId());
+        result.setOperationIdentity(action.getOperationId());
+        return result;
     }
 
     private String createPathTo(String pathFrom) {
@@ -211,12 +362,25 @@ public class BackupRestController extends CommonRestController{
         }
     }
 
-    private Server getServer(String serverId) throws ResourceNotFoundException {
+    private Server getServer(String serverId) throws ParameterValidationException {
         try {
             return rcStaffFeignClient.getServerById(serverId);
         } catch (Exception ignore) {
-            logger.error("Не найден сервер с id " + serverId + " message: " + ignore.getMessage());
-            throw new ParameterValidationException("Не найден сервер unixAccount'а");
+            logger.error(format("Не найден сервер с id %s class: %s message: %s",
+                    serverId, ignore.getClass().getName(), ignore.getMessage())
+            );
+            throw new ParameterValidationException("Сервер не найден");
+        }
+    }
+
+    private Server getServerByServiceId(String serviceId) throws ParameterValidationException {
+        try {
+            return rcStaffFeignClient.getServerByServiceId(serviceId);
+        } catch (Exception ignore) {
+            logger.error(format("Не найден сервер с serviceId %s class: %s message: %s",
+                    serviceId, ignore.getClass().getName(), ignore.getMessage())
+            );
+            throw new ParameterValidationException("Сервер не найден");
         }
     }
 

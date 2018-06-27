@@ -51,6 +51,11 @@ public class DatabaseAmqpController extends CommonAmqpController {
                 businessHelper.buildActionByOperationId(BusinessActionType.DATABASE_UPDATE_RC, message, message.getOperationIdentity());
 
                 break;
+
+            case "te":
+                handleUpdateEventFromTE(message, headers);
+
+                break;
         }
     }
 
