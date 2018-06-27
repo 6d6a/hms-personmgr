@@ -152,6 +152,10 @@ public class BackupRestController extends CommonRestController{
                 "%s/mysql/ids/%s/%s", mysqlBackupStorage, snapshot.getShortId(), snapshot.getPaths().get(0))
         );
 
+        Map<String, Object> dataSourceParams = new HashMap<>();
+        dataSourceParams.put(DELETE_EXTRANEOUS_KEY, restoreRequest.getDeleteExtraneous());
+        message.addParam(DATA_SOURCE_PARAMS_KEY, dataSourceParams);
+
         ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
                 BusinessOperationType.DATABASE_BACKUP_RESTORE, DATABASE_RESTORE_TE, message);
 
