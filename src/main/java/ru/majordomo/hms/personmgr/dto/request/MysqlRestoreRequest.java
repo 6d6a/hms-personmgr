@@ -10,4 +10,6 @@ public class MysqlRestoreRequest implements RestoreRequest {
 
     @NotEmpty(message = "Не указан id базы данных")
     private String databaseId;
+
+    private Boolean deleteExtraneous;
 }
