@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.service.ArchivalPlanProcessor;
+import ru.majordomo.hms.personmgr.service.UserDataHelper;
 import ru.majordomo.hms.personmgr.service.scheduler.*;
 
 @Component
@@ -21,6 +22,7 @@ public class AccountScheduleEventListener {
     private final AbonementsScheduler abonementsScheduler;
     private final RecurrentsScheduler recurrentsScheduler;
     private final ArchivalPlanProcessor archivalPlanProcessor;
+    private final UserDataHelper userDataHelper;
 
     @Autowired
     public AccountScheduleEventListener(
@@ -29,7 +31,8 @@ public class AccountScheduleEventListener {
             BusinessActionsScheduler businessActionsScheduler,
             AbonementsScheduler abonementsScheduler,
             RecurrentsScheduler recurrentsScheduler,
-            ArchivalPlanProcessor archivalPlanProcessor
+            ArchivalPlanProcessor archivalPlanProcessor,
+            UserDataHelper userDataHelper
     ) {
         this.notificationScheduler = notificationScheduler;
         this.domainsScheduler = domainsScheduler;
@@ -37,6 +40,7 @@ public class AccountScheduleEventListener {
         this.abonementsScheduler = abonementsScheduler;
         this.recurrentsScheduler = recurrentsScheduler;
         this.archivalPlanProcessor = archivalPlanProcessor;
+        this.userDataHelper = userDataHelper;
     }
 
     @EventListener
@@ -149,5 +153,13 @@ public class AccountScheduleEventListener {
         logger.debug("We got ProcessChargeInactiveAccountEvent");
 
         archivalPlanProcessor.processChargeRemainderForInactiveLongTime();
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(ProcessDeleteDataInactiveAccountsEvent event) {
+        logger.debug("We got ProcessDeleteDataInactiveAccountsEvent");
+
+        userDataHelper.processDeleteDataInactiveAccount();
     }
 }

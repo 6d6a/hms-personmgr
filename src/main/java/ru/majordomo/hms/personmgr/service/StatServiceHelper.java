@@ -9,6 +9,8 @@ import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.dto.*;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
@@ -25,7 +27,6 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
@@ -411,5 +412,50 @@ public class StatServiceHelper {
             }
         }
         return new ArrayList<>(planStats.values());
+    }
+
+    public List<Map> getBusinessOperationsStat(Set<BusinessOperationType> types, Set<State> states , LocalDate start, LocalDate end) {
+        Set<String> stateStrings = states.stream().map(Enum::name).collect(Collectors.toSet());
+        Set<String> typeStrings = types.stream().map(Enum::name).collect(Collectors.toSet());
+
+        String createdDate = "createdDate";
+        LocalDateTime startDateTime = LocalDateTime.of(start, LocalTime.MIN);
+        LocalDateTime endDateTime = LocalDateTime.of(end, LocalTime.MAX);
+
+        MatchOperation match = match(
+                Criteria.where("createdDate")
+                        .gte(Date.from(startDateTime.toInstant(ZoneOffset.ofHours(3))))
+                        .lte(Date.from(endDateTime.toInstant(ZoneOffset.ofHours(3))))
+                        .and("state").in(stateStrings)
+                        .and("type").in(typeStrings)
+        );
+
+        ProjectionOperation project = project(createdDate, "personalAccountId", "state", "type")
+                .andExpression("year(" + createdDate + ")").as("year")
+                .andExpression("month(" + createdDate + ")").as("month")
+                .andExpression("dayOfMonth(" + createdDate + ")").as("day");
+
+        GroupOperation group0 = group("type", "state", "year", "month", "day", "personalAccountId")
+                .count().as("uniqueAccountCount")
+                .first("year").as("year")
+                .first("month").as("month")
+                .first("day").as("day")
+                .first(createdDate).as(createdDate);
+
+        GroupOperation group1 = group("type", "state", "year", "month", "day")
+                .count().as("uniqueAccountCount")
+                .sum("uniqueAccountCount").as("allCount")
+                .first(createdDate).as(createdDate);
+
+        Aggregation aggregation = newAggregation(
+                match,
+                project,
+                group0,
+                group1
+        );
+
+        return mongoOperations.aggregate(
+                aggregation, "processingBusinessOperation", Map.class
+        ).getMappedResults();
     }
 }
