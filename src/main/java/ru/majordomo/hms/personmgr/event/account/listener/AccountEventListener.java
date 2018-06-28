@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.event.account.listener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -60,6 +61,9 @@ public class AccountEventListener {
     private final AccountNotificationHelper accountNotificationHelper;
     private final ChargeHelper chargeHelper;
     private final AccountHistoryManager history;
+    private final BackupService backupService;
+
+    private final int deleteDataAfterDays;
 
     @Autowired
     public AccountEventListener(
@@ -77,7 +81,9 @@ public class AccountEventListener {
             AbonementManager<AccountAbonement> accountAbonementManager,
             AccountNotificationHelper accountNotificationHelper,
             ChargeHelper chargeHelper,
-            AccountHistoryManager history
+            AccountHistoryManager history,
+            BackupService backupService,
+            @Value("${delete_data_after_days}") int deleteDataAfterDays
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
@@ -94,6 +100,8 @@ public class AccountEventListener {
         this.accountNotificationHelper = accountNotificationHelper;
         this.chargeHelper = chargeHelper;
         this.history = history;
+        this.backupService = backupService;
+        this.deleteDataAfterDays = deleteDataAfterDays;
     }
 
     @EventListener
@@ -532,5 +540,36 @@ public class AccountEventListener {
             // сразу списываем за текущий день
             chargeHelper.prepareAndProcessChargeRequest(account.getId(), LocalDate.now());
         }
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountWasEnabled event) {
+        LocalDateTime deactivated = event.getDeactivated();
+
+        logger.debug("We got AccountWasEnabled event");
+
+        LocalDate dataWillBeDeletedAfter = deactivated.toLocalDate().plusDays(deleteDataAfterDays);
+        LocalDate now = LocalDate.now();
+
+        if (dataWillBeDeletedAfter.isAfter(now)) {
+            logger.info("account with id '%s', data not deleted yet, now: '%s', will be deleted after: '%s' , return",
+                    event.getSource(),
+                    now.format(DateTimeFormatter.ISO_DATE),
+                    dataWillBeDeletedAfter.format(DateTimeFormatter.ISO_DATE));
+            return;
+        }
+
+        // Задержка для включения ресурсов аккаунта перед восстановлением из бекапов
+        try {
+            Thread.sleep(20000);
+        } catch (Exception e) {
+            logger.error("Exception in class AccountEventListener.on(AccountWasEnabled) on sleep");
+            e.printStackTrace();
+        }
+
+        PersonalAccount account = accountManager.findOne(event.getSource());
+
+        backupService.restoreAccountAfterEnabled(account, deactivated, dataWillBeDeletedAfter);
     }
 }

@@ -123,6 +123,10 @@ public class SchedulerRestController extends CommonRestController {
                 publisher.publishEvent(new ProcessChargeInactiveAccountEvent());
 
                 break;
+            case "process_delete_data_inactive_accounts":
+                publisher.publishEvent(new ProcessDeleteDataInactiveAccountsEvent());
+
+                break;
             default:
                 throw new ParameterValidationException("Неизвестный параметр scheduleAction");
         }

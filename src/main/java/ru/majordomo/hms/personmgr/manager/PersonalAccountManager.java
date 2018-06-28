@@ -120,5 +120,7 @@ public interface PersonalAccountManager {
 
     List<String> findByActiveAndDeactivatedBefore(boolean active, LocalDateTime deactivated);
 
+    List<String> findByActiveAndDeactivatedBetween(boolean active, LocalDateTime deactivatedAfter, LocalDateTime deactivatedBefore);
+
     void setDeactivated(String id, LocalDateTime deactivated);
 }

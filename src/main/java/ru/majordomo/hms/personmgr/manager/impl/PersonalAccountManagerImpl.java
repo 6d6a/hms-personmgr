@@ -617,4 +617,32 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
 
         return accountIds;
     }
+
+    @Override
+    public List<String> findByActiveAndDeactivatedBetween(boolean active, LocalDateTime deactivatedAfter, LocalDateTime deactivatedBefore) {
+        Aggregation aggregation = newAggregation(
+                Aggregation.match(
+                        new Criteria()
+                                .andOperator(
+                                        Criteria.where("deactivated").lte(deactivatedBefore),
+                                        Criteria.where("deactivated").gte(deactivatedAfter),
+                                        Criteria.where("active").is(active)
+                                )
+                ),
+                Aggregation.group().addToSet("id").as("ids")
+        );
+
+        List<String> accountIds;
+
+        List<IdsContainer> idsContainers = mongoOperations.aggregate(aggregation, PersonalAccount.class, IdsContainer.class)
+                .getMappedResults();
+
+        if (idsContainers != null && !idsContainers.isEmpty()) {
+            accountIds = idsContainers.get(0).getIds();
+        } else {
+            accountIds = new ArrayList<>();
+        }
+
+        return accountIds;
+    }
 }
