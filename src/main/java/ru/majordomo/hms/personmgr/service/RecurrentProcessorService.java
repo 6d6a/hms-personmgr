@@ -375,10 +375,11 @@ public class RecurrentProcessorService {
                         cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
                         dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
                         break;
-                    case DAY:
-                        cost = accountService.getCost();
-                        dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
-                        break;
+                        //Ежедневные услуги не считаем в рекуррент (сейчас это только 'Хранение архива данных')
+//                    case DAY:
+//                        cost = accountService.getCost();
+//                        dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
+//                        break;
                 }
 
             }

@@ -31,7 +31,9 @@ import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_CRE
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_UPDATE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_USER_CREATE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.WEBSITE_UPDATE;
+import static ru.majordomo.hms.personmgr.common.Constants.LONG_LIFE;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ARCHIVE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 
 public class CommonAmqpController {
@@ -48,6 +50,7 @@ public class CommonAmqpController {
     protected AmqpSender amqpSender;
     private FtpUserService ftpUserService;
     protected AccountHistoryManager history;
+    private ResourceArchiveService resourceArchiveService;
 
     protected String resourceName = "";
 
@@ -110,6 +113,11 @@ public class CommonAmqpController {
     @Autowired
     public void setFtpUserService(FtpUserService ftpUserService) {
         this.ftpUserService = ftpUserService;
+    }
+
+    @Autowired
+    public void setResourceArchiveService(ResourceArchiveService resourceArchiveService) {
+        this.resourceArchiveService = resourceArchiveService;
     }
 
     @Value("${hms.instance.name}")
@@ -246,14 +254,14 @@ public class CommonAmqpController {
                 Map<String, String> params = new HashMap<>();
 
                 ProcessingBusinessOperation businessOperation;
+                String resourceId;
 
                 switch (businessAction.getBusinessActionType()) {
                     case WEB_SITE_CREATE_RC:
-
                         SimpleServiceMessage mailMessage = new SimpleServiceMessage();
                         mailMessage.setAccountId(account.getId());
 
-                        String resourceId = getResourceIdByObjRef(message.getObjRef());
+                        resourceId = getResourceIdByObjRef(message.getObjRef());
 
                         params.put(RESOURCE_ID_KEY, resourceId);
 
@@ -287,6 +295,24 @@ public class CommonAmqpController {
 
                     case FTP_USER_CREATE_RC:
                         ftpUserService.processServices(account);
+
+                        break;
+
+                    case RESOURCE_ARCHIVE_CREATE_RC:
+                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        if (businessOperation != null) {
+                            resourceId = getResourceIdByObjRef(message.getObjRef());
+
+                            businessOperation.addParam(RESOURCE_ID_KEY, resourceId);
+
+                            processingBusinessOperationRepository.save(businessOperation);
+
+                            if (businessOperation.getParam(LONG_LIFE) != null && (boolean) businessOperation.getParam(LONG_LIFE)) {
+                                resourceArchiveService.createFromProcessingBusinessOperation(businessOperation);
+                            }
+
+                            resourceArchiveService.notifyByProcessingBusinessOperation(businessOperation);
+                        }
 
                         break;
                 }
@@ -384,10 +410,20 @@ public class CommonAmqpController {
 
         if (businessAction != null) {
             PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
+            ProcessingBusinessOperation businessOperation;
 
             switch (businessAction.getBusinessActionType()) {
                 case FTP_USER_DELETE_RC:
                     ftpUserService.processServices(account);
+
+                    break;
+                case RESOURCE_ARCHIVE_DELETE_RC:
+                    if (state.equals(State.PROCESSED)) {
+                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        if (businessOperation != null && businessOperation.getParam(LONG_LIFE) != null && (boolean) businessOperation.getParam(LONG_LIFE)) {
+                            resourceArchiveService.deleteLongLifeResourceArchiveAndAccountService(businessOperation);
+                        }
+                    }
 
                     break;
             }

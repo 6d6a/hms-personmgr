@@ -25,6 +25,9 @@ import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager;
 import ru.majordomo.hms.rc.user.resources.Domain;
+import ru.majordomo.hms.rc.user.resources.Resource;
+import ru.majordomo.hms.rc.user.resources.ResourceArchive;
+import ru.majordomo.hms.rc.user.resources.ResourceArchiveType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -50,6 +53,7 @@ public class AccountNotificationEventListener {
     private final AccountNotificationStatRepository accountNotificationStatRepository;
     private final StatFeignClient statFeignClient;
     private final BitrixLicenseOrderManager bitrixLicenseOrderManager;
+    private final RcUserFeignClient rcUserFeignClient;
 
     @Autowired
     public AccountNotificationEventListener(
@@ -62,7 +66,8 @@ public class AccountNotificationEventListener {
             CartManager cartManager,
             AccountNotificationStatRepository accountNotificationStatRepository,
             StatFeignClient statFeignClient,
-            BitrixLicenseOrderManager bitrixLicenseOrderManager
+            BitrixLicenseOrderManager bitrixLicenseOrderManager,
+            RcUserFeignClient rcUserFeignClient
     ) {
         this.accountHelper = accountHelper;
         this.accountStatRepository = accountStatRepository;
@@ -74,6 +79,7 @@ public class AccountNotificationEventListener {
         this.accountNotificationStatRepository = accountNotificationStatRepository;
         this.statFeignClient = statFeignClient;
         this.bitrixLicenseOrderManager = bitrixLicenseOrderManager;
+        this.rcUserFeignClient = rcUserFeignClient;
     }
 
     @EventListener
@@ -348,6 +354,68 @@ public class AccountNotificationEventListener {
         if (daysAgo.contains(daysDifferent)) {
             accountNotificationHelper.sendMailForDeactivatedAccount(account, dateAccountDisableByNotEnoughMoney);
         }
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(ResourceArchiveCreatedSendMailEvent event) {
+        String archivedResourceId = event.getArchivedResourceId();
+        String resourceArchiveId = event.getResourceArchiveId();
+        ResourceArchiveType resourceArchiveType = event.getResourceArchiveType();
+
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        Resource resource = null;
+        String apiName = null;
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+
+        ResourceArchive resourceArchive = null;
+        try {
+            resourceArchive = rcUserFeignClient.getResourceArchive(account.getId(), resourceArchiveId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (resourceArchive == null) {
+            return;
+        }
+
+        parameters.put("archive_link", resourceArchive.getFileLink());
+
+        switch (resourceArchiveType) {
+            case WEBSITE:
+                try {
+                    resource = rcUserFeignClient.getWebSite(account.getId(), archivedResourceId);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                apiName = "MajordomoHmsArchiveSite";
+
+                break;
+            case DATABASE:
+
+                try {
+                    resource = rcUserFeignClient.getDatabase(account.getId(), archivedResourceId);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                apiName = "MajordomoHmsArchiveDatabase";
+
+                break;
+        }
+
+        if (resource == null) {
+            return;
+        }
+
+
+        parameters.put("resource_name", resource.getName());
+
+        accountNotificationHelper.sendMail(account, apiName, 10, parameters);
     }
 
     @EventListener
