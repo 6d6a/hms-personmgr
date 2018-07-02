@@ -23,6 +23,19 @@ public interface RcUserFeignClient {
     @GetMapping(value = "/{accountId}/ftp-user/count", consumes = "application/json")
     Count getFtpUserCount(@PathVariable("accountId") String accountId);
 
+    @GetMapping(value = "/{accountId}/resource-archive/count", consumes = "application/json")
+    Count getResourceArchiveCount(
+            @PathVariable("accountId") String accountId,
+            @RequestParam(value = "archivedResourceId", required = false) String archivedResourceId,
+            @RequestParam(value = "resourceType", required = false) ResourceArchiveType resourceType
+    );
+
+    @GetMapping(value = "/{accountId}/resource-archive/{resourceArchiveId}")
+    ResourceArchive getResourceArchive(@PathVariable("accountId") String accountId, @PathVariable("resourceArchiveId") String resourceArchiveId);
+
+    @GetMapping(value = "/resource-archive")
+    Collection<ResourceArchive> getResourceArchives();
+
     @GetMapping(value = "/{accountId}/unix-account")
     Collection<UnixAccount> getUnixAccounts(@PathVariable("accountId") String accountId);
 

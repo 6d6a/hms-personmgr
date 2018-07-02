@@ -3,20 +3,40 @@ package ru.majordomo.hms.personmgr.controller.rest.resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.service.ResourceArchiveService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
+import ru.majordomo.hms.rc.user.resources.ResourceArchiveType;
+
+import static ru.majordomo.hms.personmgr.common.Constants.ARCHIVED_RESOURCE_ID_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_TYPE;
 
 @RestController
 @RequestMapping("/{accountId}/resource-archive")
 @Validated
 public class ResourceArchiveResourceRestController extends CommonRestController {
+    private final ResourceArchiveService resourceArchiveService;
+
+    public ResourceArchiveResourceRestController(
+            ResourceArchiveService resourceArchiveService
+    ) {
+        this.resourceArchiveService = resourceArchiveService;
+    }
 
     @PostMapping
     public ResponseEntity<SimpleServiceMessage> create(
@@ -28,9 +48,25 @@ public class ResourceArchiveResourceRestController extends CommonRestController 
 
         logger.debug("Creating Resource Archive. Message: " + message.toString());
 
-        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.RESOURCE_ARCHIVE_CREATE, BusinessActionType.RESOURCE_ARCHIVE_CREATE_RC, message);
+        if (!request.isUserInRole("ADMIN") && !request.isUserInRole("OPERATOR")) {
+            throw new ParameterWithRoleSecurityException("Создание архива запрещено");
+        }
 
-        history.save(accountId, "Поступила заявка на создание архива (имя: " + message.getParam("name") + ")", request);
+        String archivedResourceId = (String) message.getParam(ARCHIVED_RESOURCE_ID_KEY);
+        ResourceArchiveType resourceArchiveType = ResourceArchiveType.valueOf((String) message.getParam(RESOURCE_TYPE));
+
+        if (!resourceArchiveService.canCreateResourceArchive(accountId, archivedResourceId, resourceArchiveType)) {
+            throw new ParameterValidationException("Для создания нового архива необходимо удалить уже имеющийся архив");
+        }
+
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(
+                BusinessOperationType.RESOURCE_ARCHIVE_CREATE,
+                BusinessActionType.RESOURCE_ARCHIVE_CREATE_RC,
+                message
+        );
+
+        history.save(accountId, "Поступила заявка на создание архива (имя: "
+                + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -45,11 +81,20 @@ public class ResourceArchiveResourceRestController extends CommonRestController 
         message.setAccountId(accountId);
         message.getParams().put("resourceId", resourceId);
 
+        if (!request.isUserInRole("ADMIN") && !request.isUserInRole("OPERATOR")) {
+            throw new ParameterWithRoleSecurityException("Обновление архива запрещено");
+        }
+
         logger.debug("Updating Resource Archive with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.RESOURCE_ARCHIVE_UPDATE, BusinessActionType.RESOURCE_ARCHIVE_UPDATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(
+                BusinessOperationType.RESOURCE_ARCHIVE_UPDATE,
+                BusinessActionType.RESOURCE_ARCHIVE_UPDATE_RC,
+                message
+        );
 
-        history.save(accountId, "Поступила заявка на обновление архива (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
+        history.save(accountId, "Поступила заявка на обновление архива (Id: "
+                + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
@@ -64,11 +109,20 @@ public class ResourceArchiveResourceRestController extends CommonRestController 
         message.addParam("resourceId", resourceId);
         message.setAccountId(accountId);
 
+        if (!request.isUserInRole("ADMIN") && !request.isUserInRole("OPERATOR")) {
+            throw new ParameterWithRoleSecurityException("Удаление архива запрещено");
+        }
+
         logger.debug("Deleting Resource Archive with id " + resourceId + " " + message.toString());
 
-        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.RESOURCE_ARCHIVE_DELETE, BusinessActionType.RESOURCE_ARCHIVE_DELETE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(
+                BusinessOperationType.RESOURCE_ARCHIVE_DELETE,
+                BusinessActionType.RESOURCE_ARCHIVE_DELETE_RC,
+                message
+        );
 
-        history.save(accountId, "Поступила заявка на удаление архива (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
+        history.save(accountId, "Поступила заявка на удаление архива (Id: "
+                + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }

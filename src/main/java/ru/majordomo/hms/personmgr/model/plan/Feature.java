@@ -18,7 +18,8 @@ public enum Feature {
     DATABASE_USER,
     BUSINESS_SERVICES,
     DOCUMENT_PACKAGE_ORDER,
-    REDIRECT;
+    REDIRECT,
+    LONG_LIFE_RESOURCE_ARCHIVE;
 
     public boolean isOnlyOnePerAccount() {
         switch (this) {

@@ -42,6 +42,7 @@ public class Constants {
     public static final String SERVICE_MONEY_RETURN_PREFIX = "service_money_return_";
     public static final String SERVICE_MONEY_TRANSFER_PREFIX = "service_money_transfer_";
     public static final String RESOURCE_ID_KEY = "resourceId";
+    public static final String ARCHIVED_RESOURCE_ID_KEY = "archivedResourceId";
     public static final String DOMAIN_NAME_KEY = "domainName";
     public static final String ACCOUNT_ID_KEY = "accountId";
     public static final String PASSWORD_KEY = "password";
@@ -127,6 +128,9 @@ public class Constants {
     public static final String SUCCESS_KEY = "success";
     public static final String APPSCAT_ROUTING_KEY = "appscat";
     public static final String MJ_PARENT_CLIENT_ID_IN_REGISTRANT = "2";
+    public static final String LONG_LIFE = "longLife";
+    public static final String RESOURCE_ARCHIVE_ID = "resourceArchiveId";
+    public static final String RESOURCE_TYPE = "resourceType";
 
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;
@@ -177,6 +181,7 @@ public class Constants {
     public static final int ADDITIONAL_QUOTA_100_ID = 15;
     //Id услуги Доп.место
     public static final String ADDITIONAL_QUOTA_100_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_QUOTA_100_ID;
+    public static final String LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID = "service_long_life_resource_archive";
     //Размер одной услуги Доп.место 100Мб
     public static final long ADDITIONAL_QUOTA_100_CAPACITY = 102400L;
 

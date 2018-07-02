@@ -8,7 +8,6 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
@@ -67,6 +66,7 @@ public class AccountHelper {
     private final PlanManager planManager;
     private final AccountStatHelper accountStatHelper;
     private final AccountNoticeRepository accountNoticeRepository;
+    private final ResourceArchiveService resourceArchiveService;
 
     @Autowired
     public AccountHelper(
@@ -86,7 +86,8 @@ public class AccountHelper {
             AccountHistoryManager history,
             PlanManager planManager,
             AccountStatHelper accountStatHelper,
-            AccountNoticeRepository accountNoticeRepository
+            AccountNoticeRepository accountNoticeRepository,
+            ResourceArchiveService resourceArchiveService
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -105,6 +106,7 @@ public class AccountHelper {
         this.planManager = planManager;
         this.accountStatHelper = accountStatHelper;
         this.accountNoticeRepository = accountNoticeRepository;
+        this.resourceArchiveService = resourceArchiveService;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -1077,7 +1079,10 @@ public class AccountHelper {
 //        } else if (paymentService.getId().equals(smsPaymentService.getId())) {
 //            Для SMS достаточно выключать сервис
 //            TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
+        } else if (paymentServiceOldId.equals(LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID)) {
+            resourceArchiveService.processAccountServiceDelete(accountService);
         }
+
         history.saveForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
     }
 
