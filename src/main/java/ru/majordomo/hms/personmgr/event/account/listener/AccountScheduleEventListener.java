@@ -160,6 +160,6 @@ public class AccountScheduleEventListener {
     public void on(ProcessDeleteDataInactiveAccountsEvent event) {
         logger.debug("We got ProcessDeleteDataInactiveAccountsEvent");
 
-        userDataHelper.processDeleteDataInactiveAccount();
+        userDataHelper.deleteDataInactiveAccount();
     }
 }

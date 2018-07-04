@@ -14,6 +14,7 @@ import ru.majordomo.hms.rc.user.resources.UnixAccount;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
 
@@ -45,7 +46,7 @@ public class UserDataHelper {
         this.deleteDataAfterDays = deleteDataAfterDays;
     }
 
-    public void processDeleteDataInactiveAccount() {
+    public void deleteDataInactiveAccount() {
         LocalDate dateForDelete = LocalDate.now().minusDays(deleteDataAfterDays);
         LocalDateTime after = LocalDateTime.of(dateForDelete, LocalTime.MIN);
         LocalDateTime before = LocalDateTime.of(dateForDelete, LocalTime.MAX);
@@ -53,12 +54,12 @@ public class UserDataHelper {
         List<String> accountIds = accountManager.findByActiveAndDeactivatedBetween(false, after, before);
 
         for (String accountId : accountIds) {
-            processDeleteDataInactiveAccount(accountId);
+            deleteDataInactiveAccount(accountId);
         }
 
     }
 
-    private void processDeleteDataInactiveAccount(String accountId) {
+    private void deleteDataInactiveAccount(String accountId) {
         PersonalAccount account = accountManager.findOne(accountId);
         if (account.isActive()) {
             String message = "Аккаунт " + account.getName() + " активен, данные не удаляются";

@@ -14,7 +14,6 @@ import ru.majordomo.hms.personmgr.dto.request.MysqlRestoreRequest;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
-import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.service.restic.ResticClient;
@@ -369,26 +368,23 @@ public class BackupService {
     }
 
     private void restoreAllDb(PersonalAccount account, LocalDateTime deactivated, LocalDate dataWillBeDeletedAfter) {
-        List<Snapshot> allDbSnapshots = getDbSnapshots(account);
+        Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
 
-        List<Snapshot> inactiveTimeDbSnapshots = getSnapshotsByTimeBetween(
-                allDbSnapshots, dataWillBeDeletedAfter, deactivated.toLocalDate());
-
-        if (inactiveTimeDbSnapshots.isEmpty()) {
-            history.save(
-                    account,
-                    "Не найдено резервных копий баз данных для восстановления после включения, deactivated: "
-                            + deactivated.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            );
+        if (databases.isEmpty()) {
+            logger.info("account id: %s not found databases for restore after enabled account", account.getId());
             return;
         }
 
-        Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+        List<Snapshot> allDbSnapshots = getDbSnapshots(account);
+
+        List<Snapshot> inactiveTimeDbSnapshots = getSnapshotsBetween(
+                allDbSnapshots, dataWillBeDeletedAfter, deactivated.toLocalDate());
+
         for (Database database: databases) {
             Optional<Snapshot> snapshotOptional = inactiveTimeDbSnapshots
                     .stream()
                     .filter(snapshot ->
-                            snapshot.getPaths().get(0).replaceAll("(\\.sql|\\.gz)$", "")
+                            snapshot.getPaths().get(0).replaceAll("(\\.sql|\\.gz)+$", "")
                                     .equals(database.getName())
                     ).findFirst();
 
@@ -407,9 +403,15 @@ public class BackupService {
     }
 
     private void restoreUnixAccount(PersonalAccount account, LocalDateTime deactivated, LocalDate dataWillBeDeletedAfter) {
+        Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
+        if (unixAccounts.isEmpty()) {
+            logger.info("account id %s not found unixAccount for restoring");
+            return;
+        }
+
         List<Snapshot> allFileSnapshots = getFileSnapshots(account);
 
-        List<Snapshot> inactiveTimeFileSnapshots = getSnapshotsByTimeBetween(
+        List<Snapshot> inactiveTimeFileSnapshots = getSnapshotsBetween(
                 allFileSnapshots, dataWillBeDeletedAfter, deactivated.toLocalDate());
 
         if (inactiveTimeFileSnapshots.isEmpty()) {
@@ -419,14 +421,12 @@ public class BackupService {
             return;
         }
 
-        Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
-        for (UnixAccount unixAccount: unixAccounts) {
-            Snapshot snapshot = inactiveTimeFileSnapshots.get(0);
-            restoreAllFiles(unixAccount, snapshot);
-        }
+        UnixAccount unixAccount = unixAccounts.iterator().next();
+        Snapshot snapshot = inactiveTimeFileSnapshots.get(0);
+        restoreAllFiles(unixAccount, snapshot);
     }
 
-    private List<Snapshot> getSnapshotsByTimeBetween(List<Snapshot> snapshots, LocalDate after, LocalDate before) {
+    private List<Snapshot> getSnapshotsBetween(List<Snapshot> snapshots, LocalDate after, LocalDate before) {
         return snapshots
                 .stream()
                 .filter(snapshot ->
