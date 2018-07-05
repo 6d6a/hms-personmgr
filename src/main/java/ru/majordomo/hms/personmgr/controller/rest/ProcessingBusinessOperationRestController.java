@@ -1,10 +1,13 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
 import com.fasterxml.jackson.annotation.JsonView;
+import com.querydsl.core.types.Predicate;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,9 +18,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
+import ru.majordomo.hms.personmgr.querydsl.ProcessingBusinessOperationQuerydslBinderCustomizer;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -77,6 +83,23 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
 
         return new ResponseEntity<>(operations, HttpStatus.OK);
     }
+
+    @PreAuthorize("hasAuthority('PROCESSING_OPERATIONS_VIEW')")
+    @JsonView(Views.Internal.class)
+    @RequestMapping(value = "/processing-operations/filter", method = RequestMethod.GET)
+    public ResponseEntity<List<ProcessingBusinessOperation>> filterAll(
+            @QuerydslPredicate(
+                    root = ProcessingBusinessOperation.class,
+                    bindings = ProcessingBusinessOperationQuerydslBinderCustomizer.class
+            ) Predicate predicate,
+            Sort sort
+    ) {
+        List<ProcessingBusinessOperation> operations = (List<ProcessingBusinessOperation>) repository.findAll(predicate, sort);
+
+        return new ResponseEntity<>(operations, HttpStatus.OK);
+    }
+
+
 
     @PreAuthorize("hasRole('ADMIN')")
     @JsonView(Views.Internal.class)
