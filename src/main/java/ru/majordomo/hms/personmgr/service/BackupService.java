@@ -205,7 +205,7 @@ public class BackupService {
         }
 
         SimpleServiceMessage message = messageForRestore(
-                unixAccount, server, pathTo, pathFrom, deleteExtraneous, serverName, snapshotId);
+                unixAccount, server, pathTo, pathFrom, deleteExtraneous, snapshot);
 
         ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
                 BusinessOperationType.FILE_BACKUP_RESTORE, FILE_BACKUP_RESTORE_TE, message);
@@ -247,8 +247,7 @@ public class BackupService {
                 pathTo,
                 pathFrom,
                 true,
-                snapshot.getServerName(),
-                snapshot.getShortId()
+                snapshot
         );
     }
 
@@ -258,15 +257,16 @@ public class BackupService {
             String pathTo,
             String pathFrom,
             Boolean deleteExtraneous,
-            String serverName,
-            String snapshotId
+            Snapshot snapshot
     ) {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(unixAccount.getAccountId());
         message.addParam("realRoutingKey", getRoutingKeyForTE(server));
         message.setObjRef(format("http://%s/%s/%s", RC_USER_APP_NAME, UNIX_ACCOUNT_RESOURCE_NAME, unixAccount.getId()));
         message.addParam(DATA_DESTINATION_URI_KEY, format("file://%s", pathTo));
-        message.addParam(DATASOURCE_URI_KEY, format("rsync://restic@bareos.intr/restic/%s/ids/%s%s", serverName, snapshotId, pathFrom));
+        message.addParam(DATASOURCE_URI_KEY, format("rsync://restic@bareos.intr/restic/%s/ids/%s%s",
+                snapshot.getServerName(), snapshot.getServerName(), pathFrom)
+        );
 
         Map<String, Object> dataSourceParams = new HashMap<>();
         dataSourceParams.put(DELETE_EXTRANEOUS_KEY, deleteExtraneous);
@@ -304,16 +304,16 @@ public class BackupService {
         return sourceHomeDir.replaceAll("/+$", "");
     }
 
-    private String getRoutingKeyForTE(Server server) {
+    private static String getRoutingKeyForTE(Server server) {
         return "te." + server.getName().split("\\.")[0];
     }
 
     private Server getServer(String serverId) throws ParameterValidationException {
         try {
             return rcStaffFeignClient.getServerById(serverId);
-        } catch (Exception ignore) {
+        } catch (Exception e) {
             logger.error(format("Не найден сервер с id %s class: %s message: %s",
-                    serverId, ignore.getClass().getName(), ignore.getMessage())
+                    serverId, e.getClass().getName(), e.getMessage())
             );
             throw new ParameterValidationException("Сервер не найден");
         }
@@ -322,9 +322,9 @@ public class BackupService {
     private Server getServerByServiceId(String serviceId) throws ParameterValidationException {
         try {
             return rcStaffFeignClient.getServerByServiceId(serviceId);
-        } catch (Exception ignore) {
+        } catch (Exception e) {
             logger.error(format("Не найден сервер с serviceId %s class: %s message: %s",
-                    serviceId, ignore.getClass().getName(), ignore.getMessage())
+                    serviceId, e.getClass().getName(), e.getMessage())
             );
             throw new ParameterValidationException("Сервер не найден");
         }
@@ -352,7 +352,7 @@ public class BackupService {
         return unixAccounts.iterator().next();
     }
 
-    public int daysAccessToBackup(PersonalAccount account, StorageType type) {
+    private int daysAccessToBackup(PersonalAccount account, StorageType type) {
         return 7;
     }
 
