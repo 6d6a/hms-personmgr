@@ -23,6 +23,7 @@ public class AccountScheduleEventListener {
     private final RecurrentsScheduler recurrentsScheduler;
     private final ArchivalPlanProcessor archivalPlanProcessor;
     private final UserDataHelper userDataHelper;
+    private final ResourceArchiveScheduler resourceArchiveScheduler;
 
     @Autowired
     public AccountScheduleEventListener(
@@ -32,7 +33,8 @@ public class AccountScheduleEventListener {
             AbonementsScheduler abonementsScheduler,
             RecurrentsScheduler recurrentsScheduler,
             ArchivalPlanProcessor archivalPlanProcessor,
-            UserDataHelper userDataHelper
+            UserDataHelper userDataHelper,
+            ResourceArchiveScheduler resourceArchiveScheduler
     ) {
         this.notificationScheduler = notificationScheduler;
         this.domainsScheduler = domainsScheduler;
@@ -41,6 +43,7 @@ public class AccountScheduleEventListener {
         this.recurrentsScheduler = recurrentsScheduler;
         this.archivalPlanProcessor = archivalPlanProcessor;
         this.userDataHelper = userDataHelper;
+        this.resourceArchiveScheduler = resourceArchiveScheduler;
     }
 
     @EventListener
@@ -137,6 +140,14 @@ public class AccountScheduleEventListener {
         logger.debug("We got ProcessRecurrentsEvent");
 
         recurrentsScheduler.processRecurrents();
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(ProcessResourceArchivesEvent event) {
+        logger.debug("We got ProcessResourceArchivesEvent");
+
+        resourceArchiveScheduler.processResourceArchives();
     }
 
     @EventListener

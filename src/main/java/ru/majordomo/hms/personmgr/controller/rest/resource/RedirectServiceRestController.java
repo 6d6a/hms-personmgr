@@ -6,32 +6,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.BusinessOperationType;
-import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
-import ru.majordomo.hms.personmgr.dto.request.RedirectServiceBuyRequest;
-import ru.majordomo.hms.personmgr.event.account.RedirectWasProlongEvent;
-import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
-import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.model.plan.Feature;
-import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
-import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
-import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
-import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
-import ru.majordomo.hms.personmgr.service.*;
-import ru.majordomo.hms.personmgr.validation.ObjectId;
-import ru.majordomo.hms.rc.user.resources.Domain;
-import ru.majordomo.hms.rc.user.resources.Redirect;
-import ru.majordomo.hms.rc.user.resources.WebSite;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
-import javax.validation.Valid;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -40,9 +22,34 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
 
-import static ru.majordomo.hms.personmgr.common.Constants.REDIRECT_SERVICE_OLD_ID;
-import static ru.majordomo.hms.personmgr.common.FieldRoles.REDIRECT_POST;
+import javax.validation.Valid;
+
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
+import ru.majordomo.hms.personmgr.dto.request.RedirectServiceBuyRequest;
+import ru.majordomo.hms.personmgr.event.account.RedirectWasProlongEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
+import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
+import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
+import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
+import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
+import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
+import ru.majordomo.hms.personmgr.service.NsCheckService;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.service.ServiceAbonementService;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
+import ru.majordomo.hms.rc.user.resources.Domain;
+import ru.majordomo.hms.rc.user.resources.Redirect;
+import ru.majordomo.hms.rc.user.resources.WebSite;
+
 import static ru.majordomo.hms.personmgr.common.FieldRoles.REDIRECT_PATCH;
+import static ru.majordomo.hms.personmgr.common.FieldRoles.REDIRECT_POST;
 
 @RestController
 @Validated
@@ -51,7 +58,6 @@ public class RedirectServiceRestController extends CommonRestController {
     private static final int LIMIT_REDIRECT_FOR_DOMAIN = 10;
     private static final int MAX_YEARS_PROLONG = 3;
 
-    private AccountHelper accountHelper;
     private RcUserFeignClient rcUserFeignClient;
     private AccountRedirectServiceRepository accountRedirectServiceRepository;
     private NsCheckService nsCheckService;
@@ -60,14 +66,12 @@ public class RedirectServiceRestController extends CommonRestController {
 
     @Autowired
     public RedirectServiceRestController(
-            AccountHelper accountHelper,
             RcUserFeignClient rcUserFeignClient,
             AccountRedirectServiceRepository accountRedirectServiceRepository,
             NsCheckService nsCheckService,
             ServicePlanRepository servicePlanRepository,
             ServiceAbonementService serviceAbonementService
     ) {
-        this.accountHelper = accountHelper;
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountRedirectServiceRepository = accountRedirectServiceRepository;
         this.nsCheckService = nsCheckService;

@@ -14,13 +14,18 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
+import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.repository.ServiceAbonementRepository;
+import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 import ru.majordomo.hms.personmgr.service.BusinessHelper;
 import ru.majordomo.hms.personmgr.service.PlanCheckerService;
 import ru.majordomo.hms.personmgr.service.ResourceChecker;
@@ -38,6 +43,8 @@ public class CommonRestController {
     protected BusinessHelper businessHelper;
     protected ResourceChecker resourceChecker;
     protected AccountHistoryManager history;
+    protected ServicePlanRepository servicePlanRepository;
+    protected ServiceAbonementRepository serviceAbonementRepository;
 
     @Autowired
     public void setAccountHistoryService(AccountHistoryManager history) {
@@ -77,6 +84,16 @@ public class CommonRestController {
     @Autowired
     public void setResourceChecker(ResourceChecker resourceChecker) {
         this.resourceChecker = resourceChecker;
+    }
+
+    @Autowired
+    public void setServicePlanRepository(ServicePlanRepository servicePlanRepository) {
+        this.servicePlanRepository = servicePlanRepository;
+    }
+
+    @Autowired
+    public void setServiceAbonementRepository(ServiceAbonementRepository serviceAbonementRepository) {
+        this.serviceAbonementRepository = serviceAbonementRepository;
     }
 
     private SimpleServiceMessage createResponse() {
@@ -168,15 +185,21 @@ public class CommonRestController {
                         account.getId(), paymentService.getId()
                 );
 
-                if (accountServices == null || accountServices.isEmpty()) {
+                ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ANTI_SPAM, true);
+
+                List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
+
+                if ((accountServiceAbonements == null || accountServiceAbonements.isEmpty()) && (accountServices == null || accountServices.isEmpty())) {
                     throw new ParameterValidationException("Услуга анти-спам не подключена");
                 }
 
-                accountServices.forEach(item-> {
-                    if (!item.isEnabled()){
-                        throw new ParameterValidationException("Услуга анти-спам не подключена");
-                    }
-                });
+                if (accountServices != null && !accountServices.isEmpty()) {
+                    accountServices.forEach(item -> {
+                        if (!item.isEnabled()) {
+                            throw new ParameterValidationException("Услуга анти-спам не подключена");
+                        }
+                    });
+                }
             }
 
         });
