@@ -378,24 +378,14 @@ public class AccountServiceRestController extends CommonRestController {
         return new ResponseEntity<>(this.createSuccessResponse("accountService " + (enabled ? "enabled" : "disabled") + " for anti-spam"), HttpStatus.OK);
     }
 
-    @PostMapping("/{accountId}/account-service/{accountServiceAbonementId}/prolong")
-    public ResponseEntity<AccountServiceAbonement> prolongSmsServiceAbonement(
+    @GetMapping("/{accountId}/account-service-abonement")
+    public ResponseEntity<Page<AccountServiceAbonement>> getAllServiceAbonements(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @PathVariable(value = "accountServiceAbonementId") String accountServiceAbonementId
+            Pageable pageable
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
+        Page<AccountServiceAbonement> accountServices = serviceAbonementRepository.findByPersonalAccountId(accountId, pageable);
 
-        AccountServiceAbonement accountServiceAbonement = accountServiceAbonementManager.findByIdAndPersonalAccountId(accountServiceAbonementId, accountId);
-
-        if (accountServiceAbonement == null) {
-            throw new ParameterValidationException("Абонемент на услугу не найден.");
-        }
-
-        serviceAbonementService.prolongAbonement(account, accountServiceAbonement);
-
-        accountHelper.switchAntiSpamForMailboxes(account, true);
-
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(accountServices, HttpStatus.OK);
     }
 
     @PreAuthorize("hasAuthority('MANAGE_SERVICES')")
