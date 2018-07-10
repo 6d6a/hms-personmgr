@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountWasEnabled;
 import ru.majordomo.hms.personmgr.exception.BaseException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
@@ -460,6 +461,10 @@ public class AccountHelper {
 
             accountManager.setActive(account.getId(), state);
             switchAccountResources(account, state);
+
+            if (state) {
+                publisher.publishEvent(new AccountWasEnabled(account.getId(), account.getDeactivated()));
+            }
         }
     }
 

@@ -7,16 +7,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.dto.*;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.StatServiceHelper;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import static java.time.temporal.ChronoUnit.DAYS;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
@@ -138,5 +145,15 @@ public class StatServiceRestController {
         if (date == null) { date = LocalDate.now().minusDays(1); }
 
         return ResponseEntity.ok(statServiceHelper.getRegisterWithPlanCounters(date));
+    }
+
+    @GetMapping("/processing-business-operation")
+    public ResponseEntity<List<Map>> processingBusinessOperationsStatistic(
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam LocalDate start,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam LocalDate end,
+            @RequestParam Set<State> states,
+            @RequestParam Set<BusinessOperationType> types
+    ){
+        return ResponseEntity.ok(statServiceHelper.getBusinessOperationsStat(types, states, start, end));
     }
 }
