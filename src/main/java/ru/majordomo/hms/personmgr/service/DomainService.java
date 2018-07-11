@@ -411,54 +411,6 @@ public class DomainService {
 
         DomainTld domainTld = getDomainTld(domainName);
 
-        if (accountPromotion != null) {
-            PromocodeAction actionFreeDomain = accountPromotion.getActions().get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
-            PromocodeAction actionDiscountDomain = accountPromotion.getActions().get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
-            if (actionFreeDomain != null) {
-                List<String> availableTlds = (List<String>) actionFreeDomain.getProperties().get("tlds");
-
-                if (availableTlds.contains(domainTld.getTld())) {
-                    Optional<AccountPromotion> foundAccountPromotion = accountPromotions
-                            .stream()
-                            .filter(accountPromotion1 -> accountPromotion1.getId().equals(accountPromotion.getId()))
-                            .findFirst();
-
-                    if (foundAccountPromotion.isPresent()) {
-                        String foundAccountPromotionId = foundAccountPromotion.get().getId();
-                        accountPromotionManager.deactivateAccountPromotionByIdAndActionId(
-                                foundAccountPromotionId,
-                                BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID
-                        );
-                        isFreeDomain = true;
-                        message.addParam("freeDomainPromotionId", foundAccountPromotionId);
-                    }
-                }
-            } else if (actionDiscountDomain != null) {
-                List<String> availableTlds = (List<String>) actionDiscountDomain.getProperties().get("tlds");
-
-                if (availableTlds.contains(domainTld.getTld())) {
-                    Optional<AccountPromotion> foundAccountPromotion = accountPromotions
-                            .stream()
-                            .filter(accountPromotion1 -> accountPromotion1.getId().equals(accountPromotion.getId()))
-                            .findFirst();
-
-                    if (foundAccountPromotion.isPresent()) {
-                        String foundAccountPromotionId = foundAccountPromotion.get().getId();
-                        accountPromotionManager.deactivateAccountPromotionByIdAndActionId(
-                                foundAccountPromotionId,
-                                DOMAIN_DISCOUNT_RU_RF_ACTION_ID
-                        );
-
-                        // Устанавливает цену со скидкой
-                        domainTld.getRegistrationService().setCost(BigDecimal.valueOf((Integer) actionDiscountDomain.getProperties().get("cost")));
-                        message.addParam("domainDiscountPromotionId", foundAccountPromotionId);
-                        isDiscountedDomain = true;
-                    }
-                }
-            }
-        }
-
-        //Проверить домен на премиальность
         AvailabilityInfo availabilityInfo = getAvailabilityInfo(domainName);
 
         //Проверить домен на премиальность, если да - установить новую цену
@@ -466,19 +418,66 @@ public class DomainService {
             domainTld.getRegistrationService().setCost(availabilityInfo.getPremiumPrice());
             isFreeDomain = false;
             isDiscountedDomain = false;
+        } else {
+            if (accountPromotion != null) {
+                PromocodeAction actionFreeDomain = accountPromotion.getActions().get(BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID);
+                PromocodeAction actionDiscountDomain = accountPromotion.getActions().get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
+                if (actionFreeDomain != null) {
+                    List<String> availableTlds = (List<String>) actionFreeDomain.getProperties().get("tlds");
+
+                    if (availableTlds.contains(domainTld.getTld())) {
+                        Optional<AccountPromotion> foundAccountPromotion = accountPromotions
+                                .stream()
+                                .filter(accountPromotion1 -> accountPromotion1.getId().equals(accountPromotion.getId()))
+                                .findFirst();
+
+                        if (foundAccountPromotion.isPresent()) {
+                            String foundAccountPromotionId = foundAccountPromotion.get().getId();
+                            isFreeDomain = true;
+                            message.addParam("freeDomainPromotionId", foundAccountPromotionId);
+                        }
+                    }
+                } else if (actionDiscountDomain != null) {
+                    List<String> availableTlds = (List<String>) actionDiscountDomain.getProperties().get("tlds");
+
+                    if (availableTlds.contains(domainTld.getTld())) {
+                        Optional<AccountPromotion> foundAccountPromotion = accountPromotions
+                                .stream()
+                                .filter(accountPromotion1 -> accountPromotion1.getId().equals(accountPromotion.getId()))
+                                .findFirst();
+
+                        if (foundAccountPromotion.isPresent()) {
+                            String foundAccountPromotionId = foundAccountPromotion.get().getId();
+
+                            // Устанавливает цену со скидкой
+                            domainTld.getRegistrationService().setCost(BigDecimal.valueOf((Integer) actionDiscountDomain.getProperties().get("cost")));
+                            message.addParam("domainDiscountPromotionId", foundAccountPromotionId);
+                            isDiscountedDomain = true;
+                        }
+                    }
+                }
+            }
+
         }
 
         if (!isFreeDomain) {
-            accountHelper.checkBalance(account, domainTld.getRegistrationService());
             accountHelper.checkBalanceWithoutBonus(account, domainTld.getRegistrationService());
+
+            deactivateAccountPromotion(message);
 
             ChargeMessage chargeMessage = new ChargeMessage.Builder(domainTld.getRegistrationService())
                     .excludeBonusPaymentType()
                     .build();
 
-            SimpleServiceMessage blockResult = accountHelper.block(account, chargeMessage);
-            String documentNumber = (String) blockResult.getParam("documentNumber");
-            message.addParam("documentNumber", documentNumber);
+            try {
+                SimpleServiceMessage blockResult = accountHelper.block(account, chargeMessage);
+                String documentNumber = (String) blockResult.getParam("documentNumber");
+                message.addParam("documentNumber", documentNumber);
+            } catch (Exception e) {
+                logger.info("DomainService.buy() with try block money catch " + e.getClass().getName() + " e.message: " + e.getMessage());
+                activateAccountPromotion(message);
+                throw e;
+            }
         }
 
         ProcessingBusinessOperation processingBusinessOperation = businessHelper.buildOperation(BusinessOperationType.DOMAIN_CREATE, message);
@@ -599,5 +598,37 @@ public class DomainService {
 //            }
         }
 
+    }
+
+    private void activateAccountPromotion(SimpleServiceMessage message) {
+        if (message.getParam("freeDomainPromotionId") != null) {
+            accountPromotionManager.activateAccountPromotionByIdAndActionId(
+                    (String) message.getParam("freeDomainPromotionId"),
+                    BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID
+            );
+        }
+
+        if (message.getParam("domainDiscountPromotionId") != null) {
+            accountPromotionManager.activateAccountPromotionByIdAndActionId(
+                    (String) message.getParam("domainDiscountPromotionId"),
+                    DOMAIN_DISCOUNT_RU_RF_ACTION_ID
+            );
+        }
+    }
+
+    private void deactivateAccountPromotion(SimpleServiceMessage message) {
+        if (message.getParam("freeDomainPromotionId") != null) {
+            accountPromotionManager.deactivateAccountPromotionByIdAndActionId(
+                    (String) message.getParam("freeDomainPromotionId"),
+                    BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID
+            );
+        }
+
+        if (message.getParam("domainDiscountPromotionId") != null) {
+            accountPromotionManager.deactivateAccountPromotionByIdAndActionId(
+                    (String) message.getParam("domainDiscountPromotionId"),
+                    DOMAIN_DISCOUNT_RU_RF_ACTION_ID
+            );
+        }
     }
 }
