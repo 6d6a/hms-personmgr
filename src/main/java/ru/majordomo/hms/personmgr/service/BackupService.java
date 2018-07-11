@@ -265,7 +265,7 @@ public class BackupService {
         message.setObjRef(format("http://%s/%s/%s", RC_USER_APP_NAME, UNIX_ACCOUNT_RESOURCE_NAME, unixAccount.getId()));
         message.addParam(DATA_DESTINATION_URI_KEY, format("file://%s", pathTo));
         message.addParam(DATASOURCE_URI_KEY, format("rsync://restic@bareos.intr/restic/%s/ids/%s%s",
-                snapshot.getServerName(), snapshot.getServerName(), pathFrom)
+                snapshot.getServerName(), snapshot.getShortId(), pathFrom)
         );
 
         Map<String, Object> dataSourceParams = new HashMap<>();
