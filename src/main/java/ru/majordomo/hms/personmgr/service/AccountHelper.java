@@ -142,10 +142,6 @@ public class AccountHelper {
         return new ArrayList<>();
     }
 
-    public AccountOwner getOwner(PersonalAccount account){
-        return accountOwnerManager.findOneByPersonalAccountId(account.getId());
-    }
-
     /**
      * Получим баланс
      *
@@ -621,47 +617,6 @@ public class AccountHelper {
         }
     }
 
-    public void setWritableForAccountQuotaServices(PersonalAccount account, Boolean state) {
-
-        try {
-            Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
-
-            for (UnixAccount unixAccount : unixAccounts) {
-                setWritableForUnixAccount(account, unixAccount, state);
-            }
-
-        } catch (Exception e) {
-            logger.error("account UnixAccounts writable switch failed for accountId: " + account.getId());
-            e.printStackTrace();
-        }
-
-        try {
-
-            Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
-
-            for (Mailbox mailbox : mailboxes) {
-                setWritableForMailbox(account, mailbox, state);
-            }
-
-        } catch (Exception e) {
-            logger.error("account Mailbox writable switch failed for accountId: " + account.getId());
-            e.printStackTrace();
-        }
-
-        try {
-
-            Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
-
-            for (Database database : databases) {
-                setWritableForDatabase(account, database, state);
-            }
-
-        } catch (Exception e) {
-            logger.error("account Database writable switch failed for accountId: " + account.getId());
-            e.printStackTrace();
-        }
-    }
-
     public void updateUnixAccountQuota(PersonalAccount account, Long quotaInBytes) {
         try {
 
@@ -701,54 +656,6 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
 
             String historyMessage = "Отправлена заявка на удаление SSL сертификата '" + sslCertificate.getName() + "'";
-            history.saveForOperatorService(account, historyMessage);
-        }
-    }
-
-    public void deleteAllMailboxes(PersonalAccount account) {
-        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
-
-        for (Mailbox mailbox : mailboxes) {
-            SimpleServiceMessage message = new SimpleServiceMessage();
-            message.setParams(new HashMap<>());
-            message.setAccountId(account.getId());
-            message.addParam("resourceId", mailbox.getId());
-
-            businessHelper.buildAction(BusinessActionType.MAILBOX_DELETE_RC, message);
-
-            String historyMessage = "Отправлена заявка на удаление почтового ящика '" + mailbox.getName() + "'";
-            history.saveForOperatorService(account, historyMessage);
-        }
-    }
-
-    public void deleteAllDatabases(PersonalAccount account) {
-        Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
-
-        for (Database database : databases) {
-            SimpleServiceMessage message = new SimpleServiceMessage();
-            message.setParams(new HashMap<>());
-            message.setAccountId(account.getId());
-            message.addParam("resourceId", database.getId());
-
-            businessHelper.buildAction(BusinessActionType.DATABASE_DELETE_RC, message);
-
-            String historyMessage = "Отправлена заявка на удаление базы данных '" + database.getName() + "'";
-            history.saveForOperatorService(account, historyMessage);
-        }
-    }
-
-    public void deleteAllDatabaseUsers(PersonalAccount account) {
-        Collection<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
-
-        for (DatabaseUser databaseUser : databaseUsers) {
-            SimpleServiceMessage message = new SimpleServiceMessage();
-            message.setParams(new HashMap<>());
-            message.setAccountId(account.getId());
-            message.addParam("resourceId", databaseUser.getId());
-
-            businessHelper.buildAction(BusinessActionType.DATABASE_USER_DELETE_RC, message);
-
-            String historyMessage = "Отправлена заявка на удаление пользователя баз данных '" + databaseUser.getName() + "'";
             history.saveForOperatorService(account, historyMessage);
         }
     }
@@ -865,14 +772,6 @@ public class AccountHelper {
 
     public BigDecimal getCostAbonement(PersonalAccount account) {
         return getCostAbonement(account.getPlanId(), "P1Y");
-    }
-
-    public BigDecimal getCostAbonement(PersonalAccount account, String period) {
-        return getCostAbonement(account.getPlanId(), period);
-    }
-
-    public BigDecimal getCostAbonement(String planId) {
-        return getCostAbonement(planId, "P1Y");
     }
 
     public BigDecimal getCostAbonement(String planId, String period) {

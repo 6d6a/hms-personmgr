@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
-import ru.majordomo.hms.personmgr.event.account.AccountDeactivatedSendMailEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountDeactivatedReSendMailEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyInactiveLongTimeEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSendInfoMailEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -37,7 +37,7 @@ public class NotificationScheduler {
     public void processAccountDeactivatedSendMail() {
         logger.info("Started processAccountDeactivatedSendMail");
         List<String> personalAccountIds = accountManager.findAccountIdsByActiveAndNotDeleted(false);
-        personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountDeactivatedSendMailEvent(accountId)));
+        personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountDeactivatedReSendMailEvent(accountId)));
         logger.info("Ended processAccountDeactivatedSendMail");
     }
 

@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
 import net.javacrumbs.shedlock.core.SchedulerLock;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -15,8 +17,17 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.ChargeResult;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
-import ru.majordomo.hms.personmgr.event.account.AccountSendMailNotificationRemainingDaysEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountCreditExpiredWithHostingAbonementSendMailEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountCreditExpiringSendMailEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountCreditExpiringWithHostingAbonementSendMailEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountCreditJustActivatedSendMailEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountCreditJustActivatedWithHostingAbonementSendMailEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountDeactivatedSendMailEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountDeactivatedWithExpiredCreditSendMailEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSendSmsNotificationRemainingDaysEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountServicesDisabledWithHostingAbonementSendMailEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountServicesExpiringSendMailEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountServicesExpiringWithHostingAbonementSendMailEvent;
 import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
 import ru.majordomo.hms.personmgr.manager.BatchJobManager;
 import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
@@ -28,6 +39,9 @@ import ru.majordomo.hms.personmgr.model.charge.Status;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.DiscountedService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
+
+import static ru.majordomo.hms.personmgr.common.Constants.ANTI_SPAM_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID;
 
 @Service
 public class ChargeProcessor {
@@ -117,6 +131,11 @@ public class ChargeProcessor {
         PersonalAccount account = accountManager.findOne(chargeRequest.getPersonalAccountId());
 
         BigDecimal dailyCost = BigDecimal.ZERO;
+        boolean hasActiveCreditBeforeCharges = accountHelper.hasActiveCredit(account);
+        boolean hasActiveCreditAfterCharges = false;
+        boolean additionalServicesDisabled = false;
+        List<AccountService> accountServices = new ArrayList<>();
+
         for(ChargeRequestItem chargeRequestItem : chargeRequest.getChargeRequests()
                 .stream()
                 .filter(chargeRequestItem ->
@@ -139,6 +158,7 @@ public class ChargeProcessor {
                 if (chargeResult.isSuccess()) {
                     dailyCost = dailyCost.add(accountServiceHelper.getDailyCostForService(accountService, chargeRequest.getChargeDate()));
                     chargeRequestItem.setStatus(Status.CHARGED);
+                    accountServices.add(accountService);
                 } else if (!chargeResult.isSuccess() && !chargeResult.isGotException()) {
                     switch (accountServiceHelper.getPaymentServiceType(accountService)) {
                         case "PLAN":
@@ -160,6 +180,7 @@ public class ChargeProcessor {
                         case "ADDITIONAL_SERVICE":
                         default:
                             accountHelper.disableAdditionalService(accountService);
+                            additionalServicesDisabled = true;
                     }
                     chargeRequestItem.setStatus(Status.SKIPPED);
                     chargeRequestItem.setMessage(chargeResult.getMessage());
@@ -175,6 +196,7 @@ public class ChargeProcessor {
             try {
                 if (accountHelper.getBalance(account).compareTo(BigDecimal.ZERO) < 0) {
                     accountHelper.setCreditActivationDateIfNotSet(account);
+                    hasActiveCreditAfterCharges = true;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -183,7 +205,7 @@ public class ChargeProcessor {
                 chargeRequest.setException(e.getClass().getName());
             }
             // Если были списания, то отправить уведомления
-            notifyAccountRemainingDays(account, dailyCost);
+            notifyAccountRemainingDays(account, dailyCost, hasActiveCreditBeforeCharges, hasActiveCreditAfterCharges, accountServices, additionalServicesDisabled);
         }
 
         if (chargeRequest.getChargeRequests().stream().anyMatch(chargeRequestItem -> chargeRequestItem.getStatus() == Status.ERROR)) {
@@ -211,10 +233,23 @@ public class ChargeProcessor {
 
         accountHelper.disableAccount(account);
         accountStatHelper.notMoney(account);
-        accountNotificationHelper.sendMailForDeactivatedAccount(account, LocalDate.now());
+
+        if (!accountHelper.hasActiveCredit(account) && account.getCreditActivationDate() != null) {
+            //у аккаунта просроченный кредит
+            publisher.publishEvent(new AccountDeactivatedWithExpiredCreditSendMailEvent(account.getId()));
+        } else {
+            publisher.publishEvent(new AccountDeactivatedSendMailEvent(account.getId()));
+        }
     }
 
-    private void notifyAccountRemainingDays(PersonalAccount account, BigDecimal dailyCost) {
+    private void notifyAccountRemainingDays(
+            PersonalAccount account,
+            BigDecimal dailyCost,
+            boolean hasActiveCreditBeforeCharges,
+            boolean hasActiveCreditAfterCharges,
+            List<AccountService> accountServices,
+            boolean additionalServicesDisabled
+    ) {
         // Уведомление о заканчивающихся средствах отправляются только активным аккаунтам или тем, у кого есть списания
         if (!account.isActive() || dailyCost.compareTo(BigDecimal.ZERO) == 0) { return;}
 
@@ -222,26 +257,66 @@ public class ChargeProcessor {
         int remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue();
         int remainingCreditDays = accountNotificationHelper.getRemainingDaysCreditPeriod(account);
         boolean hasActiveAbonement = accountHelper.hasActiveAbonement(account.getId());
-        boolean hasActiveCredit = accountHelper.hasActiveCredit(account);
-        boolean balanceIsPositive = balance.compareTo(BigDecimal.ZERO) > 0;
 
-        List<Integer> days = Arrays.asList(7, 5, 3, 2, 1);
+        if (hasActiveAbonement) {
+            List<Integer> creditNotifyDays = Arrays.asList(7, 5, 3, 1);
 
-        if (days.contains(remainingDays) || days.contains(remainingCreditDays)) {
-            publisher.publishEvent(
-                    new AccountSendMailNotificationRemainingDaysEvent(
-                            account.getId(),
-                            remainingDays,
-                            remainingCreditDays,
-                            hasActiveAbonement,
-                            hasActiveCredit,
-                            balanceIsPositive,
-                            balance
-                    )
-            );
+            if (hasActiveCreditAfterCharges) {
+                //на данный момент кредит включен
+                if (!hasActiveCreditBeforeCharges) {
+                    //кредит на доп.услуги был только что включен
+                    publisher.publishEvent(new AccountCreditJustActivatedWithHostingAbonementSendMailEvent(account.getId()));
+                } else if (creditNotifyDays.contains(remainingCreditDays)) {
+                    //если кредит подходит к концу
+                    publisher.publishEvent(new AccountCreditExpiringWithHostingAbonementSendMailEvent(account.getId()));
+                }
+            } else {
+                if (additionalServicesDisabled) {
+                    if (!hasActiveCreditBeforeCharges && account.getCreditActivationDate() != null) {
+                        //если кредит просрочен и отключены доп.услуги
+                        publisher.publishEvent(new AccountCreditExpiredWithHostingAbonementSendMailEvent(account.getId()));
+                    } else if (accountServices.stream()
+                            .anyMatch(accountService -> !accountService.getPaymentService().getOldId().equals(ANTI_SPAM_SERVICE_ID) &&
+                                    !accountService.getPaymentService().getOldId().equals(LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID))) {
+                        //если были отключены какие-то услуги кроме антиспама и вечных архивов
+                        publisher.publishEvent(new AccountServicesDisabledWithHostingAbonementSendMailEvent(account.getId()));
+                    }
+                } else if (accountServices.stream()
+                        .anyMatch(accountService -> !accountService.getPaymentService().getOldId().equals(ANTI_SPAM_SERVICE_ID) &&
+                                !accountService.getPaymentService().getOldId().equals(LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID))) {
+                    //если заканчиваются какие-то доп.услуги кроме антиспама и вечных архивов
+                    List<Integer> days = Arrays.asList(5, 3, 2, 1);
+
+                    if (days.contains(remainingDays)) {
+                        publisher.publishEvent(new AccountServicesExpiringWithHostingAbonementSendMailEvent(account.getId(), remainingDays));
+                    }
+                }
+            }
+        } else {
+            if (hasActiveCreditAfterCharges) {
+                //на данный момент кредит включен
+                if (!hasActiveCreditBeforeCharges) {
+                    //кредит на все услуги был только что включен
+                    publisher.publishEvent(new AccountCreditJustActivatedSendMailEvent(account.getId()));
+                } else {
+                    List<Integer> creditNotifyDays = Arrays.asList(7, 5, 3, 1);
+
+                    if (creditNotifyDays.contains(remainingCreditDays)) {
+                        //если кредит подходит к концу
+                        publisher.publishEvent(new AccountCreditExpiringSendMailEvent(account.getId()));
+                    }
+                }
+            } else {
+                List<Integer> days = Arrays.asList(7, 5, 3, 2, 1);
+
+                if (days.contains(remainingDays)) {
+                    //если заканчиваются средства на все услуги
+                    publisher.publishEvent(new AccountServicesExpiringSendMailEvent(account.getId(), remainingDays));
+                }
+            }
         }
 
-        //        Отправим смс тем, у кого подключена услуга
+        //Отправим смс тем, у кого подключена услуга
         if (Arrays.asList(5, 1).contains(remainingDays) &&
                 accountNotificationHelper.isSubscribedToSmsType(
                         account,

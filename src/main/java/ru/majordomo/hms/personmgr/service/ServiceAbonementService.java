@@ -6,24 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
-import ru.majordomo.hms.personmgr.common.*;
-import ru.majordomo.hms.personmgr.event.account.RedirectWasDisabledEvent;
-import ru.majordomo.hms.personmgr.event.account.RedirectWasProlongEvent;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.manager.AbonementManager;
-import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
-import ru.majordomo.hms.personmgr.model.abonement.Abonement;
-import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
-import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.plan.Feature;
-import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
-import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
-import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
-import ru.majordomo.hms.personmgr.repository.*;
-import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
@@ -33,13 +15,35 @@ import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredServiceAbonementEvent;
+import ru.majordomo.hms.personmgr.event.account.RedirectWasDisabledEvent;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.model.abonement.Abonement;
+import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
+import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
+import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
+import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
+import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
+import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
+import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
+import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.time.temporal.ChronoUnit.DAYS;
-import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_SERVICE_ABONEMENT_DELETE;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_SERVICE_ABONEMENT;
-import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND;
+import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_SERVICE_ABONEMENT_EXPIRED_EMAIL_SEND;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
 @Service
@@ -47,15 +51,12 @@ public class ServiceAbonementService { //dis name
     private final static Logger logger = LoggerFactory.getLogger(ServiceAbonementService.class);
 
     private final ServicePlanRepository servicePlanRepository;
-    private final AbonementRepository abonementRepository;
-    private final PaymentServiceRepository paymentServiceRepository;
     private final AbonementManager<AccountServiceAbonement> abonementManager;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final ApplicationEventPublisher publisher;
     private final AccountStatHelper accountStatHelper;
     private final AccountNotificationHelper accountNotificationHelper;
-    private final ChargeHelper chargeHelper;
     private final AccountHistoryManager history;
     private final AccountRedirectServiceRepository accountRedirectServiceRepository;
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
@@ -66,30 +67,24 @@ public class ServiceAbonementService { //dis name
     @Autowired
     public ServiceAbonementService(
             ServicePlanRepository servicePlanRepository,
-            AbonementRepository abonementRepository,
-            PaymentServiceRepository paymentServiceRepository,
             AbonementManager<AccountServiceAbonement> abonementManager,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
             ApplicationEventPublisher publisher,
             AccountStatHelper accountStatHelper,
             AccountNotificationHelper accountNotificationHelper,
-            ChargeHelper chargeHelper,
             AccountHistoryManager history,
             AccountRedirectServiceRepository accountRedirectServiceRepository,
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             RcUserFeignClient rcUserFeignClient
     ) {
         this.servicePlanRepository = servicePlanRepository;
-        this.abonementRepository = abonementRepository;
-        this.paymentServiceRepository = paymentServiceRepository;
         this.abonementManager = abonementManager;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
         this.publisher = publisher;
         this.accountStatHelper = accountStatHelper;
         this.accountNotificationHelper = accountNotificationHelper;
-        this.chargeHelper = chargeHelper;
         this.history = history;
         this.accountRedirectServiceRepository = accountRedirectServiceRepository;
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
@@ -171,18 +166,6 @@ public class ServiceAbonementService { //dis name
         }
     }
 
-    /**
-     * Удаление абонемента
-     *
-     * @param account Аккаунт
-     * @param serviceAbonementId id абонемента на услугу
-     */
-    public void deleteAbonement(PersonalAccount account, String serviceAbonementId) {
-        AccountServiceAbonement accountServiceAbonement = abonementManager.findByIdAndPersonalAccountId(serviceAbonementId, account.getId());
-
-        processAccountAbonementDelete(account, accountServiceAbonement, VIRTUAL_HOSTING_USER_DELETE_SERVICE_ABONEMENT);
-    }
-
     public void processExpiringAbonementsByAccount(PersonalAccount account) {
         //В итоге нам нужно получить абонементы которые заканчиваются через 5 дней и раньше
         LocalDateTime expireEnd = LocalDateTime.now().with(FIVE_DAYS_AFTER);
@@ -212,49 +195,33 @@ public class ServiceAbonementService { //dis name
             Boolean needSendEmail = false;
 
             boolean notEnoughMoneyForAbonement = balance.compareTo(abonementCost) < 0;
-            boolean todayIsDayForSendingEmail = Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired);
+            boolean todayIsDayForSendingEmail = Arrays.asList(DAYS_FOR_SERVICE_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired);
 
             if (todayIsDayForSendingEmail && notEnoughMoneyForAbonement && !accountServiceAbonement.getAbonement().isInternal()) {
                 needSendEmail = true;
             }
 
-            //TODO пока что не отправялем никаких писем
-            //(учесть при рефакторинге всей логики писем)
-
             if (needSendEmail) {
-//                logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
-//
-//                List<Domain> domains = accountHelper.getDomains(account);
-//                List<String> domainNames = new ArrayList<>();
-//                for (Domain domain: domains) {
-//                    domainNames.add(domain.getName());
-//                }
-//
-//                //Отправим письмо
-//                HashMap<String, String> parameters = new HashMap<>();
-//                parameters.put("client_id", account.getAccountId());
-//                parameters.put("acc_id", account.getName());
-//                parameters.put("domains", String.join("<br>", domainNames));
-//                parameters.put("balance", formatBigDecimalWithCurrency(balance));
-//                parameters.put("cost", formatBigDecimalWithCurrency(abonementCost)); //Этот параметр передаётся, но не используется
-//                parameters.put("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-//                parameters.put("auto_renew", accountAbonement.isAutorenew() ? "включено" : "выключено");
-//                parameters.put("from", "noreply@majordomo.ru");
-//
-//                accountNotificationHelper.sendMail(account, "MajordomoVHAbNoMoneyProlong", 1, parameters);
+                logger.debug("Account balance is too low to buy new abonement for service. Balance: " + balance + " abonementCost: " + abonementCost);
+
+                List<Domain> domains = accountHelper.getDomains(account);
+                List<String> domainNames = new ArrayList<>();
+                for (Domain domain: domains) {
+                    domainNames.add(domain.getName());
+                }
+
+                //Отправим письмо
+                HashMap<String, String> parameters = new HashMap<>();
+                parameters.put("client_id", account.getAccountId());
+                parameters.put("acc_id", account.getName());
+                parameters.put("domains", String.join("<br>", domainNames));
+                parameters.put("balance", formatBigDecimalWithCurrency(balance));
+                parameters.put("date_finish", accountServiceAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                parameters.put("service_name", accountServiceAbonement.getAbonement().getService().getName());
+                parameters.put("from", "noreply@majordomo.ru");
+
+                accountNotificationHelper.sendMail(account, "MajordomoHmsAddServicesAbonementSoonEnd", 1, parameters);
             }
-//
-//            if (!accountAbonement.isAutorenew() || notEnoughMoneyForAbonement) {
-//                if (accountNotificationHelper.isSubscribedToSmsType(account, SMS_ABONEMENT_EXPIRING)
-//                        && Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND).contains(daysToExpired))
-//                {
-//                    HashMap<String, String> paramsForSms = new HashMap<>();
-//                    paramsForSms.put("acc_id", account.getName());
-//                    paramsForSms.put("client_id", account.getAccountId());
-//                    paramsForSms.put("remaining_days", Utils.pluralizef("%d день", "%d дня", "%d дней", ((Long) daysToExpired).intValue()));
-//                    accountNotificationHelper.sendSms(account, "HmsMajordomoAbonementExpiring", 5, paramsForSms);
-//                }
-//            }
         });
     }
 
@@ -402,17 +369,29 @@ public class ServiceAbonementService { //dis name
         ServicePlan servicePlan = getServicePlan(accountServiceAbonement);
 
         boolean needToSendMail = false;
+
+        BigDecimal balance = accountHelper.getBalance(account);
         if (!servicePlan.isAbonementOnly()) {
-            BigDecimal balance = accountHelper.getBalance(account);
             BigDecimal costForOneMonth = servicePlan.getService().getCost();
             needToSendMail = balance.compareTo(costForOneMonth) < 0;
         } else {
             needToSendMail = true;
         }
         if (needToSendMail) {
-            ///TODO пока что не отправялем никаких писем
-            //(учесть при рефакторинге всей логики писем)
-            //publisher.publishEvent(new AccountSendEmailWithExpiredAbonementEvent(account));
+            List<Domain> domains = accountHelper.getDomains(account);
+            List<String> domainNames = new ArrayList<>();
+            for (Domain domain: domains) {
+                domainNames.add(domain.getName());
+            }
+
+            publisher.publishEvent(new AccountSendEmailWithExpiredServiceAbonementEvent(
+                    account.getAccountId(),
+                    accountServiceAbonement.getAbonement().getService().getName(),
+                    accountServiceAbonement.getExpired().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                    String.join("<br>", domainNames),
+                    balance
+                    )
+            );
         }
 
         Map<String, String> data = new HashMap<>();

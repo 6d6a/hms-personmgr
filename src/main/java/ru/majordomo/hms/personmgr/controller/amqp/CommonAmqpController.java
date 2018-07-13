@@ -16,15 +16,20 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
-import ru.majordomo.hms.personmgr.event.webSite.WebSiteCreatedEvent;
-import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
-import ru.majordomo.hms.personmgr.service.*;
+import ru.majordomo.hms.personmgr.service.AccountTransferService;
+import ru.majordomo.hms.personmgr.service.AmqpSender;
+import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
+import ru.majordomo.hms.personmgr.service.BusinessHelper;
+import ru.majordomo.hms.personmgr.service.FtpUserService;
+import ru.majordomo.hms.personmgr.service.ResourceArchiveService;
+import ru.majordomo.hms.personmgr.service.ResourceChecker;
 
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ROUTING_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_CREATE;
@@ -33,7 +38,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_USE
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.WEBSITE_UPDATE;
 import static ru.majordomo.hms.personmgr.common.Constants.LONG_LIFE;
 import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ARCHIVE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 
 public class CommonAmqpController {
@@ -257,18 +261,6 @@ public class CommonAmqpController {
                 String resourceId;
 
                 switch (businessAction.getBusinessActionType()) {
-                    case WEB_SITE_CREATE_RC:
-                        SimpleServiceMessage mailMessage = new SimpleServiceMessage();
-                        mailMessage.setAccountId(account.getId());
-
-                        resourceId = getResourceIdByObjRef(message.getObjRef());
-
-                        params.put(RESOURCE_ID_KEY, resourceId);
-
-                        publisher.publishEvent(new WebSiteCreatedEvent(account, params));
-
-                        break;
-
                     case UNIX_ACCOUNT_CREATE_RC:
                         businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
                         if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
