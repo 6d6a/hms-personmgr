@@ -4,6 +4,7 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -111,5 +112,19 @@ public class Plan extends BaseModel {
             }
         }
         return null;
+    }
+
+    public Abonement getDefaultP1YAbonement() {
+        for (Abonement abonement : this.getAbonements()) {
+            if (!abonement.isInternal() && abonement.getPeriod().equals("P1Y")) {
+                return abonement;
+            }
+        }
+        return null;
+    }
+
+    public BigDecimal getDefaultP1YAbonementCost() {
+        Abonement abonement = getDefaultP1YAbonement();
+        return abonement != null && abonement.getService() != null ? abonement.getService().getCost() : null;
     }
 }

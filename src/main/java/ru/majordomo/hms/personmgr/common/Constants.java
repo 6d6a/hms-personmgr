@@ -175,6 +175,9 @@ public class Constants {
     private static final String REVISIUM_ID = "revisium";
     public static final String REVISIUM_SERVICE_ID = SERVICE_PREFIX + REVISIUM_ID;
 
+    private static final String LONG_LIFE_RESOURCE_ARCHIVE_ID = "long_life_resource_archive";
+    public static final String LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID = SERVICE_PREFIX + LONG_LIFE_RESOURCE_ARCHIVE_ID;
+
     public static final String REDIRECT_SERVICE_OLD_ID = SERVICE_PREFIX + "redirect";
     public static final String ACCESS_TO_CONTROL_PANEL_SERVICE_OLD_ID = SERVICE_PREFIX + "access_to_control_panel";
 
@@ -182,7 +185,6 @@ public class Constants {
     public static final int ADDITIONAL_QUOTA_100_ID = 15;
     //Id услуги Доп.место
     public static final String ADDITIONAL_QUOTA_100_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_QUOTA_100_ID;
-    public static final String LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID = "service_long_life_resource_archive";
     //Размер одной услуги Доп.место 100Мб
     public static final long ADDITIONAL_QUOTA_100_CAPACITY = 102400L;
 
@@ -201,7 +203,8 @@ public class Constants {
     //Услуги которые могут быть бесплатными
     public static final Set<Integer> OPTIONALLY_FREE_SERVICE_IDS = new HashSet<>();
 
-    public static final Long[] DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND = {13L, 7L, 3L, 2L, 1L};
+    public static final Long[] DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND = {13L, 7L, 5L, 3L, 2L, 1L};
+    public static final Long[] DAYS_FOR_SERVICE_ABONEMENT_EXPIRED_EMAIL_SEND = {5L, 3L, 2L, 1L};
     public static final Long[] DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND = {5L, 1L};
 
     public static final String PARTNER_PROMOCODE_ACTION_ID = "57f3c4b8038d8a6054409853";

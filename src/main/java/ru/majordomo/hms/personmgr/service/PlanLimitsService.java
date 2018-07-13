@@ -4,8 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 import ru.majordomo.hms.personmgr.common.DBType;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -54,12 +52,6 @@ public class PlanLimitsService {
         return planProperties.getSitesLimit().getFreeLimit();
     }
 
-    public Long getFtpUserFreeLimit(String accountId) {
-        VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) getPlanProperties(accountId);
-
-        return planProperties.getFtpLimit().getFreeLimit();
-    }
-
     public Long getFtpUserFreeLimit(Plan plan) {
         VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
 
@@ -76,12 +68,6 @@ public class PlanLimitsService {
         VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
 
         return planProperties.getFtpLimit().getLimit();
-    }
-
-    public Long getQuotaKBFreeLimit(String accountId) {
-        VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) getPlanProperties(accountId);
-
-        return planProperties.getQuotaKBLimit().getFreeLimit();
     }
 
     public Long getQuotaKBFreeLimit(Plan plan) {
@@ -114,17 +100,5 @@ public class PlanLimitsService {
         }
 
         return plan.getPlanProperties();
-    }
-
-    public void changePlansFtpLimits() {
-        List<Plan> plans = planRepository.findAll();
-
-        plans.forEach(plan -> {
-            VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
-
-            planProperties.getFtpLimit().setFreeLimit(3);
-
-            planRepository.save(plan);
-        });
     }
 }

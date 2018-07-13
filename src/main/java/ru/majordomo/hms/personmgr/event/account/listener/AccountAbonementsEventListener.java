@@ -28,6 +28,8 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 
+import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
+
 @Component
 public class AccountAbonementsEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountAbonementsEventListener.class);
@@ -186,8 +188,8 @@ public class AccountAbonementsEventListener {
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("acc_id", account.getName());
         parameters.put("domains", accountNotificationHelper.getDomainForEmail(account));
-        parameters.put("balance", balance.toString() + " рублей");
-        parameters.put("cost_per_year", costAbonement.toString());
+        parameters.put("balance", formatBigDecimalWithCurrency(balance));
+        parameters.put("cost_per_year", formatBigDecimalWithCurrency(costAbonement));
         accountNotificationHelper.sendMail(account,"MajordomoHmsAbonementEnd", parameters);
     }
 }

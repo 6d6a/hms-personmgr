@@ -18,7 +18,6 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.cart.Cart;
 import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.model.order.BitrixLicenseOrder;
-import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.AccountNotificationStatRepository;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
@@ -29,7 +28,6 @@ import ru.majordomo.hms.rc.user.resources.Resource;
 import ru.majordomo.hms.rc.user.resources.ResourceArchive;
 import ru.majordomo.hms.rc.user.resources.ResourceArchiveType;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -84,55 +82,17 @@ public class AccountNotificationEventListener {
 
     @EventListener
     @Async("threadPoolTaskExecutor")
-    public void on(AccountSendMailNotificationRemainingDaysEvent event) {
+    public void on(AccountNotificationRemainingDaysWasSentEvent event) {
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
-        BigDecimal balance = event.getBalance();
-        int remainingDays = event.getRemainingDays();
-        int remainingCreditDays = event.getRemainingCreditDays();
-        boolean hasActiveAbonement = event.isHasActiveAbonement();
-        boolean hasActiveCredit = event.isHasActiveCredit();
-        boolean balanceIsPositive = event.isBalanceIsPositive();
-
-        String remainingDaysInString = Utils.pluralizef("%d день", "%d дня", "%d дней", remainingDays);
-        String remainingCreditDaysInString = Utils.pluralizef("%d день", "%d дня", "%d дней", remainingCreditDays);
-
-        String whatHappened = String.format("%s период хостинга на аккаунте %s истекает через %s.<br>",
-                balanceIsPositive ? "Оплаченный" : "Кредитный",
-                account.getName(),
-                hasActiveCredit && !balanceIsPositive ? remainingCreditDaysInString : remainingDaysInString
-        );
-
-        String actionAfter = String.format("После истечения %s%s дополнительные платные услуги будут %s.<br>",
-                balanceIsPositive ? "оплаченного периода" : "кредитного периода",
-                hasActiveAbonement ? "" : " аккаунт и",
-                hasActiveCredit && balanceIsPositive ? "работать в течение 14-дневного кредитного периода" : "отключены"
-        );
-
-        Plan plan = planManager.findOne(account.getPlanId());
-        String cost = accountNotificationHelper.getCostAbonementForEmail(plan) + " руб/год.";
-        String balanceForEmail = accountNotificationHelper.formatBigDecimalForEmail(balance) + " руб.";
-        String domains = accountNotificationHelper.getDomainForEmailWithPrefixString(account);
-
-        HashMap<String, String> paramsForEmail = new HashMap<>();
-        paramsForEmail.put("acc_id", account.getName());
-        paramsForEmail.put("what_happened", whatHappened);
-        paramsForEmail.put("action_after", actionAfter);
-        paramsForEmail.put("domains", domains);
-        paramsForEmail.put("balance", balanceForEmail);
-        paramsForEmail.put("cost", cost);
-        String apiName = "MajordomoHmsMoneySoonEnd";
-
-        accountNotificationHelper.sendMail(account, apiName, 10, paramsForEmail);
-
         AccountNotificationStat stat = new AccountNotificationStat(
-                account, NotificationType.REMAINING_DAYS_MONEY_ENDS, NotificationTransportType.EMAIL, apiName);
+                account, NotificationType.REMAINING_DAYS_MONEY_ENDS, NotificationTransportType.EMAIL, event.getApiName());
 
         accountNotificationStatRepository.save(stat);
 
         Map<String, Object> body = new HashMap<>();
         body.put(RESOURCE_ID_KEY, NotificationType.REMAINING_DAYS_MONEY_ENDS);
-        body.put(NAME_KEY, "MajordomoHmsMoneySoonEnd");
+        body.put(NAME_KEY, event.getApiName());
         body.put(TYPE_KEY, NotificationTransportType.EMAIL);
         statFeignClient.notificatonWasSendIncrement(body);
     }
@@ -317,7 +277,7 @@ public class AccountNotificationEventListener {
     //Отправка писем в случае выключенного аккаунта из-за нехватки средств
     @EventListener
     @Async("threadPoolTaskExecutor")
-    public void onAccountDeactivatedSendMailEvent(AccountDeactivatedSendMailEvent event) {
+    public void onAccountDeactivatedSendMailEvent(AccountDeactivatedReSendMailEvent event) {
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
         logger.debug("We got AccountDeactivatedSendMailEvent\n");
@@ -484,6 +444,86 @@ public class AccountNotificationEventListener {
                     accountNotificationHelper.sendMail(account, "HmsVHMajordomoOkonchaniesroka1CBitrix", null);
                 });
 
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountDeactivatedSendMailEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        accountNotificationHelper.sendMailForDeactivatedAccount(account, LocalDate.now());
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountDeactivatedWithExpiredCreditSendMailEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        accountNotificationHelper.sendMailDeactivatedWithExpiredCredit(account);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountCreditJustActivatedWithHostingAbonementSendMailEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        accountNotificationHelper.sendMailCreditJustActivatedWithHostingAbonement(account);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountCreditExpiringWithHostingAbonementSendMailEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        accountNotificationHelper.sendMailCreditExpiringWithHostingAbonement(account);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountCreditExpiredWithHostingAbonementSendMailEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        accountNotificationHelper.sendMailCreditExpiredWithHostingAbonement(account);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountServicesDisabledWithHostingAbonementSendMailEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        accountNotificationHelper.sendMailServicesDisabledWithHostingAbonement(account);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountServicesExpiringWithHostingAbonementSendMailEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        accountNotificationHelper.sendMailServicesExpiringWithHostingAbonement(account, event.getRemainingDays());
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountCreditJustActivatedSendMailEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        accountNotificationHelper.sendMailCreditJustActivated(account);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountCreditExpiringSendMailEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        accountNotificationHelper.sendMailCreditExpiring(account);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountServicesExpiringSendMailEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        accountNotificationHelper.sendMailServicesExpiring(account, event.getRemainingDays());
     }
 }
 

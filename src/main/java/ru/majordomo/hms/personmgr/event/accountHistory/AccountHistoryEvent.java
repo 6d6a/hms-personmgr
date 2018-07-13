@@ -2,8 +2,6 @@ package ru.majordomo.hms.personmgr.event.accountHistory;
 
 import org.springframework.context.ApplicationEvent;
 
-import java.util.Map;
-
 public class AccountHistoryEvent extends ApplicationEvent {
     private String operator;
     private String message;

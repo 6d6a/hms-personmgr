@@ -1,8 +1,9 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
-import com.querydsl.core.types.Predicate;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,12 +11,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
@@ -30,17 +33,14 @@ public class AccountPromocodeRestController extends CommonRestController {
 
     private final AccountPromocodeRepository accountPromocodeRepository;
     private final PromocodeRepository promocodeRepository;
-    private final PersonalAccountManager personalAccountManager;
 
     @Autowired
     public AccountPromocodeRestController(
             AccountPromocodeRepository accountPromocodeRepository,
-            PromocodeRepository promocodeRepository,
-            PersonalAccountManager personalAccountManager
+            PromocodeRepository promocodeRepository
     ) {
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.promocodeRepository = promocodeRepository;
-        this.personalAccountManager = personalAccountManager;
     }
 
     @GetMapping("/{accountId}/account-promocodes")

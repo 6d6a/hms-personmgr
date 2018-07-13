@@ -1,7 +1,5 @@
 package ru.majordomo.hms.personmgr.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -30,16 +28,19 @@ import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequest;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.*;
+import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
+import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
 
-import static ru.majordomo.hms.personmgr.common.Constants.*;
+import static ru.majordomo.hms.personmgr.common.Constants.ACCESS_TO_CONTROL_PANEL_SERVICE_OLD_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.REVISIUM_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
 
 @Service
 public class AccountServiceHelper {
-
-    private final static Logger logger = LoggerFactory.getLogger(AccountServiceHelper.class);
-
     private final AccountServiceRepository accountServiceRepository;
     private final PlanRepository planRepository;
     private final PaymentServiceRepository serviceRepository;

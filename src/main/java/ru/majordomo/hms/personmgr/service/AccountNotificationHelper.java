@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AccountNotificationRemainingDaysWasSentEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
+import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
 @Service
 public class AccountNotificationHelper {
@@ -207,16 +209,223 @@ public class AccountNotificationHelper {
 
     public void sendMailForDeactivatedAccount(PersonalAccount account, LocalDate dateFinish) {
         Plan plan = planRepository.findOne(account.getPlanId());
-        BigDecimal costPerMonth = plan.getService().getCost().setScale(2, BigDecimal.ROUND_DOWN);
         Map<String, String> parameters = new HashMap<>();
 
         parameters.put("acc_id", account.getName());
         parameters.put("date_finish", dateFinish.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         parameters.put("balance", this.getBalanceForEmail(account));
-        parameters.put("cost_per_month", costPerMonth.toString());
-        parameters.put("cost_abonement", this.getCostAbonementForEmail(plan));
+        parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
+        parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
         parameters.put("domains", this.getDomainForEmail(account));
         this.sendMail(account, "MajordomoHmsMoneyEnd", parameters);
+    }
+
+    public void sendMailDeactivatedWithExpiredCredit(PersonalAccount account) {
+        Plan plan = planRepository.findOne(account.getPlanId());
+
+        BigDecimal balance = accountHelper.getBalance(account);
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getName());
+        parameters.put("domains", getDomainForEmail(account));
+        parameters.put("balance", formatBigDecimalWithCurrency(balance));
+        parameters.put("date_finish", "");
+        parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
+        parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
+        parameters.put("from", "noreply@majordomo.ru");
+
+        sendMail(account, "MajordomoHmsServicesCreditMoneyEnd", 1, parameters);
+    }
+
+    public void sendMailCreditJustActivatedWithHostingAbonement(PersonalAccount account) {
+        BigDecimal balance = accountHelper.getBalance(account);
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getName());
+        parameters.put("domains", getDomainForEmail(account));
+        parameters.put("balance", formatBigDecimalWithCurrency(balance));
+        parameters.put("from", "noreply@majordomo.ru");
+
+        String apiName = "MajordomoHmsAddServicesHostingVCredit";
+
+        sendMail(account, apiName, 1, parameters);
+
+        publisher.publishEvent(
+                new AccountNotificationRemainingDaysWasSentEvent(
+                        account.getId(),
+                        apiName
+                )
+        );
+    }
+
+    public void sendMailCreditJustActivated(PersonalAccount account) {
+        BigDecimal balance = accountHelper.getBalance(account);
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getName());
+        parameters.put("domains", getDomainForEmail(account));
+        parameters.put("balance", formatBigDecimalWithCurrency(balance));
+        parameters.put("from", "noreply@majordomo.ru");
+
+        String apiName = "MajordomoHmsAllServicesHostingVCredit";
+
+        sendMail(account, apiName, 1, parameters);
+
+        publisher.publishEvent(
+                new AccountNotificationRemainingDaysWasSentEvent(
+                        account.getId(),
+                        apiName
+                )
+        );
+    }
+
+    public void sendMailCreditExpiringWithHostingAbonement(PersonalAccount account) {
+        BigDecimal balance = accountHelper.getBalance(account);
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getName());
+        parameters.put("domains", getDomainForEmail(account));
+        parameters.put("balance", formatBigDecimalWithCurrency(balance));
+        parameters.put("date_finish", "через " + Utils.pluralizef("%d день", "%d дня", "%d дней", getRemainingDaysCreditPeriod(account)));
+        parameters.put("from", "noreply@majordomo.ru");
+
+        String apiName = "MajordomoHmsServicesCreditMoneySoonEndAbonement";
+
+        sendMail(account, apiName, 1, parameters);
+
+        publisher.publishEvent(
+                new AccountNotificationRemainingDaysWasSentEvent(
+                        account.getId(),
+                        apiName
+                )
+        );
+    }
+
+    public void sendMailCreditExpiring(PersonalAccount account) {
+        BigDecimal balance = accountHelper.getBalance(account);
+
+        Plan plan = planRepository.findOne(account.getPlanId());
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getName());
+        parameters.put("domains", getDomainForEmail(account));
+        parameters.put("balance", formatBigDecimalWithCurrency(balance));
+        parameters.put("date_finish", "через " + Utils.pluralizef("%d день", "%d дня", "%d дней", getRemainingDaysCreditPeriod(account)));
+        parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
+        parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
+        parameters.put("from", "noreply@majordomo.ru");
+
+        String apiName = "MajordomoHmsCreditMoneySoonEnd";
+
+        sendMail(account, apiName, 1, parameters);
+
+        publisher.publishEvent(
+                new AccountNotificationRemainingDaysWasSentEvent(
+                        account.getId(),
+                        apiName
+                )
+        );
+    }
+
+    public void sendMailCreditExpiredWithHostingAbonement(PersonalAccount account) {
+        BigDecimal balance = accountHelper.getBalance(account);
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getName());
+        parameters.put("domains", getDomainForEmail(account));
+        parameters.put("balance", formatBigDecimalWithCurrency(balance));
+        parameters.put("date_finish", "");
+        parameters.put("from", "noreply@majordomo.ru");
+
+        String apiName = "MajordomoHmsAddServicesCreditMoneyEndAbonement";
+
+        sendMail(account, apiName, 1, parameters);
+
+        publisher.publishEvent(
+                new AccountNotificationRemainingDaysWasSentEvent(
+                        account.getId(),
+                        apiName
+                )
+        );
+    }
+
+    public void sendMailServicesDisabledWithHostingAbonement(PersonalAccount account) {
+        BigDecimal balance = accountHelper.getBalance(account);
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getName());
+        parameters.put("domains", getDomainForEmail(account));
+        parameters.put("balance", formatBigDecimalWithCurrency(balance));
+        parameters.put("date_finish", "");
+        parameters.put("from", "noreply@majordomo.ru");
+
+        String apiName = "MajordomoHmsAddServicesMoneyEndAbonement";
+
+        sendMail(account, apiName, 1, parameters);
+
+        publisher.publishEvent(
+                new AccountNotificationRemainingDaysWasSentEvent(
+                        account.getId(),
+                        apiName
+                )
+        );
+    }
+
+    public void sendMailServicesExpiringWithHostingAbonement(PersonalAccount account, int remainingDays) {
+        BigDecimal balance = accountHelper.getBalance(account);
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getName());
+        parameters.put("domains", getDomainForEmail(account));
+        parameters.put("balance", formatBigDecimalWithCurrency(balance));
+        parameters.put("date_finish", "через " + Utils.pluralizef("%d день", "%d дня", "%d дней", remainingDays));
+        parameters.put("from", "noreply@majordomo.ru");
+
+        String apiName = "MajordomoHmsAddServicesMoneySoonEndAbonement";
+
+        sendMail(account, apiName, 1, parameters);
+
+        publisher.publishEvent(
+                new AccountNotificationRemainingDaysWasSentEvent(
+                        account.getId(),
+                        apiName
+                )
+        );
+    }
+
+    public void sendMailServicesExpiring(PersonalAccount account, int remainingDays) {
+        BigDecimal balance = accountHelper.getBalance(account);
+
+        Plan plan = planRepository.findOne(account.getPlanId());
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("client_id", account.getAccountId());
+        parameters.put("acc_id", account.getName());
+        parameters.put("domains", getDomainForEmail(account));
+        parameters.put("balance", formatBigDecimalWithCurrency(balance));
+        parameters.put("date_finish", "через " + Utils.pluralizef("%d день", "%d дня", "%d дней", remainingDays));
+        parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
+        parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
+        parameters.put("from", "noreply@majordomo.ru");
+
+        String apiName = "MajordomoHmsMoneySoonEnd";
+
+        sendMail(account, apiName, 1, parameters);
+
+        publisher.publishEvent(
+                new AccountNotificationRemainingDaysWasSentEvent(
+                        account.getId(),
+                        apiName
+                )
+        );
     }
 
     public void sendInfoMail(PersonalAccount account, String apiName) {
@@ -232,10 +441,6 @@ public class AccountNotificationHelper {
                 && notificationRepository.findByTypeAndActive(messageType, true) != null
                 && accountServiceHelper.hasSmsNotifications(account)
         );
-    }
-
-    public void sendSms(PersonalAccount account, String apiName, int priority) {
-        sendSms(account, apiName, priority, null);
     }
 
     public void sendSms(PersonalAccount account, String apiName, int priority, Map<String, String> parameters) {

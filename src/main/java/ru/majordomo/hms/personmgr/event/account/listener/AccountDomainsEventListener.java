@@ -3,7 +3,6 @@ package ru.majordomo.hms.personmgr.event.account.listener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -13,7 +12,6 @@ import ru.majordomo.hms.personmgr.event.account.AccountProcessExpiringDomainsEve
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.DomainService;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 
 @Component
 public class AccountDomainsEventListener {
