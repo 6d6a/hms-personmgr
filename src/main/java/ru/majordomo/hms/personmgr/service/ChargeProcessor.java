@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -131,7 +133,6 @@ public class ChargeProcessor {
         PersonalAccount account = accountManager.findOne(chargeRequest.getPersonalAccountId());
 
         BigDecimal dailyCost = BigDecimal.ZERO;
-        boolean hasActiveCreditBeforeCharges = accountHelper.hasActiveCredit(account);
         boolean hasActiveCreditAfterCharges = false;
         boolean additionalServicesDisabled = false;
         List<AccountService> accountServices = new ArrayList<>();
@@ -205,7 +206,7 @@ public class ChargeProcessor {
                 chargeRequest.setException(e.getClass().getName());
             }
             // Если были списания, то отправить уведомления
-            notifyAccountRemainingDays(account, dailyCost, hasActiveCreditBeforeCharges, hasActiveCreditAfterCharges, accountServices, additionalServicesDisabled);
+            notifyAccountRemainingDays(account, dailyCost, hasActiveCreditAfterCharges, accountServices, additionalServicesDisabled);
         }
 
         if (chargeRequest.getChargeRequests().stream().anyMatch(chargeRequestItem -> chargeRequestItem.getStatus() == Status.ERROR)) {
@@ -234,7 +235,14 @@ public class ChargeProcessor {
         accountHelper.disableAccount(account);
         accountStatHelper.notMoney(account);
 
-        if (!accountHelper.hasActiveCredit(account) && account.getCreditActivationDate() != null) {
+        boolean hasExpiredCreditBeforeCharges = account.getCreditActivationDate() != null
+                && account.getCreditActivationDate().isBefore(
+                LocalDateTime
+                        .now()
+                        .minus(Period.parse(account.getCreditPeriod()))
+        );
+
+        if (hasExpiredCreditBeforeCharges) {
             //у аккаунта просроченный кредит
             publisher.publishEvent(new AccountDeactivatedWithExpiredCreditSendMailEvent(account.getId()));
         } else {
@@ -245,7 +253,6 @@ public class ChargeProcessor {
     private void notifyAccountRemainingDays(
             PersonalAccount account,
             BigDecimal dailyCost,
-            boolean hasActiveCreditBeforeCharges,
             boolean hasActiveCreditAfterCharges,
             List<AccountService> accountServices,
             boolean additionalServicesDisabled
@@ -253,6 +260,13 @@ public class ChargeProcessor {
         // Уведомление о заканчивающихся средствах отправляются только активным аккаунтам или тем, у кого есть списания
         if (!account.isActive() || dailyCost.compareTo(BigDecimal.ZERO) == 0) { return;}
 
+        boolean hasAnyCreditBeforeCharges = account.getCreditActivationDate() != null;
+        boolean hasExpiredCreditBeforeCharges = hasAnyCreditBeforeCharges
+                && account.getCreditActivationDate().isBefore(
+                LocalDateTime
+                        .now()
+                        .minus(Period.parse(account.getCreditPeriod()))
+        );
         BigDecimal balance = accountHelper.getBalance(account);
         int remainingDays = (balance.divide(dailyCost, 0, BigDecimal.ROUND_DOWN)).intValue();
         int remainingCreditDays = accountNotificationHelper.getRemainingDaysCreditPeriod(account);
@@ -263,7 +277,7 @@ public class ChargeProcessor {
 
             if (hasActiveCreditAfterCharges) {
                 //на данный момент кредит включен
-                if (!hasActiveCreditBeforeCharges) {
+                if (!hasAnyCreditBeforeCharges) {
                     //кредит на доп.услуги был только что включен
                     publisher.publishEvent(new AccountCreditJustActivatedWithHostingAbonementSendMailEvent(account.getId()));
                 } else if (creditNotifyDays.contains(remainingCreditDays)) {
@@ -272,7 +286,7 @@ public class ChargeProcessor {
                 }
             } else {
                 if (additionalServicesDisabled) {
-                    if (!hasActiveCreditBeforeCharges && account.getCreditActivationDate() != null) {
+                    if (hasExpiredCreditBeforeCharges) {
                         //если кредит просрочен и отключены доп.услуги
                         publisher.publishEvent(new AccountCreditExpiredWithHostingAbonementSendMailEvent(account.getId()));
                     } else if (accountServices.stream()
@@ -295,7 +309,7 @@ public class ChargeProcessor {
         } else {
             if (hasActiveCreditAfterCharges) {
                 //на данный момент кредит включен
-                if (!hasActiveCreditBeforeCharges) {
+                if (!hasAnyCreditBeforeCharges) {
                     //кредит на все услуги был только что включен
                     publisher.publishEvent(new AccountCreditJustActivatedSendMailEvent(account.getId()));
                 } else {
