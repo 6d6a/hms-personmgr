@@ -28,10 +28,18 @@ public class AppsCatAmqpController extends CommonAmqpController {
         logger.debug("Received from " + provider + ": " + message.toString());
 
         try {
-            State state = businessFlowDirector.processMessage(message);
-
             ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
             if (businessOperation != null) {
+                List<ProcessingBusinessAction> businessActions = processingBusinessActionRepository.findAllByOperationId(businessOperation.getId());
+
+                businessActions
+                        .stream()
+                        .filter(processingBusinessAction -> processingBusinessAction.getBusinessActionType() == BusinessActionType.APP_INSTALL_APPSCAT)
+                        .findFirst()
+                        .ifPresent(processingBusinessAction -> message.setActionIdentity(processingBusinessAction.getId()));
+
+                State state = businessFlowDirector.processMessage(message);
+
                 businessOperation.setState(state);
 
                 //Запишем урл сайта чтобы отображался в случае ошибки во фронтэнде (до этого момента там имя DB, либо имя DB-юзера)
@@ -42,7 +50,6 @@ public class AppsCatAmqpController extends CommonAmqpController {
 
                 processingBusinessOperationRepository.save(businessOperation);
 
-                List<ProcessingBusinessAction> businessActions = processingBusinessActionRepository.findAllByOperationId(businessOperation.getId());
                 businessActions
                         .stream()
                         .filter(processingBusinessAction -> processingBusinessAction.getBusinessActionType() == BusinessActionType.APP_INSTALL_APPSCAT)
