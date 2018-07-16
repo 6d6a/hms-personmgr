@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
-import ru.majordomo.hms.personmgr.dto.*;
+import ru.majordomo.hms.personmgr.dto.stat.*;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
@@ -32,7 +32,6 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.newA
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_FIRST_REAL_PAYMENT;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_PLAN_CHANGE;
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_NAME_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.REDIRECT_SERVICE_OLD_ID;
 
 @Service
 public class StatServiceHelper {

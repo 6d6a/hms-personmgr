@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.dto;
+package ru.majordomo.hms.personmgr.dto.stat;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
