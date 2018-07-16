@@ -619,6 +619,32 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(isSubscribedResult, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('UNSUBSCRIBE_EMAIL_NEWS')")
+    @PostMapping("/unsubscribe/{accountId}")
+    public Map<String, Object> unsubscribe(
+            @PathVariable("accountId") String accountId
+    ) {
+        PersonalAccountWithNotificationsProjection account = accountManager.findOneByAccountIdWithNotifications(accountId);
+
+        if (account == null) {
+            logger.info("account with accountId " + accountId + " not found, unsubscribe failed");
+            Map<String, Object> result = new HashMap<>();
+            result.put("message", "client with accountId " + accountId + " not found");
+            result.put("success", false);
+            return result;
+        }
+
+        Set<MailManagerMessageType> notifications = account
+                .getNotifications()
+                .stream()
+                .filter(n -> !n.equals(MailManagerMessageType.EMAIL_NEWS))
+                .collect(Collectors.toSet());
+
+        accountManager.setNotifications(account.getId(), notifications);
+
+        return Collections.singletonMap("success", true);
+    }
+
     @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
     @PostMapping("/{accountId}/account/toggle_state")
     public ResponseEntity<Object> toggleAccount(
