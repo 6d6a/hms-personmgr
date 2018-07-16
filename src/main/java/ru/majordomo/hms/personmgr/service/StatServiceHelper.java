@@ -14,11 +14,10 @@ import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.dto.*;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
+import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
 import ru.majordomo.hms.personmgr.repository.*;
 
 import java.time.LocalDate;
@@ -246,35 +245,7 @@ public class StatServiceHelper {
 
         accountServiceCounters.forEach(element -> element.setName(paymentServiceRepository.findOne(element.getResourceId()).getName()));
 
-        AccountServiceCounter redirectCounter = getAccountServiceCounterForRedirectServices(accountIds);
-
-        List<AccountServiceCounter> result = new ArrayList<>(accountServiceCounters.size() + 1);
-        result.addAll(accountServiceCounters);
-        result.add(redirectCounter);
-        return result;
-    }
-
-    private AccountServiceCounter getAccountServiceCounterForRedirectServices(List<String> accountIds) {
-        PaymentService paymentService = paymentServiceRepository.findByOldId(REDIRECT_SERVICE_OLD_ID);
-
-        List<RedirectAccountService> redirectAccountServices = accountRedirectServiceRepository
-                .findByPersonalAccountIdInAndExpireDateAfter(
-                        accountIds, LocalDate.now()
-                );
-
-        int quantity = redirectAccountServices.size();
-        int count = redirectAccountServices
-                .stream()
-                .map(RedirectAccountService::getPersonalAccountId)
-                .collect(Collectors.toSet())
-                .size();
-
-        AccountServiceCounter counter = new AccountServiceCounter();
-        counter.setCount(count);
-        counter.setQuantity(quantity);
-        counter.setResourceId(paymentService.getId());
-        counter.setName(paymentService.getName());
-        return counter;
+        return accountServiceCounters;
     }
 
     public List<DomainCounter> getDomainCountersByDateAndStatType(LocalDate date, AccountStatType type) {
@@ -457,5 +428,38 @@ public class StatServiceHelper {
         return mongoOperations.aggregate(
                 aggregation, "processingBusinessOperation", Map.class
         ).getMappedResults();
+    }
+
+    public List<AccountServiceCounter> getServiceAbonementCounters() {
+        List<String> accountIds = accountManager.findAccountIdsByActiveAndNotDeleted(true);
+
+        MatchOperation match = match(
+                Criteria.where("expired").gte(LocalDateTime.now())
+                        .and("personalAccountId").in(accountIds)
+        );
+
+        GroupOperation groupByAccountAndAbonement = group("abonementId", "personalAccountId")
+                .first("abonementId").as("resourceId")
+                .first("personalAccountId").as("personalAccountId")
+                .count().as("quantity");
+
+        GroupOperation groupByAbonement = group("resourceId")
+                .first("resourceId").as("resourceId")
+                .count().as("count")
+                .sum("quantity").as("quantity");
+
+        Aggregation aggregation = newAggregation(
+                match,
+                groupByAccountAndAbonement,
+                groupByAbonement
+        );
+
+        List<AccountServiceCounter> accountServiceCounters = mongoOperations.aggregate(
+                aggregation, AccountServiceAbonement.class, AccountServiceCounter.class
+        ).getMappedResults();
+
+        accountServiceCounters.forEach(element -> element.setName(abonementRepository.findOne(element.getResourceId()).getName()));
+
+        return accountServiceCounters;
     }
 }
