@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.dto;
+package ru.majordomo.hms.personmgr.dto.stat;
 
 public class DomainCounter extends ResourceCounter {
 }
