@@ -82,9 +82,7 @@ public class SchedulerRestController extends CommonRestController {
 
                 break;
             case "process_expiring_service_abonements":
-                //TODO пока что не отправялем никаких писем
-                //(учесть при рефакторинге всей логики писем)
-                //publisher.publishEvent(new ProcessExpiringServiceAbonementsEvent());
+                publisher.publishEvent(new ProcessExpiringServiceAbonementsEvent());
 
                 break;
             case "process_abonements_auto_renew":
