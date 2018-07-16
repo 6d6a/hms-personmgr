@@ -61,7 +61,7 @@ public class DomainAmqpController extends CommonAmqpController {
                     if (account.isAccountNew()) {
                         accountManager.setAccountNew(account.getId(), false);
                     }
-                    if ((Boolean) businessAction.getParam("register")) {
+                    if (businessAction.getParam("register") != null && (boolean) businessAction.getParam("register")) {
                         HashMap<String, String> data = new HashMap<>();
                         data.put("personId", (String) businessAction.getParam("personId"));
                         data.put(DOMAIN_NAME_KEY, domainName);

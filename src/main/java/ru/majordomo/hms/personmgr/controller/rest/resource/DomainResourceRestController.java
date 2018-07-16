@@ -119,6 +119,7 @@ public class DomainResourceRestController extends CommonRestController {
 
             ChargeMessage chargeMessage = new ChargeMessage.Builder(domainTld.getRenewService())
                     .excludeBonusPaymentType()
+                    .setComment(domain.getName())
                     .build();
 
             SimpleServiceMessage blockResult = accountHelper.block(account, chargeMessage);

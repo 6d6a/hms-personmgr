@@ -55,6 +55,8 @@ public class WebSiteAmqpController extends CommonAmqpController  {
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
+                
+                return;
             }
 
             businessHelper.buildActionByOperationId(BusinessActionType.WEB_SITE_UPDATE_RC, message, message.getOperationIdentity());
