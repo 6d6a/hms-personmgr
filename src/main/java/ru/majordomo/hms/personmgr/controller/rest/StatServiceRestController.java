@@ -156,4 +156,9 @@ public class StatServiceRestController {
     ){
         return ResponseEntity.ok(statServiceHelper.getBusinessOperationsStat(types, states, start, end));
     }
+
+    @GetMapping("/service-abonement")
+    public List<AccountServiceCounter> serviceAbonement(){
+        return statServiceHelper.getServiceAbonementCounters();
+    }
 }
