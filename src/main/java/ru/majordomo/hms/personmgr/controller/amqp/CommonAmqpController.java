@@ -30,6 +30,7 @@ import ru.majordomo.hms.personmgr.service.BusinessHelper;
 import ru.majordomo.hms.personmgr.service.FtpUserService;
 import ru.majordomo.hms.personmgr.service.ResourceArchiveService;
 import ru.majordomo.hms.personmgr.service.ResourceChecker;
+import ru.majordomo.hms.rc.user.resources.ResourceArchiveType;
 
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ROUTING_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_CREATE;
@@ -403,6 +404,7 @@ public class CommonAmqpController {
         if (businessAction != null) {
             PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
             ProcessingBusinessOperation businessOperation;
+            String resourceId;
 
             switch (businessAction.getBusinessActionType()) {
                 case FTP_USER_DELETE_RC:
@@ -414,6 +416,36 @@ public class CommonAmqpController {
                         businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
                         if (businessOperation != null && businessOperation.getParam(LONG_LIFE) != null && (boolean) businessOperation.getParam(LONG_LIFE)) {
                             resourceArchiveService.deleteLongLifeResourceArchiveAndAccountService(businessOperation);
+                        }
+                    }
+
+                    break;
+                case WEB_SITE_DELETE_RC:
+                    if (state.equals(State.PROCESSED)) {
+                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        if (businessOperation != null) {
+                            resourceId = getResourceIdByObjRef(message.getObjRef());
+
+                            resourceArchiveService.deleteLongLifeResourceArchiveAndAccountService(
+                                    businessOperation.getPersonalAccountId(),
+                                    ResourceArchiveType.WEBSITE,
+                                    resourceId
+                            );
+                        }
+                    }
+
+                    break;
+                case DATABASE_DELETE_RC:
+                    if (state.equals(State.PROCESSED)) {
+                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+                        if (businessOperation != null) {
+                            resourceId = getResourceIdByObjRef(message.getObjRef());
+
+                            resourceArchiveService.deleteLongLifeResourceArchiveAndAccountService(
+                                    businessOperation.getPersonalAccountId(),
+                                    ResourceArchiveType.DATABASE,
+                                    resourceId
+                            );
                         }
                     }
 
