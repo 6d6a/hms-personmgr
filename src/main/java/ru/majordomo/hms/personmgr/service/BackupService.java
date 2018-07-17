@@ -39,13 +39,14 @@ public class BackupService {
 
     private Logger logger = LoggerFactory.getLogger(BackupService.class);
 
-    private RcUserFeignClient rcUserFeignClient;
-    private RcStaffFeignClient rcStaffFeignClient;
-    private ResticClient resticClient;
-    private BusinessHelper businessHelper;
-    private AccountHistoryManager history;
+    private final RcUserFeignClient rcUserFeignClient;
+    private final RcStaffFeignClient rcStaffFeignClient;
+    private final ResticClient resticClient;
+    private final BusinessHelper businessHelper;
+    private final AccountHistoryManager history;
+    private final AccountServiceHelper accountServiceHelper;
 
-    private String mysqlBackupStorage;
+    private final String mysqlBackupStorage;
     private final static String RC_USER_APP_NAME = "rc-user";
     private final static String UNIX_ACCOUNT_RESOURCE_NAME = "unix-account";
     private final static String DATABASE_RESOURCE_NAME = "database";
@@ -55,13 +56,17 @@ public class BackupService {
             RcUserFeignClient rcUserFeignClient,
             RcStaffFeignClient rcStaffFeignClient,
             ResticClient resticClient,
-            BusinessHelper businessHelper, AccountHistoryManager history, @Value("${backup.mysql.url}") String mysqlBackupStorage
+            BusinessHelper businessHelper,
+            AccountHistoryManager history,
+            AccountServiceHelper accountServiceHelper,
+            @Value("${backup.mysql.url}") String mysqlBackupStorage
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;
         this.resticClient = resticClient;
         this.businessHelper = businessHelper;
         this.history = history;
+        this.accountServiceHelper = accountServiceHelper;
         this.mysqlBackupStorage = mysqlBackupStorage;
     }
 
@@ -353,7 +358,7 @@ public class BackupService {
     }
 
     private int daysAccessToBackup(PersonalAccount account, StorageType type) {
-        return 7;
+        return accountServiceHelper.hasAdvancedBackup(account) ? 30 : 7;
     }
 
     public LocalDate minDateForBackup(PersonalAccount account, StorageType type){

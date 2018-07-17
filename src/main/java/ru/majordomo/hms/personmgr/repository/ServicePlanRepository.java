@@ -12,12 +12,11 @@ import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import java.util.List;
 
 public interface ServicePlanRepository extends MongoRepository<ServicePlan, String>, QueryDslPredicateExecutor<ServicePlan> {
-    @Cacheable("servicePlans")
+    @Cacheable("servicePlansById")
     ServicePlan findOne(String id);
-    List<ServicePlan> findAll();
 
     @Cacheable("servicePlans")
-    ServicePlan findByServiceId(@Param("serviceId") String serviceId, @Param("active") boolean active);
+    List<ServicePlan> findAll();
 
     @Override
     @CachePut("servicePlans")
@@ -43,9 +42,12 @@ public interface ServicePlanRepository extends MongoRepository<ServicePlan, Stri
     @CacheEvict(value = "servicePlans", allEntries = true)
     void deleteAll();
 
-    @CacheEvict("servicePlans")
+    @Cacheable("servicePlansByFeature")
     List<ServicePlan> findAllByFeature(@Param("feature") Feature feature);
 
-    @CacheEvict("servicePlans")
+    @Cacheable("servicePlansByActive")
+    List<ServicePlan> findAllByActive(@Param("active") boolean active);
+
+    @Cacheable("servicePlansByFeatureAndActive")
     ServicePlan findOneByFeatureAndActive(@Param("feature") Feature feature, @Param("active") boolean active);
 }

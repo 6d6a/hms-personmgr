@@ -409,13 +409,10 @@ public class AccountHelper {
     }
 
     public String giveGooglePromocode(PersonalAccount account) {
-
         if (this.isGooglePromocodeAllowed(account)) {
-
-            Promocode promocode = promocodeRepository.findByTypeAndActive(GOOGLE.toString(), true);
+            Promocode promocode = promocodeRepository.findByTypeAndActive(GOOGLE, true);
 
             if (promocode != null) {
-
                 promocode.setActive(false);
 
                 AccountPromocode accountPromocode = new AccountPromocode();
@@ -432,7 +429,6 @@ public class AccountHelper {
             } else {
                 throw new ParameterValidationException("Ошибка при получнеии промокода Google");
             }
-
         } else {
             throw new ParameterValidationException("Ошибка при получнеии промокода Google");
         }

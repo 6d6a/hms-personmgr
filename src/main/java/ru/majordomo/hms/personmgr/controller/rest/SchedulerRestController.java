@@ -1,6 +1,8 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -26,12 +28,15 @@ import ru.majordomo.hms.personmgr.model.batch.BatchJob;
 @RefreshScope
 public class SchedulerRestController extends CommonRestController {
     private final BatchJobManager batchJobManager;
+    private final CacheManager cacheManager;
     private int waitForDeadJobHours;
 
     public SchedulerRestController(
-            BatchJobManager batchJobManager
+            BatchJobManager batchJobManager,
+            CacheManager cacheManager
     ) {
         this.batchJobManager = batchJobManager;
+        this.cacheManager = cacheManager;
     }
 
     @Value("${batch_job.wait_for_dead_job_hours}")
@@ -202,5 +207,16 @@ public class SchedulerRestController extends CommonRestController {
         }
 
         return new ResponseEntity<>(batchJob, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @RequestMapping(value = "/cache-clear", method = RequestMethod.POST)
+    public ResponseEntity<Void> processScheduleAction() {
+        cacheManager.getCacheNames()
+                .stream()
+                .map(cacheManager::getCache)
+                .forEach(Cache::clear);
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }

@@ -372,6 +372,30 @@ public class AccountServiceHelper {
         return (accountSmsService != null && accountSmsService.isEnabled());
     }
 
+    /**
+     * Есть ли на аккаунте услуга Расширенное резервное копирование
+     *
+     * @param account   Аккаунт
+     */
+    public boolean hasAdvancedBackup(PersonalAccount account) {
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ADVANCED_BACKUP, true);
+
+        AccountService accountService = accountServiceRepository.findOneByPersonalAccountIdAndServiceId(account.getId(), plan.getServiceId());
+
+        if (accountService == null) {
+            List<AccountServiceAbonement> abonements = abonementManager.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
+            if (abonements != null && !abonements.isEmpty()) {
+                return true;
+            }
+        }
+
+        return accountService != null
+                && accountService.isEnabled()
+                && accountService.getLastBilled() != null
+                && accountService.getLastBilled().isAfter(LocalDateTime.now());
+    }
+
+
     public List<AccountService> getDailyServicesToCharge(PersonalAccount account, LocalDate chargeDate) {
         return getDailyServicesToCharge(account, LocalDateTime.of(
                 chargeDate,
