@@ -42,7 +42,6 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_SERVICE_ABONEMENT_DELETE;
-import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_SERVICE_ABONEMENT;
 import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_SERVICE_ABONEMENT_EXPIRED_EMAIL_SEND;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
@@ -99,27 +98,51 @@ public class ServiceAbonementService { //dis name
      * @param autorenew автопродление абонемента
      */
     public AccountServiceAbonement addAbonement(PersonalAccount account, String abonementId, Feature feature, Boolean autorenew) {
-
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
 
         Abonement abonement = checkAbonementAllownes(plan, abonementId);
 
         if (abonement.getService().getCost().compareTo(BigDecimal.ZERO) > 0) {
-
             ChargeMessage chargeMessage = new ChargeMessage.Builder(abonement.getService())
                     .build();
             accountHelper.charge(account, chargeMessage);
         }
 
-        AccountServiceAbonement accountServiceAbonement = new AccountServiceAbonement();
-        accountServiceAbonement.setAbonementId(abonementId);
-        accountServiceAbonement.setAbonement(abonement);
-        accountServiceAbonement.setPersonalAccountId(account.getId());
-        accountServiceAbonement.setCreated(LocalDateTime.now());
-        accountServiceAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
-        accountServiceAbonement.setAutorenew(autorenew);
+        List<AccountServiceAbonement> currentAccountServiceAbonements = abonementManager.findByPersonalAccountIdAndAbonementIdIn(
+                account.getId(),
+                plan.getAbonementIds()
+        );
 
-        abonementManager.insert(accountServiceAbonement);
+        AccountServiceAbonement accountServiceAbonement;
+
+        if (currentAccountServiceAbonements != null && !currentAccountServiceAbonements.isEmpty()) {
+            accountServiceAbonement = currentAccountServiceAbonements.get(0);
+
+            accountServiceAbonement.setAbonementId(abonementId);
+            accountServiceAbonement.setAbonement(abonement);
+
+            LocalDateTime newExpireDate;
+
+            if (accountServiceAbonement.getExpired().isBefore(LocalDateTime.now())) {
+                newExpireDate = LocalDateTime.now().plus(Period.parse(abonement.getPeriod()));
+            } else {
+                newExpireDate = accountServiceAbonement.getExpired().plus(Period.parse(abonement.getPeriod()));
+            }
+
+            accountServiceAbonement.setExpired(newExpireDate);
+
+            abonementManager.save(accountServiceAbonement);
+        } else {
+            accountServiceAbonement = new AccountServiceAbonement();
+            accountServiceAbonement.setAbonementId(abonementId);
+            accountServiceAbonement.setAbonement(abonement);
+            accountServiceAbonement.setPersonalAccountId(account.getId());
+            accountServiceAbonement.setCreated(LocalDateTime.now());
+            accountServiceAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
+            accountServiceAbonement.setAutorenew(autorenew);
+
+            abonementManager.insert(accountServiceAbonement);
+        }
 
         if (accountServiceHelper.accountHasService(account, plan.getServiceId())) {
             accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
@@ -135,7 +158,6 @@ public class ServiceAbonementService { //dis name
      * @param accountServiceAbonement абонемент аккаунта
      */
     public void prolongAbonement(PersonalAccount account, AccountServiceAbonement accountServiceAbonement) {
-
         if (!account.getId().equals(accountServiceAbonement.getPersonalAccountId())) {
             throw new ResourceNotFoundException("account and accountServiceAbonement are not linked");
         }
@@ -226,7 +248,6 @@ public class ServiceAbonementService { //dis name
     }
 
     public boolean isRevisiumServiceAbonementAllowedToProlong(PersonalAccount account, AccountServiceAbonement accountServiceAbonement) {
-
         RevisiumRequestService revisiumRequestService = revisiumRequestServiceRepository
                 .findByPersonalAccountIdAndAccountServiceAbonementId(account.getId(), accountServiceAbonement.getId());
 
@@ -238,6 +259,7 @@ public class ServiceAbonementService { //dis name
         String siteUrl = revisiumRequestService.getSiteUrl();
 
         URL url;
+
         try {
             url = new URL(siteUrl);
         } catch (MalformedURLException e) {
@@ -248,6 +270,7 @@ public class ServiceAbonementService { //dis name
         domainName = domainName.startsWith("www.") ? domainName.substring(4) : domainName;
 
         Domain domain;
+
         try {
             domain = rcUserFeignClient.findDomain(domainName);
         } catch (ru.majordomo.hms.personmgr.exception.ResourceNotFoundException e) {
@@ -342,7 +365,6 @@ public class ServiceAbonementService { //dis name
     }
 
     private Abonement checkAbonementAllownes(ServicePlan plan, String abonementId) {
-
         if (!plan.getAbonementIds().contains(abonementId)) {
             throw new ParameterValidationException("Current service plan does not have abonement with specified abonementId");
         }

@@ -23,7 +23,6 @@ import ru.majordomo.hms.personmgr.importing.DBImportService;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableFeignClients
-@EnableCaching
 @EnableRetry
 public class Application implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(Application.class);

@@ -19,13 +19,15 @@ public enum Feature {
     BUSINESS_SERVICES,
     DOCUMENT_PACKAGE_ORDER,
     REDIRECT,
-    LONG_LIFE_RESOURCE_ARCHIVE;
+    LONG_LIFE_RESOURCE_ARCHIVE,
+    ADVANCED_BACKUP;
 
     public boolean isOnlyOnePerAccount() {
         switch (this) {
             case VIRTUAL_HOSTING_PLAN:
             case SMS_NOTIFICATIONS:
             case ANTI_SPAM:
+            case ADVANCED_BACKUP:
                 return true;
             default:
                 return false;

@@ -14,18 +14,19 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 
 public interface PlanRepository extends MongoRepository<Plan, String>,
         QueryDslPredicateExecutor<Plan> {
-    @Cacheable("plans")
+    @Cacheable("plansById")
     Plan findOne(String id);
+    @Cacheable("plans")
     List<Plan> findAll();
-    @Cacheable("plans")
+    @Cacheable("plansByActive")
     List<Plan> findByActive(@Param("active") boolean active);
-    @Cacheable("plans")
+    @Cacheable("plansByName")
     Plan findByName(@Param("name") String name);
-    @Cacheable("plans")
+    @Cacheable("plansByAccountType")
     List<Plan> findByAccountType(@Param("accountType") AccountType accountType);
-    @Cacheable("plans")
+    @Cacheable("plansByServiceId")
     Plan findByServiceId(@Param("serviceId") String serviceId);
-    @Cacheable("plans")
+    @Cacheable("plansByOldId")
     Plan findByOldId(@Param("oldId") String oldId);
 
     @Override

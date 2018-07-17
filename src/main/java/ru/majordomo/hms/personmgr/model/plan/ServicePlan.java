@@ -75,4 +75,8 @@ public class ServicePlan extends BaseModel {
         }
         return null;
     }
+
+    public Abonement getAbonementById(String abonementId) {
+        return getAbonements().stream().filter(abonement -> abonement.getId().equals(abonementId)).findFirst().orElse(null);
+    }
 }
