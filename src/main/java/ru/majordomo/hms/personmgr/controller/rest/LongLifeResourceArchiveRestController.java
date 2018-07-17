@@ -155,7 +155,9 @@ public class LongLifeResourceArchiveRestController extends CommonRestController 
                     message
             );
             history.save(accountId, "Поступила заявка на удаление вечного архива с ID " + id +
-                    " для ресурса: " + longLifeResourceArchive.getArchivedResourceId() + " с типом: " + longLifeResourceArchive.getType(), request);
+                    " для ресурса: " + longLifeResourceArchive.getArchivedResourceId()
+                    + " с типом: " + longLifeResourceArchive.getType()
+                    + " и id архива: " + longLifeResourceArchive.getResourceArchiveId(), request);
 
             return new ResponseEntity<>(createSuccessResponse(action), HttpStatus.ACCEPTED);
         } else {

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
@@ -73,15 +74,20 @@ public class ResourceArchiveService {
 
         accountServiceRepository.save(accountService);
 
-        LongLifeResourceArchive longLifeResourceArchive = new LongLifeResourceArchive();
-        longLifeResourceArchive.setCreated(LocalDateTime.now());
-        longLifeResourceArchive.setPersonalAccountId(businessOperation.getPersonalAccountId());
-        longLifeResourceArchive.setResourceArchiveId(resourceArchiveId);
-        longLifeResourceArchive.setArchivedResourceId(archivedResourceId);
-        longLifeResourceArchive.setType(resourceArchiveType);
-        longLifeResourceArchive.setAccountServiceId(accountService.getId());
+        try {
+            LongLifeResourceArchive longLifeResourceArchive = new LongLifeResourceArchive();
+            longLifeResourceArchive.setCreated(LocalDateTime.now());
+            longLifeResourceArchive.setPersonalAccountId(businessOperation.getPersonalAccountId());
+            longLifeResourceArchive.setResourceArchiveId(resourceArchiveId);
+            longLifeResourceArchive.setArchivedResourceId(archivedResourceId);
+            longLifeResourceArchive.setType(resourceArchiveType);
+            longLifeResourceArchive.setAccountServiceId(accountService.getId());
 
-        repository.save(longLifeResourceArchive);
+            repository.save(longLifeResourceArchive);
+        } catch (Exception e) {
+            e.printStackTrace();
+            accountServiceRepository.delete(accountService);
+        }
     }
 
     public void processAccountServiceDelete(AccountService accountService) {
@@ -104,6 +110,18 @@ public class ResourceArchiveService {
             accountServiceRepository.delete(longLifeResourceArchive.getAccountServiceId());
 
             repository.delete(longLifeResourceArchive);
+        }
+    }
+
+    public void deleteLongLifeResourceArchiveAndAccountService(String personalAccountId, ResourceArchiveType type, String archivedResourceId) {
+        List<LongLifeResourceArchive> longLifeResourceArchives = repository.findByPersonalAccountIdAndTypeAndArchivedResourceId(personalAccountId, type, archivedResourceId);
+
+        if (longLifeResourceArchives != null && !longLifeResourceArchives.isEmpty()) {
+            longLifeResourceArchives.forEach(longLifeResourceArchive -> {
+                accountServiceRepository.delete(longLifeResourceArchive.getAccountServiceId());
+
+                repository.delete(longLifeResourceArchive);
+            });
         }
     }
 

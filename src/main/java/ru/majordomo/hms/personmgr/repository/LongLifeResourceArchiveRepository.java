@@ -14,8 +14,8 @@ public interface LongLifeResourceArchiveRepository extends MongoRepository<LongL
     LongLifeResourceArchive findByResourceArchiveId(String resourceArchiveId);
     List<LongLifeResourceArchive> findByPersonalAccountId(String personalAccountId);
     LongLifeResourceArchive findByAccountServiceId(String accountServiceId);
-    List<LongLifeResourceArchive> findByPersonalAccountIdAndTypeAndArchivedResourceId(String personalAccountId, ResourceArchiveType type, String archivedResourceid);
-    Long countByPersonalAccountIdAndTypeAndArchivedResourceId(String personalAccountId, ResourceArchiveType type, String archivedResourceid);
+    List<LongLifeResourceArchive> findByPersonalAccountIdAndTypeAndArchivedResourceId(String personalAccountId, ResourceArchiveType type, String archivedResourceId);
+    Long countByPersonalAccountIdAndTypeAndArchivedResourceId(String personalAccountId, ResourceArchiveType type, String archivedResourceId);
     LongLifeResourceArchive findByPersonalAccountIdAndId(String accountId, String serviceId);
     @Query("{}")
     Stream<LongLifeResourceArchive> findAllStream();
