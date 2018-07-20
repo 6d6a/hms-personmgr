@@ -178,6 +178,9 @@ public class Constants {
     private static final String LONG_LIFE_RESOURCE_ARCHIVE_ID = "long_life_resource_archive";
     public static final String LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID = SERVICE_PREFIX + LONG_LIFE_RESOURCE_ARCHIVE_ID;
 
+    private static final String ADVANCED_BACKUP_ID = "advanced_backup";
+    public static final String ADVANCED_BACKUP_SERVICE_ID = SERVICE_PREFIX + ADVANCED_BACKUP_ID;
+
     public static final String REDIRECT_SERVICE_OLD_ID = SERVICE_PREFIX + "redirect";
     public static final String ACCESS_TO_CONTROL_PANEL_SERVICE_OLD_ID = SERVICE_PREFIX + "access_to_control_panel";
 

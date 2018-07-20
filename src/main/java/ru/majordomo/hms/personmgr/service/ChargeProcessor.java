@@ -42,6 +42,7 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.DiscountedService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 
+import static ru.majordomo.hms.personmgr.common.Constants.ADVANCED_BACKUP_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.ANTI_SPAM_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID;
 
@@ -291,14 +292,16 @@ public class ChargeProcessor {
                         publisher.publishEvent(new AccountCreditExpiredWithHostingAbonementSendMailEvent(account.getId()));
                     } else if (accountServices.stream()
                             .anyMatch(accountService -> !accountService.getPaymentService().getOldId().equals(ANTI_SPAM_SERVICE_ID) &&
-                                    !accountService.getPaymentService().getOldId().equals(LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID))) {
-                        //если были отключены какие-то услуги кроме антиспама и вечных архивов
+                                    !accountService.getPaymentService().getOldId().equals(LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID) &&
+                                    !accountService.getPaymentService().getOldId().equals(ADVANCED_BACKUP_SERVICE_ID))) {
+                        //если были отключены какие-то услуги кроме антиспама, расширенных бекпов и вечных архивов
                         publisher.publishEvent(new AccountServicesDisabledWithHostingAbonementSendMailEvent(account.getId()));
                     }
                 } else if (accountServices.stream()
                         .anyMatch(accountService -> !accountService.getPaymentService().getOldId().equals(ANTI_SPAM_SERVICE_ID) &&
-                                !accountService.getPaymentService().getOldId().equals(LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID))) {
-                    //если заканчиваются какие-то доп.услуги кроме антиспама и вечных архивов
+                                !accountService.getPaymentService().getOldId().equals(LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID) &&
+                                !accountService.getPaymentService().getOldId().equals(ADVANCED_BACKUP_SERVICE_ID))) {
+                    //если заканчиваются какие-то доп.услуги кроме антиспама, расширенных бекпов и вечных архивов
                     List<Integer> days = Arrays.asList(5, 3, 2, 1);
 
                     if (days.contains(remainingDays)) {
