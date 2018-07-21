@@ -25,6 +25,8 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
 import static java.time.temporal.ChronoUnit.DAYS;
+import static ru.majordomo.hms.personmgr.common.Constants.ACCESS_TO_CONTROL_PANEL_SERVICE_OLD_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.ADVANCED_BACKUP_SERVICE_ID;
 
 @Service
 public class RecurrentProcessorService {
@@ -367,7 +369,7 @@ public class RecurrentProcessorService {
         for (AccountService accountService : accountServices) {
             if (accountService.isEnabled()
                     //&& ServiceIdsEligibleForRecurrent.contains(accountService.getServiceId())
-                    && accountService.getPaymentService() != null) {
+                    && accountService.getPaymentService() != null && !accountService.getPaymentService().getOldId().equals(ADVANCED_BACKUP_SERVICE_ID)) {
                 BigDecimal cost;
 
                 switch (accountService.getPaymentService().getPaymentType()) {
