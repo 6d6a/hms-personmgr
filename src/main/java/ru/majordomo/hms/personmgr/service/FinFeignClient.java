@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.cloud.netflix.feign.FeignClient;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -12,6 +13,7 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.config.FeignConfig;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.dto.fin.MonthlyBill;
 
 @FeignClient(name = "fin", fallback = FinFeignClientFallback.class, configuration = FeignConfig.class)
 public interface FinFeignClient {
@@ -44,4 +46,7 @@ public interface FinFeignClient {
 
     @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/recurrent/repeat_payment/{sumAmount}", consumes = "application/json")
     ResponseEntity<Void> repeatPayment(@PathVariable("accountId") String accountId, @PathVariable("sumAmount") BigDecimal sumAmount);
+
+    @GetMapping(value = "/{accountId}/monthly-bills/{monthlyBillId}", consumes = "application/json")
+    MonthlyBill getMonthlyBill(@PathVariable("accountId") String accountId, @PathVariable("monthlyBillId") String monthlyBillId);
 }
