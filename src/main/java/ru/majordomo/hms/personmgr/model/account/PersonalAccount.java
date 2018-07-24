@@ -23,6 +23,8 @@ import java.util.Set;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
@@ -35,7 +37,9 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import static ru.majordomo.hms.personmgr.common.AccountSetting.*;
 import static ru.majordomo.hms.personmgr.common.Constants.DEFAULT_NOTIFY_DAYS;
 
+@EqualsAndHashCode(callSuper = true)
 @Document
+@Data
 public class PersonalAccount extends VersionedModel {
     @NotBlank
     @Indexed(unique = true)
@@ -96,106 +100,7 @@ public class PersonalAccount extends VersionedModel {
 
     private String ownerPersonId;
 
-    public PersonalAccount() {
-    }
-
-    @PersistenceConstructor
-    public PersonalAccount(
-            String id,
-            String accountId,
-            String clientId,
-            String planId,
-            String name,
-            AccountType accountType,
-            List<AccountDiscount> discounts,
-            @Value("#root.active ?: true") boolean active,
-            @Value("#root.created ?: T(java.time.LocalDateTime).of(1970,1,1,0,0,0)") LocalDateTime created,
-            LocalDateTime deactivated
-    ) {
-        super();
-        this.setId(id);
-        this.accountId = accountId;
-        this.clientId = clientId;
-        this.planId = planId;
-        this.name = name;
-        this.accountType = accountType;
-        this.discounts = discounts;
-        this.active = active;
-        this.created = created;
-        this.deactivated = deactivated;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public LocalDateTime getCreated() {
-        return created;
-    }
-
-    public void setCreated(LocalDateTime created) {
-        this.created = created;
-    }
-
-    public LocalDateTime getDeactivated() {
-        return deactivated;
-    }
-
-    public void setDeactivated(LocalDateTime deactivated) {
-        this.deactivated = deactivated;
-    }
-
-    public LocalDateTime getDeleted() {
-        return deleted;
-    }
-
-    public void setDeleted(LocalDateTime deleted) {
-        this.deleted = deleted;
-    }
-
-    public AccountType getAccountType() {
-        return accountType;
-    }
-
-    public void setAccountType(AccountType accountType) {
-        this.accountType = accountType;
-    }
-
-    public String getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(String accountId) {
-        this.accountId = accountId;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
-    public Set<MailManagerMessageType> getNotifications() {
-        return notifications;
-    }
-
-    public void setNotifications(Set<MailManagerMessageType> notifications) {
-        this.notifications = notifications;
-    }
+    private AccountProperties properties = new AccountProperties();
 
     public boolean hasNotification(MailManagerMessageType notification) {
         return this.notifications.contains(notification);
@@ -213,36 +118,12 @@ public class PersonalAccount extends VersionedModel {
         this.notifications.remove(notification);
     }
 
-    public Map<AccountSetting, String> getSettings() {
-        return settings;
-    }
-
-    public void setSettings(Map<AccountSetting, String> settings) {
-        this.settings = settings;
-    }
-
     public void setSetting(AccountSetting name, String setting) {
         this.settings.put(name, setting);
     }
 
     public void getSetting(AccountSetting name) {
         this.settings.get(name);
-    }
-
-    public String getPlanId() {
-        return planId;
-    }
-
-    public void setPlanId(String planId) {
-        this.planId = planId;
-    }
-
-    public List<AccountDiscount> getDiscounts() {
-        return discounts;
-    }
-
-    public void setDiscounts(List<AccountDiscount> discounts) {
-        this.discounts = discounts;
     }
 
     public void addDiscount(AccountDiscount discount) {
@@ -253,28 +134,12 @@ public class PersonalAccount extends VersionedModel {
         this.discounts.remove(discount);
     }
 
-    public List<AccountService> getServices() {
-        return services;
-    }
-
-    public void setServices(List<AccountService> services) {
-        this.services = services;
-    }
-
     public void addService(AccountService service) {
         this.services.add(service);
     }
 
     public void removeService(AccountService service) {
         this.services.remove(service);
-    }
-
-    public String getOwnerPersonId() {
-        return ownerPersonId;
-    }
-
-    public void setOwnerPersonId(String ownerPersonId) {
-        this.ownerPersonId = ownerPersonId;
     }
 
     public Boolean isOverquoted() {
@@ -389,25 +254,5 @@ public class PersonalAccount extends VersionedModel {
 
     private LocalDateTime getLocalDateTimeSettingByName(AccountSetting name) {
         return this.settings.get(name) != null ? LocalDateTime.parse(this.settings.get(name), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : null;
-    }
-
-    @Override
-    public String toString() {
-        return "PersonalAccount{" +
-                "accountId='" + accountId + '\'' +
-                ", clientId='" + clientId + '\'' +
-                ", planId='" + planId + '\'' +
-                ", name='" + name + '\'' +
-                ", active=" + active +
-                ", created=" + created +
-                ", deactivated=" + deactivated +
-                ", deleted=" + deleted +
-                ", accountType=" + accountType +
-                ", notifications=" + notifications +
-                ", settings=" + settings +
-                ", discounts=" + discounts +
-                ", services=" + services +
-                ", ownerPersonId='" + ownerPersonId + '\'' +
-                "} " + super.toString();
     }
 }

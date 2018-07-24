@@ -2,10 +2,13 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import com.google.common.collect.ImmutableSet;
 
+import com.querydsl.core.types.Predicate;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -37,6 +40,7 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
+import ru.majordomo.hms.personmgr.model.account.AccountProperties;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
@@ -118,6 +122,16 @@ public class PersonalAccountRestController extends CommonRestController {
         if (accounts == null || !accounts.hasContent()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
+
+        return new ResponseEntity<>(accounts, HttpStatus.OK);
+    }
+
+    @GetMapping("/accounts/filter")
+    public ResponseEntity<Page<PersonalAccount>> filterAccounts(
+            @QuerydslPredicate(root = PersonalAccount.class) Predicate predicate,
+            Pageable pageable
+    ) {
+        Page<PersonalAccount> accounts = accountManager.findByPredicate(predicate, pageable);
 
         return new ResponseEntity<>(accounts, HttpStatus.OK);
     }
@@ -560,6 +574,24 @@ public class PersonalAccountRestController extends CommonRestController {
         accountManager.setNotifications(accountId, filteredNotifications);
 
         history.save(account, "Изменен список уведомлений аккаунта c [" + oldNotifications + "] на [" + filteredNotifications + "]", request);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PatchMapping("/{accountId}/account/properties")
+    public ResponseEntity<Object> setProperties(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody AccountProperties accountProperties,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (accountProperties.getAngryClient() != null) {
+            accountManager.setAngryClient(accountId, accountProperties.getAngryClient());
+
+            history.save(account, (accountProperties.getAngryClient() ? "Включена" : "Выключена")
+                    + " отметка о том что клиент 'скандальный'", request);
+        }
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

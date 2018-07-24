@@ -1,6 +1,8 @@
 package ru.majordomo.hms.personmgr.manager.impl;
 
 
+import com.querydsl.core.types.Predicate;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -401,6 +403,11 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
+    public Page<PersonalAccount> findByPredicate(Predicate predicate, Pageable pageable) {
+        return repository.findAll(predicate, pageable);
+    }
+
+    @Override
     public void setActive(String id, Boolean active) {
         PersonalAccount account = findOneByIdIncludeIdAndActiveAndDeactivated(id);
 
@@ -466,6 +473,16 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     @Override
     public void setAccountNew(String id, Boolean accountNew) {
         setSettingByName(id, NEW_ACCOUNT, accountNew);
+    }
+
+    @Override
+    public void setAngryClient(String id, boolean angryClient) {
+        checkById(id);
+
+        Query query = new Query(new Criteria("_id").is(id));
+        Update update = new Update().set("properties.angryClient", angryClient);
+
+        mongoOperations.updateFirst(query, update, PersonalAccount.class);
     }
 
     @Override

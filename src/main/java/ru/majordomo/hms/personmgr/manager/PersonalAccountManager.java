@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.manager;
 
+import com.querydsl.core.types.Predicate;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -84,6 +86,8 @@ public interface PersonalAccountManager {
 
     Page<PersonalAccount> findByActive(boolean active, Pageable pageable);
 
+    Page<PersonalAccount> findByPredicate(Predicate predicate, Pageable pageable);
+
     void setActive(String accountId, Boolean active);
 
     void setOwnerPersonId(String accountId, String personId);
@@ -93,6 +97,8 @@ public interface PersonalAccountManager {
     void setDeleted(String id, boolean delete);
 
     void setAccountNew(String accountId, Boolean accountNew);
+
+    void setAngryClient(String id, boolean angryClient);
 
     void setCredit(String accountId, Boolean credit);
 
