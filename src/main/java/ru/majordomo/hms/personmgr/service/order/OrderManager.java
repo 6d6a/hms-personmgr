@@ -104,4 +104,8 @@ public abstract class OrderManager<T extends AccountOrder> {
     public Page<T> findAll(Pageable pageable){
         return repository.findAll(pageable);
     }
+
+    public T findOne(String id) {
+        return repository.findOne(id);
+    }
 }

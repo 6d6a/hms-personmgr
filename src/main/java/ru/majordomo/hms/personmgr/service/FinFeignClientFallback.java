@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.dto.fin.MonthlyBill;
 
 @Service
 public class FinFeignClientFallback implements FinFeignClient {
@@ -58,6 +59,11 @@ public class FinFeignClientFallback implements FinFeignClient {
 
     @Override
     public ResponseEntity<Void> repeatPayment(String accountId, BigDecimal sumAmount) {
+        return null;
+    }
+
+    @Override
+    public MonthlyBill getMonthlyBill(String accountId, String monthlyBillId) {
         return null;
     }
 }
