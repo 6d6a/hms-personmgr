@@ -21,7 +21,6 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.UserDisabledServiceEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
-import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -35,10 +34,8 @@ import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
-import static ru.majordomo.hms.personmgr.common.Constants.ANTI_SPAM_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.ENABLED_KEY;
 import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
-import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SERVICE_CREATE;
 import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SERVICE_ENABLE;
 
 
@@ -112,275 +109,6 @@ public class AccountServiceRestController extends CommonRestController {
         return new ResponseEntity<>(accountServices, HttpStatus.OK);
     }
 
-    @GetMapping("/{accountId}/account-service-sms-notification")
-    public ResponseEntity<AccountService> getSmsService(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
-    ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
-
-        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
-
-        if (accountServices == null || accountServices.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } else if (accountServices.size() > 1) {
-            throw new ParameterValidationException(
-                    "На аккаунте обнаружено больше одной услуги '" + paymentService.getName()
-                            + "'. Пожалуйста, обратитесь в финансовый отдел.");}
-
-        return new ResponseEntity<>(accountServices.get(0), HttpStatus.OK);
-    }
-
-    @GetMapping("/{accountId}/account-abonement-service-sms-notification")
-    public ResponseEntity<AccountServiceAbonement> getSmsAbonementService(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
-    ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
-
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
-
-        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
-
-        if (accountServiceAbonements == null || accountServiceAbonements.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } else if (accountServiceAbonements.size() > 1) {
-            throw new ParameterValidationException(
-                    "На аккаунте обнаружено больше одного абонемента на услугу '" + paymentService.getName()
-                            + "'. Пожалуйста, обратитесь в финансовый отдел.");}
-
-        return new ResponseEntity<>(accountServiceAbonements.get(0), HttpStatus.OK);
-    }
-
-    @PostMapping("/{accountId}/account-service-sms-notification/abonement")
-    public ResponseEntity<AccountServiceAbonement> addSmsServiceAbonement(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
-    ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
-
-        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
-
-        if (accountServices != null && accountServices.size() > 1) {
-            throw new ParameterValidationException(
-                    "На аккаунте обнаружено больше одной услуги '" + paymentService.getName()
-                            + "'. Пожалуйста, обратитесь в финансовый отдел.");
-        }
-
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
-
-        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementIdIn(
-                account.getId(),
-                plan.getAbonementIds()
-        );
-
-        if (accountServiceAbonements != null && !accountServiceAbonements.isEmpty()) {
-            throw new ParameterValidationException("Абонемент уже куплен");
-        }
-
-        AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(
-                account,
-                plan.getNotInternalAbonementId(),
-                Feature.SMS_NOTIFICATIONS,
-                true
-        );
-
-        return new ResponseEntity<>(accountServiceAbonement, HttpStatus.OK);
-    }
-
-    @PostMapping("/{accountId}/account-service-sms-notification")
-    public ResponseEntity<SimpleServiceMessage> addSmsService(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, Object> requestBody,
-            SecurityContextHolderAwareRequestWrapper request
-    ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        Utils.checkRequiredParams(requestBody, ACCOUNT_SERVICE_ENABLE);
-
-        Boolean enabled = (Boolean) requestBody.get(ENABLED_KEY);
-
-        PaymentService paymentService = accountServiceHelper.getSmsPaymentServiceByPlanId(account.getPlanId());
-
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
-
-        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementIdIn(
-                account.getId(),
-                plan.getAbonementIds()
-        );
-
-        if (accountServiceAbonements != null && !accountServiceAbonements.isEmpty()) {
-            throw new ParameterValidationException("При активном абонементе нельзя " + (enabled ? "включить" : "отключить") + "услугу");
-        }
-
-        if (enabled) {
-
-            boolean smsNotificationsEmpty = !accountNotificationHelper.hasActiveSmsNotifications(account);
-
-            boolean phoneInvalid = account.getSmsPhoneNumber() == null || !phoneValid(account.getSmsPhoneNumber());
-            if (smsNotificationsEmpty || phoneInvalid) {
-                String message;
-                if (smsNotificationsEmpty && phoneInvalid) {
-                    message = "Выберите хотя бы один вид уведомлений и укажите корректный номер телефона.";
-                } else if (smsNotificationsEmpty) {
-                    message = "Выберите хотя бы один вид уведомлений.";
-                } else {
-                    message = "Укажите корректный номер телефона.";
-                }
-                throw new ParameterValidationException(message);
-            }
-        }
-
-        processCustomService(account, paymentService, enabled);
-
-        history.save(
-                account,
-                "Произведено " + (enabled ? "включение" : "отключение") + " услуги " + paymentService.getName(),
-                request
-        );
-
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    }
-
-    @GetMapping("/{accountId}/account-service-anti-spam")
-    public ResponseEntity<AccountService> getAntiSpamService(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
-    ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ANTI_SPAM, true);
-
-        if (plan == null) {
-            throw new ParameterValidationException("Услуга не найдена");
-        }
-
-        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(
-                account.getId(),
-                plan.getService().getId()
-        );
-
-        if (accountServices == null || accountServices.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } else if (accountServices.size() > 1) {
-            throw new ParameterValidationException(
-                    "На аккаунте обнаружено больше одной услуги '" +  plan.getService().getName()
-                            + "'. Пожалуйста, обратитесь в финансовый отдел на почту billing@majordomo.ru");
-        }
-
-        return new ResponseEntity<>(accountServices.get(0), HttpStatus.OK);
-    }
-
-    @GetMapping("/{accountId}/account-abonement-service-anti-spam")
-    public ResponseEntity<AccountServiceAbonement> getAntiSpamServiceAbonement(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
-    ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ANTI_SPAM, true);
-
-        if (plan == null) {
-            throw new ParameterValidationException("Услуга не найдена");
-        }
-
-        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementIdIn(
-                account.getId(),
-                plan.getAbonementIds()
-        );
-
-        if (accountServiceAbonements == null || accountServiceAbonements.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } else if (accountServiceAbonements.size() > 1) {
-            throw new ParameterValidationException(
-                    "На аккаунте обнаружено больше одного абонемента на услугу '" + plan.getService().getName()
-                            + "'. Пожалуйста, обратитесь в финансовый отдел на почту billing@majordomo.ru");
-        }
-
-        return new ResponseEntity<>(accountServiceAbonements.get(0), HttpStatus.OK);
-    }
-
-    @PostMapping("/{accountId}/account-service-anti-spam/abonement")
-    public ResponseEntity<AccountServiceAbonement> addAntiSpamServiceAbonement(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
-    ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ANTI_SPAM, true);
-
-        if (plan == null) {
-            throw new ParameterValidationException("Услуга не найдена");
-        }
-
-        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(
-                account.getId(),
-                plan.getService().getId()
-        );
-
-        if (accountServices != null && accountServices.size() > 1) {
-            throw new ParameterValidationException(
-                    "На аккаунте обнаружено больше одной услуги '" + plan.getService().getName()
-                            + "'. Пожалуйста, обратитесь в финансовый отдел.");
-        }
-
-        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementIdIn(
-                account.getId(),
-                plan.getAbonementIds()
-        );
-
-        if (accountServiceAbonements != null && !accountServiceAbonements.isEmpty()) {
-            throw new ParameterValidationException("Абонемент уже куплен");
-        }
-
-        AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(
-                account, plan.getNotInternalAbonementId(), Feature.ANTI_SPAM, true);
-
-        accountHelper.switchAntiSpamForMailboxes(account, true);
-
-        return new ResponseEntity<>(accountServiceAbonement, HttpStatus.OK);
-    }
-
-    @PostMapping("/{accountId}/account-service-anti-spam")
-    public ResponseEntity<SimpleServiceMessage> addAntiSpamService(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, Object> requestBody,
-            SecurityContextHolderAwareRequestWrapper request
-    ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        Utils.checkRequiredParams(requestBody, ACCOUNT_SERVICE_ENABLE);
-
-        Boolean enabled = (Boolean) requestBody.get(ENABLED_KEY);
-
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ANTI_SPAM, true);
-
-        if (plan == null) {
-            throw new ParameterValidationException("Услуга не найдена");
-        }
-
-        List<AccountServiceAbonement> accountServiceAbonements = serviceAbonementRepository.findByPersonalAccountIdAndAbonementIdIn(
-                account.getId(),
-                plan.getAbonementIds()
-        );
-
-        if (accountServiceAbonements != null && !accountServiceAbonements.isEmpty()) {
-            throw new ParameterValidationException("При активном абонементе нельзя " + (enabled ? "включить" : "отключить") + "услугу");
-        }
-
-        processCustomService(account, plan.getService(), enabled);
-
-        accountHelper.switchAntiSpamForMailboxes(account, enabled);
-
-        history.save(
-                account,
-                "Произведено " + (enabled ? "включение" : "отключение") + " услуги " + plan.getService().getName(),
-                request
-        );
-
-        return new ResponseEntity<>(this.createSuccessResponse("accountService " + (enabled ? "enabled" : "disabled") + " for anti-spam"), HttpStatus.OK);
-    }
-
     @GetMapping("/{accountId}/account-service-abonement")
     public ResponseEntity<Page<AccountServiceAbonement>> getAllServiceAbonements(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -452,7 +180,11 @@ public class AccountServiceRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
+        ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
+
+        if (feature == Feature.SMS_NOTIFICATIONS) {
+            checkSmsAllowness(account);
+        }
 
         if (plan == null) {
             throw new ParameterValidationException("Услуга " + feature.name() + " не найдена");
@@ -496,7 +228,7 @@ public class AccountServiceRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
+        ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
 
         if (plan == null) {
             throw new ParameterValidationException("Услуга " + feature.name() + " не найдена");
@@ -524,7 +256,7 @@ public class AccountServiceRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
+        ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
 
         if (plan == null) {
             throw new ParameterValidationException("Услуга " + feature.name() + " не найдена");
@@ -553,7 +285,11 @@ public class AccountServiceRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
+        ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
+
+        if (feature == Feature.SMS_NOTIFICATIONS) {
+            checkSmsAllowness(account);
+        }
 
         if (plan == null) {
             throw new ParameterValidationException("Услуга " + feature.name() + " не найдена");
@@ -671,5 +407,22 @@ public class AccountServiceRestController extends CommonRestController {
             dayCost = accountHelper.getDayCostByService(paymentService);
         }
         return dayCost;
+    }
+    
+    private void checkSmsAllowness(PersonalAccount account) {
+        boolean smsNotificationsEmpty = !accountNotificationHelper.hasActiveSmsNotifications(account);
+
+        boolean phoneInvalid = account.getSmsPhoneNumber() == null || !phoneValid(account.getSmsPhoneNumber());
+        if (smsNotificationsEmpty || phoneInvalid) {
+            String message;
+            if (smsNotificationsEmpty && phoneInvalid) {
+                message = "Выберите хотя бы один вид уведомлений и укажите корректный номер телефона.";
+            } else if (smsNotificationsEmpty) {
+                message = "Выберите хотя бы один вид уведомлений.";
+            } else {
+                message = "Укажите корректный номер телефона.";
+            }
+            throw new ParameterValidationException(message);
+        }
     }
 }

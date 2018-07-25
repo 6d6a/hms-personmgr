@@ -148,7 +148,7 @@ public class RedirectServiceRestController extends CommonRestController {
         ){
 
             serviceAbonementService.prolongAbonement(
-                    account, redirectAccountService.getAccountServiceAbonement());
+                    account, redirectAccountService.getAccountServiceAbonement(), null);
 
             redirectAccountService.setExpireDate(redirectAccountService.getExpireDate().with(PLUS_ONE_YEAR));
             redirectAccountService.setActive(true);

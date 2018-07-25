@@ -50,4 +50,7 @@ public interface ServicePlanRepository extends MongoRepository<ServicePlan, Stri
 
     @Cacheable("servicePlansByFeatureAndActive")
     ServicePlan findOneByFeatureAndActive(@Param("feature") Feature feature, @Param("active") boolean active);
+
+    @Cacheable("servicePlansByFeatureAndServiceId")
+    ServicePlan findOneByFeatureAndServiceId(@Param("feature") Feature feature, @Param("serviceId") String serviceId);
 }

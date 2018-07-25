@@ -361,7 +361,7 @@ public class AccountServiceHelper {
     public boolean hasSmsNotifications(PersonalAccount account) {
         PaymentService paymentService = this.getSmsPaymentServiceByPlanId(account.getPlanId());
         AccountService accountSmsService = accountServiceRepository.findOneByPersonalAccountIdAndServiceId(account.getId(), paymentService.getId());
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.SMS_NOTIFICATIONS, true);
+        ServicePlan plan = this.getServicePlanForFeatureByAccount(Feature.SMS_NOTIFICATIONS, account);
         if (accountSmsService == null) {
             List<String> abonementIds = plan.getAbonementIds();
             List<AccountServiceAbonement> abonements = abonementManager.findByPersonalAccountIdAndAbonementIdIn(account.getId(), abonementIds);
@@ -460,5 +460,16 @@ public class AccountServiceHelper {
 
     public PaymentService getAccessToTheControlPanelService() {
         return serviceRepository.findByOldId(ACCESS_TO_CONTROL_PANEL_SERVICE_OLD_ID);
+    }
+
+    public ServicePlan getServicePlanForFeatureByAccount(Feature feature, PersonalAccount account) {
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
+
+        if (feature == Feature.SMS_NOTIFICATIONS) {
+            PaymentService paymentService = this.getSmsPaymentServiceByPlanId(account.getPlanId());
+            plan = servicePlanRepository.findOneByFeatureAndServiceId(feature, paymentService.getId());
+        }
+
+        return plan;
     }
 }

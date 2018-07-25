@@ -7,4 +7,5 @@ import org.hibernate.validator.constraints.NotBlank;
 public class RevisiumRequestBody {
     @NotBlank
     private String siteUrl;
+    private String abonementId = null;
 }

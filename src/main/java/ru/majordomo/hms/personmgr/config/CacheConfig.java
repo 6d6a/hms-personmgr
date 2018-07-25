@@ -33,7 +33,8 @@ public class CacheConfig extends CachingConfigurerSupport {
                 new ConcurrentMapCache("servicePlansById"),
                 new ConcurrentMapCache("servicePlansByFeature"),
                 new ConcurrentMapCache("servicePlansByActive"),
-                new ConcurrentMapCache("servicePlansByFeatureAndActive")
+                new ConcurrentMapCache("servicePlansByFeatureAndActive"),
+                new ConcurrentMapCache("servicePlansByFeatureAndServiceId")
         ));
 
         return cacheManager;
