@@ -28,6 +28,7 @@ import ru.majordomo.hms.personmgr.event.account.RedirectWasDisabledEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -35,6 +36,7 @@ import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
+import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
 import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
@@ -60,6 +62,8 @@ public class ServiceAbonementService { //dis name
     private final AccountRedirectServiceRepository accountRedirectServiceRepository;
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final RcUserFeignClient rcUserFeignClient;
+    private final PersonalAccountManager accountManager;
+    private final AbonementRepository abonementRepository;
 
     private static TemporalAdjuster FIVE_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(5));
 
@@ -75,7 +79,9 @@ public class ServiceAbonementService { //dis name
             AccountHistoryManager history,
             AccountRedirectServiceRepository accountRedirectServiceRepository,
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
-            RcUserFeignClient rcUserFeignClient
+            RcUserFeignClient rcUserFeignClient,
+            PersonalAccountManager accountManager,
+            AbonementRepository abonementRepository
     ) {
         this.servicePlanRepository = servicePlanRepository;
         this.abonementManager = abonementManager;
@@ -88,6 +94,8 @@ public class ServiceAbonementService { //dis name
         this.accountRedirectServiceRepository = accountRedirectServiceRepository;
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
         this.rcUserFeignClient = rcUserFeignClient;
+        this.accountManager = accountManager;
+        this.abonementRepository = abonementRepository;
     }
 
     /**
@@ -98,7 +106,7 @@ public class ServiceAbonementService { //dis name
      * @param autorenew автопродление абонемента
      */
     public AccountServiceAbonement addAbonement(PersonalAccount account, String abonementId, Feature feature, Boolean autorenew) {
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
+        ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
 
         Abonement abonement = checkAbonementAllownes(plan, abonementId);
 
@@ -115,7 +123,7 @@ public class ServiceAbonementService { //dis name
 
         AccountServiceAbonement accountServiceAbonement;
 
-        if (currentAccountServiceAbonements != null && !currentAccountServiceAbonements.isEmpty()) {
+        if (plan.getFeature().isOnlyOnePerAccount() && currentAccountServiceAbonements != null && !currentAccountServiceAbonements.isEmpty()) {
             accountServiceAbonement = currentAccountServiceAbonements.get(0);
 
             accountServiceAbonement.setAbonementId(abonementId);
@@ -157,7 +165,7 @@ public class ServiceAbonementService { //dis name
      * @param account Аккаунт
      * @param accountServiceAbonement абонемент аккаунта
      */
-    public void prolongAbonement(PersonalAccount account, AccountServiceAbonement accountServiceAbonement) {
+    public void prolongAbonement(PersonalAccount account, AccountServiceAbonement accountServiceAbonement, String prolongPeriodAbonementId) {
         if (!account.getId().equals(accountServiceAbonement.getPersonalAccountId())) {
             throw new ResourceNotFoundException("account and accountServiceAbonement are not linked");
         }
@@ -168,14 +176,21 @@ public class ServiceAbonementService { //dis name
                 .build();
         accountHelper.charge(account, chargeMessage);
 
+        String prolongPeriod;
+
+        if (prolongPeriodAbonementId == null) {
+            prolongPeriod = accountServiceAbonement.getAbonement().getPeriod();
+        } else {
+            prolongPeriod = checkAbonementAllownes(servicePlan, prolongPeriodAbonementId).getPeriod();
+        }
 
         LocalDateTime newExpireDate;
         if (accountServiceAbonement.getExpired().isBefore(LocalDateTime.now())) {
             newExpireDate = LocalDateTime.now()
-                    .plus(Period.parse(accountServiceAbonement.getAbonement().getPeriod()));
+                    .plus(Period.parse(prolongPeriod));
         } else {
             newExpireDate = accountServiceAbonement.getExpired()
-                    .plus(Period.parse(accountServiceAbonement.getAbonement().getPeriod()));
+                    .plus(Period.parse(prolongPeriod));
         }
 
         abonementManager.setExpired(
@@ -310,7 +325,7 @@ public class ServiceAbonementService { //dis name
                         if (isRevisiumServiceAbonementAllowedToProlong(account, accountServiceAbonement)) {
                             logger.debug("Buying new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
 
-                            prolongAbonement(account, accountServiceAbonement);
+                            prolongAbonement(account, accountServiceAbonement, null);
 
                             history.saveForOperatorService(account,
                                     "Автоматическое продление абонемента на услугу. Со счета аккаунта списано " +
@@ -355,7 +370,8 @@ public class ServiceAbonementService { //dis name
     }
 
     private ServicePlan getServicePlan(AccountServiceAbonement serviceAbonement) {
-        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(serviceAbonement.getAbonement().getType(), true);
+        PersonalAccount account = accountManager.findOne(serviceAbonement.getPersonalAccountId());
+        ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(serviceAbonement.getAbonement().getType(), account);
 
         if (plan == null) {
             throw new ResourceNotFoundException("ServicePlan not found");
@@ -365,17 +381,14 @@ public class ServiceAbonementService { //dis name
     }
 
     private Abonement checkAbonementAllownes(ServicePlan plan, String abonementId) {
-        if (!plan.getAbonementIds().contains(abonementId)) {
+
+        Abonement abonement = plan.getAbonementById(abonementId);
+
+        if (abonement == null) {
             throw new ParameterValidationException("Current service plan does not have abonement with specified abonementId");
         }
 
-        Optional<Abonement> newAbonement = plan.getAbonements().stream().filter(abonement1 -> abonement1.getId().equals(abonementId)).findFirst();
-
-        if (!newAbonement.isPresent()) {
-            throw new ParameterValidationException("Current service plan does not have abonement with specified abonementId (not found in abonements)");
-        }
-
-        return newAbonement.get();
+        return abonement;
     }
 
     /**

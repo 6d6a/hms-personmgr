@@ -156,6 +156,7 @@ public class RevisiumRequestRestController extends CommonRestController {
     public ResponseEntity<RevisiumRequestService> prolong(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(RevisiumRequestService.class) @PathVariable(value = "revisiumRequestServiceId") String revisiumRequestServiceId,
+            @RequestParam(value = "abonementId", required = false) String abonementId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
 
@@ -168,25 +169,34 @@ public class RevisiumRequestRestController extends CommonRestController {
             throw new ParameterValidationException("RevisiumRequestService с ID: " + revisiumRequestServiceId + "не найден");
         }
 
-        PaymentService paymentService = accountServiceHelper.getRevisiumPaymentService();
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.REVISIUM, true);
 
-        accountHelper.checkBalanceWithoutBonus(account, paymentService);
+        AccountServiceAbonement accountServiceAbonement;
 
-        if (revisiumRequestService.getAccountServiceAbonement() == null) {
-            AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(account, plan.getNotInternalAbonementId(), Feature.REVISIUM, true);
+        if (revisiumRequestService.getAccountServiceAbonement() != null) {
+            serviceAbonementService.prolongAbonement(
+                    account,
+                    revisiumRequestService.getAccountServiceAbonement(),
+                    abonementId
+            );
+        } else {
+            accountServiceAbonement = serviceAbonementService.addAbonement(
+                    account,
+                    abonementId != null ? abonementId : plan.getNotInternalAbonementId(),
+                    Feature.REVISIUM,
+                    true
+            );
+
             revisiumRequestService.setAccountServiceAbonementId(accountServiceAbonement.getId());
             revisiumRequestService.setAccountServiceAbonement(accountServiceAbonement);
-        } else {
-            serviceAbonementService.prolongAbonement(account, revisiumRequestService.getAccountServiceAbonement());
+            revisiumRequestService.setActive(true);
+            revisiumRequestServiceRepository.save(revisiumRequestService);
         }
-        revisiumRequestService.setActive(true);
-        revisiumRequestServiceRepository.save(revisiumRequestService);
 
         revisiumRequestService = revisiumRequestServiceRepository
                 .findByPersonalAccountIdAndId(accountId, revisiumRequestServiceId);
 
-        history.save(account, "Произведен заказ продления услуги " + paymentService.getName(), request);
+        history.save(account, "Произведен заказ продления услуги Онлайн-сканер на вирусы и взлом", request);
 
         return new ResponseEntity<>(revisiumRequestService, HttpStatus.OK);
     }
@@ -243,28 +253,27 @@ public class RevisiumRequestRestController extends CommonRestController {
             throw new ParameterValidationException("Данный сайт уже добавлен на проверку");
         }
 
-        //Услуга ревизиума
-        PaymentService paymentService = accountServiceHelper.getRevisiumPaymentService();
+        String abonementId = revisiumRequestBody.getAbonementId();
 
-        //Проверяем баланс аккаунта
-        accountHelper.checkBalanceWithoutBonus(account, paymentService);
-
-        history.save(account, "Произведен заказ услуги " + paymentService.getName(), request);
-
-        //Дата окончания действия услуги
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.REVISIUM, true);
-        AccountServiceAbonement abonement = serviceAbonementService.addAbonement(
-                account, plan.getNotInternalAbonementId(), Feature.REVISIUM, true);
+
+        AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(
+                account,
+                abonementId != null ? abonementId : plan.getNotInternalAbonementId(),
+                Feature.REVISIUM,
+                true
+        );
+
+        history.save(account, "Произведен заказ услуги Онлайн-сканер на вирусы и взлом", request);
 
         //Ревизиум сервис
         revisiumRequestService = new RevisiumRequestService();
         revisiumRequestService.setPersonalAccountId(account.getId());
-        revisiumRequestService.setAccountServiceAbonementId(abonement.getId());
-        revisiumRequestService.setAccountServiceAbonement(abonement);
+        revisiumRequestService.setAccountServiceAbonementId(accountServiceAbonement.getId());
+        revisiumRequestService.setAccountServiceAbonement(accountServiceAbonement);
         revisiumRequestService.setCreated(LocalDateTime.now());
         revisiumRequestService.setSiteUrl(siteUrl);
         revisiumRequestService.setActive(true);
-        revisiumRequestService.setServiceId(paymentService.getId());
         revisiumRequestServiceRepository.save(revisiumRequestService);
 
         accountServiceHelper.revisiumCheckRequest(account, revisiumRequestService);
