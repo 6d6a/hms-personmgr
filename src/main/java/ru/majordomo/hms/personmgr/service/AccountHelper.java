@@ -995,7 +995,7 @@ public class AccountHelper {
         Plan plan = planManager.findOne(account.getPlanId());
         if (plan.isActive()) {
             return false;
-        } else if (plan.getService().getCost().compareTo(getArchivalFallbackPlan().getService().getCost()) < 0) {
+        } else if (plan.getService().getCost().compareTo(getArchivalFallbackPlan(plan).getService().getCost()) < 0) {
             return true;
         } else {
             return false;
@@ -1012,6 +1012,9 @@ public class AccountHelper {
             case SITE_VISITKA_PLAN_OLD_ID:
             case PLAN_PARKING_PLUS_ID_STRING:
                 return planManager.findByOldId(String.valueOf(PLAN_START_ID));
+
+            case PLAN_PARKING_ID_STRING:
+                return planManager.findByOldId(String.valueOf(PLAN_PARKING_DOMAINS_ID));
 
             default:
                 return getArchivalFallbackPlan();
