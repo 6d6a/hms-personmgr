@@ -135,6 +135,7 @@ public class Constants {
 
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;
+    public static final String PLAN_PARKING_ID_STRING = "109";
     public static final int PLAN_PARKING_PLUS_ID = 124;
     public static final String PLAN_PARKING_PLUS_ID_STRING = "124";
     public static final int PLAN_UNLIMITED_ID = 9802;
