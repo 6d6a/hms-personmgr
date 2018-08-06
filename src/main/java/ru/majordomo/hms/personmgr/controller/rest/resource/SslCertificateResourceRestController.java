@@ -59,6 +59,11 @@ public class SslCertificateResourceRestController extends CommonRestController {
 
         String domainName = (String) message.getParam("name");
 
+        boolean inProcessing = businessHelper.existsActiveOperations(accountId, BusinessOperationType.SSL_CERTIFICATE_CREATE, message);
+        if (inProcessing) {
+            throw new ParameterValidationException("Сертификат для домена " + domainName + " находится в процессе создания");
+        }
+
         boolean canOrderSSL = false;
         Domain domain = rcUserFeignClient.findDomain(domainName);
 

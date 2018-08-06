@@ -52,13 +52,6 @@ public class ResourceArchiveResourceRestController extends CommonRestController 
             throw new ParameterWithRoleSecurityException("Создание архива запрещено");
         }
 
-        String archivedResourceId = (String) message.getParam(ARCHIVED_RESOURCE_ID_KEY);
-        ResourceArchiveType resourceArchiveType = ResourceArchiveType.valueOf((String) message.getParam(RESOURCE_TYPE));
-
-        if (!resourceArchiveService.canCreateResourceArchive(accountId, archivedResourceId, resourceArchiveType)) {
-            throw new ParameterValidationException("Для создания нового архива необходимо удалить уже имеющийся архив");
-        }
-
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(
                 BusinessOperationType.RESOURCE_ARCHIVE_CREATE,
                 BusinessActionType.RESOURCE_ARCHIVE_CREATE_RC,

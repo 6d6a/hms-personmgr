@@ -125,13 +125,6 @@ public class ResourceArchiveService {
         }
     }
 
-    public boolean canCreateResourceArchive(String accountId, String archivedResourceId, ResourceArchiveType resourceArchiveType) {
-        Count currentCount = rcUserFeignClient.getResourceArchiveCount(accountId, archivedResourceId, resourceArchiveType);
-
-        return currentCount.getCount() == 0 ||
-                repository.countByPersonalAccountIdAndTypeAndArchivedResourceId(accountId, resourceArchiveType, archivedResourceId) >= currentCount.getCount();
-    }
-
     public void notifyByProcessingBusinessOperation(ProcessingBusinessOperation businessOperation) {
         String archivedResourceId = (String) businessOperation.getParam(ARCHIVED_RESOURCE_ID_KEY);
         String resourceArchiveId = (String) businessOperation.getParam(RESOURCE_ID_KEY);
