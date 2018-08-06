@@ -7,7 +7,9 @@ import org.springframework.data.querydsl.QueryDslPredicateExecutor;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Set;
 
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 
@@ -22,4 +24,6 @@ public interface ProcessingBusinessOperationRepository extends MongoRepository<P
     ProcessingBusinessOperation findByIdAndPersonalAccountId(@Param("id") String id, @Param("accountId") String accountId);
 
     ProcessingBusinessOperation findByIdAndPersonalAccountIdAndStateIn(@Param("id") String id, @Param("accountId") String accountId, @Param("states") List<State> states);
+
+    List<ProcessingBusinessOperation> findAllByPersonalAccountIdAndTypeAndStateIn(String personalAccountId, BusinessOperationType type, Set<State> states);
 }
