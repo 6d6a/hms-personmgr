@@ -182,7 +182,7 @@ public class AccountServiceRestController extends CommonRestController {
 
         ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
 
-        if (feature == Feature.SMS_NOTIFICATIONS) {
+        if (feature == Feature.SMS_NOTIFICATIONS && enabled) {
             checkSmsAllowness(account);
         }
 
