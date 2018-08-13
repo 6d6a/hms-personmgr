@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -245,29 +246,27 @@ public class ArchivalPlanProcessor {
         DeferredPlanChangeNotice example = new DeferredPlanChangeNotice();
         example.setWasChanged(false);
 
-        List<DeferredPlanChangeNotice> notices = accountNoticeRepository.findAll(Example.of(example));
+        accountNoticeRepository
+                .findAll(Example.of(example))
+                .stream()
+                .filter(n -> n.getWillBeChangedAfter().isBefore(LocalDate.now()))
+                .forEach(this::processDeferredPlanChange);
+    }
 
-        for (DeferredPlanChangeNotice notice : notices) {
-            if (notice.getWillBeChangedAfter().isAfter(LocalDate.now())) {
-                notice.setWasChanged(true);
-                accountNoticeRepository.save(notice);
-                history.save(notice.getPersonalAccountId(),"Смена архивного тарифа на активный не потребовалась", "service");
-                return;
-            }
+    private void processDeferredPlanChange(DeferredPlanChangeNotice notice) {
+        PersonalAccount account = accountManager.findOne(notice.getPersonalAccountId());
 
-            PersonalAccount account = accountManager.findOne(notice.getPersonalAccountId());
-            if (!accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
-                log.info("account with id " + account.getId()
-                        + " already change plan to active, passed deferred plan change");
-                return;
-            }
+        if (!accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+            history.save(notice.getPersonalAccountId(),
+                    "Смена архивного тарифа на активный не потребовалась", "service");
 
-            AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-            if (accountAbonement != null) {
-                log.error("account with id " + account.getId() + " and archival plan has abonement");
-                return;
-            }
-
+            log.info("account with id " + account.getId()
+                    + " already change plan to active, passed deferred plan change");
+            notice.setWasChanged(true);
+            accountNoticeRepository.save(notice);
+        } else if(accountAbonementManager.findByPersonalAccountId(account.getId()) != null) {
+            log.error("account with id " + account.getId() + " and archival plan has abonement");
+        } else {
             Plan currentPlan = planManager.findOne(account.getPlanId());
             StringBuilder historyMessage = new StringBuilder(" текущий тариф: ").append(currentPlan.getName());
 
@@ -279,7 +278,6 @@ public class ArchivalPlanProcessor {
                 historyMessage.append(", попытка покупки абонемента по тарифу ").append(abonementFallbackPlan.getName());
                 abonementService.changeArchivalAbonementToActive(account, abonementFallbackPlan);
             }
-
             history.save(account, historyMessage.toString());
 
             notice.setWasChanged(true);
