@@ -6,26 +6,38 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
+import ru.majordomo.hms.personmgr.dto.partners.RegisterStat;
+import ru.majordomo.hms.personmgr.dto.partners.RegisterStatRequest;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.model.promocode.UnknownPromocode;
-import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
-import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
-import ru.majordomo.hms.personmgr.repository.*;
+import ru.majordomo.hms.personmgr.model.promocode.UnknownPromocode;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.model.promotion.Promotion;
+import ru.majordomo.hms.personmgr.repository.AbonementRepository;
+import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
+import ru.majordomo.hms.personmgr.repository.PromotionRepository;
+import ru.majordomo.hms.personmgr.repository.UnknownPromocodeRepository;
 
-import static ru.majordomo.hms.personmgr.common.Constants.*;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_PARKING_3_M_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_UNLIMITED_1_M_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.BONUS_UNLIMITED_3_M_PROMOCODE_ACTION_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.FREE_DOMAIN_PROMOTION;
 
 @Service
 public class PromocodeProcessor {
@@ -33,7 +45,6 @@ public class PromocodeProcessor {
 
     private final PromocodeRepository promocodeRepository;
     private final AccountPromocodeRepository accountPromocodeRepository;
-    private final FinFeignClient finFeignClient;
     private final AbonementService abonementService;
     private final PlanRepository planRepository;
     private final AbonementRepository abonementRepository;
@@ -42,6 +53,7 @@ public class PromocodeProcessor {
     private final AccountHelper accountHelper;
     private final UnknownPromocodeRepository unknownPromocodeRepository;
     private final AccountHistoryManager history;
+    private final PartnersFeignClient partnersFeignClient;
 
     private final List<String> badWordPatterns = Arrays.asList(
             "FUCK",
@@ -80,7 +92,6 @@ public class PromocodeProcessor {
     public PromocodeProcessor(
             PromocodeRepository promocodeRepository,
             AccountPromocodeRepository accountPromocodeRepository,
-            FinFeignClient finFeignClient,
             AbonementService abonementService,
             PlanRepository planRepository,
             AbonementRepository abonementRepository,
@@ -88,11 +99,11 @@ public class PromocodeProcessor {
             PromotionRepository promotionRepository,
             AccountHelper accountHelper,
             UnknownPromocodeRepository unknownPromocodeRepository,
-            AccountHistoryManager history
+            AccountHistoryManager history,
+            PartnersFeignClient partnersFeignClient
     ) {
         this.promocodeRepository = promocodeRepository;
         this.accountPromocodeRepository = accountPromocodeRepository;
-        this.finFeignClient = finFeignClient;
         this.abonementService = abonementService;
         this.planRepository = planRepository;
         this.abonementRepository = abonementRepository;
@@ -101,9 +112,14 @@ public class PromocodeProcessor {
         this.accountHelper = accountHelper;
         this.unknownPromocodeRepository = unknownPromocodeRepository;
         this.history = history;
+        this.partnersFeignClient = partnersFeignClient;
     }
 
     public void processPromocode(PersonalAccount account, String promocodeString) {
+        if (processPartnerPromocode(account, promocodeString)) {
+            return;
+        }
+
         Promocode promocode = promocodeRepository.findByCodeAndActive(promocodeString, true);
 
         if (promocode == null) {
@@ -121,35 +137,7 @@ public class PromocodeProcessor {
 
         AccountPromocode accountPromocode;
 
-        Map<String, String> paramsHistory;
-
         switch (promocode.getType()) {
-            case PARTNER:
-                logger.debug("Found PARTNER promocode instance with code: " + promocodeString);
-
-                AccountPromocode ownerAccountPromocode = accountPromocodeRepository.findByPromocodeIdAndOwnedByAccount(promocode.getId(), true);
-
-                //Если пытается использовать свой промокод
-                if (account.getId().equals(ownerAccountPromocode.getPersonalAccountId())) {
-                    logger.debug("Client trying to use his own code: " + promocodeString);
-
-                    return;
-                }
-
-                accountPromocode = new AccountPromocode();
-                accountPromocode.setOwnedByAccount(false);
-                accountPromocode.setPersonalAccountId(account.getId());
-                accountPromocode.setOwnerPersonalAccountId(ownerAccountPromocode.getPersonalAccountId());
-                accountPromocode.setPromocodeId(promocode.getId());
-                accountPromocode.setPromocode(promocode);
-
-                accountPromocodeRepository.save(accountPromocode);
-
-                history.save(account, "Клиент зарегистрирован с использованием партнёрского промокода '" + promocodeString + "'", "service");
-
-                processPartnerPromocodeActions(account, accountPromocode);
-
-                break;
             case BONUS:
                 logger.debug("Found BONUS promocode instance with code: " + promocodeString);
 
@@ -189,11 +177,6 @@ public class PromocodeProcessor {
         }
     }
 
-    public void generatePartnerPromocode(PersonalAccount account) {
-        Promocode promocode = generatePromocode(PromocodeType.PARTNER, PARTNER_PROMOCODE_ACTION_ID);
-        this.addAccountPromocode(account, promocode);
-    }
-
     public Promocode generatePromocodeUnlimitedOneMonth() {
         return generatePromocode(PromocodeType.BONUS, BONUS_UNLIMITED_1_M_PROMOCODE_ACTION_ID);
     }
@@ -204,17 +187,6 @@ public class PromocodeProcessor {
 
     public Promocode generatePromocodeParkingThreeMonth() {
         return generatePromocode(PromocodeType.BONUS, BONUS_PARKING_3_M_PROMOCODE_ACTION_ID);
-    }
-
-    private void addAccountPromocode(PersonalAccount account, Promocode promocode) {
-        AccountPromocode accountPromocode = new AccountPromocode();
-        accountPromocode.setPromocodeId(promocode.getId());
-        accountPromocode.setOwnedByAccount(true);
-        accountPromocode.setOwnerPersonalAccountId(account.getId());
-        accountPromocode.setPersonalAccountId(account.getId());
-
-        accountPromocodeRepository.save(accountPromocode);
-        logger.info("On account " + account.getId() + " added promocode " + promocode.toString());
     }
 
     private Promocode generatePromocode(PromocodeType type, String actionId) {
@@ -275,36 +247,22 @@ public class PromocodeProcessor {
         return false;
     }
 
-    private void processPartnerPromocodeActions(PersonalAccount account, AccountPromocode accountPromocode) {
-        List<PromocodeAction> promocodeActions = accountPromocode.getPromocode().getActions();
-        logger.debug("Processing promocode actions for account: " + account.getName() + " for code: " + accountPromocode.getPromocode().getCode());
+    private boolean processPartnerPromocode(PersonalAccount account, String promocodeString) {
+        try {
+            RegisterStatRequest registerStatRequest = new RegisterStatRequest();
+            registerStatRequest.setCode(promocodeString);
 
-        for (PromocodeAction action : promocodeActions) {
-            switch (action.getActionType()) {
-                case BALANCE_FILL:
-                    logger.debug("Processing promocode BALANCE_FILL codeAction: " + action.toString());
+            RegisterStat registerStat = partnersFeignClient.registerByAccountIdAndCode(account.getId(), registerStatRequest);
 
-                    Map<String, Object> payment = new HashMap<>();
-                    payment.put("accountId", account.getName());
-                    payment.put("paymentTypeId", BONUS_PAYMENT_TYPE_ID);
-                    payment.put("amount", new BigDecimal((String) action.getProperties().get("amount")));
-                    payment.put("documentNumber", account.getName() + "_" + accountPromocode.getPromocode().getCode());
-                    payment.put("message", "Бонусный платеж при использовании промокода " + accountPromocode.getPromocode().getCode());
-
-                    try {
-                        String responseMessage = finFeignClient.addPayment(payment);
-                        logger.debug("Processed promocode addPayment: " + responseMessage);
-
-                    } catch (Exception e) {
-                        logger.error("Exception in ru.majordomo.hms.personmgr.service.PromocodeProcessor.processPartnerPromocodeActions " + e.getMessage());
-                        e.printStackTrace();
-                    }
-
-                    history.save(account, "Зачислен бонусный платеж при использовании промокода " + accountPromocode.getPromocode().getCode(), "service");
-
-                    break;
+            if (registerStat != null) {
+                return true;
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
         }
+
+        return false;
     }
 
     private void processBonusPromocodeActions(PersonalAccount account, AccountPromocode accountPromocode) {

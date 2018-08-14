@@ -51,7 +51,6 @@ public class AccountResourceRestController extends CommonRestController {
     private final SequenceCounterService sequenceCounterService;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
     private final PlanRepository planRepository;
-    private final PromocodeProcessor promocodeProcessor;
     private final AccountServiceRepository accountServiceRepository;
     private final AccountOwnerManager accountOwnerManager;
     private final PlanLimitsService planLimitsService;
@@ -65,7 +64,6 @@ public class AccountResourceRestController extends CommonRestController {
             SequenceCounterService sequenceCounterService,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
             PlanRepository planRepository,
-            PromocodeProcessor promocodeProcessor,
             AccountServiceRepository accountServiceRepository,
             AccountOwnerManager accountOwnerManager,
             PlanLimitsService planLimitsService,
@@ -77,7 +75,6 @@ public class AccountResourceRestController extends CommonRestController {
         this.sequenceCounterService = sequenceCounterService;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
         this.planRepository = planRepository;
-        this.promocodeProcessor = promocodeProcessor;
         this.accountServiceRepository = accountServiceRepository;
         this.accountOwnerManager = accountOwnerManager;
         this.planLimitsService = planLimitsService;
@@ -144,8 +141,6 @@ public class AccountResourceRestController extends CommonRestController {
         createAccountService(personalAccount, plan);
 
         createInfoBannerAccountNotice(personalAccount);
-
-        promocodeProcessor.generatePartnerPromocode(personalAccount);
 
         //Сохраним в мессагу квоту по тарифу
         Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
