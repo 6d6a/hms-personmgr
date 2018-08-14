@@ -13,33 +13,56 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.event.account.*;
+import ru.majordomo.hms.personmgr.dto.partners.ActionStatRequest;
+import ru.majordomo.hms.personmgr.event.account.AccountAppInstalledEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountOwnerChangeEmailEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverConfirmedEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountWasEnabled;
+import ru.majordomo.hms.personmgr.event.account.PaymentWasReceivedEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
-import ru.majordomo.hms.personmgr.model.account.AccountStat;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.token.Token;
-import ru.majordomo.hms.personmgr.repository.*;
-import ru.majordomo.hms.personmgr.service.*;
+import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.repository.PromotionRepository;
+import ru.majordomo.hms.personmgr.service.AbonementService;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
+import ru.majordomo.hms.personmgr.service.BackupService;
+import ru.majordomo.hms.personmgr.service.ChargeHelper;
+import ru.majordomo.hms.personmgr.service.PartnersFeignClient;
+import ru.majordomo.hms.personmgr.service.TokenHelper;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
-import static ru.majordomo.hms.personmgr.common.Constants.*;
+import static ru.majordomo.hms.personmgr.common.Constants.AMOUNT_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.CREDIT_PAYMENT_TYPE_KIND;
+import static ru.majordomo.hms.personmgr.common.Constants.FREE_DOMAIN_PROMOTION;
+import static ru.majordomo.hms.personmgr.common.Constants.IP_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.PLAN_START_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.REAL_PAYMENT_TYPE_KIND;
+import static ru.majordomo.hms.personmgr.common.Constants.TECHNICAL_SUPPORT_EMAIL;
 import static ru.majordomo.hms.personmgr.common.Utils.getBigDecimalFromUnexpectedInput;
 
 @Component
@@ -49,9 +72,6 @@ public class AccountEventListener {
     private final AccountHelper accountHelper;
     private final TokenHelper tokenHelper;
     private final ApplicationEventPublisher publisher;
-    private final AccountPromocodeRepository accountPromocodeRepository;
-    private final FinFeignClient finFeignClient;
-    private final AccountStatRepository accountStatRepository;
     private final PlanRepository planRepository;
     private final AccountPromotionManager accountPromotionManager;
     private final PromotionRepository promotionRepository;
@@ -62,6 +82,7 @@ public class AccountEventListener {
     private final ChargeHelper chargeHelper;
     private final AccountHistoryManager history;
     private final BackupService backupService;
+    private final PartnersFeignClient partnersFeignClient;
 
     private final int deleteDataAfterDays;
 
@@ -70,9 +91,6 @@ public class AccountEventListener {
             AccountHelper accountHelper,
             TokenHelper tokenHelper,
             ApplicationEventPublisher publisher,
-            AccountPromocodeRepository accountPromocodeRepository,
-            FinFeignClient finFeignClient,
-            AccountStatRepository accountStatRepository,
             PlanRepository planRepository,
             AccountPromotionManager accountPromotionManager,
             PromotionRepository promotionRepository,
@@ -83,14 +101,12 @@ public class AccountEventListener {
             ChargeHelper chargeHelper,
             AccountHistoryManager history,
             BackupService backupService,
+            PartnersFeignClient partnersFeignClient,
             @Value("${delete_data_after_days}") int deleteDataAfterDays
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
         this.publisher = publisher;
-        this.accountPromocodeRepository = accountPromocodeRepository;
-        this.finFeignClient = finFeignClient;
-        this.accountStatRepository = accountStatRepository;
         this.planRepository = planRepository;
         this.accountPromotionManager = accountPromotionManager;
         this.promotionRepository = promotionRepository;
@@ -101,6 +117,7 @@ public class AccountEventListener {
         this.chargeHelper = chargeHelper;
         this.history = history;
         this.backupService = backupService;
+        this.partnersFeignClient = partnersFeignClient;
         this.deleteDataAfterDays = deleteDataAfterDays;
     }
 
@@ -340,78 +357,13 @@ public class AccountEventListener {
         Map<String, ?> paramsForPublisher = message.getParams();
         BigDecimal amount = getBigDecimalFromUnexpectedInput(paramsForPublisher.get(AMOUNT_KEY));
 
-        if (accountPromocodeRepository.countByPersonalAccountIdAndOwnedByAccount(account.getId(), false) > 1) {
-            logger.error("Account has more than one AccountPromocodes with OwnedByAccount == false. Id: " + account.getId());
-            return;
-        }
-
-        // Проверка на то что аккаунт создан по партнерскому промокоду
-        AccountPromocode accountPromocode = accountPromocodeRepository.findOneByPersonalAccountIdAndOwnedByAccount(account.getId(), false);
-
-        if (accountPromocode == null) {
-            return;
-        }
-
-        // Аккаунт которому необходимо начислить средства
-        PersonalAccount accountForPartnerBonus = accountManager.findOne(accountPromocode.getOwnerPersonalAccountId());
-
-        if (accountForPartnerBonus == null) {
-            logger.error("PersonalAccount with ID: " + accountPromocode.getOwnerPersonalAccountId() + " not found.");
-            return;
-        }
-
-        if (account.getCreated().isBefore(LocalDateTime.now().minusYears(1))) {
-            return;
-        }
-
-        // Все условия выполнены
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        LocalDateTime partnerBonusSwitchDate = LocalDateTime.parse(INCREASED_BONUS_PARTNER_DATE, formatter);
-
-        BigDecimal percent = new BigDecimal(BONUS_PARTNER_PERCENT);
-
-        if (account.getCreated().isAfter(partnerBonusSwitchDate)) {
-            percent = new BigDecimal(INCREASED_BONUS_PARTNER_PERCENT);
-        }
-
-        BigDecimal promocodeBonus = amount.multiply(percent);
-
-        Map<String, Object> payment = new HashMap<>();
-        payment.put("accountId", accountForPartnerBonus.getName());
-        payment.put("paymentTypeId", BONUS_PARTNER_TYPE_ID);
-        payment.put("amount", promocodeBonus);
-        payment.put("message", "Бонусный платеж за использование промокода " + accountPromocode.getPromocode().getCode() + " на аккаунте: " + account.getName());
-
         try {
-            String responseMessage = finFeignClient.addPayment(payment);
-            logger.debug("Processed promocode addPayment: " + responseMessage);
+            ActionStatRequest actionStatRequest = new ActionStatRequest();
+            actionStatRequest.setAmount(amount);
 
-            //Save history
-            history.saveForOperatorService(account, "Произведено начисление процента от пополнения ("
-                    + promocodeBonus.toString() + " руб. от "
-                    + amount.toString() + " руб.) владельцу партнерского промокода"
-                    + accountPromocode.getPromocode().getCode() + " - " + accountForPartnerBonus.getName()
-            );
-
-            //Статистика
-            AccountStat accountStat = new AccountStat();
-            accountStat.setPersonalAccountId(accountForPartnerBonus.getId());
-            accountStat.setCreated(LocalDateTime.now());
-            accountStat.setType(AccountStatType.VIRTUAL_HOSTING_PARTNER_PROMOCODE_BALANCE_FILL);
-
-            Map<String, String> data = new HashMap<>();
-            data.put("usedByPersonalAccountId", account.getId());
-            data.put("usedByPersonalAccountName", account.getName());
-            data.put("amount", String.valueOf(promocodeBonus));
-
-            accountStat.setData(data);
-
-            accountStatRepository.save(accountStat);
-
+            partnersFeignClient.actionByAccountIdAndAmount(account.getId(), actionStatRequest);
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("Exception in pm.payment.create AMQP listener: " + e.getMessage());
         }
     }
 
