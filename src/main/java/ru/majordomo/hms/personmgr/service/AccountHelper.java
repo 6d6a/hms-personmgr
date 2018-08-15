@@ -480,137 +480,161 @@ public class AccountHelper {
     }
 
     public void switchAccountResources(PersonalAccount account, Boolean state) {
+        switchWebsites(account, state);
+        switchDatabaseUsers(account, state);
+        switchMailboxes(account, state);
+        switchDomains(account, state);
+        switchFtpUsers(account, state);
+        switchUnixAccounts(account, state);
+        switchRedirects(account, state);
+    }
+
+    private void switchWebsites(PersonalAccount account, Boolean state) {
         try {
 
             List<WebSite> webSites = rcUserFeignClient.getWebSites(account.getId());
 
             for (WebSite webSite : webSites) {
-                SimpleServiceMessage message = new SimpleServiceMessage();
-                message.setParams(new HashMap<>());
-                message.setAccountId(account.getId());
-                message.addParam("resourceId", webSite.getId());
-                message.addParam("switchedOn", state);
+                SimpleServiceMessage message = messageForSwitchOn(webSite, state);
 
                 businessHelper.buildAction(BusinessActionType.WEB_SITE_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " сайта '" + webSite.getName() + "'";
-                history.saveForOperatorService(account, historyMessage);
+                history.save(account, historyMessage);
             }
 
         } catch (Exception e) {
             logger.error("account WebSite switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
+    }
 
+    private void switchDatabaseUsers(PersonalAccount account, Boolean state) {
         try {
 
             List<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
 
             for (DatabaseUser databaseUser : databaseUsers) {
-                SimpleServiceMessage message = new SimpleServiceMessage();
-                message.setParams(new HashMap<>());
-                message.setAccountId(account.getId());
-                message.addParam("resourceId", databaseUser.getId());
-                message.addParam("switchedOn", state);
+                SimpleServiceMessage message = messageForSwitchOn(databaseUser, state);
 
                 businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " пользователя базы данных '" + databaseUser.getName() + "'";
-                history.saveForOperatorService(account, historyMessage);
+                history.save(account, historyMessage);
             }
 
         } catch (Exception e) {
             logger.error("account DatabaseUsers switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
+    }
 
+    private void switchMailboxes(PersonalAccount account, Boolean state) {
         try {
 
             Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
 
             for (Mailbox mailbox : mailboxes) {
-                SimpleServiceMessage message = new SimpleServiceMessage();
-                message.setParams(new HashMap<>());
-                message.setAccountId(account.getId());
-                message.addParam("resourceId", mailbox.getId());
-                message.addParam("switchedOn", state);
+                SimpleServiceMessage message = messageForSwitchOn(mailbox, state);
 
                 businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " почтового ящика '" + mailbox.getFullName() + "'";
-                history.saveForOperatorService(account, historyMessage);
+                history.save(account, historyMessage);
             }
 
         } catch (Exception e) {
             logger.error("account Mailboxes switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
+    }
 
+    private void switchDomains(PersonalAccount account, Boolean state) {
         try {
 
             List<Domain> domains = rcUserFeignClient.getDomains(account.getId());
 
             for (Domain domain : domains) {
-                SimpleServiceMessage message = new SimpleServiceMessage();
-                message.setParams(new HashMap<>());
-                message.setAccountId(account.getId());
-                message.addParam("resourceId", domain.getId());
-                message.addParam("switchedOn", state);
+                SimpleServiceMessage message = messageForSwitchOn(domain, state);
 
                 businessHelper.buildAction(BusinessActionType.DOMAIN_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " домена '" + domain.getName() + "'";
-                history.saveForOperatorService(account, historyMessage);
+                history.save(account, historyMessage);
             }
 
         } catch (Exception e) {
             logger.error("account Domains switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
+    }
 
+    private void switchFtpUsers(PersonalAccount account, Boolean state) {
         try {
 
             List<FTPUser> ftpUsers = rcUserFeignClient.getFTPUsers(account.getId());
 
             for (FTPUser ftpUser : ftpUsers) {
-                SimpleServiceMessage message = new SimpleServiceMessage();
-                message.setParams(new HashMap<>());
-                message.setAccountId(account.getId());
-                message.addParam("resourceId", ftpUser.getId());
-                message.addParam("switchedOn", state);
+                SimpleServiceMessage message = messageForSwitchOn(ftpUser, state);
 
                 businessHelper.buildAction(BusinessActionType.FTP_USER_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " FTP-пользователя '" + ftpUser.getName() + "'";
-                history.saveForOperatorService(account, historyMessage);
+                history.save(account, historyMessage);
             }
 
         } catch (Exception e) {
             logger.error("account FTPUsers switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
+    }
 
+    private void switchUnixAccounts(PersonalAccount account, Boolean state) {
         try {
 
             Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
 
             for (UnixAccount unixAccount : unixAccounts) {
-                SimpleServiceMessage message = new SimpleServiceMessage();
-                message.setParams(new HashMap<>());
-                message.setAccountId(account.getId());
-                message.addParam("resourceId", unixAccount.getId());
-                message.addParam("switchedOn", state);
+                SimpleServiceMessage message = messageForSwitchOn(unixAccount, state);
 
                 businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_UPDATE_RC, message);
 
                 String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " UNIX-аккаунта '" + unixAccount.getName() + "'";
-                history.saveForOperatorService(account, historyMessage);
+                history.save(account, historyMessage);
             }
 
         } catch (Exception e) {
             logger.error("account UnixAccounts switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
+    }
+
+    private void switchRedirects(PersonalAccount account, Boolean state) {
+        try {
+            List<Redirect> redirects = rcUserFeignClient.getRedirects(account.getId());
+
+            for (Redirect redirect : redirects) {
+                SimpleServiceMessage message = messageForSwitchOn(redirect, state);
+
+                businessHelper.buildAction(BusinessActionType.REDIRECT_UPDATE_RC, message);
+
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " переадресации '" + redirect.getName() + "'";
+                history.save(account, historyMessage);
+            }
+
+        } catch (Exception e) {
+            logger.error("account Redirect switch failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+    }
+
+    private SimpleServiceMessage messageForSwitchOn(Resource resource, Boolean state) {
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setParams(new HashMap<>());
+        message.setAccountId(resource.getAccountId());
+        message.addParam("resourceId", resource.getId());
+        message.addParam("switchedOn", state);
+        return message;
     }
 
     public void updateUnixAccountQuota(PersonalAccount account, Long quotaInBytes) {
@@ -976,9 +1000,6 @@ public class AccountHelper {
                 e.printStackTrace();
                 logger.error("Switch account Mailboxes anti-spam failed");
             }
-//        } else if (paymentService.getId().equals(smsPaymentService.getId())) {
-//            Для SMS достаточно выключать сервис
-//            TODO надо сделать выключение для остальных дополнительных услуг, типа доп ftp
         } else if (paymentServiceOldId.equals(LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID)) {
             resourceArchiveService.processAccountServiceDelete(accountService);
         }
