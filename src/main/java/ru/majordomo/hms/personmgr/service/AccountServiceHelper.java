@@ -378,21 +378,21 @@ public class AccountServiceHelper {
      * @param account   Аккаунт
      */
     public boolean hasAdvancedBackup(PersonalAccount account) {
+        if (!account.isActive()) return false;
+
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ADVANCED_BACKUP, true);
 
         AccountService accountService = accountServiceRepository.findOneByPersonalAccountIdAndServiceId(account.getId(), plan.getServiceId());
 
-        if (accountService == null) {
-            List<AccountServiceAbonement> abonements = abonementManager.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
-            if (abonements != null && !abonements.isEmpty()) {
-                return true;
-            }
-        }
-
-        return accountService != null
+        if (accountService != null
                 && accountService.isEnabled()
                 && accountService.getLastBilled() != null
-                && accountService.getLastBilled().isAfter(LocalDateTime.now());
+                && accountService.getLastBilled().isAfter(LocalDateTime.now().minusDays(1))) {
+            return true;
+        } else {
+            List<AccountServiceAbonement> abonements = abonementManager.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
+            return abonements != null && !abonements.isEmpty();
+        }
     }
 
 
