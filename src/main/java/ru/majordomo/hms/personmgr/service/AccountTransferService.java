@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -22,13 +24,7 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.rc.staff.resources.Server;
 import ru.majordomo.hms.rc.staff.resources.Service;
-import ru.majordomo.hms.rc.user.resources.DNSResourceRecord;
-import ru.majordomo.hms.rc.user.resources.DNSResourceRecordType;
-import ru.majordomo.hms.rc.user.resources.Database;
-import ru.majordomo.hms.rc.user.resources.DatabaseUser;
-import ru.majordomo.hms.rc.user.resources.Domain;
-import ru.majordomo.hms.rc.user.resources.UnixAccount;
-import ru.majordomo.hms.rc.user.resources.WebSite;
+import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.DATASOURCE_URI_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_KEY;
@@ -66,6 +62,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.WEBSITE_SENT_KEY;
 
 @Component
 public class AccountTransferService {
+    private final static Logger log = LoggerFactory.getLogger(AccountTransferService.class);
     private final RcUserFeignClient rcUserFeignClient;
     private final RcStaffFeignClient rcStaffFeignClient;
     private final BusinessHelper businessHelper;
@@ -440,6 +437,7 @@ public class AccountTransferService {
 
                 try {
                     startUpdateDNSRecords(accountTransferRequest);
+                    startUpdateRedirects(accountTransferRequest);
                 } catch (Exception e) {
                     e.printStackTrace();
 
@@ -472,6 +470,22 @@ public class AccountTransferService {
                     "Перенос аккаунта успешно завершен. ДНС-записи изменены.",
                     "service"
             );
+        }
+    }
+
+    private void startUpdateRedirects(AccountTransferRequest accountTransferRequest) {
+        try {
+            Service nginx = getNginxByServerId(accountTransferRequest.getNewWebSiteServerId());
+            List<Redirect> redirects = rcUserFeignClient.getRedirects(accountTransferRequest.getAccountId());
+            for (Redirect redirect : redirects) {
+                SimpleServiceMessage message = new SimpleServiceMessage();
+                message.setAccountId(accountTransferRequest.getAccountId());
+                message.addParam(RESOURCE_ID_KEY, redirect.getId());
+                message.addParam("serviceId", nginx.getId());
+                businessHelper.buildAction(BusinessActionType.REDIRECT_UPDATE_RC, message);
+            }
+        } catch (Exception e) {
+            log.error("startUpdateRedirects catch " + e.getClass() + " e.message: " + e.getMessage() + " " + accountTransferRequest.toString());
         }
     }
 
@@ -778,6 +792,12 @@ public class AccountTransferService {
     }
 
     private String getNginxHostByServerId(String serverId) {
+        Service oldNginxService = getNginxByServerId(serverId);
+
+        return oldNginxService.getServiceSockets().get(0).getAddressAsString();
+    }
+
+    private Service getNginxByServerId(String serverId) {
         List<Service> oldServerNginxServices;
 
         try {
@@ -790,9 +810,7 @@ public class AccountTransferService {
             throw new ParameterValidationException("Сервисы nginx не найдены на текущем сервере");
         }
 
-        Service oldNginxService = oldServerNginxServices.get(0);
-
-        return oldNginxService.getServiceSockets().get(0).getAddressAsString();
+        return oldServerNginxServices.get(0);
     }
 
     private Service getDatabaseServiceByServerId(String serverId) {
