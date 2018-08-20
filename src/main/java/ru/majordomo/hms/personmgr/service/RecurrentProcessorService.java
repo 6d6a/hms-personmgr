@@ -42,6 +42,7 @@ public class RecurrentProcessorService {
     private final FinFeignClient finFeignClient;
     private final AccountHistoryManager history;
     private final ServiceAbonementService serviceAbonementService;
+    private final AccountServiceHelper accountServiceHelper;
 
     private static TemporalAdjuster FIFTY_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(50));
     private static TemporalAdjuster TWENTY_FIVE_DAYS_BEFORE = TemporalAdjusters.ofDateAdjuster(date -> date.minusDays(25));
@@ -57,7 +58,9 @@ public class RecurrentProcessorService {
             FinFeignClient finFeignClient,
             AbonementManager<AccountServiceAbonement> accountServiceAbonementManager,
             AccountHistoryManager history,
-            ServiceAbonementService serviceAbonementService) {
+            ServiceAbonementService serviceAbonementService,
+            AccountServiceHelper accountServiceHelper
+    ) {
         this.accountAbonementManager = accountAbonementManager;
         this.accountHelper = accountHelper;
         this.planRepository = planRepository;
@@ -68,6 +71,7 @@ public class RecurrentProcessorService {
         this.history = history;
         this.accountServiceAbonementManager = accountServiceAbonementManager;
         this.serviceAbonementService = serviceAbonementService;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     public void processRecurrent(PersonalAccount account) {
@@ -362,29 +366,25 @@ public class RecurrentProcessorService {
         LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
         Integer daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
 
-        List<AccountService> accountServices = account.getServices();
-
         BigDecimal dailyCostForRecurrent = BigDecimal.ZERO;
 
-        for (AccountService accountService : accountServices) {
-            if (accountService.isEnabled()
-                    //&& ServiceIdsEligibleForRecurrent.contains(accountService.getServiceId())
-                    && accountService.getPaymentService() != null && !accountService.getPaymentService().getOldId().equals(ADVANCED_BACKUP_SERVICE_ID)) {
-                BigDecimal cost;
+        List<AccountService> accountServices = accountServiceHelper.getDailyServicesToCharge(account, chargeDate);
 
-                switch (accountService.getPaymentService().getPaymentType()) {
-                    case MONTH:
-                        cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
-                        dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
-                        break;
-                        //Ежедневные услуги не считаем в рекуррент (сейчас это только 'Хранение архива данных')
+        for (AccountService accountService : accountServices) {
+            BigDecimal cost;
+
+            switch (accountService.getPaymentService().getPaymentType()) {
+                case MONTH:
+                    cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
+                    dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
+                    break;
+                    //Ежедневные услуги не считаем в рекуррент (сейчас это только 'Хранение архива данных')
 //                    case DAY:
 //                        cost = accountService.getCost();
 //                        dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
 //                        break;
-                }
-
             }
+
         }
 
         return dailyCostForRecurrent;
