@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 import javax.validation.Valid;
 
@@ -34,23 +34,32 @@ import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.QAccountOwner;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
+import ru.majordomo.hms.personmgr.service.JongoManager;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import static java.util.stream.Collectors.toList;
 import static ru.majordomo.hms.personmgr.common.Constants.MAILING_TYPE_INFO;
+import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_NEWS;
 import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
 
 @RestController
 @Validated
 public class AccountOwnerRestController extends CommonRestController {
-
     private final AccountOwnerManager accountOwnerManager;
+    private final RcUserFeignClient rcUserFeignClient;
+    private final JongoManager jongoManager;
 
     @Autowired
     public AccountOwnerRestController(
-            AccountOwnerManager accountOwnerManager
+            AccountOwnerManager accountOwnerManager,
+            RcUserFeignClient rcUserFeignClient,
+            JongoManager jongoManager
     ) {
         this.accountOwnerManager = accountOwnerManager;
+        this.rcUserFeignClient = rcUserFeignClient;
+        this.jongoManager = jongoManager;
     }
 
     @RequestMapping(value = "/{accountId}/owner",
@@ -121,34 +130,67 @@ public class AccountOwnerRestController extends CommonRestController {
     public ResponseEntity<List<AccountOwner>> listAll(
             @RequestParam(required = false) AccountOwner.Type type,
             @RequestParam(required = false) List<AccountOwner.Type> types,
-            @RequestParam(required = false, defaultValue = MAILING_TYPE_INFO) String mailingType
+            @RequestParam(required = false, defaultValue = MAILING_TYPE_INFO) String mailingType,
+            @RequestParam(required = false) List<String> sharedHostingServerIds,
+            @RequestParam(required = false) Boolean onlyActive
     ) {
-        List<AccountOwner> accountOwners;
+        logger.debug("[start]");
+        List<AccountOwner> accountOwners = new ArrayList<>();
+
         if (type != null) {
             accountOwners = accountOwnerManager.findAllByTypeIn(Collections.singletonList(type));
         } else if (types != null && !types.isEmpty()) {
             accountOwners = accountOwnerManager.findAllByTypeIn(types);
+        } else if (sharedHostingServerIds != null && !sharedHostingServerIds.isEmpty()) {
+            List<AccountOwner> finalAccountOwners = accountOwners;
+            sharedHostingServerIds.parallelStream().forEach(serverId -> {
+                Map<String, String> filterParams = new HashMap<>();
+                filterParams.put(SERVER_ID_KEY, serverId);
+
+                finalAccountOwners.addAll(
+                        rcUserFeignClient.filterUnixAccounts(filterParams)
+                                .stream()
+                                .map(unixAccount -> accountOwnerManager.findOneByPersonalAccountId(unixAccount.getAccountId()))
+                                .filter(Objects::nonNull)
+                                .collect(toList())
+                );
+            });
         } else {
             accountOwners = accountOwnerManager.findAll();
         }
 
-        List<PersonalAccountWithNotificationsProjection> accounts = accountManager.findWithNotifications();
-        Map<String, PersonalAccountWithNotificationsProjection> accountMap = accounts
-                .stream()
-                .collect(Collectors.toMap(PersonalAccountWithNotificationsProjection::getId, account -> account));
+        logger.debug("[ownersLoaded] " + accountOwners.size());
+
+        Map<String, PersonalAccountWithNotificationsProjection> accountMap = jongoManager.getAccountsWithNotifications();
+
+        logger.debug("[accountsLoaded] accountMap: " + accountMap.size());
+
+        if (onlyActive != null && onlyActive) {
+            accountOwners.removeIf(accountOwner -> {
+                PersonalAccountWithNotificationsProjection account = accountMap.get(accountOwner.getPersonalAccountId());
+
+                return account == null || !account.isActive();
+            });
+        }
+
+        logger.debug("[notActiveChecked] " + accountOwners.size());
 
         if (mailingType.equals(MAILING_TYPE_INFO)) {
             accountOwners.removeIf(accountOwner -> {
                 PersonalAccountWithNotificationsProjection account = accountMap.get(accountOwner.getPersonalAccountId());
 
-                return account != null && !account.hasNotification(EMAIL_NEWS);
+                return account == null || !account.hasNotification(EMAIL_NEWS);
             });
         }
+
+        logger.debug("[mailingTypeChecked] " + accountOwners.size());
 
         accountOwners.forEach(accountOwner -> {
             PersonalAccountWithNotificationsProjection account = accountMap.get(accountOwner.getPersonalAccountId());
             accountOwner.setAccountId(account.getAccountId());
         });
+
+        logger.debug("[accountIdSet] " + accountOwners.size());
 
         return new ResponseEntity<>(accountOwners, HttpStatus.OK);
     }

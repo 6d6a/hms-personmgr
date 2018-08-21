@@ -1,20 +1,32 @@
 package ru.majordomo.hms.personmgr.service;
 
+import com.mongodb.LazyDBList;
 import com.mongodb.MongoClient;
+
+import org.bson.types.ObjectId;
 import org.jongo.Aggregate;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
+import org.jongo.MongoCursor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import ru.majordomo.hms.personmgr.dto.IdsContainer;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.dto.IdsContainer;
+import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 
 @Service
 public class JongoManager {
-    private Jongo jongo;
+    private final Jongo jongo;
 
     public JongoManager(
             @Qualifier("jongoMongoClient") MongoClient mongoClient,
@@ -102,5 +114,50 @@ public class JongoManager {
 //
 //        return getIds(aggregate);
 //    }
+
+    @SuppressWarnings(value = "unchecked")
+    public Map<String, PersonalAccountWithNotificationsProjection> getAccountsWithNotifications() {
+        Map<String, PersonalAccountWithNotificationsProjection> accountMap = new HashMap<>();
+        MongoCollection personalAccountCollection = jongo.getCollection("personalAccount");
+
+        try (MongoCursor<PersonalAccountWithNotificationsProjection> accountCursor = personalAccountCollection
+                .find()
+                .projection("{notifications: 1, accountId: 1, active: 1}")
+                .map(
+                        result -> {
+                            PersonalAccountWithNotificationsProjection account = new PersonalAccountWithNotificationsProjection();
+                            try {
+                                if (result.get("_id") instanceof ObjectId) {
+                                    account.setId(((ObjectId) result.get("_id")).toString());
+                                } else if (result.get("_id") instanceof String) {
+                                    account.setId((String) result.get("_id"));
+                                }
+
+                                account.setAccountId((String) result.get("accountId"));
+                                Set<MailManagerMessageType> notifications = new HashSet<>();
+
+                                ((LazyDBList) result.get("notifications"))
+                                        .forEach(element -> notifications.add(MailManagerMessageType.valueOf((String) element)));
+
+                                account.setNotifications(notifications);
+
+                                account.setActive((boolean) result.get("active"));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            return account;
+                        }
+                )
+        ) {
+            while (accountCursor.hasNext()) {
+                PersonalAccountWithNotificationsProjection account = accountCursor.next();
+                accountMap.put(account.getId(), account);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return accountMap;
+    }
 }
 

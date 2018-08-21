@@ -9,8 +9,10 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+import lombok.Data;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 
+@Data
 public class PersonalAccountWithNotificationsProjection {
     @Id
     private String id;
@@ -25,37 +27,7 @@ public class PersonalAccountWithNotificationsProjection {
 
     private Set<MailManagerMessageType> notifications = new HashSet<>();
 
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(String accountId) {
-        this.accountId = accountId;
-    }
-
-    public LocalDateTime getDeleted() {
-        return deleted;
-    }
-
-    public void setDeleted(LocalDateTime deleted) {
-        this.deleted = deleted;
-    }
-
-    public Set<MailManagerMessageType> getNotifications() {
-        return notifications;
-    }
-
-    public void setNotifications(Set<MailManagerMessageType> notifications) {
-        this.notifications = notifications;
-    }
+    private boolean active = true;
 
     public boolean hasNotification(MailManagerMessageType notification) {
         return this.notifications.contains(notification);
