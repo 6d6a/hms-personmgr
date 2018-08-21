@@ -111,4 +111,7 @@ public interface RcUserFeignClient {
 
     @GetMapping(value = "{accountId}/redirect", consumes = "application/json")
     List<Redirect> getRedirects(String accountId);
+
+    @GetMapping(value = "/unix-account/filter", headers = {"X-HMS-Projection=pm"})
+    List<UnixAccount> filterUnixAccounts(@RequestParam Map<String, String> filterParams);
 }
