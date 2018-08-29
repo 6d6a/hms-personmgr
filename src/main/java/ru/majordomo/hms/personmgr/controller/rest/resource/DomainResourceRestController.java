@@ -98,8 +98,14 @@ public class DomainResourceRestController extends CommonRestController {
 
         logger.debug("Updating domain with id " + resourceId + " " + message.toString());
 
-        if (!account.isActive()) {
+        if (!request.isUserInRole("ADMIN") && !account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление домена невозможно.");
+        }
+
+        if (message.getParam("switchedOn") != null && (boolean) message.getParam("switchedOn")) {
+            Domain domain = rcUserFeignClient.getDomain(accountId, resourceId);
+
+            domainService.checkBlacklistOnUpdate(domain.getName());
         }
 
         boolean isRenew = message.getParam("renew") != null && (boolean) message.getParam("renew");
