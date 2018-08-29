@@ -238,7 +238,6 @@ public class DomainService {
     }
 
     private List<Domain> getDomainsByName(String domainName) {
-
         List<Domain> domains = new ArrayList<>();
 
         try {
@@ -257,12 +256,15 @@ public class DomainService {
     }
 
     public void checkBlacklist(String domainName, String accountId) {
-
         domainName = IDN.toUnicode(domainName);
 
         PersonalAccount account = accountManager.findOne(accountId);
         InternetDomainName domain = InternetDomainName.from(domainName);
-        String topPrivateDomainName = IDN.toUnicode(domain.topPrivateDomain().toString());
+        String topPrivateDomainName = domainName;
+        try {
+            topPrivateDomainName = IDN.toUnicode(domain.topPrivateDomain().toString());
+        } catch (Exception ignored) {
+        }
 
         //Full domain check
         List<Domain> domainsByName = getDomainsByName(domainName);
@@ -276,8 +278,7 @@ public class DomainService {
         domainsByName = getDomainsByName(topPrivateDomainName);
         if (!domainName.equals(topPrivateDomainName)
                 && (!domainsByName.isEmpty() || blackListService.domainExistsInControlBlackList(topPrivateDomainName))) {
-
-            Boolean existOnAccount = false;
+            boolean existOnAccount = false;
 
             List<Domain> domains = accountHelper.getDomains(account);
 
@@ -298,8 +299,18 @@ public class DomainService {
         }
     }
 
-    public void check(String domainName, String accountId) {
+    public void checkBlacklistOnUpdate(String domainName) {
+        domainName = IDN.toUnicode(domainName);
 
+        //Full domain check
+        if (blackListService.domainExistsInControlBlackList(domainName)) {
+            logger.debug("domain: " + domainName + " exists in control BlackList");
+            throw new ParameterValidationException("Домен " + domainName
+                    + " не может быть обновлен, так как уже присутствует в системе на другом аккаунте или заблокирован.");
+        }
+    }
+
+    public void check(String domainName, String accountId) {
         checkBlacklist(domainName, accountId);
 
         getDomainTld(domainName);
