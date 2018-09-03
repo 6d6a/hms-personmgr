@@ -29,6 +29,7 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import javax.validation.Valid;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.IDN;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.LocalDateTime;
@@ -217,14 +218,16 @@ public class RevisiumRequestRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт не найден");
         }
 
-        String siteUrl = revisiumRequestBody.getSiteUrl();
         URL url;
 
         try {
             url = new URL(revisiumRequestBody.getSiteUrl());
+            url = new URL(url.getProtocol(), IDN.toASCII(url.getHost()),"");
         } catch (MalformedURLException e) {
             throw new ParameterValidationException("Введённый адрес сайта некорректен");
         }
+
+        final String siteUrl = url.toString();
 
         try {
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -264,7 +267,7 @@ public class RevisiumRequestRestController extends CommonRestController {
                 true
         );
 
-        history.save(account, "Произведен заказ услуги Онлайн-сканер на вирусы и взлом", request);
+        history.save(account, "Произведен заказ услуги Онлайн-сканер на вирусы и взлом для " + siteUrl, request);
 
         //Ревизиум сервис
         revisiumRequestService = new RevisiumRequestService();
