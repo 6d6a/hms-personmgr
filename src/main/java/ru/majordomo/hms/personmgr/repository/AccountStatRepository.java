@@ -52,4 +52,11 @@ public interface AccountStatRepository extends MongoRepository<AccountStat, Stri
             @Param("personalAccountIds") List<String> personalAccountIds,
             @Param("type") AccountStatType type
     );
+
+    Integer countAccountStatByPersonalAccountIdAndTypeAndCreatedIsBetween(
+            @Param("personalAccountId") String personalAccountId,
+            @Param("type") AccountStatType type,
+            @Param("after") LocalDateTime after,
+            @Param("before") LocalDateTime before
+    );
 }

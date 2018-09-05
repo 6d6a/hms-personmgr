@@ -14,6 +14,7 @@ import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -52,6 +53,7 @@ public class AccountNotificationHelper {
     private final NotificationRepository notificationRepository;
     private final PersonalAccountManager accountManager;
     private final String finEmail;
+    private final String inviteEmailApiName;
 
     @Autowired
     public AccountNotificationHelper(
@@ -61,7 +63,8 @@ public class AccountNotificationHelper {
             AccountServiceHelper accountServiceHelper,
             NotificationRepository notificationRepository,
             PersonalAccountManager accountManager,
-            @Value("${mail_manager.department.fin}") String finEmail
+            @Value("${mail_manager.department.fin}") String finEmail,
+            @Value("${invites.client_api_name}") String inviteEmailApiName
     ) {
         this.publisher = publisher;
         this.planRepository = planRepository;
@@ -70,10 +73,7 @@ public class AccountNotificationHelper {
         this.notificationRepository = notificationRepository;
         this.accountManager = accountManager;
         this.finEmail = finEmail;
-    }
-
-    public String getCostAbonementForEmail(Plan plan) {
-        return accountHelper.getCostAbonement(plan).setScale(2, BigDecimal.ROUND_DOWN).toString();
+        this.inviteEmailApiName = inviteEmailApiName;
     }
 
     public String getDomainForEmail(PersonalAccount account) {
@@ -81,21 +81,6 @@ public class AccountNotificationHelper {
         List<Domain> domains = accountHelper.getDomains(account);
         if (domains != null && !domains.isEmpty()) {
             return domains.stream().map(Domain::getName).collect(Collectors.joining("<br>"));
-        }
-        return "";
-    }
-
-    public String getDomainForEmailWithPrefixString(PersonalAccount account) {
-
-        List<Domain> domains = accountHelper.getDomains(account);
-        if (domains != null && !domains.isEmpty()) {
-            String prefix = "";
-            if (domains.size() == 1) {
-                prefix = "На аккаунте размещен домен: ";
-            } else {
-                prefix = "На аккаунте размещены домены:<br>";
-            }
-            return prefix + domains.stream().map(Domain::getName).collect(Collectors.joining("<br>"));
         }
         return "";
     }
@@ -426,6 +411,17 @@ public class AccountNotificationHelper {
                         apiName
                 )
         );
+    }
+
+    public void sendInviteMail(PersonalAccount account, String emailForInvite, String code) {
+        AccountOwner owner = accountHelper.getOwnerByPersonalAccountId(account.getId());
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("owner_email", owner.getContactInfo().getEmailAddresses().get(0));
+        parameters.put("from", "noreply@majordomo.ru");
+        parameters.put("code", code);
+
+        sendInternalEmail(emailForInvite, inviteEmailApiName, account.getId(), 10, parameters);
     }
 
     public void sendInfoMail(PersonalAccount account, String apiName) {
