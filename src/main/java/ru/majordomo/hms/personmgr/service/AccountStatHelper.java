@@ -8,13 +8,16 @@ import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_CHANGE_ARCHIVAL_PLAN_TO_ACTIVE_PLAN;
+import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_SEND_INVITE;
 
 
 @Service
@@ -69,5 +72,21 @@ public class AccountStatHelper {
             default:
                 add(account.getId(), AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
         }
+    }
+
+    public int getCountInviteSend(String personalAccountId, LocalDate date) {
+        return accountStatRepository
+                .countAccountStatByPersonalAccountIdAndTypeAndCreatedIsBetween(
+                        personalAccountId,
+                        VIRTUAL_HOSTING_SEND_INVITE,
+                        LocalDateTime.of(date, LocalTime.MIN),
+                        LocalDateTime.of(date, LocalTime.MAX)
+                );
+    }
+
+    public void addEmailInvite(String personalAccountId, String email) {
+        Map<String, String> data = new HashMap<>();
+        data.put("email", email);
+        add(personalAccountId, AccountStatType.VIRTUAL_HOSTING_SEND_INVITE, data);
     }
 }
