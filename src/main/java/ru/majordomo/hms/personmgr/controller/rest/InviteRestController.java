@@ -3,7 +3,6 @@ package ru.majordomo.hms.personmgr.controller.rest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +22,8 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import javax.validation.Valid;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @RestController
 @Validated
@@ -51,8 +52,7 @@ public class InviteRestController {
     @PostMapping("/{accountId}/invite/send")
     public ResponseEntity<Object> toggleDeleted(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody @Valid InviteRequest inviteRequestBody,
-            SecurityContextHolderAwareRequestWrapper request
+            @RequestBody @Valid InviteRequest inviteRequestBody
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
         if (!account.isActive()) {
@@ -75,8 +75,18 @@ public class InviteRestController {
 
         if (inviteRequestBody instanceof EmailInviteRequest) {
             EmailInviteRequest emailInvite = (EmailInviteRequest) inviteRequestBody;
-            notificationHelper.sendInviteMail(account, emailInvite.getEmail(), code.getCode());
-            accountStatHelper.addEmailInvite(accountId, emailInvite.getEmail());
+            String codeString = code.getCode();
+            Set<String> uniqueEmails = new HashSet<>(emailInvite.getEmails());
+
+            if (sentToday + uniqueEmails.size() > maxInvitesPerDay) {
+                throw new ParameterValidationException("Отправлено слишком много приглашений, действие временно заблокировано");
+            }
+
+            uniqueEmails.forEach(email -> {
+                notificationHelper.sendInviteMail(account, email, codeString);
+                accountStatHelper.addEmailInvite(accountId, email);
+            });
+
         } else {
             throw new ParameterValidationException("Неизвестный тип приглашения");
         }
