@@ -158,4 +158,9 @@ public class StatServiceRestController {
     public List<AccountServiceCounter> serviceAbonement(){
         return statServiceHelper.getServiceAbonementCounters();
     }
+
+    @GetMapping("/tariff-by-server")
+    public List<PlanByServerCounter> getTariffByServer() {
+        return statServiceHelper.getPlanByServerStat();
+    }
 }

@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.manager.impl;
 
 
+import com.mongodb.BasicDBObject;
 import com.querydsl.core.types.Predicate;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,10 +24,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -38,7 +36,9 @@ import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
+import ru.majordomo.hms.personmgr.model.account.projection.PlanByServerProjection;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.rc.user.resources.DTO.ObjectContainer;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
@@ -468,6 +468,44 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
         Update update = new Update().set("deactivated", deactivated);
 
         mongoOperations.updateFirst(query, update, PersonalAccount.class);
+    }
+
+    public static class ProjectionContainer {
+        private List<PlanByServerProjection> object;
+        public ProjectionContainer() {}
+        public List<PlanByServerProjection> getObject() {
+            return this.object;
+        }
+        public void setObject(List<PlanByServerProjection> object) {
+            this.object = object;
+        }
+    }
+
+    @Override
+    public List<PlanByServerProjection> getAccountIdAndPlanId() {
+
+        Aggregation aggregation = newAggregation(
+                Aggregation.project("active", "planId").and("id").as("personalAccountId"),
+                Aggregation.group()
+                        .addToSet(new BasicDBObject() {
+                            {
+                                put("personalAccountId", "$personalAccountId");
+                                put("active", "$active");
+                                put("planId", "$planId");
+                            }
+                        }).as("object")
+        );
+
+        List<PlanByServerProjection> objs = new ArrayList<>();
+
+        List<ProjectionContainer> containers = mongoOperations.aggregate(aggregation, PersonalAccount.class, ProjectionContainer.class)
+                .getMappedResults();
+
+        if (containers != null && !containers.isEmpty()) {
+            objs = containers.get(0).getObject();
+        }
+
+        return objs;
     }
 
     @Override

@@ -114,4 +114,7 @@ public interface RcUserFeignClient {
 
     @GetMapping(value = "/unix-account/filter", headers = {"X-HMS-Projection=pm"})
     List<UnixAccount> filterUnixAccounts(@RequestParam Map<String, String> filterParams);
+
+    @GetMapping(value = "/stat/account-id-and-field/{resource}/{fieldName}", consumes = "application/json")
+    Map<String, String> getAccountIdAndField(@PathVariable("resource") String resource, @PathVariable("fieldName") String fieldName);
 }

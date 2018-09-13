@@ -13,12 +13,15 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.dto.stat.*;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.projection.PlanByServerProjection;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.*;
+import ru.majordomo.hms.rc.staff.resources.Resource;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,29 +42,32 @@ public class StatServiceHelper {
     private final Logger logger = LoggerFactory.getLogger(StatServiceHelper.class);
     private final MongoOperations mongoOperations;
     private final AbonementRepository abonementRepository;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
     private final PersonalAccountManager accountManager;
     private final PaymentServiceRepository paymentServiceRepository;
     private final AccountStatRepository accountStatRepository;
-    private final AccountRedirectServiceRepository accountRedirectServiceRepository;
+    private final RcUserFeignClient rcUserFeignClient;
+    private final RcStaffFeignClient rcStaffFeignClient;
 
     @Autowired
     public StatServiceHelper(
             MongoOperations mongoOperations,
             AbonementRepository abonementRepository,
-            PlanRepository planRepository,
+            PlanManager planManager,
             PersonalAccountManager accountManager,
             PaymentServiceRepository paymentServiceRepository,
             AccountStatRepository accountStatRepository,
-            AccountRedirectServiceRepository accountRedirectServiceRepository
+            RcUserFeignClient rcUserFeignClient,
+            RcStaffFeignClient rcStaffFeignClient
     ) {
         this.mongoOperations = mongoOperations;
         this.abonementRepository = abonementRepository;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.accountManager = accountManager;
         this.paymentServiceRepository = paymentServiceRepository;
         this.accountStatRepository = accountStatRepository;
-        this.accountRedirectServiceRepository = accountRedirectServiceRepository;
+        this.rcUserFeignClient = rcUserFeignClient;
+        this.rcStaffFeignClient = rcStaffFeignClient;
     }
 
     public List<PlanCounter> getAllPlanCounters() {
@@ -93,7 +99,7 @@ public class StatServiceHelper {
         List<PlanCounter> all = mongoOperations.aggregate(
                 aggregation, "personalAccount", PlanCounter.class).getMappedResults();
 
-        List<Plan> planList = planRepository.findAll();
+        List<Plan> planList = planManager.findAll();
         Map<String, Plan> planMap = planList.stream().collect(Collectors.toMap(Plan::getId, x->x));
 
         all.forEach(counter -> {
@@ -365,7 +371,7 @@ public class StatServiceHelper {
             }
         }
 
-        Map<String, String> planIdAndName = planRepository.findAll().stream().collect(Collectors.toMap(Plan::getId, Plan::getName));
+        Map<String, String> planIdAndName = planManager.findAll().stream().collect(Collectors.toMap(Plan::getId, Plan::getName));
 
         Map<String, ResourceCounter> planStats = new HashMap<>();
 
@@ -460,5 +466,87 @@ public class StatServiceHelper {
         accountServiceCounters.forEach(element -> element.setName(abonementRepository.findOne(element.getResourceId()).getName()));
 
         return accountServiceCounters;
+    }
+
+    public List<PlanByServerCounter> getPlanByServerStat() {
+        logger.info("start getPlanByServerStat");
+
+        Map<String, String> accountIdAndServerId = rcUserFeignClient.getAccountIdAndField("unix-account", "serverId");
+
+        logger.info("got accountIdAndServerId from rcUser size: " + accountIdAndServerId.size());
+
+        Map<String, String> serverIdAndName = rcStaffFeignClient
+                .getServersOnlyIdAndName().stream().collect(Collectors.toMap(Resource::getId, Resource::getName));
+
+        logger.info("got serverIdAndName from rcStaff size: " + serverIdAndName.size());
+
+        Map<String, String> planIdAndName = planManager.findAll().stream().collect(Collectors.toMap(Plan::getId, Plan::getName));
+
+        logger.info("got planIdAndName");
+
+        List<PlanByServerProjection> projections = accountManager.getAccountIdAndPlanId();
+
+        logger.info("got projection from accountManager size: " + projections.size());
+
+        Map<String, Map<String, PlanByServerProjection>> groupByPlan = new HashMap<>();
+
+        projections.forEach(p -> {
+            Map<String, PlanByServerProjection> ids = groupByPlan.getOrDefault(p.getPlanId(), new HashMap<>());
+            ids.put(p.getPersonalAccountId(), p);
+            groupByPlan.put(p.getPlanId(), ids);
+        });
+
+        logger.info("got groupByPlan size: " + groupByPlan.size());
+
+        Map<String, List<String>> groupByServer = new HashMap<>();
+
+        accountIdAndServerId.forEach((accountId, serverId) -> {
+            List<String> ids = groupByServer.getOrDefault(serverId, new ArrayList<>());
+            ids.add(accountId);
+            groupByServer.put(serverId, ids);
+        });
+
+        logger.info("got groupByServer size: " + groupByServer.size());
+
+        Map<String, Map<String, Map<Boolean, Integer>>> serverMap = new HashMap<>();
+
+        groupByServer.forEach((serverId, accountIdsOnServer) -> {
+            Map<String, Map<Boolean, Integer>> planWithCount = new HashMap<>();
+            accountIdsOnServer.forEach(accountIdOnServer -> {
+                for(Map.Entry<String, Map<String, PlanByServerProjection>> e: groupByPlan.entrySet()){
+                    Map<String, PlanByServerProjection> accIdAndProject = e.getValue();
+                    PlanByServerProjection p = accIdAndProject.remove(accountIdOnServer);
+                    if (p != null) {
+                        Map<Boolean, Integer> countMap = planWithCount.getOrDefault(p.getPlanId(), new HashMap<>());
+                        Integer i = countMap.getOrDefault(p.isActive(), 0);
+                        countMap.put(p.isActive(), i + 1);
+                        planWithCount.put(p.getPlanId(), countMap);
+                    }
+                }
+            });
+            serverMap.put(serverId, planWithCount);
+        });
+
+        logger.info("got serverMap size: " + serverMap.size());
+
+        List<PlanByServerCounter> result = new ArrayList<>();
+
+        serverMap.forEach((serverId, planWithCount) -> {
+            String serverName = serverIdAndName.get(serverId);
+            planWithCount.forEach((planId, count) -> {
+                PlanByServerCounter c = new PlanByServerCounter();
+                c.setInactiveCount(count.getOrDefault(false, 0));
+                c.setActiveCount(count.getOrDefault(true, 0));
+                c.setPlanId(planId);
+                c.setServerId(serverId);
+                c.setServerName(serverName);
+                c.setPlanName(planIdAndName.get(planId));
+                result.add(c);
+            });
+        });
+
+        logger.info("end getPlanByServerStat");
+
+        return result;
     }
 }
