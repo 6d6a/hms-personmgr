@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.cloud.netflix.feign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -50,4 +51,10 @@ public interface RcStaffFeignClient {
 
     @RequestMapping(method = RequestMethod.GET, value = "/service")
     List<Service> getServices();
+
+    @GetMapping(value = "/service", headers = "X-HMS-Projection=OnlyIdAndName")
+    List<Service> getServicesOnlyIdAndName();
+
+    @GetMapping(value = "/server", headers = "X-HMS-Projection=OnlyIdAndName")
+    List<Server> getServersOnlyIdAndName();
 }

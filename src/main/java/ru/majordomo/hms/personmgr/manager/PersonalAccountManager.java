@@ -16,6 +16,7 @@ import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
+import ru.majordomo.hms.personmgr.model.account.projection.PlanByServerProjection;
 
 public interface PersonalAccountManager {
     boolean exists(String id);
@@ -129,4 +130,6 @@ public interface PersonalAccountManager {
     List<String> findByActiveAndDeactivatedBetween(boolean active, LocalDateTime deactivatedAfter, LocalDateTime deactivatedBefore);
 
     void setDeactivated(String id, LocalDateTime deactivated);
+
+    List<PlanByServerProjection> getAccountIdAndPlanId();
 }
