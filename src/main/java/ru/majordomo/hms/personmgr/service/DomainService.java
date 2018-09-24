@@ -186,6 +186,8 @@ public class DomainService {
             logger.debug("Not found expiring domains for AutoRenew for accountId: " + account.getId());
         }
 
+        domains.sort(Comparator.comparing(domain -> domain.getRegSpec().getPaidTill()));
+
         domains.forEach(domain -> logger.debug("We found domain for AutoRenew: " + domain));
 
         List<Domain> domainNotProlong = new ArrayList<>();
