@@ -680,6 +680,24 @@ public class AccountHelper {
         }
     }
 
+    public void deleteRedirects(PersonalAccount account, String domainName) {
+        rcUserFeignClient
+                .getRedirects(account.getId())
+                .stream()
+                .filter(r -> r.getName().equals(domainName))
+                .forEach(r -> {
+                    SimpleServiceMessage message = new SimpleServiceMessage();
+                    message.setParams(new HashMap<>());
+                    message.setAccountId(account.getId());
+                    message.addParam("resourceId", r.getId());
+
+                    businessHelper.buildAction(BusinessActionType.REDIRECT_DELETE_RC, message);
+
+                    String historyMessage = "Отправлена заявка на удаление переадресации '" + r.getName() + "'";
+                    history.saveForOperatorService(account, historyMessage);
+                });
+    }
+
     public void disableAndScheduleDeleteForAllMailboxes(PersonalAccount account) {
         Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
 

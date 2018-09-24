@@ -16,73 +16,68 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.UserDisabledServiceEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
+import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.DiscountedService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
 import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
-import static ru.majordomo.hms.personmgr.common.Constants.ENABLED_KEY;
 import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
-import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SERVICE_ENABLE;
 
 
 @RestController
 @Validated
 public class AccountServiceRestController extends CommonRestController {
 
-    private final AccountServiceRepository accountServiceRepository;
-    private final PaymentServiceRepository serviceRepository;
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHelper accountHelper;
     private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final AbonementManager<AccountServiceAbonement> accountServiceAbonementManager;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
     private final AccountNotificationHelper accountNotificationHelper;
     private final DiscountServiceHelper discountServiceHelper;
-    private final ServiceAbonementRepository serviceAbonementRepository;
-    private final ServicePlanRepository servicePlanRepository;
     private final ServiceAbonementService serviceAbonementService;
+    private final AccountRedirectServiceRepository redirectServiceRepository;
+    private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
 
     @Autowired
     public AccountServiceRestController(
-            AccountServiceRepository accountServiceRepository,
-            PaymentServiceRepository serviceRepository,
             AccountServiceHelper accountServiceHelper,
             AccountHelper accountHelper,
             AbonementManager<AccountAbonement> accountAbonementManager,
             AbonementManager<AccountServiceAbonement> accountServiceAbonementManager,
-            PlanRepository planRepository,
+            PlanManager planManager,
             AccountNotificationHelper accountNotificationHelper,
             DiscountServiceHelper discountServiceHelper,
-            ServiceAbonementRepository serviceAbonementRepository,
-            ServicePlanRepository servicePlanRepository,
-            ServiceAbonementService serviceAbonementService
+            ServiceAbonementService serviceAbonementService,
+            AccountRedirectServiceRepository redirectServiceRepository,
+            RevisiumRequestServiceRepository revisiumRequestServiceRepository
     ) {
-        this.accountServiceRepository = accountServiceRepository;
-        this.serviceRepository = serviceRepository;
         this.accountServiceHelper = accountServiceHelper;
         this.accountHelper = accountHelper;
         this.accountAbonementManager = accountAbonementManager;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.accountNotificationHelper = accountNotificationHelper;
         this.discountServiceHelper = discountServiceHelper;
-        this.serviceAbonementRepository = serviceAbonementRepository;
-        this.servicePlanRepository = servicePlanRepository;
         this.serviceAbonementService = serviceAbonementService;
         this.accountServiceAbonementManager = accountServiceAbonementManager;
+        this.redirectServiceRepository = redirectServiceRepository;
+        this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
     }
 
     @GetMapping(value = "/{accountId}/account-service/{accountServiceId}")
@@ -120,6 +115,57 @@ public class AccountServiceRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasAuthority('MANAGE_SERVICES')")
+    @DeleteMapping("/{accountId}/account-service-abonement/{abonementId}")
+    public ResponseEntity<AccountServiceAbonement> del(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @ObjectId(AccountServiceAbonement.class) @PathVariable(value = "abonementId") String abonementId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        AccountServiceAbonement abonement = accountServiceAbonementManager.findByIdAndPersonalAccountId(abonementId, accountId);
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (abonement == null) {
+            throw new ResourceNotFoundException("Абонемент не найден");
+        }
+
+        String message = "Удален абонемент на услугу: " + abonement.getAbonement().getName();
+
+        switch (abonement.getAbonement().getType()) {
+            case REDIRECT:
+                RedirectAccountService redirect = redirectServiceRepository.findByAccountServiceAbonementId(abonementId);
+                accountHelper.deleteRedirects(account, redirect.getFullDomainName());
+                redirectServiceRepository.delete(redirect);
+                message += " домен: " +  redirect.getFullDomainName();
+
+                break;
+            case ANTI_SPAM:
+                accountHelper.switchAntiSpamForMailboxes(account, false);
+
+                break;
+            case REVISIUM:
+                RevisiumRequestService revisiumService = revisiumRequestServiceRepository.findByPersonalAccountIdAndAccountServiceAbonementId(
+                        accountId, abonementId
+                );
+
+                revisiumRequestServiceRepository.delete(revisiumService);
+
+                message += " домен: " + revisiumService.getSiteUrl();
+
+                break;
+            case VIRTUAL_HOSTING_PLAN:
+                throw new ParameterValidationException(
+                        "Обратитесь в отдел разработки! Абонемент на хостинг обнаружен среди абонементов на доп. услуги."
+                );
+        }
+
+        accountServiceAbonementManager.delete(abonement.getId());
+
+        history.save(accountId, message, request);
+
+        return new ResponseEntity<>(abonement, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAuthority('MANAGE_SERVICES')")
     @DeleteMapping("/{accountId}/account-service/{accountServiceId}")
     public ResponseEntity<Object> delete(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -144,7 +190,7 @@ public class AccountServiceRestController extends CommonRestController {
                 && currentAccountAbonement.getExpired().isBefore(LocalDateTime.now()))) {
             List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountId(account.getId());
 
-            Plan plan = planRepository.findOne(account.getPlanId());
+            Plan plan = planManager.findOne(account.getPlanId());
 
             accountServices = accountServices
                     .stream()
