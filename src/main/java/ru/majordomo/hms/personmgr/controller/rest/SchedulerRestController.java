@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
 
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessBulkRevisiumRequestEvent;
+import ru.majordomo.hms.personmgr.event.task.CleanFinishedTaskEvent;
+import ru.majordomo.hms.personmgr.event.task.NewTasksExecuteEvent;
 import ru.majordomo.hms.personmgr.event.token.CleanTokensEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.BatchJobManager;
@@ -132,6 +134,14 @@ public class SchedulerRestController extends CommonRestController {
                 break;
             case "process_delete_data_inactive_accounts":
                 publisher.publishEvent(new ProcessDeleteDataInactiveAccountsEvent());
+
+                break;
+            case "process_execute_tasks":
+                publisher.publishEvent(new NewTasksExecuteEvent());
+
+                break;
+            case "process_clean_tasks":
+                publisher.publishEvent(new CleanFinishedTaskEvent());
 
                 break;
             default:

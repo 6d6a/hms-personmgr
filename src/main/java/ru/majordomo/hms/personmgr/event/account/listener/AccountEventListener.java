@@ -22,7 +22,6 @@ import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.partners.ActionStatRequest;
-import ru.majordomo.hms.personmgr.event.account.AccountAppInstalledEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
@@ -33,17 +32,15 @@ import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountWasEnabled;
 import ru.majordomo.hms.personmgr.event.account.PaymentWasReceivedEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
-import ru.majordomo.hms.personmgr.manager.AbonementManager;
-import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
-import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
-import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.*;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
+import ru.majordomo.hms.personmgr.model.task.SendMailIfAbonementWasNotBought;
+import ru.majordomo.hms.personmgr.model.task.State;
 import ru.majordomo.hms.personmgr.model.token.Token;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
@@ -72,7 +69,7 @@ public class AccountEventListener {
     private final AccountHelper accountHelper;
     private final TokenHelper tokenHelper;
     private final ApplicationEventPublisher publisher;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
     private final AccountPromotionManager accountPromotionManager;
     private final PromotionRepository promotionRepository;
     private final AbonementService abonementService;
@@ -83,6 +80,7 @@ public class AccountEventListener {
     private final AccountHistoryManager history;
     private final BackupService backupService;
     private final PartnersFeignClient partnersFeignClient;
+    private final TaskManager taskManager;
 
     private final int deleteDataAfterDays;
 
@@ -91,7 +89,7 @@ public class AccountEventListener {
             AccountHelper accountHelper,
             TokenHelper tokenHelper,
             ApplicationEventPublisher publisher,
-            PlanRepository planRepository,
+            PlanManager planManager,
             AccountPromotionManager accountPromotionManager,
             PromotionRepository promotionRepository,
             AbonementService abonementService,
@@ -102,12 +100,13 @@ public class AccountEventListener {
             AccountHistoryManager history,
             BackupService backupService,
             PartnersFeignClient partnersFeignClient,
+            TaskManager taskManager,
             @Value("${delete_data_after_days}") int deleteDataAfterDays
     ) {
         this.accountHelper = accountHelper;
         this.tokenHelper = tokenHelper;
         this.publisher = publisher;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.accountPromotionManager = accountPromotionManager;
         this.promotionRepository = promotionRepository;
         this.abonementService = abonementService;
@@ -118,6 +117,7 @@ public class AccountEventListener {
         this.history = history;
         this.backupService = backupService;
         this.partnersFeignClient = partnersFeignClient;
+        this.taskManager = taskManager;
         this.deleteDataAfterDays = deleteDataAfterDays;
     }
 
@@ -244,30 +244,6 @@ public class AccountEventListener {
         accountNotificationHelper.sendMail(account, "MajordomoVHPassChAccount", 10, parameters);
     }
 
-    @EventListener
-    @Async("threadPoolTaskExecutor")
-    public void on(AccountAppInstalledEvent event) {
-        PersonalAccount account = accountManager.findOne(event.getSource());
-
-        if (account != null) {
-            Map<String, String> params = event.getParams();
-
-            logger.debug("We got AccountAppInstalledEvent");
-
-            HashMap<String, String> parameters = new HashMap<>();
-            parameters.put("client_id", account.getAccountId());
-            parameters.put("acc_id", account.getAccountId());
-            parameters.put("app_name", params.get("app_name"));
-            parameters.put("site_name", params.get("site_name"));
-            parameters.put("app_admin_uri", params.get("app_admin_uri"));
-            parameters.put("app_admin_password", params.get("app_admin_password"));
-            parameters.put("app_admin_username", params.get("app_admin_username"));
-
-            accountNotificationHelper.sendMail(account, "HmsVHMajordomoAppInstalled", 10, parameters);
-        }
-    }
-
-
     /**
      * @param event должен содержать SimpleServiceMessage с информацией о платеже
      *
@@ -299,7 +275,7 @@ public class AccountEventListener {
             return;
         }
 
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
         if (!plan.isActive() || plan.isAbonementOnly() || plan.getOldId().equals(((Integer) PLAN_START_ID).toString())) {
             logger.info("plan is abonementOnly or 'start' or not active, message: " + message.toString());
             return;
@@ -364,6 +340,59 @@ public class AccountEventListener {
             partnersFeignClient.actionByAccountIdAndAmount(account.getId(), actionStatRequest);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    //Если пользователь кладёт деньги, но не покупает абонемент, то через 40 минут отправляем ему письмо
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void userCanBuyAbonement(PaymentWasReceivedEvent event) {
+        logger.info("userCanBuyAbonement");
+
+        SimpleServiceMessage message = event.getSource();
+
+        if (!message.getParam("paymentTypeKind").equals(REAL_PAYMENT_TYPE_KIND)) {
+            return;
+        }
+
+        PersonalAccount account = accountManager.findOne(message.getAccountId());
+        if (account == null) {
+            return;
+        }
+
+        AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+
+        if (accountAbonement == null
+                ||
+                accountAbonement.getAbonement().isInternal() && accountAbonement.getAbonement().getPeriod().equals("P14D")
+        ) {
+            Plan plan = planManager.findOne(account.getPlanId());
+            BigDecimal cost = plan.getNotInternalAbonement().getService().getCost();
+
+            SendMailIfAbonementWasNotBought example = new SendMailIfAbonementWasNotBought();
+            example.setPersonalAccountId(account.getId());
+            example.setState(State.NEW);
+
+            List<SendMailIfAbonementWasNotBought> willExecute = taskManager.findByExample(example);
+
+            if (willExecute != null && !willExecute.isEmpty()) {
+                logger.info("accountId " + account.getId() + " already has task for mail");
+                return;
+            }
+
+            BigDecimal balance = accountHelper.getBalance(account);
+
+            if (balance.compareTo(cost) < 0) {
+                logger.info("can't buy abonement accountId " + account.getId() + " cost " + cost + " balance " + balance);
+                return;
+            }
+
+            taskManager.save(
+                    new SendMailIfAbonementWasNotBought(
+                            account.getId(),
+                            LocalDateTime.now().plusMinutes(40)
+                    )
+            );
         }
     }
 
@@ -434,7 +463,7 @@ public class AccountEventListener {
         }
 
         BigDecimal balance = accountHelper.getBalance(account);
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         if (!plan.isAbonementOnly()) {
 
