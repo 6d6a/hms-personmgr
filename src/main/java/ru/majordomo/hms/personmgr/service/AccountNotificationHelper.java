@@ -192,6 +192,14 @@ public class AccountNotificationHelper {
         publisher.publishEvent(new SendMailEvent(message));
     }
 
+    public void sendMailIfAbonementNotBought(PersonalAccount account, Plan currentPlan) {
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("acc_id", account.getName());
+        parameters.put("plan_name", currentPlan.getName());
+
+        sendMail(account, "HmsMjBuyAbonement", parameters);
+    }
+
     public void sendMailForDeactivatedAccount(PersonalAccount account, LocalDate dateFinish) {
         Plan plan = planRepository.findOne(account.getPlanId());
         Map<String, String> parameters = new HashMap<>();
