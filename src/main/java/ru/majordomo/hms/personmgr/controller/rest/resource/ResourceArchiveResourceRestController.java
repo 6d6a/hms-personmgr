@@ -15,28 +15,15 @@ import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.service.ResourceArchiveService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
-import ru.majordomo.hms.rc.user.resources.ResourceArchiveType;
-
-import static ru.majordomo.hms.personmgr.common.Constants.ARCHIVED_RESOURCE_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_TYPE;
 
 @RestController
 @RequestMapping("/{accountId}/resource-archive")
 @Validated
 public class ResourceArchiveResourceRestController extends CommonRestController {
-    private final ResourceArchiveService resourceArchiveService;
-
-    public ResourceArchiveResourceRestController(
-            ResourceArchiveService resourceArchiveService
-    ) {
-        this.resourceArchiveService = resourceArchiveService;
-    }
 
     @PostMapping
     public ResponseEntity<SimpleServiceMessage> create(
