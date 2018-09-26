@@ -316,6 +316,25 @@ public class AccountNotificationEventListener {
         }
     }
 
+    //Отправка sms в случае выключенного аккаунта из-за нехватки средств
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountDeactivatedSendSmsEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        logger.debug("We got AccountDeactivatedSendSmsEvent\n");
+
+        String smsPhone = account.getSmsPhoneNumber();
+
+        if (account.isActive() || smsPhone == null || smsPhone.equals("")) { return;}
+
+        String apiName = "MajordomoAccountBlocked";
+        HashMap<String, String> paramsForSms = new HashMap<>();
+        paramsForSms.put("acc_id", account.getName());
+        paramsForSms.put("client_id", account.getAccountId());
+        accountNotificationHelper.sendSms(account, apiName, 1, paramsForSms);
+    }
+
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void on(ResourceArchiveCreatedSendMailEvent event) {

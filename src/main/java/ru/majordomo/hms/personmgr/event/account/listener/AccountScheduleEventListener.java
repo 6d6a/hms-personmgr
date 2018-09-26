@@ -56,6 +56,14 @@ public class AccountScheduleEventListener {
 
     @EventListener
     @Async("threadPoolTaskExecutor")
+    public void on(ProcessAccountDeactivatedSendSmsEvent event) {
+        logger.debug("We got ProcessAccountDeactivatedSendSmsEvent");
+
+        notificationScheduler.processAccountDeactivatedSendSms();
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
     public void on(ProcessNotifyInactiveLongTimeEvent event) {
         logger.debug("We got ProcessNotifyInactiveLongTimeEvent");
 

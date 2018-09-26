@@ -59,4 +59,9 @@ public interface AccountStatRepository extends MongoRepository<AccountStat, Stri
             @Param("after") LocalDateTime after,
             @Param("before") LocalDateTime before
     );
+
+    List<AccountStat> findByTypeAndCreatedAfterOrderByCreatedDesc(
+            @Param("type") AccountStatType type,
+            @Param("created") LocalDateTime created
+    );
 }
