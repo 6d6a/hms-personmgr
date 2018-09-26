@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.service.scheduler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -9,15 +10,26 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.service.LongLifeResourceArchive;
+import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
+import ru.majordomo.hms.personmgr.repository.LongLifeResourceArchiveRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.service.JongoManager;
+import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.rc.user.resources.Database;
+import ru.majordomo.hms.rc.user.resources.ResourceArchive;
+import ru.majordomo.hms.rc.user.resources.WebSite;
+
+import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 
 @Service
 public class AccountCheckingService {
@@ -27,19 +39,28 @@ public class AccountCheckingService {
     private final PlanRepository planRepository;
     private final AccountServiceHelper accountServiceHelper;
     private final JongoManager jongoManager;
+    private final LongLifeResourceArchiveRepository longLifeResourceArchiveRepository;
+    private final AccountServiceRepository accountServiceRepository;
+    private final RcUserFeignClient rcUserFeignClient;
 
     public AccountCheckingService(
             PersonalAccountManager personalAccountManager,
             AbonementManager<AccountAbonement> accountAbonementManager,
             PlanRepository planRepository,
             AccountServiceHelper accountServiceHelper,
-            JongoManager jongoManager
+            JongoManager jongoManager,
+            LongLifeResourceArchiveRepository longLifeResourceArchiveRepository,
+            AccountServiceRepository accountServiceRepository,
+            RcUserFeignClient rcUserFeignClient
     ) {
         this.personalAccountManager = personalAccountManager;
         this.accountAbonementManager = accountAbonementManager;
         this.planRepository = planRepository;
         this.accountServiceHelper = accountServiceHelper;
         this.jongoManager = jongoManager;
+        this.longLifeResourceArchiveRepository = longLifeResourceArchiveRepository;
+        this.accountServiceRepository = accountServiceRepository;
+        this.rcUserFeignClient = rcUserFeignClient;
     }
 
 //    @Scheduled(initialDelay = 10000, fixedDelay = 6000000)
@@ -70,6 +91,61 @@ public class AccountCheckingService {
                 }
         ).forEach(this::doShit);
         logger.info("[doShit] Ended");
+    }
+
+//    @Scheduled(initialDelay = 10000, fixedDelay = 600000000)
+    public void doShit2() {
+        List<AccountService> accountServices = accountServiceRepository.findByServiceId("5b39ef24a35057dbcdb75eb4");//dev 5b30f161982db33af6544e04 //prod 5b39ef24a35057dbcdb75eb4
+
+        logger.info("[doShit2] Started");
+        List<LongLifeResourceArchive> longLifeResourceArchives = longLifeResourceArchiveRepository.findAll();
+
+        accountServices.forEach(accountService -> {
+            if (accountService.isEnabled() && longLifeResourceArchives.stream().noneMatch(longLifeResourceArchive -> longLifeResourceArchive.getAccountServiceId() != null && longLifeResourceArchive.getAccountServiceId().equals(accountService.getId()))) {
+                logger.error("accountService without llra: " + accountService.getId());
+            } else {
+                LongLifeResourceArchive llra = longLifeResourceArchives.stream()
+                        .filter(longLifeResourceArchive -> longLifeResourceArchive.getAccountServiceId() != null && longLifeResourceArchive.getAccountServiceId().equals(accountService.getId())).findFirst().orElse(null);
+                if (llra != null) {
+                    ResourceArchive resourceArchive = null;
+                    try {
+                        resourceArchive = rcUserFeignClient.getResourceArchive(llra.getPersonalAccountId(), llra.getResourceArchiveId());
+                    } catch (Exception ignored) {
+                    }
+
+                    if (resourceArchive == null) {
+                        logger.error("llra without ra: " + llra.getId());
+                    }
+                    switch (llra.getType()) {
+                        case WEBSITE:
+                            WebSite webSite = null;
+                            try {
+                                webSite = rcUserFeignClient.getWebSite(llra.getPersonalAccountId(), llra.getArchivedResourceId());
+                            } catch (Exception ignored) {
+                            }
+
+                            if (webSite == null) {
+                                logger.error("llra without site: " + llra.getId());
+                            }
+                            break;
+                        case DATABASE:
+                            Database database = null;
+                            try {
+                                database = rcUserFeignClient.getDatabase(llra.getPersonalAccountId(), llra.getArchivedResourceId());
+                            } catch (Exception ignored) {
+                            }
+
+                            if (database == null) {
+                                logger.error("llra without database: " + llra.getId());
+                            }
+                            break;
+                    }
+
+                }
+            }
+        });
+
+        logger.info("[doShit2] Ended");
     }
 
     private void checkAbonementsWithServices(AccountAbonement currentAccountAbonement) {
