@@ -518,6 +518,23 @@ public class AccountNotificationHelper {
                         && activeNotificationTypes.contains(mailManagerMessageType));
     }
 
+    public void checkSmsAllowness(PersonalAccount account) {
+        boolean smsNotificationsEmpty = !hasActiveSmsNotifications(account);
+
+        boolean phoneInvalid = account.getSmsPhoneNumber() == null || !phoneValid(account.getSmsPhoneNumber());
+        if (smsNotificationsEmpty || phoneInvalid) {
+            String message;
+            if (smsNotificationsEmpty && phoneInvalid) {
+                message = "Выберите хотя бы один вид уведомлений и укажите корректный номер телефона.";
+            } else if (smsNotificationsEmpty) {
+                message = "Выберите хотя бы один вид уведомлений.";
+            } else {
+                message = "Укажите корректный номер телефона.";
+            }
+            throw new ParameterValidationException(message);
+        }
+    }
+
     public void sendEmailToFinDepartment(String apiName, String personalAccountId, Map<String, String> parameters){
         this.sendInternalEmail(finEmail, apiName, personalAccountId, 10, parameters);
     }
