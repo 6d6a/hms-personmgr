@@ -229,26 +229,27 @@ public class RevisiumRequestRestController extends CommonRestController {
 
         final String siteUrl = url.toString();
 
-        try {
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            connection.connect();
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(5000);
-
-            int code = connection.getResponseCode();
-
-            if (code == 301 || code == 302) {
-                throw new ParameterValidationException("Обнаружен редирект на " + connection.getHeaderField("Location"));
-            }
-
-            if (code < 200 || code >= 300) {
-                throw new ParameterValidationException("Некорректный ответ от сайта");
-            }
-
-        } catch (IOException e) {
-            throw new ParameterValidationException("Введённый адрес сайта недоступен");
-        }
+//        try {
+//            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+//            connection.setRequestMethod("GET");
+//            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.62 Safari/537.36");
+//            connection.connect();
+//            connection.setConnectTimeout(5000);
+//            connection.setReadTimeout(5000);
+//
+//            int code = connection.getResponseCode();
+//
+//            if (code == 301 || code == 302) {
+//                throw new ParameterValidationException("Обнаружен редирект на " + connection.getHeaderField("Location"));
+//            }
+//
+//            if (code < 200 || code >= 300) {
+//                throw new ParameterValidationException("Некорректный ответ от сайта");
+//            }
+//
+//        } catch (IOException e) {
+//            throw new ParameterValidationException("Введённый адрес сайта недоступен");
+//        }
 
         RevisiumRequestService revisiumRequestService = revisiumRequestServiceRepository.findByPersonalAccountIdAndSiteUrl(account.getId(), siteUrl);
 
