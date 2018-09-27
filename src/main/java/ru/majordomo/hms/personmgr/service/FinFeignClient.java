@@ -19,7 +19,7 @@ import ru.majordomo.hms.personmgr.dto.fin.MonthlyBill;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkResponse;
 
-@FeignClient(name = "fin", fallback = FinFeignClientFallback.class, configuration = FeignConfig.class)
+@FeignClient(name = "fin", configuration = FeignConfig.class)
 public interface FinFeignClient {
     @RequestMapping(method = RequestMethod.POST, value = "/payment_integration/add_payment", consumes = "application/json")
     String addPayment(Map<String, Object> payment);
