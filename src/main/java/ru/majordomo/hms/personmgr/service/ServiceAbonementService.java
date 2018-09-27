@@ -20,9 +20,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredServiceAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.RedirectWasDisabledEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -36,10 +36,8 @@ import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
-import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
-import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.time.temporal.ChronoUnit.DAYS;
@@ -51,7 +49,6 @@ import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurren
 public class ServiceAbonementService { //dis name
     private final static Logger logger = LoggerFactory.getLogger(ServiceAbonementService.class);
 
-    private final ServicePlanRepository servicePlanRepository;
     private final AbonementManager<AccountServiceAbonement> abonementManager;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
@@ -63,13 +60,12 @@ public class ServiceAbonementService { //dis name
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final RcUserFeignClient rcUserFeignClient;
     private final PersonalAccountManager accountManager;
-    private final AbonementRepository abonementRepository;
+    private final FinFeignClient finFeignClient;
 
     private static TemporalAdjuster FIVE_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(5));
 
     @Autowired
     public ServiceAbonementService(
-            ServicePlanRepository servicePlanRepository,
             AbonementManager<AccountServiceAbonement> abonementManager,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
@@ -81,9 +77,8 @@ public class ServiceAbonementService { //dis name
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             RcUserFeignClient rcUserFeignClient,
             PersonalAccountManager accountManager,
-            AbonementRepository abonementRepository
+            FinFeignClient finFeignClient
     ) {
-        this.servicePlanRepository = servicePlanRepository;
         this.abonementManager = abonementManager;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
@@ -95,7 +90,7 @@ public class ServiceAbonementService { //dis name
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountManager = accountManager;
-        this.abonementRepository = abonementRepository;
+        this.finFeignClient = finFeignClient;
     }
 
     /**
@@ -229,7 +224,7 @@ public class ServiceAbonementService { //dis name
 
             long daysToExpired = DAYS.between(LocalDateTime.now(), accountServiceAbonement.getExpired());
 
-            Boolean needSendEmail = false;
+            boolean needSendEmail = false;
 
             boolean notEnoughMoneyForAbonement = balance.compareTo(abonementCost) < 0;
             boolean todayIsDayForSendingEmail = Arrays.asList(DAYS_FOR_SERVICE_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired);
@@ -247,6 +242,11 @@ public class ServiceAbonementService { //dis name
                     domainNames.add(domain.getName());
                 }
 
+                String paymentLink = finFeignClient.generatePaymentLink(
+                        account.getAccountId(),
+                        new PaymentLinkRequest(abonementCost)
+                ).getPaymentLink();
+
                 //Отправим письмо
                 HashMap<String, String> parameters = new HashMap<>();
                 parameters.put("client_id", account.getAccountId());
@@ -256,6 +256,7 @@ public class ServiceAbonementService { //dis name
                 parameters.put("date_finish", accountServiceAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
                 parameters.put("service_name", accountServiceAbonement.getAbonement().getService().getName());
                 parameters.put("from", "noreply@majordomo.ru");
+                parameters.put("payment_link", paymentLink);
 
                 accountNotificationHelper.sendMail(account, "MajordomoHmsAddServicesAbonementSoonEnd", 1, parameters);
             }
@@ -296,7 +297,6 @@ public class ServiceAbonementService { //dis name
     }
 
     public void processAbonementsAutoRenewByAccount(PersonalAccount account) {
-
         //В итоге нам нужно получить абонементы которые закончились сегодня и раньше
         LocalDateTime expireEnd = LocalDateTime.now();
 

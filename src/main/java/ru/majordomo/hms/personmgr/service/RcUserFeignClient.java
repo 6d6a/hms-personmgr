@@ -78,7 +78,7 @@ public interface RcUserFeignClient {
     @GetMapping(value = "/{accountId}/domain/{domainId}", consumes = "application/json")
     Domain getDomain(@PathVariable("accountId") String accountId, @PathVariable("domainId") String domainId);
 
-    @GetMapping(value = "{accountId}/redirect/{redirectId}", consumes = "application/json")
+    @GetMapping(value = "/{accountId}/redirect/{redirectId}", consumes = "application/json")
     Redirect getRedirect(@PathVariable("accountId") String accountId, @PathVariable("redirectId") String redirectId);
 
     @GetMapping(value = "/domain/filter", consumes = "application/json")
@@ -109,8 +109,8 @@ public interface RcUserFeignClient {
     @GetMapping(value = "/{accountId}/person/find", consumes = "application/json")
     List<Person> getPersonsByAccountIdAndNicHandle (@PathVariable("accountId") String accountId, @RequestParam("nicHandle") String nicHandle);
 
-    @GetMapping(value = "{accountId}/redirect", consumes = "application/json")
-    List<Redirect> getRedirects(String accountId);
+    @GetMapping(value = "/{accountId}/redirect", consumes = "application/json")
+    List<Redirect> getRedirects(@PathVariable("accountId") String accountId);
 
     @GetMapping(value = "/unix-account/filter", headers = {"X-HMS-Projection=pm"})
     List<UnixAccount> filterUnixAccounts(@RequestParam Map<String, String> filterParams);

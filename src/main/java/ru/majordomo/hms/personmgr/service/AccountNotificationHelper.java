@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
 import ru.majordomo.hms.personmgr.event.account.AccountNotificationRemainingDaysWasSentEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
@@ -52,6 +53,7 @@ public class AccountNotificationHelper {
     private final AccountServiceHelper accountServiceHelper;
     private final NotificationRepository notificationRepository;
     private final PersonalAccountManager accountManager;
+    private final FinFeignClient finFeignClient;
     private final String finEmail;
     private final String inviteEmailApiName;
 
@@ -63,6 +65,7 @@ public class AccountNotificationHelper {
             AccountServiceHelper accountServiceHelper,
             NotificationRepository notificationRepository,
             PersonalAccountManager accountManager,
+            FinFeignClient finFeignClient,
             @Value("${mail_manager.department.fin}") String finEmail,
             @Value("${invites.client_api_name}") String inviteEmailApiName
     ) {
@@ -72,6 +75,7 @@ public class AccountNotificationHelper {
         this.accountServiceHelper = accountServiceHelper;
         this.notificationRepository = notificationRepository;
         this.accountManager = accountManager;
+        this.finFeignClient = finFeignClient;
         this.finEmail = finEmail;
         this.inviteEmailApiName = inviteEmailApiName;
     }
@@ -204,12 +208,19 @@ public class AccountNotificationHelper {
         Plan plan = planRepository.findOne(account.getPlanId());
         Map<String, String> parameters = new HashMap<>();
 
+        String paymentLink = finFeignClient.generatePaymentLink(
+                account.getAccountId(),
+                new PaymentLinkRequest(plan.getService().getCost())
+        ).getPaymentLink();
+
         parameters.put("acc_id", account.getName());
         parameters.put("date_finish", dateFinish.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         parameters.put("balance", this.getBalanceForEmail(account));
         parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
         parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
         parameters.put("domains", this.getDomainForEmail(account));
+        parameters.put("payment_link", paymentLink);
+
         this.sendMail(account, "MajordomoHmsMoneyEnd", parameters);
     }
 
@@ -217,6 +228,11 @@ public class AccountNotificationHelper {
         Plan plan = planRepository.findOne(account.getPlanId());
 
         BigDecimal balance = accountHelper.getBalance(account);
+
+        String paymentLink = finFeignClient.generatePaymentLink(
+                account.getAccountId(),
+                new PaymentLinkRequest(plan.getService().getCost())
+        ).getPaymentLink();
 
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
@@ -227,12 +243,20 @@ public class AccountNotificationHelper {
         parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
         parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
         parameters.put("from", "noreply@majordomo.ru");
+        parameters.put("payment_link", paymentLink);
 
         sendMail(account, "MajordomoHmsServicesCreditMoneyEnd", 1, parameters);
     }
 
     public void sendMailCreditJustActivatedWithHostingAbonement(PersonalAccount account) {
+        Plan plan = planRepository.findOne(account.getPlanId());
+
         BigDecimal balance = accountHelper.getBalance(account);
+
+        String paymentLink = finFeignClient.generatePaymentLink(
+                account.getAccountId(),
+                new PaymentLinkRequest(plan.getService().getCost())
+        ).getPaymentLink();
 
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
@@ -240,6 +264,7 @@ public class AccountNotificationHelper {
         parameters.put("domains", getDomainForEmail(account));
         parameters.put("balance", formatBigDecimalWithCurrency(balance));
         parameters.put("from", "noreply@majordomo.ru");
+        parameters.put("payment_link", paymentLink);
 
         String apiName = "MajordomoHmsAddServicesHostingVCredit";
 
@@ -254,7 +279,14 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailCreditJustActivated(PersonalAccount account) {
+        Plan plan = planRepository.findOne(account.getPlanId());
+
         BigDecimal balance = accountHelper.getBalance(account);
+
+        String paymentLink = finFeignClient.generatePaymentLink(
+                account.getAccountId(),
+                new PaymentLinkRequest(plan.getService().getCost())
+        ).getPaymentLink();
 
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
@@ -262,6 +294,7 @@ public class AccountNotificationHelper {
         parameters.put("domains", getDomainForEmail(account));
         parameters.put("balance", formatBigDecimalWithCurrency(balance));
         parameters.put("from", "noreply@majordomo.ru");
+        parameters.put("payment_link", paymentLink);
 
         String apiName = "MajordomoHmsAllServicesHostingVCredit";
 
@@ -276,7 +309,14 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailCreditExpiringWithHostingAbonement(PersonalAccount account) {
+        Plan plan = planRepository.findOne(account.getPlanId());
+
         BigDecimal balance = accountHelper.getBalance(account);
+
+        String paymentLink = finFeignClient.generatePaymentLink(
+                account.getAccountId(),
+                new PaymentLinkRequest(plan.getService().getCost())
+        ).getPaymentLink();
 
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
@@ -285,6 +325,7 @@ public class AccountNotificationHelper {
         parameters.put("balance", formatBigDecimalWithCurrency(balance));
         parameters.put("date_finish", "через " + Utils.pluralizef("%d день", "%d дня", "%d дней", getRemainingDaysCreditPeriod(account)));
         parameters.put("from", "noreply@majordomo.ru");
+        parameters.put("payment_link", paymentLink);
 
         String apiName = "MajordomoHmsServicesCreditMoneySoonEndAbonement";
 
@@ -303,6 +344,11 @@ public class AccountNotificationHelper {
 
         Plan plan = planRepository.findOne(account.getPlanId());
 
+        String paymentLink = finFeignClient.generatePaymentLink(
+                account.getAccountId(),
+                new PaymentLinkRequest(plan.getService().getCost())
+        ).getPaymentLink();
+
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
         parameters.put("acc_id", account.getName());
@@ -312,6 +358,7 @@ public class AccountNotificationHelper {
         parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
         parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
         parameters.put("from", "noreply@majordomo.ru");
+        parameters.put("payment_link", paymentLink);
 
         String apiName = "MajordomoHmsCreditMoneySoonEnd";
 
@@ -326,7 +373,14 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailCreditExpiredWithHostingAbonement(PersonalAccount account) {
+        Plan plan = planRepository.findOne(account.getPlanId());
+
         BigDecimal balance = accountHelper.getBalance(account);
+
+        String paymentLink = finFeignClient.generatePaymentLink(
+                account.getAccountId(),
+                new PaymentLinkRequest(plan.getService().getCost())
+        ).getPaymentLink();
 
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
@@ -335,6 +389,7 @@ public class AccountNotificationHelper {
         parameters.put("balance", formatBigDecimalWithCurrency(balance));
         parameters.put("date_finish", "");
         parameters.put("from", "noreply@majordomo.ru");
+        parameters.put("payment_link", paymentLink);
 
         String apiName = "MajordomoHmsAddServicesCreditMoneyEndAbonement";
 
@@ -349,7 +404,14 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailServicesDisabledWithHostingAbonement(PersonalAccount account) {
+        Plan plan = planRepository.findOne(account.getPlanId());
+
         BigDecimal balance = accountHelper.getBalance(account);
+
+        String paymentLink = finFeignClient.generatePaymentLink(
+                account.getAccountId(),
+                new PaymentLinkRequest(plan.getService().getCost())
+        ).getPaymentLink();
 
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
@@ -358,6 +420,7 @@ public class AccountNotificationHelper {
         parameters.put("balance", formatBigDecimalWithCurrency(balance));
         parameters.put("date_finish", "");
         parameters.put("from", "noreply@majordomo.ru");
+        parameters.put("payment_link", paymentLink);
 
         String apiName = "MajordomoHmsAddServicesMoneyEndAbonement";
 
@@ -372,7 +435,14 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailServicesExpiringWithHostingAbonement(PersonalAccount account, int remainingDays) {
+        Plan plan = planRepository.findOne(account.getPlanId());
+
         BigDecimal balance = accountHelper.getBalance(account);
+
+        String paymentLink = finFeignClient.generatePaymentLink(
+                account.getAccountId(),
+                new PaymentLinkRequest(plan.getService().getCost())
+        ).getPaymentLink();
 
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
@@ -381,6 +451,7 @@ public class AccountNotificationHelper {
         parameters.put("balance", formatBigDecimalWithCurrency(balance));
         parameters.put("date_finish", "через " + Utils.pluralizef("%d день", "%d дня", "%d дней", remainingDays));
         parameters.put("from", "noreply@majordomo.ru");
+        parameters.put("payment_link", paymentLink);
 
         String apiName = "MajordomoHmsAddServicesMoneySoonEndAbonement";
 
@@ -399,6 +470,11 @@ public class AccountNotificationHelper {
 
         Plan plan = planRepository.findOne(account.getPlanId());
 
+        String paymentLink = finFeignClient.generatePaymentLink(
+                account.getAccountId(),
+                new PaymentLinkRequest(plan.getService().getCost())
+        ).getPaymentLink();
+
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
         parameters.put("acc_id", account.getName());
@@ -408,6 +484,7 @@ public class AccountNotificationHelper {
         parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
         parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
         parameters.put("from", "noreply@majordomo.ru");
+        parameters.put("payment_link", paymentLink);
 
         String apiName = "MajordomoHmsMoneySoonEnd";
 
