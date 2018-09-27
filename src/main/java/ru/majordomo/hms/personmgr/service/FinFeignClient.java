@@ -4,6 +4,8 @@ import org.springframework.cloud.netflix.feign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -14,6 +16,8 @@ import java.util.Map;
 import ru.majordomo.hms.personmgr.config.FeignConfig;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.fin.MonthlyBill;
+import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
+import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkResponse;
 
 @FeignClient(name = "fin", fallback = FinFeignClientFallback.class, configuration = FeignConfig.class)
 public interface FinFeignClient {
@@ -49,4 +53,7 @@ public interface FinFeignClient {
 
     @GetMapping(value = "/{accountId}/monthly-bills/{monthlyBillId}", consumes = "application/json")
     MonthlyBill getMonthlyBill(@PathVariable("accountId") String accountId, @PathVariable("monthlyBillId") String monthlyBillId);
+
+    @PostMapping(value = "/{accountId}/generate_payment_link", consumes = "application/json")
+    PaymentLinkResponse generatePaymentLink(@PathVariable("accountId") String accountId, @RequestBody PaymentLinkRequest paymentLinkRequest);
 }

@@ -14,13 +14,13 @@ import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Arrays;
 
 import ru.majordomo.hms.personmgr.common.*;
+import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
@@ -61,6 +61,7 @@ public class AbonementService {
     private final AccountNotificationHelper accountNotificationHelper;
     private final ChargeHelper chargeHelper;
     private final AccountHistoryManager history;
+    private final FinFeignClient finFeignClient;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -76,7 +77,8 @@ public class AbonementService {
             AccountStatHelper accountStatHelper,
             AccountNotificationHelper accountNotificationHelper,
             ChargeHelper chargeHelper,
-            AccountHistoryManager history
+            AccountHistoryManager history,
+            FinFeignClient finFeignClient
     ) {
         this.planManager = planManager;
         this.abonementRepository = abonementRepository;
@@ -89,6 +91,7 @@ public class AbonementService {
         this.accountNotificationHelper = accountNotificationHelper;
         this.chargeHelper = chargeHelper;
         this.history = history;
+        this.finFeignClient = finFeignClient;
     }
 
     /**
@@ -221,7 +224,7 @@ public class AbonementService {
             BigDecimal balance = accountHelper.getBalance(account);
 
             // Высчитываем предполагаемую месячную стоимость аккаунта
-            Integer daysInCurrentMonth = LocalDateTime.now().toLocalDate().lengthOfMonth();
+            int daysInCurrentMonth = LocalDateTime.now().toLocalDate().lengthOfMonth();
             Plan plan = planManager.findOne(account.getPlanId());
             PaymentService planAccountService = plan.getService();
             BigDecimal monthCost = planAccountService.getCost();
@@ -244,7 +247,7 @@ public class AbonementService {
 
             long daysToExpired = DAYS.between(LocalDateTime.now(), accountAbonement.getExpired());
 
-            Boolean needSendEmail = false;
+            boolean needSendEmail = false;
 
             boolean notEnoughMoneyForAbonement = balance.compareTo(abonementCost) < 0;
             boolean notEnoughMoneyForMonth = balance.compareTo(monthCost) < 0;
@@ -259,6 +262,11 @@ public class AbonementService {
             if (needSendEmail) {
                 logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
 
+                String paymentLink = finFeignClient.generatePaymentLink(
+                        account.getAccountId(),
+                        new PaymentLinkRequest(abonementCost)
+                ).getPaymentLink();
+
                 //Отправим письмо
                 HashMap<String, String> parameters = new HashMap<>();
                 parameters.put("client_id", account.getAccountId());
@@ -268,6 +276,7 @@ public class AbonementService {
                 parameters.put("cost", formatBigDecimalWithCurrency(abonementCost));
                 parameters.put("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
                 parameters.put("from", "noreply@majordomo.ru");
+                parameters.put("payment_link", paymentLink);
 
                 accountNotificationHelper.sendMail(account, "MajordomoVHAbNoMoneyProlong", 1, parameters);
             }
