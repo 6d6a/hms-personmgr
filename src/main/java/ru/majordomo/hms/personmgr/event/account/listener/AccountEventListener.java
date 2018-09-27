@@ -34,6 +34,7 @@ import ru.majordomo.hms.personmgr.event.account.PaymentWasReceivedEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.manager.*;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.account.InfoBannerAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
@@ -41,6 +42,7 @@ import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.task.SendMailIfAbonementWasNotBought;
 import ru.majordomo.hms.personmgr.model.task.State;
 import ru.majordomo.hms.personmgr.model.token.Token;
+import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
@@ -81,6 +83,7 @@ public class AccountEventListener {
     private final BackupService backupService;
     private final PartnersFeignClient partnersFeignClient;
     private final TaskManager taskManager;
+    private final AccountNoticeRepository accountNoticeRepository;
 
     private final int deleteDataAfterDays;
 
@@ -101,6 +104,7 @@ public class AccountEventListener {
             BackupService backupService,
             PartnersFeignClient partnersFeignClient,
             TaskManager taskManager,
+            AccountNoticeRepository accountNoticeRepository,
             @Value("${delete_data_after_days}") int deleteDataAfterDays
     ) {
         this.accountHelper = accountHelper;
@@ -118,6 +122,7 @@ public class AccountEventListener {
         this.backupService = backupService;
         this.partnersFeignClient = partnersFeignClient;
         this.taskManager = taskManager;
+        this.accountNoticeRepository = accountNoticeRepository;
         this.deleteDataAfterDays = deleteDataAfterDays;
     }
 
@@ -137,6 +142,21 @@ public class AccountEventListener {
         parameters.put("ftp_password", "FTP_PASSWORD");
 
         accountNotificationHelper.sendMail(account, "MajordomoHMSClientCreatedConfirmation", 10, parameters);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void createInfoBanner(AccountCreatedEvent event) {
+        PersonalAccount account = event.getSource();
+
+        InfoBannerAccountNotice notification = new InfoBannerAccountNotice();
+        notification.setPersonalAccountId(account.getId());
+        notification.setCreated(LocalDateTime.now());
+        notification.setViewed(false);
+        notification.setComponent("hello_user");
+
+        accountNoticeRepository.save(notification);
+        logger.debug("InfoBannerAccountNotice saved: " + notification.toString());
     }
 
     @EventListener

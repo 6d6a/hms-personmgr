@@ -116,7 +116,12 @@ public class PromocodeProcessor {
     }
 
     public void processPromocode(PersonalAccount account, String promocodeString) {
-        if (processPartnerPromocode(account, promocodeString)) {
+        promocodeString = promocodeString.trim();
+
+        boolean isPartner = processPartnerPromocode(account, promocodeString);
+
+        if (isPartner) {
+            logger.info("account id " + account.getId() + "promocode " + promocodeString + " was process as partner");
             return;
         }
 
