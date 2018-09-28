@@ -395,6 +395,17 @@ public class AccountServiceHelper {
         }
     }
 
+    public AccountService getAccountService(PersonalAccount account, Feature feature) {
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
+
+        return accountServiceRepository.findOneByPersonalAccountIdAndServiceId(account.getId(), plan.getServiceId());
+    }
+
+    public List<AccountServiceAbonement> getAccountServiceAbonement(PersonalAccount account, Feature feature) {
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
+
+        return abonementManager.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
+    }
 
     public List<AccountService> getDailyServicesToCharge(PersonalAccount account, LocalDate chargeDate) {
         return getDailyServicesToCharge(account, LocalDateTime.of(
