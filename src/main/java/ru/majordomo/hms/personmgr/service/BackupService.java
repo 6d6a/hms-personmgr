@@ -14,8 +14,11 @@ import ru.majordomo.hms.personmgr.dto.request.MysqlRestoreRequest;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.service.restic.ResticClient;
 import ru.majordomo.hms.personmgr.service.restic.Snapshot;
 import ru.majordomo.hms.rc.staff.resources.Server;
@@ -357,12 +360,34 @@ public class BackupService {
         return unixAccounts.iterator().next();
     }
 
-    private int daysAccessToBackup(PersonalAccount account, StorageType type) {
-        return accountServiceHelper.hasAdvancedBackup(account) ? 30 : 7;
-    }
+    public LocalDate minDateForBackup(PersonalAccount account, StorageType type) {
+        LocalDate now = LocalDate.now();
+        LocalDate sevenDaysAgo = now.minusDays(7);
+        LocalDate thirtyDaysAgo = now.minusDays(30);
 
-    public LocalDate minDateForBackup(PersonalAccount account, StorageType type){
-        return LocalDate.now().minusDays(daysAccessToBackup(account, type));
+        if (account.isActive()) {
+            AccountService accountService = accountServiceHelper.getAccountService(account, Feature.ADVANCED_BACKUP);
+
+            if (accountService != null && accountService.isEnabled()) {
+                return thirtyDaysAgo;
+            }
+        }
+
+        List<AccountServiceAbonement> abonements = accountServiceHelper.getAccountServiceAbonement(account, Feature.ADVANCED_BACKUP);
+
+        if (abonements == null || abonements.isEmpty()) {
+            return sevenDaysAgo;
+        }
+
+        LocalDate created = abonements.get(0).getCreated().toLocalDate();
+
+        if (created.isBefore(thirtyDaysAgo)) {
+            return thirtyDaysAgo;
+        } else if (created.isAfter(sevenDaysAgo)) {
+            return sevenDaysAgo;
+        } else {
+            return created;
+        }
     }
 
     public void restoreAccountAfterEnabled(PersonalAccount account, LocalDateTime deactivated, LocalDate dataWillBeDeletedAfter) {
