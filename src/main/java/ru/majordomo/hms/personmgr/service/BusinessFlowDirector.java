@@ -158,8 +158,15 @@ public class BusinessFlowDirector {
 
     private void fillPublicParamsToBusinessOperation(SimpleServiceMessage message, ProcessingBusinessOperation businessOperation) {
         try {
-            if (message.getParam("errorMessage") != null && !message.getParam("errorMessage").equals(""))
+            if (message.getParam("errorMessage") != null && !message.getParam("errorMessage").equals("")) {
                 businessOperation.addPublicParam("message", String.valueOf(message.getParam("errorMessage")));
+            }
+            if (message.getParam("errors") != null) {
+                businessOperation.addPublicParam("errors", message.getParam("errors"));
+            }
+            if (message.getParam("exceptionClass") != null) {
+                businessOperation.addPublicParam("exceptionClass", message.getParam("exceptionClass"));
+            }
 
             switch (businessOperation.getType()) {
                 case SSL_CERTIFICATE_CREATE:
