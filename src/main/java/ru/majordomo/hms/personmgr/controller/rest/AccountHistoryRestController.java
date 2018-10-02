@@ -18,16 +18,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
-
+import ru.majordomo.hms.personmgr.dto.request.HistoryRequest;
 import ru.majordomo.hms.personmgr.model.account.AccountHistory;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.QAccountHistory;
 import ru.majordomo.hms.personmgr.querydsl.AccountHistoryQuerydslBinderCustomizer;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
-import static ru.majordomo.hms.personmgr.common.Constants.HISTORY_MESSAGE_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.OPERATOR_KEY;
+import javax.validation.Valid;
 
 @RestController
 @Validated
@@ -88,22 +86,22 @@ public class AccountHistoryRestController extends CommonRestController {
         return new ResponseEntity<>(accountHistories, HttpStatus.OK);
     }
 
-    //TODO надо переделать контроллер для того чтобы нельзя было добавлять сообщения от имени другого пользователя
-    // сейчас через биллинг можно передать какое угодно имя оператора
     @PreAuthorize("hasAuthority('ACCOUNT_HISTORY_ADD')")
     @RequestMapping(value = "/{accountId}/account-history", method = RequestMethod.POST)
     public ResponseEntity<AccountHistory> addAccountHistory(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, String> requestBody,
+            @RequestBody @Valid HistoryRequest historyRequest,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        String historyMessage = requestBody.get(HISTORY_MESSAGE_KEY);
-        String operator = requestBody.get(OPERATOR_KEY);
-        operator = (operator == null || operator.equals("")) ? request.getUserPrincipal().getName() : operator;
-
-        if (historyMessage != null && operator != null) {
-            history.addMessage(accountId, historyMessage, operator);
+        String operator;
+        if (request.isUserInRole("ADMIN")) {
+            operator = historyRequest.getOperator();
+            operator = (operator == null || operator.equals("")) ? request.getUserPrincipal().getName() : operator;
+        } else {
+            operator = request.getUserPrincipal().getName();
         }
+
+        history.addMessage(accountId, historyRequest.getHistoryMessage(), operator);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
