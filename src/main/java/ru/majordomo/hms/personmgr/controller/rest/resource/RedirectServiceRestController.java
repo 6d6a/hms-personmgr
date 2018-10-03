@@ -165,7 +165,7 @@ public class RedirectServiceRestController extends CommonRestController {
     }
 
     @PostMapping("/{accountId}/redirect/buy")
-    public ResponseEntity buy(
+    public RedirectAccountService buy(
             @PathVariable @ObjectId(PersonalAccount.class) String accountId,
             @Valid @RequestBody RedirectServiceBuyRequest body,
             SecurityContextHolderAwareRequestWrapper request
@@ -184,22 +184,22 @@ public class RedirectServiceRestController extends CommonRestController {
         RedirectAccountService redirectAccountService = accountRedirectServiceRepository
                 .findByPersonalAccountIdAndFullDomainName(account.getId(), domain.getName());
 
-        if (redirectAccountService == null) {
-
-            ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.REDIRECT, true);
-
-            AccountServiceAbonement abonement = serviceAbonementService.addAbonement(
-                    account, servicePlan.getNotInternalAbonementId(), Feature.REDIRECT, true);
-
-            addRedirectService(account, domain, abonement);
-            history.save(account, "Заказана услуга перенаправления для домена: " + domain.getName(), request);
-        } else {
+        if (redirectAccountService != null) {
             throw new ParameterValidationException("Можно заказать только одну услугу переадресации для одного домена");
         }
 
+        ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.REDIRECT, true);
+
+        AccountServiceAbonement abonement = serviceAbonementService.addAbonement(
+                account, servicePlan.getNotInternalAbonementId(), Feature.REDIRECT, true);
+
+        RedirectAccountService result = addRedirectService(account, domain, abonement);
+
+        history.save(account, "Заказана услуга перенаправления для домена: " + domain.getName(), request);
+
         publisher.publishEvent(new RedirectWasProlongEvent(accountId, domain.getName()));
 
-        return new ResponseEntity(HttpStatus.NO_CONTENT);
+        return result;
     }
 
     @PostMapping("/{accountId}/redirect")
@@ -292,7 +292,7 @@ public class RedirectServiceRestController extends CommonRestController {
         return new ResponseEntity<>(createSuccessResponse(action), HttpStatus.ACCEPTED);
     }
 
-    private void addRedirectService(PersonalAccount account, Domain domain, AccountServiceAbonement abonement) {
+    private RedirectAccountService addRedirectService(PersonalAccount account, Domain domain, AccountServiceAbonement abonement) {
         RedirectAccountService redirectAccountService = new RedirectAccountService();
         redirectAccountService.setFullDomainName(domain.getName());
         redirectAccountService.setPersonalAccountId(account.getId());
@@ -303,7 +303,7 @@ public class RedirectServiceRestController extends CommonRestController {
         redirectAccountService.setAccountServiceAbonement(abonement);
         redirectAccountService.setServiceId(abonement.getAbonement().getServiceId());
         redirectAccountService.setActive(true);
-        accountRedirectServiceRepository.insert(redirectAccountService);
+        return accountRedirectServiceRepository.insert(redirectAccountService);
     }
 
     private void assertDomainNotExistsOnWebsite(String accountId, String domainId) {
