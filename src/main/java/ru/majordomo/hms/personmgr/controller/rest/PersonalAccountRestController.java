@@ -403,7 +403,7 @@ public class PersonalAccountRestController extends CommonRestController {
         );
     }
 
-    @GetMapping("/{accountId}/google-adwords-promocode")
+    @GetMapping({"/{accountId}/google-adwords-promocode", "/{accountId}/ga-promocode"})
     public ResponseEntity<Object> getGooglePromocode(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
@@ -425,7 +425,7 @@ public class PersonalAccountRestController extends CommonRestController {
         );
     }
 
-    @PostMapping("/{accountId}/google-adwords-promocode")
+    @PostMapping({"/{accountId}/google-adwords-promocode", "/{accountId}/ga-promocode"})
     public ResponseEntity<Object> generateGooglePromocode(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
