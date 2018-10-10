@@ -7,24 +7,24 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.dto.Result;
+import ru.majordomo.hms.personmgr.dto.request.CodeApplyRequest;
+import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.PromocodeManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promocode.QAccountPromocode;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
-import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
+import ru.majordomo.hms.personmgr.service.PromocodeService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 @RestController
@@ -32,44 +32,18 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 public class AccountPromocodeRestController extends CommonRestController {
 
     private final AccountPromocodeRepository accountPromocodeRepository;
-    private final PromocodeRepository promocodeRepository;
+    private final PromocodeService promocodeService;
+    private final PromocodeManager promocodeManager;
 
     @Autowired
     public AccountPromocodeRestController(
             AccountPromocodeRepository accountPromocodeRepository,
-            PromocodeRepository promocodeRepository
+            PromocodeService promocodeService,
+            PromocodeManager promocodeManager
     ) {
         this.accountPromocodeRepository = accountPromocodeRepository;
-        this.promocodeRepository = promocodeRepository;
-    }
-
-    @GetMapping("/{accountId}/account-promocodes")
-    public ResponseEntity<List<AccountPromocode>> listAll(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
-    ) {
-        List<AccountPromocode> accountPromocodes = accountPromocodeRepository.findByPersonalAccountId(accountId);
-
-        return new ResponseEntity<>(accountPromocodes, HttpStatus.OK);
-    }
-
-    @GetMapping("/{accountId}/account-promocodes/{accountPromocodeId}")
-    public ResponseEntity<AccountPromocode> get(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @ObjectId(AccountPromocode.class) @PathVariable(value = "accountPromocodeId") String accountPromocodeId
-    ) {
-        AccountPromocode accountPromocode = accountPromocodeRepository.findByPersonalAccountIdAndId(accountId, accountPromocodeId);
-
-        return new ResponseEntity<>(accountPromocode, HttpStatus.OK);
-    }
-
-    @GetMapping("/{accountId}/account-promocodes-clients")
-    public ResponseEntity<Page<AccountPromocode>> listAllClients(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            Pageable pageable
-    ) {
-        Page<AccountPromocode> accountPromocodes = accountPromocodeRepository.findByOwnerPersonalAccountIdAndPersonalAccountIdNot(accountId, accountId, pageable);
-
-        return new ResponseEntity<>(accountPromocodes, HttpStatus.OK);
+        this.promocodeService = promocodeService;
+        this.promocodeManager = promocodeManager;
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('OPERATOR')")
@@ -84,7 +58,7 @@ public class AccountPromocodeRestController extends CommonRestController {
         BooleanExpression promocodeExpression = null;
 
         if (code != null && !code.isEmpty()) {
-            Promocode promocode = promocodeRepository.findByCodeIgnoreCase(code);
+            Promocode promocode = promocodeManager.findByCodeIgnoreCase(code);
 
             if (promocode != null){
                 promocodeExpression = qAccountPromocode.promocodeId.equalsIgnoreCase(promocode.getId());
@@ -110,10 +84,28 @@ public class AccountPromocodeRestController extends CommonRestController {
         Page<AccountPromocode> page = accountPromocodeRepository.findAll(predicate, pageable);
         page.getContent().forEach(accountPromocode -> {
             accountPromocode.setPromocode(
-                    promocodeRepository.findOne(accountPromocode.getPromocodeId())
+                    promocodeManager.findOne(accountPromocode.getPromocodeId())
             );
         });
 
         return ResponseEntity.ok(page);
+    }
+
+    @PostMapping(value = "{accountId}/account-promocodes")
+    public Object usePromocode(
+            @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
+            @RequestBody CodeApplyRequest body,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        String code = body.getCode();
+
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Result result = promocodeService.processPmPromocode(account, code);
+
+        history.save(account,
+                "Промокод " + code + " обработан " + (result.isSuccess() ? "успешно" :"с ошибкой"), request);
+
+        return result;
     }
 }

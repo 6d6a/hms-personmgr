@@ -6,8 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.PromocodeManager;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
-import ru.majordomo.hms.personmgr.service.PromocodeProcessor;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,13 +16,13 @@ import java.util.Map;
 @RequestMapping("/promocode")
 public class PromocodeRestController {
 
-    private final PromocodeProcessor promocodeProcessor;
+    private final PromocodeManager promocodeManager;
 
     @Autowired
     public PromocodeRestController(
-        PromocodeProcessor promocodeProcessor
+            PromocodeManager promocodeManager
     ){
-        this.promocodeProcessor = promocodeProcessor;
+        this.promocodeManager = promocodeManager;
     }
 
     @PreAuthorize("hasAuthority('CREATE_PROMOCODE')")
@@ -41,15 +41,15 @@ public class PromocodeRestController {
     private Promocode generatePromocodeByParams(Map<String, String> message) {
         if (message.get("plan").equals("unlimited")) {
             if (message.get("period").equals("P1M")) {
-                return promocodeProcessor.generatePromocodeUnlimitedOneMonth();
+                return promocodeManager.generatePromocodeUnlimitedOneMonth();
             }
 
             if (message.get("period").equals("P3M")) {
-                return promocodeProcessor.generatePromocodeUnlimitedThreeMonth();
+                return promocodeManager.generatePromocodeUnlimitedThreeMonth();
             }
         } else if (message.get("plan").equals("parking")) {
             if (message.get("period").equals("P3M")) {
-                return promocodeProcessor.generatePromocodeParkingThreeMonth();
+                return promocodeManager.generatePromocodeParkingThreeMonth();
             }
         }
 

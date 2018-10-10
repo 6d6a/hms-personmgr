@@ -37,7 +37,6 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
-import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
@@ -58,7 +57,7 @@ public class AccountHelper {
     private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
     private final AccountPromocodeRepository accountPromocodeRepository;
-    private final PromocodeRepository promocodeRepository;
+    private final PromocodeManager promocodeManager;
     private final AccountOwnerManager accountOwnerManager;
     private final PlanRepository planRepository;
     private final AbonementManager<AccountAbonement> accountAbonementManager;
@@ -79,7 +78,7 @@ public class AccountHelper {
             PersonalAccountManager accountManager,
             ApplicationEventPublisher publisher,
             AccountPromocodeRepository accountPromocodeRepository,
-            PromocodeRepository promocodeRepository,
+            PromocodeManager promocodeManager,
             AccountOwnerManager accountOwnerManager,
             PlanRepository planRepository,
             AbonementManager<AccountAbonement> accountAbonementManager,
@@ -98,7 +97,7 @@ public class AccountHelper {
         this.accountManager = accountManager;
         this.publisher = publisher;
         this.accountPromocodeRepository = accountPromocodeRepository;
-        this.promocodeRepository = promocodeRepository;
+        this.promocodeManager = promocodeManager;
         this.accountOwnerManager = accountOwnerManager;
         this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
@@ -357,23 +356,27 @@ public class AccountHelper {
     }
 
     public void giveGift(PersonalAccount account, Promotion promotion) {
-        Long currentCount = accountPromotionManager.countByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
-        if (currentCount < promotion.getLimitPerAccount() || promotion.getLimitPerAccount() == -1) {
-            AccountPromotion accountPromotion = new AccountPromotion();
-            accountPromotion.setPersonalAccountId(account.getId());
-            accountPromotion.setPromotionId(promotion.getId());
-            accountPromotion.setPromotion(promotion);
-            accountPromotion.setCreated(LocalDateTime.now());
+        for (String actionId : promotion.getActionIds()) {
 
-            Map<String, Boolean> actionsWithStatus = new HashMap<>();
-            for (String actionId : promotion.getActionIds()) {
-                actionsWithStatus.put(actionId, true);
+            Long currentCount = accountPromotionManager.countByPersonalAccountIdAndPromotionIdAndActionId(
+                    account.getId(), promotion.getId(), actionId
+            );
+
+            if (currentCount < promotion.getLimitPerAccount() || promotion.getLimitPerAccount() == -1) {
+
+                AccountPromotion accountPromotion = new AccountPromotion();
+                accountPromotion.setPersonalAccountId(account.getId());
+                accountPromotion.setPromotionId(promotion.getId());
+                accountPromotion.setPromotion(promotion);
+                accountPromotion.setCreated(LocalDateTime.now());
+                accountPromotion.setActionId(actionId);
+                accountPromotion.setActive(true);
+                accountPromotionManager.insert(accountPromotion);
+
+                history.save(account, "Добавлен бонус " + promotion.getName());
+            } else {
+                history.save(account, "Бонус не добавлен. Превышен лимит '" + promotion.getLimitPerAccount() + "' на " + promotion.getName());
             }
-            accountPromotion.setActionsWithStatus(actionsWithStatus);
-
-            accountPromotionManager.insert(accountPromotion);
-
-            history.saveForOperatorService(account, "Добавлен бонус " + accountPromotion.getPromotion().getName());
         }
     }
 
@@ -410,7 +413,7 @@ public class AccountHelper {
 
     public String giveGooglePromocode(PersonalAccount account) {
         if (this.isGooglePromocodeAllowed(account)) {
-            Promocode promocode = promocodeRepository.findByTypeAndActive(GOOGLE, true);
+            Promocode promocode = promocodeManager.findByTypeAndActive(GOOGLE, true);
 
             if (promocode != null) {
                 promocode.setActive(false);
@@ -422,7 +425,7 @@ public class AccountHelper {
                 accountPromocode.setPromocodeId(promocode.getId());
                 accountPromocode.setPromocode(promocode);
 
-                promocodeRepository.save(promocode);
+                promocodeManager.save(promocode);
                 accountPromocodeRepository.save(accountPromocode);
 
                 return promocode.getCode();
@@ -449,7 +452,7 @@ public class AccountHelper {
 
     public void switchAccountActiveState(PersonalAccount account, Boolean state) {
         if (account.isActive() != state) {
-            history.saveForOperatorService(account, "Аккаунт " + (state ? "включен" : "выключен"));
+            history.save(account, "Аккаунт " + (state ? "включен" : "выключен"));
 
             accountManager.setActive(account.getId(), state);
             switchAccountResources(account, state);
@@ -475,7 +478,7 @@ public class AccountHelper {
 
             String historyMessage = "Отправлена заявка на" + (state ? "включение" : "отключение") + "анти-спама у почтового ящика '"
                     + mailbox.getFullName() + "' в связи с " + (state ? "включением" : "отключением") + " услуги";
-            history.saveForOperatorService(account, historyMessage);
+            history.save(account, historyMessage);
         }
     }
 
@@ -654,7 +657,7 @@ public class AccountHelper {
 
                     String historyMessage = "Отправлена заявка на установку новой квоты в значение '" + quotaInBytes +
                             " байт' для UNIX-аккаунта '" + unixAccount.getName() + "'";
-                    history.saveForOperatorService(account, historyMessage);
+                    history.save(account, historyMessage);
                 }
             }
 
@@ -676,7 +679,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
 
             String historyMessage = "Отправлена заявка на удаление SSL сертификата '" + sslCertificate.getName() + "'";
-            history.saveForOperatorService(account, historyMessage);
+            history.save(account, historyMessage);
         }
     }
 
@@ -694,7 +697,7 @@ public class AccountHelper {
                     businessHelper.buildAction(BusinessActionType.REDIRECT_DELETE_RC, message);
 
                     String historyMessage = "Отправлена заявка на удаление переадресации '" + r.getName() + "'";
-                    history.saveForOperatorService(account, historyMessage);
+                    history.save(account, historyMessage);
                 });
     }
 
@@ -712,7 +715,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на выключение и отложенное удаление почтового ящика '" + mailbox.getName() + "'";
-            history.saveForOperatorService(account, historyMessage);
+            history.save(account, historyMessage);
         }
     }
 
@@ -730,7 +733,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.DATABASE_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на выключение и отложенное удаление базы данных '" + database.getName() + "'";
-            history.saveForOperatorService(account, historyMessage);
+            history.save(account, historyMessage);
         }
     }
 
@@ -748,7 +751,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на выключение и отложенное удаление пользователя баз данных '" + databaseUser.getName() + "'";
-            history.saveForOperatorService(account, historyMessage);
+            history.save(account, historyMessage);
         }
     }
 
@@ -765,7 +768,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.MAILBOX_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на отмену отложенного удаления почтового ящика '" + mailbox.getName() + "'";
-            history.saveForOperatorService(account, historyMessage);
+            history.save(account, historyMessage);
         }
     }
 
@@ -782,7 +785,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.DATABASE_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на отмену отложенного удаления базы данных '" + database.getName() + "'";
-            history.saveForOperatorService(account, historyMessage);
+            history.save(account, historyMessage);
         }
     }
 
@@ -799,7 +802,7 @@ public class AccountHelper {
             businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
             String historyMessage = "Отправлена заявка на отмену отложенного удаления пользователя баз данных '" + databaseUser.getName() + "'";
-            history.saveForOperatorService(account, historyMessage);
+            history.save(account, historyMessage);
         }
     }
 
@@ -908,7 +911,7 @@ public class AccountHelper {
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
                     " возможности записывать данные (writable) для UNIX-аккаунта '" + unixAccount.getName() + "'";
-            history.saveForOperatorService(account, historyMessage);
+            history.save(account, historyMessage);
 
         } catch (Exception e) {
             logger.error("account unixAccount [" + unixAccount.getId() + "] writable switch failed for accountId: " + account.getId());
@@ -929,7 +932,7 @@ public class AccountHelper {
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
                     " возможности сохранять письма (writable) для почтового ящика '" + mailbox.getFullName() + "'";
-            history.saveForOperatorService(account, historyMessage);
+            history.save(account, historyMessage);
 
 
         } catch (Exception e) {
@@ -951,7 +954,7 @@ public class AccountHelper {
 
             String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") +
                     " возможности записывать данные (writable) для базы данных '" + database.getName() + "'";
-            history.saveForOperatorService(account, historyMessage);
+            history.save(account, historyMessage);
 
         } catch (Exception e) {
             logger.error("account Database [" + database.getName() + "] writable switch failed for accountId: " + account.getId());
@@ -988,7 +991,7 @@ public class AccountHelper {
         if (account.getCreditActivationDate() == null) {
             LocalDateTime now = LocalDateTime.now();
             accountManager.setCreditActivationDate(account.getId(), now);
-            history.saveForOperatorService(account, "Установлена дата активации кредита на " + now);
+            history.save(account, "Установлена дата активации кредита на " + now);
         }
     }
 
@@ -1022,7 +1025,7 @@ public class AccountHelper {
             resourceArchiveService.processAccountServiceDelete(accountService);
         }
 
-        history.saveForOperatorService(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
+        history.save(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
     }
 
     //На тарифах, дешевле 245р, не даём покупать и продлевать абонемент

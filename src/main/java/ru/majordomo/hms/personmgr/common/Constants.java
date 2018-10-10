@@ -1,10 +1,6 @@
 package ru.majordomo.hms.personmgr.common;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import ru.majordomo.hms.rc.user.resources.DomainRegistrar;
 
@@ -427,4 +423,37 @@ public class Constants {
             ));
         }
     }
+
+    public final static List<String> BAD_WORD_PATTERNS = Arrays.asList(
+            "FUCK",
+            "CUNT",
+            "WANK",
+            "WANG",
+            "PISS",
+            "COCK",
+            "SHIT",
+            "TWAT",
+            "TITS",
+            "FART",
+            "HELL",
+            "MUFF",
+            "DICK",
+            "KNOB",
+            "ARSE",
+            "SHAG",
+            "TOSS",
+            "SLUT",
+            "TURD",
+            "SLAG",
+            "CRAP",
+            "POOP",
+            "BUTT",
+            "FECK",
+            "BOOB",
+            "JISM",
+            "JIZZ",
+            "PHAT",
+            ".?HUI.?",
+            ".?HYI.?"
+    );
 }

@@ -33,11 +33,11 @@ public interface AccountPromotionManager {
 
     List<AccountPromotion> findByPersonalAccountIdAndPromotionId(String personalAccountId, String promotionId);
 
-    Long countByPersonalAccountIdAndPromotionId(String personalAccountId, String promotionId);
+    List<AccountPromotion> findByPersonalAccountIdAndActionIdInAndActive(String personalAccountId, List<String> actionIds, boolean active);
 
-    void activateAccountPromotionByIdAndActionId(String id, String actionId);
+    Long countByPersonalAccountIdAndPromotionIdAndActionId(String personalAccountId, String promotionId, String actionId);
 
-    void deactivateAccountPromotionByIdAndActionId(String id, String actionId);
+    void activateAccountPromotionById(String id);
 
-    void switchAccountPromotionById(String id);
+    void deactivateAccountPromotionById(String id);
 }

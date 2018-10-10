@@ -1,7 +1,8 @@
 package ru.majordomo.hms.personmgr.model.promotion;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
@@ -13,6 +14,8 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+@Data
+@EqualsAndHashCode(callSuper = true)
 @Document
 public class AccountPromotion extends VersionedModelBelongsToPersonalAccount {
     @NotNull
@@ -25,66 +28,30 @@ public class AccountPromotion extends VersionedModelBelongsToPersonalAccount {
     @CreatedDate
     private LocalDateTime created;
 
-    private Map<@ObjectId(PromocodeAction.class) String, Boolean> actionsWithStatus = new HashMap<>();
+    @Deprecated
+    private Map<String, Boolean> actionsWithStatus = new HashMap<>();
 
     @Transient
-    private Map<String, PromocodeAction> actions = new HashMap<>();
+    private PromocodeAction action;
 
-    @PersistenceConstructor
-    public AccountPromotion(String promotionId, LocalDateTime created) {
-        this.promotionId = promotionId;
-        this.created = created;
+    @ObjectId(PromocodeAction.class)
+    private String actionId;
+
+    private Boolean active;
+
+    public String getActionId() {
+        if (actionId != null) {
+            return actionId;
+        } else {
+            return actionsWithStatus.keySet().iterator().next();
+        }
     }
 
-    public AccountPromotion() {}
-
-    public String getPromotionId() {
-        return promotionId;
-    }
-
-    public void setPromotionId(String promotionId) {
-        this.promotionId = promotionId;
-    }
-
-    public Promotion getPromotion() {
-        return promotion;
-    }
-
-    public void setPromotion(Promotion promotion) {
-        this.promotion = promotion;
-    }
-
-    public LocalDateTime getCreated() {
-        return created;
-    }
-
-    public void setCreated(LocalDateTime created) {
-        this.created = created;
-    }
-
-    public Map<String, Boolean> getActionsWithStatus() {
-        return actionsWithStatus;
-    }
-
-    public void setActionsWithStatus(Map<String, Boolean> actionsWithStatus) {
-        this.actionsWithStatus = actionsWithStatus;
-    }
-
-    public Map<String, PromocodeAction> getActions() {
-        return actions;
-    }
-
-    public void setActions(Map<String, PromocodeAction> actions) {
-        this.actions = actions;
-    }
-
-    @Override
-    public String toString() {
-        return "AccountPromotion{" +
-                "promotionId='" + promotionId + '\'' +
-                ", promotion=" + promotion +
-                ", created=" + created +
-                ", actionsWithStatus=" + actionsWithStatus +
-                '}';
+    public Boolean getActive() {
+        if (active != null) {
+            return active;
+        } else {
+            return actionsWithStatus.values().iterator().next();
+        }
     }
 }

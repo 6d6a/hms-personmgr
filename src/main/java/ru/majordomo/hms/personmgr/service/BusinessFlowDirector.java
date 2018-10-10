@@ -14,8 +14,6 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 
-import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
 import static ru.majordomo.hms.personmgr.common.Utils.cleanBooleanSafe;
 
 @Service
@@ -115,17 +113,11 @@ public class BusinessFlowDirector {
 
             if (businessAction.getState() == State.ERROR) {
                 if (businessAction.getMessage().getParam("freeDomainPromotionId") != null) {
-                    accountPromotionManager.activateAccountPromotionByIdAndActionId(
-                            (String) businessAction.getMessage().getParam("freeDomainPromotionId"),
-                            BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID
-                    );
+                    accountPromotionManager.activateAccountPromotionById((String) businessAction.getMessage().getParam("freeDomainPromotionId"));
                 }
 
                 if (businessAction.getMessage().getParam("domainDiscountPromotionId") != null) {
-                    accountPromotionManager.activateAccountPromotionByIdAndActionId(
-                            (String) businessAction.getMessage().getParam("domainDiscountPromotionId"),
-                            DOMAIN_DISCOUNT_RU_RF_ACTION_ID
-                    );
+                    accountPromotionManager.activateAccountPromotionById((String) businessAction.getMessage().getParam("domainDiscountPromotionId"));
                 }
             }
 

@@ -9,7 +9,6 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
@@ -105,43 +104,39 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
     }
 
     @Override
-    public Long countByPersonalAccountIdAndPromotionId(String personalAccountId, String promotionId) {
-        return repository.countByPersonalAccountIdAndPromotionId(personalAccountId, promotionId);
+    public List<AccountPromotion> findByPersonalAccountIdAndActionIdInAndActive(String personalAccountId, List<String> actionIds, boolean active) {
+        return repository.findByPersonalAccountIdAndActionIdInAndActive(personalAccountId, actionIds, active);
     }
 
     @Override
-    public void activateAccountPromotionByIdAndActionId(String id, String actionId) {
-        setAccountPromotionStatusByIdAndActionId(id, actionId, true);
+    public Long countByPersonalAccountIdAndPromotionIdAndActionId(String personalAccountId, String promotionId, String actionId) {
+        return repository.countByPersonalAccountIdAndPromotionIdAndActionId(personalAccountId, promotionId, actionId);
     }
 
     @Override
-    public void deactivateAccountPromotionByIdAndActionId(String id, String actionId) {
-        setAccountPromotionStatusByIdAndActionId(id, actionId, false);
+    public void activateAccountPromotionById(String id) {
+        setAccountPromotionStatusByIdAndActionId(id, true);
     }
 
     @Override
-    public void switchAccountPromotionById(String id) {
-        Map<String, Boolean> map = repository.findOne(id).getActionsWithStatus();
-        map.forEach((k,v) -> setAccountPromotionStatusByIdAndActionId(id, k, !v));
+    public void deactivateAccountPromotionById(String id) {
+        setAccountPromotionStatusByIdAndActionId(id, false);
     }
 
-    private void setAccountPromotionStatusByIdAndActionId(String id, String actionId, boolean status) {
+    private void setAccountPromotionStatusByIdAndActionId(String id, boolean status) {
         checkById(id);
 
         AccountPromotion accountPromotion = findOne(id);
-        Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-        if (map.get(actionId) != null) {
-            Query query = new Query(new Criteria("_id").is(id));
-            Update update = new Update().set("actionsWithStatus." + actionId, status);
+        Query query = new Query(new Criteria("_id").is(id));
+        Update update = new Update().set("active", status);
 
-            mongoOperations.updateFirst(query, update, AccountPromotion.class);
+        mongoOperations.updateFirst(query, update, AccountPromotion.class);
 
-            history.save(
-                    accountPromotion.getPersonalAccountId(),
-                    "AccountPromotion Id: " + id + " Action Id: " + actionId + " помечен как " + (status ? "активный" : "неактивный"),
-                    "service"
-            );
-        }
+        history.save(
+                accountPromotion.getPersonalAccountId(),
+                "AccountPromotion Id: " + id + " помечен как " + (status ? "активный" : "неактивный"),
+                "service"
+        );
     }
 
     private void checkById(String id) {
