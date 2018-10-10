@@ -14,9 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import ru.majordomo.hms.personmgr.config.AppConfigTest;
 import ru.majordomo.hms.personmgr.config.MongoConfigTest;
@@ -123,9 +121,11 @@ public class AccountPromotionManagerImplTest {
     public void countByPersonalAccountIdAndPromotionId() throws Exception {
         String personalAccountId = "1";
         String promotionId = "2";
-        Assert.assertTrue(accountPromotionManager.countByPersonalAccountIdAndPromotionId(
+        String actionId = "3";
+        Assert.assertTrue(accountPromotionManager.countByPersonalAccountIdAndPromotionIdAndActionId(
                 personalAccountId,
-                promotionId
+                promotionId,
+                actionId
         ) == 1);
     }
 
@@ -134,9 +134,11 @@ public class AccountPromotionManagerImplTest {
         String promotionId = "2";
         String actionId = "3";
 
-        accountPromotionManager.activateAccountPromotionByIdAndActionId(promotionId, actionId);
+        accountPromotionManager.activateAccountPromotionById(promotionId);
 
-        Assert.assertTrue(accountPromotionManager.findOne(promotionId).getActionsWithStatus().get(actionId));
+        AccountPromotion accountPromotion = accountPromotionManager.findOne(promotionId);
+        Assert.assertTrue(accountPromotion.getActive());
+        Assert.assertEquals(accountPromotion.getActionId(), actionId);
     }
 
     @Test
@@ -144,9 +146,11 @@ public class AccountPromotionManagerImplTest {
         String promotionId = "1";
         String actionId = "3";
 
-        accountPromotionManager.deactivateAccountPromotionByIdAndActionId(promotionId, actionId);
+        accountPromotionManager.deactivateAccountPromotionById(promotionId);
 
-        Assert.assertFalse(accountPromotionManager.findOne(promotionId).getActionsWithStatus().get(actionId));
+        AccountPromotion accountPromotion = accountPromotionManager.findOne(promotionId);
+        Assert.assertFalse(accountPromotion.getActive());
+        Assert.assertEquals(accountPromotion.getActionId(), actionId);
     }
 
     private AccountPromotion generateAccountPromotionWithActiveAction() {
@@ -155,11 +159,8 @@ public class AccountPromotionManagerImplTest {
         accountPromotion.setPersonalAccountId("1");
         accountPromotion.setPromotionId("2");
         accountPromotion.setCreated(LocalDateTime.now());
-
-        Map<String, Boolean> actionsWithStatus = new HashMap<>();
-        actionsWithStatus.put("3", true);
-
-        accountPromotion.setActionsWithStatus(actionsWithStatus);
+        accountPromotion.setActionId("3");
+        accountPromotion.setActive(true);
 
         return accountPromotion;
     }
@@ -170,11 +171,8 @@ public class AccountPromotionManagerImplTest {
         accountPromotion.setPersonalAccountId("1");
         accountPromotion.setPromotionId("4");
         accountPromotion.setCreated(LocalDateTime.now());
-
-        Map<String, Boolean> actionsWithStatus = new HashMap<>();
-        actionsWithStatus.put("3", true);
-
-        accountPromotion.setActionsWithStatus(actionsWithStatus);
+        accountPromotion.setActionId("3");
+        accountPromotion.setActive(true);
 
         return accountPromotion;
     }
@@ -185,11 +183,8 @@ public class AccountPromotionManagerImplTest {
         accountPromotion.setPersonalAccountId("2");
         accountPromotion.setPromotionId("2");
         accountPromotion.setCreated(LocalDateTime.now());
-
-        Map<String, Boolean> actionsWithStatus = new HashMap<>();
-        actionsWithStatus.put("3", false);
-
-        accountPromotion.setActionsWithStatus(actionsWithStatus);
+        accountPromotion.setActionId("3");
+        accountPromotion.setActive(false);
 
         return accountPromotion;
     }

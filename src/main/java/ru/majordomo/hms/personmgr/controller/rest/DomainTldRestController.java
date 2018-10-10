@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.PromocodeActionType;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
@@ -51,12 +52,11 @@ public class DomainTldRestController extends CommonRestController {
         List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountId(accountId);
         Map<String, BigDecimal> discountedCosts = new HashMap<>();
         for (AccountPromotion accountPromotion : accountPromotions) {
-            Map<String, Boolean> map = accountPromotion.getActionsWithStatus();
-            if (map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) != null && map.get(DOMAIN_DISCOUNT_RU_RF_ACTION_ID) == true) {
-                PromocodeAction promocodeAction = promocodeActionRepository.findOne(DOMAIN_DISCOUNT_RU_RF_ACTION_ID);
-                List<String> availableTlds = (List<String>) promocodeAction.getProperties().get("tlds");
+            PromocodeAction action = accountPromotion.getAction();
+            if (accountPromotion.getActive() && action.getActionType() == PromocodeActionType.SERVICE_DOMAIN_DISCOUNT_RU_RF) {
+                List<String> availableTlds = (List<String>) action.getProperties().get("tlds");
                 for (String tld : availableTlds) {
-                    discountedCosts.put(tld, BigDecimal.valueOf((Integer) promocodeAction.getProperties().get("cost")));
+                    discountedCosts.put(tld, BigDecimal.valueOf((Integer) action.getProperties().get("cost")));
                 }
                 break;
             }

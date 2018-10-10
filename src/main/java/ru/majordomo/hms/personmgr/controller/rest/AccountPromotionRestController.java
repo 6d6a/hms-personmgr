@@ -11,11 +11,10 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/{accountId}/account-promotion")
@@ -23,14 +22,17 @@ public class AccountPromotionRestController extends CommonRestController {
 
     private final AccountPromotionManager accountPromotionManager;
     private final PromotionRepository promotionRepository;
+    private final AccountHelper accountHelper;
 
     @Autowired
     public AccountPromotionRestController(
             AccountPromotionManager accountPromotionManager,
-            PromotionRepository promotionRepository
+            PromotionRepository promotionRepository,
+            AccountHelper accountHelper
     ) {
         this.accountPromotionManager = accountPromotionManager;
         this.promotionRepository = promotionRepository;
+        this.accountHelper = accountHelper;
     }
 
     @GetMapping
@@ -43,42 +45,20 @@ public class AccountPromotionRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_PROMOTION_EDIT')")
-    @PostMapping(value = "/{accountPromotionId}/switch")
-    public ResponseEntity<Void> switchPromotionActionStatus(
-            @ObjectId(AccountPromotion.class) @PathVariable String accountPromotionId,
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
-    ) {
-        accountPromotionManager.switchAccountPromotionById(accountPromotionId);
-        history.save(accountId, "AccountPromotion Id: '" + accountPromotionId + "' был изменён оператором", request);
-
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    }
-
-    @PreAuthorize("hasAuthority('ACCOUNT_PROMOTION_EDIT')")
     @PostMapping(value = "/{promotionId}")
-    public ResponseEntity<AccountPromotion> create(
+    public ResponseEntity create(
             @ObjectId(Promotion.class) @PathVariable(value = "promotionId") String promotionId,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         Promotion promotion = promotionRepository.findOne(promotionId);
 
-        AccountPromotion accountPromotion = new AccountPromotion();
-        accountPromotion.setPersonalAccountId(accountId);
-        accountPromotion.setPromotionId(promotion.getId());
-        accountPromotion.setPromotion(promotion);
+        PersonalAccount account = accountManager.findOne(accountId);
 
-        Map<String, Boolean> actionsWithStatus = new HashMap<>();
-        for (String actionId : promotion.getActionIds()) {
-            actionsWithStatus.put(actionId, true);
-        }
-        accountPromotion.setActionsWithStatus(actionsWithStatus);
+        accountHelper.giveGift(account, promotion);
 
-        accountPromotionManager.insert(accountPromotion);
+        history.save(accountId, "Добавлен бонус '" + promotion.getName() + "'", request);
 
-        history.save(accountId, "Создан новый accountPromotion с ID: '" + accountPromotion.getId() + "'", request);
-
-        return new ResponseEntity<>(accountPromotion, HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 }

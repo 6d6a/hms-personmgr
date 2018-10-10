@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.ResourceType;
+import ru.majordomo.hms.personmgr.dto.fin.PaymentRequest;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -299,15 +300,14 @@ public abstract class Processor {
     void executeCashBackPayment(Boolean forceCharge) {
         //Начислить деньги
         if (cashBackAmount.compareTo(BigDecimal.ZERO) > 0) {
-            Map<String, Object> payment = new HashMap<>();
-            payment.put("accountId", account.getName());
-            payment.put("paymentTypeId", BONUS_PAYMENT_TYPE_ID);
-            payment.put("amount", cashBackAmount);
-            payment.put("message", "Возврат средств при отказе от абонемента");
-            payment.put("disableAsync", true);
-
             try {
-                finFeignClient.addPayment(payment);
+                finFeignClient.addPayment(
+                        new PaymentRequest(account.getName())
+                                .withAmount(cashBackAmount)
+                                .withBonusType()
+                                .withMessage("Возврат средств при отказе от абонемента")
+                                .withDisableAsync(true)
+                );
                 history.addMessage(
                         account.getId(),
                         "Возврат средств при отказе от абонемента: " + cashBackAmount + " руб.",

@@ -30,7 +30,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.ACCOUNT_UPDA
 @Service
 public class AccountAmqpController extends CommonAmqpController {
     private final BusinessHelper businessHelper;
-    private final PromocodeProcessor promocodeProcessor;
+    private final PromocodeService promocodeService;
     private final AbonementService abonementService;
     private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final PromotionRepository promotionRepository;
@@ -39,13 +39,13 @@ public class AccountAmqpController extends CommonAmqpController {
     @Autowired
     public AccountAmqpController(
             BusinessHelper businessHelper,
-            PromocodeProcessor promocodeProcessor,
+            PromocodeService promocodeService,
             AbonementService abonementService,
             AbonementManager<AccountAbonement> accountAbonementManager,
             PromotionRepository promotionRepository,
             AccountHelper accountHelper) {
         this.businessHelper = businessHelper;
-        this.promocodeProcessor = promocodeProcessor;
+        this.promocodeService = promocodeService;
         this.abonementService = abonementService;
         this.accountAbonementManager = accountAbonementManager;
         this.promotionRepository = promotionRepository;
@@ -77,37 +77,25 @@ public class AccountAmqpController extends CommonAmqpController {
                 case "fin":
                     if (state == State.PROCESSED) {
                         if (businessOperation != null) {
-                            //надо обработать промокод
-                            if (businessOperation.getParam("promocode") != null) {
-                                PersonalAccount account = accountManager.findOne(message.getAccountId());
-                                if (account != null) {
-                                    logger.debug("We got promocode " + businessOperation.getParam("promocode") + ". Try to process it");
-                                    promocodeProcessor.processPromocode(account, (String) businessOperation.getParam("promocode"));
-                                }
-                            }
-
                             PersonalAccount account = accountManager.findOne(message.getAccountId());
-                            if (account != null) {
 
-                                //Пробный период 14 дней - начисляем бонусный абонемент
-                                AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-                                if (accountAbonement == null) {
-                                    abonementService.addFree14DaysAbonement(account);
-                                }
-
-                                //Три домена RU и РФ по 49 рублей
-                                Promotion promotion = promotionRepository.findByName(DOMAIN_DISCOUNT_RU_RF);
-                                for (int i = 1; i <= DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT; i++) {
-                                    accountHelper.giveGift(account, promotion);
-                                }
-
+                            if (businessOperation.getParam("promocode") != null) {
+                                promocodeService.processPromocode(account, businessOperation.getParam("promocode").toString());
                             }
+
+                            //Пробный период 14 дней - начисляем бонусный абонемент
+                            AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+                            if (accountAbonement == null) {
+                                abonementService.addFree14DaysAbonement(account);
+                            }
+
+                            addPromoAfterRegistered(account);
 
                             if (businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
                                 message.setParams(businessOperation.getParams());
                                 message.addParam("quota", (Long) businessOperation.getParams().get("quota") * 1024);
                                 businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
-                                history.saveForOperatorService(account, "Заявка на первичное создание UNIX-аккаунта отправлена (имя: " + message.getParam("name") + ")");
+                                history.save(account, "Заявка на первичное создание UNIX-аккаунта отправлена (имя: " + message.getParam("name") + ")");
                             }
                         }
                     } else {
@@ -137,5 +125,13 @@ public class AccountAmqpController extends CommonAmqpController {
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
+    }
+
+    private void addPromoAfterRegistered(PersonalAccount account) {
+        //Три домена RU и РФ по 49 рублей
+        Promotion promotion = promotionRepository.findByName(DOMAIN_DISCOUNT_RU_RF);
+        for (int i = 1; i <= DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT; i++) {
+            accountHelper.giveGift(account, promotion);
+        }
     }
 }

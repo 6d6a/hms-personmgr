@@ -51,6 +51,7 @@ import ru.majordomo.hms.personmgr.service.BackupService;
 import ru.majordomo.hms.personmgr.service.ChargeHelper;
 import ru.majordomo.hms.personmgr.service.PartnersFeignClient;
 import ru.majordomo.hms.personmgr.service.TokenHelper;
+import ru.majordomo.hms.personmgr.service.promocodeAction.PaymentPercentBonusActionProcessor;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
@@ -84,6 +85,7 @@ public class AccountEventListener {
     private final PartnersFeignClient partnersFeignClient;
     private final TaskManager taskManager;
     private final AccountNoticeRepository accountNoticeRepository;
+    private final PaymentPercentBonusActionProcessor paymentPercentBonusActionProcessor;
 
     private final int deleteDataAfterDays;
 
@@ -105,6 +107,7 @@ public class AccountEventListener {
             PartnersFeignClient partnersFeignClient,
             TaskManager taskManager,
             AccountNoticeRepository accountNoticeRepository,
+            PaymentPercentBonusActionProcessor paymentPercentBonusActionProcessor,
             @Value("${delete_data_after_days}") int deleteDataAfterDays
     ) {
         this.accountHelper = accountHelper;
@@ -123,6 +126,7 @@ public class AccountEventListener {
         this.partnersFeignClient = partnersFeignClient;
         this.taskManager = taskManager;
         this.accountNoticeRepository = accountNoticeRepository;
+        this.paymentPercentBonusActionProcessor = paymentPercentBonusActionProcessor;
         this.deleteDataAfterDays = deleteDataAfterDays;
     }
 
@@ -361,6 +365,8 @@ public class AccountEventListener {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        paymentPercentBonusActionProcessor.processPayment(account, amount);
     }
 
     //Если пользователь кладёт деньги, но не покупает абонемент, то через 40 минут отправляем ему письмо

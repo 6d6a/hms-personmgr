@@ -18,11 +18,12 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.fin.MonthlyBill;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkResponse;
+import ru.majordomo.hms.personmgr.dto.fin.PaymentRequest;
 
 @FeignClient(name = "fin", configuration = FeignConfig.class)
 public interface FinFeignClient {
     @RequestMapping(method = RequestMethod.POST, value = "/payment_integration/add_payment", consumes = "application/json")
-    String addPayment(Map<String, Object> payment);
+    String addPayment(PaymentRequest paymentRequest);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/payment_operations/overall-payment-amount", consumes = "application/json")
     BigDecimal getOverallPaymentAmount(@PathVariable("accountId") String accountId);

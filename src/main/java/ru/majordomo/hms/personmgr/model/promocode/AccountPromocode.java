@@ -1,7 +1,8 @@
 package ru.majordomo.hms.personmgr.model.promocode;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -18,6 +19,8 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 @Document
+@Data
+@EqualsAndHashCode(callSuper = true)
 public class AccountPromocode extends ModelBelongsToPersonalAccount {
     @NotNull
     @ObjectId(Promocode.class)
@@ -50,49 +53,6 @@ public class AccountPromocode extends ModelBelongsToPersonalAccount {
     @Transient
     private String code;
 
-
-    public AccountPromocode() {
-    }
-
-    @PersistenceConstructor
-    public AccountPromocode(String id, String personalAccountId, String promocodeId, boolean ownedByAccount, String ownerPersonalAccountId, LocalDateTime created) {
-        super();
-        this.setId(id);
-        this.setPersonalAccountId(personalAccountId);
-        this.promocodeId = promocodeId;
-        this.ownedByAccount = ownedByAccount;
-        this.ownerPersonalAccountId = ownerPersonalAccountId;
-        this.created = created;
-    }
-
-    public AccountPromocode(String promocodeId) {
-        this.promocodeId = promocodeId;
-    }
-
-    public String getPromocodeId() {
-        return promocodeId;
-    }
-
-    public void setPromocodeId(String promocodeId) {
-        this.promocodeId = promocodeId;
-    }
-
-    public Map<String, Boolean> getActionsWithStatus() {
-        return actionsWithStatus;
-    }
-
-    public void setActionsWithStatus(Map<String, Boolean> actionsWithStatus) {
-        this.actionsWithStatus = actionsWithStatus;
-    }
-
-    public Promocode getPromocode() {
-        return promocode;
-    }
-
-    public void setPromocode(Promocode promocode) {
-        this.promocode = promocode;
-    }
-
     public boolean isActive() {
         return this.getPromocode() != null && this.getPromocode().isActive();
     }
@@ -107,44 +67,5 @@ public class AccountPromocode extends ModelBelongsToPersonalAccount {
 
     public String getCode() {
         return this.getPromocode() != null ? this.getPromocode().getCode() : "";
-    }
-
-    public String getOwnerPersonalAccountId() {
-        return ownerPersonalAccountId;
-    }
-
-    public void setOwnerPersonalAccountId(String ownerPersonalAccountId) {
-        this.ownerPersonalAccountId = ownerPersonalAccountId;
-    }
-
-    public boolean isOwnedByAccount() {
-        return ownedByAccount;
-    }
-
-    public void setOwnedByAccount(boolean ownedByAccount) {
-        this.ownedByAccount = ownedByAccount;
-    }
-
-    public LocalDateTime getCreated() {
-        return created;
-    }
-
-    public void setCreated(LocalDateTime created) {
-        this.created = created;
-    }
-
-    @Override
-    public String toString() {
-        return "AccountPromocode{" +
-                "promocodeId='" + promocodeId + '\'' +
-                ", created=" + created +
-                ", ownedByAccount=" + ownedByAccount +
-                ", ownerPersonalAccountId='" + ownerPersonalAccountId + '\'' +
-                ", actionsWithStatus=" + actionsWithStatus +
-                ", promocode=" + promocode +
-                ", active=" + active +
-                ", type=" + type +
-                ", code='" + code + '\'' +
-                "} " + super.toString();
     }
 }
