@@ -21,7 +21,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
+import javax.validation.Valid;
+
 import ru.majordomo.hms.personmgr.common.Utils;
+import ru.majordomo.hms.personmgr.dto.request.AddAbonementRequest;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
@@ -29,6 +32,7 @@ import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
@@ -348,12 +352,12 @@ public class AccountAbonementRestController extends CommonRestController {
     @PostMapping
     public ResponseEntity<Object> addCustomAbonement(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestParam("period") Period period,
+            @Valid @RequestBody AddAbonementRequest addAbonementRequest,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        List<String> allowedPeriods = Arrays.asList("P3M", "P6M", "P9M", "P1Y", "P2Y");
+        List<String> allowedPeriods = Arrays.asList("P1M", "P3M", "P6M", "P9M", "P1Y", "P2Y");
 
-        if (!allowedPeriods.contains(period.toString())) {
+        if (!allowedPeriods.contains(addAbonementRequest.getPeriod().toString())) {
             throw new ParameterValidationException("Можно добавить абонементы только следующей продолжительности: " + allowedPeriods.toString());
         }
 
@@ -362,17 +366,26 @@ public class AccountAbonementRestController extends CommonRestController {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
         String message;
 
+        if (addAbonementRequest.getServiceId() != null) {
+            Plan plan = planManager.findOne(account.getPlanId());
+
+            if (!addAbonementRequest.getServiceId().equals(plan.getServiceId())) {
+                Plan required = planManager.findByServiceId(addAbonementRequest.getServiceId());
+                throw new ParameterValidationException("Для добавления абонемента необходимо сменить тариф на " + required.getName());
+            }
+        }
+
         if (accountAbonement == null) {
-            abonementService.addPromoAbonementWithActivePlan(account, period);
-            message = "Сгенерирован абонемент для planId " + account.getPlanId() + " периодом " + Utils.humanizePeriod(period) + " и добавлен на аккаунт";
+            abonementService.addPromoAbonementWithActivePlan(account, addAbonementRequest.getPeriod());
+            message = "Сгенерирован абонемент для planId " + account.getPlanId() + " периодом " + Utils.humanizePeriod(addAbonementRequest.getPeriod()) + " и добавлен на аккаунт";
         } else {
             if (accountAbonement.getAbonement().isInternal() && accountAbonement.getAbonement().getPeriod().equals("P14D")) {
-                abonementService.addPromoAbonementWithActivePlan(account, period);
-                message = "Тестовый абонемент аккаунта удален. Добавлен бесплатный абонемент на период " + Utils.humanizePeriod(period);
+                abonementService.addPromoAbonementWithActivePlan(account, addAbonementRequest.getPeriod());
+                message = "Тестовый абонемент аккаунта удален. Добавлен бесплатный абонемент на период " + Utils.humanizePeriod(addAbonementRequest.getPeriod());
             } else {
-                LocalDateTime newExpired = accountAbonement.getExpired().plus(period);
+                LocalDateTime newExpired = accountAbonement.getExpired().plus(addAbonementRequest.getPeriod());
                 accountAbonementManager.setExpired(accountAbonement.getId(), newExpired);
-                message = "Абонемент продлен на " + Utils.humanizePeriod(period) + " с " + accountAbonement.getExpired().format(formatter) + " на " + newExpired.format(formatter);
+                message = "Абонемент продлен на " + Utils.humanizePeriod(addAbonementRequest.getPeriod()) + " с " + accountAbonement.getExpired().format(formatter) + " на " + newExpired.format(formatter);
             }
         }
 
