@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import org.apache.commons.validator.routines.UrlValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,20 +16,14 @@ import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequest;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
-import ru.majordomo.hms.personmgr.model.service.AccountService;
-import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
 import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
-import ru.majordomo.hms.personmgr.service.ChargeMessage;
 import ru.majordomo.hms.personmgr.service.ServiceAbonementService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import javax.validation.Valid;
-import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.net.IDN;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -42,16 +37,16 @@ public class RevisiumRequestRestController extends CommonRestController {
     private final RevisiumRequestRepository revisiumRequestRepository;
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final PersonalAccountManager personalAccountManager;
-    private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final ServiceAbonementService serviceAbonementService;
     private final ServicePlanRepository servicePlanRepository;
+
+    private final String[] SCHEMES = {"http","https"};
 
     @Autowired
     public RevisiumRequestRestController(
             RevisiumRequestRepository revisiumRequestRepository,
             PersonalAccountManager personalAccountManager,
-            AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             ServiceAbonementService serviceAbonementService,
@@ -59,7 +54,6 @@ public class RevisiumRequestRestController extends CommonRestController {
     ) {
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.personalAccountManager = personalAccountManager;
-        this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
         this.serviceAbonementService = serviceAbonementService;
@@ -223,6 +217,12 @@ public class RevisiumRequestRestController extends CommonRestController {
         try {
             url = new URL(revisiumRequestBody.getSiteUrl());
             url = new URL(url.getProtocol(), IDN.toASCII(url.getHost()),"");
+
+            UrlValidator urlValidator = new UrlValidator(SCHEMES);
+            if (urlValidator.isValid(url.toString())) {
+                throw new ParameterValidationException("Введённый адрес сайта некорректен");
+            }
+
         } catch (MalformedURLException e) {
             throw new ParameterValidationException("Введённый адрес сайта некорректен");
         }
