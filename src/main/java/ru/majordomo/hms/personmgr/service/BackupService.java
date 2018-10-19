@@ -381,12 +381,14 @@ public class BackupService {
 
         LocalDate created = abonements.get(0).getCreated().toLocalDate();
 
-        if (created.isBefore(thirtyDaysAgo)) {
-            return thirtyDaysAgo;
-        } else if (created.isAfter(sevenDaysAgo)) {
+        LocalDate minDate = created.minusDays(7);
+
+        if (minDate.isAfter(sevenDaysAgo)) {
             return sevenDaysAgo;
+        } else if (minDate.isBefore(thirtyDaysAgo)) {
+            return thirtyDaysAgo;
         } else {
-            return created;
+            return minDate;
         }
     }
 
