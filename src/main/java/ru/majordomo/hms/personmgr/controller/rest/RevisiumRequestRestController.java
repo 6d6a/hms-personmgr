@@ -219,7 +219,7 @@ public class RevisiumRequestRestController extends CommonRestController {
             url = new URL(url.getProtocol(), IDN.toASCII(url.getHost()),"");
 
             UrlValidator urlValidator = new UrlValidator(SCHEMES);
-            if (urlValidator.isValid(url.toString())) {
+            if (!urlValidator.isValid(url.toString())) {
                 throw new ParameterValidationException("Введённый адрес сайта некорректен");
             }
 
