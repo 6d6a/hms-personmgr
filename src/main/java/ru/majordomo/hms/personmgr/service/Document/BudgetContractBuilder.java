@@ -253,9 +253,10 @@ public class BudgetContractBuilder extends DocumentBuilderImpl {
 
         replaceMap.put("#NUMER#", account.getAccountId());
 
-        replaceMap.put("#DEN#", params.getOrDefault("day", String.valueOf(LocalDate.now().getDayOfMonth())));
-        replaceMap.put("#MES#", params.getOrDefault("month", Utils.getMonthName(LocalDate.now().getMonthValue())));
-        replaceMap.put("#YAR#", params.getOrDefault("year", String.valueOf(LocalDate.now().getYear())));
+        LocalDate created = account.getCreated().toLocalDate();
+        replaceMap.put("#DEN#", params.getOrDefault("day", String.valueOf(created.getDayOfMonth())));
+        replaceMap.put("#MES#", params.getOrDefault("month", Utils.getMonthName(created.getMonthValue())));
+        replaceMap.put("#YAR#", params.getOrDefault("year", String.valueOf(created.getYear())));
 
         //необязательные
         replaceMap.put("#BANKNAME#", Strings.nullToEmpty(owner.getContactInfo().getBankName()));
