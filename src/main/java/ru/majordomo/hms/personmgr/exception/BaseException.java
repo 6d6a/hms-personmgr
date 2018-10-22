@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-@JsonIgnoreProperties({"cause", "stackTrace", "suppressed", "localizedMessage"})
+@JsonIgnoreProperties(value = {"cause", "stackTrace", "suppressed", "localizedMessage"}, ignoreUnknown = true)
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public abstract class BaseException extends RuntimeException {
 
