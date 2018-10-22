@@ -575,7 +575,7 @@ public abstract class Processor {
             accountServiceHelper.deleteAccountServiceByServiceId(account, serviceId);
         } else {
             int notFreeServiceCount = (int) floor(currentCount - planFreeLimit);
-            accountServiceHelper.addAccountService(account, serviceId, notFreeServiceCount);
+            accountServiceHelper.updateAccountService(account, serviceId, notFreeServiceCount);
         }
     }
 
