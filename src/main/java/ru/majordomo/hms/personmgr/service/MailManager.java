@@ -4,19 +4,18 @@ import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.config.MailManagerConfig;
 
 @Service
 public class MailManager {
@@ -45,9 +44,7 @@ public class MailManager {
     private String token = "";
 
     public MailManager(
-            @Value("${mail_manager.url}") String url,
-            @Value("${mail_manager.username}") String username,
-            @Value("${mail_manager.password}") String password
+            MailManagerConfig config
     ) {
         restTemplate = new RestTemplate();
         headers = new HttpHeaders();
@@ -55,15 +52,15 @@ public class MailManager {
 
         JSONObject credentialsJson = new JSONObject();
         try {
-            credentialsJson.put("_username", username);
-            credentialsJson.put("_password", password);
+            credentialsJson.put("_username", config.getUsername());
+            credentialsJson.put("_password", config.getPassword());
         } catch (JSONException e) {
             e.printStackTrace();
             logger.error("Exception in ru.majordomo.hms.personmgr.service.MailManager.MailManager " + e.getMessage());
         }
 
         credentials = credentialsJson.toString();
-        URL_ROOT = url;
+        URL_ROOT = config.getUrl();
     }
 
     private String getToken() {

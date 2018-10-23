@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.common;
 
+import org.springframework.web.multipart.MultipartFile;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 
 import java.io.*;
@@ -12,6 +13,8 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
@@ -257,5 +260,46 @@ public class Utils {
         Path insidePath = rootPath.resolve(insideDir);
 
         return insidePath.normalize().startsWith(rootPath);
+    }
+
+    public static Map<String, String> buildAttachment(MultipartFile[] files) throws IOException {
+        byte[] fileBytes;
+        String fileType, fileName;
+
+        if (files.length == 1 && !files[0].isEmpty()) {
+            fileName = files[0].getOriginalFilename();
+            fileBytes = files[0].getBytes();
+            fileType = files[0].getContentType();
+        } else {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            ZipOutputStream zipOut = new ZipOutputStream(outputStream);
+            for (MultipartFile oneFile : files) {
+                InputStream inputStream = oneFile.getInputStream();
+                ZipEntry zipEntry = new ZipEntry(oneFile.getOriginalFilename());
+                zipOut.putNextEntry(zipEntry);
+
+                byte[] bytes = new byte[1024];
+                int length;
+                while((length = inputStream.read(bytes)) >= 0) {
+                    zipOut.write(bytes, 0, length);
+                }
+                inputStream.close();
+            }
+            zipOut.close();
+            outputStream.close();
+            fileBytes = outputStream.toByteArray();
+            fileName = "attachment.zip";
+            fileType = "application/zip";
+        }
+
+        if (fileBytes != null && fileType != null && fileName != null) {
+            Map<String, String> attachment = new HashMap<>();
+            attachment.put("body", Base64.getMimeEncoder().encodeToString(fileBytes));
+            attachment.put("mime_type", fileType);
+            attachment.put("filename", fileName);
+
+            return attachment;
+        }
+        return null;
     }
 }

@@ -6,10 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.dto.fin.MonthlyBill;
+import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
@@ -23,6 +23,7 @@ import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
 import ru.majordomo.hms.personmgr.service.FinFeignClient;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -30,9 +31,12 @@ import java.util.*;
 
 import static java.time.temporal.TemporalAdjusters.firstDayOfYear;
 import static java.time.temporal.TemporalAdjusters.lastDayOfYear;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
+import static ru.majordomo.hms.personmgr.common.Constants.PARAMETRS_KEY;
 import static ru.majordomo.hms.personmgr.common.OrderState.FINISHED;
 import static ru.majordomo.hms.personmgr.common.OrderState.IN_PROGRESS;
 import static ru.majordomo.hms.personmgr.common.OrderState.NEW;
+import static ru.majordomo.hms.personmgr.common.Utils.buildAttachment;
 import static ru.majordomo.hms.personmgr.model.order.documentOrder.DeliveryType.FREE_DELIVERY;
 
 @Service
@@ -47,6 +51,7 @@ public class DocumentOrderManager extends OrderManager<DocOrder> {
     private PersonalAccountManager accountManager;
     private AccountNotificationHelper accountNotificationHelper;
     private AccountOwnerManager ownerManager;
+    private ApplicationEventPublisher publisher;
 
     private static final Logger log = LoggerFactory.getLogger(DocumentOrderManager.class);
 
@@ -64,7 +69,8 @@ public class DocumentOrderManager extends OrderManager<DocOrder> {
             FinFeignClient finFeignClient,
             @Value("${mail_manager.fin_document_order_email}") String departmentEmail,
             @Value("${document_order.free_delivery_in_year}") int freeDeliveryInYear,
-            @Value("${document_order.client_api_name}") String clientEmailApiName
+            @Value("${document_order.client_api_name}") String clientEmailApiName,
+            ApplicationEventPublisher publisher
     ) {
         this.finFeignClient = finFeignClient;
         this.paymentServiceRepository = paymentServiceRepository;
@@ -75,6 +81,7 @@ public class DocumentOrderManager extends OrderManager<DocOrder> {
         this.accountManager = accountManager;
         this.accountNotificationHelper = accountNotificationHelper;
         this.ownerManager = ownerManager;
+        this.publisher = publisher;
     }
 
     @Override
@@ -91,8 +98,6 @@ public class DocumentOrderManager extends OrderManager<DocOrder> {
         checkOwner(owner);
 
         order.setAddress(owner.getContactInfo().getPostalAddress());
-
-        checkDocs(order);
 
         switch (order.getDeliveryType()) {
             case FREE_DELIVERY:
@@ -136,8 +141,6 @@ public class DocumentOrderManager extends OrderManager<DocOrder> {
                 "Сделан заказ документов с типом доставки '" + order.getDeliveryType().humanize()
                         + "' на адрес '" + order.getAddress()
                         + "' с комментарием '" + order.getComment() + "'"
-                        + " список документов: "
-                        + order.getDocs().stream().map(Doc::humanize).reduce((s1, s2) -> s1 + s2)
         );
     }
 
@@ -252,41 +255,39 @@ public class DocumentOrderManager extends OrderManager<DocOrder> {
                 .add("Аккаунт: " + account.getName())
                 .add("Тип отправки: " + order.getDeliveryType().humanize())
                 .add("Адрес доставки: " + order.getAddress())
-                .add("<a href=\"https://hms-billing.intr/order/document/" + order.getId() + "\">Ссылка на заказ</a>")
-                .add("Список документов: " + order.getDocs().stream().map(Doc::humanize).reduce((s1,s2)->s1+s2));
+                .add("Текст заявки: " + order.getComment())
+                .add("<a href=\"https://hms-billing.intr/order/document/" + order.getId() + "\">Ссылка на заказ</a>");
+
+        SimpleServiceMessage message = new SimpleServiceMessage();
+
+        message.setAccountId(account.getId());
+        message.setParams(new HashMap<>());
+        message.addParam(EMAIL_KEY, departmentEmail);
+        message.addParam(API_NAME_KEY, SERVICE_EMAIL_API_NAME);
+        message.addParam(PRIORITY_KEY, 10);
+
+        if (order.getFilesContainer() != null
+                && order.getFilesContainer().getData() != null
+                && order.getFilesContainer().getData().length > 0
+        ) {
+            try {
+                message.addParam("attachment", buildAttachment(order.getFilesContainer().getData()));
+            } catch (IOException e) {
+                log.error("Не удалось обработать вложение, e.class: {}, e.message: {}",
+                        e.getClass().getName(), e.getMessage());
+            }
+        }
 
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
         parameters.put("body", body.toString());
         parameters.put("subject", "Заказ отправки документов");
+        parameters = new HashMap<>();
+        parameters.put(CLIENT_ID_KEY, message.getAccountId());
 
-        accountNotificationHelper.sendInternalEmail(departmentEmail, SERVICE_EMAIL_API_NAME, account.getId(), 10, parameters);
-    }
+        message.addParam(PARAMETRS_KEY, parameters);
 
-    private void checkDocs(DocOrder order) {
-        for (Doc doc : order.getDocs()) {
-            if (doc instanceof ActOfWorkPerformed) {
-                try {
-                    MonthlyBill monthlyBill = finFeignClient.getMonthlyBill(order.getPersonalAccountId(), ((ActOfWorkPerformed) doc).getId());
-                    ((ActOfWorkPerformed) doc).setBillDate(monthlyBill.getBillDate());
-                } catch (Exception e) {
-                    log.info("Не найден " + doc.humanize() + " e.class " + e.getClass().getName()
-                            + " e.message " + e.getMessage() + " order " + order.toString());
-                    throw new ParameterValidationException("Не найден " + doc.humanize());
-                }
-            } else if (doc instanceof ActOfReconciliation) {
-                ActOfReconciliation act = (ActOfReconciliation) doc;
-                if (!act.getEndDate().isBefore(LocalDate.now())) {
-                    throw new ParameterValidationException("Дата 'до' акта сверки не может быть после текущей даты");
-                }
-                if (!act.getStartDate().isBefore(LocalDate.now())) {
-                    throw new ParameterValidationException("Дата 'от' акта сверки не может быть после текущей даты");
-                }
-                if (!act.getStartDate().isBefore(act.getEndDate())) {
-                    throw new ParameterValidationException("Дата 'от' акта сверки не может быть после даты 'до'");
-                }
-            }
-        }
+        publisher.publishEvent(new SendMailEvent(message));
     }
 
     private void checkOwner(AccountOwner owner) {

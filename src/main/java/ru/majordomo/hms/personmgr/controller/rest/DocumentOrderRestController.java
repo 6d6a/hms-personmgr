@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Predicate;
+import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,16 +15,18 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.common.Views;
-import ru.majordomo.hms.personmgr.dto.request.DocOrderCreateRequest;
+import ru.majordomo.hms.personmgr.dto.Container;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.order.documentOrder.DeliveryType;
 import ru.majordomo.hms.personmgr.model.order.documentOrder.DocOrder;
 import ru.majordomo.hms.personmgr.model.order.documentOrder.QDocOrder;
 import ru.majordomo.hms.personmgr.service.order.DocumentOrderManager;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
-import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 
 @RestController
 @Validated
@@ -73,12 +76,19 @@ public class DocumentOrderRestController {
     @PostMapping("/{accountId}/document-order")
     public DocOrder create(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody @Valid DocOrderCreateRequest docOrderCreateRequest,
+            @RequestParam("deliveryType") @NotNull(message = "Выберите тип доставки") DeliveryType deliveryType,
+            @RequestParam("comment") @NotBlank(message = "Введите сообщение") String comment,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "files", required = false) MultipartFile[] files,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         String operator = request.getUserPrincipal().getName();
 
-        DocOrder order = docOrderCreateRequest.toOrder();
+        DocOrder order = new DocOrder();
+        order.setComment(comment);
+        order.setName(name);
+        order.setDeliveryType(deliveryType);
+        order.setFilesContainer(new Container<>(files));
 
         order.setPersonalAccountId(accountId);
 
