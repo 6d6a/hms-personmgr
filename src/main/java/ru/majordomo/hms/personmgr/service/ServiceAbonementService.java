@@ -229,7 +229,11 @@ public class ServiceAbonementService { //dis name
             boolean notEnoughMoneyForAbonement = balance.compareTo(abonementCost) < 0;
             boolean todayIsDayForSendingEmail = Arrays.asList(DAYS_FOR_SERVICE_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired);
 
-            if (todayIsDayForSendingEmail && notEnoughMoneyForAbonement && !accountServiceAbonement.getAbonement().isInternal()) {
+            if (todayIsDayForSendingEmail
+                    && notEnoughMoneyForAbonement
+                    && !accountServiceAbonement.getAbonement().isInternal()
+                    && accountServiceAbonement.getAbonement().getType() != Feature.ADVANCED_BACKUP_INSTANT_ACCESS
+                    ) {
                 needSendEmail = true;
             }
 
@@ -356,14 +360,14 @@ public class ServiceAbonementService { //dis name
                         );
                     }
             } else {
-                // Если абонемент бонусный (internal)
+                // Если абонемент бонусный (internal) или нет автопроделния
 
                 //Удаляем абонемент и включаем услуги хостинга по тарифу
                 processAccountAbonementDelete(account, accountServiceAbonement);
 
                 history.saveForOperatorService(
                         account,
-                        "Бонусный абонемент на услугу удален. Обычный абонемент не был предзаказн. Дата окончания: " + currentExpired
+                        "Абонемент на услугу удален. Обычный абонемент не был предзаказн. Дата окончания: " + currentExpired
                 );
             }
         });

@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.majordomo.hms.personmgr.common.StorageType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
@@ -22,9 +23,12 @@ import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
 import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
 import ru.majordomo.hms.personmgr.service.*;
+import ru.majordomo.hms.personmgr.service.restic.Snapshot;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/{accountId}/account-service-abonement")
@@ -38,6 +42,7 @@ public class AccountServiceAbonementRestController extends CommonRestController 
     private final ServiceAbonementService serviceAbonementService;
     private final AccountRedirectServiceRepository redirectServiceRepository;
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
+    private final BackupService backupService;
 
     @Autowired
     public AccountServiceAbonementRestController(
@@ -47,7 +52,8 @@ public class AccountServiceAbonementRestController extends CommonRestController 
             AccountNotificationHelper accountNotificationHelper,
             ServiceAbonementService serviceAbonementService,
             AccountRedirectServiceRepository redirectServiceRepository,
-            RevisiumRequestServiceRepository revisiumRequestServiceRepository
+            RevisiumRequestServiceRepository revisiumRequestServiceRepository,
+            BackupService backupService
     ) {
         this.accountServiceHelper = accountServiceHelper;
         this.accountHelper = accountHelper;
@@ -56,6 +62,7 @@ public class AccountServiceAbonementRestController extends CommonRestController 
         this.accountServiceAbonementManager = accountServiceAbonementManager;
         this.redirectServiceRepository = redirectServiceRepository;
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
+        this.backupService = backupService;
     }
 
     @GetMapping
@@ -190,6 +197,24 @@ public class AccountServiceAbonementRestController extends CommonRestController 
             accountNotificationHelper.checkSmsAllowness(account);
         }
 
+        if (feature == Feature.ADVANCED_BACKUP_INSTANT_ACCESS) {
+            List<Snapshot> snapshots = backupService.getFileSnapshots(account);
+            LocalDate minTimeForBackup = backupService.minDateForBackup(account, StorageType.FILE);
+
+            if (minTimeForBackup.isEqual(LocalDate.now().minusDays(30))) {
+                throw new ParameterValidationException("Все резервные копии доступны");
+            }
+
+            List<Snapshot> filtered = snapshots
+                    .stream()
+                    .filter(item -> !item.getTime().toLocalDate().isAfter(minTimeForBackup))
+                    .collect(Collectors.toList());
+
+            if (filtered.isEmpty()) {
+                throw new ParameterValidationException("Дополнительных резервных коопий не найдено");
+            }
+        }
+
         if (plan == null) {
             throw new ParameterValidationException("Услуга " + feature.name() + " не найдена");
         }
@@ -209,11 +234,13 @@ public class AccountServiceAbonementRestController extends CommonRestController 
                             + "'. Пожалуйста, обратитесь в финансовый отдел.");
         }
 
+        Boolean autorenew = feature != Feature.ADVANCED_BACKUP_INSTANT_ACCESS;
+
         AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(
                 account,
                 abonementId != null ? abonementId : plan.getNotInternalAbonementId(),
                 feature,
-                true
+                autorenew
         );
 
         return new ResponseEntity<>(accountServiceAbonement, HttpStatus.OK);
