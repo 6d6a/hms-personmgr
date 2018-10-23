@@ -256,7 +256,7 @@ public class DocumentOrderManager extends OrderManager<DocOrder> {
                 .add("Тип отправки: " + order.getDeliveryType().humanize())
                 .add("Адрес доставки: " + order.getAddress())
                 .add("Текст заявки: " + order.getComment())
-                .add("<a href=\"https://hms-billing.intr/order/document/" + order.getId() + "\">Ссылка на заказ</a>");
+                .add("<a href=\"https://hms-billing.majordomo.ru/document-order/" + order.getId() + "\">Ссылка на заказ</a>");
 
         SimpleServiceMessage message = new SimpleServiceMessage();
 
