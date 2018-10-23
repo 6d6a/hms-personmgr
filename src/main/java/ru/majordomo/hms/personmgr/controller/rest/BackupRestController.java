@@ -64,9 +64,11 @@ public class BackupRestController extends CommonRestController{
 
         return snapshots
                 .stream()
-                .filter(i ->
-                        i.getTime().toLocalDate()
-                                .isAfter(minTimeForBackup))
+                .peek(item -> {
+                    if (item.getTime().toLocalDate().isAfter(minTimeForBackup)) {
+                        item.setHidden(false);
+                    }
+                })
                 .collect(Collectors.toList());
     }
 

@@ -20,7 +20,8 @@ public enum Feature {
     DOCUMENT_PACKAGE_ORDER,
     REDIRECT,
     LONG_LIFE_RESOURCE_ARCHIVE,
-    ADVANCED_BACKUP;
+    ADVANCED_BACKUP,
+    ADVANCED_BACKUP_INSTANT_ACCESS;
 
     public boolean isOnlyOnePerAccount() {
         switch (this) {
@@ -28,6 +29,7 @@ public enum Feature {
             case SMS_NOTIFICATIONS:
             case ANTI_SPAM:
             case ADVANCED_BACKUP:
+            case ADVANCED_BACKUP_INSTANT_ACCESS:
                 return true;
             default:
                 return false;

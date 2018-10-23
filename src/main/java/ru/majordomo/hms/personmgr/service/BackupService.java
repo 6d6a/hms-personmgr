@@ -29,6 +29,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -361,6 +362,7 @@ public class BackupService {
     }
 
     public LocalDate minDateForBackup(PersonalAccount account, StorageType type) {
+        //type?
         LocalDate now = LocalDate.now();
         LocalDate sevenDaysAgo = now.minusDays(7);
         LocalDate thirtyDaysAgo = now.minusDays(30);
@@ -374,6 +376,16 @@ public class BackupService {
         }
 
         List<AccountServiceAbonement> abonements = accountServiceHelper.getAccountServiceAbonement(account, Feature.ADVANCED_BACKUP);
+
+        List<AccountServiceAbonement> abonementsForInstantAccess = accountServiceHelper.getAccountServiceAbonement(account, Feature.ADVANCED_BACKUP_INSTANT_ACCESS);
+
+        if (abonementsForInstantAccess != null && !abonementsForInstantAccess.isEmpty()) {
+            for (AccountServiceAbonement instAccessAb: abonementsForInstantAccess) {
+                if (instAccessAb.getExpired().isAfter(LocalDateTime.now())) {
+                    return thirtyDaysAgo;
+                }
+            }
+        }
 
         if (abonements == null || abonements.isEmpty()) {
             return sevenDaysAgo;
