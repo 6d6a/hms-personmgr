@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.model.order.documentOrder;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.querydsl.core.annotations.QueryTransient;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -29,6 +30,7 @@ public class DocOrder extends AccountOrder {
     
     private String name;
 
+    @JsonIgnore
     @Transient
     @QueryTransient
     private Container<MultipartFile[]> filesContainer;
