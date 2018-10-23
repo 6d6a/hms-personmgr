@@ -279,11 +279,9 @@ public class DocumentOrderManager extends OrderManager<DocOrder> {
         }
 
         HashMap<String, String> parameters = new HashMap<>();
-        parameters.put("client_id", account.getAccountId());
         parameters.put("body", body.toString());
-        parameters.put("subject", "Заказ отправки документов");
-        parameters = new HashMap<>();
-        parameters.put(CLIENT_ID_KEY, message.getAccountId());
+        parameters.put("subject", "Заказ отправки документов [" + account.getName() + "]");
+        parameters.put(CLIENT_ID_KEY, account.getAccountId());
 
         message.addParam(PARAMETRS_KEY, parameters);
 
