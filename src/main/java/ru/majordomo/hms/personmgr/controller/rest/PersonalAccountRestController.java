@@ -38,7 +38,9 @@ import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
+import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.AccountProperties;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
@@ -82,6 +84,7 @@ public class PersonalAccountRestController extends CommonRestController {
     private final Factory planChangeFactory;
     private final AccountNotificationHelper accountNotificationHelper;
     private final SiFeignClient siFeignClient;
+    private final AbonementManager<AccountAbonement> accountAbonementManager;
 
     @Autowired
     public PersonalAccountRestController(
@@ -96,7 +99,8 @@ public class PersonalAccountRestController extends CommonRestController {
             AccountServiceHelper accountServiceHelper,
             Factory planChangeFactory,
             AccountNotificationHelper accountNotificationHelper,
-            SiFeignClient siFeignClient
+            SiFeignClient siFeignClient,
+            AbonementManager<AccountAbonement> accountAbonementManager
     ) {
         this.planRepository = planRepository;
         this.accountOwnerManager = accountOwnerManager;
@@ -110,6 +114,7 @@ public class PersonalAccountRestController extends CommonRestController {
         this.accountServiceHelper = accountServiceHelper;
         this.planChangeFactory = planChangeFactory;
         this.accountNotificationHelper = accountNotificationHelper;
+        this.accountAbonementManager = accountAbonementManager;
     }
 
     @GetMapping("/accounts")
@@ -491,6 +496,12 @@ public class PersonalAccountRestController extends CommonRestController {
                     throw new ParameterValidationException("Credit already activated. Credit disabling prohibited.");
                 }
             } else {
+                AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+
+                if (currentAccountAbonement != null && currentAccountAbonement.getAbonement().getPeriod().equals("P14D")) {
+                    throw new ParameterValidationException("Включение кредита невозможно на тестовом периоде");
+                }
+
                 if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
                     throw new ParameterValidationException("Включение кредита невозможно на вашем тарифном плане");
                 }
