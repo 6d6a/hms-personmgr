@@ -36,7 +36,7 @@ apply plugin: 'docker-compose'
 apply plugin: 'org.ajoberstar.grgit'
 apply plugin: 'ru.majordomo.gradle.plugins.copycompose'
 apply plugin: "com.ewerk.gradle.plugins.querydsl"
-apply from: "https://nexus.intr/repository/init/gradle-init/0.1/dockertask.gradle"
+//apply from: "https://nexus.intr/repository/init/gradle-init/0.1/dockertask.gradle"
 apply plugin: "jacoco"
 apply plugin: 'maven-publish'
 apply plugin: "com.gorylenko.gradle-git-properties"
