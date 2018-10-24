@@ -21,12 +21,14 @@ import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.dto.Container;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.order.documentOrder.DeliveryType;
+import ru.majordomo.hms.personmgr.model.order.documentOrder.Doc;
 import ru.majordomo.hms.personmgr.model.order.documentOrder.DocOrder;
 import ru.majordomo.hms.personmgr.model.order.documentOrder.QDocOrder;
 import ru.majordomo.hms.personmgr.service.order.DocumentOrderManager;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import javax.validation.constraints.NotNull;
+import java.util.Set;
 
 @RestController
 @Validated
@@ -95,6 +97,18 @@ public class DocumentOrderRestController {
         manager.create(order, operator);
 
         return order;
+    }
+
+    @PreAuthorize("hasAuthority('DOCUMENT_ORDER_DOCS_EDIT')")
+    @PutMapping("/document-order/{orderId}/docs")
+    public DocOrder setDocs(
+            @ObjectId(DocOrder.class) @PathVariable(value = "orderId") String orderId,
+            @RequestBody @NotNull Set<Doc> docs,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        String operator = request.getUserPrincipal().getName();
+
+        return manager.setDocs(orderId, docs, operator);
     }
 
     @PreAuthorize("hasAuthority('DOCUMENT_ORDER_EDIT')")

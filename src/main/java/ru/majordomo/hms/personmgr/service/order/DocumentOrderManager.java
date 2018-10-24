@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.dto.fin.MonthlyBill;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
@@ -98,6 +99,8 @@ public class DocumentOrderManager extends OrderManager<DocOrder> {
         checkOwner(owner);
 
         order.setAddress(owner.getContactInfo().getPostalAddress());
+
+        checkDocs(order);
 
         switch (order.getDeliveryType()) {
             case FREE_DELIVERY:
@@ -304,4 +307,44 @@ public class DocumentOrderManager extends OrderManager<DocOrder> {
             throw new ParameterValidationException("У владельца аккаунта не указан почтовый адрес");
         }
     }
+
+    public DocOrder setDocs(String id, Set<Doc> docs, String operator) {
+        DocOrder order = findOne(id);
+        order.setDocs(docs);
+        checkDocs(order);
+        save(order);
+        history.save(
+                order.getPersonalAccountId(),
+                 docs.stream().map(Doc::humanize).reduce("Изменены документы для отправки ", (a,b)->a+b),
+                operator
+        );
+        return order;
+    }
+
+    private void checkDocs(DocOrder order) {
+        for (Doc doc : order.getDocs()) {
+            if (doc instanceof ActOfWorkPerformed) {
+                try {
+                    MonthlyBill monthlyBill = finFeignClient.getMonthlyBill(order.getPersonalAccountId(), ((ActOfWorkPerformed) doc).getId());
+                    ((ActOfWorkPerformed) doc).setBillDate(monthlyBill.getBillDate());
+                } catch (Exception e) {
+                    log.info("Не найден " + doc.humanize() + " e.class " + e.getClass().getName()
+                            + " e.message " + e.getMessage() + " order " + order.toString());
+                    throw new ParameterValidationException("Не найден " + doc.humanize());
+                }
+            } else if (doc instanceof ActOfReconciliation) {
+                ActOfReconciliation act = (ActOfReconciliation) doc;
+                if (!act.getEndDate().isBefore(LocalDate.now())) {
+                    throw new ParameterValidationException("Дата 'до' акта сверки не может быть после текущей даты");
+                }
+                if (!act.getStartDate().isBefore(LocalDate.now())) {
+                    throw new ParameterValidationException("Дата 'от' акта сверки не может быть после текущей даты");
+                }
+                if (!act.getStartDate().isBefore(act.getEndDate())) {
+                    throw new ParameterValidationException("Дата 'от' акта сверки не может быть после даты 'до'");
+                }
+            }
+        }
+    }
+
 }

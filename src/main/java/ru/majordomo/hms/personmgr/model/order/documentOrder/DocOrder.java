@@ -12,6 +12,8 @@ import ru.majordomo.hms.personmgr.dto.Container;
 import ru.majordomo.hms.personmgr.model.order.AccountOrder;
 
 import javax.validation.constraints.NotNull;
+import java.util.HashSet;
+import java.util.Set;
 
 @Document
 @Data
@@ -34,4 +36,6 @@ public class DocOrder extends AccountOrder {
     @Transient
     @QueryTransient
     private Container<MultipartFile[]> filesContainer;
+
+    Set<Doc> docs = new HashSet<>();
 }
