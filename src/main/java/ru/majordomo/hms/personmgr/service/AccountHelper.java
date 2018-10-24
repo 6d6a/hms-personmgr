@@ -1098,4 +1098,19 @@ public class AccountHelper {
             accountNoticeRepository.save(notification);
         }
     }
+
+    public void checkIsDomainAddAllowed(PersonalAccount account) {
+        AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+
+        if (currentAccountAbonement != null && currentAccountAbonement.getAbonement().getPeriod().equals("P14D")) {
+            List<Domain> domainsList = rcUserFeignClient.getDomains(account.getId());
+            if (domainsList != null && !domainsList.isEmpty()) {
+                BigDecimal overallPaymentAmount = finFeignClient.getOverallPaymentAmount(account.getId());
+                Plan currentPlan = planRepository.findOne(account.getPlanId());
+                if (overallPaymentAmount.compareTo(currentPlan.getService().getCost()) <= 0) {
+                    throw new ParameterValidationException("Для добавления домена необходимо оплатить хостинг или купить абонемент.");
+                }
+            }
+        }
+    }
 }

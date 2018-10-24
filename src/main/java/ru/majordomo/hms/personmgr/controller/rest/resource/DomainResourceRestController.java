@@ -76,6 +76,8 @@ public class DomainResourceRestController extends CommonRestController {
                     domainName + parentDomain.getName() : domainName + "." + parentDomain.getName();
         }
 
+        accountHelper.checkIsDomainAddAllowed(account);
+
         domainService.checkBlacklist(domainName, accountId);
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message);
