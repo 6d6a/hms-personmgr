@@ -1,5 +1,8 @@
 eureka:
     instance:
+        preferIpAddress: false
+        hostname: ${HOSTNAME}
+        instanceId: ${spring.application.name}-${random.value}
         metadata-map:
             management.port: ${management.port:18080}
 spring:
