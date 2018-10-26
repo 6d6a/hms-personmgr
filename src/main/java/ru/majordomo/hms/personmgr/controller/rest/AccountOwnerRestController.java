@@ -207,7 +207,7 @@ public class AccountOwnerRestController extends CommonRestController {
         Predicate predicate = builder
                 .and(qAccountOwner.name.containsIgnoreCase(search))
                 .or(qAccountOwner.personalAccountName.containsIgnoreCase(search))
-                .or(qAccountOwner.contactInfo.emailAddresses.contains(search))
+                .or(qAccountOwner.contactInfo.emailAddresses.any().containsIgnoreCase(search))
                 .or(qAccountOwner.contactInfo.phoneNumbers.contains(search))
                 .or(qAccountOwner.personalInfo.inn.eq(search))
                 .or(qAccountOwner.personalInfo.number.containsIgnoreCase(search));
