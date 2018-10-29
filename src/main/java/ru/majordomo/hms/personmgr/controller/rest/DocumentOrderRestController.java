@@ -20,10 +20,7 @@ import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.dto.Container;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.order.documentOrder.DeliveryType;
-import ru.majordomo.hms.personmgr.model.order.documentOrder.Doc;
-import ru.majordomo.hms.personmgr.model.order.documentOrder.DocOrder;
-import ru.majordomo.hms.personmgr.model.order.documentOrder.QDocOrder;
+import ru.majordomo.hms.personmgr.model.order.documentOrder.*;
 import ru.majordomo.hms.personmgr.service.order.DocumentOrderManager;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -54,12 +51,13 @@ public class DocumentOrderRestController {
         return manager.findAll(commonPredicate, pageable);
     }
 
+    @PreAuthorize("hasAuthority('DOCUMENT_ORDER_VIEW')")
     @GetMapping("/document-order/{id}")
     public DocOrder get(@ObjectId(DocOrder.class) @PathVariable(value = "id") String id) {
         return manager.findOne(id);
     }
 
-    @PreAuthorize("hasAuthority('DOCUMENT_ORDER_EDIT')")
+    @PreAuthorize("hasAuthority('DOCUMENT_ORDER_VIEW')")
     @GetMapping("/document-order")
     public Page<DocOrder> get(
             Pageable pageable,
@@ -125,5 +123,17 @@ public class DocumentOrderRestController {
         manager.changeState(order, orderState, operator);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PreAuthorize("hasAuthority('DOCUMENT_ORDER_TRACK_EDIT')")
+    @PutMapping("/document-order/{orderId}/track")
+    public DocOrder setTrack(
+            @ObjectId(DocOrder.class) @PathVariable(value = "orderId") String orderId,
+            @RequestBody @NotNull Track track,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        String operator = request.getUserPrincipal().getName();
+
+        return manager.setTrack(orderId, track, operator);
     }
 }

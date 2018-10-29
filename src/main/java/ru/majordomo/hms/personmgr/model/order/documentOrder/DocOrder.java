@@ -38,4 +38,6 @@ public class DocOrder extends AccountOrder {
     private Container<MultipartFile[]> filesContainer;
 
     Set<Doc> docs = new HashSet<>();
+
+    private Track track;
 }
