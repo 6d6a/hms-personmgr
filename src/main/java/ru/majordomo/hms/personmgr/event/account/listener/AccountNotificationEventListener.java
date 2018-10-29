@@ -470,6 +470,20 @@ public class AccountNotificationEventListener {
     public void on(AccountDeactivatedSendMailEvent event) {
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
+        // Если в сегодня было удаление абонемента, то отправлять уведомление не нужно
+        // причина выключения аккаунта - истекший абонемент
+        // после удаления абонемента начислилась услуга тарифа и была неудачная попытка списания,
+        // после чего аккаунт был выключен
+        AccountStat accountStatAbonementDelete = accountStatRepository.findFirstByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
+                account.getId(),
+                AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE,
+                LocalDateTime.now().withHour(0).withMinute(0).withSecond(0)
+        );
+
+        if (accountStatAbonementDelete != null) {
+            return;
+        }
+
         accountNotificationHelper.sendMailForDeactivatedAccount(account, LocalDate.now());
     }
 
