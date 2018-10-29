@@ -38,7 +38,9 @@ import static ru.majordomo.hms.personmgr.common.OrderState.FINISHED;
 import static ru.majordomo.hms.personmgr.common.OrderState.IN_PROGRESS;
 import static ru.majordomo.hms.personmgr.common.OrderState.NEW;
 import static ru.majordomo.hms.personmgr.common.Utils.buildAttachment;
+import static ru.majordomo.hms.personmgr.model.order.documentOrder.DeliveryType.FAST_PAID_DELIVERY;
 import static ru.majordomo.hms.personmgr.model.order.documentOrder.DeliveryType.FREE_DELIVERY;
+import static ru.majordomo.hms.personmgr.model.order.documentOrder.DeliveryType.REGULAR_PAID_DELIVERY;
 
 @Service
 public class DocumentOrderManager extends OrderManager<DocOrder> {
@@ -347,4 +349,49 @@ public class DocumentOrderManager extends OrderManager<DocOrder> {
         }
     }
 
+    public DocOrder setTrack(String id, Track track, String operator) {
+        track.setOperator(operator);
+
+        if (track.getSendDate() == null) {
+            track.setSendDate(LocalDate.now());
+        }
+
+        DocOrder order = findOne(id);
+        if (order.getTrack() != null) {
+            throw new ParameterValidationException("Данные трек номера уже установлены");
+        } else {
+            order.setTrack(track);
+        }
+
+        switch (order.getState()) {
+            case DECLINED:
+                if (order.getDeliveryType() == FAST_PAID_DELIVERY
+                        || order.getDeliveryType() == REGULAR_PAID_DELIVERY
+                ) {
+                    throw new ParameterValidationException(
+                            "Заказ был отменён и средства разблокированы, установка трек номера недоступна"
+                    );
+                } else {
+                    finish(order, order.getOperator());
+                }
+
+                break;
+            case NEW:
+            case IN_PROGRESS:
+                finish(order, order.getOperator());
+
+                break;
+            case FINISHED:
+            default:
+                save(order);
+                break;
+        }
+
+        history.save(
+                order.getPersonalAccountId(),
+                "Для заказа " + order.getId() + " установлен трек-номер: " + track.getNumber(),
+                operator
+        );
+        return order;
+    }
 }
