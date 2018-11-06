@@ -80,7 +80,11 @@ public class AccountAmqpController extends CommonAmqpController {
                             PersonalAccount account = accountManager.findOne(message.getAccountId());
 
                             if (businessOperation.getParam("promocode") != null) {
-                                promocodeService.processPromocode(account, businessOperation.getParam("promocode").toString());
+                                promocodeService.processRegistration(
+                                        account,
+                                        businessOperation.getParam("promocode").toString(),
+                                        businessOperation.getParams()
+                                );
                             }
 
                             //Пробный период 14 дней - начисляем бонусный абонемент

@@ -44,13 +44,7 @@ import ru.majordomo.hms.personmgr.model.task.State;
 import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
-import ru.majordomo.hms.personmgr.service.AbonementService;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
-import ru.majordomo.hms.personmgr.service.BackupService;
-import ru.majordomo.hms.personmgr.service.ChargeHelper;
-import ru.majordomo.hms.personmgr.service.PartnersFeignClient;
-import ru.majordomo.hms.personmgr.service.TokenHelper;
+import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.service.promocodeAction.PaymentPercentBonusActionProcessor;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -86,6 +80,7 @@ public class AccountEventListener {
     private final TaskManager taskManager;
     private final AccountNoticeRepository accountNoticeRepository;
     private final PaymentPercentBonusActionProcessor paymentPercentBonusActionProcessor;
+    private final YaPromoterFeignClient yaPromoterFeignClient;
 
     private final int deleteDataAfterDays;
 
@@ -108,6 +103,7 @@ public class AccountEventListener {
             TaskManager taskManager,
             AccountNoticeRepository accountNoticeRepository,
             PaymentPercentBonusActionProcessor paymentPercentBonusActionProcessor,
+            YaPromoterFeignClient yaPromoterFeignClient,
             @Value("${delete_data_after_days}") int deleteDataAfterDays
     ) {
         this.accountHelper = accountHelper;
@@ -127,6 +123,7 @@ public class AccountEventListener {
         this.taskManager = taskManager;
         this.accountNoticeRepository = accountNoticeRepository;
         this.paymentPercentBonusActionProcessor = paymentPercentBonusActionProcessor;
+        this.yaPromoterFeignClient = yaPromoterFeignClient;
         this.deleteDataAfterDays = deleteDataAfterDays;
     }
 
@@ -364,6 +361,17 @@ public class AccountEventListener {
             partnersFeignClient.actionByAccountIdAndAmount(account.getId(), actionStatRequest);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+
+        try {
+            Map<String, Object> request = new HashMap<>();
+            request.put("amount", amount);
+            yaPromoterFeignClient.paymentEvent(account.getId(), request);
+        } catch (Exception e) {
+            logger.error(
+                    "can't send a payment event yaPromoterFeignClient.paymentEvent(), account.id: {} e: {}, message: {}",
+                    account.getId(), e.getClass(), e.getMessage()
+            );
         }
 
         paymentPercentBonusActionProcessor.processPayment(account, amount);

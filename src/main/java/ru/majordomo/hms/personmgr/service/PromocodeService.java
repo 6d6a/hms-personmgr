@@ -13,6 +13,9 @@ import ru.majordomo.hms.personmgr.model.promocode.UnknownPromocode;
 import ru.majordomo.hms.personmgr.repository.UnknownPromocodeRepository;
 import ru.majordomo.hms.personmgr.service.promocode.PartnerPromocodeProcessor;
 import ru.majordomo.hms.personmgr.service.promocode.PromocodeProcessorFactory;
+import ru.majordomo.hms.personmgr.service.promocode.YandexPromocodeProcessor;
+
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -22,6 +25,7 @@ public class PromocodeService {
     private final PromocodeManager promocodeManager;
     private final PromocodeProcessorFactory promocodeProcessorFactory;
     private final PartnerPromocodeProcessor partnerPromocodeProcessor;
+    private final YandexPromocodeProcessor yandexPromocodeProcessor;
 
     @Autowired
     public PromocodeService(
@@ -29,16 +33,18 @@ public class PromocodeService {
             AccountHistoryManager history,
             PromocodeManager promocodeManager,
             PromocodeProcessorFactory promocodeProcessorFactory,
-            PartnerPromocodeProcessor partnerPromocodeProcessor
+            PartnerPromocodeProcessor partnerPromocodeProcessor,
+            YandexPromocodeProcessor yandexPromocodeProcessor
     ) {
         this.unknownPromocodeRepository = unknownPromocodeRepository;
         this.history = history;
         this.promocodeManager = promocodeManager;
         this.promocodeProcessorFactory = promocodeProcessorFactory;
         this.partnerPromocodeProcessor = partnerPromocodeProcessor;
+        this.yandexPromocodeProcessor = yandexPromocodeProcessor;
     }
 
-    public void processPromocode(PersonalAccount account, String code) {
+    public void processRegistration(PersonalAccount account, String code, Map<String, Object> params) {
         log.debug("We got promocode '" + code + "'. Try to process it");
         code = code.trim();
 
@@ -49,7 +55,17 @@ public class PromocodeService {
                 + (partnerResult.isGotException() ? " with exception" : "")
             );
         } else {
-            processPmPromocode(account, code);
+            String clickId = params.get("clickId").toString();
+            if (clickId != null && !clickId.isEmpty()) {
+                Result yandexResult = yandexPromocodeProcessor.process(account, code, clickId);
+                if (!yandexResult.isSuccess()) {
+                    processPmPromocode(account, code);
+                } else {
+                    history.save(account, "Промокод " + code + " успешно обработан как промокод яндекса");
+                }
+            } else {
+                processPmPromocode(account, code);
+            }
         }
     }
 
