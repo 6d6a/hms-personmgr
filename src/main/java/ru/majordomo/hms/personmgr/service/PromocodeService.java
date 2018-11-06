@@ -50,10 +50,8 @@ public class PromocodeService {
 
         Result partnerResult = partnerPromocodeProcessor.process(account, code);
 
-        if (partnerResult.isSuccess() || partnerResult.isGotException()) {
-            log.info("account id " + account.getId() + "promocode " + code + " was process as partner"
-                + (partnerResult.isGotException() ? " with exception" : "")
-            );
+        if (partnerResult.isSuccess()) {
+            log.info("account id " + account.getId() + "promocode " + code + " was process as partner");
         } else {
             String clickId = params.get("clickId").toString();
             if (clickId != null && !clickId.isEmpty()) {
