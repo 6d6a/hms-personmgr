@@ -48,22 +48,23 @@ public class PromocodeService {
         log.debug("We got promocode '" + code + "'. Try to process it");
         code = code.trim();
 
+        String clickId = params.get("clickId").toString();
+
+        //Сначала нужно обработать коды яндекса
+        if (clickId != null && !clickId.isEmpty()) {
+            Result yandexResult = yandexPromocodeProcessor.process(account, code, clickId);
+            if (yandexResult.isSuccess()) {
+                history.save(account, "Промокод " + code + " успешно обработан как промокод яндекса");
+                return;
+            }
+        }
+
         Result partnerResult = partnerPromocodeProcessor.process(account, code);
 
         if (partnerResult.isSuccess()) {
             log.info("account id " + account.getId() + "promocode " + code + " was process as partner");
         } else {
-            String clickId = params.get("clickId").toString();
-            if (clickId != null && !clickId.isEmpty()) {
-                Result yandexResult = yandexPromocodeProcessor.process(account, code, clickId);
-                if (!yandexResult.isSuccess()) {
-                    processPmPromocode(account, code);
-                } else {
-                    history.save(account, "Промокод " + code + " успешно обработан как промокод яндекса");
-                }
-            } else {
-                processPmPromocode(account, code);
-            }
+            processPmPromocode(account, code);
         }
     }
 
