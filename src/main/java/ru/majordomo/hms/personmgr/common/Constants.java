@@ -296,7 +296,7 @@ public class Constants {
     }
 
     public static final String[] ACTION_DOMAINS = new String[] {
-            "xn--p1ai"
+            "xn--p1acf"
     };
 
     public static final String ACTION_DOMAIN_START_DATE = "2018-11-01 00:00:00";
