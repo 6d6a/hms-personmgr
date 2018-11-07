@@ -47,7 +47,7 @@ public class DomainTldMongoEventListener extends AbstractMongoEventListener<Doma
 
         if (LocalDateTime.now().isAfter(startDate) && LocalDateTime.now().isBefore(endDate)) {
             if (Arrays.asList(ACTION_DOMAINS).contains(domainTld.getTld()) || domainTld.getDomainCategory() == GEO) {
-                domainTld.getRegistrationService().setCost(BigDecimal.valueOf(49L));
+                domainTld.getRegistrationService().setCost(BigDecimal.valueOf(195L));
             }
         }
 

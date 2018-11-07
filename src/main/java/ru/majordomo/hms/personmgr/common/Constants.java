@@ -296,18 +296,11 @@ public class Constants {
     }
 
     public static final String[] ACTION_DOMAINS = new String[] {
-            "spb.ru",
-            "spb.su",
-            "nov.ru",
-            "nov.su",
-            "msk.ru",
-            "msk.su",
-            "ru.net",
-            "com.ru"
+            "xn--p1ai"
     };
 
-    public static final String ACTION_DOMAIN_START_DATE = "2017-05-25 00:00:00";
-    public static final String ACTION_DOMAIN_END_DATE = "2017-05-29 23:59:59";
+    public static final String ACTION_DOMAIN_START_DATE = "2018-11-01 00:00:00";
+    public static final String ACTION_DOMAIN_END_DATE = "2018-11-30 23:59:59";
 
     public static final String[] RU_RF_DOMAINS = new String[] {
             "ru",
