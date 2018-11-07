@@ -48,11 +48,9 @@ public class PromocodeService {
         log.debug("We got promocode '" + code + "'. Try to process it");
         code = code.trim();
 
-        String clickId = params.get("clickId").toString();
-
         //Сначала нужно обработать коды яндекса
-        if (clickId != null && !clickId.isEmpty()) {
-            Result yandexResult = yandexPromocodeProcessor.process(account, code, clickId);
+        if (params.get("clickId") != null && !params.get("clickId").toString().isEmpty()) {
+            Result yandexResult = yandexPromocodeProcessor.process(account, code, params.get("clickId").toString());
             if (yandexResult.isSuccess()) {
                 history.save(account, "Промокод " + code + " успешно обработан как промокод яндекса");
                 return;
