@@ -1107,7 +1107,7 @@ public class AccountHelper {
             if (domainsList != null && !domainsList.isEmpty()) {
                 BigDecimal overallPaymentAmount = finFeignClient.getOverallPaymentAmount(account.getId());
                 Plan currentPlan = planRepository.findOne(account.getPlanId());
-                if (overallPaymentAmount.compareTo(currentPlan.getService().getCost()) <= 0) {
+                if (overallPaymentAmount.compareTo(currentPlan.getService().getCost()) < 0) {
                     throw new ParameterValidationException("Для добавления домена необходимо оплатить хостинг или купить абонемент.");
                 }
             }
