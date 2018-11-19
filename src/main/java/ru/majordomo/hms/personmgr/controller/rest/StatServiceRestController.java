@@ -1,6 +1,8 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.query.Meta;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,15 +18,13 @@ import ru.majordomo.hms.personmgr.service.StatServiceHelper;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
-
+@Slf4j
 @RestController
 @PreAuthorize("hasRole('ADMIN')")
 @RequestMapping({"/stat"})
@@ -162,5 +162,34 @@ public class StatServiceRestController {
     @GetMapping("/tariff-by-server")
     public List<PlanByServerCounter> getTariffByServer() {
         return statServiceHelper.getPlanByServerStat();
+    }
+
+    @GetMapping("/meta/options")
+    public List<Options> getOptions() {
+        return statServiceHelper.getMetaOptions();
+    }
+
+    @GetMapping("/meta/registration")
+    public Collection<MetaProjection> getMetaRegistrations(
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam LocalDate start,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam LocalDate end,
+            @RequestParam Map<String, String> search
+    ) {
+        search.remove("start");
+        search.remove("end");
+
+        Map<LocalDate, MetaProjection> map = statServiceHelper.getMetaStat(start, end, search)
+                .stream().collect(Collectors.toMap(MetaProjection::getCreated, p-> p));
+
+        while (start.isBefore(end)) {
+            if (map.get(start) == null) {
+                MetaProjection metaProjection = new MetaProjection();
+                metaProjection.setCreated(start);
+                map.put(start, metaProjection);
+            }
+            start = start.plusDays(1);
+        }
+
+        return map.values();
     }
 }

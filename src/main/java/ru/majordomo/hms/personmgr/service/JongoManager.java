@@ -22,6 +22,7 @@ import java.util.Set;
 
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.dto.IdsContainer;
+import ru.majordomo.hms.personmgr.dto.stat.Options;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 
 @Service
@@ -158,6 +159,23 @@ public class JongoManager {
         }
 
         return accountMap;
+    }
+
+    public List<Options> getMetaOptions() {
+        MongoCollection collection = this.jongo.getCollection("processingBusinessOperation");
+
+        Aggregate aggregate = collection
+                .aggregate("{$match:{'type' : 'ACCOUNT_CREATE', 'params.meta':{$exists: true}}}")
+                .and("{$project: {_id: 0, 'metaarr':{$objectToArray: '$params.meta'}}}")
+                .and("{$unwind:'$metaarr'}")
+                .and("{$group: {_id:'$metaarr.k', label: {$first:'$metaarr.k' }, values: {$addToSet:'$metaarr.v'}}}")
+                ;
+
+        List<Options> r = new ArrayList<>();
+
+        aggregate.as(Options.class).forEach(r::add);
+
+        return r;
     }
 }
 

@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
+import com.mongodb.BasicDBObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.projection.PlanByServerProjection;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.rc.staff.resources.Resource;
@@ -48,6 +50,7 @@ public class StatServiceHelper {
     private final AccountStatRepository accountStatRepository;
     private final RcUserFeignClient rcUserFeignClient;
     private final RcStaffFeignClient rcStaffFeignClient;
+    private final JongoManager jongoManager;
 
     @Autowired
     public StatServiceHelper(
@@ -58,7 +61,8 @@ public class StatServiceHelper {
             PaymentServiceRepository paymentServiceRepository,
             AccountStatRepository accountStatRepository,
             RcUserFeignClient rcUserFeignClient,
-            RcStaffFeignClient rcStaffFeignClient
+            RcStaffFeignClient rcStaffFeignClient,
+            JongoManager jongoManager
     ) {
         this.mongoOperations = mongoOperations;
         this.abonementRepository = abonementRepository;
@@ -68,6 +72,7 @@ public class StatServiceHelper {
         this.accountStatRepository = accountStatRepository;
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;
+        this.jongoManager = jongoManager;
     }
 
     public List<PlanCounter> getAllPlanCounters() {
@@ -548,5 +553,36 @@ public class StatServiceHelper {
         logger.info("end getPlanByServerStat");
 
         return result;
+    }
+
+    public List<Options> getMetaOptions() {
+        return jongoManager.getMetaOptions();
+    }
+
+    public List<MetaProjection> getMetaStat(LocalDate start, LocalDate end, Map<String, String> search) {
+        Criteria criteria = Criteria
+                .where("type").is(BusinessOperationType.ACCOUNT_CREATE.name())
+                .and("params.meta").exists(true)
+                .and("createdDate")
+                .gte(Date.from(LocalDateTime.of(start, LocalTime.MIN).toInstant(ZoneOffset.ofHours(3))))
+                .lte(Date.from(LocalDateTime.of(end, LocalTime.MAX).toInstant(ZoneOffset.ofHours(3))));
+
+        for (Map.Entry<String, String> entry: search.entrySet()) {
+            criteria = criteria.and("params.meta." + entry.getKey()).is(entry.getValue());
+        }
+
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.match(criteria),
+                Aggregation.project("createdDate")
+                        .andExpression("year(createdDate)").as("year")
+                        .andExpression("month(createdDate)").as("month")
+                        .andExpression("dayOfMonth(createdDate)").as("day"),
+                Aggregation.group("year", "month", "day")
+                        .first("createdDate").as("created")
+                        .count().as("count")
+        );
+
+        return mongoOperations.aggregate(aggregation, "processingBusinessOperation", MetaProjection.class)
+                .getMappedResults();
     }
 }
