@@ -2,7 +2,6 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.MongoOperations;
-import org.springframework.data.mongodb.core.query.Meta;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +18,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
@@ -178,18 +176,6 @@ public class StatServiceRestController {
         search.remove("start");
         search.remove("end");
 
-        Map<LocalDate, MetaProjection> map = statServiceHelper.getMetaStat(start, end, search)
-                .stream().collect(Collectors.toMap(MetaProjection::getCreated, p-> p));
-
-        while (start.isBefore(end)) {
-            if (map.get(start) == null) {
-                MetaProjection metaProjection = new MetaProjection();
-                metaProjection.setCreated(start);
-                map.put(start, metaProjection);
-            }
-            start = start.plusDays(1);
-        }
-
-        return map.values();
+        return statServiceHelper.getMetaStat(start, end, search);
     }
 }

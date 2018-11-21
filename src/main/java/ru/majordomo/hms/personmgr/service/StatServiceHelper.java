@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.service;
 
-import com.mongodb.BasicDBObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,16 +19,18 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.projection.PlanByServerProjection;
-import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.rc.staff.resources.Resource;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
@@ -51,6 +52,7 @@ public class StatServiceHelper {
     private final RcUserFeignClient rcUserFeignClient;
     private final RcStaffFeignClient rcStaffFeignClient;
     private final JongoManager jongoManager;
+    private final FinFeignClient finFeignClient;
 
     @Autowired
     public StatServiceHelper(
@@ -62,7 +64,8 @@ public class StatServiceHelper {
             AccountStatRepository accountStatRepository,
             RcUserFeignClient rcUserFeignClient,
             RcStaffFeignClient rcStaffFeignClient,
-            JongoManager jongoManager
+            JongoManager jongoManager,
+            FinFeignClient finFeignClient
     ) {
         this.mongoOperations = mongoOperations;
         this.abonementRepository = abonementRepository;
@@ -73,6 +76,7 @@ public class StatServiceHelper {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;
         this.jongoManager = jongoManager;
+        this.finFeignClient = finFeignClient;
     }
 
     public List<PlanCounter> getAllPlanCounters() {
@@ -559,12 +563,11 @@ public class StatServiceHelper {
         return jongoManager.getMetaOptions();
     }
 
-    public List<MetaProjection> getMetaStat(LocalDate start, LocalDate end, Map<String, String> search) {
+    public Collection<MetaProjection> getMetaStat(LocalDate start, LocalDate end, Map<String, String> search) {
         Criteria criteria = Criteria
                 .where("type").is(BusinessOperationType.ACCOUNT_CREATE.name())
                 .and("params.meta").exists(true)
                 .and("createdDate")
-                .gte(Date.from(LocalDateTime.of(start, LocalTime.MIN).toInstant(ZoneOffset.ofHours(3))))
                 .lte(Date.from(LocalDateTime.of(end, LocalTime.MAX).toInstant(ZoneOffset.ofHours(3))));
 
         for (Map.Entry<String, String> entry: search.entrySet()) {
@@ -573,16 +576,56 @@ public class StatServiceHelper {
 
         Aggregation aggregation = Aggregation.newAggregation(
                 Aggregation.match(criteria),
-                Aggregation.project("createdDate")
+                Aggregation.project("createdDate", "personalAccountId")
                         .andExpression("year(createdDate)").as("year")
                         .andExpression("month(createdDate)").as("month")
                         .andExpression("dayOfMonth(createdDate)").as("day"),
                 Aggregation.group("year", "month", "day")
-                        .first("createdDate").as("created")
+                        .last("createdDate").as("created")
                         .count().as("count")
+                        .addToSet("personalAccountId").as("accountIds")
         );
 
-        return mongoOperations.aggregate(aggregation, "processingBusinessOperation", MetaProjection.class)
+        List<MetaProjection> projections = mongoOperations
+                .aggregate(aggregation, "processingBusinessOperation", MetaProjection.class)
                 .getMappedResults();
+
+        List<String> accountIds = projections
+                .stream()
+                .flatMap(p -> p.getAccountIds().stream())
+                .collect(Collectors.toList());
+
+        Map<LocalDate, MetaProjection> money = finFeignClient.generateMoneyMetaData(
+                accountIds, start.format(DateTimeFormatter.ISO_LOCAL_DATE), end.format(DateTimeFormatter.ISO_LOCAL_DATE));
+
+        BinaryOperator<MetaProjection> mergeFunction = (a, b) -> {
+            a.setCount(a.getCount() + b.getCount());
+            return a;
+        };
+
+        Map<LocalDate, MetaProjection> map = projections
+                .stream().collect(Collectors.toMap(MetaProjection::getCreated, p-> p, mergeFunction));
+
+        while (start.isBefore(end)) {
+            if (map.get(start) == null) {
+                MetaProjection metaProjection = new MetaProjection();
+                metaProjection.setCreated(start);
+                map.put(start, metaProjection);
+            }
+            start = start.plusDays(1);
+        }
+
+        money.forEach((e, m) -> {
+            MetaProjection p = map.get(e);
+            if (p == null) {
+                m.setCreated(e);
+                map.put(e, m);
+            } else {
+                p.setChargesAmount(p.getChargesAmount().add(m.getChargesAmount()));
+                p.setPaymentsAmount(p.getPaymentsAmount().add(m.getPaymentsAmount()));
+            }
+        });
+
+        return map.values();
     }
 }
