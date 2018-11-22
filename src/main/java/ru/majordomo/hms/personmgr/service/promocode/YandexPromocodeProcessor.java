@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.dto.Result;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.service.YaPromoterFeignClient;
+import ru.majordomo.hms.personmgr.feign.YaPromoterFeignClient;
 
 import java.util.HashMap;
 import java.util.Map;

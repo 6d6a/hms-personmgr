@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr.service;
+package ru.majordomo.hms.personmgr.feign;
 
 import org.springframework.cloud.netflix.feign.FeignClient;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +16,7 @@ import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkResponse;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentRequest;
 import ru.majordomo.hms.personmgr.dto.stat.MetaProjection;
+import ru.majordomo.hms.personmgr.service.ChargeMessage;
 
 @FeignClient(name = "fin", configuration = FeignConfig.class)
 public interface FinFeignClient {

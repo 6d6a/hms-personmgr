@@ -32,6 +32,8 @@ import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountWasEnabled;
 import ru.majordomo.hms.personmgr.event.account.PaymentWasReceivedEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
+import ru.majordomo.hms.personmgr.feign.PartnersFeignClient;
+import ru.majordomo.hms.personmgr.feign.YaPromoterFeignClient;
 import ru.majordomo.hms.personmgr.manager.*;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.InfoBannerAccountNotice;

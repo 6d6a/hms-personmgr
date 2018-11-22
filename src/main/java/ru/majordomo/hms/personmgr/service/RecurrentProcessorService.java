@@ -5,6 +5,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.dto.PaymentTypeKind;
+import ru.majordomo.hms.personmgr.feign.DomainRegistrarFeignClient;
+import ru.majordomo.hms.personmgr.feign.FinFeignClient;
+import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -25,8 +28,6 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
 import static java.time.temporal.ChronoUnit.DAYS;
-import static ru.majordomo.hms.personmgr.common.Constants.ACCESS_TO_CONTROL_PANEL_SERVICE_OLD_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.ADVANCED_BACKUP_SERVICE_ID;
 
 @Service
 public class RecurrentProcessorService {
