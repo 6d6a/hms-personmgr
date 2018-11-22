@@ -2,7 +2,7 @@ package ru.majordomo.hms.personmgr.service.Document;
 
 import ru.majordomo.hms.personmgr.dto.rpc.RegistrantDomain;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.service.Rpc.RegRpcClient;
 import ru.majordomo.hms.rc.user.resources.Domain;
 import ru.majordomo.hms.rc.user.resources.Person;

@@ -35,7 +35,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.QAccountOwner;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.service.JongoManager;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import static java.util.stream.Collectors.toList;

@@ -11,7 +11,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
+import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 
 import java.util.List;
 

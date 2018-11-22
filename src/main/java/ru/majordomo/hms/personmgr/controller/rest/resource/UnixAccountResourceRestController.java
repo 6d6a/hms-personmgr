@@ -16,7 +16,7 @@ import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.UnixAccount;
 

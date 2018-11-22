@@ -9,6 +9,7 @@ import ru.majordomo.hms.personmgr.dto.fin.PaymentRequest;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;

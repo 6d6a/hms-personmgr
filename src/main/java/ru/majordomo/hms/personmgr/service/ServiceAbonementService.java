@@ -26,6 +26,8 @@ import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredServiceAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.RedirectWasDisabledEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.feign.FinFeignClient;
+import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;

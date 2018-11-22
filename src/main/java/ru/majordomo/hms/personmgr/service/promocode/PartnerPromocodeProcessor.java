@@ -11,7 +11,7 @@ import ru.majordomo.hms.personmgr.dto.partners.RegisterStat;
 import ru.majordomo.hms.personmgr.dto.partners.RegisterStatRequest;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.service.PartnersFeignClient;
+import ru.majordomo.hms.personmgr.feign.PartnersFeignClient;
 
 import java.util.Map;
 

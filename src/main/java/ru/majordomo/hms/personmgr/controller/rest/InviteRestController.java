@@ -17,7 +17,7 @@ import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.service.AccountStatHelper;
-import ru.majordomo.hms.personmgr.service.PartnersFeignClient;
+import ru.majordomo.hms.personmgr.feign.PartnersFeignClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import javax.validation.Valid;

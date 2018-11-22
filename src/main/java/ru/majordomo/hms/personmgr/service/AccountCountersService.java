@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.rc.user.resources.Quotable;
 
 import java.util.ArrayList;

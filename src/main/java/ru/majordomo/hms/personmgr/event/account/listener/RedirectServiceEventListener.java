@@ -10,7 +10,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.RedirectWasDisabledEvent;
 import ru.majordomo.hms.personmgr.event.account.RedirectWasProlongEvent;
 import ru.majordomo.hms.personmgr.service.BusinessHelper;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.rc.user.resources.Redirect;
 
 import java.util.List;

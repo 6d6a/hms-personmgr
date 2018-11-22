@@ -16,7 +16,7 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
+import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 
 import java.math.BigDecimal;
 import java.util.HashMap;

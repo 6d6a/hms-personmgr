@@ -16,7 +16,7 @@ import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.FinFeignClient;
+import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

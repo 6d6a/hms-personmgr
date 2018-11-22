@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.config;
 
 import feign.codec.ErrorDecoder;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.netflix.feign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
@@ -16,9 +17,11 @@ import java.util.Collections;
 
 import feign.Request;
 import feign.RequestInterceptor;
+
 import ru.majordomo.hms.personmgr.exception.handler.MajordomoFeignErrorDecoder;
 import ru.majordomo.hms.personmgr.security.OAuth2FeignRequestInterceptor;
 
+@EnableFeignClients(basePackages = "ru.majordomo.hms.personmgr.feign")
 @Configuration
 public class FeignConfig {
     @Value("${security.oauth2.client.accessTokenUri}")

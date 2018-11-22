@@ -38,6 +38,7 @@ import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
+import ru.majordomo.hms.personmgr.feign.SiFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -57,7 +58,7 @@ import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNo
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.PlanChange.Factory;
 import ru.majordomo.hms.personmgr.service.PlanChange.Processor;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.service.TokenHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;

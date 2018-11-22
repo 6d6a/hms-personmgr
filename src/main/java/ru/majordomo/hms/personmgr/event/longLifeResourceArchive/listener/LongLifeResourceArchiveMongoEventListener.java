@@ -5,7 +5,7 @@ import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
 import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.model.service.LongLifeResourceArchive;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 
 @Component
 public class LongLifeResourceArchiveMongoEventListener extends AbstractMongoEventListener<LongLifeResourceArchive> {

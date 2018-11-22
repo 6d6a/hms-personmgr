@@ -25,6 +25,7 @@ import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbone
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;

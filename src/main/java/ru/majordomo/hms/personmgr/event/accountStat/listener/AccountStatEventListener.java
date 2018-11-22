@@ -22,8 +22,8 @@ import ru.majordomo.hms.personmgr.repository.AccountNotificationStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.service.AccountStatHelper;
-import ru.majordomo.hms.personmgr.service.RcUserFeignClient;
-import ru.majordomo.hms.personmgr.service.StatFeignClient;
+import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.feign.StatFeignClient;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
