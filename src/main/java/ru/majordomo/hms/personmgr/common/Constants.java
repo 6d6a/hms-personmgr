@@ -128,6 +128,7 @@ public class Constants {
     public static final String LONG_LIFE = "longLife";
     public static final String RESOURCE_ARCHIVE_ID = "resourceArchiveId";
     public static final String RESOURCE_TYPE = "resourceType";
+    public static final String PAYMENT_REDIRECT_PATH = "/payment-redirect";
 
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;

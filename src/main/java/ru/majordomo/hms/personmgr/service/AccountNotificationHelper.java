@@ -57,6 +57,7 @@ public class AccountNotificationHelper {
     private final FinFeignClient finFeignClient;
     private final String finEmail;
     private final String inviteEmailApiName;
+    private final PaymentLinkHelper paymentLinkHelper;
 
     @Autowired
     public AccountNotificationHelper(
@@ -68,7 +69,8 @@ public class AccountNotificationHelper {
             PersonalAccountManager accountManager,
             FinFeignClient finFeignClient,
             @Value("${mail_manager.department.fin}") String finEmail,
-            @Value("${invites.client_api_name}") String inviteEmailApiName
+            @Value("${invites.client_api_name}") String inviteEmailApiName,
+            PaymentLinkHelper paymentLinkHelper
     ) {
         this.publisher = publisher;
         this.planRepository = planRepository;
@@ -79,6 +81,7 @@ public class AccountNotificationHelper {
         this.finFeignClient = finFeignClient;
         this.finEmail = finEmail;
         this.inviteEmailApiName = inviteEmailApiName;
+        this.paymentLinkHelper = paymentLinkHelper;
     }
 
     public String getDomainForEmail(PersonalAccount account) {
@@ -209,8 +212,8 @@ public class AccountNotificationHelper {
         Plan plan = planRepository.findOne(account.getPlanId());
         Map<String, String> parameters = new HashMap<>();
 
-        String paymentLink = finFeignClient.generatePaymentLink(
-                account.getAccountId(),
+        String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                account,
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 
@@ -230,8 +233,8 @@ public class AccountNotificationHelper {
 
         BigDecimal balance = accountHelper.getBalance(account);
 
-        String paymentLink = finFeignClient.generatePaymentLink(
-                account.getAccountId(),
+        String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                account,
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 
@@ -254,8 +257,8 @@ public class AccountNotificationHelper {
 
         BigDecimal balance = accountHelper.getBalance(account);
 
-        String paymentLink = finFeignClient.generatePaymentLink(
-                account.getAccountId(),
+        String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                account,
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 
@@ -284,8 +287,8 @@ public class AccountNotificationHelper {
 
         BigDecimal balance = accountHelper.getBalance(account);
 
-        String paymentLink = finFeignClient.generatePaymentLink(
-                account.getAccountId(),
+        String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                account,
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 
@@ -314,8 +317,8 @@ public class AccountNotificationHelper {
 
         BigDecimal balance = accountHelper.getBalance(account);
 
-        String paymentLink = finFeignClient.generatePaymentLink(
-                account.getAccountId(),
+        String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                account,
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 
@@ -345,8 +348,8 @@ public class AccountNotificationHelper {
 
         Plan plan = planRepository.findOne(account.getPlanId());
 
-        String paymentLink = finFeignClient.generatePaymentLink(
-                account.getAccountId(),
+        String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                account,
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 
@@ -378,8 +381,8 @@ public class AccountNotificationHelper {
 
         BigDecimal balance = accountHelper.getBalance(account);
 
-        String paymentLink = finFeignClient.generatePaymentLink(
-                account.getAccountId(),
+        String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                account,
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 
@@ -409,8 +412,8 @@ public class AccountNotificationHelper {
 
         BigDecimal balance = accountHelper.getBalance(account);
 
-        String paymentLink = finFeignClient.generatePaymentLink(
-                account.getAccountId(),
+        String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                account,
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 
@@ -440,8 +443,8 @@ public class AccountNotificationHelper {
 
         BigDecimal balance = accountHelper.getBalance(account);
 
-        String paymentLink = finFeignClient.generatePaymentLink(
-                account.getAccountId(),
+        String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                account,
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 
@@ -471,8 +474,8 @@ public class AccountNotificationHelper {
 
         Plan plan = planRepository.findOne(account.getPlanId());
 
-        String paymentLink = finFeignClient.generatePaymentLink(
-                account.getAccountId(),
+        String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                account,
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 

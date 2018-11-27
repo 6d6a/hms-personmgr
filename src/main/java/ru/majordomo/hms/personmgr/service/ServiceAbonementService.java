@@ -63,6 +63,7 @@ public class ServiceAbonementService { //dis name
     private final RcUserFeignClient rcUserFeignClient;
     private final PersonalAccountManager accountManager;
     private final FinFeignClient finFeignClient;
+    private final PaymentLinkHelper paymentLinkHelper;
 
     private static TemporalAdjuster FIVE_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(5));
 
@@ -79,7 +80,8 @@ public class ServiceAbonementService { //dis name
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             RcUserFeignClient rcUserFeignClient,
             PersonalAccountManager accountManager,
-            FinFeignClient finFeignClient
+            FinFeignClient finFeignClient,
+            PaymentLinkHelper paymentLinkHelper
     ) {
         this.abonementManager = abonementManager;
         this.accountHelper = accountHelper;
@@ -93,6 +95,7 @@ public class ServiceAbonementService { //dis name
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountManager = accountManager;
         this.finFeignClient = finFeignClient;
+        this.paymentLinkHelper = paymentLinkHelper;
     }
 
     /**
@@ -248,8 +251,8 @@ public class ServiceAbonementService { //dis name
                     domainNames.add(domain.getName());
                 }
 
-                String paymentLink = finFeignClient.generatePaymentLink(
-                        account.getAccountId(),
+                String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                        account,
                         new PaymentLinkRequest(abonementCost)
                 ).getPaymentLink();
 
