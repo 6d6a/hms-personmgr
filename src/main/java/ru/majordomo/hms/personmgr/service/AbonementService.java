@@ -63,6 +63,7 @@ public class AbonementService {
     private final ChargeHelper chargeHelper;
     private final AccountHistoryManager history;
     private final FinFeignClient finFeignClient;
+    private final PaymentLinkHelper paymentLinkHelper;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -79,7 +80,8 @@ public class AbonementService {
             AccountNotificationHelper accountNotificationHelper,
             ChargeHelper chargeHelper,
             AccountHistoryManager history,
-            FinFeignClient finFeignClient
+            FinFeignClient finFeignClient,
+            PaymentLinkHelper paymentLinkHelper
     ) {
         this.planManager = planManager;
         this.abonementRepository = abonementRepository;
@@ -93,6 +95,7 @@ public class AbonementService {
         this.chargeHelper = chargeHelper;
         this.history = history;
         this.finFeignClient = finFeignClient;
+        this.paymentLinkHelper = paymentLinkHelper;
     }
 
     /**
@@ -263,9 +266,8 @@ public class AbonementService {
             if (needSendEmail) {
                 logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
 
-                String paymentLink = finFeignClient.generatePaymentLink(
-                        account.getAccountId(),
-                        new PaymentLinkRequest(abonementCost)
+                String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                        account, new PaymentLinkRequest(abonementCost)
                 ).getPaymentLink();
 
                 //Отправим письмо

@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,6 +36,7 @@ import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -86,6 +89,7 @@ public class PersonalAccountRestController extends CommonRestController {
     private final AccountNotificationHelper accountNotificationHelper;
     private final SiFeignClient siFeignClient;
     private final AbonementManager<AccountAbonement> accountAbonementManager;
+    private final PaymentLinkHelper paymentLinkHelper;
 
     @Autowired
     public PersonalAccountRestController(
@@ -101,7 +105,8 @@ public class PersonalAccountRestController extends CommonRestController {
             Factory planChangeFactory,
             AccountNotificationHelper accountNotificationHelper,
             SiFeignClient siFeignClient,
-            AbonementManager<AccountAbonement> accountAbonementManager
+            AbonementManager<AccountAbonement> accountAbonementManager,
+            PaymentLinkHelper paymentLinkHelper
     ) {
         this.planRepository = planRepository;
         this.accountOwnerManager = accountOwnerManager;
@@ -111,6 +116,7 @@ public class PersonalAccountRestController extends CommonRestController {
         this.tokenHelper = tokenHelper;
         this.notificationRepository = notificationRepository;
         this.siFeignClient = siFeignClient;
+        this.paymentLinkHelper = paymentLinkHelper;
         this.accountServiceRepository = accountServiceRepository;
         this.accountServiceHelper = accountServiceHelper;
         this.planChangeFactory = planChangeFactory;
@@ -364,6 +370,20 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(createSuccessResponse("Произведен запрос на восстановление пароля."), HttpStatus.OK);
     }
 
+    @GetMapping(PAYMENT_REDIRECT_PATH)
+    public ResponseEntity paymentRedirect(
+            @RequestParam Map<String, String> params
+    ) {
+        String link = paymentLinkHelper.getPaymentLink(params.get("token"));
+
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add("Location", link);
+
+        logger.info("from {} with token {} redirect to {}", PAYMENT_REDIRECT_PATH, params.get("token"), link);
+
+        return new ResponseEntity(headers, HttpStatus.TEMPORARY_REDIRECT);
+    }
+
     @GetMapping("/password-recovery")
     public ResponseEntity<Object> confirmPasswordRecovery(
             @RequestParam("token") String tokenId,
@@ -372,7 +392,7 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         logger.debug("confirmPasswordRecovery httpHeaders: " + httpHeaders.toString());
 
-        Token token = tokenHelper.getToken(tokenId);
+        Token token = tokenHelper.getToken(tokenId, TokenType.PASSWORD_RECOVERY_REQUEST);
 
         if (token == null) {
             throw new ParameterValidationException("Запрос на восстановление пароля не найден или уже выполнен ранее.");
