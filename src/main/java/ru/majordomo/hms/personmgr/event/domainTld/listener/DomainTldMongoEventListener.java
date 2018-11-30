@@ -45,9 +45,19 @@ public class DomainTldMongoEventListener extends AbstractMongoEventListener<Doma
         LocalDateTime startDate = LocalDateTime.parse(ACTION_DOMAIN_START_DATE, formatter);
         LocalDateTime endDate = LocalDateTime.parse(ACTION_DOMAIN_END_DATE, formatter);
 
+        LocalDateTime startDateFaitid = LocalDateTime.parse(ACTION_DOMAIN_FAITID_START_DATE, formatter);
+
         if (LocalDateTime.now().isAfter(startDate) && LocalDateTime.now().isBefore(endDate)) {
             if (Arrays.asList(ACTION_DOMAINS).contains(domainTld.getTld())) {
                 domainTld.getRegistrationService().setCost(BigDecimal.valueOf(195L));
+            }
+        }
+
+        if (LocalDateTime.now().isAfter(startDateFaitid)) {
+            //После 2018-11-30 23:59:59 изменить цену в базе 300 -> 350 для всех https://faitid.org/sites/default/files/RRA_ADD1_end.pdf и удалить код
+            if (Arrays.asList(ACTION_DOMAINS_FAITID).contains(domainTld.getTld()) || domainTld.getDomainCategory() == GEO) {
+                domainTld.getRegistrationService().setCost(BigDecimal.valueOf(350L));
+                domainTld.getRenewService().setCost(BigDecimal.valueOf(350L));
             }
         }
 
