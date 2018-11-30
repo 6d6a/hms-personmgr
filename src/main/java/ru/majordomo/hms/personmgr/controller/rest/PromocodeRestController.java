@@ -7,9 +7,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.PromocodeManager;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeTag;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
+import ru.majordomo.hms.personmgr.repository.PromoTagRepository;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -17,12 +20,15 @@ import java.util.Map;
 public class PromocodeRestController {
 
     private final PromocodeManager promocodeManager;
+    private final PromoTagRepository promoTagRepository;
 
     @Autowired
     public PromocodeRestController(
-            PromocodeManager promocodeManager
+            PromocodeManager promocodeManager,
+            PromoTagRepository promoTagRepository
     ){
         this.promocodeManager = promocodeManager;
+        this.promoTagRepository = promoTagRepository;
     }
 
     @PreAuthorize("hasAuthority('CREATE_PROMOCODE')")
@@ -36,6 +42,12 @@ public class PromocodeRestController {
         response.put("code", promocode.getCode());
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN')")
+    @GetMapping("/tags")
+    public List<PromocodeTag> getTags() {
+        return promoTagRepository.findAll();
     }
 
     private Promocode generatePromocodeByParams(Map<String, String> message) {
