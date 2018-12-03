@@ -215,6 +215,7 @@ public class Constants {
     public static final String BONUS_PARKING_3_M_PROMOCODE_ACTION_ID = "57f3c4b8038d8a6054409857";
     public static final String DOMAIN_DISCOUNT_RU_RF_ACTION_ID = "57f3c4b8038d8a6054409858";
     public static final String PARTNER_CHECKOUT_SERVICE_ID = "590745d8719fca09b485524c";
+    public static final String TOCHKA_BANK_PROMOCODE_TAG_ID = "5c01593cd003d109804ebdcd";
     public static final Long PARTNER_CHECKOUT_MIN_SUMM = 1500L;
 
     public static final Map<Integer, MailManagerMessageType> MANAGER_MESSAGE_TYPE_MAP = new HashMap<>();

@@ -101,6 +101,8 @@ public interface PersonalAccountManager {
 
     void setAngryClient(String id, boolean angryClient);
 
+    void setHideGoogleAdWords(String id, boolean hideGoogleAdWords);
+
     void setCredit(String accountId, Boolean credit);
 
     void setAddQuotaIfOverquoted(String accountId, Boolean addQuotaIfOverquoted);
