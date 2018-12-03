@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.dto.Result;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
@@ -15,22 +16,26 @@ import ru.majordomo.hms.personmgr.service.promocodeAction.PromocodeActionProcess
 import java.time.LocalDate;
 import java.util.List;
 
+import static ru.majordomo.hms.personmgr.common.Constants.TOCHKA_BANK_PROMOCODE_TAG_ID;
+
 @Slf4j
 @Service
 public class BonusPmPromocodeProcessor implements PmPromocodeProcessor {
     private final AccountPromocodeRepository accountPromocodeRepository;
     private final AccountHistoryManager history;
     private final PromocodeActionProcessorFactory promocodeActionProcessorFactory;
+    private final PersonalAccountManager accountManager;
 
     @Autowired
     public BonusPmPromocodeProcessor(
             AccountPromocodeRepository accountPromocodeRepository,
             AccountHistoryManager history,
-            PromocodeActionProcessorFactory promocodeActionProcessorFactory
-    ) {
+            PromocodeActionProcessorFactory promocodeActionProcessorFactory,
+            PersonalAccountManager accountManager) {
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.history = history;
         this.promocodeActionProcessorFactory = promocodeActionProcessorFactory;
+        this.accountManager = accountManager;
     }
 
     @Override
@@ -59,6 +64,10 @@ public class BonusPmPromocodeProcessor implements PmPromocodeProcessor {
         if (!isAllowed) { return Result.error("Использование промокода недоступно"); }
 
         AccountPromocode accountPromocode = addAccountPromocode(account, promocode);
+
+        if (promocode.getTagId().equals(TOCHKA_BANK_PROMOCODE_TAG_ID)) {
+            accountManager.setHideGoogleAdWords(account.getId(), true);
+        }
 
         log.debug("Processing promocode actions for account: " + account.getName() + " for code: " + accountPromocode.getCode());
 
