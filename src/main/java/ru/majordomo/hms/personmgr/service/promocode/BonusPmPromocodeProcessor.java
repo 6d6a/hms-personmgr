@@ -65,7 +65,7 @@ public class BonusPmPromocodeProcessor implements PmPromocodeProcessor {
 
         AccountPromocode accountPromocode = addAccountPromocode(account, promocode);
 
-        if (promocode.getTagId().equals(TOCHKA_BANK_PROMOCODE_TAG_ID)) {
+        if (promocode.getTagId() != null && promocode.getTagId().equals(TOCHKA_BANK_PROMOCODE_TAG_ID)) {
             accountManager.setHideGoogleAdWords(account.getId(), true);
         }
 

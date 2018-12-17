@@ -87,7 +87,7 @@ public class PromocodeService {
                     + " завершена с ошибкой " + e.getClass().getName() + " message: " + e.getMessage()
                     + " stackTrace: " + Arrays.asList(e.getStackTrace()).toString()
             );
-            history.save(account, "Обработка промокода '" + code + "' завершена с ошибкой. " + e.getClass().getName() + ": " + e.getMessage());
+            history.save(account, "Обработка промокода '" + code + "' завершена с ошибкой");
             return Result.error("Обработка промокода '" + code + "' завершена с ошибкой");
         }
     }
