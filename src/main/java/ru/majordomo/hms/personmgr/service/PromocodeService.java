@@ -15,6 +15,7 @@ import ru.majordomo.hms.personmgr.service.promocode.PartnerPromocodeProcessor;
 import ru.majordomo.hms.personmgr.service.promocode.PromocodeProcessorFactory;
 import ru.majordomo.hms.personmgr.service.promocode.YandexPromocodeProcessor;
 
+import java.util.Arrays;
 import java.util.Map;
 
 @Slf4j
@@ -84,8 +85,9 @@ public class PromocodeService {
         } catch (Exception e) {
             log.error("Обработка промокода для аккаунта " + account.getId() + " и кода " + code
                     + " завершена с ошибкой " + e.getClass().getName() + " message: " + e.getMessage()
+                    + " stackTrace: " + Arrays.asList(e.getStackTrace()).toString()
             );
-            history.save(account, "Обработка промокода '" + code + "' завершена с ошибкой");
+            history.save(account, "Обработка промокода '" + code + "' завершена с ошибкой. " + e.getClass().getName() + ": " + e.getMessage());
             return Result.error("Обработка промокода '" + code + "' завершена с ошибкой");
         }
     }
