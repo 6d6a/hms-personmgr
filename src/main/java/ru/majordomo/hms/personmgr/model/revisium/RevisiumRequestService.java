@@ -29,8 +29,6 @@ public class RevisiumRequestService extends ModelBelongsToPersonalAccount {
     @ObjectId(PaymentService.class)
     private String serviceId;
 
-    private boolean active;
-
     @NotBlank
     private String siteUrl;
 
