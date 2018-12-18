@@ -184,7 +184,6 @@ public class RevisiumRequestRestController extends CommonRestController {
 
             revisiumRequestService.setAccountServiceAbonementId(accountServiceAbonement.getId());
             revisiumRequestService.setAccountServiceAbonement(accountServiceAbonement);
-            revisiumRequestService.setActive(true);
             revisiumRequestServiceRepository.save(revisiumRequestService);
         }
 
@@ -277,7 +276,6 @@ public class RevisiumRequestRestController extends CommonRestController {
         revisiumRequestService.setAccountServiceAbonement(accountServiceAbonement);
         revisiumRequestService.setCreated(LocalDateTime.now());
         revisiumRequestService.setSiteUrl(siteUrl);
-        revisiumRequestService.setActive(true);
         revisiumRequestServiceRepository.save(revisiumRequestService);
 
         accountServiceHelper.revisiumCheckRequest(account, revisiumRequestService);

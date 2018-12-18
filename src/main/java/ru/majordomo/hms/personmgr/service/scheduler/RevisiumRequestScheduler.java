@@ -50,11 +50,7 @@ public class RevisiumRequestScheduler {
             for (RevisiumRequestService item: revisiumRequestServices) {
 
                 try {
-                    if (item.isActive()) {
-                        if (item.getAccountServiceAbonement() == null || item.getAccountServiceAbonement().getExpired().isBefore(LocalDateTime.now())) {
-                            item.setActive(false);
-                            revisiumRequestServiceRepository.save(item);
-                        } else {
+                    if (item.getAccountServiceAbonement() != null && !item.getAccountServiceAbonement().getExpired().isBefore(LocalDateTime.now())) {
                             GetStatResponse getStatResponse = revisiumApiClient.getStat();
 
                             switch (ResultStatus.valueOf(getStatResponse.getStatus().toUpperCase())) {
@@ -78,7 +74,6 @@ public class RevisiumRequestScheduler {
                                     break;
                             }
                             accountServiceHelper.revisiumCheckRequest(accountManager.findOne(item.getPersonalAccountId()), item);
-                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
