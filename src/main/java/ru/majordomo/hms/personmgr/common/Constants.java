@@ -298,10 +298,13 @@ public class Constants {
     }
 
     public static final String[] ACTION_DOMAINS = new String[] {
-            "xn--p1acf"
+            "online",
+            "tech",
+            "store",
+            "fun"
     };
 
-    public static final String ACTION_DOMAIN_START_DATE = "2018-11-01 00:00:00";
+    public static final String ACTION_DOMAIN_START_DATE = "2019-01-01 00:00:00";
     public static final String ACTION_DOMAIN_END_DATE = "2018-11-30 23:59:59";
 
     public static final String[] RU_RF_DOMAINS = new String[] {
