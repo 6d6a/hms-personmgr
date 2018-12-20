@@ -40,15 +40,39 @@ public class DomainTldMongoEventListener extends AbstractMongoEventListener<Doma
 
         // Заплатка для акциий
         // TODO включение\выключений акций через биллинг?
-        /*LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         LocalDateTime startDate = LocalDateTime.parse(ACTION_DOMAIN_START_DATE, formatter);
         LocalDateTime endDate = LocalDateTime.parse(ACTION_DOMAIN_END_DATE, formatter);
 
-        if (now.isAfter(startDate) && now.isBefore(endDate)) {
+        if (now.isAfter(startDate)) {
             if (Arrays.asList(ACTION_DOMAINS).contains(domainTld.getTld())) {
-                domainTld.getRegistrationService().setCost(BigDecimal.valueOf(195L));
+                domainTld.getRegistrationService().setCost(BigDecimal.valueOf(145L));
             }
-        }*/
+
+            switch (domainTld.getTld()) {
+                case "online":
+                    domainTld.getRenewService().setCost(BigDecimal.valueOf(2250L));
+                    break;
+                case "tech":
+                    domainTld.getRenewService().setCost(BigDecimal.valueOf(3050L));
+                    break;
+                case "store":
+                    domainTld.getRenewService().setCost(BigDecimal.valueOf(3850L));
+                    break;
+                case "fun":
+                    domainTld.getRenewService().setCost(BigDecimal.valueOf(2200L));
+                    break;
+                case "site":
+                    domainTld.getRenewService().setCost(BigDecimal.valueOf(2600L));
+                    break;
+                case "website":
+                    domainTld.getRenewService().setCost(BigDecimal.valueOf(2250L));
+                    break;
+                case "space":
+                    domainTld.getRenewService().setCost(BigDecimal.valueOf(2250L));
+                    break;
+            }
+        }
     }
 }
