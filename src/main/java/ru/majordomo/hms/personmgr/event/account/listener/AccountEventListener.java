@@ -570,7 +570,7 @@ public class AccountEventListener {
         LocalDate now = LocalDate.now();
 
         if (dataWillBeDeletedAfter.isAfter(now)) {
-            logger.info("account with id '%s', data not deleted yet, now: '%s', will be deleted after: '%s' , return",
+            logger.info("account with id '{}', data not deleted yet, now: '{}', will be deleted after: '{}' , return",
                     event.getSource(),
                     now.format(DateTimeFormatter.ISO_DATE),
                     dataWillBeDeletedAfter.format(DateTimeFormatter.ISO_DATE));
