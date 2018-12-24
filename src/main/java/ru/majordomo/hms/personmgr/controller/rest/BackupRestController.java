@@ -2,7 +2,6 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -78,7 +77,7 @@ public class BackupRestController extends CommonRestController{
             @ObjectId(PersonalAccount.class) @PathVariable String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        logger.info("Try restore from backup accountId: %s %s", accountId, restoreRequest.toString());
+        logger.info("Try restore from backup accountId: {} {}", accountId, restoreRequest.toString());
 
         SimpleServiceMessage result;
 

@@ -1,7 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
@@ -39,11 +38,9 @@ import static ru.majordomo.hms.personmgr.common.BusinessActionType.FILE_BACKUP_R
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.Utils.isInsideInRootDir;
 
+@Slf4j
 @Service
 public class BackupService {
-
-    private Logger logger = LoggerFactory.getLogger(BackupService.class);
-
     private final RcUserFeignClient rcUserFeignClient;
     private final RcStaffFeignClient rcStaffFeignClient;
     private final ResticClient resticClient;
@@ -100,7 +97,7 @@ public class BackupService {
         }
 
         if (snapshot.getPaths().size() != 1) {
-            logger.error("Имя файла дампа базы данных не найдено в snapshot.getPaths() snapshot: %s", snapshot);
+            log.error("Имя файла дампа базы данных не найдено в snapshot.getPaths() snapshot: {}", snapshot);
             throw new InternalApiException();
         }
 
@@ -172,7 +169,7 @@ public class BackupService {
             FileRestoreRequest restoreRequest,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        logger.debug("Try restore file from backup accountId: " + account.getId() + restoreRequest.toString());
+        log.debug("Try restore file from backup accountId: " + account.getId() + restoreRequest.toString());
 
         String serverName = restoreRequest.getServerName();
         String snapshotId = restoreRequest.getSnapshotId();
@@ -322,8 +319,8 @@ public class BackupService {
         try {
             return rcStaffFeignClient.getServerById(serverId);
         } catch (Exception e) {
-            logger.error(format("Не найден сервер с id %s class: %s message: %s",
-                    serverId, e.getClass().getName(), e.getMessage())
+            log.error("Не найден сервер с id {} class: {} message: {}",
+                    serverId, e.getClass().getName(), e.getMessage()
             );
             throw new ParameterValidationException("Сервер не найден");
         }
@@ -333,8 +330,8 @@ public class BackupService {
         try {
             return rcStaffFeignClient.getServerByServiceId(serviceId);
         } catch (Exception e) {
-            logger.error(format("Не найден сервер с serviceId %s class: %s message: %s",
-                    serviceId, e.getClass().getName(), e.getMessage())
+            log.error("Не найден сервер с serviceId {} class: {} message: {}",
+                    serviceId, e.getClass().getName(), e.getMessage()
             );
             throw new ParameterValidationException("Сервер не найден");
         }
@@ -416,7 +413,7 @@ public class BackupService {
         Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
 
         if (databases.isEmpty()) {
-            logger.info("account id: %s not found databases for restore after enabled account", account.getId());
+            log.info("account id: {} not found databases for restore after enabled account", account.getId());
             return;
         }
 
@@ -450,7 +447,7 @@ public class BackupService {
     private void restoreUnixAccount(PersonalAccount account, LocalDateTime deactivated, LocalDate dataWillBeDeletedAfter) {
         Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
         if (unixAccounts.isEmpty()) {
-            logger.info("account id %s not found unixAccount for restoring");
+            log.info("account id {} not found unixAccount for restoring");
             return;
         }
 
