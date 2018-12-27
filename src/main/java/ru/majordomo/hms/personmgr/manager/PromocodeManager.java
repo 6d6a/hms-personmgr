@@ -1,15 +1,11 @@
 package ru.majordomo.hms.personmgr.manager;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 
 public interface PromocodeManager {
-
-    Promocode generatePromocodeUnlimitedOneMonth();
-
-    Promocode generatePromocodeUnlimitedThreeMonth();
-
-    Promocode generatePromocodeParkingThreeMonth();
 
     Promocode findOne(String id);
 
@@ -20,4 +16,8 @@ public interface PromocodeManager {
     Promocode findByTypeAndActive(PromocodeType type, boolean active);
 
     Promocode save(Promocode promocode);
+
+    Promocode generatePromocode(Promocode example);
+
+    Page<Promocode> findByTagIdsIn(Iterable<String> tagIds, Pageable pageable);
 }

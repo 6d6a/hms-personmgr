@@ -1,6 +1,8 @@
 package ru.majordomo.hms.personmgr.repository;
 
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.repository.query.Param;
 
@@ -18,4 +20,8 @@ public interface PromocodeRepository extends MongoRepository<Promocode, String> 
     void deleteByType(@Param("type") PromocodeType type);
     void deleteByCode(@Param("code") String code);
     List<Promocode> findByActive(@Param("active") boolean active);
+
+    boolean existsByCodeIgnoreCase(String code);
+
+    Page<Promocode> findByTagIdsIn(Iterable<String> tagIds, Pageable pageable);
 }

@@ -6,10 +6,9 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 
 @Slf4j
-public class GoogleDummyProcessorPm implements PmPromocodeProcessor {
+public class AlwaysErrorPromocodeProcessor implements PromocodeProcessor {
     @Override
     public Result process(PersonalAccount account, Promocode promocode) {
-        log.info("Пользователь " + account.getId() + " использовал промокод Google " + promocode.getCode() + " в контрольной панели");
         return Result.error("Не удалось обработать промокод");
     }
 }

@@ -2,6 +2,8 @@ package ru.majordomo.hms.personmgr.manager.impl;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -25,18 +27,6 @@ public class PromocodeManagerImpl implements PromocodeManager {
     @Autowired
     public PromocodeManagerImpl(PromocodeRepository repository) {
         this.repository = repository;
-    }
-
-    public Promocode generatePromocodeUnlimitedOneMonth() {
-        return generatePromocode(PromocodeType.BONUS, BONUS_UNLIMITED_1_M_PROMOCODE_ACTION_ID);
-    }
-
-    public Promocode generatePromocodeUnlimitedThreeMonth() {
-        return generatePromocode(PromocodeType.BONUS, BONUS_UNLIMITED_3_M_PROMOCODE_ACTION_ID);
-    }
-
-    public Promocode generatePromocodeParkingThreeMonth() {
-        return generatePromocode(PromocodeType.BONUS, BONUS_PARKING_3_M_PROMOCODE_ACTION_ID);
     }
 
     @Override
@@ -103,7 +93,7 @@ public class PromocodeManagerImpl implements PromocodeManager {
                     throw new ParameterValidationException(type.name() + " not implemented in generateNewCode");
             }
 
-            code = repository.findByCode(code) == null ? code : null;
+            code = repository.existsByCodeIgnoreCase(code) ? null : code;
         }
 
         return code;
@@ -116,5 +106,26 @@ public class PromocodeManagerImpl implements PromocodeManager {
             }
         }
         return false;
+    }
+
+    public Promocode generatePromocode(Promocode example) {
+        Promocode promocode = new Promocode();
+        String code = generateNewCode(example.getType());
+
+        promocode.setCode(code);
+        promocode.setActive(true);
+        promocode.setCreatedDate(LocalDate.now());
+        promocode.setType(example.getType());
+        promocode.setActionIds(example.getActionIds());
+        promocode.setTagIds(example.getTagIds());
+
+        repository.insert(promocode);
+
+        return promocode;
+    }
+
+    @Override
+    public Page<Promocode> findByTagIdsIn(Iterable<String> tagIds, Pageable pageable) {
+        return repository.findByTagIdsIn(tagIds, pageable);
     }
 }

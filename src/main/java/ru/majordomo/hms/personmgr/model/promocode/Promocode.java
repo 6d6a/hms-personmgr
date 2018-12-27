@@ -15,6 +15,7 @@ import javax.validation.constraints.NotNull;
 import ru.majordomo.hms.personmgr.common.PromocodeType;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
+import ru.majordomo.hms.personmgr.validation.ObjectIdList;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -49,4 +50,10 @@ public class Promocode extends BaseModel {
 
     @Transient
     private PromocodeTag tag;
+
+    @ObjectIdList(PromocodeTag.class)
+    private List<String> tagIds = new ArrayList<>();
+
+    @Transient
+    private List<PromocodeTag> tags = new ArrayList<>();
 }
