@@ -14,15 +14,16 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Set;
 
 import ru.majordomo.hms.personmgr.dto.Result;
 import ru.majordomo.hms.personmgr.dto.request.CodeApplyRequest;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.PromocodeManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promocode.QAccountPromocode;
+import ru.majordomo.hms.personmgr.model.promocode.QPromocode;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.service.PromocodeService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
@@ -48,7 +49,8 @@ public class AccountPromocodeRestController extends CommonRestController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('OPERATOR')")
     @GetMapping(value = "/account-promocodes/search")
-    public ResponseEntity<Page<AccountPromocode>> searchByAnything(
+    public Page<AccountPromocode> searchByAnything(
+            @RequestParam(value = "tagIds", required = false) Set<String> tagIds,
             @RequestParam Map<String, String> search,
             Pageable pageable
     ) {
@@ -82,13 +84,27 @@ public class AccountPromocodeRestController extends CommonRestController {
         );
 
         Page<AccountPromocode> page = accountPromocodeRepository.findAll(predicate, pageable);
-        page.getContent().forEach(accountPromocode -> {
-            accountPromocode.setPromocode(
-                    promocodeManager.findOne(accountPromocode.getPromocodeId())
-            );
-        });
 
-        return ResponseEntity.ok(page);
+        if (page.getTotalElements() > 0) {
+            page.getContent().forEach(accountPromocode -> {
+                accountPromocode.setPromocode(
+                        promocodeManager.findOne(accountPromocode.getPromocodeId())
+                );
+            });
+        } else {
+            if (accId.isEmpty() && ownerId.isEmpty() && tagIds != null && !tagIds.isEmpty()) {
+                return promocodeManager.findByTagIdsIn(tagIds, pageable)
+                        .map(promocode -> {
+                            AccountPromocode ap = accountPromocodeRepository.findOneByPromocodeId(promocode.getId());
+                            if (ap == null) {
+                                ap = new AccountPromocode();
+                            }
+                            ap.setPromocode(promocode);
+                            return ap;
+                        });
+            }
+        }
+        return page;
     }
 
     @PostMapping(value = "{accountId}/account-promocodes")

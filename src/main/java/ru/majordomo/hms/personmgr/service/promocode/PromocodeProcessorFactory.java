@@ -8,24 +8,22 @@ import ru.majordomo.hms.personmgr.common.PromocodeType;
 @Slf4j
 @Service
 public class PromocodeProcessorFactory {
-    private final BonusPmPromocodeProcessor bonusPromocodeProcessor;
+    private final BonusPromocodeProcessor bonusPromocodeProcessor;
 
     @Autowired
-    public PromocodeProcessorFactory(BonusPmPromocodeProcessor bonusPromocodeProcessor) {
+    public PromocodeProcessorFactory(BonusPromocodeProcessor bonusPromocodeProcessor) {
         this.bonusPromocodeProcessor = bonusPromocodeProcessor;
     }
 
-    public PmPromocodeProcessor getProcessor(PromocodeType type) {
+    public PromocodeProcessor getProcessor(PromocodeType type) {
         switch (type) {
             case BONUS:
                 return bonusPromocodeProcessor;
 
             case GOOGLE:
-                return new GoogleDummyProcessorPm();
-
             case PARTNER:
             default:
-                return null;
+                return new AlwaysErrorPromocodeProcessor();
         }
     }
 }

@@ -7,10 +7,9 @@ import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeTag;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
@@ -28,8 +27,13 @@ public class PromocodeMongoEventListener extends AbstractMongoEventListener<Prom
         super.onAfterConvert(event);
         Promocode promocode = event.getSource();
 
-        List<PromocodeAction> actions = mongoOperations.find(new Query(where("_id").in(promocode.getActionIds())), PromocodeAction.class);
+        promocode.setActions(
+                mongoOperations.find(new Query(where("_id").in(promocode.getActionIds())), PromocodeAction.class)
+        );
 
-        promocode.setActions(actions);
+
+        promocode.setTags(
+                mongoOperations.find(new Query(where("_id").in(promocode.getTagIds())), PromocodeTag.class)
+        );
     }
 }

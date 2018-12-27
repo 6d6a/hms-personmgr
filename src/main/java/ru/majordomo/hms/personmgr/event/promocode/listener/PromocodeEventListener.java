@@ -1,56 +1,55 @@
 package ru.majordomo.hms.personmgr.event.promocode.listener;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import ru.majordomo.hms.personmgr.event.promocode.AccountPromocodeWasCreated;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.PromocodeManager;
+import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
+import ru.majordomo.hms.personmgr.model.promocode.Promocode;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeTag;
+import ru.majordomo.hms.personmgr.service.Rpc.RegRpcClient;
 
-import ru.majordomo.hms.personmgr.event.promocode.PromocodeCleanEvent;
-import ru.majordomo.hms.personmgr.event.promocode.PromocodeImportEvent;
-import ru.majordomo.hms.personmgr.importing.PromocodeDBImportService;
+import java.util.List;
 
 @Component
 public class PromocodeEventListener {
-    private final static Logger logger = LoggerFactory.getLogger(PromocodeEventListener.class);
-
-    private final PromocodeDBImportService promocodeDBImportService;
+    private final PromocodeManager promocodeManager;
+    private final PersonalAccountManager accountManager;
+    private final RegRpcClient regRpcClient;
 
     @Autowired
     public PromocodeEventListener(
-            PromocodeDBImportService promocodeDBImportService
-    ) {
-        this.promocodeDBImportService = promocodeDBImportService;
+            PromocodeManager promocodeManager, PersonalAccountManager accountManager, RegRpcClient regRpcClient) {
+        this.promocodeManager = promocodeManager;
+        this.accountManager = accountManager;
+        this.regRpcClient = regRpcClient;
     }
 
     @EventListener
     @Async("threadPoolTaskExecutor")
-    public void on(PromocodeImportEvent event) {
-        String accountId = event.getSource();
+    public void onTockaBankTag(AccountPromocodeWasCreated event) {
+        AccountPromocode accountPromocode = event.getSource();
 
-        logger.debug("We got PromocodeImportEvent");
+        List<PromocodeTag> tags = promocodeManager.findOne(accountPromocode.getPromocodeId()).getTags();
 
-        try {
-            promocodeDBImportService.importToMongo(accountId);
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Exception in PromocodeImportEvent " + e.getMessage());
+        if (tags.stream().anyMatch(tag -> "tochkaBank".equals(tag.getInternalName()))) {
+            accountManager.setHideGoogleAdWords(accountPromocode.getPersonalAccountId(), true);
         }
     }
 
     @EventListener
     @Async("threadPoolTaskExecutor")
-    public void on(PromocodeCleanEvent event) {
-        String accountId = event.getSource();
+    public void onRegistrantCodeUsed(AccountPromocodeWasCreated event) {
+        AccountPromocode accountPromocode = event.getSource();
 
-        logger.debug("We got PromocodeCleanEvent");
+        Promocode promocode = promocodeManager.findOne(accountPromocode.getPromocodeId());
+        List<PromocodeTag> tags = promocode.getTags();
 
-        try {
-            promocodeDBImportService.clean(accountId);
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Exception in PromocodeCleanEvent " + e.getMessage());
+        if (tags.stream().anyMatch(tag -> "control_registrant".equals(tag.getInternalName()))) {
+            regRpcClient.setPromocodeUsed(promocode.getCode());
         }
     }
 }

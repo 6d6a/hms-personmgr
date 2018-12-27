@@ -2,10 +2,11 @@ package ru.majordomo.hms.personmgr.service.promocode;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.dto.Result;
+import ru.majordomo.hms.personmgr.event.promocode.AccountPromocodeWasCreated;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
-import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
@@ -16,26 +17,25 @@ import ru.majordomo.hms.personmgr.service.promocodeAction.PromocodeActionProcess
 import java.time.LocalDate;
 import java.util.List;
 
-import static ru.majordomo.hms.personmgr.common.Constants.TOCHKA_BANK_PROMOCODE_TAG_ID;
-
 @Slf4j
 @Service
-public class BonusPmPromocodeProcessor implements PmPromocodeProcessor {
+public class BonusPromocodeProcessor implements PromocodeProcessor {
     private final AccountPromocodeRepository accountPromocodeRepository;
     private final AccountHistoryManager history;
     private final PromocodeActionProcessorFactory promocodeActionProcessorFactory;
-    private final PersonalAccountManager accountManager;
+    private final ApplicationEventPublisher publisher;
 
     @Autowired
-    public BonusPmPromocodeProcessor(
+    public BonusPromocodeProcessor(
             AccountPromocodeRepository accountPromocodeRepository,
             AccountHistoryManager history,
             PromocodeActionProcessorFactory promocodeActionProcessorFactory,
-            PersonalAccountManager accountManager) {
+            ApplicationEventPublisher publisher
+    ) {
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.history = history;
         this.promocodeActionProcessorFactory = promocodeActionProcessorFactory;
-        this.accountManager = accountManager;
+        this.publisher = publisher;
     }
 
     @Override
@@ -65,9 +65,7 @@ public class BonusPmPromocodeProcessor implements PmPromocodeProcessor {
 
         AccountPromocode accountPromocode = addAccountPromocode(account, promocode);
 
-        if (promocode.getTagId() != null && promocode.getTagId().equals(TOCHKA_BANK_PROMOCODE_TAG_ID)) {
-            accountManager.setHideGoogleAdWords(account.getId(), true);
-        }
+        publisher.publishEvent(new AccountPromocodeWasCreated(accountPromocode));
 
         log.debug("Processing promocode actions for account: " + account.getName() + " for code: " + accountPromocode.getCode());
 

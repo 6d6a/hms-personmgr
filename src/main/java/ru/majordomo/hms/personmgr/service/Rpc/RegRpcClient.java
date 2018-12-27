@@ -76,4 +76,8 @@ public class RegRpcClient {
     public ClientsLoginResponse loginAsClient(Credentials credentials) {
         return newConnection().loginAsClient(credentials.getLogin(), credentials.getPassword());
     }
+
+    public BaseRpcResponse setPromocodeUsed(String code) {
+        return newConnection().call(BaseRpcResponse.class, "clients.set_promocode_used", code, "hms");
+    }
 }
