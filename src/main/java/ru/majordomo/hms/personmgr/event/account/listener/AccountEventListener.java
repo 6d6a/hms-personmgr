@@ -66,7 +66,7 @@ public class AccountEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountEventListener.class);
 
     private final AccountHelper accountHelper;
-    private final TokenHelper tokenHelper;
+    private final TokenManager tokenManager;
     private final ApplicationEventPublisher publisher;
     private final PlanManager planManager;
     private final AccountPromotionManager accountPromotionManager;
@@ -89,7 +89,7 @@ public class AccountEventListener {
     @Autowired
     public AccountEventListener(
             AccountHelper accountHelper,
-            TokenHelper tokenHelper,
+            TokenManager tokenManager,
             ApplicationEventPublisher publisher,
             PlanManager planManager,
             AccountPromotionManager accountPromotionManager,
@@ -109,7 +109,7 @@ public class AccountEventListener {
             @Value("${delete_data_after_days}") int deleteDataAfterDays
     ) {
         this.accountHelper = accountHelper;
-        this.tokenHelper = tokenHelper;
+        this.tokenManager = tokenManager;
         this.publisher = publisher;
         this.planManager = planManager;
         this.accountPromotionManager = accountPromotionManager;
@@ -208,7 +208,7 @@ public class AccountEventListener {
 
         logger.debug("We got AccountPasswordRecoverEvent");
 
-        String token = tokenHelper.generateToken(account, TokenType.PASSWORD_RECOVERY_REQUEST);
+        String token = tokenManager.generateToken(account, TokenType.PASSWORD_RECOVERY_REQUEST);
 
         String ip = (String) params.get(IP_KEY);
 
@@ -539,10 +539,10 @@ public class AccountEventListener {
 
         logger.debug("We got AccountOwnerChangeEmailEvent\n");
 
-        Token oldToken = tokenHelper.getToken(TokenType.CHANGE_OWNER_EMAILS, account.getId());
-        if (oldToken != null) { tokenHelper.deleteToken(oldToken); }
+        Token oldToken = tokenManager.getToken(TokenType.CHANGE_OWNER_EMAILS, account.getId());
+        if (oldToken != null) { tokenManager.deleteToken(oldToken); }
 
-        String token = tokenHelper.generateToken(account, TokenType.CHANGE_OWNER_EMAILS, params);
+        String token = tokenManager.generateToken(account, TokenType.CHANGE_OWNER_EMAILS, params);
 
         HashMap<String, String> paramsForEmail = new HashMap<>();
         paramsForEmail.put("acc_id", account.getName());
