@@ -11,6 +11,7 @@ import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkResponse;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.TokenManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.token.Token;
 
@@ -26,18 +27,18 @@ import static ru.majordomo.hms.personmgr.common.Constants.PAYMENT_REDIRECT_PATH;
 public class PaymentLinkHelper {
 
     private final FinFeignClient finFeignClient;
-    private final TokenHelper tokenHelper;
+    private final TokenManager tokenManager;
     private final PersonalAccountManager accountManager;
     private final String apiUrl;
 
     @Autowired
     public PaymentLinkHelper(
             FinFeignClient finFeignClient,
-            TokenHelper tokenHelper,
+            TokenManager tokenManager,
             PersonalAccountManager accountManager,
             @Value("${hms.apiUrl}") String apiUrl) {
         this.finFeignClient = finFeignClient;
-        this.tokenHelper = tokenHelper;
+        this.tokenManager = tokenManager;
         this.accountManager = accountManager;
         this.apiUrl = apiUrl;
     }
@@ -46,13 +47,13 @@ public class PaymentLinkHelper {
         Map<String, Object> params = new HashMap<>();
         params.put(AMOUNT_KEY, request.getAmount());
 
-        String tokenId = tokenHelper.generateToken(account, TokenType.PAYMENT_REDIRECT, params);
+        String tokenId = tokenManager.generateToken(account, TokenType.PAYMENT_REDIRECT, params);
 
         return new PaymentLinkResponse(apiUrl + PAYMENT_REDIRECT_PATH + "?token=" + tokenId);
     }
 
     public PaymentLinkResponse createPayment(String tokenId) {
-        Token token = tokenHelper.getToken(tokenId, TokenType.PAYMENT_REDIRECT);
+        Token token = tokenManager.getToken(tokenId, TokenType.PAYMENT_REDIRECT);
 
         if (token == null) {
             throw new ParameterValidationException("Токен не найден");

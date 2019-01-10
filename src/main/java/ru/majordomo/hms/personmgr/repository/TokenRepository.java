@@ -22,4 +22,5 @@ public interface TokenRepository extends MongoRepository<Token, String> {
     Token findByIdAndTypeAndDeletedIsNull(@Param("id") String id, @Param("type") TokenType tokenType);
     Token findByTypeAndDeletedIsNullAndPersonalAccountId(@Param("type") TokenType tokenType, @Param("personalAccountId") String personalAccountId);
     Stream<Token> findByCreatedBeforeOrderByCreatedDateAsc(@Param("created") LocalDateTime createdDate);
+    void deleteByTypeAndCreatedBefore(@Param("type") TokenType type, @Param("created") LocalDateTime created);
 }

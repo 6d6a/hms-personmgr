@@ -36,7 +36,6 @@ import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -44,6 +43,7 @@ import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.feign.SiFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
+import ru.majordomo.hms.personmgr.manager.TokenManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.AccountProperties;
@@ -62,7 +62,6 @@ import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.PlanChange.Factory;
 import ru.majordomo.hms.personmgr.service.PlanChange.Processor;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
-import ru.majordomo.hms.personmgr.service.TokenHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -82,7 +81,7 @@ public class PersonalAccountRestController extends CommonRestController {
     private final RcUserFeignClient rcUserFeignClient;
     private final ApplicationEventPublisher publisher;
     private final AccountHelper accountHelper;
-    private final TokenHelper tokenHelper;
+    private final TokenManager tokenManager;
     private final NotificationRepository notificationRepository;
     private final AccountServiceHelper accountServiceHelper;
     private final Factory planChangeFactory;
@@ -98,7 +97,7 @@ public class PersonalAccountRestController extends CommonRestController {
             RcUserFeignClient rcUserFeignClient,
             ApplicationEventPublisher publisher,
             AccountHelper accountHelper,
-            TokenHelper tokenHelper,
+            TokenManager tokenManager,
             NotificationRepository notificationRepository,
             AccountServiceRepository accountServiceRepository,
             AccountServiceHelper accountServiceHelper,
@@ -113,7 +112,7 @@ public class PersonalAccountRestController extends CommonRestController {
         this.rcUserFeignClient = rcUserFeignClient;
         this.publisher = publisher;
         this.accountHelper = accountHelper;
-        this.tokenHelper = tokenHelper;
+        this.tokenManager = tokenManager;
         this.notificationRepository = notificationRepository;
         this.siFeignClient = siFeignClient;
         this.paymentLinkHelper = paymentLinkHelper;
@@ -259,7 +258,7 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         logger.debug("confirmChangeOwnerEmail httpHeaders: " + httpHeaders.toString());
 
-        Token token = tokenHelper.getToken(tokenId, TokenType.CHANGE_OWNER_EMAILS);
+        Token token = tokenManager.getToken(tokenId, TokenType.CHANGE_OWNER_EMAILS);
 
         if (token == null) {
             throw new ParameterValidationException("Запрос на изменение контактных e-mail адресов не найден или уже выполнен ранее.");
@@ -392,7 +391,7 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         logger.debug("confirmPasswordRecovery httpHeaders: " + httpHeaders.toString());
 
-        Token token = tokenHelper.getToken(tokenId, TokenType.PASSWORD_RECOVERY_REQUEST);
+        Token token = tokenManager.getToken(tokenId, TokenType.PASSWORD_RECOVERY_REQUEST);
 
         if (token == null) {
             throw new ParameterValidationException("Запрос на восстановление пароля не найден или уже выполнен ранее.");
