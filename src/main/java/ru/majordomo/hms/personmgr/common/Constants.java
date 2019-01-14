@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.common;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 import ru.majordomo.hms.rc.user.resources.DomainRegistrar;
@@ -297,14 +298,23 @@ public class Constants {
         OPTIONALLY_FREE_SERVICE_IDS.add(18);
     }
 
-    public static final String[] ACTION_DOMAINS = new String[] {
-            "online",
-            "tech",
-            "store",
-            "fun"
-    };
+    public static final Map<String, BigDecimal> ACTION_DOMAINS_REGISTRATION_COST;
+    static {
+        Map<String, BigDecimal> temp = new HashMap<>();
+        temp.put("shop", new BigDecimal(250L));
+        temp.put("club", new BigDecimal(145L));
+        ACTION_DOMAINS_REGISTRATION_COST = Collections.unmodifiableMap(temp);
+    }
 
-    public static final String ACTION_DOMAIN_START_DATE = "2019-01-01 00:00:00";
+    public static final Map<String, BigDecimal> ACTION_DOMAINS_RENEW_COST;
+    static {
+        Map<String, BigDecimal> temp = new HashMap<>();
+        temp.put("shop", new BigDecimal(3500L));
+        temp.put("club", new BigDecimal(1500L));
+        ACTION_DOMAINS_RENEW_COST = Collections.unmodifiableMap(temp);
+    }
+
+    public static final String ACTION_DOMAIN_START_DATE = "2019-01-14 00:00:00";
     public static final String ACTION_DOMAIN_END_DATE = "2018-11-30 23:59:59";
 
     public static final String[] RU_RF_DOMAINS = new String[] {
