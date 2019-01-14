@@ -46,32 +46,12 @@ public class DomainTldMongoEventListener extends AbstractMongoEventListener<Doma
         LocalDateTime endDate = LocalDateTime.parse(ACTION_DOMAIN_END_DATE, formatter);
 
         if (now.isAfter(startDate)) {
-            if (Arrays.asList(ACTION_DOMAINS).contains(domainTld.getTld())) {
-                domainTld.getRegistrationService().setCost(BigDecimal.valueOf(145L));
+            if (ACTION_DOMAINS_REGISTRATION_COST.containsKey(domainTld.getTld())) {
+                domainTld.getRegistrationService().setCost(ACTION_DOMAINS_REGISTRATION_COST.get(domainTld.getTld()));
             }
 
-            switch (domainTld.getTld()) {
-                case "online":
-                    domainTld.getRenewService().setCost(BigDecimal.valueOf(2250L));
-                    break;
-                case "tech":
-                    domainTld.getRenewService().setCost(BigDecimal.valueOf(3050L));
-                    break;
-                case "store":
-                    domainTld.getRenewService().setCost(BigDecimal.valueOf(3850L));
-                    break;
-                case "fun":
-                    domainTld.getRenewService().setCost(BigDecimal.valueOf(2200L));
-                    break;
-                case "site":
-                    domainTld.getRenewService().setCost(BigDecimal.valueOf(2600L));
-                    break;
-                case "website":
-                    domainTld.getRenewService().setCost(BigDecimal.valueOf(2250L));
-                    break;
-                case "space":
-                    domainTld.getRenewService().setCost(BigDecimal.valueOf(2250L));
-                    break;
+            if (ACTION_DOMAINS_RENEW_COST.containsKey(domainTld.getTld())) {
+                domainTld.getRenewService().setCost(ACTION_DOMAINS_RENEW_COST.get(domainTld.getTld()));
             }
         }
     }
