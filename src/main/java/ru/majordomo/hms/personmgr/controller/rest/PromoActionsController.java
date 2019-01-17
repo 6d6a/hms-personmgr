@@ -85,7 +85,7 @@ public class PromoActionsController {
             throw new ParameterValidationException("Следующие домены уже участвовали в акции: " + domains);
         }
 
-        BigDecimal balance = accountHelper.getBalanceByType(accountId, "REAL");
+        BigDecimal balance = accountHelper.getBalance(account);
 
         if (balance.compareTo(googleAdsActionConfig.getMinAmount()) < 0) {
             BigDecimal require = googleAdsActionConfig.getMinAmount().subtract(balance);
