@@ -189,7 +189,7 @@ public class AccountHelper {
         return getBalanceByType(personalAccountId, "PARTNER");
     }
 
-    private BigDecimal getBalanceByType(String accountId, String type) {
+    public BigDecimal getBalanceByType(String accountId, String type) {
         Map<String, Object> balance = null;
 
         try {
