@@ -1,12 +1,13 @@
 package ru.majordomo.hms.personmgr.model.cart;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.data.annotation.Transient;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -36,6 +37,7 @@ public class DomainCartItem implements CartItem {
     private DomainCartItemStrategy strategy;
 
     @Transient
+    @JsonIgnore
     private BigDecimal price;
 
     @Transient
@@ -95,6 +97,7 @@ public class DomainCartItem implements CartItem {
     }
 
     @Override
+    @JsonProperty
     public BigDecimal getPrice() {
         if (strategy != null) {
             if (price == null) {
@@ -103,6 +106,11 @@ public class DomainCartItem implements CartItem {
         }
 
         return price;
+    }
+
+    @JsonIgnore
+    public void setPrice(BigDecimal price) {
+        this.price = price;
     }
 
     @Override
