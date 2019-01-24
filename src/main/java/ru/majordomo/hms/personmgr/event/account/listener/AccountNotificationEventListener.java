@@ -135,7 +135,7 @@ public class AccountNotificationEventListener {
             PersonalAccount account = personalAccountManager.findOne(cart.getPersonalAccountId());
             if (account.hasNotification(EMAIL_NEWS)) {
 
-                int daysAfterCartLastUpdate = Utils.getDifferentInDaysBetweenDates(
+                int daysAfterCartLastUpdate = Utils.differenceInDays(
                         cart.getUpdateDateTime().toLocalDate(),
                         LocalDate.now()
                 );
@@ -171,7 +171,7 @@ public class AccountNotificationEventListener {
     public void onAccountSendInfoMailEvent(AccountSendInfoMailEvent event) {
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
-        int accountAgeInDays = Utils.getDifferentInDaysBetweenDates(account.getCreated().toLocalDate(), LocalDate.now());
+        int accountAgeInDays = Utils.differenceInDays(account.getCreated().toLocalDate(), LocalDate.now());
 
         String apiName = null;
 
@@ -312,7 +312,7 @@ public class AccountNotificationEventListener {
 
         List<Integer> daysAgo = Arrays.asList(1, 3, 5, 10, 15, 20);
         LocalDate dateAccountDisableByNotEnoughMoney = accountStat.getCreated().toLocalDate();
-        Integer daysDifferent = Utils.getDifferentInDaysBetweenDates(dateAccountDisableByNotEnoughMoney, LocalDate.now());
+        Integer daysDifferent = Utils.differenceInDays(dateAccountDisableByNotEnoughMoney, LocalDate.now());
 
         if (daysAgo.contains(daysDifferent)) {
             accountNotificationHelper.sendMailForDeactivatedAccount(account, dateAccountDisableByNotEnoughMoney);
@@ -454,7 +454,7 @@ public class AccountNotificationEventListener {
         bitrixLicenseOrderManager.findAll(predicate)
                 .stream()
                 .filter(order -> daysForNotify.contains(
-                        Utils.getDifferentInDaysBetweenDates(
+                        Utils.differenceInDays(
                                 LocalDate.now(),
                                 order.getUpdated().toLocalDate().plusYears(1)
                 )))

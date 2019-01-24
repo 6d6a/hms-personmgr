@@ -51,14 +51,8 @@ import ru.majordomo.hms.personmgr.service.promocodeAction.PaymentPercentBonusAct
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
-import static ru.majordomo.hms.personmgr.common.Constants.AMOUNT_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.CREDIT_PAYMENT_TYPE_KIND;
-import static ru.majordomo.hms.personmgr.common.Constants.FREE_DOMAIN_PROMOTION;
-import static ru.majordomo.hms.personmgr.common.Constants.IP_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.PASSWORD_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.PLAN_START_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.REAL_PAYMENT_TYPE_KIND;
-import static ru.majordomo.hms.personmgr.common.Constants.TECHNICAL_SUPPORT_EMAIL;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
+import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT;
 import static ru.majordomo.hms.personmgr.common.Utils.getBigDecimalFromUnexpectedInput;
 
 @Component
@@ -160,6 +154,18 @@ public class AccountEventListener {
 
         accountNoticeRepository.save(notification);
         logger.debug("InfoBannerAccountNotice saved: " + notification.toString());
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void addPromotions(AccountCreatedEvent event) {
+        PersonalAccount account = event.getSource();
+
+        Promotion promotion = promotionRepository.findByName(DOMAIN_DISCOUNT_RU_RF);
+
+        for (int i = 1; i <= promotion.getLimitPerAccount(); i++) {
+            accountHelper.giveGift(account, promotion);
+        }
     }
 
     @EventListener

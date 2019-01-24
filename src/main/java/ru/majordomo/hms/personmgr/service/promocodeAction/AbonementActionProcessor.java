@@ -14,9 +14,13 @@ import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+
+import static ru.majordomo.hms.personmgr.common.Utils.differenceInDays;
 
 @Slf4j
 @Service
@@ -27,6 +31,7 @@ public class AbonementActionProcessor implements PromocodeActionProcessor {
     private final AccountHistoryManager history;
     private final AbonementService abonementService;
     private final AccountPromocodeRepository accountPromocodeRepository;
+    private final AccountServiceHelper accountServiceHelper;
 
     @Autowired
     public AbonementActionProcessor(
@@ -34,36 +39,50 @@ public class AbonementActionProcessor implements PromocodeActionProcessor {
             AccountHelper accountHelper,
             AccountHistoryManager history,
             AbonementService abonementService,
-            AccountPromocodeRepository accountPromocodeRepository
-    ) {
+            AccountPromocodeRepository accountPromocodeRepository,
+            AccountServiceHelper accountServiceHelper) {
         this.planManager = planManager;
         this.accountHelper = accountHelper;
         this.history = history;
         this.abonementService = abonementService;
         this.accountPromocodeRepository = accountPromocodeRepository;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     @Override
     public Result process(PersonalAccount account, PromocodeAction action, String code) {
         log.debug("Processing promocode SERVICE_ABONEMENT codeAction: " + action.toString());
 
-        Plan plan = planManager.findOne(account.getPlanId());
+        Plan currentPlan = planManager.findOne(account.getPlanId());
 
         String serviceId = action.getProperties().get("serviceId").toString();
 
-        if (!serviceId.equals(plan.getServiceId())) {
-            Plan required = planManager.findByServiceId(serviceId);
-            return Result.error("Для использования акции необходимо сменить тариф на " + required.getName());
+        Plan requiredPlan = planManager.findByServiceId(serviceId);
+
+        boolean needChangePlan = !requiredPlan.getId().equals(currentPlan.getId());
+        boolean nowIsDayOfRegistration = differenceInDays(account.getCreated().toLocalDate(), LocalDate.now()) == 0;
+
+        if (needChangePlan && !nowIsDayOfRegistration) {
+            return Result.error("Для использования акции необходимо сменить тариф на " + requiredPlan.getName());
         }
 
         String period = action.getProperties().get("period").toString();
         // Ищем соответствующий abonementId по периоду и плану
-        Optional<Abonement> abonementOptional = plan.getAbonements().stream()
+        Optional<Abonement> abonementOptional = requiredPlan.getAbonements().stream()
                 .filter(a -> a.getPeriod().equals(period))
                 .findFirst();
 
         if (!abonementOptional.isPresent()) {
-            return Result.gotException("Не найден абонемент с тарифом " + plan.getName() + " и периодом " + period);
+            return Result.gotException("Не найден абонемент с тарифом " + requiredPlan.getName() + " и периодом " + period);
+        }
+
+        if (needChangePlan) {
+            accountHelper.setPlanId(account.getId(), requiredPlan.getId());
+            account.setPlanId(requiredPlan.getId());
+            accountServiceHelper.deleteAccountServiceByServiceId(account, currentPlan.getServiceId());
+            accountServiceHelper.addAccountService(account, requiredPlan.getServiceId());
+            history.save(account, "Тариф изменён с " + currentPlan.getName() + " на " + requiredPlan.getName()
+                    + " для применения промокода " + code);
         }
 
         Abonement abonement = abonementOptional.get();
