@@ -22,7 +22,6 @@ import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -224,7 +223,7 @@ public class ArchivalPlanProcessor {
                         currentPlan.getName(),
                         newPlan.getName(),
                         newPlan.getService().getCost().subtract(currentPlan.getService().getCost()),
-                        account.getDeactivated() == null ? "null" : Utils.getDifferentInDaysBetweenDates(account.getDeactivated().toLocalDate(), LocalDate.now())
+                        account.getDeactivated() == null ? "null" : Utils.differenceInDays(account.getDeactivated().toLocalDate(), LocalDate.now())
                 );
                 result.append(message).append("\n");
             } catch (Throwable e) {

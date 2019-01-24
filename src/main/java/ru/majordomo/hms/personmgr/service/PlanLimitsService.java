@@ -70,6 +70,10 @@ public class PlanLimitsService {
         return planProperties.getFtpLimit().getLimit();
     }
 
+    public Long getQuotaBytesFreeLimit(Plan plan) {
+        return getQuotaKBFreeLimit(plan) * 1024;
+    }
+
     public Long getQuotaKBFreeLimit(Plan plan) {
         VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
 

@@ -140,7 +140,7 @@ public class Utils {
      * @param endDate
      * @return
      */
-    public static int getDifferentInDaysBetweenDates(LocalDate startDate, LocalDate endDate) {
+    public static int differenceInDays(LocalDate startDate, LocalDate endDate) {
         return ((Long) ChronoUnit.DAYS.between(startDate, endDate)).intValue();
     }
 

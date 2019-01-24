@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.dto.Result;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.PromocodeManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promocode.UnknownPromocode;
 import ru.majordomo.hms.personmgr.repository.UnknownPromocodeRepository;
@@ -27,6 +29,7 @@ public class PromocodeService {
     private final PromocodeProcessorFactory promocodeProcessorFactory;
     private final PartnerPromocodeProcessor partnerPromocodeProcessor;
     private final YandexPromocodeProcessor yandexPromocodeProcessor;
+    private final PersonalAccountManager accountManager;
 
     @Autowired
     public PromocodeService(
@@ -35,7 +38,8 @@ public class PromocodeService {
             PromocodeManager promocodeManager,
             PromocodeProcessorFactory promocodeProcessorFactory,
             PartnerPromocodeProcessor partnerPromocodeProcessor,
-            YandexPromocodeProcessor yandexPromocodeProcessor
+            YandexPromocodeProcessor yandexPromocodeProcessor,
+            PersonalAccountManager accountManager
     ) {
         this.unknownPromocodeRepository = unknownPromocodeRepository;
         this.history = history;
@@ -43,27 +47,46 @@ public class PromocodeService {
         this.promocodeProcessorFactory = promocodeProcessorFactory;
         this.partnerPromocodeProcessor = partnerPromocodeProcessor;
         this.yandexPromocodeProcessor = yandexPromocodeProcessor;
+        this.accountManager = accountManager;
     }
 
-    public void processRegistration(PersonalAccount account, String code, Map<String, Object> params) {
-        log.debug("We got promocode '" + code + "'. Try to process it");
-        code = code.trim();
+    public void processRegistration(ProcessingBusinessOperation operation) {
+        try {
+            String code = operation.getParam("promocode") != null
+                    ? operation.getParam("promocode").toString().trim()
+                    : "";
 
-        //Сначала нужно обработать коды яндекса
-        if (params.get("clickId") != null && !params.get("clickId").toString().isEmpty()) {
-            Result yandexResult = yandexPromocodeProcessor.process(account, code, params.get("clickId").toString());
-            if (yandexResult.isSuccess()) {
-                history.save(account, "Промокод " + code + " успешно обработан как промокод яндекса");
+            if (code.isEmpty()) {
                 return;
             }
-        }
 
-        Result partnerResult = partnerPromocodeProcessor.process(account, code);
+            log.debug("We got promocode '" + code + "'. Try to process it");
 
-        if (partnerResult.isSuccess()) {
-            log.info("account id " + account.getId() + "promocode " + code + " was process as partner");
-        } else {
-            processPmPromocode(account, code);
+            PersonalAccount account = accountManager.findOne(operation.getPersonalAccountId());
+
+            Map<String, Object> params = operation.getParams();
+
+            //Сначала нужно обработать коды яндекса
+            if (params.get("clickId") != null && !params.get("clickId").toString().isEmpty()) {
+                Result yandexResult = yandexPromocodeProcessor.process(account, code, params.get("clickId").toString());
+                if (yandexResult.isSuccess()) {
+                    history.save(account, "Промокод " + code + " успешно обработан как промокод яндекса");
+                    return;
+                }
+            }
+
+            Result partnerResult = partnerPromocodeProcessor.process(account, code);
+
+            if (partnerResult.isSuccess()) {
+                log.info("account id " + account.getId() + "promocode " + code + " was process as partner");
+            } else {
+                processPmPromocode(account, code);
+            }
+        } catch (Exception e) {
+            log.error(
+                    "Can't process registration promocode e: {} message: {}, operation: {}",
+                    e.getClass(), e.getMessage(), operation.toString()
+            );
         }
     }
 

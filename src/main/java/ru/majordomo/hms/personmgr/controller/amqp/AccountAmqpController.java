@@ -14,15 +14,13 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
-import ru.majordomo.hms.personmgr.model.promotion.Promotion;
-import ru.majordomo.hms.personmgr.repository.PromotionRepository;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.service.*;
 
-import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF;
-import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.ACCOUNT_CREATE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.ACCOUNT_DELETE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.ACCOUNT_UPDATE;
@@ -33,8 +31,8 @@ public class AccountAmqpController extends CommonAmqpController {
     private final PromocodeService promocodeService;
     private final AbonementService abonementService;
     private final AbonementManager<AccountAbonement> accountAbonementManager;
-    private final PromotionRepository promotionRepository;
-    private final AccountHelper accountHelper;
+    private final PlanManager planManager;
+    private final PlanLimitsService planLimitsService;
 
     @Autowired
     public AccountAmqpController(
@@ -42,14 +40,15 @@ public class AccountAmqpController extends CommonAmqpController {
             PromocodeService promocodeService,
             AbonementService abonementService,
             AbonementManager<AccountAbonement> accountAbonementManager,
-            PromotionRepository promotionRepository,
-            AccountHelper accountHelper) {
+            PlanManager planManager,
+            PlanLimitsService planLimitsService
+    ) {
         this.businessHelper = businessHelper;
         this.promocodeService = promocodeService;
         this.abonementService = abonementService;
         this.accountAbonementManager = accountAbonementManager;
-        this.promotionRepository = promotionRepository;
-        this.accountHelper = accountHelper;
+        this.planManager = planManager;
+        this.planLimitsService = planLimitsService;
         resourceName = "аккаунт";
     }
 
@@ -77,15 +76,9 @@ public class AccountAmqpController extends CommonAmqpController {
                 case "fin":
                     if (state == State.PROCESSED) {
                         if (businessOperation != null) {
-                            PersonalAccount account = accountManager.findOne(message.getAccountId());
+                            promocodeService.processRegistration(businessOperation);
 
-                            if (businessOperation.getParam("promocode") != null) {
-                                promocodeService.processRegistration(
-                                        account,
-                                        businessOperation.getParam("promocode").toString(),
-                                        businessOperation.getParams()
-                                );
-                            }
+                            PersonalAccount account = accountManager.findOne(message.getAccountId());
 
                             //Пробный период 14 дней - начисляем бонусный абонемент
                             AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
@@ -93,11 +86,14 @@ public class AccountAmqpController extends CommonAmqpController {
                                 abonementService.addFree14DaysAbonement(account);
                             }
 
-                            addPromoAfterRegistered(account);
-
                             if (businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
+                                //После применения промокода может быть изменен тариф
+                                Plan plan = planManager.findOne(account.getPlanId());
+                                Long quota = planLimitsService.getQuotaBytesFreeLimit(plan);
+
                                 message.setParams(businessOperation.getParams());
-                                message.addParam("quota", (Long) businessOperation.getParams().get("quota") * 1024);
+                                message.addParam("quota", quota);
+
                                 businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
                                 history.save(account, "Заявка на первичное создание UNIX-аккаунта отправлена (имя: " + message.getParam("name") + ")");
                             }
@@ -129,13 +125,5 @@ public class AccountAmqpController extends CommonAmqpController {
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
         State state = businessFlowDirector.processMessage(message);
-    }
-
-    private void addPromoAfterRegistered(PersonalAccount account) {
-        //Три домена RU и РФ по 49 рублей
-        Promotion promotion = promotionRepository.findByName(DOMAIN_DISCOUNT_RU_RF);
-        for (int i = 1; i <= DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT; i++) {
-            accountHelper.giveGift(account, promotion);
-        }
     }
 }

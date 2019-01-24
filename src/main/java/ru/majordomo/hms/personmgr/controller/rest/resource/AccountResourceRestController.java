@@ -53,7 +53,6 @@ public class AccountResourceRestController extends CommonRestController {
     private final PlanRepository planRepository;
     private final AccountServiceRepository accountServiceRepository;
     private final AccountOwnerManager accountOwnerManager;
-    private final PlanLimitsService planLimitsService;
     private final SiFeignClient siFeignClient;
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountTransferService accountTransferService;
@@ -65,7 +64,6 @@ public class AccountResourceRestController extends CommonRestController {
             PlanRepository planRepository,
             AccountServiceRepository accountServiceRepository,
             AccountOwnerManager accountOwnerManager,
-            PlanLimitsService planLimitsService,
             SiFeignClient siFeignClient,
             RcUserFeignClient rcUserFeignClient,
             AccountTransferService accountTransferService
@@ -75,7 +73,6 @@ public class AccountResourceRestController extends CommonRestController {
         this.planRepository = planRepository;
         this.accountServiceRepository = accountServiceRepository;
         this.accountOwnerManager = accountOwnerManager;
-        this.planLimitsService = planLimitsService;
         this.siFeignClient = siFeignClient;
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountTransferService = accountTransferService;
@@ -138,8 +135,6 @@ public class AccountResourceRestController extends CommonRestController {
         createAccountService(personalAccount, plan);
 
         //Сохраним в мессагу квоту по тарифу
-        Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
-        message.addParam("quota", planQuotaKBFreeLimit);
         message.setAccountId(personalAccount.getId());
         message.addParam("username", personalAccount.getName());
         message.addParam(PASSWORD_KEY, password);

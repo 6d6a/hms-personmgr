@@ -581,7 +581,7 @@ public class AccountNotificationHelper {
             LocalDateTime creditActivationDate = account.getCreditActivationDate();
             if (creditActivationDate == null) { creditActivationDate = LocalDateTime.now(); }
             LocalDate maxCreditActivationDate = LocalDateTime.now().minus(Period.parse(account.getCreditPeriod())).toLocalDate();
-            remainingDays = Utils.getDifferentInDaysBetweenDates(maxCreditActivationDate, creditActivationDate.toLocalDate());
+            remainingDays = Utils.differenceInDays(maxCreditActivationDate, creditActivationDate.toLocalDate());
         }
         return remainingDays;
     }
