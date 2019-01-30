@@ -57,6 +57,7 @@ public class Constants {
     public static final String EMAIL_KEY = "email";
     public static final String PRIORITY_KEY = "priority";
     public static final String PARAMETRS_KEY = "parametrs";
+    public static final String SEND_ONLY_TO_ACTIVE_KEY = "send_only_to_active";
     public static final String API_NAME_KEY = "api_name";
     public static final String SERVICE_NAME_KEY = "serviceName";
     public static final String DOMAINS_KEY = "domains";
