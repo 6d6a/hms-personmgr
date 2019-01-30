@@ -291,8 +291,7 @@ public class AccountAbonementRestController extends CommonRestController {
 
         AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
 
-        if (currentAccountAbonement != null && !currentAccountAbonement.getAbonement().getPeriod().equals("P14D")
-        ) {
+        if (currentAccountAbonement != null && !currentAccountAbonement.getAbonement().isInternal()) {
             throw new ParameterValidationException("Нельзя купить абонемент при наличии другого абонемента");
         }
 
