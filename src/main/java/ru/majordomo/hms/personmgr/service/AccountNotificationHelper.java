@@ -114,6 +114,10 @@ public class AccountNotificationHelper {
             throw  new ParameterValidationException(this.getClass().getSimpleName() + " Отсутствуют необходимые параметры params " + message);
         }
 
+        if (params.containsKey(SEND_ONLY_TO_ACTIVE_KEY) && (boolean) params.get(SEND_ONLY_TO_ACTIVE_KEY) && (!account.isActive() || account.getDeleted() != null)) {
+            return;
+        }
+
         Map<String, String> paramsForMailManager;
 
         if (params.containsKey(PARAMETRS_KEY) && params.get(PARAMETRS_KEY) != null) {
