@@ -117,4 +117,7 @@ public interface RcUserFeignClient {
 
     @GetMapping(value = "/stat/account-id-and-field/{resource}/{fieldName}", consumes = "application/json")
     Map<String, String> getAccountIdAndField(@PathVariable("resource") String resource, @PathVariable("fieldName") String fieldName);
+
+    @GetMapping(value = "/{accountId}/domain/get-dns-record/{recordId}", consumes = "application/json")
+    DNSResourceRecord getRecord(@PathVariable("accountId") String accountId, @PathVariable("recordId") String recordId);
 }
