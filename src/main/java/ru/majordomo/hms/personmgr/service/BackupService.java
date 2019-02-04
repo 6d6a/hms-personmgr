@@ -164,6 +164,22 @@ public class BackupService {
         return resticClient.getFileSnapshots(unixAccount.getHomeDir(), server.getName());
     }
 
+    public List<Snapshot> getFileSnapshotsWithRetry(PersonalAccount account) {
+
+        List<Snapshot> allFileSnapshots = getFileSnapshots(account);
+
+        int retry = 5;
+        while (allFileSnapshots.isEmpty() && retry-- > 0) {
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException ignore) {}
+
+            allFileSnapshots = getDbSnapshots(account);
+        }
+
+        return allFileSnapshots;
+    }
+
     public SimpleServiceMessage restoreFileBackup(
             PersonalAccount account,
             FileRestoreRequest restoreRequest,
@@ -451,7 +467,15 @@ public class BackupService {
             return;
         }
 
-        List<Snapshot> allFileSnapshots = getFileSnapshots(account);
+        boolean snapshotsMustExists = deactivated.isAfter(LocalDateTime.now().minusDays(31));
+
+        List<Snapshot> allFileSnapshots;
+
+        if (snapshotsMustExists) {
+            allFileSnapshots = getFileSnapshotsWithRetry(account);
+        } else {
+            allFileSnapshots = getFileSnapshots(account);
+        }
 
         List<Snapshot> inactiveTimeFileSnapshots = getSnapshotsBetween(
                 allFileSnapshots, dataWillBeDeletedAfter, deactivated.toLocalDate());
