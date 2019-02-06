@@ -47,7 +47,8 @@ public class DomainAmqpController extends CommonAmqpController {
 
         try {
             State state = businessFlowDirector.processMessage(message);
-            ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+            ProcessingBusinessAction businessAction =
+                    processingBusinessActionRepository.findById(message.getActionIdentity()).orElse(null);
 
             if (businessAction == null) {
                 return;
@@ -97,7 +98,8 @@ public class DomainAmqpController extends CommonAmqpController {
                 return;
             }
 
-            ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+            ProcessingBusinessAction businessAction = processingBusinessActionRepository
+                    .findById(message.getActionIdentity()).orElse(null);
 
             if (businessAction == null) {
                 logger.error("Не найден ProcessingBusinessAction с actionIdentity " + message.getActionIdentity());

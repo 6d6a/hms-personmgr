@@ -13,6 +13,7 @@ import org.springframework.amqp.rabbit.retry.RepublishMessageRecoverer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.handler.annotation.support.DefaultMessageHandlerMethodFactory;
 import org.springframework.retry.interceptor.RetryOperationsInterceptor;
@@ -62,11 +63,12 @@ public class RabbitMqConfig implements RabbitListenerConfigurer {
 
     public void configureRabbitListeners(
             RabbitListenerEndpointRegistrar registrar) {
-        registrar.setMessageHandlerMethodFactory(myHandlerMethodFactory());
+        registrar.setMessageHandlerMethodFactory(messageHandlerMethodFactory());
     }
 
     @Bean
-    public DefaultMessageHandlerMethodFactory myHandlerMethodFactory() {
+    @Primary
+    public DefaultMessageHandlerMethodFactory messageHandlerMethodFactory() {
         DefaultMessageHandlerMethodFactory factory = new DefaultMessageHandlerMethodFactory();
         factory.setMessageConverter(new MappingJackson2MessageConverter());
         return factory;

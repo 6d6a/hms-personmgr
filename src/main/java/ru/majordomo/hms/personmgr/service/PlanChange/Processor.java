@@ -13,6 +13,7 @@ import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
@@ -23,7 +24,6 @@ import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.*;
 
 import java.math.BigDecimal;
@@ -55,7 +55,7 @@ public abstract class Processor {
     private ApplicationEventPublisher publisher;
     private AccountHistoryManager history;
     private FinFeignClient finFeignClient;
-    private PlanRepository planRepository;
+    private PlanManager planManager;
     private ResourceNormalizer resourceNormalizer;
 
     protected final PersonalAccount account;
@@ -86,7 +86,7 @@ public abstract class Processor {
             AccountServiceHelper accountServiceHelper,
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher,
-            PlanRepository planRepository,
+            PlanManager planManager,
             ResourceNormalizer resourceNormalizer
     ) {
         this.finFeignClient = finFeignClient;
@@ -101,12 +101,12 @@ public abstract class Processor {
         this.accountServiceHelper = accountServiceHelper;
         this.accountHelper = accountHelper;
         this.publisher = publisher;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.resourceNormalizer = resourceNormalizer;
     }
 
     void postConstruct() {
-        this.currentPlan = planRepository.findOne(account.getPlanId());
+        this.currentPlan = planManager.findOne(account.getPlanId());
         this.currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
         this.cashBackAmount = calcCashBackAmount();
         this.newAbonementRequired = needToAddAbonement();

@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -19,7 +20,6 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.LongLifeResourceArchive;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.LongLifeResourceArchiveRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.service.JongoManager;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
@@ -32,7 +32,7 @@ public class AccountCheckingService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final PersonalAccountManager personalAccountManager;
     private final AbonementManager<AccountAbonement> accountAbonementManager;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
     private final AccountServiceHelper accountServiceHelper;
     private final JongoManager jongoManager;
     private final LongLifeResourceArchiveRepository longLifeResourceArchiveRepository;
@@ -42,7 +42,7 @@ public class AccountCheckingService {
     public AccountCheckingService(
             PersonalAccountManager personalAccountManager,
             AbonementManager<AccountAbonement> accountAbonementManager,
-            PlanRepository planRepository,
+            PlanManager planManager,
             AccountServiceHelper accountServiceHelper,
             JongoManager jongoManager,
             LongLifeResourceArchiveRepository longLifeResourceArchiveRepository,
@@ -51,7 +51,7 @@ public class AccountCheckingService {
     ) {
         this.personalAccountManager = personalAccountManager;
         this.accountAbonementManager = accountAbonementManager;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.accountServiceHelper = accountServiceHelper;
         this.jongoManager = jongoManager;
         this.longLifeResourceArchiveRepository = longLifeResourceArchiveRepository;
@@ -78,7 +78,7 @@ public class AccountCheckingService {
 //    @Scheduled(initialDelay = 10000, fixedDelay = 6000000)
     public void doShit() {
         logger.info("[doShit] Started");
-        List<Plan> plans = planRepository.findAll();
+        List<Plan> plans = planManager.findAll();
         plans.parallelStream()
                 .filter(plan -> {
                     VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
@@ -153,7 +153,7 @@ public class AccountCheckingService {
             return;
         }
 
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         if (currentAccountAbonement.getExpired() != null
                 && currentAccountAbonement.getExpired().isAfter(LocalDateTime.now())) {
@@ -169,7 +169,7 @@ public class AccountCheckingService {
         AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
 
         if (currentAccountAbonement == null) {
-            Plan plan = planRepository.findOne(account.getPlanId());
+            Plan plan = planManager.findOne(account.getPlanId());
 
             if (!accountServiceHelper.accountHasService(account, plan.getServiceId())) {
                 logger.info("[checkAccountsWithoutServices] Not found Plan service for account: "

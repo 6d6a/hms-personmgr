@@ -11,6 +11,7 @@ import java.util.List;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.message.destination.MailManagerMessageDestination;
 import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestination;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.model.business.BusinessAction;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
 
@@ -18,6 +19,7 @@ import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
  * Сервис для загрузки первичных данных в БД
  */
 @Service
+@ImportProfile
 public class BusinessActionDBSeedService {
     private final static Logger logger = LoggerFactory.getLogger(BusinessActionDBSeedService.class);
 

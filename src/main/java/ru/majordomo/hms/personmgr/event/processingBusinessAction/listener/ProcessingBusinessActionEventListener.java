@@ -35,11 +35,10 @@ public class ProcessingBusinessActionEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void onCleanProcessingBusinessAction(ProcessingBusinessActionCleanEvent event) {
-        ProcessingBusinessAction action = processingBusinessActionRepository.findOne(event.getSource());
-
-        logger.debug("We got ProcessingBusinessActionCleanEvent");
-
-        businessFlowDirector.processClean(action);
+        processingBusinessActionRepository.findById(event.getSource()).ifPresent(action -> {
+            logger.debug("We got ProcessingBusinessActionCleanEvent");
+            businessFlowDirector.processClean(action);
+        });
     }
 
     @EventListener

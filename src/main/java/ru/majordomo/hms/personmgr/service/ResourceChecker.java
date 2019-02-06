@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.service;
 
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -9,12 +8,13 @@ import java.util.Set;
 
 import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.feign.RcStaffFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.staff.resources.Server;
 import ru.majordomo.hms.rc.staff.resources.Service;
 import ru.majordomo.hms.rc.user.resources.WebSite;
@@ -27,16 +27,16 @@ import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_ID_KEY;
 public class ResourceChecker {
     private final RcUserFeignClient rcUserFeignClient;
     private final RcStaffFeignClient rcStaffFeignClient;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
 
     public ResourceChecker(
             RcUserFeignClient rcUserFeignClient,
             RcStaffFeignClient rcStaffFeignClient,
-            PlanRepository planRepository
+            PlanManager planManager
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
     }
 
     public void checkResource(PersonalAccount account, ResourceType resourceType, Map<String, Object> resource) {
@@ -94,7 +94,7 @@ public class ResourceChecker {
             throw new ParameterValidationException("Список сервисов вебсайтов для сервера " + webSiteServer.getId() + " пуст");
         }
 
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         if (plan == null) {
             throw new ResourceNotFoundException("Тарифный план аккаунта не найден");
@@ -116,7 +116,7 @@ public class ResourceChecker {
     }
 
     private void checkSSLCertificate(PersonalAccount account) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         if (!plan.isSslCertificateAllowed()) {
             throw new ParameterValidationException("На вашем тарифном плане заказ SSL сертификатов недоступен");
@@ -124,7 +124,7 @@ public class ResourceChecker {
     }
 
     private void checkMailbox(PersonalAccount account) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         if (!plan.isMailboxAllowed()) {
             throw new ParameterValidationException("На вашем тарифном плане добавление почтовых ящиков недоступно");
@@ -132,7 +132,7 @@ public class ResourceChecker {
     }
 
     private void checkDatabase(PersonalAccount account) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         if (!plan.isDatabaseAllowed()) {
             throw new ParameterValidationException("На вашем тарифном плане добавление баз данных недоступно");
@@ -140,7 +140,7 @@ public class ResourceChecker {
     }
 
     private void checkDatabaseUser(PersonalAccount account) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         if (!plan.isDatabaseUserAllowed()) {
             throw new ParameterValidationException("На вашем тарифном плане добавление пользователей баз данных недоступно");

@@ -10,9 +10,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.cloud.sleuth.Tracer;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -26,11 +24,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
-import ru.majordomo.hms.personmgr.config.AppConfigTest;
-import ru.majordomo.hms.personmgr.config.MongoConfigTest;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.manager.impl.PersonalAccountManagerImpl;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanPropertyLimit;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
@@ -77,6 +73,9 @@ public class PlanRestControllerTest {
     @MockBean(name="planBuilder")
     private PlanBuilder planBuilder;
 
+    @MockBean(name="planManager")
+    private PlanManager planManager;
+
     @MockBean(name="accountManager")
     private PersonalAccountManager accountManager;
 
@@ -88,9 +87,6 @@ public class PlanRestControllerTest {
 
     @MockBean(name = "resourceChecker")
     private ResourceChecker resourceChecker;
-
-    @MockBean
-    private Tracer tracer;
 
     @Before
     public void setUp() throws Exception {

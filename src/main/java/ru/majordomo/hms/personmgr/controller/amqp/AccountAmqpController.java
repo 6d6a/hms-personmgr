@@ -62,7 +62,10 @@ public class AccountAmqpController extends CommonAmqpController {
         try {
             State state = businessFlowDirector.processMessage(message);
 
-            ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
+            ProcessingBusinessOperation businessOperation =
+                    processingBusinessOperationRepository
+                            .findById(message.getOperationIdentity())
+                            .orElse(null);
 
             switch (realProviderName) {
                 case "si":

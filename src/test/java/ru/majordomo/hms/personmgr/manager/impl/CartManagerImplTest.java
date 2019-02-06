@@ -9,7 +9,6 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -29,6 +28,7 @@ import ru.majordomo.hms.personmgr.common.message.destination.AmqpMessageDestinat
 import ru.majordomo.hms.personmgr.config.AppConfigTest;
 import ru.majordomo.hms.personmgr.config.MongoConfigTest;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
@@ -109,8 +109,8 @@ public class CartManagerImplTest {
         Mockito
                 .when(domainService.buy(anyString(), any(DomainCartItem.class), anyListOf(AccountPromotion.class), any()))
                 .thenAnswer(invocation -> generateProcessingBusinessAction(
-                        invocation.getArgumentAt(0, String.class),
-                        invocation.getArgumentAt(1, DomainCartItem.class)
+                        invocation.getArgument(0),
+                        invocation.getArgument(1)
                 ))
         ;
     }

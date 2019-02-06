@@ -198,14 +198,12 @@ public class CommonAmqpController {
 
     private void saveAccountHistoryByMessageState(SimpleServiceMessage message, State state, String action) {
         if (state.equals(State.PROCESSED)) {
-            ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
-
-            if (businessAction != null) {
+            processingBusinessActionRepository.findById(message.getActionIdentity()).ifPresent(businessAction -> {
                 String historyMessage = "Заявка на " + action + " ресурса '" +
                         resourceName + "' выполнена успешно (имя: " + message.getParam("name") + ")";
 
                 history.save(businessAction.getPersonalAccountId(), historyMessage, "service");
-            }
+            });
         }
     }
 
@@ -251,38 +249,36 @@ public class CommonAmqpController {
 
     private void processEventsByMessageStateForCreate(SimpleServiceMessage message, State state) {
         if (state.equals(State.PROCESSED)) {
-            ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+            processingBusinessActionRepository.findById(message.getActionIdentity()).ifPresent(businessAction -> {
 
-            if (businessAction != null) {
                 PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
 
                 Map<String, String> params = new HashMap<>();
 
-                ProcessingBusinessOperation businessOperation;
-                String resourceId;
-
                 switch (businessAction.getBusinessActionType()) {
                     case UNIX_ACCOUNT_CREATE_RC:
-                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                        if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
-                            businessOperation.setState(State.PROCESSED);
-                            processingBusinessOperationRepository.save(businessOperation);
+                        processingBusinessOperationRepository.findById(message.getOperationIdentity())
+                                .ifPresent(operation -> {
+                                    if (operation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
+                                        operation.setState(State.PROCESSED);
+                                        processingBusinessOperationRepository.save(operation);
 
-                            params.put(PASSWORD_KEY, (String) businessOperation.getParam(PASSWORD_KEY));
+                                        params.put(PASSWORD_KEY, (String) operation.getParam(PASSWORD_KEY));
 
-                            publisher.publishEvent(new AccountCreatedEvent(account, params));
-                        }
+                                        publisher.publishEvent(new AccountCreatedEvent(account, params));
+                                    }
+                                });
                         break;
 
                     case DATABASE_USER_CREATE_RC:
-                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                        sendToAppscat(message, businessOperation, DATABASE_USER_CREATE);
+                        processingBusinessOperationRepository.findById(message.getOperationIdentity())
+                                .ifPresent(operation -> sendToAppscat(message, operation, DATABASE_USER_CREATE));
 
                         break;
 
                     case DATABASE_CREATE_RC:
-                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                        sendToAppscat(message, businessOperation, DATABASE_CREATE);
+                        processingBusinessOperationRepository.findById(message.getOperationIdentity())
+                                .ifPresent(operation -> sendToAppscat(message, operation, DATABASE_CREATE));
 
                         break;
 
@@ -292,24 +288,25 @@ public class CommonAmqpController {
                         break;
 
                     case RESOURCE_ARCHIVE_CREATE_RC:
-                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                        if (businessOperation != null) {
-                            resourceId = getResourceIdByObjRef(message.getObjRef());
+                        processingBusinessOperationRepository.findById(message.getOperationIdentity())
+                                .ifPresent(operation -> {
 
-                            businessOperation.addParam(RESOURCE_ID_KEY, resourceId);
+                                    String resourceId = getResourceIdByObjRef(message.getObjRef());
 
-                            processingBusinessOperationRepository.save(businessOperation);
+                                    operation.addParam(RESOURCE_ID_KEY, resourceId);
 
-                            if (businessOperation.getParam(LONG_LIFE) != null && (boolean) businessOperation.getParam(LONG_LIFE)) {
-                                resourceArchiveService.createFromProcessingBusinessOperation(businessOperation);
-                            }
+                                    processingBusinessOperationRepository.save(operation);
 
-                            resourceArchiveService.notifyByProcessingBusinessOperation(businessOperation);
-                        }
+                                    if (operation.getParam(LONG_LIFE) != null && (boolean) operation.getParam(LONG_LIFE)) {
+                                        resourceArchiveService.createFromProcessingBusinessOperation(operation);
+                                    }
+
+                                    resourceArchiveService.notifyByProcessingBusinessOperation(operation);
+                                });
 
                         break;
                 }
-            }
+            });
         }
     }
 
@@ -326,131 +323,126 @@ public class CommonAmqpController {
     }
 
     private void processEventsByMessageStateForUpdate(SimpleServiceMessage message, State state) {
-        ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+        if (message.getOperationIdentity() == null) { return; }
 
-        if (businessAction != null) {
-            ProcessingBusinessOperation businessOperation;
+        processingBusinessActionRepository.findById(message.getActionIdentity())
+                .ifPresent(action -> {
 
-            switch (businessAction.getBusinessActionType()) {
+            switch (action.getBusinessActionType()) {
                 case UNIX_ACCOUNT_UPDATE_RC:
                 case DATABASE_USER_UPDATE_RC:
                 case DATABASE_UPDATE_RC:
-                    if (message.getOperationIdentity() != null) {
-                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                        if (businessOperation != null) {
-                            if (businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
-                                if (state.equals(State.PROCESSED)) {
-                                    accountTransferService.checkOperationAfterUnixAccountAndDatabaseUpdate(businessOperation);
-                                } else if (state.equals(State.ERROR)) {
-                                    businessOperation.setState(State.ERROR);
-                                    processingBusinessOperationRepository.save(businessOperation);
+                    processingBusinessOperationRepository.findById(message.getOperationIdentity())
+                            .ifPresent(operation -> {
+                                if (operation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
+                                    if (state.equals(State.PROCESSED)) {
+                                        accountTransferService.checkOperationAfterUnixAccountAndDatabaseUpdate(operation);
+                                    } else if (state.equals(State.ERROR)) {
+                                        operation.setState(State.ERROR);
+                                        processingBusinessOperationRepository.save(operation);
 
-                                    accountTransferService.revertTransfer(businessOperation);
+                                        accountTransferService.revertTransfer(operation);
+                                    }
+                                } else if (operation.getType() == BusinessOperationType.APP_INSTALL
+                                        && action.getBusinessActionType() == BusinessActionType.DATABASE_UPDATE_RC) {
+                                    try {
+                                        amqpSender.send(DATABASE_UPDATE, APPSCAT_ROUTING_KEY, message);
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
                                 }
-                            } else if (businessOperation.getType() == BusinessOperationType.APP_INSTALL
-                                    && businessAction.getBusinessActionType() == BusinessActionType.DATABASE_UPDATE_RC) {
-                                try {
-                                    amqpSender.send(DATABASE_UPDATE, APPSCAT_ROUTING_KEY, message);
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                    }
+                            });
 
                     break;
                 case WEB_SITE_UPDATE_RC:
-                    if (message.getOperationIdentity() != null) {
-                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                        if (businessOperation != null) {
-                            if (businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
-                                if (state.equals(State.PROCESSED)) {
-                                    accountTransferService.checkOperationAfterWebSiteUpdate(businessOperation);
-                                } else if (state.equals(State.ERROR)) {
-                                    businessOperation.setState(State.ERROR);
-                                    processingBusinessOperationRepository.save(businessOperation);
+                    processingBusinessOperationRepository.findById(message.getOperationIdentity())
+                            .ifPresent(operation -> {
+                                if (operation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
+                                    if (state.equals(State.PROCESSED)) {
+                                        accountTransferService.checkOperationAfterWebSiteUpdate(operation);
+                                    } else if (state.equals(State.ERROR)) {
+                                        operation.setState(State.ERROR);
+                                        processingBusinessOperationRepository.save(operation);
 
-                                    accountTransferService.revertTransferOnWebSitesFail(businessOperation);
+                                        accountTransferService.revertTransferOnWebSitesFail(operation);
+                                    }
+                                } else if (operation.getType() == BusinessOperationType.APP_INSTALL) {
+                                    try {
+                                        amqpSender.send(WEBSITE_UPDATE, APPSCAT_ROUTING_KEY, message);
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
                                 }
-                            } else if (businessOperation.getType() == BusinessOperationType.APP_INSTALL) {
-                                try {
-                                    amqpSender.send(WEBSITE_UPDATE, APPSCAT_ROUTING_KEY, message);
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                    }
+                            });
 
                     break;
                 case DNS_RECORD_UPDATE_RC:
-                    if (message.getOperationIdentity() != null) {
-                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                        if (businessOperation != null && businessOperation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
-                            if (state.equals(State.PROCESSED)) {
-                                accountTransferService.finishOperation(businessOperation);
-                            }
-                        }
-                    }
+                    processingBusinessOperationRepository.findById(message.getOperationIdentity())
+                            .ifPresent(operation -> {
+                                if (operation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
+                                    if (state.equals(State.PROCESSED)) {
+                                        accountTransferService.finishOperation(operation);
+                                    }
+                                }
+                            });
 
                     break;
             }
-        }
+            });
     }
 
     private void processEventsByMessageStateForDelete(SimpleServiceMessage message, State state) {
-        ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+        processingBusinessActionRepository.findById(message.getActionIdentity()).ifPresent(action -> {
 
-        if (businessAction != null) {
-            PersonalAccount account = accountManager.findOne(businessAction.getPersonalAccountId());
-            ProcessingBusinessOperation businessOperation;
-            String resourceId;
+            PersonalAccount account = accountManager.findOne(action.getPersonalAccountId());
 
-            switch (businessAction.getBusinessActionType()) {
+            switch (action.getBusinessActionType()) {
                 case FTP_USER_DELETE_RC:
                     ftpUserService.processServices(account);
 
                     break;
                 case RESOURCE_ARCHIVE_DELETE_RC:
                     if (state.equals(State.PROCESSED)) {
-                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                        if (businessOperation != null && businessOperation.getParam(LONG_LIFE) != null && (boolean) businessOperation.getParam(LONG_LIFE)) {
-                            resourceArchiveService.deleteLongLifeResourceArchiveAndAccountService(businessOperation);
-                        }
+                        processingBusinessOperationRepository.findById(message.getOperationIdentity())
+                                .ifPresent(operation -> {
+                                    if (operation.getParam(LONG_LIFE) != null && (boolean) operation.getParam(LONG_LIFE)) {
+                                        resourceArchiveService.deleteLongLifeResourceArchiveAndAccountService(operation);
+                                    }
+                                });
                     }
 
                     break;
                 case WEB_SITE_DELETE_RC:
                     if (state.equals(State.PROCESSED)) {
-                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                        if (businessOperation != null) {
-                            resourceId = getResourceIdByObjRef(message.getObjRef());
+                        processingBusinessOperationRepository.findById(message.getOperationIdentity())
+                                .ifPresent(operation -> {
+                                    String resourceId = getResourceIdByObjRef(message.getObjRef());
 
-                            resourceArchiveService.deleteLongLifeResourceArchiveAndAccountService(
-                                    businessOperation.getPersonalAccountId(),
-                                    ResourceArchiveType.WEBSITE,
-                                    resourceId
-                            );
-                        }
+                                    resourceArchiveService.deleteLongLifeResourceArchiveAndAccountService(
+                                            operation.getPersonalAccountId(),
+                                            ResourceArchiveType.WEBSITE,
+                                            resourceId
+                                    );
+                        });
                     }
 
                     break;
                 case DATABASE_DELETE_RC:
                     if (state.equals(State.PROCESSED)) {
-                        businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-                        if (businessOperation != null) {
-                            resourceId = getResourceIdByObjRef(message.getObjRef());
+                        processingBusinessOperationRepository.findById(message.getOperationIdentity())
+                                .ifPresent(operation -> {
+                                    String resourceId = getResourceIdByObjRef(message.getObjRef());
 
-                            resourceArchiveService.deleteLongLifeResourceArchiveAndAccountService(
-                                    businessOperation.getPersonalAccountId(),
-                                    ResourceArchiveType.DATABASE,
-                                    resourceId
-                            );
-                        }
+                                    resourceArchiveService.deleteLongLifeResourceArchiveAndAccountService(
+                                            operation.getPersonalAccountId(),
+                                            ResourceArchiveType.DATABASE,
+                                            resourceId
+                                    );
+                        });
                     }
 
                     break;
             }
-        }
+        });
     }
 }

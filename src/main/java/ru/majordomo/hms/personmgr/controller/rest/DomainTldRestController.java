@@ -19,9 +19,6 @@ import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
-import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
-
-import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_ACTION_ID;
 
 @RestController
 @RequestMapping({"/{accountId}/domain-tlds", "/domain-tlds"})
@@ -29,18 +26,15 @@ public class DomainTldRestController extends CommonRestController {
 
     private final DomainTldRepository repository;
     private final AccountPromotionManager accountPromotionManager;
-    private final PromocodeActionRepository promocodeActionRepository;
 
     @Autowired
     public DomainTldRestController(
             DomainTldRepository repository,
-            AccountPromotionManager accountPromotionManager,
-            PromocodeActionRepository promocodeActionRepository
+            AccountPromotionManager accountPromotionManager
     )
     {
         this.repository = repository;
         this.accountPromotionManager = accountPromotionManager;
-        this.promocodeActionRepository = promocodeActionRepository;
     }
 
     @RequestMapping(value = "", method = RequestMethod.GET)

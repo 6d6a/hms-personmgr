@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.manager.impl;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,12 +10,12 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
@@ -37,7 +38,7 @@ public class AccountOwnerManagerImpl implements AccountOwnerManager {
 
     @Override
     public boolean exists(String id) {
-        return repository.exists(id);
+        return repository.existsById(id);
     }
 
     @Override
@@ -47,7 +48,7 @@ public class AccountOwnerManagerImpl implements AccountOwnerManager {
 
     @Override
     public void delete(String id) {
-        repository.delete(id);
+        repository.deleteById(id);
     }
 
     @Override
@@ -57,7 +58,7 @@ public class AccountOwnerManagerImpl implements AccountOwnerManager {
 
     @Override
     public void delete(Iterable<AccountOwner> accountOwners) {
-        repository.delete(accountOwners);
+        repository.deleteAll(accountOwners);
     }
 
     @Override
@@ -72,7 +73,7 @@ public class AccountOwnerManagerImpl implements AccountOwnerManager {
 
     @Override
     public List<AccountOwner> save(Iterable<AccountOwner> accountOwners) {
-        return repository.save(accountOwners);
+        return repository.saveAll(accountOwners);
     }
 
     @Override
@@ -88,7 +89,7 @@ public class AccountOwnerManagerImpl implements AccountOwnerManager {
     @Override
     public AccountOwner findOne(String id) {
         checkById(id);
-        return repository.findOne(id);
+        return repository.findById(id).orElse(null);
     }
 
     @Override
@@ -98,6 +99,7 @@ public class AccountOwnerManagerImpl implements AccountOwnerManager {
 
     @Override
     public Page<AccountOwner> findAll(Predicate predicate, Pageable pageable) {
+        if (predicate == null) predicate = new BooleanBuilder();
         return repository.findAll(predicate, pageable);
     }
 

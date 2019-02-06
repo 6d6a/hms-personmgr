@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.util.Collections;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
 
@@ -23,6 +24,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PROMOCODE_ACTI
  * Сервис для загрузки первичных данных в БД
  */
 @Service
+@ImportProfile
 public class PromocodeDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(PromocodeDBImportService.class);
 

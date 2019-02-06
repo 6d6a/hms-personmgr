@@ -64,7 +64,7 @@ public class NotificationRestController extends CommonRestController {
     }
 
     private ResponseEntity<Notification> findOne(String notificationId) {
-        Notification notification = notificationRepository.findOne(notificationId);
+        Notification notification = notificationRepository.findById(notificationId).orElse(null);
 
         if(notification == null){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);

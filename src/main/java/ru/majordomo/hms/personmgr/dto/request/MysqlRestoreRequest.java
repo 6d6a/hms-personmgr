@@ -1,7 +1,7 @@
 package ru.majordomo.hms.personmgr.dto.request;
 
 import lombok.Data;
-import org.hibernate.validator.constraints.NotEmpty;
+import javax.validation.constraints.NotEmpty;
 
 @Data
 public class MysqlRestoreRequest implements RestoreRequest {

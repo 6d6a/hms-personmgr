@@ -63,6 +63,8 @@ public class ServicePlanRestController extends CommonRestController {
     public ResponseEntity<Page<ServicePlan>> listAll(
             @QuerydslPredicate(root = ServicePlan.class) Predicate predicate,
             Pageable pageable) {
+        if (predicate == null) predicate = new BooleanBuilder();
+
         Page<ServicePlan> servicePlans = repository.findAll(predicate, pageable);
 
         servicePlans.forEach(servicePlanBuilder::build);

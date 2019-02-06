@@ -1,7 +1,7 @@
 package ru.majordomo.hms.personmgr.model.order;
 
 import com.fasterxml.jackson.annotation.JsonView;
-import org.hibernate.validator.constraints.NotBlank;
+import javax.validation.constraints.NotBlank;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 

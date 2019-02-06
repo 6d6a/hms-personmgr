@@ -70,7 +70,7 @@ public class BusinessFlowDirector {
     public State processMessage(SimpleServiceMessage message) {
         logger.debug("Processing message : " + message.toString());
 
-        ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
+        ProcessingBusinessAction businessAction = processingBusinessActionRepository.findById(message.getActionIdentity()).orElse(null);
 
         if (businessAction != null) {
             if (cleanBooleanSafe(message.getParam("success"))) {
@@ -89,7 +89,11 @@ public class BusinessFlowDirector {
             processBlockedPayment(businessAction);
 
             if (businessAction.getOperationId() != null) {
-                ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(businessAction.getOperationId());
+                ProcessingBusinessOperation businessOperation =
+                        processingBusinessOperationRepository
+                                .findById(businessAction.getOperationId())
+                                .orElse(null);
+
                 if (businessOperation != null) {
                     switch (businessAction.getState()) {
                         case PROCESSED:

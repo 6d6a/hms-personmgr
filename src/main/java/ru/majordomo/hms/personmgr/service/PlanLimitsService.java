@@ -1,31 +1,31 @@
 package ru.majordomo.hms.personmgr.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.common.DBType;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanProperties;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 @Service
 public class PlanLimitsService {
 
     private final PersonalAccountManager accountManager;
 
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
 
     @Autowired
     public PlanLimitsService(
             PersonalAccountManager accountManager,
-            PlanRepository planRepository
+            PlanManager planManager
     ) {
         this.accountManager = accountManager;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
     }
 
     public Long getDatabaseFreeLimit(String accountId) {
@@ -93,7 +93,7 @@ public class PlanLimitsService {
             throw new ResourceNotFoundException("personalAccount not found");
         }
 
-        Plan plan = planRepository.findOne(personalAccount.getPlanId());
+        Plan plan = planManager.findOne(personalAccount.getPlanId());
 
         if (plan == null) {
             throw new ResourceNotFoundException("plan not found");

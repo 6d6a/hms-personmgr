@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service.order;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -7,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.model.order.AccountOrder;
 import ru.majordomo.hms.personmgr.repository.AccountOrderRepository;
 
@@ -92,10 +94,12 @@ public abstract class OrderManager<T extends AccountOrder> {
     }
 
     public Page<T> findAll(Predicate predicate, Pageable pageable){
+        if (predicate == null) predicate = new BooleanBuilder();
         return repository.findAll(predicate, pageable);
     }
 
     public List<T> findAll(Predicate predicate){
+        if (predicate == null) predicate = new BooleanBuilder();
         List<T> result = new ArrayList<>();
         repository.findAll(predicate).iterator().forEachRemaining(result::add);
         return result;
@@ -106,6 +110,6 @@ public abstract class OrderManager<T extends AccountOrder> {
     }
 
     public T findOne(String id) {
-        return repository.findOne(id);
+        return repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Не найден заказ с id " + id));
     }
 }

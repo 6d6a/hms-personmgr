@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.importing;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 
@@ -12,6 +13,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROM
 import static ru.majordomo.hms.personmgr.common.Constants.FREE_DOMAIN_PROMOTION;
 
 @Service
+@ImportProfile
 public class PromotionDBSeedService {
 
     private PromotionRepository promotionRepository;

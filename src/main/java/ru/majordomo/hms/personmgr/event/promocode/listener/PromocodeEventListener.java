@@ -33,7 +33,7 @@ public class PromocodeEventListener {
     public void onTockaBankTag(AccountPromocodeWasCreated event) {
         AccountPromocode accountPromocode = event.getSource();
 
-        List<PromocodeTag> tags = promocodeManager.findOne(accountPromocode.getPromocodeId()).getTags();
+        List<PromocodeTag> tags = promocodeManager.findById(accountPromocode.getPromocodeId()).getTags();
 
         if (tags.stream().anyMatch(tag -> "tochkaBank".equals(tag.getInternalName()))) {
             accountManager.setHideGoogleAdWords(accountPromocode.getPersonalAccountId(), true);
@@ -45,7 +45,7 @@ public class PromocodeEventListener {
     public void onRegistrantCodeUsed(AccountPromocodeWasCreated event) {
         AccountPromocode accountPromocode = event.getSource();
 
-        Promocode promocode = promocodeManager.findOne(accountPromocode.getPromocodeId());
+        Promocode promocode = promocodeManager.findById(accountPromocode.getPromocodeId());
         List<PromocodeTag> tags = promocode.getTags();
 
         if (tags.stream().anyMatch(tag -> "control_registrant".equals(tag.getInternalName()))) {

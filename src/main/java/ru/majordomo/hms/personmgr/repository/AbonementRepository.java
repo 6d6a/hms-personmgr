@@ -3,8 +3,6 @@ package ru.majordomo.hms.personmgr.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.repository.query.Param;
-import org.springframework.data.rest.core.annotation.RestResource;
 
 import java.util.List;
 
@@ -12,18 +10,16 @@ import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 
 public interface AbonementRepository extends MongoRepository<Abonement, String> {
-    @RestResource(path = "findListByType", rel = "findListByType")
-    List<Abonement> findByType(@Param("type") Feature type);
-    Page<Abonement> findByType(@Param("type") Feature type, Pageable pageable);
-    @RestResource(path = "findListByIdIn", rel = "findListByIdIn")
-    List<Abonement> findByIdIn(@Param("ids") List<String> ids);
-    Page<Abonement> findByIdIn(@Param("ids") List<String> ids, Pageable pageable);
+    List<Abonement> findByType(Feature type);
+    Page<Abonement> findByType(Feature type, Pageable pageable);
+    List<Abonement> findByIdIn(List<String> ids);
+    Page<Abonement> findByIdIn(List<String> ids, Pageable pageable);
     List<Abonement> findByIdInAndInternalAndPeriod(
-            @Param("ids") List<String> ids,
-            @Param("internal") boolean internal,
-            @Param("period") String period
+            List<String> ids,
+            boolean internal,
+            String period
     );
     List<Abonement> findByServiceId(
-            @Param("serviceId") String serviceId
+            String serviceId
     );
 }

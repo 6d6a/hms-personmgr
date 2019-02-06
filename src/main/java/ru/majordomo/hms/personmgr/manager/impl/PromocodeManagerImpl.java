@@ -30,8 +30,8 @@ public class PromocodeManagerImpl implements PromocodeManager {
     }
 
     @Override
-    public Promocode findOne(String id) {
-        return repository.findOne(id);
+    public Promocode findById(String id) {
+        return repository.findById(id).orElse(null);
     }
 
     @Override

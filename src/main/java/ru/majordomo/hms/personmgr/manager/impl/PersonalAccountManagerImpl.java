@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.manager.impl;
 
 
 import com.mongodb.BasicDBObject;
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,6 @@ import org.springframework.data.mongodb.core.aggregation.TypedAggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -32,13 +32,13 @@ import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.dto.IdsContainer;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.model.account.projection.PlanByServerProjection;
 import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
-import ru.majordomo.hms.rc.user.resources.DTO.ObjectContainer;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
@@ -68,7 +68,7 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
 
     @Override
     public boolean exists(String id) {
-        return repository.exists(id);
+        return repository.existsById(id);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
 
     @Override
     public void delete(String id) {
-        repository.delete(id);
+        repository.deleteById(id);
     }
 
     @Override
@@ -88,7 +88,7 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
 
     @Override
     public void delete(Iterable<PersonalAccount> accounts) {
-        repository.delete(accounts);
+        repository.deleteAll(accounts);
     }
 
     @Override
@@ -103,7 +103,7 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
 
     @Override
     public List<PersonalAccount> save(Iterable<PersonalAccount> accounts) {
-        return repository.save(accounts);
+        return repository.saveAll(accounts);
     }
 
     @Override
@@ -120,7 +120,7 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     public PersonalAccount findOne(String id) {
         checkById(id);
 
-        return repository.findOne(id);
+        return repository.findById(id).orElse(null);
     }
 
     @Override
@@ -404,6 +404,7 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
 
     @Override
     public Page<PersonalAccount> findByPredicate(Predicate predicate, Pageable pageable) {
+        if (predicate == null) predicate = new BooleanBuilder();
         return repository.findAll(predicate, pageable);
     }
 

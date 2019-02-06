@@ -11,6 +11,7 @@ import java.util.List;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.SeoType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.model.seo.Seo;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
@@ -25,6 +26,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.SEO_CONTEXT_SERVICE_PR
  * PlanDBImportService
  */
 @Service
+@ImportProfile
 public class SeoServiceDBSeedService {
     private final static Logger logger = LoggerFactory.getLogger(SeoServiceDBSeedService.class);
 

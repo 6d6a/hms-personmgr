@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -14,39 +13,37 @@ import org.springframework.stereotype.Service;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-
-import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.formatPhone;
 import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
 
 @Service
+@ImportProfile
 public class PersonalAccountDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(PersonalAccountDBImportService.class);
 
     private NamedParameterJdbcTemplate jdbcTemplate;
     private PersonalAccountManager accountManager;
-    private PlanRepository planRepository;
+    private PlanManager planManager;
 
     @Autowired
     public PersonalAccountDBImportService(
             @Qualifier("namedParameterJdbcTemplate") NamedParameterJdbcTemplate namedParameterJdbcTemplate,
             PersonalAccountManager accountManager,
-            PlanRepository planRepository
+            PlanManager planManager
     ) {
         this.jdbcTemplate = namedParameterJdbcTemplate;
         this.accountManager = accountManager;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
     }
 
     private void pull() {
@@ -85,7 +82,7 @@ public class PersonalAccountDBImportService {
 
         PersonalAccount personalAccount = new PersonalAccount();
 
-        Plan plan = planRepository.findByOldId(rs.getString("plan_id"));
+        Plan plan = planManager.findByOldId(rs.getString("plan_id"));
 
         if (plan != null) {
             //Создаем PersonalAccount

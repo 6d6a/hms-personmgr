@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
 
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -27,6 +28,7 @@ import java.util.List;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @Service
+@ImportProfile
 public class AccountPromotionDBImportService {
 
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;

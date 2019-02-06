@@ -5,43 +5,38 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
-import org.springframework.data.querydsl.QueryDslPredicateExecutor;
-import org.springframework.data.repository.query.Param;
-import org.springframework.data.rest.core.annotation.RestResource;
+import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
-import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 
 public interface PaymentServiceRepository extends MongoRepository<PaymentService, String>,
-        QueryDslPredicateExecutor<PaymentService> {
+        QuerydslPredicateExecutor<PaymentService> {
     @Cacheable("paymentServices")
-    PaymentService findOne(String id);
+    @Override
+    Optional<PaymentService> findById(String id);
 
     List<PaymentService> findAll();
 
     @Query("{}")
-    @RestResource(path = "findAllPaymentServices",
-                  rel = "findAllPaymentServices")
     List<PaymentService> findAllPaymentServices();
 
     @Cacheable("paymentServicesActive")
-    List<PaymentService> findByActive(@Param("active") boolean active);
+    List<PaymentService> findByActive(boolean active);
 
-    List<PaymentService> findByPaymentType(@Param("paymentType") ServicePaymentType paymentType);
+    PaymentService findByName(String name);
 
-    PaymentService findByName(@Param("name") String name);
-
-    Stream<PaymentService> findByOldIdRegex(@Param("oldId") String oldId);
+    Stream<PaymentService> findByOldIdRegex(String oldId);
 
     @Cacheable("paymentServicesOldId")
-    PaymentService findByOldId(@Param("oldId") String oldId);
+    PaymentService findByOldId(String oldId);
 
     @Override
     @CachePut({"paymentServices", "paymentServicesOldId", "paymentServicesActive"})
-    <S extends PaymentService> List<S> save(Iterable<S> entites);
+    <S extends PaymentService> List<S> saveAll(Iterable<S> entites);
 
     @Override
     @CachePut({"paymentServices", "paymentServicesOldId", "paymentServicesActive"})
@@ -49,15 +44,7 @@ public interface PaymentServiceRepository extends MongoRepository<PaymentService
 
     @Override
     @CacheEvict({"paymentServices", "paymentServicesOldId", "paymentServicesActive"})
-    void delete(Iterable<? extends PaymentService> entities);
-
-    @Override
-    @CacheEvict({"paymentServices", "paymentServicesOldId", "paymentServicesActive"})
     void delete(PaymentService entity);
-
-    @Override
-    @CacheEvict({"paymentServices", "paymentServicesOldId", "paymentServicesActive"})
-    void delete(String s);
 
     @Override
     @CacheEvict(value = {"paymentServices", "paymentServicesOldId", "paymentServicesActive"},

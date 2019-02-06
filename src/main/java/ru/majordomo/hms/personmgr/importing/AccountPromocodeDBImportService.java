@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeCreateEvent;
 import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeImportEvent;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
@@ -27,6 +28,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.PARTNER_PROMOCODE_ACTI
  * Сервис для загрузки первичных данных в БД
  */
 @Service
+@ImportProfile
 public class AccountPromocodeDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountPromocodeDBImportService.class);
 

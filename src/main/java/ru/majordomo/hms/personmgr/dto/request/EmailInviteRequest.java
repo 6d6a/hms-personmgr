@@ -1,7 +1,7 @@
 package ru.majordomo.hms.personmgr.dto.request;
 
 import lombok.Data;
-import org.hibernate.validator.constraints.NotEmpty;
+import javax.validation.constraints.NotEmpty;
 import ru.majordomo.hms.rc.user.resources.validation.ValidEmail;
 
 import javax.validation.Valid;

@@ -32,7 +32,7 @@ public class AccountStatRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountStat.class) @PathVariable(value = "statId") String statId
     ) {
-        AccountStat accountStat = accountStatRepository.findOne(statId);
+        AccountStat accountStat = accountStatRepository.findByIdAndPersonalAccountId(statId, accountId);
 
         return new ResponseEntity<>(accountStat, HttpStatus.OK);
     }

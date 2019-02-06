@@ -104,6 +104,7 @@ public class Constants {
     public static final String OLD_DATABASE_HOST_KEY = "oldDatabaseHost";
     public static final String NEW_DATABASE_HOST_KEY = "newDatabaseHost";
     public static final String DATA_KEY = "data";
+    public static final String DOCUMENT_NUMBER_KEY = "documentNumber";
     public static final String DATASOURCE_URI_KEY = "datasourceUri";
     public static final String DATA_DESTINATION_URI_KEY = "datadestinationUri";
     public static final String DELETE_EXTRANEOUS_KEY = "deleteExtraneous";

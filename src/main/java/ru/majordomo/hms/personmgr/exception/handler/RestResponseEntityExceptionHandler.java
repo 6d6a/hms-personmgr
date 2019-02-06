@@ -1,12 +1,7 @@
 package ru.majordomo.hms.personmgr.exception.handler;
 
 import feign.codec.DecodeException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.sleuth.Tracer;
 import org.springframework.dao.DataAccessException;
-import org.springframework.dao.InvalidDataAccessApiUsageException;
-import org.springframework.data.rest.core.RepositoryConstraintViolationException;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,19 +27,8 @@ import java.util.Arrays;
 @ControllerAdvice
 public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionHandler {
 
-    private Tracer tracer;
-
-    @Autowired
-    public void setTracer(Tracer tracer) {
-        this.tracer = tracer;
-    }
-
     public RestResponseEntityExceptionHandler() {
         super();
-    }
-
-    private String traceId() {
-        return tracer.getCurrentSpan().traceIdString();
     }
 
     private void printLogError(Throwable ex, WebRequest request){
@@ -66,7 +50,6 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
     ) {
         printLogError(ex, request);
         ParameterValidationException e = new ParameterValidationException(ex.getMessage());
-        e.setTraceId(traceId());
         return handleExceptionInternal(e, e, headers, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -79,7 +62,6 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
     ) {
         printLogError(ex, request);
         ParameterValidationException e = new ParameterValidationException(ex.getMessage());
-        e.setTraceId(traceId());
         return handleExceptionInternal(e, e, headers, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -92,7 +74,6 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
     ) {
         printLogError(ex, request);
         ParameterValidationException e = new ParameterValidationException(ex.getMessage());
-        e.setTraceId(traceId());
         return handleExceptionInternal(e, e, headers, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -105,7 +86,6 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
     ) {
         printLogError(ex, request);
         ParameterValidationException e = new ParameterValidationException(ex);
-        e.setTraceId(traceId());
         return handleExceptionInternal(e, e, headers, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -120,7 +100,6 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
 
         BaseException baseException = convertThrowableToBaseException(ex);
         baseException.setCode(httpStatus.value());
-        baseException.setTraceId(traceId());
 
         return handleExceptionInternal(
                 baseException,
@@ -155,13 +134,6 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         if (ex instanceof BaseException) { return (BaseException) ex; }
 
         try {
-            if (ex instanceof RepositoryConstraintViolationException) {
-                return new ru.majordomo.hms.personmgr.exception.RepositoryConstraintViolationException(
-                        (RepositoryConstraintViolationException) ex);
-            }
-        } catch (Throwable ignore) {}
-
-        try {
             if (ex instanceof ConstraintViolationException) {
                 return new ParameterValidationException((ConstraintViolationException) ex);
             }
@@ -178,12 +150,6 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         try {
             if (ex instanceof DecodeException) {
                 return new ParameterValidationException((DecodeException) ex);
-            }
-        } catch (Throwable ignore) {}
-
-        try {
-            if (ex instanceof ResourceNotFoundException) {
-                return new ru.majordomo.hms.personmgr.exception.ResourceNotFoundException(ex.getMessage());
             }
         } catch (Throwable ignore) {}
 

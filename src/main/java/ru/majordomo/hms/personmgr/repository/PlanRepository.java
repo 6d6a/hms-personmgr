@@ -4,34 +4,35 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.querydsl.QueryDslPredicateExecutor;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.querydsl.QuerydslPredicateExecutor;
+
 
 import java.util.List;
+import java.util.Optional;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 
 public interface PlanRepository extends MongoRepository<Plan, String>,
-        QueryDslPredicateExecutor<Plan> {
+        QuerydslPredicateExecutor<Plan> {
     @Cacheable("plansById")
-    Plan findOne(String id);
+    Optional<Plan> findById(String id);
     @Cacheable("plans")
     List<Plan> findAll();
     @Cacheable("plansByActive")
-    List<Plan> findByActive(@Param("active") boolean active);
+    List<Plan> findByActive(boolean active);
     @Cacheable("plansByName")
-    Plan findByName(@Param("name") String name);
+    Plan findByName(String name);
     @Cacheable("plansByAccountType")
-    List<Plan> findByAccountType(@Param("accountType") AccountType accountType);
+    List<Plan> findByAccountType(AccountType accountType);
     @Cacheable("plansByServiceId")
-    Plan findByServiceId(@Param("serviceId") String serviceId);
+    Plan findByServiceId(String serviceId);
     @Cacheable("plansByOldId")
-    Plan findByOldId(@Param("oldId") String oldId);
+    Plan findByOldId(String oldId);
 
     @Override
     @CachePut("plans")
-    <S extends Plan> List<S> save(Iterable<S> entites);
+    <S extends Plan> List<S> saveAll(Iterable<S> entites);
 
     @Override
     @CachePut("plans")
@@ -39,7 +40,7 @@ public interface PlanRepository extends MongoRepository<Plan, String>,
 
     @Override
     @CacheEvict("plans")
-    void delete(Iterable<? extends Plan> entities);
+    void deleteAll(Iterable<? extends Plan> entities);
 
     @Override
     @CacheEvict("plans")
@@ -47,7 +48,7 @@ public interface PlanRepository extends MongoRepository<Plan, String>,
 
     @Override
     @CacheEvict("plans")
-    void delete(String s);
+    void deleteById(String s);
 
     @Override
     @CacheEvict(value = "plans", allEntries = true)

@@ -83,7 +83,7 @@ public class TaskManagerImpl implements TaskManager {
 
     @Override
     public void delete(String id) {
-        repository.delete(id);
+        repository.deleteById(id);
     }
 
     @Override

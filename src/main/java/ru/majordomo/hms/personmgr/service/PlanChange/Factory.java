@@ -7,12 +7,12 @@ import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.*;
 
 @Service
@@ -30,7 +30,7 @@ public class Factory {
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHelper accountHelper;
     private final ApplicationEventPublisher publisher;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
     private final ResourceNormalizer resourceNormalizer;
 
     @Autowired
@@ -47,7 +47,7 @@ public class Factory {
             AccountServiceHelper accountServiceHelper,
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher,
-            PlanRepository planRepository,
+            PlanManager planManager,
             ResourceNormalizer resourceNormalizer
     ) {
         this.finFeignClient = finFeignClient;
@@ -62,7 +62,7 @@ public class Factory {
         this.accountServiceHelper = accountServiceHelper;
         this.accountHelper = accountHelper;
         this.publisher = publisher;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.resourceNormalizer = resourceNormalizer;
     }
 
@@ -73,7 +73,7 @@ public class Factory {
     public Processor createPlanChangeProcessor(PersonalAccount account, Plan newPlan, boolean refund) {
         Processor processor;
 
-        Plan currentPlan = planRepository.findOne(account.getPlanId());
+        Plan currentPlan = planManager.findOne(account.getPlanId());
 
         if (newPlan == null) {
             if (currentPlan.isAbonementOnly()) {
@@ -112,7 +112,7 @@ public class Factory {
                 accountServiceHelper,
                 accountHelper,
                 publisher,
-                planRepository,
+                planManager,
                 resourceNormalizer
         );
 

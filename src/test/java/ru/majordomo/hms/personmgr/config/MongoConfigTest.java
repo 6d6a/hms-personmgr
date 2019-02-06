@@ -23,12 +23,12 @@ public class MongoConfigTest extends AbstractMongoConfiguration {
     }
 
     @Override
-    public MongoClient mongo() throws Exception {
+    public MongoClient mongoClient() {
         return new Fongo(getDatabaseName()).getMongo();
     }
 
     @Override
-    public MongoTemplate mongoTemplate() throws Exception {
-        return new MongoTemplate(new SimpleMongoDbFactory(mongo(), UUID.randomUUID().toString()));
+    public MongoTemplate mongoTemplate() {
+        return new MongoTemplate(new SimpleMongoDbFactory(mongoClient(), UUID.randomUUID().toString()));
     }
 }

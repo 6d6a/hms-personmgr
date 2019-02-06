@@ -2,7 +2,7 @@ package ru.majordomo.hms.personmgr.model.promoActions;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.hibernate.validator.constraints.NotEmpty;
+import javax.validation.constraints.NotEmpty;
 import org.springframework.data.mongodb.core.mapping.Document;
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.validation.ValidPhone;

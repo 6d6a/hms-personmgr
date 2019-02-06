@@ -10,24 +10,24 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 @RestController
 @RequestMapping("/{accountId}/abonements")
 public class AbonementRestController extends CommonRestController {
     private final AbonementRepository abonementRepository;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
 
     @Autowired
     public AbonementRestController(
             AbonementRepository abonementRepository,
-            PlanRepository planRepository) {
+            PlanManager planManager) {
         this.abonementRepository = abonementRepository;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
     }
 
     @RequestMapping(value = "/{abonementId}", method = RequestMethod.GET)
@@ -40,7 +40,7 @@ public class AbonementRestController extends CommonRestController {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
 
-        Abonement abonement = abonementRepository.findOne(abonementId);
+        Abonement abonement = abonementRepository.findById(abonementId).orElse(null);
 
         if(abonement == null){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -58,7 +58,7 @@ public class AbonementRestController extends CommonRestController {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
 
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         if(plan == null){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);

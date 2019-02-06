@@ -14,6 +14,7 @@ import java.time.Period;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.ChargeResult;
@@ -138,14 +139,22 @@ public class ChargeProcessor {
         boolean additionalServicesDisabled = false;
         List<AccountService> accountServices = new ArrayList<>();
 
-        for(ChargeRequestItem chargeRequestItem : chargeRequest.getChargeRequests()
-                .stream()
-                .filter(chargeRequestItem ->
-                        chargeRequestItem.getStatus() == Status.NEW ||
-                        chargeRequestItem.getStatus() == Status.ERROR
-                )
-                .collect(Collectors.toSet())) {
-            AccountService accountService =  accountServiceRepository.findOne(chargeRequestItem.getAccountServiceId());
+        Set<ChargeRequestItem> itemSet = chargeRequest.getChargeRequests().stream()
+                .filter(item -> item.getStatus() == Status.NEW || item.getStatus() == Status.ERROR)
+                .collect(Collectors.toSet());
+
+        for(ChargeRequestItem chargeRequestItem : itemSet) {
+
+            AccountService accountService =  accountServiceRepository.findById(chargeRequestItem.getAccountServiceId())
+                    .orElse(null);
+
+            //TODO такое происходит если была смена тарифа или покупка абонемента
+            //При смене тарифа надо пересоздать ChargeRequest или заменить сервис тарифа на новый
+            if (accountService == null) {
+                chargeRequestItem.setStatus(Status.SKIPPED);
+                chargeRequestItem.setMessage("Услуга не найдена на аккаунте");
+                continue;
+            }
 
             DiscountedService discountedService = discountServiceHelper.getDiscountedService(account.getDiscounts(), accountService);
 

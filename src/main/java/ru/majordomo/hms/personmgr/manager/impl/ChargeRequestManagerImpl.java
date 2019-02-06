@@ -5,8 +5,8 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.charge.Status;
@@ -34,7 +34,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
 
     @Override
     public boolean exists(String id) {
-        return repository.exists(id);
+        return repository.existsById(id);
     }
 
     @Override
@@ -44,7 +44,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
 
     @Override
     public void delete(String id) {
-        repository.delete(id);
+        repository.deleteById(id);
     }
 
     @Override
@@ -54,7 +54,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
 
     @Override
     public void delete(Iterable<ChargeRequest> chargeRequests) {
-        repository.delete(chargeRequests);
+        repository.deleteAll(chargeRequests);
     }
 
     @Override
@@ -69,7 +69,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
 
     @Override
     public List<ChargeRequest> save(Iterable<ChargeRequest> chargeRequests) {
-        return repository.save(
+        return repository.saveAll(
                 StreamSupport
                         .stream(chargeRequests.spliterator(), false)
                         .map(this::setUpdated)
@@ -96,7 +96,7 @@ public class ChargeRequestManagerImpl implements ChargeRequestManager {
     public ChargeRequest findOne(String id) {
         checkById(id);
 
-        return repository.findOne(id);
+        return repository.findById(id).orElse(null);
     }
 
     @Override

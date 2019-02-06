@@ -570,7 +570,11 @@ public class AccountEventListener {
     public void on(AccountWasEnabled event) {
         LocalDateTime deactivated = event.getDeactivated();
 
-        logger.debug("We got AccountWasEnabled event");
+        logger.debug("We got AccountWasEnabled event, accountId: {} deactivated: {}", event.getSource(), deactivated);
+
+        if (deactivated == null) {
+            return;
+        }
 
         LocalDate dataWillBeDeletedAfter = deactivated.toLocalDate().plusDays(deleteDataAfterDays);
         LocalDate now = LocalDate.now();

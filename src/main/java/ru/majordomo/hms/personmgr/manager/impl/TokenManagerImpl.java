@@ -48,7 +48,7 @@ public class TokenManagerImpl implements TokenManager {
 
     @Override
     public Token findOne(String id) {
-        return repository.findOne(id);
+        return repository.findById(id).orElse(null);
     }
 
     @Override

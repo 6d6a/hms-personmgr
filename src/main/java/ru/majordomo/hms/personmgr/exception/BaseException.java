@@ -29,16 +29,10 @@ public abstract class BaseException extends RuntimeException {
     public BaseException() {}
 
     private String message;
-    private String traceId;
     private int code = 400;
     private String exception = getClass().getSimpleName();
 
     public BaseException(String message) {
         this.message = message;
-    }
-
-    public BaseException(String message, String traceId) {
-        this.message = message;
-        this.traceId = traceId;
     }
 }

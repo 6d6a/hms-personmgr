@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
 import com.fasterxml.jackson.annotation.JsonView;
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,6 +95,8 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
             ) Predicate predicate,
             Sort sort
     ) {
+        if (predicate == null) predicate = new BooleanBuilder();
+
         List<ProcessingBusinessOperation> operations = (List<ProcessingBusinessOperation>) repository.findAll(predicate, sort);
 
         return new ResponseEntity<>(operations, HttpStatus.OK);
@@ -107,9 +110,7 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
     public ResponseEntity<ProcessingBusinessOperation> get(
             @ObjectId(ProcessingBusinessOperation.class) @PathVariable("id") String id
     ) {
-        ProcessingBusinessOperation operation = repository.findOne(id);
-
-        return new ResponseEntity<>(operation, HttpStatus.OK);
+        return new ResponseEntity<>(repository.findById(id).orElse(null), HttpStatus.OK);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -117,7 +118,7 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
     public ResponseEntity<Void> delete(
             @ObjectId(ProcessingBusinessOperation.class) @PathVariable("id") String id
     ) {
-        repository.delete(id);
+        repository.deleteById(id);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

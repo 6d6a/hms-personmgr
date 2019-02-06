@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.model.account.AccountHistory;
 import ru.majordomo.hms.personmgr.repository.AccountHistoryRepository;
 
@@ -25,6 +26,7 @@ import ru.majordomo.hms.personmgr.repository.AccountHistoryRepository;
  * Сервис для загрузки первичных данных в БД
  */
 @Service
+@ImportProfile
 public class AccountHistoryDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountHistoryDBImportService.class);
 

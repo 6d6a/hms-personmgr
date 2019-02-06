@@ -10,13 +10,13 @@ import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
@@ -36,7 +36,7 @@ public class RecurrentProcessorService {
     private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final AbonementManager<AccountServiceAbonement> accountServiceAbonementManager;
     private final AccountHelper accountHelper;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
     private final RcUserFeignClient rcUserFeignClient;
     private final DomainTldService domainTldService;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
@@ -52,7 +52,7 @@ public class RecurrentProcessorService {
     public RecurrentProcessorService(
             AbonementManager<AccountAbonement> accountAbonementManager,
             AccountHelper accountHelper,
-            PlanRepository planRepository,
+            PlanManager planManager,
             RcUserFeignClient rcUserFeignClient,
             DomainTldService domainTldService,
             DomainRegistrarFeignClient domainRegistrarFeignClient,
@@ -64,7 +64,7 @@ public class RecurrentProcessorService {
     ) {
         this.accountAbonementManager = accountAbonementManager;
         this.accountHelper = accountHelper;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.rcUserFeignClient = rcUserFeignClient;
         this.domainTldService = domainTldService;
         this.domainRegistrarFeignClient = domainRegistrarFeignClient;
@@ -87,7 +87,7 @@ public class RecurrentProcessorService {
             BigDecimal realBalance = balance.subtract(bonusBalance); //!balance может быть отрицательным(кредит)!
 
             Boolean accountIsActive = account.isActive();
-            Boolean accountIsOnArchivePlan = !planRepository.findOne(account.getPlanId()).isActive();
+            Boolean accountIsOnArchivePlan = !planManager.findOne(account.getPlanId()).isActive();
 
             if (accountIsOnArchivePlan || account.getDeleted() != null) {
                 return; // Реккуренты только на активных тарифных планах и не удаленных аккаунтах
@@ -160,7 +160,7 @@ public class RecurrentProcessorService {
 
             Boolean dailyCostIsPositive = dailyCostForRecurrent.compareTo(BigDecimal.ZERO) > 0;
             Boolean notEnougthMoneyFor5Days = availableBalance.compareTo(dailyCostForRecurrent.multiply(BigDecimal.valueOf(5L))) < 0;
-            Boolean planIsAbonementOnly = planRepository.findOne(account.getPlanId()).isAbonementOnly();
+            Boolean planIsAbonementOnly = planManager.findOne(account.getPlanId()).isAbonementOnly();
 
             // Если аккаунт активен, смотрим что бы ему хватало на 5 дней хостинга - если не хватает добавляем месячную стоимость услуги в реккурент
             if (accountIsActive && dailyCostIsPositive && notEnougthMoneyFor5Days) {
@@ -358,7 +358,7 @@ public class RecurrentProcessorService {
                 /*
                 List<String> ServiceIdsEligibleForRecurrent = new ArrayList<>();
                 if (!accountIsOnAbonement) {
-                    ServiceIdsEligibleForRecurrent.add(planRepository.findOne(account.getPlanId()).getServiceId());
+                    ServiceIdsEligibleForRecurrent.add(planManager.findOne(account.getPlanId()).getServiceId());
                 }
                 ServiceIdsEligibleForRecurrent.add(paymentServiceRepository.findByName("СМС уведомления (29 руб./мес.)").getId());
                 ServiceIdsEligibleForRecurrent.add(paymentServiceRepository.findByName("Защита от спама и вирусов").getId());
