@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.model;
 
 import com.fasterxml.jackson.annotation.JsonView;
+import com.querydsl.core.annotations.QueryTransient;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 
@@ -22,6 +23,7 @@ public class ModelBelongsToPersonalAccount extends BaseModel {
 
     @JsonView(Views.Public.class)
     @Transient
+    @QueryTransient
     private String personalAccountName;
 
     public ModelBelongsToPersonalAccount() {

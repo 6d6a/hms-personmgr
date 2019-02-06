@@ -12,12 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -196,7 +191,7 @@ public class AccountOwnerRestController extends CommonRestController {
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('OPERATOR')")
-    @RequestMapping(value = "/account-owner/search", method = RequestMethod.GET)
+    @GetMapping("/account-owner/search")
     public ResponseEntity<Page<AccountOwner>> search(
             @RequestParam("search") String search,
             Pageable pageable
@@ -206,7 +201,7 @@ public class AccountOwnerRestController extends CommonRestController {
         BooleanBuilder builder = new BooleanBuilder();
         Predicate predicate = builder
                 .and(qAccountOwner.name.containsIgnoreCase(search))
-                .or(qAccountOwner.personalAccountName.containsIgnoreCase(search))
+                .or(qAccountOwner.personalAccountId.containsIgnoreCase(search))
                 .or(qAccountOwner.contactInfo.emailAddresses.any().containsIgnoreCase(search))
                 .or(qAccountOwner.contactInfo.phoneNumbers.contains(search))
                 .or(qAccountOwner.personalInfo.inn.eq(search))
