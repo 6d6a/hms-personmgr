@@ -18,6 +18,7 @@ import javax.validation.ConstraintViolationException;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.DomainCategory;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
@@ -33,6 +34,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.RENEW_COST_SERVICE_PRE
  * Сервис для загрузки первичных данных в БД
  */
 @Service
+@ImportProfile
 public class DomainTldDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(DomainTldDBImportService.class);
 
@@ -137,7 +139,7 @@ public class DomainTldDBImportService {
 
     private void pushToMongo() {
         try {
-            domainTldRepository.save(domainTlds);
+            domainTldRepository.saveAll(domainTlds);
         } catch (ConstraintViolationException e) {
             logger.debug(e.getMessage() + " with errors: " + e.getConstraintViolations()
                     .stream()

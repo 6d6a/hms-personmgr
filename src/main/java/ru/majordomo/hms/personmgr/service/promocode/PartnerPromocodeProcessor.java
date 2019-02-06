@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.dto.Result;
 import ru.majordomo.hms.personmgr.dto.partners.RegisterStat;
 import ru.majordomo.hms.personmgr.dto.partners.RegisterStatRequest;
+import ru.majordomo.hms.personmgr.exception.BaseException;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.feign.PartnersFeignClient;
@@ -44,6 +45,13 @@ public class PartnerPromocodeProcessor {
                 return Result.error("Партнёрский промокод " + code + " не найден");
             } else if (e.status() == 400) {
                 return Result.gotException(translateError(e.getMessage()));
+            }
+        } catch (BaseException e) {
+            log.error("catch e: " + e.toString());
+            if (e.getCode() == 404) {
+                return Result.error("Партнёрский промокод " + code + " не найден");
+            } else {
+                return Result.gotException("Не удалось обработать промокод");
             }
         } catch (Exception e) {
             e.printStackTrace();

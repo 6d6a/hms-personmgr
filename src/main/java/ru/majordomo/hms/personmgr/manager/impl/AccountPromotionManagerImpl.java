@@ -5,11 +5,11 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
@@ -34,7 +34,7 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
 
     @Override
     public boolean exists(String id) {
-        return repository.exists(id);
+        return repository.existsById(id);
     }
 
     @Override
@@ -44,7 +44,7 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
 
     @Override
     public void delete(String id) {
-        repository.delete(id);
+        repository.deleteById(id);
     }
 
     @Override
@@ -54,7 +54,7 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
 
     @Override
     public void delete(Iterable<AccountPromotion> accountPromotions) {
-        repository.delete(accountPromotions);
+        repository.deleteAll(accountPromotions);
     }
 
     @Override
@@ -69,7 +69,7 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
 
     @Override
     public List<AccountPromotion> save(Iterable<AccountPromotion> accountPromotions) {
-        return repository.save(accountPromotions);
+        return repository.saveAll(accountPromotions);
     }
 
     @Override
@@ -85,7 +85,7 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
     @Override
     public AccountPromotion findOne(String id) {
         checkById(id);
-        return repository.findOne(id);
+        return repository.findById(id).orElse(null);
     }
 
     @Override

@@ -13,6 +13,7 @@ import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 
@@ -20,6 +21,7 @@ import ru.majordomo.hms.personmgr.repository.NotificationRepository;
  * Сервис для загрузки первичных данных в БД
  */
 @Service
+@ImportProfile
 public class NotificationDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(NotificationDBImportService.class);
 
@@ -113,7 +115,7 @@ public class NotificationDBImportService {
 
     private void pushToMongo() {
         try {
-            notificationRepository.save(notifications);
+            notificationRepository.saveAll(notifications);
         } catch (ConstraintViolationException e) {
             logger.debug(e.getMessage() + " with errors: " +
                     e.getConstraintViolations()

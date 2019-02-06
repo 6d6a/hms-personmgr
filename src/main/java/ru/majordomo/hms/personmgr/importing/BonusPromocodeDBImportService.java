@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.common.PromocodeType;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.PromocodeRepository;
@@ -28,6 +29,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.BONUS_UNLIMITED_3_M_PR
  * Сервис для загрузки первичных данных в БД
  */
 @Service
+@ImportProfile
 public class BonusPromocodeDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(BonusPromocodeDBImportService.class);
 
@@ -128,6 +130,6 @@ public class BonusPromocodeDBImportService {
     }
 
     private void pushToMongo() {
-        promocodeRepository.save(promocodesList);
+        promocodeRepository.saveAll(promocodesList);
     }
 }

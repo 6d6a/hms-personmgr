@@ -7,7 +7,6 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
@@ -88,7 +87,7 @@ public class AccountPromocodeRestController extends CommonRestController {
         if (page.getTotalElements() > 0) {
             page.getContent().forEach(accountPromocode -> {
                 accountPromocode.setPromocode(
-                        promocodeManager.findOne(accountPromocode.getPromocodeId())
+                        promocodeManager.findById(accountPromocode.getPromocodeId())
                 );
             });
         } else {

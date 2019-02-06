@@ -7,17 +7,19 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.event.accountAbonement.AccountAbonementImportEvent;
 import ru.majordomo.hms.personmgr.importing.AccountAbonementDBImportService;
 
 @Component
-public class AccountAbonementEventListener {
-    private final static Logger logger = LoggerFactory.getLogger(AccountAbonementEventListener.class);
+@ImportProfile
+public class AccountAbonementDBImportEventListener {
+    private final static Logger logger = LoggerFactory.getLogger(AccountAbonementDBImportEventListener.class);
 
     private final AccountAbonementDBImportService accountAbonementDBImportService;
 
     @Autowired
-    public AccountAbonementEventListener(
+    public AccountAbonementDBImportEventListener(
             AccountAbonementDBImportService accountAbonementDBImportService
     ) {
         this.accountAbonementDBImportService = accountAbonementDBImportService;

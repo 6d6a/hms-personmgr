@@ -3,41 +3,21 @@ package ru.majordomo.hms.personmgr.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.data.rest.core.annotation.RestResource;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 
 public interface AccountAbonementRepository extends MongoRepository<AccountAbonement, String> {
-    AccountAbonement findByIdAndPersonalAccountId(@Param("id") String id, @Param("personalAccountId") String personalAccountId);
-    @RestResource(path = "findListByAbonementId", rel = "findListByAbonementId")
-    List<AccountAbonement> findByAbonementId(@Param("abonementId") String abonementId);
-    Page<AccountAbonement> findByAbonementId(@Param("abonementId") String abonementId, Pageable pageable);
-    @RestResource(path = "findListByPersonalAccountId", rel = "findListByPersonalAccountId")
-    AccountAbonement findByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
-    List<AccountAbonement> findAllByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
-    Page<AccountAbonement> findByPersonalAccountId(@Param("personalAccountId") String personalAccountId, Pageable pageable);
-    List<AccountAbonement> findByPersonalAccountIdAndExpiredAfter(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired);
-    List<AccountAbonement> findByPersonalAccountIdAndExpiredBefore(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired);
-    @RestResource(path = "findListByAbonementIdAndAutorenew", rel = "findListByAbonementIdAndAutorenew")
-    List<AccountAbonement> findByAbonementIdAndAutorenew(@Param("abonementId") String abonementId, @Param("autorenew") String autorenew);
-    Page<AccountAbonement> findByAbonementIdAndAutorenew(@Param("abonementId") String abonementId, @Param("autorenew") String autorenew, Pageable pageable);
-    @RestResource(path = "findListByPersonalAccountIdAndAutorenew", rel = "findListByPersonalAccountIdAndAutorenew")
-    List<AccountAbonement> findByPersonalAccountIdAndAutorenew(@Param("personalAccountId") String personalAccountId, @Param("autorenew") String autorenew);
-    Page<AccountAbonement> findByPersonalAccountIdAndAutorenew(@Param("personalAccountId") String personalAccountId, @Param("autorenew") String autorenew, Pageable pageable);
-    List<AccountAbonement> findByPersonalAccountIdAndExpiredAfterAndAutorenew(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired, @Param("autorenew") String autorenew);
-    List<AccountAbonement> findByPersonalAccountIdAndExpiredBeforeAndAutorenew(@Param("personalAccountId") String personalAccountId, @Param("expired") LocalDateTime expired, @Param("autorenew") String autorenew);
-    List<AccountAbonement> findByPersonalAccountIdAndAbonementId(@Param("personalAccountId") String personalAccountId, @Param("abonementId") String abonementId);
-    List<AccountAbonement> findByPersonalAccountIdAndAbonementIdIn(@Param("personalAccountId") String personalAccountId, @Param("abonementIds") List<String> abonementIds);
-
-    @Query("{}")
-    Stream<AccountAbonement> findAllStream();
-
-    void deleteByPersonalAccountId(@Param("personalAccountId") String personalAccountId);
+    AccountAbonement findByIdAndPersonalAccountId(String id, String personalAccountId);
+    List<AccountAbonement> findByAbonementId(String abonementId);
+    AccountAbonement findByPersonalAccountId(String personalAccountId);
+    List<AccountAbonement> findAllByPersonalAccountId(String personalAccountId);
+    Page<AccountAbonement> findByPersonalAccountId(String personalAccountId, Pageable pageable);
+    List<AccountAbonement> findByPersonalAccountIdAndExpiredAfter(String personalAccountId, LocalDateTime expired);
+    List<AccountAbonement> findByPersonalAccountIdAndExpiredBefore(String personalAccountId, LocalDateTime expired);
+    List<AccountAbonement> findByPersonalAccountIdAndAbonementIdIn(String personalAccountId, List<String> abonementIds);
+    void deleteByPersonalAccountId(String personalAccountId);
     boolean existsByPersonalAccountIdAndExpiredAfter(String personalAccountId, LocalDateTime expired);
 }

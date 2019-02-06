@@ -9,6 +9,7 @@ import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
@@ -26,6 +27,7 @@ import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 
 @Service
 @Slf4j
+@ImportProfile
 public class NewHmsServiceMigrationService {
     private final AccountServiceRepository accountServiceRepository;
     private final AbonementManager<AccountServiceAbonement> serviceAbonementManager;
@@ -201,7 +203,7 @@ public class NewHmsServiceMigrationService {
                 log.info("deleteUnusedAccountServices [working with accountServiceExpiration for acc: " + accountServiceExpiration.getPersonalAccountId() +
                         " accountService: " + accountServiceExpiration.getAccountService().getName() + "]");
 
-                accountServiceRepository.delete(accountServiceExpiration.getAccountServiceId());
+                accountServiceRepository.deleteById(accountServiceExpiration.getAccountServiceId());
             });
         }
 

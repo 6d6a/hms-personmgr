@@ -13,7 +13,7 @@ security:
             accessTokenUri: http://localhost:8080/oauth/token
             grant-type: password
             scope: service
-    sessions: STATELESS
+#    sessions: STATELESS
 server:
     port: 8070
 spring:
@@ -31,12 +31,13 @@ spring:
         date-format: yyyy-MM-dd HH:mm:ss
 
 management:
-  port: 18080
-  security:
-    enabled: false
+  server:
+    port: 18080
+#  security:
+#    enabled: false
 
-endpoints:
-  sensitive: false
+#endpoints:
+#  sensitive: false
 
 datasource:
     billing:

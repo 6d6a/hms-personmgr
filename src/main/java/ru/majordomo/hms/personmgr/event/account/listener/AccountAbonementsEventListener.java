@@ -11,11 +11,11 @@ import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
@@ -39,7 +39,7 @@ public class AccountAbonementsEventListener {
     private final AccountHelper accountHelper;
     private final AccountStatRepository accountStatRepository;
     private final ApplicationEventPublisher publisher;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
     private final AccountNotificationHelper accountNotificationHelper;
     private final PersonalAccountManager personalAccountManager;
 
@@ -49,7 +49,7 @@ public class AccountAbonementsEventListener {
             AccountStatRepository accountStatRepository,
             AbonementService abonementService,
             ApplicationEventPublisher publisher,
-            PlanRepository planRepository,
+            PlanManager planManager,
             AccountNotificationHelper accountNotificationHelper,
             PersonalAccountManager personalAccountManager,
             ServiceAbonementService serviceAbonementService
@@ -58,7 +58,7 @@ public class AccountAbonementsEventListener {
         this.accountHelper = accountHelper;
         this.accountStatRepository = accountStatRepository;
         this.publisher = publisher;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.accountNotificationHelper = accountNotificationHelper;
         this.personalAccountManager = personalAccountManager;
         this.serviceAbonementService = serviceAbonementService;
@@ -148,7 +148,7 @@ public class AccountAbonementsEventListener {
             //Срок действия абонемента закончился - через 1, 3, 5, 10, 15, 20 дней после окончания
             if (abonementExpiredDate.isEqual(now.minusDays(dayAgo))) {
 
-                Plan plan = planRepository.findOne(account.getPlanId());
+                Plan plan = planManager.findOne(account.getPlanId());
                 if (!plan.isAbonementOnly()) {
 
                     //не отправляется, если хватает на 1 месяц хостинга по выбранному тарифу после окончания абонемента

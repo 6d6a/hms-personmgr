@@ -7,6 +7,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeCleanEvent;
 import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeCreateEvent;
 import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeImportEvent;
@@ -15,6 +16,7 @@ import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.importing.AccountPromocodeDBImportService;
 
 @Component
+@ImportProfile
 public class AccountPromocodeEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountPromocodeEventListener.class);
 

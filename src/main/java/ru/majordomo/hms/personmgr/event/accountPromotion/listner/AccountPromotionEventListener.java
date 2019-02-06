@@ -7,9 +7,11 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.event.accountPromotion.AccountPromotionImportEvent;
 import ru.majordomo.hms.personmgr.importing.AccountPromotionDBImportService;
 
+@ImportProfile
 @Component
 public class AccountPromotionEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountPromotionEventListener.class);

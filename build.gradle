@@ -1,50 +1,42 @@
-import org.ajoberstar.grgit.*
-
 buildscript {
     ext {
-        querydslVersion = '4.1.4'
+        querydslVersion = "4.1.4"
     }
     repositories {
         maven {
-            url('http://nexus.intr/repository/mavengroup/')
+            url("http://nexus.intr/repository/mavengroup/")
         }
         maven {
             url "https://plugins.gradle.org/m2/"
         }
     }
     configurations.all {
-        resolutionStrategy.cacheDynamicVersionsFor 5, 'minutes'
+        resolutionStrategy.cacheDynamicVersionsFor 5, "minutes"
     }
     dependencies {
+        classpath("io.spring.gradle:dependency-management-plugin:1.0.5.RELEASE")
         classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-        classpath("se.transmode.gradle:gradle-docker:1.2")
-        classpath "com.avast.gradle:docker-compose-gradle-plugin:0.3.9"
-        classpath("ru.majordomo.gradle.plugins:copycompose:1.+")
-        classpath("org.ajoberstar:gradle-git:1.6.0")
-        classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:1.4.17"
+        classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:1.5.2"
     }
 }
+
 plugins {
-    id "com.ewerk.gradle.plugins.querydsl" version "1.0.7"
+    id "com.gorylenko.gradle-git-properties" version "2.0.0"
+    id "com.ewerk.gradle.plugins.querydsl" version "1.0.10"
 }
 
-apply plugin: 'java'
-apply plugin: 'idea'
-apply plugin: 'org.springframework.boot'
-apply plugin: 'docker'
-apply plugin: 'docker-compose'
-apply plugin: 'org.ajoberstar.grgit'
-apply plugin: 'ru.majordomo.gradle.plugins.copycompose'
+apply plugin: "java"
+apply plugin: "idea"
+apply plugin: "org.springframework.boot"
 apply plugin: "com.ewerk.gradle.plugins.querydsl"
-//apply from: "https://nexus.intr/repository/init/gradle-init/0.1/dockertask.gradle"
-apply plugin: "jacoco"
-apply plugin: 'maven-publish'
+apply plugin: "maven-publish"
 apply plugin: "com.gorylenko.gradle-git-properties"
+apply plugin: "io.spring.dependency-management"
 
-version = '0.0.1-SNAPSHOT'
+version = "0.0.1-SNAPSHOT"
 
 jar {
-    baseName = 'personmgr'
+    baseName = "personmgr"
     version = version
 }
 
@@ -56,7 +48,7 @@ description = """personmgr"""
 
 repositories {
     maven {
-        url('http://nexus.intr/repository/mavengroup/')
+        url("http://nexus.intr/repository/mavengroup/")
     }
 }
 
@@ -67,70 +59,66 @@ configurations {
 }
 
 dependencies {
-    compile('ru.majordomo.hms.rc.user:resources:1.5.20')
-    compile('ru.majordomo.hms.rc.staff:resources:1+')
+    compile("ru.majordomo.hms.rc.user:resources:1.5.20")
+    compile("ru.majordomo.hms.rc.staff:resources:1+")
 
-    compile("dnsjava:dnsjava:2.1.7")
+    compile("dnsjava:dnsjava:2.1.8")
 
-    compile('org.springframework.boot:spring-boot-starter-data-mongodb')
-    compile('org.springframework.boot:spring-boot-starter-amqp')
-    compile('org.springframework.boot:spring-boot-starter-data-rest')
-    compile('org.springframework.boot:spring-boot-starter-jdbc')
-    compile('org.springframework.boot:spring-boot-starter-web')
-    compile('org.springframework.boot:spring-boot-starter-web-services')
+    compile("org.springframework.boot:spring-boot-starter-data-mongodb")
+    compile("org.springframework.boot:spring-boot-starter-amqp")
+    compile("org.springframework.boot:spring-boot-starter-jdbc")
+    compile("org.springframework.boot:spring-boot-starter-web")
+    compile("org.springframework.boot:spring-boot-starter-web-services")
     compile("org.springframework.boot:spring-boot-starter-cache")
     compile("org.springframework.boot:spring-boot-starter-jetty")
     compile("org.springframework.boot:spring-boot-starter-aop")
     compile("org.springframework.boot:spring-boot-configuration-processor")
 
-    compile('org.springframework.cloud:spring-cloud-starter-eureka')
-    compile('org.springframework.cloud:spring-cloud-starter-feign')
+    compile("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
+    compile("org.springframework.cloud:spring-cloud-starter-openfeign")
     compile("org.springframework.cloud:spring-cloud-starter-bus-amqp")
     compile("org.springframework.cloud:spring-cloud-netflix-hystrix-stream")
-    compile('org.springframework.cloud:spring-cloud-starter-config')
-    compile('org.springframework.cloud:spring-cloud-starter-oauth2')
+    compile("org.springframework.cloud:spring-cloud-starter-config")
+    compile("org.springframework.cloud:spring-cloud-starter-oauth2")
     compile("org.springframework.cloud:spring-cloud-starter-sleuth")
+
     compile("org.apache.xmlrpc:xmlrpc-client:3.1.3")
+    compile("org.apache.httpcomponents:httpmime:4.5.6")
+    compile("commons-io:commons-io:2.6")
 
-    compile group: 'org.apache.httpcomponents', name: 'httpmime', version: '4.3.1'
-    compile group: 'commons-io', name: 'commons-io', version: '2.6'
-
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.4'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.4'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.9.4'
-    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: '2.9.4'
+    compile("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.9.7")
 
     compile("commons-validator:commons-validator:1.6")
-    compile("com.google.guava:guava:26.0-jre")
+    compile("com.google.guava:guava:27.0-jre")
     
-    compile(group: 'com.mysql', name: 'management', version: '1.1.6') {
-        exclude(module: 'jmxtools')
+    compile("com.mysql:management:1.1.6") {
+        exclude(module: "jmxtools")
     }
 
-    compile group: 'ru.majordomo.hms.common', name: 'hms-common', version: '0.0.1-SNAPSHOT'
+    compile("ru.majordomo.hms.common:hms-common:0.0.1-SNAPSHOT")
 
-    compile('org.hibernate:hibernate-validator:5.3.3.Final')
-    compile('org.hibernate:hibernate-validator-cdi:5.3.3.Final')
-    compile('javax.el:javax.el-api:2.2.4')
-    compile('org.glassfish.web:javax.el:2.2.4')
+    compile("org.hibernate:hibernate-validator:6.0.13.Final")
+    compile("org.hibernate:hibernate-validator-cdi:6.0.13.Final")
+    compile("javax.el:javax.el-api:3.0.0")
+    compile("org.glassfish.web:javax.el:2.2.4")
 
     compile "com.querydsl:querydsl-mongodb:$querydslVersion"
     compile "com.querydsl:querydsl-apt:$querydslVersion"
     
-    testCompile('org.springframework.boot:spring-boot-starter-test') {
-        exclude(module: 'commons-logging')
+    testCompile("org.springframework.boot:spring-boot-starter-test") {
+        exclude(module: "commons-logging")
     }
-    testCompile('com.github.fakemongo:fongo:2.0.9')
+    testCompile('com.github.fakemongo:fongo:2.2.0-RC2')
     compile("com.cronutils:cron-utils:5.0.1")
 
-    compile("com.googlecode.libphonenumber:libphonenumber:7.7.3")
+    compile("com.googlecode.libphonenumber:libphonenumber:8.10.2")
 
     compile("net.javacrumbs.shedlock:shedlock-spring:0.10.0")
     compile("net.javacrumbs.shedlock:shedlock-provider-mongo:0.8.0")
 
     compile("org.jongo:jongo:1.4.0")
 
-    compile("org.projectlombok:lombok:1.16.18")
+    compile("org.projectlombok:lombok:1.18.4")
 }
 
 dependencyManagement {
@@ -139,7 +127,7 @@ dependencyManagement {
     }
 }
 
-def generatedSrcDir = 'src/main/generated'
+def generatedSrcDir = "src/main/generated"
 
 querydsl {
     springDataMongo = true
@@ -154,13 +142,13 @@ idea {
     }
 }
 
-def versionPropsFile = file('version.properties')
+def versionPropsFile = file("version.properties")
 def versionBuild
 
 if (versionPropsFile.canRead()) {
     def Properties versionProps = new Properties()
     versionProps.load(new FileInputStream(versionPropsFile))
-    versionBuild = versionProps['VERSION_BUILD'].toInteger()
+    versionBuild = versionProps["VERSION_BUILD"].toInteger()
 } else {
     throw new GradleException("Could not read version.properties!")
 }
@@ -169,8 +157,8 @@ ext.autoIncrementBuildNumber = {
     if (versionPropsFile.canRead()) {
         def Properties versionProps = new Properties()
         versionProps.load(new FileInputStream(versionPropsFile))
-        versionBuild = versionProps['VERSION_BUILD'].toInteger() + 1
-        versionProps['VERSION_BUILD'] = versionBuild.toString()
+        versionBuild = versionProps["VERSION_BUILD"].toInteger() + 1
+        versionProps["VERSION_BUILD"] = versionBuild.toString()
         versionProps.store(versionPropsFile.newWriter(), null)
     } else {
         throw new GradleException("Could not read version.properties!")
@@ -180,9 +168,9 @@ ext.autoIncrementBuildNumber = {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            groupId 'ru.majordomo.hms.personmgr'
-            artifactId 'exceptions'
-            version '1.0.' + versionBuild
+            groupId "ru.majordomo.hms.personmgr"
+            artifactId "exceptions"
+            version "1.0." + versionBuild
             artifact exceptionJar
         }
     }
@@ -200,7 +188,7 @@ publishing {
 publish.doFirst autoIncrementBuildNumber
 
 task exceptionJar(type: Jar, dependsOn: compileJava) {
-    baseName = 'exceptions'
+    baseName = "exceptions"
     from sourceSets.main.output.classesDir
-    include 'ru/majordomo/hms/personmgr/exception/**'
+    include "ru/majordomo/hms/personmgr/exception/**"
 }

@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.data.mongodb.core.mapping.Document;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.Views;
@@ -20,6 +21,7 @@ import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDesti
 /**
  * ProcessingBusinessAction
  */
+@Document
 public class ProcessingBusinessAction extends BusinessAction {
     @Indexed
     private String personalAccountId;

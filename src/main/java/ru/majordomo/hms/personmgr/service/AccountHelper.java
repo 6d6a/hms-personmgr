@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,10 +17,7 @@ import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountWasEnabled;
-import ru.majordomo.hms.personmgr.exception.BaseException;
-import ru.majordomo.hms.personmgr.exception.InternalApiException;
-import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.*;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.feign.SiFeignClient;
@@ -39,7 +35,6 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
@@ -62,7 +57,6 @@ public class AccountHelper {
     private final AccountPromocodeRepository accountPromocodeRepository;
     private final PromocodeManager promocodeManager;
     private final AccountOwnerManager accountOwnerManager;
-    private final PlanRepository planRepository;
     private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHistoryManager history;
@@ -83,7 +77,6 @@ public class AccountHelper {
             AccountPromocodeRepository accountPromocodeRepository,
             PromocodeManager promocodeManager,
             AccountOwnerManager accountOwnerManager,
-            PlanRepository planRepository,
             AbonementManager<AccountAbonement> accountAbonementManager,
             AccountServiceHelper accountServiceHelper,
             AccountHistoryManager history,
@@ -102,7 +95,6 @@ public class AccountHelper {
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.promocodeManager = promocodeManager;
         this.accountOwnerManager = accountOwnerManager;
-        this.planRepository = planRepository;
         this.accountAbonementManager = accountAbonementManager;
         this.accountServiceHelper = accountServiceHelper;
         this.history = history;
@@ -446,7 +438,7 @@ public class AccountHelper {
 
     public void enableAccount(String accountId) {
         PersonalAccount account = accountManager.findOne(accountId);
-        switchAccountActiveState(account, true);
+        enableAccount(account);
     }
 
     public void enableAccount(PersonalAccount account) {
@@ -819,7 +811,7 @@ public class AccountHelper {
     }
 
     public BigDecimal getCostAbonement(String planId, String period) {
-        Plan plan = planRepository.findOne(planId);
+        Plan plan = planManager.findOne(planId);
         return getCostAbonement(plan, period);
     }
 
@@ -1109,7 +1101,7 @@ public class AccountHelper {
             List<Domain> domainsList = rcUserFeignClient.getDomains(account.getId());
             if (domainsList != null && !domainsList.isEmpty()) {
                 BigDecimal overallPaymentAmount = finFeignClient.getOverallPaymentAmount(account.getId());
-                Plan currentPlan = planRepository.findOne(account.getPlanId());
+                Plan currentPlan = planManager.findOne(account.getPlanId());
                 if (overallPaymentAmount.compareTo(currentPlan.getService().getCost()) < 0) {
                     throw new ParameterValidationException("Для добавления домена необходимо оплатить хостинг или купить абонемент.");
                 }

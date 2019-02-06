@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.stream.Stream;
 
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
@@ -20,6 +21,7 @@ import ru.majordomo.hms.rc.user.resources.Person;
  * Сервис для загрузки первичных данных в БД
  */
 @Service
+@ImportProfile
 public class AccountOwnerFromPersonDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountOwnerFromPersonDBImportService.class);
 

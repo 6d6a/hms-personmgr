@@ -14,6 +14,7 @@ import ru.majordomo.hms.personmgr.dto.revisium.MonitoringFlag;
 import ru.majordomo.hms.personmgr.dto.revisium.ResultStatus;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessBulkRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessRevisiumRequestEvent;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.RevisiumAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -104,7 +105,11 @@ public class ProcessingRevisiumRequestEventListener {
                     revisiumRequest.setSuccessGetResult(false);
                     revisiumRequestRepository.save(revisiumRequest);
                     PersonalAccount account = personalAccountManager.findOne(revisiumRequest.getPersonalAccountId());
-                    RevisiumRequestService revisiumRequestService = revisiumRequestServiceRepository.findOne(revisiumRequest.getRevisiumRequestServiceId());
+                    RevisiumRequestService revisiumRequestService =
+                            revisiumRequestServiceRepository.findById(revisiumRequest.getRevisiumRequestServiceId())
+                                    .orElseThrow(() -> new ResourceNotFoundException(
+                                            "Не найден ревизиум-сервис с Id " + revisiumRequest.getRevisiumRequestServiceId()
+                                    ));
                     history.saveForOperatorService(
                             account,
                             "Результат проверки (get_result) сайта '" + revisiumRequestService.getSiteUrl() + "' в Ревизиум содержит ошибку. " +
@@ -190,7 +195,13 @@ public class ProcessingRevisiumRequestEventListener {
                         accountNoticeRepository.save(notification);
 
                         PersonalAccount account = personalAccountManager.findOne(revisiumRequest.getPersonalAccountId());
-                        RevisiumRequestService revisiumRequestService = revisiumRequestServiceRepository.findOne(revisiumRequest.getRevisiumRequestServiceId());
+                        RevisiumRequestService revisiumRequestService =
+                                revisiumRequestServiceRepository
+                                        .findById(revisiumRequest.getRevisiumRequestServiceId())
+                                        .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Не найден ревизиум-сервис с Id " + revisiumRequest.getRevisiumRequestServiceId()
+                                        ));
+
                         HashMap<String, String> parameters = new HashMap<>();
                         parameters.put("client_id", account.getAccountId());
                         parameters.put("site_url", revisiumRequestService.getSiteUrl());

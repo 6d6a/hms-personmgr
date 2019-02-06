@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.model.account.AccountComment;
 import ru.majordomo.hms.personmgr.repository.AccountCommentRepository;
 
@@ -24,6 +25,7 @@ import ru.majordomo.hms.personmgr.repository.AccountCommentRepository;
  * Сервис для загрузки первичных данных в БД
  */
 @Service
+@ImportProfile
 public class AccountCommentDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountCommentDBImportService.class);
 

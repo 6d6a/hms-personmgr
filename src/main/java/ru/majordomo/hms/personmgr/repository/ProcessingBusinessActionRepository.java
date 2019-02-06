@@ -3,28 +3,21 @@ package ru.majordomo.hms.personmgr.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Stream;
 
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 
 public interface ProcessingBusinessActionRepository extends MongoRepository<ProcessingBusinessAction, String> {
-    ProcessingBusinessAction findByName(@Param("name") String name);
+    ProcessingBusinessAction findByName(String name);
 
-    ProcessingBusinessAction findByBusinessActionType(@Param("businessActionType") BusinessActionType businessActionType);
+    Stream<ProcessingBusinessAction> findByCreatedDateBeforeOrderByCreatedDateAsc(LocalDateTime createdDate);
 
-    ProcessingBusinessAction findFirstByStateOrderByPriorityAscCreatedDateAsc(@Param("state") State state);
+    Page<ProcessingBusinessAction> findByPersonalAccountId(String accountId, Pageable pageable);
 
-    Stream<ProcessingBusinessAction> findByCreatedDateBeforeOrderByCreatedDateAsc(@Param("createdDate") LocalDateTime createdDate);
+    ProcessingBusinessAction findByIdAndPersonalAccountId(String id, String accountId);
 
-    Page<ProcessingBusinessAction> findByPersonalAccountId(@Param("accountId") String accountId, Pageable pageable);
-
-    ProcessingBusinessAction findByIdAndPersonalAccountId(@Param("id") String id, @Param("accountId") String accountId);
-
-    List<ProcessingBusinessAction> findAllByOperationId(@Param("operationId") String operationId);
+    List<ProcessingBusinessAction> findAllByOperationId(String operationId);
 }

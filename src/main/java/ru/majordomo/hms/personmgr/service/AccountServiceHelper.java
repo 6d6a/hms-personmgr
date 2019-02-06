@@ -19,6 +19,7 @@ import ru.majordomo.hms.personmgr.event.revisium.ProcessRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
@@ -30,7 +31,6 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
 import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
@@ -42,7 +42,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_R
 @Service
 public class AccountServiceHelper {
     private final AccountServiceRepository accountServiceRepository;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
     private final PaymentServiceRepository serviceRepository;
     private final RevisiumRequestRepository revisiumRequestRepository;
     private final RevisiumApiClient revisiumApiClient;
@@ -54,7 +54,7 @@ public class AccountServiceHelper {
     @Autowired
     public AccountServiceHelper(
             AccountServiceRepository accountServiceRepository,
-            PlanRepository planRepository,
+            PlanManager planManager,
             PaymentServiceRepository serviceRepository,
             RevisiumRequestRepository revisiumRequestRepository,
             RevisiumApiClient revisiumApiClient,
@@ -64,7 +64,7 @@ public class AccountServiceHelper {
             ServicePlanRepository servicePlanRepository
     ) {
         this.accountServiceRepository = accountServiceRepository;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.serviceRepository = serviceRepository;
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.revisiumApiClient = revisiumApiClient;
@@ -84,7 +84,7 @@ public class AccountServiceHelper {
         List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), serviceId);
 
         if (accountServices != null && !accountServices.isEmpty()) {
-            accountServiceRepository.delete(accountServices);
+            accountServiceRepository.deleteAll(accountServices);
         }
     }
 
@@ -231,7 +231,7 @@ public class AccountServiceHelper {
 
         accountServices.forEach(accountService -> accountService.setEnabled(enabled));
 
-        accountServiceRepository.save(accountServices);
+        accountServiceRepository.saveAll(accountServices);
     }
 
     /**
@@ -255,7 +255,7 @@ public class AccountServiceHelper {
 
         if (accountServices.size() > 1) {
             accountServices.remove(0);
-            accountServiceRepository.delete(accountServices);
+            accountServiceRepository.deleteAll(accountServices);
         }
     }
 
@@ -270,7 +270,7 @@ public class AccountServiceHelper {
 
         accountServices.forEach(accountService -> accountService.setLastBilled(LocalDateTime.now()));
 
-        accountServiceRepository.save(accountServices);
+        accountServiceRepository.saveAll(accountServices);
     }
 
     public PaymentService getRevisiumPaymentService() {
@@ -329,7 +329,7 @@ public class AccountServiceHelper {
 
     //получить PaymentService для услуги SMS-уведомлений
     public PaymentService getSmsPaymentServiceByPlanId(String planId) {
-        Plan plan = planRepository.findOne(planId);
+        Plan plan = planManager.findOne(planId);
 
         if (plan == null) {
             throw new ParameterValidationException("Plan with id " + planId + " not found");
@@ -343,7 +343,7 @@ public class AccountServiceHelper {
             smsServiceId = SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
             paymentService = serviceRepository.findByOldId(smsServiceId);
         } else {
-            paymentService = serviceRepository.findOne(smsServiceId);
+            paymentService = serviceRepository.findById(smsServiceId).orElse(null);
         }
 
         if (paymentService == null) {

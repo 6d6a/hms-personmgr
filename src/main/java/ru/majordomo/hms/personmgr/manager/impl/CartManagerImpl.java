@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +16,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
@@ -53,7 +53,7 @@ public class CartManagerImpl implements CartManager {
 
     @Override
     public boolean exists(String id) {
-        return repository.exists(id);
+        return repository.existsById(id);
     }
 
     @Override
@@ -63,7 +63,7 @@ public class CartManagerImpl implements CartManager {
 
     @Override
     public void delete(String id) {
-        repository.delete(id);
+        repository.deleteById(id);
     }
 
     @Override
@@ -73,7 +73,7 @@ public class CartManagerImpl implements CartManager {
 
     @Override
     public void delete(Iterable<Cart> carts) {
-        repository.delete(carts);
+        repository.deleteAll(carts);
     }
 
     @Override
@@ -88,7 +88,7 @@ public class CartManagerImpl implements CartManager {
 
     @Override
     public List<Cart> save(Iterable<Cart> carts) {
-        return repository.save(carts);
+        return repository.saveAll(carts);
     }
 
     @Override
@@ -104,7 +104,7 @@ public class CartManagerImpl implements CartManager {
     @Override
     public Cart findOne(String id) {
         checkById(id);
-        Cart cart = repository.findOne(id);
+        Cart cart = repository.findById(id).orElse(null);
         setDomainCartItemStrategy(cart);
 
         return cart;

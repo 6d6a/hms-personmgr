@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.manager.impl;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +62,7 @@ public class AccountHistoryManagerImpl implements AccountHistoryManager {
 
     @Override
     public Page<AccountHistory> findAll(Predicate predicate, Pageable pageable) {
+        if (predicate == null) predicate = new BooleanBuilder();
         return repository.findAll(predicate, pageable);
     }
 

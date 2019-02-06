@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.Constants;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.event.accountService.AccountServiceCreateEvent;
 import ru.majordomo.hms.personmgr.event.accountService.AccountServiceImportEvent;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -41,6 +42,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_FREE
  * DBImportService
  */
 @Service
+@ImportProfile
 public class AccountServicesDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountServicesDBImportService.class);
 

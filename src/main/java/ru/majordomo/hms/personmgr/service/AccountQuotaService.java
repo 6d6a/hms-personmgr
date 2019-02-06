@@ -14,12 +14,12 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaAddedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaDiscardEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Quotable;
 
 import static java.lang.Math.ceil;
@@ -36,7 +36,7 @@ public class AccountQuotaService {
     private final PlanLimitsService planLimitsService;
     private final PaymentServiceRepository paymentServiceRepository;
     private final AccountServiceHelper accountServiceHelper;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
     private final AccountServiceRepository accountServiceRepository;
     private final ApplicationEventPublisher publisher;
     private final AccountHelper accountHelper;
@@ -48,7 +48,7 @@ public class AccountQuotaService {
             PlanLimitsService planLimitsService,
             PaymentServiceRepository paymentServiceRepository,
             AccountServiceHelper accountServiceHelper,
-            PlanRepository planRepository,
+            PlanManager planManager,
             AccountServiceRepository accountServiceRepository,
             ApplicationEventPublisher publisher,
             AccountHelper accountHelper
@@ -58,7 +58,7 @@ public class AccountQuotaService {
         this.planLimitsService = planLimitsService;
         this.paymentServiceRepository = paymentServiceRepository;
         this.accountServiceHelper = accountServiceHelper;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.accountServiceRepository = accountServiceRepository;
         this.publisher = publisher;
         this.accountHelper = accountHelper;
@@ -66,7 +66,7 @@ public class AccountQuotaService {
 
     public void processQuotaCheck(PersonalAccount account) {
         logger.debug("Processing processQuotaCheck for account: " + account.getAccountId());
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
         processQuotaService(account, plan);
     }
 

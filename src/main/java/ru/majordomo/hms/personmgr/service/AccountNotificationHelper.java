@@ -16,12 +16,12 @@ import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.math.BigDecimal;
@@ -49,7 +49,7 @@ public class AccountNotificationHelper {
     private final static Logger logger = LoggerFactory.getLogger(AccountNotificationHelper.class);
 
     private final ApplicationEventPublisher publisher;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final NotificationRepository notificationRepository;
@@ -62,7 +62,7 @@ public class AccountNotificationHelper {
     @Autowired
     public AccountNotificationHelper(
             ApplicationEventPublisher publisher,
-            PlanRepository planRepository,
+            PlanManager planManager,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
             NotificationRepository notificationRepository,
@@ -73,7 +73,7 @@ public class AccountNotificationHelper {
             PaymentLinkHelper paymentLinkHelper
     ) {
         this.publisher = publisher;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
         this.notificationRepository = notificationRepository;
@@ -213,7 +213,7 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailForDeactivatedAccount(PersonalAccount account, LocalDate dateFinish) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
         Map<String, String> parameters = new HashMap<>();
 
         String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
@@ -233,7 +233,7 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailDeactivatedWithExpiredCredit(PersonalAccount account) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         BigDecimal balance = accountHelper.getBalance(account);
 
@@ -257,7 +257,7 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailCreditJustActivatedWithHostingAbonement(PersonalAccount account) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         BigDecimal balance = accountHelper.getBalance(account);
 
@@ -287,7 +287,7 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailCreditJustActivated(PersonalAccount account) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         BigDecimal balance = accountHelper.getBalance(account);
 
@@ -317,7 +317,7 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailCreditExpiringWithHostingAbonement(PersonalAccount account) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         BigDecimal balance = accountHelper.getBalance(account);
 
@@ -350,7 +350,7 @@ public class AccountNotificationHelper {
     public void sendMailCreditExpiring(PersonalAccount account) {
         BigDecimal balance = accountHelper.getBalance(account);
 
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
                 account,
@@ -381,7 +381,7 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailCreditExpiredWithHostingAbonement(PersonalAccount account) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         BigDecimal balance = accountHelper.getBalance(account);
 
@@ -412,7 +412,7 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailServicesDisabledWithHostingAbonement(PersonalAccount account) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         BigDecimal balance = accountHelper.getBalance(account);
 
@@ -443,7 +443,7 @@ public class AccountNotificationHelper {
     }
 
     public void sendMailServicesExpiringWithHostingAbonement(PersonalAccount account, int remainingDays) {
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         BigDecimal balance = accountHelper.getBalance(account);
 
@@ -476,7 +476,7 @@ public class AccountNotificationHelper {
     public void sendMailServicesExpiring(PersonalAccount account, int remainingDays) {
         BigDecimal balance = accountHelper.getBalance(account);
 
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
                 account,

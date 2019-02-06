@@ -23,6 +23,7 @@ import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.projection.PlanByServerProjection;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.rc.staff.resources.Resource;
 
@@ -259,7 +260,9 @@ public class StatServiceHelper {
                 aggregation, "accountService", AccountServiceCounter.class
         ).getMappedResults();
 
-        accountServiceCounters.forEach(element -> element.setName(paymentServiceRepository.findOne(element.getResourceId()).getName()));
+        accountServiceCounters.forEach(element -> element.setName(
+                paymentServiceRepository.findById(element.getResourceId())
+                        .orElse(new PaymentService()).getName()));
 
         return accountServiceCounters;
     }
@@ -474,7 +477,11 @@ public class StatServiceHelper {
                 aggregation, AccountServiceAbonement.class, AccountServiceCounter.class
         ).getMappedResults();
 
-        accountServiceCounters.forEach(element -> element.setName(abonementRepository.findOne(element.getResourceId()).getName()));
+        accountServiceCounters.forEach(element ->
+                abonementRepository.findById(element.getResourceId())
+                        .ifPresent(abonement -> element.setName(abonement.getName())
+                )
+        );
 
         return accountServiceCounters;
     }

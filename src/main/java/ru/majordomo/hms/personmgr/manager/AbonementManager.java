@@ -35,11 +35,7 @@ public interface AbonementManager<T extends AccountAbonement> {
 
     List<T> findAll();
 
-    Stream<T> findAllStream();
-
     List<T> findByAbonementId(String abonementId);
-
-    Page<T> findByAbonementId(String abonementId, Pageable pageable);
 
     T findByPersonalAccountId(String personalAccountId);
 
@@ -52,20 +48,6 @@ public interface AbonementManager<T extends AccountAbonement> {
     List<T> findByPersonalAccountIdAndExpiredAfter(String personalAccountId, LocalDateTime expired);
 
     List<T> findByPersonalAccountIdAndExpiredBefore(String personalAccountId, LocalDateTime expired);
-
-    List<T> findByAbonementIdAndAutorenew(String abonementId, String autorenew);
-
-    Page<T> findByAbonementIdAndAutorenew(String abonementId, String autorenew, Pageable pageable);
-
-    List<T> findByPersonalAccountIdAndAutorenew(String personalAccountId, String autorenew);
-
-    Page<T> findByPersonalAccountIdAndAutorenew(String personalAccountId, String autorenew, Pageable pageable);
-
-    List<T> findByPersonalAccountIdAndExpiredAfterAndAutorenew(String personalAccountId, LocalDateTime expired, String autorenew);
-
-    List<T> findByPersonalAccountIdAndExpiredBeforeAndAutorenew(String personalAccountId, LocalDateTime expired, String autorenew);
-
-    List<T> findByPersonalAccountIdAndAbonementId(String personalAccountId, String abonementId);
 
     List<T> findByPersonalAccountIdAndAbonementIdIn(String personalAccountId, List<String> abonementIds);
 

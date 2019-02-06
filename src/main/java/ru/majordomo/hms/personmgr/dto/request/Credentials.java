@@ -1,7 +1,7 @@
 package ru.majordomo.hms.personmgr.dto.request;
 
 import lombok.Data;
-import org.hibernate.validator.constraints.NotBlank;
+import javax.validation.constraints.NotBlank;
 
 @Data
 public class Credentials {

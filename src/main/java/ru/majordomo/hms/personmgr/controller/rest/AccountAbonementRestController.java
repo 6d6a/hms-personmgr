@@ -3,7 +3,6 @@ package ru.majordomo.hms.personmgr.controller.rest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,6 +26,7 @@ import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.dto.request.AddAbonementRequest;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -159,10 +159,9 @@ public class AccountAbonementRestController extends CommonRestController {
                     break;
                 case "abonementId":
                     String abonementId = update.get(key);
-                    Abonement abonement = abonementRepository.findOne(abonementId);
-                    if (abonement == null) {
-                        throw new ResourceNotFoundException("Абонемент с id " + abonementId + " не найден");
-                    }
+                    Abonement abonement = abonementRepository.findById(abonementId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Абонемент с id " + abonementId + " не найден"));
+
                     historyJoiner.add(
                             new StringBuilder("абонемент с id ").append(accountAbonement.getAbonementId())
                                     .append(" и именем ").append(accountAbonement.getAbonement().getName())
@@ -279,7 +278,8 @@ public class AccountAbonementRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        Abonement abonement = abonementRepository.findOne(abonementId);
+        Abonement abonement = abonementRepository.findById(abonementId)
+                .orElseThrow(() -> new ResourceNotFoundException("Абонемент с id " + abonementId + " не найден"));
 
         if (!accountHelper.isAbonementMinCostOrderAllowed(account)) {
             throw new ParameterValidationException("Обслуживание по тарифу \"" + planManager.findOne(account.getPlanId()).getName() +  "\" прекращено");

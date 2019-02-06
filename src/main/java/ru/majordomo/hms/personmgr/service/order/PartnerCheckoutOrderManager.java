@@ -70,7 +70,9 @@ public class PartnerCheckoutOrderManager extends OrderManager<AccountPartnerChec
             throw new ParameterValidationException("Партнерский баланс недостаточен для вывода суммы");
         }
 
-        PaymentService paymentService = paymentServiceRepository.findOne(PARTNER_CHECKOUT_SERVICE_ID);
+        PaymentService paymentService = paymentServiceRepository.findById(PARTNER_CHECKOUT_SERVICE_ID).orElseThrow(
+                () -> new ParameterValidationException("Не найден сервис с id " + PARTNER_CHECKOUT_SERVICE_ID)
+        );
 
         //Списываем деньги
         ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)

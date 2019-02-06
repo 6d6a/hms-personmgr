@@ -28,8 +28,7 @@ public class AppsCatAmqpController extends CommonAmqpController {
         logger.debug("Received from " + provider + ": " + message.toString());
 
         try {
-            ProcessingBusinessOperation businessOperation = processingBusinessOperationRepository.findOne(message.getOperationIdentity());
-            if (businessOperation != null) {
+            processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(businessOperation -> {
                 List<ProcessingBusinessAction> businessActions = processingBusinessActionRepository.findAllByOperationId(businessOperation.getId());
 
                 businessActions
@@ -68,7 +67,7 @@ public class AppsCatAmqpController extends CommonAmqpController {
                         );
                         break;
                 }
-            }
+            });
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Got Exception in AppsCatAmqpController.install " + e.getMessage());

@@ -7,6 +7,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.event.accountService.AccountServiceCreateEvent;
 import ru.majordomo.hms.personmgr.event.accountService.AccountServiceImportEvent;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
@@ -14,6 +15,7 @@ import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.importing.AccountServicesDBImportService;
 
 @Component
+@ImportProfile
 public class AccountServiceEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountServiceEventListener.class);
 

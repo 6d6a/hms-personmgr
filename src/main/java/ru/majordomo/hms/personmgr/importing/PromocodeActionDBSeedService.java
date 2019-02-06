@@ -11,9 +11,10 @@ import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.PromocodeActionType;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.BONUS_FREE_DOMAIN_PROMOCODE_ACTION_ID;
@@ -29,16 +30,17 @@ import static ru.majordomo.hms.personmgr.common.Constants.PLAN_UNLIMITED_ID;
  * Сервис для загрузки первичных данных в БД
  */
 @Service
+@ImportProfile
 public class PromocodeActionDBSeedService {
     private final static Logger logger = LoggerFactory.getLogger(PromocodeActionDBSeedService.class);
 
     private final PromocodeActionRepository promocodeActionRepository;
 
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
 
     @Autowired
-    public PromocodeActionDBSeedService(PlanRepository planRepository, PromocodeActionRepository promocodeActionRepository) {
-        this.planRepository = planRepository;
+    public PromocodeActionDBSeedService(PlanManager planManager, PromocodeActionRepository promocodeActionRepository) {
+        this.planManager = planManager;
         this.promocodeActionRepository = promocodeActionRepository;
     }
 
@@ -84,7 +86,7 @@ public class PromocodeActionDBSeedService {
         promocodeAction.setActionType(PromocodeActionType.SERVICE_ABONEMENT);
 
         //Безлимитный план
-        Plan plan = planRepository.findByOldId(String.valueOf(PLAN_UNLIMITED_ID));
+        Plan plan = planManager.findByOldId(String.valueOf(PLAN_UNLIMITED_ID));
 
         properties = new HashMap<>();
         properties.put("serviceId", plan.getServiceId());
@@ -117,7 +119,7 @@ public class PromocodeActionDBSeedService {
         promocodeAction.setActionType(PromocodeActionType.SERVICE_ABONEMENT);
 
         //ПарковкаДоменов план
-        plan = planRepository.findByOldId(String.valueOf(PLAN_PARKING_DOMAINS_ID));
+        plan = planManager.findByOldId(String.valueOf(PLAN_PARKING_DOMAINS_ID));
 
         properties = new HashMap<>();
         properties.put("serviceId", plan.getServiceId());

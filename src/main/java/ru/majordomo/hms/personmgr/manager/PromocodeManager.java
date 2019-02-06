@@ -7,7 +7,7 @@ import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 
 public interface PromocodeManager {
 
-    Promocode findOne(String id);
+    Promocode findById(String id);
 
     Promocode findByCodeIgnoreCase(String code);
 

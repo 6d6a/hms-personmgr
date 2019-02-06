@@ -43,6 +43,7 @@ import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.feign.SiFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.manager.TokenManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
@@ -55,7 +56,6 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
@@ -76,7 +76,7 @@ import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
 @RestController
 @Validated
 public class PersonalAccountRestController extends CommonRestController {
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
     private final AccountOwnerManager accountOwnerManager;
     private final RcUserFeignClient rcUserFeignClient;
     private final ApplicationEventPublisher publisher;
@@ -92,7 +92,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
     @Autowired
     public PersonalAccountRestController(
-            PlanRepository planRepository,
+            PlanManager planManager,
             AccountOwnerManager accountOwnerManager,
             RcUserFeignClient rcUserFeignClient,
             ApplicationEventPublisher publisher,
@@ -107,7 +107,7 @@ public class PersonalAccountRestController extends CommonRestController {
             AbonementManager<AccountAbonement> accountAbonementManager,
             PaymentLinkHelper paymentLinkHelper
     ) {
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.accountOwnerManager = accountOwnerManager;
         this.rcUserFeignClient = rcUserFeignClient;
         this.publisher = publisher;
@@ -162,7 +162,7 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        Plan plan = planRepository.findOne(account.getPlanId());
+        Plan plan = planManager.findOne(account.getPlanId());
 
         if (plan == null) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -180,7 +180,7 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
         String operator = request.getUserPrincipal().getName();
-        Plan newPlan = planRepository.findOne(planId);
+        Plan newPlan = planManager.findOne(planId);
 
         Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
         planChangeProcessor.setOperator(operator);
@@ -202,7 +202,7 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
         String operator = request.getUserPrincipal().getName();
-        Plan newPlan = planRepository.findOne(planId);
+        Plan newPlan = planManager.findOne(planId);
 
         Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
         planChangeProcessor.setOperator(operator);
@@ -234,7 +234,7 @@ public class PersonalAccountRestController extends CommonRestController {
 
     private ResponseEntity<PlanChangeAgreement> planCheck(String accountId, String planId, Boolean ignoreRestricts) {
         PersonalAccount account = accountManager.findOne(accountId);
-        Plan newPlan = planRepository.findOne(planId);
+        Plan newPlan = planManager.findOne(planId);
 
         Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
         planChangeProcessor.setIgnoreRestricts(ignoreRestricts);
@@ -522,7 +522,7 @@ public class PersonalAccountRestController extends CommonRestController {
                     throw new ParameterValidationException("Включение кредита невозможно на тестовом периоде");
                 }
 
-                if (planRepository.findOne(account.getPlanId()).isAbonementOnly()) {
+                if (planManager.findOne(account.getPlanId()).isAbonementOnly()) {
                     throw new ParameterValidationException("Включение кредита невозможно на вашем тарифном плане");
                 }
                 // Включение кредита

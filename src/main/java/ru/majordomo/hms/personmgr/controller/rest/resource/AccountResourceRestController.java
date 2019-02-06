@@ -3,16 +3,11 @@ package ru.majordomo.hms.personmgr.controller.rest.resource;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -27,6 +22,7 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.feign.SiFeignClient;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -36,7 +32,6 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
@@ -50,7 +45,7 @@ import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_TRANSFER;
 public class AccountResourceRestController extends CommonRestController {
     private final SequenceCounterService sequenceCounterService;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
-    private final PlanRepository planRepository;
+    private final PlanManager planManager;
     private final AccountServiceRepository accountServiceRepository;
     private final AccountOwnerManager accountOwnerManager;
     private final SiFeignClient siFeignClient;
@@ -61,7 +56,7 @@ public class AccountResourceRestController extends CommonRestController {
     public AccountResourceRestController(
             SequenceCounterService sequenceCounterService,
             ProcessingBusinessOperationRepository processingBusinessOperationRepository,
-            PlanRepository planRepository,
+            PlanManager planManager,
             AccountServiceRepository accountServiceRepository,
             AccountOwnerManager accountOwnerManager,
             SiFeignClient siFeignClient,
@@ -70,7 +65,7 @@ public class AccountResourceRestController extends CommonRestController {
     ) {
         this.sequenceCounterService = sequenceCounterService;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.accountServiceRepository = accountServiceRepository;
         this.accountOwnerManager = accountOwnerManager;
         this.siFeignClient = siFeignClient;
@@ -98,7 +93,7 @@ public class AccountResourceRestController extends CommonRestController {
 
         String password = randomAlphabetic(8);
 
-        Plan plan = planRepository.findByOldId((String) message.getParam("plan"));
+        Plan plan = planManager.findByOldId((String) message.getParam("plan"));
 
         if (plan == null) {
             logger.debug("No plan found with OldId: " + message.getParam("plan"));
@@ -177,8 +172,7 @@ public class AccountResourceRestController extends CommonRestController {
     public Boolean moveAccount(
             @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
             @RequestBody Map<String, String> params,
-            SecurityContextHolderAwareRequestWrapper request,
-            Authentication authentication
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         Utils.checkRequiredParams(params, ACCOUNT_TRANSFER);
 
@@ -209,8 +203,7 @@ public class AccountResourceRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
             @RequestBody SimpleServiceMessage message,
             SecurityContextHolderAwareRequestWrapper request,
-            HttpServletResponse response,
-            Authentication authentication
+            HttpServletResponse response
     ) {
         message.setAccountId(accountId);
         Utils.checkRequiredParams(message.getParams(), ACCOUNT_TRANSFER);
@@ -238,41 +231,6 @@ public class AccountResourceRestController extends CommonRestController {
 
         return this.createSuccessResponse(businessAction);
     }
-//
-//    @RequestMapping(value = "/{accountId}", method = RequestMethod.PATCH)
-//    public SimpleServiceMessage update(
-//            @PathVariable String accountId,
-//            @RequestBody SimpleServiceMessage message, HttpServletResponse response
-//    ) {
-//        logger.debug("Updating account with id " + accountId + " " + message.toString());
-//
-//        message.addParam("accountId", accountId);
-//
-//        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_UPDATE_RC, message);
-//
-//        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-//
-//        return this.createSuccessResponse(businessAction);
-//    }
-//
-//    @RequestMapping(value = "/{accountId}", method = RequestMethod.DELETE)
-//    public SimpleServiceMessage delete(
-//            @PathVariable String accountId,
-//            HttpServletResponse response
-//    ) {
-//        SimpleServiceMessage message = new SimpleServiceMessage();
-//        message.setAccountId(accountId);
-//        message.addParam("accountId", accountId);
-//        message.setAccountId(accountId);
-//
-//        logger.debug("Deleting account with id " + accountId + " " + message.toString());
-//
-//        ProcessingBusinessAction businessAction = businessActionBuilder.build(BusinessActionType.ACCOUNT_DELETE_RC, message);
-//
-//        response.setStatus(HttpServletResponse.SC_ACCEPTED);
-//
-//        return this.createSuccessResponse(businessAction);
-//    }
 
     private PersonalAccount createPersonalAccount(Plan plan){
         String accountId = String.valueOf(sequenceCounterService.getNextSequence("PersonalAccount"));
@@ -289,16 +247,16 @@ public class AccountResourceRestController extends CommonRestController {
         personalAccount.setAccountNew(true);
         personalAccount.setCredit(false);
         personalAccount.setCreditPeriod("P14D");
-
-        //Установка уведомлений по-умолчанию (почтовая информационная рассылка)
-        Set<MailManagerMessageType> defaultNotifications = new HashSet<>();
-        defaultNotifications.add(MailManagerMessageType.EMAIL_NEWS);
-        personalAccount.setNotifications(defaultNotifications);
+        personalAccount.setNotifications(defaultNotifications());
 
         accountManager.insert(personalAccount);
         logger.debug("personalAccount saved: " + personalAccount.toString());
 
         return personalAccount;
+    }
+
+    private Set<MailManagerMessageType> defaultNotifications() {
+        return new HashSet<>(Collections.singletonList(MailManagerMessageType.EMAIL_NEWS));
     }
 
     private void createAccountOwner(

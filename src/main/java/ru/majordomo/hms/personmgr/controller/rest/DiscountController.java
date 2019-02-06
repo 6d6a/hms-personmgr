@@ -39,7 +39,7 @@ public class DiscountController {
     public ResponseEntity<Discount> getDiscount(
             @ObjectId(Discount.class) @PathVariable(value = "discountId") String discountId
     ) {
-        return ResponseEntity.ok(discountRepository.findOne(discountId));
+        return ResponseEntity.ok(discountRepository.findById(discountId).orElse(null));
     }
 
     @PreAuthorize("hasRole('OPERATOR')")

@@ -14,25 +14,25 @@ import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.PlanBuilder;
 
 
 @RestController
 public class PlanRestController extends CommonRestController {
-    private final PlanRepository repository;
+    private final PlanManager manager;
     private final PlanBuilder planBuilder;
 
     @Autowired
-    public PlanRestController(PlanRepository repository, PlanBuilder planBuilder) {
-        this.repository = repository;
+    public PlanRestController(PlanManager manager, PlanBuilder planBuilder) {
+        this.manager = manager;
         this.planBuilder = planBuilder;
     }
 
     @GetMapping("/{accountId}/plans")
     public ResponseEntity<List<Plan>> listAllForAccount(@PathVariable(value = "accountId") String accountId) {
-        List<Plan> plans = repository.findByActive(true);
+        List<Plan> plans = manager.findByActive(true);
 
         return new ResponseEntity<>(plans, HttpStatus.OK);
     }
@@ -41,7 +41,7 @@ public class PlanRestController extends CommonRestController {
     public ResponseEntity<Page<Plan>> listAll(
             @QuerydslPredicate(root = Plan.class) Predicate predicate,
             Pageable pageable) {
-        Page<Plan> plans = repository.findAll(predicate, pageable);
+        Page<Plan> plans = manager.findAll(predicate, pageable);
 
         plans.forEach(planBuilder::build);
 
@@ -50,13 +50,13 @@ public class PlanRestController extends CommonRestController {
 
     @GetMapping("/plans/{planId}")
     public ResponseEntity<Plan> get(@PathVariable(value = "planId") String planId) {
-        Plan plan = repository.findOne(planId);
+        Plan plan = manager.findOne(planId);
 
         return new ResponseEntity<>(plan, HttpStatus.OK);
     }
 
     @GetMapping("/plans/serviceId/{serviceId}")
     public ResponseEntity<Plan> getByServiceId(@PathVariable String serviceId){
-        return new ResponseEntity<>(repository.findByServiceId(serviceId), HttpStatus.OK);
+        return new ResponseEntity<>(manager.findByServiceId(serviceId), HttpStatus.OK);
     }
 }

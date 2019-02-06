@@ -8,19 +8,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-import ru.majordomo.hms.personmgr.event.accountAbonement.AccountAbonementImportEvent;
-import ru.majordomo.hms.personmgr.event.accountComment.AccountCommentImportEvent;
-import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryImportEvent;
-import ru.majordomo.hms.personmgr.event.accountOwner.AccountOwnerImportEvent;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeCleanEvent;
-import ru.majordomo.hms.personmgr.event.accountPromocode.AccountPromocodeImportEvent;
-import ru.majordomo.hms.personmgr.event.accountPromotion.AccountPromotionImportEvent;
-import ru.majordomo.hms.personmgr.event.accountService.AccountServiceImportEvent;
-import ru.majordomo.hms.personmgr.event.personalAccount.PersonalAccountImportEvent;
-import ru.majordomo.hms.personmgr.event.personalAccount.PersonalAccountNotificationImportEvent;
 import ru.majordomo.hms.personmgr.event.promocode.PromocodeCleanEvent;
-import ru.majordomo.hms.personmgr.event.promocode.PromocodeImportEvent;
 
+@ImportProfile
 @Service
 public class DBImportService {
     private final static Logger logger = LoggerFactory.getLogger(DBImportService.class);

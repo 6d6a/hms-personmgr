@@ -2,8 +2,6 @@ package ru.majordomo.hms.personmgr.event.accountStat.listener;
 
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -12,6 +10,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.PaymentWasReceivedEvent;
 import ru.majordomo.hms.personmgr.event.account.UserDisabledServiceEvent;
 import ru.majordomo.hms.personmgr.event.accountStat.AccountStatDomainUpdateEvent;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.AccountNotificationStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -46,8 +45,6 @@ public class AccountStatEventListener {
     private final StatFeignClient statFeignClient;
     private final PaymentServiceRepository paymentServiceRepository;
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-
     public AccountStatEventListener(
             RcUserFeignClient rcUserFeignClient,
             AccountStatHelper accountStatHelper,
@@ -75,9 +72,14 @@ public class AccountStatEventListener {
         boolean statDataAutoRenew = (Boolean) message.getParam(AUTO_RENEW_KEY);
 
         if (domainName == null) {
-            ProcessingBusinessAction businessAction = processingBusinessActionRepository.findOne(message.getActionIdentity());
-            Domain domain = rcUserFeignClient.getDomain(accountId, (String) businessAction.getParam(RESOURCE_ID_KEY));
-            if (domain != null) { domainName = domain.getName(); }
+            ProcessingBusinessAction businessAction = processingBusinessActionRepository
+                    .findById(message.getActionIdentity()).orElse(null);
+            if (businessAction != null) {
+                Domain domain = rcUserFeignClient.getDomain(accountId, (String) businessAction.getParam(RESOURCE_ID_KEY));
+                if (domain != null) {
+                    domainName = domain.getName();
+                }
+            }
         }
 
         Map<String, String> statData = new HashMap<>();
@@ -181,7 +183,11 @@ public class AccountStatEventListener {
     public void saveStat(UserDisabledServiceEvent event) {
         PersonalAccount account = accountManager.findOne(event.getSource());
 
-        PaymentService paymentService = paymentServiceRepository.findOne(event.getPaymentServiceId());
+        PaymentService paymentService = paymentServiceRepository.findById(event.getPaymentServiceId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Не найден сервис с id " + event.getPaymentServiceId()
+                ));
+
         if (paymentService.getCost().compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }

@@ -107,7 +107,7 @@ public class ResourceArchiveService {
         );
 
         if (longLifeResourceArchive != null && longLifeResourceArchive.getAccountServiceId() != null) {
-            accountServiceRepository.delete(longLifeResourceArchive.getAccountServiceId());
+            accountServiceRepository.deleteById(longLifeResourceArchive.getAccountServiceId());
 
             repository.delete(longLifeResourceArchive);
         }
@@ -118,7 +118,7 @@ public class ResourceArchiveService {
 
         if (longLifeResourceArchives != null && !longLifeResourceArchives.isEmpty()) {
             longLifeResourceArchives.forEach(longLifeResourceArchive -> {
-                accountServiceRepository.delete(longLifeResourceArchive.getAccountServiceId());
+                accountServiceRepository.deleteById(longLifeResourceArchive.getAccountServiceId());
 
                 repository.delete(longLifeResourceArchive);
             });

@@ -167,7 +167,9 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
 
         checkProlongLicenceOnCreate(previousOrder);
 
-        PaymentService paymentService = paymentServiceRepository.findOne(previousOrder.getServiceId());
+        PaymentService paymentService = paymentServiceRepository.findById(previousOrder.getServiceId()).orElseThrow(
+                () -> new ParameterValidationException("Не найден сервис с id " + previousOrder.getServiceId())
+        );
 
         BigDecimal discount;
 
@@ -248,7 +250,9 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
 
         checkThatServiceIdIsBitrixLicense(order.getServiceId());
 
-        PaymentService paymentService = paymentServiceRepository.findOne(order.getServiceId());
+        PaymentService paymentService = paymentServiceRepository.findById(order.getServiceId()).orElseThrow(
+                () -> new ParameterValidationException("Не найден сервис с id " + order.getServiceId())
+        );
         BigDecimal cost = paymentService.getCost();
 
         PersonalAccount account = personalAccountManager.findOne(order.getPersonalAccountId());

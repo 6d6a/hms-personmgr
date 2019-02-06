@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -25,7 +24,7 @@ import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbone
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.feign.FinFeignClient;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
@@ -62,7 +61,6 @@ public class AbonementService {
     private final AccountNotificationHelper accountNotificationHelper;
     private final ChargeHelper chargeHelper;
     private final AccountHistoryManager history;
-    private final FinFeignClient finFeignClient;
     private final PaymentLinkHelper paymentLinkHelper;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
@@ -80,7 +78,6 @@ public class AbonementService {
             AccountNotificationHelper accountNotificationHelper,
             ChargeHelper chargeHelper,
             AccountHistoryManager history,
-            FinFeignClient finFeignClient,
             PaymentLinkHelper paymentLinkHelper
     ) {
         this.planManager = planManager;
@@ -94,7 +91,6 @@ public class AbonementService {
         this.accountNotificationHelper = accountNotificationHelper;
         this.chargeHelper = chargeHelper;
         this.history = history;
-        this.finFeignClient = finFeignClient;
         this.paymentLinkHelper = paymentLinkHelper;
     }
 

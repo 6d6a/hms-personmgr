@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -13,6 +14,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 @Service
+@ImportProfile
 public class AccountSelectorService {
     private final static Logger logger = LoggerFactory.getLogger(AccountSelectorService.class);
 

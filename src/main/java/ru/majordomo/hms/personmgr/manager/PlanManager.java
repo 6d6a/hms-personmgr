@@ -1,5 +1,8 @@
 package ru.majordomo.hms.personmgr.manager;
 
+import com.querydsl.core.types.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 
@@ -35,4 +38,6 @@ public interface PlanManager {
     void delete(Plan entity);
 
     void deleteAll();
+
+    Page<Plan> findAll(Predicate predicate, Pageable pageable);
 }

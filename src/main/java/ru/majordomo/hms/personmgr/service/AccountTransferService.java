@@ -17,6 +17,7 @@ import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.AccountTransferRequest;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.feign.RcStaffFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
@@ -234,7 +235,7 @@ public class AccountTransferService {
 
         accountTransferRequest.setOperationId(processingBusinessAction.getOperationId());
 
-        ProcessingBusinessOperation processingBusinessOperation = processingBusinessOperationRepository.findOne(processingBusinessAction.getOperationId());
+        ProcessingBusinessOperation processingBusinessOperation = findOperationByIdOrThrow(processingBusinessAction.getOperationId());
         processingBusinessOperation.addParam(UNIX_ACCOUNT_AND_DATABASE_SENT_KEY, false);
         processingBusinessOperation.addParam(WEBSITE_SENT_KEY, false);
         processingBusinessOperation.addParam(DNS_RECORD_SENT_KEY, false);
@@ -336,7 +337,9 @@ public class AccountTransferService {
                 accountTransferRequest.setOperationId(processingBusinessAction.getOperationId());
             }
 
-            processingBusinessOperation = processingBusinessOperationRepository.findOne(processingBusinessAction.getOperationId());
+            processingBusinessOperation = processingBusinessOperationRepository
+                    .findById(processingBusinessAction.getOperationId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Не найдена операция"));
 
             if (databaseUsers.isEmpty()) {
                 processingBusinessOperation.addParam(WAIT_FOR_DATABASE_USER_UPDATE_KEY, false);
@@ -353,7 +356,8 @@ public class AccountTransferService {
             processingBusinessOperationRepository.save(processingBusinessOperation);
         }
 
-        processingBusinessOperation = processingBusinessOperationRepository.findOne(processingBusinessAction.getOperationId());
+        processingBusinessOperation = findOperationByIdOrThrow(processingBusinessAction.getOperationId());
+
         processingBusinessOperation.addParam(OLD_UNIX_ACCOUNT_SERVER_ID_KEY, accountTransferRequest.getOldUnixAccountServerId());
         processingBusinessOperation.addParam(NEW_UNIX_ACCOUNT_SERVER_ID_KEY, accountTransferRequest.getNewUnixAccountServerId());
         processingBusinessOperation.addParam(OLD_DATABASE_SERVER_ID_KEY, accountTransferRequest.getOldDatabaseServerId());
@@ -625,7 +629,7 @@ public class AccountTransferService {
             }
 
             if (processingBusinessAction != null) {
-                ProcessingBusinessOperation processingBusinessOperation = processingBusinessOperationRepository.findOne(processingBusinessAction.getOperationId());
+                ProcessingBusinessOperation processingBusinessOperation = findOperationByIdOrThrow(processingBusinessAction.getOperationId());
                 processingBusinessOperation.addParam(OLD_WEBSITE_SERVER_ID_KEY, accountTransferRequest.getOldWebSiteServerId());
                 processingBusinessOperation.addParam(NEW_WEBSITE_SERVER_ID_KEY, accountTransferRequest.getNewWebSiteServerId());
                 processingBusinessOperation.addParam(WEBSITE_SENT_KEY, true);
@@ -665,7 +669,7 @@ public class AccountTransferService {
             }
         }
 
-        ProcessingBusinessOperation processingBusinessOperation = processingBusinessOperationRepository.findOne(accountTransferRequest.getOperationId());
+        ProcessingBusinessOperation processingBusinessOperation = findOperationByIdOrThrow(accountTransferRequest.getOperationId());
         processingBusinessOperation.addParam(DNS_RECORD_SENT_KEY, true);
 
         if (processingBusinessAction == null) {
@@ -848,4 +852,10 @@ public class AccountTransferService {
 
         return oldServerWebSiteServices;
     }
+
+    private ProcessingBusinessOperation findOperationByIdOrThrow(String id) {
+        return processingBusinessOperationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Не найдена операция с id " + id));
+    }
+
 }

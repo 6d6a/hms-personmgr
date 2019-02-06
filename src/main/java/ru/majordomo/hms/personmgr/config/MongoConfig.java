@@ -1,4 +1,4 @@
-package ru.majordomo.hms.personmgr;
+package ru.majordomo.hms.personmgr.config;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
@@ -7,6 +7,7 @@ import com.mongodb.WriteConcern;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
@@ -37,13 +38,14 @@ public class MongoConfig extends AbstractMongoConfiguration {
 
     @Override
     @Bean
-    public MongoClient mongo() throws Exception {
+    @Primary
+    public MongoClient mongoClient() {
         return new MongoClient(new MongoClientURI(mongodbUri));
     }
 
     @Override
     public MongoTemplate mongoTemplate() throws Exception {
-        MongoTemplate mongoTemplate = new MongoTemplate(mongo(), getDatabaseName());
+        MongoTemplate mongoTemplate = new MongoTemplate(mongoDbFactory(), mappingMongoConverter());
         mongoTemplate.setWriteConcern(WriteConcern.ACKNOWLEDGED);
 
         return mongoTemplate;
@@ -87,7 +89,7 @@ public class MongoConfig extends AbstractMongoConfiguration {
     }
 
     @Bean("jongoMongoClient")
-    public MongoClient jongoMongoClient() throws Exception {
+    public MongoClient jongoMongoClient() {
         return new MongoClient(new MongoClientURI(mongodbUri));
     }
 }

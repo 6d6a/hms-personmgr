@@ -7,12 +7,14 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.event.personalAccount.PersonalAccountImportEvent;
 import ru.majordomo.hms.personmgr.event.personalAccount.PersonalAccountNotificationImportEvent;
 import ru.majordomo.hms.personmgr.importing.AccountNotificationDBImportService;
 import ru.majordomo.hms.personmgr.importing.PersonalAccountDBImportService;
 
 @Component
+@ImportProfile
 public class PersonalAccountEventListener {
     private final static Logger logger = LoggerFactory.getLogger(PersonalAccountEventListener.class);
 

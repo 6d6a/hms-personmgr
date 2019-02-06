@@ -4,7 +4,6 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -13,6 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.BatchJobManager;
 import ru.majordomo.hms.personmgr.model.batch.BatchJob;
 import ru.majordomo.hms.personmgr.repository.BatchJobRepository;
@@ -32,7 +32,7 @@ public class BatchJobManagerImpl implements BatchJobManager {
 
     @Override
     public boolean exists(String id) {
-        return repository.exists(id);
+        return repository.existsById(id);
     }
 
     @Override
@@ -42,7 +42,7 @@ public class BatchJobManagerImpl implements BatchJobManager {
 
     @Override
     public void delete(String id) {
-        repository.delete(id);
+        repository.deleteById(id);
     }
 
     @Override
@@ -52,7 +52,7 @@ public class BatchJobManagerImpl implements BatchJobManager {
 
     @Override
     public void delete(Iterable<BatchJob> batchJobs) {
-        repository.delete(batchJobs);
+        repository.deleteAll(batchJobs);
     }
 
     @Override
@@ -67,7 +67,7 @@ public class BatchJobManagerImpl implements BatchJobManager {
 
     @Override
     public List<BatchJob> save(Iterable<BatchJob> batchJobs) {
-        return repository.save(
+        return repository.saveAll(
                 StreamSupport
                         .stream(batchJobs.spliterator(), false)
                         .map(this::setUpdated)
@@ -94,7 +94,7 @@ public class BatchJobManagerImpl implements BatchJobManager {
     public BatchJob findOne(String id) {
         checkById(id);
 
-        return repository.findOne(id);
+        return repository.findById(id).orElse(null);
     }
 
     @Override

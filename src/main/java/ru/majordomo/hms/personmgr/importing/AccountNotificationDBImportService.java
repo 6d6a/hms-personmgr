@@ -17,6 +17,7 @@ import javax.validation.ConstraintViolationException;
 
 import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
@@ -24,6 +25,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
  * Сервис для загрузки первичных данных в БД
  */
 @Service
+@ImportProfile
 public class AccountNotificationDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountNotificationDBImportService.class);
 

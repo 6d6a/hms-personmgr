@@ -18,6 +18,8 @@ import java.util.stream.Stream;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.DBType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -26,7 +28,6 @@ import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_BUSINESS_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.PLAN_BUSINESS_PLUS_ID;
@@ -47,11 +48,12 @@ import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_FREE
  * PlanDBImportService
  */
 @Service
+@ImportProfile
 public class PlanDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(PlanDBImportService.class);
 
     private JdbcTemplate jdbcTemplate;
-    private PlanRepository planRepository;
+    private PlanManager planManager;
     private AbonementRepository abonementRepository;
     private PaymentServiceRepository paymentServiceRepository;
     private List<Plan> plans = new ArrayList<>();
@@ -59,12 +61,12 @@ public class PlanDBImportService {
     @Autowired
     public PlanDBImportService(
             JdbcTemplate jdbcTemplate,
-            PlanRepository planRepository,
+            PlanManager planManager,
             AbonementRepository abonementRepository,
             PaymentServiceRepository paymentServiceRepository
     ) {
         this.jdbcTemplate = jdbcTemplate;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.abonementRepository = abonementRepository;
         this.paymentServiceRepository = paymentServiceRepository;
     }
@@ -325,7 +327,7 @@ public class PlanDBImportService {
     }
 
     public boolean importToMongo() {
-        planRepository.deleteAll();
+        planManager.deleteAll();
         abonementRepository.deleteAll();
         try (Stream<PaymentService> paymentServiceStream = paymentServiceRepository.findByOldIdRegex(PLAN_SERVICE_PREFIX + ".*")) {
             paymentServiceStream.forEach(
@@ -338,13 +340,13 @@ public class PlanDBImportService {
     }
 
     public boolean importToMongo(String planId) {
-        Plan plan = planRepository.findOne(planId);
+        Plan plan = planManager.findOne(planId);
 
         if (plan != null) {
             if (plan.getAbonements() != null && !plan.getAbonements().isEmpty()) {
-                abonementRepository.delete(plan.getAbonements());
+                abonementRepository.deleteAll(plan.getAbonements());
             }
-            planRepository.delete(plan);
+            planManager.delete(plan);
         }
 
         try (Stream<PaymentService> paymentServiceStream = paymentServiceRepository.findByOldIdRegex(planId)) {
@@ -359,6 +361,6 @@ public class PlanDBImportService {
     }
 
     private void pushToMongo() {
-        planRepository.save(plans);
+        planManager.save(plans);
     }
 }

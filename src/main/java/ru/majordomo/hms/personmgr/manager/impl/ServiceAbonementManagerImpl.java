@@ -7,15 +7,14 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Component;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.repository.ServiceAbonementRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Stream;
 
 @Component
 public class ServiceAbonementManagerImpl implements AbonementManager<AccountServiceAbonement> {
@@ -33,7 +32,7 @@ public class ServiceAbonementManagerImpl implements AbonementManager<AccountServ
 
     @Override
     public boolean exists(String id) {
-        return repository.exists(id);
+        return repository.existsById(id);
     }
 
     @Override
@@ -43,7 +42,7 @@ public class ServiceAbonementManagerImpl implements AbonementManager<AccountServ
 
     @Override
     public void delete(String id) {
-        repository.delete(id);
+        repository.deleteById(id);
     }
 
     @Override
@@ -53,7 +52,7 @@ public class ServiceAbonementManagerImpl implements AbonementManager<AccountServ
 
     @Override
     public void delete(Iterable<AccountServiceAbonement> serviceAbonements) {
-        repository.delete(serviceAbonements);
+        repository.deleteAll(serviceAbonements);
     }
 
     @Override
@@ -68,7 +67,7 @@ public class ServiceAbonementManagerImpl implements AbonementManager<AccountServ
 
     @Override
     public List<AccountServiceAbonement> save(Iterable<AccountServiceAbonement> serviceAbonements) {
-        return repository.save(serviceAbonements);
+        return repository.saveAll(serviceAbonements);
     }
 
     @Override
@@ -84,7 +83,7 @@ public class ServiceAbonementManagerImpl implements AbonementManager<AccountServ
     @Override
     public AccountServiceAbonement findOne(String id) {
         checkById(id);
-        return repository.findOne(id);
+        return repository.findById(id).orElse(null);
     }
 
     @Override
@@ -99,18 +98,8 @@ public class ServiceAbonementManagerImpl implements AbonementManager<AccountServ
     }
 
     @Override
-    public Stream<AccountServiceAbonement> findAllStream() {
-        return repository.findAllStream();
-    }
-
-    @Override
     public List<AccountServiceAbonement> findByAbonementId(String abonementId) {
         return repository.findByAbonementId(abonementId);
-    }
-
-    @Override
-    public Page<AccountServiceAbonement> findByAbonementId(String abonementId, Pageable pageable) {
-        return repository.findByAbonementId(abonementId, pageable);
     }
 
     @Override
@@ -141,41 +130,6 @@ public class ServiceAbonementManagerImpl implements AbonementManager<AccountServ
     @Override
     public List<AccountServiceAbonement> findByPersonalAccountIdAndExpiredBefore(String personalAccountId, LocalDateTime expired) {
         return repository.findByPersonalAccountIdAndExpiredBefore(personalAccountId, expired);
-    }
-
-    @Override
-    public List<AccountServiceAbonement> findByAbonementIdAndAutorenew(String abonementId, String autorenew) {
-        return repository.findByAbonementIdAndAutorenew(abonementId, autorenew);
-    }
-
-    @Override
-    public Page<AccountServiceAbonement> findByAbonementIdAndAutorenew(String abonementId, String autorenew, Pageable pageable) {
-        return repository.findByAbonementIdAndAutorenew(abonementId, autorenew, pageable);
-    }
-
-    @Override
-    public List<AccountServiceAbonement> findByPersonalAccountIdAndAutorenew(String personalAccountId, String autorenew) {
-        return repository.findByPersonalAccountIdAndAutorenew(personalAccountId, autorenew);
-    }
-
-    @Override
-    public Page<AccountServiceAbonement> findByPersonalAccountIdAndAutorenew(String personalAccountId, String autorenew, Pageable pageable) {
-        return repository.findByPersonalAccountIdAndAutorenew(personalAccountId, autorenew, pageable);
-    }
-
-    @Override
-    public List<AccountServiceAbonement> findByPersonalAccountIdAndExpiredAfterAndAutorenew(String personalAccountId, LocalDateTime expired, String autorenew) {
-        return repository.findByPersonalAccountIdAndExpiredAfterAndAutorenew(personalAccountId, expired, autorenew);
-    }
-
-    @Override
-    public List<AccountServiceAbonement> findByPersonalAccountIdAndExpiredBeforeAndAutorenew(String personalAccountId, LocalDateTime expired, String autorenew) {
-        return repository.findByPersonalAccountIdAndExpiredBeforeAndAutorenew(personalAccountId, expired, autorenew);
-    }
-
-    @Override
-    public List<AccountServiceAbonement> findByPersonalAccountIdAndAbonementId(String personalAccountId, String abonementId) {
-        return repository.findByPersonalAccountIdAndAbonementId(personalAccountId, abonementId);
     }
 
     @Override

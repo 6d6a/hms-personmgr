@@ -17,22 +17,24 @@ import java.util.stream.Collectors;
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 /**
  * Сервис для загрузки первичных данных в БД
  */
 @Service
+@ImportProfile
 public class AccountAbonementDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountAbonementDBImportService.class);
 
     private AbonementManager<AccountAbonement> accountAbonementManager;
-    private PlanRepository planRepository;
+    private PlanManager planManager;
     private PersonalAccountManager accountManager;
     private NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -40,12 +42,12 @@ public class AccountAbonementDBImportService {
     public AccountAbonementDBImportService(
             NamedParameterJdbcTemplate jdbcTemplate,
             AbonementManager<AccountAbonement> accountAbonementManager,
-            PlanRepository planRepository,
+            PlanManager planManager,
             PersonalAccountManager accountManager
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.accountAbonementManager = accountAbonementManager;
-        this.planRepository = planRepository;
+        this.planManager = planManager;
         this.accountManager = accountManager;
     }
 
@@ -75,7 +77,7 @@ public class AccountAbonementDBImportService {
         PersonalAccount account = accountManager.findByAccountId(rs.getString("acc_id"));
 
         if (account != null) {
-            Plan plan = planRepository.findOne(account.getPlanId());
+            Plan plan = planManager.findOne(account.getPlanId());
 
             if (plan != null) {
                 accountAbonement.setPersonalAccountId(account.getId());

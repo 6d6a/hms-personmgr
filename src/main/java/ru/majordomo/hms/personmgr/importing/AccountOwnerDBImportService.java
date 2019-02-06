@@ -19,12 +19,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import ru.majordomo.hms.personmgr.common.PhoneNumberManager;
+import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalInfo;
 
 @Service
+@ImportProfile
 public class AccountOwnerDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountOwnerDBImportService.class);
 

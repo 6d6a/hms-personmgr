@@ -38,7 +38,8 @@ public class RequiredField {
                 "plan",
                 "emailAddresses",
                 "name",
-                "agreement"
+                "agreement",
+                "type"
         ));
 
         ACCOUNT_SERVICE_CREATE.addAll(Collections.singletonList(
