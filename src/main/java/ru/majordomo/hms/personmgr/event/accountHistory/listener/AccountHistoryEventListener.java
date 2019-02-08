@@ -6,13 +6,11 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.event.accountHistory.AccountHistoryEvent;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 
 @Component
 @Slf4j
-@ImportProfile
 public class AccountHistoryEventListener {
 
     private final AccountHistoryManager AccountHistoryManager;
