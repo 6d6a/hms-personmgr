@@ -7,5 +7,5 @@ import java.time.LocalDate;
 import ru.majordomo.hms.personmgr.model.batch.BatchJob;
 
 public interface BatchJobRepository extends MongoRepository<BatchJob, String> {
-    BatchJob findByRunDateAndTypeOrderByCreatedDesc(LocalDate runDate, BatchJob.Type type);
+    BatchJob findFirstByRunDateAndTypeOrderByCreatedDesc(LocalDate runDate, BatchJob.Type type);
 }

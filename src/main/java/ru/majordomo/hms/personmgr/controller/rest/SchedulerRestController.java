@@ -169,7 +169,7 @@ public class SchedulerRestController extends CommonRestController {
 
         switch (scheduleAction) {
             case "prepare_charges":
-                batchJob = batchJobManager.findByRunDateAndTypeOrderByCreatedDesc(date, BatchJob.Type.PREPARE_CHARGES);
+                batchJob = batchJobManager.findFirstByRunDateAndTypeOrderByCreatedDesc(date, BatchJob.Type.PREPARE_CHARGES);
 
                 if (batchJob == null ||
                         (batchJob.getUpdated().isBefore(LocalDateTime.now().minusHours(waitForDeadJobHours)) &&
@@ -185,7 +185,7 @@ public class SchedulerRestController extends CommonRestController {
 
                 break;
             case "process_charges":
-                batchJob = batchJobManager.findByRunDateAndTypeOrderByCreatedDesc(date, BatchJob.Type.PROCESS_CHARGES);
+                batchJob = batchJobManager.findFirstByRunDateAndTypeOrderByCreatedDesc(date, BatchJob.Type.PROCESS_CHARGES);
 
                 if (batchJob == null ||
                         (batchJob.getUpdated().isBefore(LocalDateTime.now().minusHours(waitForDeadJobHours)) &&
@@ -201,7 +201,7 @@ public class SchedulerRestController extends CommonRestController {
 
                 break;
             case "process_error_charges":
-                batchJob = batchJobManager.findByRunDateAndTypeOrderByCreatedDesc(date, BatchJob.Type.PROCESS_ERROR_CHARGES);
+                batchJob = batchJobManager.findFirstByRunDateAndTypeOrderByCreatedDesc(date, BatchJob.Type.PROCESS_ERROR_CHARGES);
 
                 if (batchJob == null ||
                         (batchJob.getUpdated().isBefore(LocalDateTime.now().minusHours(waitForDeadJobHours))
