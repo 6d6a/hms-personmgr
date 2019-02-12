@@ -78,11 +78,14 @@ public class DomainResourceRestController extends CommonRestController {
                     domainName + parentDomain.getName() : domainName + "." + parentDomain.getName();
         }
 
-        accountHelper.checkIsDomainAddAllowed(account);
+        accountHelper.checkIsDomainAddAllowed(account, domainName);
 
         domainService.checkBlacklist(domainName, accountId);
 
-        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message);
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(
+                BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message
+        );
+
         history.save(accountId, "Поступила заявка на добавление домена (имя: " + domainName + ")", request);
 
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));

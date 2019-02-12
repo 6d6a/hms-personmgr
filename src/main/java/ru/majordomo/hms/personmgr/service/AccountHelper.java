@@ -11,10 +11,12 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.config.TestPeriodConfig;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountWasEnabled;
 import ru.majordomo.hms.personmgr.exception.*;
@@ -64,6 +66,7 @@ public class AccountHelper {
     private final AccountStatHelper accountStatHelper;
     private final AccountNoticeRepository accountNoticeRepository;
     private final ResourceArchiveService resourceArchiveService;
+    private final TestPeriodConfig testPeriodConfig;
 
     @Autowired
     public AccountHelper(
@@ -83,7 +86,8 @@ public class AccountHelper {
             PlanManager planManager,
             AccountStatHelper accountStatHelper,
             AccountNoticeRepository accountNoticeRepository,
-            ResourceArchiveService resourceArchiveService
+            ResourceArchiveService resourceArchiveService,
+            TestPeriodConfig testPeriodConfig
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -102,6 +106,7 @@ public class AccountHelper {
         this.accountStatHelper = accountStatHelper;
         this.accountNoticeRepository = accountNoticeRepository;
         this.resourceArchiveService = resourceArchiveService;
+        this.testPeriodConfig = testPeriodConfig;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -1094,16 +1099,31 @@ public class AccountHelper {
         }
     }
 
-    public void checkIsDomainAddAllowed(PersonalAccount account) {
+    public void checkIsDomainAddAllowed(PersonalAccount account, String domainName) {
         AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+
+        BooleanSupplier hasNoMoney = () -> {
+            BigDecimal overallPaymentAmount = finFeignClient.getOverallPaymentAmount(account.getId());
+            Plan currentPlan = planManager.findOne(account.getPlanId());
+            return overallPaymentAmount.compareTo(currentPlan.getService().getCost()) < 0;
+        };
 
         if (currentAccountAbonement != null && currentAccountAbonement.getAbonement().getPeriod().equals("P14D")) {
             List<Domain> domainsList = rcUserFeignClient.getDomains(account.getId());
             if (domainsList != null && !domainsList.isEmpty()) {
-                BigDecimal overallPaymentAmount = finFeignClient.getOverallPaymentAmount(account.getId());
-                Plan currentPlan = planManager.findOne(account.getPlanId());
-                if (overallPaymentAmount.compareTo(currentPlan.getService().getCost()) < 0) {
-                    throw new ParameterValidationException("Для добавления домена необходимо оплатить хостинг или купить абонемент.");
+                if (hasNoMoney.getAsBoolean()) {
+                    throw new ParameterValidationException(
+                            "Для добавления домена необходимо оплатить хостинг или купить абонемент.");
+                }
+            } else {
+                for (String zone : testPeriodConfig.getDisallowDomainZones()) {
+                    if (domainName.endsWith(zone)) {
+                        if (hasNoMoney.getAsBoolean()) {
+                            throw new ParameterValidationException(
+                                    "Для добавления домена в зоне " + zone +
+                                            " необходимо оплатить хостинг или купить абонемент.");
+                        }
+                    }
                 }
             }
         }
