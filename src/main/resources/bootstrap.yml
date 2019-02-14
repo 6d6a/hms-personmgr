@@ -1,10 +1,10 @@
 eureka:
     instance:
         preferIpAddress: false
-        hostname: ${HOSTNAME}
         instanceId: ${spring.application.name}-${random.value}
         metadata-map:
             management.port: ${management.server.port:18080}
+            startup: ${random.int}
         statusPageUrlPath: ${management.endpoints.web.base-path}/info
         healthCheckUrlPath: ${management.endpoints.web.base-path}/health
     client:
