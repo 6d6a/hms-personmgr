@@ -269,7 +269,7 @@ public class BackupService {
                 server,
                 pathTo,
                 pathFrom,
-                true,
+                false, //todo удаление перед восстановлением отключено 15.02.2019 по причине потерянных бекапов на web32
                 snapshot
         );
     }

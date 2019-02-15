@@ -70,19 +70,20 @@ public class UserDataHelper {
         StringBuilder historyMessage = new StringBuilder(
                 "Отправлены заявки на удаление пользовательских данных следующих ресурсов: ");
         try {
-            Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
-            Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
-            for (UnixAccount unixAccount : unixAccounts) {
-                try {
-                    resourceCleaner.cleanData(unixAccount);
-                    historyMessage.append(" успешно для unix-account id: ").append(unixAccount.getId());
-                } catch (Exception e) {
-                    historyMessage.append(
-                            format(" неуспешно для unix-account id: %s e.class: %s причина: %s",
-                                    unixAccount.getId(), e.getClass().getName(), e.getMessage()));
-                }
-            }
+            //todo удаление перед восстановлением отключено 15.02.2019 по причине потерянных бекапов на web32
+//            Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
+//            for (UnixAccount unixAccount : unixAccounts) {
+//                try {
+//                    resourceCleaner.cleanData(unixAccount);
+//                    historyMessage.append(" успешно для unix-account id: ").append(unixAccount.getId());
+//                } catch (Exception e) {
+//                    historyMessage.append(
+//                            format(" неуспешно для unix-account id: %s e.class: %s причина: %s",
+//                                    unixAccount.getId(), e.getClass().getName(), e.getMessage()));
+//                }
+//            }
 
+            Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
             for (Database database : databases) {
                 try {
                     resourceCleaner.cleanData(database);
