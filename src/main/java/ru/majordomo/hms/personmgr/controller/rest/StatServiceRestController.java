@@ -24,7 +24,6 @@ import static org.springframework.data.mongodb.core.query.Query.query;
 
 @Slf4j
 @RestController
-@PreAuthorize("hasRole('ADMIN')")
 @RequestMapping({"/stat"})
 public class StatServiceRestController {
     private final MongoOperations mongoOperations;
@@ -42,12 +41,14 @@ public class StatServiceRestController {
         this.statServiceHelper = statServiceHelper;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @RequestMapping(value = "/count/all-accounts", method = RequestMethod.GET)
     public ResponseEntity<Long> getAccountCount(
     ) {
         return new ResponseEntity<>(mongoOperations.count(query(where("")), PersonalAccount.class), HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @RequestMapping(value = "/registration-by-date", method = RequestMethod.GET)
     public ResponseEntity<Long> getAccountCount(
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -65,26 +66,31 @@ public class StatServiceRestController {
                 ), HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @RequestMapping(value = "/plan", method = RequestMethod.GET)
     public ResponseEntity<List<PlanCounter>> getCountsActiveAccountGroupByPlan() {
         return ResponseEntity.ok(statServiceHelper.getAllPlanCounters());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/plan/abonement")
     public ResponseEntity<List<AbonementCounter>> getAbonementCounter(){
         return ResponseEntity.ok(statServiceHelper.getAbonementCounters());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/plan/daily")
     public ResponseEntity<List<PlanCounter>> getCountsActiveAccountGroupByDailyPlan() {
         return ResponseEntity.ok(statServiceHelper.getDailyPlanCounters());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/account-service")
     public ResponseEntity<List<AccountServiceCounter>> getActiveAccountServiceCounters() {
         return ResponseEntity.ok(statServiceHelper.getActiveAccountServiceCounters());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/domain")
     public ResponseEntity<List<DomainCounter>> getDomainCountersByType(
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -122,6 +128,7 @@ public class StatServiceRestController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/first-payment")
     public ResponseEntity<Integer> getAccountCountsWithFirstRealPaymentByDate(
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -132,6 +139,7 @@ public class StatServiceRestController {
         return ResponseEntity.ok(statServiceHelper.getAccountCountsWithFirstRealPaymentByDate(date));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/register-with-plan")
     public ResponseEntity<List<ResourceCounter>> getRegisterWithPlanCounters(
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -142,6 +150,7 @@ public class StatServiceRestController {
         return ResponseEntity.ok(statServiceHelper.getRegisterWithPlanCounters(date));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/processing-business-operation")
     public ResponseEntity<List<Map>> processingBusinessOperationsStatistic(
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam LocalDate start,
@@ -152,21 +161,25 @@ public class StatServiceRestController {
         return ResponseEntity.ok(statServiceHelper.getBusinessOperationsStat(types, states, start, end));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/service-abonement")
     public List<AccountServiceCounter> serviceAbonement(){
         return statServiceHelper.getServiceAbonementCounters();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/tariff-by-server")
     public List<PlanByServerCounter> getTariffByServer() {
         return statServiceHelper.getPlanByServerStat();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAT')")
     @GetMapping("/meta/options")
     public List<Options> getOptions() {
         return statServiceHelper.getMetaOptions();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAT')")
     @GetMapping("/meta/registration")
     public Collection<MetaProjection> getMetaRegistrations(
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam LocalDate start,
