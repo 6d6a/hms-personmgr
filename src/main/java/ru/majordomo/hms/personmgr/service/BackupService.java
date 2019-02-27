@@ -282,14 +282,23 @@ public class BackupService {
             Boolean deleteExtraneous,
             Snapshot snapshot
     ) {
+        String rsyncUri = (String) snapshot.getDataUri().get("rsync");
+        if (rsyncUri == null || rsyncUri.trim().isEmpty()) {
+            throw new ParameterValidationException("Не удалось создать заявку на восстановление файлов");
+        }
+
+        if (pathFrom.equals(unixAccount.getHomeDir())) {
+            pathFrom = "";
+        } else if (pathFrom.startsWith(unixAccount.getHomeDir())) {
+            pathFrom = pathFrom.substring(unixAccount.getHomeDir().length());
+        }
+
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(unixAccount.getAccountId());
         message.addParam("realRoutingKey", getRoutingKeyForTE(server));
         message.setObjRef(format("http://%s/%s/%s", RC_USER_APP_NAME, UNIX_ACCOUNT_RESOURCE_NAME, unixAccount.getId()));
         message.addParam(DATA_DESTINATION_URI_KEY, format("file://%s", pathTo));
-        message.addParam(DATASOURCE_URI_KEY, format("rsync://restic@bareos.intr/restic/%s/ids/%s%s",
-                snapshot.getServerName(), snapshot.getShortId(), pathFrom)
-        );
+        message.addParam(DATASOURCE_URI_KEY, rsyncUri + pathFrom);
 
         Map<String, Object> dataSourceParams = new HashMap<>();
         dataSourceParams.put(DELETE_EXTRANEOUS_KEY, deleteExtraneous);
