@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.config.GoogleAdsActionConfig;
 import ru.majordomo.hms.personmgr.config.TestPeriodConfig;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountWasEnabled;
@@ -67,6 +68,7 @@ public class AccountHelper {
     private final AccountNoticeRepository accountNoticeRepository;
     private final ResourceArchiveService resourceArchiveService;
     private final TestPeriodConfig testPeriodConfig;
+    private final GoogleAdsActionConfig googleAdsActionConfig;
 
     @Autowired
     public AccountHelper(
@@ -87,7 +89,8 @@ public class AccountHelper {
             AccountStatHelper accountStatHelper,
             AccountNoticeRepository accountNoticeRepository,
             ResourceArchiveService resourceArchiveService,
-            TestPeriodConfig testPeriodConfig
+            TestPeriodConfig testPeriodConfig,
+            GoogleAdsActionConfig googleAdsActionConfig
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -107,6 +110,7 @@ public class AccountHelper {
         this.accountNoticeRepository = accountNoticeRepository;
         this.resourceArchiveService = resourceArchiveService;
         this.testPeriodConfig = testPeriodConfig;
+        this.googleAdsActionConfig = googleAdsActionConfig;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -408,6 +412,20 @@ public class AccountHelper {
                 e.printStackTrace();
                 throw new ParameterValidationException("Ошибка при получении промокода");
             }
+        }
+    }
+
+    public Boolean isGoogleActionUsed(PersonalAccount account) {
+        return account.getProperties().getGoogleActionUsed() != null && account.getProperties().getGoogleActionUsed();
+    }
+
+    public Boolean isEnoughForGoogleAction(PersonalAccount account) {
+        try {
+            BigDecimal realSpentPaymentAmount = finFeignClient.getRealSpentPaymentAmount(account.getId());
+            return realSpentPaymentAmount.compareTo(googleAdsActionConfig.getMinAmount()) >= 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ParameterValidationException("Ошибка при получении данных");
         }
     }
 

@@ -535,6 +535,16 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
+    public void setGoogleActionUsed(String id, boolean googleActionUsed) {
+        checkById(id);
+
+        Query query = new Query(new Criteria("_id").is(id));
+        Update update = new Update().set("properties.googleActionUsed", googleActionUsed);
+
+        mongoOperations.updateFirst(query, update, PersonalAccount.class);
+    }
+
+    @Override
     public void setCredit(String id, Boolean credit) {
         setSettingByName(id, CREDIT, credit);
     }

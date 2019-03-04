@@ -26,6 +26,9 @@ public interface FinFeignClient {
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/payment_operations/overall-payment-amount", consumes = "application/json")
     BigDecimal getOverallPaymentAmount(@PathVariable("accountId") String accountId);
 
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/payment_operations/spent-payment-amount", consumes = "application/json")
+    BigDecimal getRealSpentPaymentAmount(@PathVariable("accountId") String accountId);
+
     @RequestMapping(method = RequestMethod.POST, value = "/{accountId}/payment_operations/charge", consumes = "application/json")
     SimpleServiceMessage charge(@PathVariable("accountId") String accountId, ChargeMessage chargeMessage);
 
