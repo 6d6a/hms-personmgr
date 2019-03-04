@@ -6,4 +6,5 @@ import lombok.Data;
 public class AccountProperties {
     private Boolean angryClient;
     private Boolean hideGoogleAdWords;
+    private Boolean googleActionUsed;
 }

@@ -2,6 +2,8 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import org.apache.commons.validator.routines.DomainValidator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +37,7 @@ public class PromoActionsController {
     private final AccountHelper accountHelper;
     private final AccountNotificationHelper notificationHelper;
     private final GoogleAdsActionConfig googleAdsActionConfig;
+    private final PersonalAccountManager personalAccountManager;
 
     @Autowired
     public PromoActionsController(
@@ -43,18 +46,30 @@ public class PromoActionsController {
             PersonalAccountManager accountManager,
             AccountHelper accountHelper,
             AccountNotificationHelper notificationHelper,
-            GoogleAdsActionConfig googleAdsActionConfig) {
+            GoogleAdsActionConfig googleAdsActionConfig,
+            PersonalAccountManager personalAccountManager) {
         this.requestRepository = requestRepository;
         this.history = history;
         this.accountManager = accountManager;
         this.accountHelper = accountHelper;
         this.notificationHelper = notificationHelper;
         this.googleAdsActionConfig = googleAdsActionConfig;
+        this.personalAccountManager = personalAccountManager;
     }
 
     @GetMapping
     public List<GoogleAdsRequest> listAll(@PathVariable("accountId") String accountId) {
         return requestRepository.findByPersonalAccountId(accountId);
+    }
+
+    @GetMapping("/is-allowed")
+    public ResponseEntity<Map<String, Boolean>> isEnoughForGoogleAction(@PathVariable("accountId") String accountId) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Map<String, Boolean> isAllowed = new HashMap<>();
+        isAllowed.put("is_allowed", accountHelper.isEnoughForGoogleAction(account));
+
+        return new ResponseEntity<>(isAllowed, HttpStatus.OK);
     }
 
     @PostMapping
@@ -75,6 +90,10 @@ public class PromoActionsController {
         request.setPersonalAccountId(accountId);
         request.unSetId();
 
+        if (request.getDomains().size() > 1) {
+            throw new ParameterValidationException("Можно выбрать только один домен");
+        }
+
         String domains = requestRepository.findByPersonalAccountIdAndDomainsIn(accountId, request.getDomains())
                 .stream()
                 .flatMap(r -> r.getDomains().stream())
@@ -85,12 +104,13 @@ public class PromoActionsController {
             throw new ParameterValidationException("Следующие домены уже участвовали в акции: " + domains);
         }
 
-        BigDecimal balance = accountHelper.getBalance(account);
+        if (accountHelper.isGoogleActionUsed(account)) {
+            throw new ParameterValidationException("Вы уже отправляли заявку на участие в акции");
+        }
 
-        if (balance.compareTo(googleAdsActionConfig.getMinAmount()) < 0) {
-            BigDecimal require = googleAdsActionConfig.getMinAmount().subtract(balance);
-            throw new NotEnoughMoneyException(
-                    "Для участия в акции необходимо пополнить баланс на " + require.toString(), require
+        if (!accountHelper.isEnoughForGoogleAction(account)) {
+            throw new ParameterValidationException(
+                    "Потратьте в сервисе 500 рублей или более. Зарегистрируйте и/или подключите свой домен."
             );
         }
 
@@ -112,6 +132,8 @@ public class PromoActionsController {
                         email, "MajordomoServiceMessage", accountId,10, params
                 )
         );
+
+        personalAccountManager.setGoogleActionUsed(account.getId(), true);
 
         history.save(
                 account,
