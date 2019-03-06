@@ -663,8 +663,8 @@ public abstract class Processor {
 
     private void normalizeSslCertificate() {
         if (!newPlan.isSslCertificateAllowed()) {
-            accountHelper.deleteAllSslCertificates(account);
-            history.save(account, "Для аккаунта удалены SSL сертификаты в соответствии с тарифным планом", operator);
+            accountHelper.switchCertificates(account, false);
+            history.save(account, "Для аккаунта отключены SSL сертификаты в соответствии с тарифным планом", operator);
         }
     }
 

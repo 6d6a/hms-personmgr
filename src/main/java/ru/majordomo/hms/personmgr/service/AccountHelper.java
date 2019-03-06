@@ -685,18 +685,18 @@ public class AccountHelper {
         }
     }
 
-    public void deleteAllSslCertificates(PersonalAccount account) {
+    public void switchCertificates(PersonalAccount account, boolean state) {
         Collection<SSLCertificate> sslCertificates = rcUserFeignClient.getSSLCertificates(account.getId());
 
         for (SSLCertificate sslCertificate : sslCertificates) {
             SimpleServiceMessage message = new SimpleServiceMessage();
-            message.setParams(new HashMap<>());
             message.setAccountId(account.getId());
             message.addParam("resourceId", sslCertificate.getId());
+            message.addParam("switchedOn", state);
 
-            businessHelper.buildAction(BusinessActionType.SSL_CERTIFICATE_DELETE_RC, message);
+            businessHelper.buildAction(BusinessActionType.SSL_CERTIFICATE_UPDATE_RC, message);
 
-            String historyMessage = "Отправлена заявка на удаление SSL сертификата '" + sslCertificate.getName() + "'";
+            String historyMessage = "Отправлена заявка на выключение SSL сертификата '" + sslCertificate.getName() + "'";
             history.save(account, historyMessage);
         }
     }

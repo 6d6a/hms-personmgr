@@ -93,6 +93,39 @@ public class SslCertificateResourceRestController extends CommonRestController {
         return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
     }
 
+    @PatchMapping("/{resourceId}")
+    public ResponseEntity<SimpleServiceMessage> update(
+            @PathVariable String resourceId,
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody SimpleServiceMessage message,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        message.setAccountId(accountId);
+        message.addParam("resourceId", resourceId);
+
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
+            throw new ParameterValidationException("Аккаунт неактивен. Управление SSL-сертификатами недоступно.");
+        }
+
+        logger.debug("Update sslcertificate " + message.toString());
+
+        resourceChecker.checkResource(account, ResourceType.SSL_CERTIFICATE, message.getParams());
+
+        boolean inProcessing = businessHelper.existsActiveOperations(accountId, BusinessOperationType.SSL_CERTIFICATE_UPDATE, message);
+        if (inProcessing) {
+            throw new ParameterValidationException("Сертификат находится в процессе обновления");
+        }
+
+        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(
+                BusinessOperationType.SSL_CERTIFICATE_UPDATE, BusinessActionType.SSL_CERTIFICATE_UPDATE_RC, message);
+
+        history.save(accountId, "Поступила заявка на обновление SSL-сертификата (id: " + resourceId + ")", request);
+
+        return ResponseEntity.accepted().body(createSuccessResponse(businessAction));
+    }
+
     @DeleteMapping("/{resourceId}")
     public ResponseEntity<SimpleServiceMessage> delete(
             @PathVariable String resourceId,
