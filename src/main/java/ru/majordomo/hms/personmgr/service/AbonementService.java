@@ -488,7 +488,7 @@ public class AbonementService {
 
         AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
 
-        if (accountAbonement != null && !accountHasFree14DaysAbonement) {
+        if (accountAbonement != null && !accountAbonement.getAbonement().isInternal()) {
             throw new ParameterValidationException("Account already has abonement");
         }
 
