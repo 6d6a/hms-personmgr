@@ -104,12 +104,14 @@ public class AbonementService {
     public void addAbonement(PersonalAccount account, String abonementId, Boolean autorenew) {
         Plan plan = getAccountPlan(account);
 
-        Boolean accountHasFree14DaysAbonement = false;
+        boolean accountHasFree14DaysAbonement = false, accountHasInternalAbonement = false;
 
         AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
 
         if (currentAccountAbonement != null) {
             accountHasFree14DaysAbonement = currentAccountAbonement.getAbonement().getPeriod().equals("P14D");
+
+            accountHasInternalAbonement = currentAccountAbonement.getAbonement().isInternal();
         }
 
         Abonement abonement = checkAbonementAllownes(account, plan, abonementId, accountHasFree14DaysAbonement);
@@ -125,11 +127,17 @@ public class AbonementService {
         accountAbonement.setAbonementId(abonementId);
         accountAbonement.setPersonalAccountId(account.getId());
         accountAbonement.setCreated(LocalDateTime.now());
-        if (accountHasFree14DaysAbonement) {
-            accountAbonementManager.delete(currentAccountAbonement);
-        }
         accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
         accountAbonement.setAutorenew(autorenew);
+
+        if (!accountHasFree14DaysAbonement && accountHasInternalAbonement) {
+            accountAbonement.setCreated(currentAccountAbonement.getCreated());
+            accountAbonement.setExpired(currentAccountAbonement.getExpired().plus(Period.parse(abonement.getPeriod())));
+        }
+
+        if (accountHasFree14DaysAbonement || accountHasInternalAbonement) {
+            accountAbonementManager.delete(currentAccountAbonement);
+        }
 
         accountAbonementManager.insert(accountAbonement);
 
@@ -476,7 +484,7 @@ public class AbonementService {
 
         AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
 
-        if (accountAbonement != null && !accountHasFree14DaysAbonement) {
+        if (accountAbonement != null && !accountAbonement.getAbonement().isInternal()) {
             throw new ParameterValidationException("Account already has abonement");
         }
 
