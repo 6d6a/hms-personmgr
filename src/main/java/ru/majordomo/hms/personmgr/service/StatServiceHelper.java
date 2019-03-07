@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.aggregation.*;
@@ -15,6 +16,7 @@ import ru.majordomo.hms.personmgr.dto.stat.*;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcStaffFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
+import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
@@ -27,6 +29,7 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.rc.staff.resources.Resource;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -38,8 +41,7 @@ import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
-import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_FIRST_REAL_PAYMENT;
-import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_PLAN_CHANGE;
+import static ru.majordomo.hms.personmgr.common.AccountStatType.*;
 import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_NAME_KEY;
 
 @Service
@@ -56,6 +58,9 @@ public class StatServiceHelper {
     private final RcStaffFeignClient rcStaffFeignClient;
     private final JongoManager jongoManager;
     private final FinFeignClient finFeignClient;
+    private final AccountOwnerManager ownerManager;
+    private final AccountNotificationHelper notificationHelper;
+    private String serviceEmailTemplateName;
 
     @Autowired
     public StatServiceHelper(
@@ -68,7 +73,10 @@ public class StatServiceHelper {
             RcUserFeignClient rcUserFeignClient,
             RcStaffFeignClient rcStaffFeignClient,
             JongoManager jongoManager,
-            FinFeignClient finFeignClient
+            FinFeignClient finFeignClient,
+            AccountOwnerManager ownerManager,
+            AccountNotificationHelper notificationHelper,
+            @Value("mail_manager.service_message_api_name") String serviceEmailTemplateName
     ) {
         this.mongoOperations = mongoOperations;
         this.abonementRepository = abonementRepository;
@@ -80,6 +88,9 @@ public class StatServiceHelper {
         this.rcStaffFeignClient = rcStaffFeignClient;
         this.jongoManager = jongoManager;
         this.finFeignClient = finFeignClient;
+        this.ownerManager = ownerManager;
+        this.notificationHelper = notificationHelper;
+        this.serviceEmailTemplateName = serviceEmailTemplateName;
     }
 
     public List<PlanCounter> getAllPlanCounters() {
@@ -636,5 +647,105 @@ public class StatServiceHelper {
         });
 
         return map.values();
+    }
+
+    public void sendLostClientsInfo(LocalDate date, List<String> emails) {
+        String table = toTable(
+                getLostClientInfoList(date)
+        );
+
+        String subject = "Статистика по отключенным клиентам за " + date.toString();
+        String body = subject + ". Собрано " + LocalDate.now().toString() + "<br/><br/>" + table;
+
+        Map<String, String> params = new HashMap<>();
+        params.put("subject", subject);
+        params.put("body", body);
+
+        notificationHelper.sendInternalEmail(
+                String.join(",", emails), serviceEmailTemplateName, null,10, params
+        );
+    }
+
+    private List<LostClientInfo> getLostClientInfoList(LocalDate date) {
+        LocalDateTime importToHmsDate = LocalDateTime.of(LocalDate.of(2017, 8, 1), LocalTime.MIN);
+
+        return accountManager.findByActiveAndDeactivatedBetween(false, LocalDateTime.of(date, LocalTime.MIN),
+                LocalDateTime.of(date, LocalTime.MAX))
+                .stream()
+                .map(accountId -> new LostClientInfo(
+                            accountManager.findOne(accountId)
+                    )
+                )
+                .peek(info -> {
+                    info.setOwner(
+                            ownerManager.findOneByPersonalAccountId(
+                                    info.getAccount().getId()
+                            )
+                    );
+                    info.setOverallPaymentAmount(
+                            finFeignClient.getOverallPaymentAmount(
+                                    info.getAccount().getId()
+                            )
+                    );
+                    info.setDomains(
+                            rcUserFeignClient.getDomains(
+                                    info.getAccount().getId()
+                            )
+                    );
+                    info.setPlan(
+                            planManager.findOne(
+                                    info.getAccount().getPlanId()
+                            )
+                    );
+
+                    accountStatRepository
+                            .findByPersonalAccountIdAndType(info.getAccount().getId(), VIRTUAL_HOSTING_ABONEMENT_DELETE)
+                            .stream()
+                            .reduce((first, second) -> second)
+                            .ifPresent(
+                                    stat -> abonementRepository
+                                            .findById(stat.getData().get("abonementId"))
+                                            .ifPresent(info::setAbonement)
+                    );
+                })
+                .filter(
+                        info -> BigDecimal.ZERO.compareTo(info.getOverallPaymentAmount()) > 0
+                                || info.getAccount().getCreated().isBefore(importToHmsDate)
+                )
+                .collect(Collectors.toList());
+
+    }
+
+    private String toTable(List<LostClientInfo> infoList) {
+        String tdOpen = "<td style=\"border-bottom: 1px solid #a9a9a9; border-left: 1px solid #a9a9a9; border-collapse: collapse;\">";
+
+        String headRows = new StringJoiner("</td>" + tdOpen, "<tr>" + tdOpen, "</td></tr>")
+                .add("Аккаунт")
+                .add("Создан")
+                .add("Тариф")
+                .add("Абонемент")
+                .add("Заплатил")
+                .add("Выключен")
+                .add("Доменов")
+                .add("Имя владельца")
+                .add("email-ы")
+                .toString();
+
+        String bodyRows = infoList.stream().map(info -> new StringJoiner(
+                "</td>" + tdOpen, "<tr>" + tdOpen, "</td></tr>"
+                )
+                .add(info.getAccount().getName())
+                .add(info.getAccount().getCreated() != null ? info.getAccount().getCreated().toLocalDate().toString() : "нет данных")
+                .add(info.getPlan().getName())
+                .add(info.getAbonement() == null ? "нет" : info.getAbonement().isInternal() ? "тестовый" : info.getAbonement().getName())
+                .add(info.getOverallPaymentAmount() != null ? info.getOverallPaymentAmount().toString() : "0")
+                .add(info.getAccount().getDeactivated() != null ? info.getAccount().getDeactivated().toLocalDate().toString() : "нет данных")
+                .add(info.getDomains() != null ? String.valueOf(info.getDomains().size()) : "0")
+                .add(info.getOwner().getName())
+                .add(String.join(", ", info.getOwner().getContactInfo().getEmailAddresses()))
+                .toString()
+        ).collect(Collectors.joining());
+
+        return "<table><thead>" + headRows + "</thead><tbody>" + bodyRows + "</tbody></table>";
     }
 }

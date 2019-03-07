@@ -16,7 +16,6 @@ public interface AccountStatRepository extends MongoRepository<AccountStat, Stri
     List<AccountStat> findByPersonalAccountIdAndType(String personalAccountId, AccountStatType type);
     Page<AccountStat> findByPersonalAccountId(String personalAccountId, Pageable pageable);
     AccountStat findByIdAndPersonalAccountId(String id, String personalAccountId);
-    List<AccountStat> findByType(AccountStatType type);
     List<AccountStat> findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(
             String personalAccountId,
             AccountStatType type,
