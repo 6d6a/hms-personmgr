@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessBulkRevisiumRequestEvent;
+import ru.majordomo.hms.personmgr.event.task.SendLostClientInfoTaskEvent;
 import ru.majordomo.hms.personmgr.event.task.CleanFinishedTaskEvent;
 import ru.majordomo.hms.personmgr.event.task.NewTasksExecuteEvent;
 import ru.majordomo.hms.personmgr.event.token.CleanTokensEvent;
@@ -146,6 +147,10 @@ public class SchedulerRestController extends CommonRestController {
                 break;
             case "process_clean_tasks":
                 publisher.publishEvent(new CleanFinishedTaskEvent());
+
+                break;
+            case "process_send_lost_client_info":
+                publisher.publishEvent(new SendLostClientInfoTaskEvent());
 
                 break;
             default:
