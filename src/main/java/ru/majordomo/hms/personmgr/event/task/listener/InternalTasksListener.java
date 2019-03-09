@@ -21,7 +21,7 @@ public class InternalTasksListener {
 
     @Autowired
     public InternalTasksListener(
-            @Value("mail_manager.lost-client-info-emails") List<String> emailsForLostClients,
+            @Value("${mail_manager.lost-client-info-emails}") List<String> emailsForLostClients,
             StatServiceHelper statServiceHelper
     ) {
         this.emailsForLostClients = emailsForLostClients;
