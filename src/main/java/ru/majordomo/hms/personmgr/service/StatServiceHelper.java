@@ -76,7 +76,7 @@ public class StatServiceHelper {
             FinFeignClient finFeignClient,
             AccountOwnerManager ownerManager,
             AccountNotificationHelper notificationHelper,
-            @Value("mail_manager.service_message_api_name") String serviceEmailTemplateName
+            @Value("${mail_manager.service_message_api_name}") String serviceEmailTemplateName
     ) {
         this.mongoOperations = mongoOperations;
         this.abonementRepository = abonementRepository;
