@@ -61,30 +61,30 @@ public class SslCertificateResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Сертификат для домена " + domainName + " находится в процессе создания");
         }
 
-        boolean canOrderSSL = false;
-        Domain domain = rcUserFeignClient.findDomain(domainName);
+        // boolean canOrderSSL = false;
+        // Domain domain = rcUserFeignClient.findDomain(domainName);
 
-        if (domain != null) {
-            if (!accountId.equals(domain.getAccountId())) {
-                throw new ParameterValidationException("Домен не найден на вашем аккаунте");
-            }
-            if (domain.getParentDomainId() != null) {
-                Domain parentDomain = rcUserFeignClient.getDomain(accountId, domain.getParentDomainId());
+        // if (domain != null) {
+        //     if (!accountId.equals(domain.getAccountId())) {
+        //         throw new ParameterValidationException("Домен не найден на вашем аккаунте");
+        //     }
+        //     if (domain.getParentDomainId() != null) {
+        //         Domain parentDomain = rcUserFeignClient.getDomain(accountId, domain.getParentDomainId());
 
-                if (parentDomain != null) {
-                    if (!accountId.equals(parentDomain.getAccountId())) {
-                        throw new ParameterValidationException("Основной домен для поддомена не найден на вашем аккаунте");
-                    }
-                }
-                canOrderSSL = nsCheckService.checkOurNs(parentDomain);
-            } else {
-                canOrderSSL = nsCheckService.checkOurNs(domain);
-            }
-        }
+        //         if (parentDomain != null) {
+        //             if (!accountId.equals(parentDomain.getAccountId())) {
+        //                 throw new ParameterValidationException("Основной домен для поддомена не найден на вашем аккаунте");
+        //             }
+        //         }
+        //         canOrderSSL = nsCheckService.checkOurNs(parentDomain);
+        //     } else {
+        //         canOrderSSL = nsCheckService.checkOurNs(domain);
+        //     }
+        // }
 
-        if (!canOrderSSL) {
-            throw new ParameterValidationException("Домен должен быть делегирован на наши DNS-серверы (ns.majordomo.ru, ns2.majordomo.ru и ns3.majordomo.ru)");
-        }
+        // if (!canOrderSSL) {
+        //     throw new ParameterValidationException("Домен должен быть делегирован на наши DNS-серверы (ns.majordomo.ru, ns2.majordomo.ru и ns3.majordomo.ru)");
+        // }
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.SSL_CERTIFICATE_CREATE, BusinessActionType.SSL_CERTIFICATE_CREATE_RC, message);
 
