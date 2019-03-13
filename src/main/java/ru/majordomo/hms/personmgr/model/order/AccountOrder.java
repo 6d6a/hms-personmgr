@@ -11,6 +11,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.model.order.ssl.SslCertificateOrder;
 
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
@@ -21,11 +22,10 @@ import java.time.LocalDateTime;
               include = JsonTypeInfo.As.PROPERTY,
               property = "type")
 @JsonSubTypes({
-                      @JsonSubTypes.Type(value = AccountPartnerCheckoutOrder.class,
-                                         name = "partnerCheckout"),
-                      @JsonSubTypes.Type(value = BitrixLicenseOrder.class,
-                                         name = "bitrixLicense")
-              })
+        @JsonSubTypes.Type(value = AccountPartnerCheckoutOrder.class, name = "partnerCheckout"),
+        @JsonSubTypes.Type(value = BitrixLicenseOrder.class, name = "bitrixLicense"),
+        @JsonSubTypes.Type(value = SslCertificateOrder.class, name = "sslCertificateOrder")
+})
 public abstract class AccountOrder extends VersionedModelBelongsToPersonalAccount {
     @JsonView(Views.Public.class)
     @NotNull

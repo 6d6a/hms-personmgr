@@ -339,6 +339,14 @@ public class AccountHelper {
             return finFeignClient.block(account.getId(), chargeMessage);
     }
 
+    public SimpleServiceMessage chargeBlocked(String personalAccountId, String documentNumber) throws BaseException {
+        return finFeignClient.chargeBlocked(personalAccountId, documentNumber);
+    }
+
+    public SimpleServiceMessage unblock(String personalAccountId, String documentNumber) throws BaseException {
+        return finFeignClient.unblock(personalAccountId, documentNumber);
+    }
+
     public SimpleServiceMessage changePassword(PersonalAccount account, String newPassword) {
         Map<String, String> params = new HashMap<>();
         params.put(PASSWORD_KEY, newPassword);

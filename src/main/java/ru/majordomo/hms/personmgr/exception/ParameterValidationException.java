@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
-import java.util.Arrays;
-import java.util.Map;
+import javax.validation.Path;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -41,11 +41,14 @@ public class ParameterValidationException extends WithErrorsException {
 
     public ParameterValidationException(ConstraintViolationException ex) {
         this(ex.getMessage());
-        setErrors(
-                ex.getConstraintViolations()
-                        .stream()
-                        .collect(Collectors.toMap(
-                                ConstraintViolation::getPropertyPath, ConstraintViolation::getMessage))
-        );
+
+        Map<Path, List<String>> errors = new HashMap<>();
+
+        ex.getConstraintViolations().forEach(cv -> {
+            List<String> strings = errors.computeIfAbsent(cv.getPropertyPath(), k -> new ArrayList<>());
+            strings.add(cv.getMessage());
+        });
+
+        setErrors(errors);
     }
 }
