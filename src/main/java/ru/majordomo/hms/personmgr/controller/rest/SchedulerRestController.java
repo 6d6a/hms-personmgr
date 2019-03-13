@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import ru.majordomo.hms.personmgr.event.account.*;
+import ru.majordomo.hms.personmgr.event.accountOrder.SSLCertificateOrderProcessEvent;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessBulkRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.event.task.SendLostClientInfoTaskEvent;
 import ru.majordomo.hms.personmgr.event.task.CleanFinishedTaskEvent;
@@ -151,6 +152,10 @@ public class SchedulerRestController extends CommonRestController {
                 break;
             case "process_send_lost_client_info":
                 publisher.publishEvent(new SendLostClientInfoTaskEvent());
+
+                break;
+            case "process_ssl_order":
+                publisher.publishEvent(new SSLCertificateOrderProcessEvent());
 
                 break;
             default:

@@ -14,7 +14,6 @@ import ru.majordomo.hms.personmgr.event.account.AccountNotificationRemainingDays
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
@@ -32,6 +31,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -54,7 +54,6 @@ public class AccountNotificationHelper {
     private final AccountServiceHelper accountServiceHelper;
     private final NotificationRepository notificationRepository;
     private final PersonalAccountManager accountManager;
-    private final FinFeignClient finFeignClient;
     private final String finEmail;
     private final String inviteEmailApiName;
     private final PaymentLinkHelper paymentLinkHelper;
@@ -67,7 +66,6 @@ public class AccountNotificationHelper {
             AccountServiceHelper accountServiceHelper,
             NotificationRepository notificationRepository,
             PersonalAccountManager accountManager,
-            FinFeignClient finFeignClient,
             @Value("${mail_manager.department.fin}") String finEmail,
             @Value("${invites.client_api_name}") String inviteEmailApiName,
             PaymentLinkHelper paymentLinkHelper
@@ -78,7 +76,6 @@ public class AccountNotificationHelper {
         this.accountServiceHelper = accountServiceHelper;
         this.notificationRepository = notificationRepository;
         this.accountManager = accountManager;
-        this.finFeignClient = finFeignClient;
         this.finEmail = finEmail;
         this.inviteEmailApiName = inviteEmailApiName;
         this.paymentLinkHelper = paymentLinkHelper;
@@ -641,5 +638,100 @@ public class AccountNotificationHelper {
         message.addParam(PARAMETRS_KEY, parameters);
 
         publisher.publishEvent(new SendMailEvent(message));
+    }
+
+    public EmailBuilder emailBuilder() {
+        return new EmailBuilder(accountHelper::getEmails, publisher);
+    }
+
+    public static class EmailBuilder {
+        private final Function<PersonalAccount, List<String>> emailProvider;
+        private final ApplicationEventPublisher publisher;
+
+        private SimpleServiceMessage message = new SimpleServiceMessage();
+        private Map<String, String> parameters = new HashMap<>();
+        private PersonalAccount account;
+
+        EmailBuilder(
+                Function<PersonalAccount, List<String>> emailProvider,
+                ApplicationEventPublisher publisher
+        ) {
+            this.emailProvider = emailProvider;
+            this.publisher = publisher;
+        }
+
+        public EmailBuilder account(PersonalAccount account) {
+            this.account = account;
+            message.setAccountId(account.getId());
+            return this;
+        }
+
+        public EmailBuilder emails(String... emails) {
+            message.addParam(EMAIL_KEY, String.join(",", emails));
+            return this;
+        }
+
+        public EmailBuilder apiName(String apiName) {
+            message.addParam(API_NAME_KEY, apiName);
+            return this;
+        }
+
+        public EmailBuilder priority(int priority) {
+            message.addParam(PRIORITY_KEY, priority);
+            return this;
+        }
+
+        public EmailBuilder param(String key, String value) {
+            parameters.put(key, value);
+            return this;
+        }
+
+        public EmailBuilder params(Map<String, String> params) {
+            parameters.putAll(params);
+            return this;
+        }
+
+        public EmailBuilder attachment(Map<String, String> attachment) {
+            message.addParam("attachment", attachment);
+            return this;
+        }
+
+        public void send() {
+            if (message.getParam(EMAIL_KEY) == null) {
+                message.addParam(EMAIL_KEY, String.join(",", emailProvider.apply(account)));
+            }
+            message.addParam(PARAMETRS_KEY, parameters);
+
+            publisher.publishEvent(new SendMailEvent(message));
+        }
+    }
+
+    public EmailAttachmentBuilder attachment() {
+        return new EmailAttachmentBuilder();
+    }
+
+    public static class EmailAttachmentBuilder {
+        private Map<String, String> attachment = new HashMap<>();
+
+        private EmailAttachmentBuilder() {}
+
+        public EmailAttachmentBuilder body(String body) {
+            attachment.put("body", body);
+            return this;
+        }
+
+        public EmailAttachmentBuilder mimeType(String mimeType) {
+            attachment.put("mime_type", mimeType);
+            return this;
+        }
+
+        public EmailAttachmentBuilder fileName(String fileName) {
+            attachment.put("filename", fileName);
+            return this;
+        }
+
+        public Map<String, String> build() {
+            return attachment;
+        }
     }
 }

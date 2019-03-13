@@ -1,6 +1,10 @@
 package ru.majordomo.hms.personmgr.common;
 
 import java.io.*;
+import java.util.Map;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class FileUtils {
 
@@ -94,5 +98,23 @@ public class FileUtils {
             result.write(buffer, 0, length);
         }
         return result.toString(charsetName);//"UTF-8"
+    }
+
+    public static byte[] getZipFileBytes(Map<String, byte[]> fileMap) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ZipOutputStream out = new ZipOutputStream(baos);
+
+        Set<Map.Entry<String, byte[]>> fileNameContent = fileMap.entrySet();
+        for (Map.Entry<String, byte[]> entry: fileNameContent) {
+            ZipEntry e = new ZipEntry(entry.getKey());
+            out.putNextEntry(e);
+
+            out.write(entry.getValue(), 0, entry.getValue().length);
+            out.closeEntry();
+        }
+
+
+        out.close();
+        return baos.toByteArray();
     }
 }

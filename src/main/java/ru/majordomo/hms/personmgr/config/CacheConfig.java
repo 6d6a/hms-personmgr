@@ -34,7 +34,17 @@ public class CacheConfig extends CachingConfigurerSupport {
                 new ConcurrentMapCache("servicePlansByFeature"),
                 new ConcurrentMapCache("servicePlansByActive"),
                 new ConcurrentMapCache("servicePlansByFeatureAndActive"),
-                new ConcurrentMapCache("servicePlansByFeatureAndServiceId")
+                new ConcurrentMapCache("servicePlansByFeatureAndServiceId"),
+                new ConcurrentMapCache("countryById"),
+                new ConcurrentMapCache("countryFindAll"),
+                new ConcurrentMapCache("sslServerTypeById"),
+                new ConcurrentMapCache("sslServerTypeFindAll"),
+                new ConcurrentMapCache("approverEmailFindAll"),
+                new ConcurrentMapCache("approverEmailById"),
+                new ConcurrentMapCache("sslSupplierById"),
+                new ConcurrentMapCache("sslSupplierFindAll"),
+                new ConcurrentMapCache("sslProductFindAll"),
+                new ConcurrentMapCache("sslProductById")
         ));
 
         return cacheManager;
