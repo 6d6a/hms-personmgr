@@ -123,10 +123,8 @@ public class SslCertificateOrder extends AccountOrder {
 
     private String documentNumber;
 
-    @JsonIgnore
     private List<String> chain;
 
-    @JsonIgnore
     private String key;
 
     @Transient

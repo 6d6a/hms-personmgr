@@ -97,6 +97,8 @@ public class SslOrderRestController extends CommonRestController {
 
         Page<SslCertificateOrder> orders = manager.findByPersonalAccountId(account.getId(), pageable);
 
+        orders.forEach(manager::build);
+
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
 
