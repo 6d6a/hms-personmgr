@@ -1,13 +1,13 @@
-FROM openjdk:8-jre-slim
+FROM openjdk:8-jdk-slim
 
 ENV XMS 512M
 ENV XMX 512M
 ENV XMN 192M
-ENV DEBUG ""
+ENV DEBUG "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=6006"
 ENV TZ Europe/Moscow
 
 ADD http://archive.intr/Majordomo_LLC_Root_CA.crt /tmp/root.crt
-RUN keytool -trustcacerts -keystore /etc/ssl/certs/java/cacerts -storepass changeit -alias Root -import -file /tmp/root.crt -noprompt 
+RUN keytool -import -trustcacerts -keystore /etc/ssl/certs/java/cacerts -storepass changeit -alias Root -import -file /tmp/root.crt -noprompt
 
 COPY ./build/libs /
 COPY healthcheck.sh /healthcheck.sh

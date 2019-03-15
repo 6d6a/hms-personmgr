@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.config;
 
+import com.google.common.cache.CacheBuilder;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
@@ -9,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableCaching
@@ -35,6 +37,10 @@ public class CacheConfig extends CachingConfigurerSupport {
                 new ConcurrentMapCache("servicePlansByActive"),
                 new ConcurrentMapCache("servicePlansByFeatureAndActive"),
                 new ConcurrentMapCache("servicePlansByFeatureAndServiceId"),
+                new ConcurrentMapCache("getTicketWithMessages",
+                        CacheBuilder.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(1000).build().asMap(),
+                        false
+                ),
                 new ConcurrentMapCache("countryById"),
                 new ConcurrentMapCache("countryFindAll"),
                 new ConcurrentMapCache("sslServerTypeById"),
