@@ -268,7 +268,7 @@ public class CerbApiClient {
         return null;
     }
 
-    private Integer createTicket(String subject, Department department) {
+    private Integer createTicket(String subject, Department department, String participantEmail) {
 
         String bucketId = null;
         String groupId = null;
@@ -298,6 +298,7 @@ public class CerbApiClient {
             postParams.add("fields[group_id]", groupId);
             postParams.add("fields[status]", "open");
             postParams.add("fields[subject]", subject);
+            postParams.add("fields[participants]", participantEmail);
 
             URI uri = buildUri("records/ticket/create.json");
             HttpEntity<String> request = preparePostRequestData(uri, postParams);
@@ -387,7 +388,7 @@ public class CerbApiClient {
             throw new ParameterValidationException("Не удалось создать запрос в службу поддержки.");
         }
 
-        Integer ticketId = this.createTicket(subject, department);
+        Integer ticketId = this.createTicket(subject, department, email);
 
         if (ticketId == null) {
             throw new ParameterValidationException("Не удалось создать запрос в службу поддержки.");
