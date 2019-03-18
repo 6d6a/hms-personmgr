@@ -25,11 +25,11 @@ public class GoGetSSLConnection {
         auth(config.getLogin(), config.getPassword());
     }
 
-    public Map addSSLOrder(Object body) {
+    public Map addSSLOrder(MultiValueMap<String, String> body) {
         return call("/orders/add_ssl_order/", getAuthParams(), HttpMethod.POST, body, Map.class);
     }
 
-    public Map addSSLRenewOrder(Object body) {
+    public Map addSSLRenewOrder(MultiValueMap<String, String> body) {
         return call("/orders/add_ssl_renew_order/", getAuthParams(), HttpMethod.POST, body, Map.class);
     }
 
@@ -120,68 +120,6 @@ public class GoGetSSLConnection {
         }
     }
 }
-
-/*
-    public function addSSLOrder($data)
-    {
-        $getData = array('auth_key' => $this->key);
-        return $this->call('/orders/add_ssl_order/', $getData, $data);
-    }
-
-    public function addSSLRenewOrder($data)
-    {
-        $getData = array('auth_key' => $this->key);
-        return $this->call('/orders/add_ssl_renew_order/', $getData, $data);
-    }
-
-
-    public function activateSSLOrder($orderId)
-    {
-        $getData = array('auth_key' => $this->key);
-        return $this->call('/orders/ssl/activate/'. (int)$orderId, $getData);
-    }
-
-    public function getOrderStatus($orderId)
-    {
-        $getData = array('auth_key' => $this->key);
-        return $this->call('/orders/status/'. (int)$orderId, $getData);
-    }
-
-    protected function call($uri, $getData = array(), $postData = array(), $forcePost = false, $isFile = false)
-    {
-        $url  = $this->url . $uri;
-        if(!empty($getData))
-        {
-            foreach($getData as $key => $value)
-            {
-                $url .= (strpos($url, '?') !== false ? '&' : '?')
-                        . urlencode($key) . '=' . rawurlencode($value);
-            }
-        }
-
-        $post = !empty($postData) || $forcePost ? true : false;
-        $c = curl_init($url);
-        if($post)
-        {
-            curl_setopt($c, CURLOPT_POST, true);
-        }
-        if(!empty($postData))
-        {
-            $queryData = $isFile ? $postData : http_build_query($postData);
-            curl_setopt($c, CURLOPT_POSTFIELDS, $queryData);
-        }
-
-        curl_setopt($c, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($c, CURLOPT_SSL_VERIFYPEER, false);
-        $result = curl_exec($c);
-        $status = curl_getinfo($c, CURLINFO_HTTP_CODE);
-        curl_close($c);
-        $this->lastStatus   = $status;
-        $this->lastResponse = json_decode($result, true);
-        return $this->lastResponse;
-    }
-}
-*/
 
 
 

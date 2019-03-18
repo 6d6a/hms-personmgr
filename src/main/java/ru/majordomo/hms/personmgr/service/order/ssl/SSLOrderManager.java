@@ -1,8 +1,11 @@
 package ru.majordomo.hms.personmgr.service.order.ssl;
 
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -81,8 +84,12 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
     }
 
     private ExternalState getOnlyExternalStateFromGoGetSsl(SslCertificateOrder order) {
+        Map orderStatus = connectionFactory.getConnection().getOrderStatus(order.getExternalOrderId());
+
+        order.setLastResponse(orderStatus);
+
         return ExternalState.creator(
-                connectionFactory.getConnection().getOrderStatus(order.getExternalOrderId()).get("status").toString()
+                orderStatus.get("status").toString()
         );
     }
 
@@ -109,8 +116,10 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
                 }
             }
         } else {
-            connectionFactory.getConnection().cancelSSLOrder(
-                    order.getExternalOrderId(), "Domain owner refused order"
+            order.setLastResponse(
+                    connectionFactory.getConnection().cancelSSLOrder(
+                        order.getExternalOrderId(), "Domain owner refused order"
+                )
             );
         }
     }
@@ -166,18 +175,56 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
         }
     }
 
+    @Override
+    public Page<SslCertificateOrder> findByPersonalAccountId(String accountId, Pageable pageable) {
+        Page<SslCertificateOrder> orders = super.findByPersonalAccountId(accountId, pageable);
+        orders.getContent().forEach(this::build);
+        return orders;
+    }
+
+    @Override
+    public SslCertificateOrder findOneByIdAndPersonalAccountId(String id, String personalAccountId) {
+        SslCertificateOrder order = super.findOneByIdAndPersonalAccountId(id, personalAccountId);
+        this.build(order);
+        return order;
+    }
+
+    @Override
+    public Page<SslCertificateOrder> findAll(Predicate predicate, Pageable pageable) {
+        Page<SslCertificateOrder> orders = super.findAll(predicate, pageable);
+        orders.getContent().forEach(this::build);
+        return orders;
+    }
+
+    @Override
+    public List<SslCertificateOrder> findAll(Predicate predicate) {
+        List<SslCertificateOrder> orders = super.findAll(predicate);
+        orders.forEach(this::build);
+        return orders;
+    }
+
+    @Override
+    public Page<SslCertificateOrder> findAll(Pageable pageable) {
+        Page<SslCertificateOrder> page = super.findAll(pageable);
+        page.getContent().forEach(this::build);
+        return page;
+    }
+
+    @Override
+    public SslCertificateOrder findOne(String id) {
+        SslCertificateOrder order = super.findOne(id);
+        build(order);
+        return order;
+    }
+
     public List<SslCertificateOrder> getPendingOrders() {
         QSslCertificateOrder qOrder = QSslCertificateOrder.sslCertificateOrder;
 
-        List<SslCertificateOrder> all = findAll(
+        return findAll(
                 new BooleanBuilder()
                         .and(qOrder.state.notIn(OrderState.DECLINED, OrderState.FINISHED))
                         .and(qOrder.externalState.notIn(ExternalState.CANCELED, ExternalState.ACTIVE))
         );
-
-        all.forEach(this::build);
-
-        return all;
     }
 
     public void process(List<SslCertificateOrder> orders) {
@@ -204,13 +251,16 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
             } else {
                 Map statusData = connection.getOrderStatus(order.getExternalOrderId());
 
+                order.setLastResponse(statusData);
+
                 String status = (String) statusData.get("status");
 
                 order.setExternalState(ExternalState.creator(status));
 
                 switch (order.getExternalState()) {
                     case ACTIVE:
-                        //делаем СА и CRT удобочитаемым (строками шириной 64 символа)
+                        //todo делаем СА и CRT удобочитаемым (строками шириной 64 символа),
+                        // разбиваем CA на два отдельных сертификата
                         String caCode = (String) statusData.get("ca_code");
                         String crtCode = (String) statusData.get("crt_code");
 
@@ -226,9 +276,7 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
                                     e.getClass(), e.getMessage(), order, statusData
                             );
                         }
-                        //Разбиваем CA на два отдельных сертификата
-//                        String caCode1 = caCode.substring(0, caCode.indexOf("-----BEGIN CERTIFICATE-----") - 1);
-//                        String caCode2 = caCode.substring(caCode.indexOf("-----BEGIN CERTIFICATE-----") - 1);
+
 
                         order.setChain(
                                 Arrays.asList(
@@ -260,7 +308,6 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
     private void placeOrder(SslCertificateOrder order, GoGetSSLConnection connection) {
         MultiValueMap<String, String> orderData = prepareOrderData(order);
 
-        //Если это заказ на продление сертификата, то отправляем соответствующий запрос
         Map response = null;
         switch (order.getOrderType()) {
             case NEW:
@@ -279,6 +326,7 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
             throw new InternalApiException("Не удалось обработать заказ сертификата");
         } else if (response.get("order_id") != null) {
             order.setExternalOrderId((Integer) response.get("order_id"));
+            order.setLastResponse(response);
         }
     }
 
