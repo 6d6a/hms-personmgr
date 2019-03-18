@@ -20,11 +20,13 @@ import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
 import javax.validation.Validator;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static ru.majordomo.hms.personmgr.model.order.ssl.SslCertificateOrder.Type.NEW;
+import static ru.majordomo.hms.personmgr.model.order.ssl.SslCertificateOrder.Type.RENEW;
 
 @Validated
 @RestController
@@ -144,7 +146,7 @@ public class SslOrderRestController extends CommonRestController {
     @PostMapping("/{accountId}/ssl-certificate-order")
     public ResponseEntity<Void> create(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody /*@Valid */SslCertificateOrder order,
+            @RequestBody SslCertificateOrder order,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
@@ -164,101 +166,42 @@ public class SslOrderRestController extends CommonRestController {
 
         manager.create(order, operator);
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-//    @PostMapping("/{accountId}/ssl-certificate-order/{orderId}/prolong")
-//    public ResponseEntity<Void> prolong(
-//            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-//            @ObjectId(SslCertificateOrder.class) @PathVariable(value = "orderId") String orderId,
-//            SecurityContextHolderAwareRequestWrapper request
-//    ) {
-//        PersonalAccount account = accountManager.findOne(accountId);
-//
-//        SslCertificateOrder previousOrder = manager.findOneByIdAndPersonalAccountId(orderId, account.getId());
-//
-//        String operator = request.getUserPrincipal().getName();
-//
-//        SslCertificateOrder order = new SslCertificateOrder();
-//        order.setPersonalAccountId(account.getId());
-//        order.setPersonalAccountName(account.getName());
-//        order.setDomainName(previousOrder.getDomainName());
-//        order.setServiceId(previousOrder.getServiceId());
-//        order.setPreviousOrder(previousOrder);
-//        order.setPreviousOrderId(orderId);
-//        order.setType(PROLONG);
-//
-//        manager.create(order, operator);
-//
-//        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-//    }
+    @PostMapping("/{accountId}/ssl-certificate-order/renew/{orderId}")
+    public ResponseEntity<Void> renew(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @ObjectId(SslCertificateOrder.class) @PathVariable(value = "orderId") String orderId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        String operator = request.getUserPrincipal().getName();
 
-//    @JsonView(Views.Public.class)
-//    @GetMapping("/{accountId}/ssl-certificate-order/search")
-//    public ResponseEntity<Page<SslCertificateOrder>> getExpiring(
-//            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-//            @RequestParam(required = false) Map<String, String> params,
-//            Pageable pageable
-//    ) {
-//        Predicate predicate = getPredicate(accountId, params);
-//
-//        Page<SslCertificateOrder> orders = manager.findAll(predicate, pageable);
-//
-//        orders.forEach(manager::build);
-//
-//        return new ResponseEntity<>(orders, HttpStatus.OK);
-//    }
+        SslCertificateOrder order = manager.findOneByIdAndPersonalAccountId(orderId, accountId);
+        order.unSetId();
+        order.setValidFrom(null);
+        order.setValidTo(null);
+        order.setCsr(null);
+        order.setKey(null);
+        order.setChain(null);
+        order.setLastResponse(null);
+        order.setVersion(null);
+        order.setExternalOrderId(null);
+        order.setExternalState(null);
+        order.setDocumentNumber(null);
+        order.setCreated(LocalDateTime.now());
+        order.setUpdated(null);
 
-//    private Predicate getPredicate(String personalAccountId, Map<String, String> params){
-//        LocalDateTime updatedAfter;
-//        LocalDateTime updatedBefore;
-//        OrderState state;
-//        String domain = params.getOrDefault("domain", null);
-//        boolean excludeProlongedOrders = Boolean.valueOf(params.getOrDefault("excludeProlonged", null));
-//
-//        try {
-//            String afterString = params.getOrDefault("after", "");
-//            updatedAfter = afterString.isEmpty() ? null : LocalDateTime.of(LocalDate.parse(afterString, DateTimeFormatter.ISO_DATE), LocalTime.MIN);
-//
-//            String beforeString = params.getOrDefault("before", "");
-//            updatedBefore = beforeString.isEmpty() ? null : LocalDateTime.of(LocalDate.parse(beforeString, DateTimeFormatter.ISO_DATE), LocalTime.MIN);
-//
-//            String stateString = params.getOrDefault("state", "");
-//            state = stateString.isEmpty() ? null : OrderState.valueOf(stateString.toUpperCase());
-//
-//            switch (params.getOrDefault("preset", "")) {
-//                case "expiring":
-//                    updatedAfter = LocalDateTime.now().minusYears(1);
-//                    updatedBefore = updatedAfter.plusDays(MAY_PROLONG_DAYS_BEFORE_EXPIRED);
-//                    state = OrderState.FINISHED;
-//                    excludeProlongedOrders = true;
-//
-//                    break;
-//                case "expired":
-//                    updatedBefore = LocalDateTime.now().minusYears(1);
-//                    updatedAfter = updatedBefore.minusMonths(3);
-//                    state = OrderState.FINISHED;
-//                    excludeProlongedOrders = true;
-//
-//                    break;
-//                case "declined":
-//                    state = OrderState.DECLINED;
-//
-//                    break;
-//                case "new":
-//                    state = OrderState.NEW;
-//
-//                    break;
-//                case "in_progress":
-//                    state = OrderState.IN_PROGRESS;
-//
-//                    break;
-//            }
-//        } catch (DateTimeParseException e) {
-//            throw new ParameterValidationException("Некорректный формат даты, необходимо указывать дату в формате 'YYYY-MM-DD'");
-//        } catch (IllegalArgumentException e) {
-//            throw new ParameterValidationException("state должен быть одним из " + Arrays.asList(OrderState.values()));
-//        }
-//        return manager.getPredicate(personalAccountId, updatedAfter, updatedBefore, state, domain, excludeProlongedOrders);
-//    }
+        order.setOperator(operator);
+        order.setOrderType(RENEW);
+
+        Set<ConstraintViolation<@Valid SslCertificateOrder>> errors = validator.validate(order);
+        if (errors != null && !errors.isEmpty()) {
+            throw new ConstraintViolationException(errors);
+        }
+
+        manager.create(order, operator);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
 }
