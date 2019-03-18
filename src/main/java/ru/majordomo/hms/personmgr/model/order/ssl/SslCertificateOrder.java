@@ -147,6 +147,6 @@ public class SslCertificateOrder extends AccountOrder {
     @QueryTransient
     private Country country;
 
-    @JsonIgnore
-    private Map lastResponse;
+//    @JsonIgnore
+//    private Map lastResponse;
 }

@@ -86,7 +86,7 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
     private ExternalState getOnlyExternalStateFromGoGetSsl(SslCertificateOrder order) {
         Map orderStatus = connectionFactory.getConnection().getOrderStatus(order.getExternalOrderId());
 
-        order.setLastResponse(orderStatus);
+//        order.setLastResponse(orderStatus);
 
         return ExternalState.creator(
                 orderStatus.get("status").toString()
@@ -116,11 +116,12 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
                 }
             }
         } else {
-            order.setLastResponse(
+//            order.setLastResponse(
                     connectionFactory.getConnection().cancelSSLOrder(
                         order.getExternalOrderId(), "Domain owner refused order"
                 )
-            );
+//            );
+            ;
         }
     }
 
@@ -251,7 +252,7 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
             } else {
                 Map statusData = connection.getOrderStatus(order.getExternalOrderId());
 
-                order.setLastResponse(statusData);
+//                order.setLastResponse(statusData);
 
                 String status = (String) statusData.get("status");
 
@@ -326,7 +327,7 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
             throw new InternalApiException("Не удалось обработать заказ сертификата");
         } else if (response.get("order_id") != null) {
             order.setExternalOrderId((Integer) response.get("order_id"));
-            order.setLastResponse(response);
+//            order.setLastResponse(response);
         }
     }
 
