@@ -184,7 +184,7 @@ public class SslOrderRestController extends CommonRestController {
         order.setCsr(null);
         order.setKey(null);
         order.setChain(null);
-        order.setLastResponse(null);
+//        order.setLastResponse(null);
         order.setVersion(null);
         order.setExternalOrderId(null);
         order.setExternalState(null);
