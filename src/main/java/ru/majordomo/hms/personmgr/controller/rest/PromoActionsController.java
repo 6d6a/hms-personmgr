@@ -62,15 +62,15 @@ public class PromoActionsController {
         return requestRepository.findByPersonalAccountId(accountId);
     }
 
-    @GetMapping("/is-allowed")
-    public ResponseEntity<Map<String, Boolean>> isEnoughForGoogleAction(@PathVariable("accountId") String accountId) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        Map<String, Boolean> isAllowed = new HashMap<>();
-        isAllowed.put("is_allowed", accountHelper.isEnoughForGoogleAction(account));
-
-        return new ResponseEntity<>(isAllowed, HttpStatus.OK);
-    }
+//    @GetMapping("/is-allowed")
+//    public ResponseEntity<Map<String, Boolean>> isEnoughForGoogleAction(@PathVariable("accountId") String accountId) {
+//        PersonalAccount account = accountManager.findOne(accountId);
+//
+//        Map<String, Boolean> isAllowed = new HashMap<>();
+//        isAllowed.put("is_allowed", accountHelper.isEnoughForGoogleAction(account));
+//
+//        return new ResponseEntity<>(isAllowed, HttpStatus.OK);
+//    }
 
     @PostMapping
     public GoogleAdsRequest create(
@@ -108,11 +108,11 @@ public class PromoActionsController {
             throw new ParameterValidationException("Вы уже отправляли заявку на участие в акции");
         }
 
-        if (!accountHelper.isEnoughForGoogleAction(account)) {
-            throw new ParameterValidationException(
-                    "Потратьте в сервисе 500 рублей или более. Зарегистрируйте и/или подключите свой домен."
-            );
-        }
+//        if (!accountHelper.isEnoughForGoogleAction(account)) {
+//            throw new ParameterValidationException(
+//                    "Потратьте в сервисе 500 рублей или более. Зарегистрируйте и/или подключите свой домен."
+//            );
+//        }
 
         request.setCreated(LocalDateTime.now());
 
