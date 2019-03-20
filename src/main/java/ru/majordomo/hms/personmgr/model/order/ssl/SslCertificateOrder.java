@@ -7,7 +7,6 @@ import lombok.EqualsAndHashCode;
 import org.hibernate.validator.constraints.Length;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
-import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.model.order.AccountOrder;
 import ru.majordomo.hms.personmgr.validation.DomainName;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
@@ -16,7 +15,6 @@ import ru.majordomo.hms.personmgr.validation.ValidSSLOrder;
 import javax.validation.constraints.*;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 @Document
 @Data
@@ -147,6 +145,6 @@ public class SslCertificateOrder extends AccountOrder {
     @QueryTransient
     private Country country;
 
-//    @JsonIgnore
-//    private Map lastResponse;
+    @JsonIgnore
+    private String lastResponse;
 }

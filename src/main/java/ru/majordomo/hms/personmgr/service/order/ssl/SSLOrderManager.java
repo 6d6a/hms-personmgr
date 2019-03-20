@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service.order.ssl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 import lombok.extern.slf4j.Slf4j;
@@ -86,7 +88,9 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
     private ExternalState getOnlyExternalStateFromGoGetSsl(SslCertificateOrder order) {
         Map orderStatus = connectionFactory.getConnection().getOrderStatus(order.getExternalOrderId());
 
-//        order.setLastResponse(orderStatus);
+        order.setLastResponse(
+                jsonStringify(orderStatus)
+        );
 
         return ExternalState.creator(
                 orderStatus.get("status").toString()
@@ -116,12 +120,13 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
                 }
             }
         } else {
-//            order.setLastResponse(
-                    connectionFactory.getConnection().cancelSSLOrder(
-                        order.getExternalOrderId(), "Domain owner refused order"
+            order.setLastResponse(
+                    jsonStringify(
+                            connectionFactory.getConnection().cancelSSLOrder(
+                                    order.getExternalOrderId(), "Domain owner refused order"
+                    )
                 )
-//            );
-            ;
+            );
         }
     }
 
@@ -252,7 +257,9 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
             } else {
                 Map statusData = connection.getOrderStatus(order.getExternalOrderId());
 
-//                order.setLastResponse(statusData);
+                order.setLastResponse(
+                        jsonStringify(statusData)
+                );
 
                 String status = (String) statusData.get("status");
 
@@ -327,7 +334,9 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
             throw new InternalApiException("Не удалось обработать заказ сертификата");
         } else if (response.get("order_id") != null) {
             order.setExternalOrderId((Integer) response.get("order_id"));
-//            order.setLastResponse(response);
+            order.setLastResponse(
+                    jsonStringify(response)
+            );
         }
     }
 
@@ -427,5 +436,15 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
             log.error("in generatePrivateKeyAndCsr catch e {} with message {} and order {}", e.getClass(), e.getMessage(), order);
             e.printStackTrace();
         }
+    }
+
+    private String jsonStringify(Object o) {
+        String result = null;
+        try {
+            result = new ObjectMapper().writeValueAsString(o);
+        } catch (JsonProcessingException e) {
+            log.info("catch e {} in jsonStringify() message {} object {}", e.getClass(), e.getMessage(), o);
+        }
+        return result;
     }
 }
