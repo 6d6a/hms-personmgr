@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
@@ -14,27 +13,12 @@ import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
-import ru.majordomo.hms.personmgr.service.NsCheckService;
-import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
-import ru.majordomo.hms.rc.user.resources.Domain;
 
 @RestController
 @RequestMapping("/{accountId}/ssl-certificate")
 @Validated
 public class SslCertificateResourceRestController extends CommonRestController {
-
-    private final RcUserFeignClient rcUserFeignClient;
-    private final NsCheckService nsCheckService;
-
-    @Autowired
-    public SslCertificateResourceRestController(
-            RcUserFeignClient rcUserFeignClient,
-            NsCheckService nsCheckService
-    ) {
-        this.rcUserFeignClient = rcUserFeignClient;
-        this.nsCheckService = nsCheckService;
-    }
 
     @PostMapping
     public ResponseEntity<SimpleServiceMessage> create(
@@ -60,31 +44,6 @@ public class SslCertificateResourceRestController extends CommonRestController {
         if (inProcessing) {
             throw new ParameterValidationException("Сертификат для домена " + domainName + " находится в процессе создания");
         }
-
-        // boolean canOrderSSL = false;
-        // Domain domain = rcUserFeignClient.findDomain(domainName);
-
-        // if (domain != null) {
-        //     if (!accountId.equals(domain.getAccountId())) {
-        //         throw new ParameterValidationException("Домен не найден на вашем аккаунте");
-        //     }
-        //     if (domain.getParentDomainId() != null) {
-        //         Domain parentDomain = rcUserFeignClient.getDomain(accountId, domain.getParentDomainId());
-
-        //         if (parentDomain != null) {
-        //             if (!accountId.equals(parentDomain.getAccountId())) {
-        //                 throw new ParameterValidationException("Основной домен для поддомена не найден на вашем аккаунте");
-        //             }
-        //         }
-        //         canOrderSSL = nsCheckService.checkOurNs(parentDomain);
-        //     } else {
-        //         canOrderSSL = nsCheckService.checkOurNs(domain);
-        //     }
-        // }
-
-        // if (!canOrderSSL) {
-        //     throw new ParameterValidationException("Домен должен быть делегирован на наши DNS-серверы (ns.majordomo.ru, ns2.majordomo.ru и ns3.majordomo.ru)");
-        // }
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.SSL_CERTIFICATE_CREATE, BusinessActionType.SSL_CERTIFICATE_CREATE_RC, message);
 

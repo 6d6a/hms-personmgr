@@ -1,8 +1,10 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import com.querydsl.core.types.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,6 +15,7 @@ import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.manager.EntityBuilder;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.order.ssl.*;
+import ru.majordomo.hms.personmgr.querydsl.SslCertificateOrderQuerydslBinderCustomizer;
 import ru.majordomo.hms.personmgr.service.order.ssl.SSLOrderManager;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -89,7 +92,6 @@ public class SslOrderRestController extends CommonRestController {
         return new ResponseEntity<>(order, HttpStatus.OK);
     }
 
-//    @PreAuthorize("hasAuthority('ACCOUNT_SSL_CERTIFICATE_ORDER_VIEW')")
     @GetMapping("/{accountId}/ssl-certificate-order")
     public ResponseEntity<Page<SslCertificateOrder>> getAll(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -107,19 +109,16 @@ public class SslOrderRestController extends CommonRestController {
     @PreAuthorize("hasAuthority('ACCOUNT_SSL_CERTIFICATE_ORDER_VIEW')")
     @GetMapping("/ssl-certificate-order")
     public ResponseEntity<Page<SslCertificateOrder>> getAllOrders(
-            Pageable pageable,
-            @RequestParam Map<String, String> search
+            @QuerydslPredicate(
+                    root = SslCertificateOrder.class,
+                    bindings = SslCertificateOrderQuerydslBinderCustomizer.class
+            ) Predicate predicate,
+            Pageable pageable
     ) {
-        String accId = getAccountIdFromNameOrAccountId(search.getOrDefault("personalAccountId", ""));
-
         Page<SslCertificateOrder> orders;
 
-        if (!accId.isEmpty()) {
-            orders = manager.findByPersonalAccountId(accId, pageable);
-        } else {
-            orders = manager.findAll(pageable);
-            orders.forEach(manager::build);
-        }
+        orders = manager.findAll(predicate, pageable);
+        orders.forEach(manager::build);
 
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
@@ -184,7 +183,7 @@ public class SslOrderRestController extends CommonRestController {
         order.setCsr(null);
         order.setKey(null);
         order.setChain(null);
-//        order.setLastResponse(null);
+        order.setLastResponse(null);
         order.setVersion(null);
         order.setExternalOrderId(null);
         order.setExternalState(null);

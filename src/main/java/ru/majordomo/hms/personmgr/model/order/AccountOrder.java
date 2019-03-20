@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.format.annotation.DateTimeFormat;
 import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
@@ -15,6 +16,8 @@ import ru.majordomo.hms.personmgr.model.order.ssl.SslCertificateOrder;
 
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
+
+import static org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -35,6 +38,7 @@ public abstract class AccountOrder extends VersionedModelBelongsToPersonalAccoun
     @NotNull
     private String operator;
 
+    @DateTimeFormat(iso = DATE_TIME)
     @JsonView(Views.Internal.class)
     @CreatedDate
     private LocalDateTime created;
