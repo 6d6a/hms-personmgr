@@ -709,11 +709,11 @@ public class StatServiceHelper {
                                     info.getAccount().getId()
                             )
                     );
-//                    info.setDomains(
-//                            rcUserFeignClient.getDomains(
-//                                    info.getAccount().getId()
-//                            )
-//                    );
+                    info.setDomains(
+                            rcUserFeignClient.getDomains(
+                                    info.getAccount().getId()
+                            )
+                    );
                     info.setPlan(
                             planManager.findOne(
                                     info.getAccount().getPlanId()
