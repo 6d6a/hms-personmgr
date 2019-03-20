@@ -3,7 +3,6 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.aggregation.*;
@@ -12,6 +11,7 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.config.LostClientConfig;
 import ru.majordomo.hms.personmgr.dto.stat.*;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcStaffFeignClient;
@@ -60,7 +60,7 @@ public class StatServiceHelper {
     private final FinFeignClient finFeignClient;
     private final AccountOwnerManager ownerManager;
     private final AccountNotificationHelper notificationHelper;
-    private String serviceEmailTemplateName;
+    private final LostClientConfig lostClientConfig;
 
     @Autowired
     public StatServiceHelper(
@@ -76,7 +76,7 @@ public class StatServiceHelper {
             FinFeignClient finFeignClient,
             AccountOwnerManager ownerManager,
             AccountNotificationHelper notificationHelper,
-            @Value("${mail_manager.service_message_api_name}") String serviceEmailTemplateName
+            LostClientConfig lostClientConfig
     ) {
         this.mongoOperations = mongoOperations;
         this.abonementRepository = abonementRepository;
@@ -90,7 +90,7 @@ public class StatServiceHelper {
         this.finFeignClient = finFeignClient;
         this.ownerManager = ownerManager;
         this.notificationHelper = notificationHelper;
-        this.serviceEmailTemplateName = serviceEmailTemplateName;
+        this.lostClientConfig = lostClientConfig;
     }
 
     public List<PlanCounter> getAllPlanCounters() {
@@ -649,26 +649,48 @@ public class StatServiceHelper {
         return map.values();
     }
 
-    public void sendLostClientsInfo(LocalDate date, List<String> emails) {
-        String table = toTable(
-                getLostClientInfoList(date)
-        );
-
-        String subject = "Статистика по отключенным клиентам за " + date.toString();
-        String body = subject + ". Собрано " + LocalDate.now().toString() + "<br/><br/>" + table;
-
-        Map<String, String> params = new HashMap<>();
-        params.put("subject", subject);
-        params.put("body", body);
-
-        notificationHelper.sendInternalEmail(
-                String.join(",", emails), serviceEmailTemplateName, null,10, params
+    public void sendLostClientsInfo() {
+        sendLostClientsInfo(
+                lostClientConfig
         );
     }
 
-    private List<LostClientInfo> getLostClientInfoList(LocalDate date) {
-        LocalDateTime importToHmsDate = LocalDateTime.of(LocalDate.of(2017, 8, 1), LocalTime.MIN);
+    public void sendLostClientsInfo(LostClientConfig config) {
+        LocalDate disableDate = LocalDate.now().minusDays(config.getDisabledDaysAgo());
+        List<LostClientInfo> lostClientInfoList = getLostClientInfoList(
+                disableDate,
+                config.getMinOverallPaymentAmount()
+        );
 
+        String table = toTable(
+                lostClientInfoList
+        );
+
+        String subject = "Статистика по отключенным клиентам за " + disableDate.toString();
+        String body = subject + ". Собрано " + LocalDate.now().toString() + "<br/><br/>" + table;
+
+        if (config.isNeedSendStatistics()) {
+            notificationHelper.emailBuilder()
+                    .apiName(config.getStatTemplateApiName())
+                    .emails(config.getStatEmails())
+                    .priority(10)
+                    .param("subject", subject)
+                    .param("body", body)
+                    .send();
+        }
+
+        if (config.isNeedSendToClient()) {
+            lostClientInfoList.forEach(info -> notificationHelper
+                    .emailBuilder()
+                    .from(config.getFeedbackFrom())
+                    .account(info.getAccount())
+                    .apiName(config.getFeedbackTemplateApiName())
+                    .param("acc_id", info.getAccount().getAccountId())
+                    .send());
+        }
+    }
+
+    private List<LostClientInfo> getLostClientInfoList(LocalDate date, BigDecimal minOverallPaymentAmount) {
         return accountManager.findByActiveAndDeactivatedBetween(false, LocalDateTime.of(date, LocalTime.MIN),
                 LocalDateTime.of(date, LocalTime.MAX))
                 .stream()
@@ -687,11 +709,11 @@ public class StatServiceHelper {
                                     info.getAccount().getId()
                             )
                     );
-                    info.setDomains(
-                            rcUserFeignClient.getDomains(
-                                    info.getAccount().getId()
-                            )
-                    );
+//                    info.setDomains(
+//                            rcUserFeignClient.getDomains(
+//                                    info.getAccount().getId()
+//                            )
+//                    );
                     info.setPlan(
                             planManager.findOne(
                                     info.getAccount().getPlanId()
@@ -708,10 +730,7 @@ public class StatServiceHelper {
                                             .ifPresent(info::setAbonement)
                     );
                 })
-                .filter(
-                        info -> BigDecimal.ZERO.compareTo(info.getOverallPaymentAmount()) > 0
-                                || info.getAccount().getCreated().isBefore(importToHmsDate)
-                )
+                .filter(info -> minOverallPaymentAmount.compareTo(info.getOverallPaymentAmount()) > 0)
                 .collect(Collectors.toList());
 
     }
