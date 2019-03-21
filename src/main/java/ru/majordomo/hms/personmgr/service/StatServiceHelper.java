@@ -730,7 +730,7 @@ public class StatServiceHelper {
                                             .ifPresent(info::setAbonement)
                     );
                 })
-                .filter(info -> minOverallPaymentAmount.compareTo(info.getOverallPaymentAmount()) > 0)
+                .filter(info -> info.getOverallPaymentAmount().compareTo(minOverallPaymentAmount) > 0)
                 .collect(Collectors.toList());
 
     }
