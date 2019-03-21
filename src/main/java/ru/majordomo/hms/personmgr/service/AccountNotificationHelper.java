@@ -28,6 +28,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -660,6 +661,11 @@ public class AccountNotificationHelper {
             this.publisher = publisher;
         }
 
+        public EmailBuilder from(String from) {
+            parameters.put("from", from);
+            return this;
+        }
+
         public EmailBuilder account(PersonalAccount account) {
             this.account = account;
             message.setAccountId(account.getId());
@@ -667,6 +673,10 @@ public class AccountNotificationHelper {
         }
 
         public EmailBuilder emails(String... emails) {
+            return this.emails(Arrays.asList(emails));
+        }
+
+        public EmailBuilder emails(List<String> emails) {
             message.addParam(EMAIL_KEY, String.join(",", emails));
             return this;
         }
@@ -698,7 +708,7 @@ public class AccountNotificationHelper {
 
         public void send() {
             if (message.getParam(EMAIL_KEY) == null) {
-                message.addParam(EMAIL_KEY, String.join(",", emailProvider.apply(account)));
+                emails(emailProvider.apply(account));
             }
             message.addParam(PARAMETRS_KEY, parameters);
 
