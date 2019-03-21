@@ -36,6 +36,7 @@ import ru.majordomo.hms.personmgr.feign.PartnersFeignClient;
 import ru.majordomo.hms.personmgr.feign.YaPromoterFeignClient;
 import ru.majordomo.hms.personmgr.manager.*;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.account.DefaultAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.InfoBannerAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -331,6 +332,15 @@ public class AccountEventListener {
         }
 
         accountHelper.giveGift(account, promotion);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("event", "freeDomain");
+
+        DefaultAccountNotice notice = new DefaultAccountNotice();
+        notice.setPersonalAccountId(account.getId());
+        notice.setData(data);
+
+        accountNoticeRepository.insert(notice);
     }
 
     /**
