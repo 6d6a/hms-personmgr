@@ -8,12 +8,18 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
+
+import static ru.majordomo.hms.personmgr.common.PromocodeActionType.SERVICE_DISCOUNT;
 
 @Component
 public class AccountPromotionManagerImpl implements AccountPromotionManager {
@@ -121,6 +127,40 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
     @Override
     public void deactivateAccountPromotionById(String id) {
         setAccountPromotionStatusByIdAndActionId(id, false);
+    }
+
+    public AccountPromotion getServiceDiscountPromotion(PersonalAccount account, PaymentService service) {
+        List<AccountPromotion> promotions = findByPersonalAccountId(account.getId());
+
+        for (AccountPromotion accountPromotion : promotions) {
+            if (!accountPromotion.getActive()) continue;
+
+            PromocodeAction action = mongoOperations.findById(accountPromotion.getActionId(), PromocodeAction.class);
+
+            accountPromotion.setAction(action);
+
+            if (action == null || !SERVICE_DISCOUNT.equals(action.getActionType())) continue;
+
+            Map<String, Object> properties = action.getProperties();
+
+            if (properties.get("amount") == null
+                    || properties.get("type") == null
+                    || properties.get("serviceIds") == null
+            ) {
+                continue;
+            }
+
+            Object o = properties.get("serviceIds");
+
+            if (!(o instanceof List)) continue;
+
+            List<String> serviceIds = (List<String>) o;
+
+            if (serviceIds.contains(service.getId())) {
+                return accountPromotion;
+            }
+        }
+        return null;
     }
 
     private void setAccountPromotionStatusByIdAndActionId(String id, boolean status) {

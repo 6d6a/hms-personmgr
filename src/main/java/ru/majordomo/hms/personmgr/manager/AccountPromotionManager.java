@@ -2,7 +2,9 @@ package ru.majordomo.hms.personmgr.manager;
 
 import java.util.List;
 
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 
 public interface AccountPromotionManager {
     boolean exists(String id);
@@ -40,4 +42,6 @@ public interface AccountPromotionManager {
     void activateAccountPromotionById(String id);
 
     void deactivateAccountPromotionById(String id);
+
+    AccountPromotion getServiceDiscountPromotion(PersonalAccount account, PaymentService service);
 }
