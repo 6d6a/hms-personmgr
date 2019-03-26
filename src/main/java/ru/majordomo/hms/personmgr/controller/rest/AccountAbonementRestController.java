@@ -22,6 +22,7 @@ import java.util.StringJoiner;
 
 import javax.validation.Valid;
 
+import ru.majordomo.hms.personmgr.common.BuyInfo;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.dto.request.AddAbonementRequest;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -270,6 +271,25 @@ public class AccountAbonementRestController extends CommonRestController {
         return new ResponseEntity<>(cashback, HttpStatus.OK);
     }
 
+    @GetMapping("/buy-info/{abonementId}")
+    public ResponseEntity<BuyInfo> getAgreement(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @ObjectId(Abonement.class) @PathVariable(value = "abonementId") String abonementId
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Abonement abonement = abonementRepository.findById(abonementId)
+                .orElseThrow(() -> new ResourceNotFoundException("Абонемент с id " + abonementId + " не найден"));
+
+        BuyInfo info = abonementService.getBuyInfo(account, abonement);
+
+        if (!info.isAllowed()) {
+            return new ResponseEntity<>(info, HttpStatus.FORBIDDEN);
+        } else {
+            return new ResponseEntity<>(info, HttpStatus.OK);
+        }
+    }
+
     @PostMapping("/{abonementId}")
     public ResponseEntity<Object> addAccountAbonement(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -281,31 +301,21 @@ public class AccountAbonementRestController extends CommonRestController {
         Abonement abonement = abonementRepository.findById(abonementId)
                 .orElseThrow(() -> new ResourceNotFoundException("Абонемент с id " + abonementId + " не найден"));
 
-        if (!accountHelper.isAbonementMinCostOrderAllowed(account)) {
-            throw new ParameterValidationException("Обслуживание по тарифу \"" + planManager.findOne(account.getPlanId()).getName() +  "\" прекращено");
+        BuyInfo info = abonementService.getBuyInfo(account, abonement);
+
+        if (!info.isAllowed()) {
+            return new ResponseEntity<>(info, HttpStatus.FORBIDDEN);
         }
 
-        if (abonement.isInternal()) {
-            throw new ParameterValidationException("Нельзя заказать тестовый абонемент");
-        }
+        AccountAbonement accountAbonement = abonementService.addAbonement(account, abonementId, true);
 
-        AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-
-        if (currentAccountAbonement != null && !currentAccountAbonement.getAbonement().isInternal()) {
-            throw new ParameterValidationException("Нельзя купить абонемент при наличии другого абонемента");
-        }
-
-        abonementService.addAbonement(account, abonementId, true);
-
-        AccountAbonement newAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-
-        if (newAccountAbonement != null) {
+        if (accountAbonement != null) {
             accountHelper.enableAccount(account);
         }
 
         history.save(account, "Произведен заказ абонемента " + abonement.getName(), request);
 
-        return new ResponseEntity<>(newAccountAbonement, HttpStatus.OK);
+        return new ResponseEntity<>(accountAbonement, HttpStatus.OK);
     }
 
     @PostMapping("/{accountAbonementId}/prolong")
@@ -324,7 +334,7 @@ public class AccountAbonementRestController extends CommonRestController {
             throw new ParameterValidationException("Продление абонемента на пробном периоде не доступно");
         }
 
-        if (!accountHelper.isAbonementMinCostOrderAllowed(account)) {
+        if (accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
             throw new ParameterValidationException("Обслуживание по тарифу \"" + planManager.findOne(account.getPlanId()).getName() +  "\" прекращено");
         }
 

@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.model.promotion;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -12,7 +14,9 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+@EqualsAndHashCode(callSuper = true)
 @Document
+@Data
 public class Promotion extends BaseModel {
 
     @NotNull
@@ -31,6 +35,8 @@ public class Promotion extends BaseModel {
 
     private List<String> actionIds = new ArrayList<>();
 
+    private String description;
+
     @Transient
     private List<PromocodeAction> actions = new ArrayList<>();
 
@@ -42,64 +48,4 @@ public class Promotion extends BaseModel {
     }
 
     public Promotion(){}
-
-    public LocalDate getCreatedDate() {
-        return createdDate;
-    }
-
-    public void setCreatedDate(LocalDate createdDate) {
-        this.createdDate = createdDate;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public List<String> getActionIds() {
-        return actionIds;
-    }
-
-    public void setActionIds(List<String> actionIds) {
-        this.actionIds = actionIds;
-    }
-
-    public List<PromocodeAction> getActions() {
-        return actions;
-    }
-
-    public void setActions(List<PromocodeAction> actions) {
-        this.actions = actions;
-    }
-
-    public int getLimitPerAccount() {
-        return limitPerAccount;
-    }
-
-    public void setLimitPerAccount(int limitPerAccount) {
-        this.limitPerAccount = limitPerAccount;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    @Override
-    public String toString() {
-        return "Promotion{" +
-                "name='" + name + '\'' +
-                ", createdDate=" + createdDate +
-                ", active=" + active +
-                ", limitPerAccount=" + limitPerAccount +
-                ", actionIds=" + actionIds +
-                ", actions=" + actions +
-                '}';
-    }
 }

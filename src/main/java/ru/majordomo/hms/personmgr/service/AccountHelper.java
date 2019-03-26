@@ -32,6 +32,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
@@ -368,11 +369,13 @@ public class AccountHelper {
     }
 
     public void giveGift(PersonalAccount account, Promotion promotion) {
-        for (String actionId : promotion.getActionIds()) {
+        for (PromocodeAction action : promotion.getActions()) {
 
             Long currentCount = accountPromotionManager.countByPersonalAccountIdAndPromotionIdAndActionId(
-                    account.getId(), promotion.getId(), actionId
+                    account.getId(), promotion.getId(), action.getId()
             );
+
+            String description = action.getDescription() != null ? action.getDescription() : promotion.getName();
 
             if (currentCount < promotion.getLimitPerAccount() || promotion.getLimitPerAccount() == -1) {
 
@@ -381,13 +384,13 @@ public class AccountHelper {
                 accountPromotion.setPromotionId(promotion.getId());
                 accountPromotion.setPromotion(promotion);
                 accountPromotion.setCreated(LocalDateTime.now());
-                accountPromotion.setActionId(actionId);
+                accountPromotion.setActionId(action.getId());
                 accountPromotion.setActive(true);
                 accountPromotionManager.insert(accountPromotion);
 
-                history.save(account, "Добавлен бонус " + promotion.getName());
+                history.save(account, "Добавлен бонус " + description);
             } else {
-                history.save(account, "Бонус не добавлен. Превышен лимит '" + promotion.getLimitPerAccount() + "' на " + promotion.getName());
+                history.save(account, "Бонус не добавлен. Превышен лимит '" + promotion.getLimitPerAccount() + "' на " + description);
             }
         }
     }
@@ -1052,11 +1055,6 @@ public class AccountHelper {
         }
 
         history.save(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
-    }
-
-    //На тарифах, дешевле 245р, не даём покупать и продлевать абонемент
-    public Boolean isAbonementMinCostOrderAllowed(PersonalAccount account) {
-        return !needChangeArchivalPlanToFallbackPlan(account);
     }
 
     public boolean needChangeArchivalPlanToFallbackPlan(PersonalAccount account) {

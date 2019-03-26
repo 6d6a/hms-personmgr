@@ -13,10 +13,7 @@ import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.Arrays;
+import java.util.*;
 
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
@@ -26,13 +23,19 @@ import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.discount.Discount;
+import ru.majordomo.hms.personmgr.model.discount.DiscountAbsolute;
+import ru.majordomo.hms.personmgr.model.discount.DiscountExactCost;
+import ru.majordomo.hms.personmgr.model.discount.DiscountPercent;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
@@ -62,6 +65,7 @@ public class AbonementService {
     private final ChargeHelper chargeHelper;
     private final AccountHistoryManager history;
     private final PaymentLinkHelper paymentLinkHelper;
+    private final AccountPromotionManager accountPromotionManager;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -78,7 +82,8 @@ public class AbonementService {
             AccountNotificationHelper accountNotificationHelper,
             ChargeHelper chargeHelper,
             AccountHistoryManager history,
-            PaymentLinkHelper paymentLinkHelper
+            PaymentLinkHelper paymentLinkHelper,
+            AccountPromotionManager accountPromotionManager
     ) {
         this.planManager = planManager;
         this.abonementRepository = abonementRepository;
@@ -92,6 +97,7 @@ public class AbonementService {
         this.chargeHelper = chargeHelper;
         this.history = history;
         this.paymentLinkHelper = paymentLinkHelper;
+        this.accountPromotionManager = accountPromotionManager;
     }
 
     /**
@@ -101,7 +107,7 @@ public class AbonementService {
      * @param abonementId id абонемента
      * @param autorenew автопродление абонемента
      */
-    public void addAbonement(PersonalAccount account, String abonementId, Boolean autorenew) {
+    public AccountAbonement addAbonement(PersonalAccount account, String abonementId, Boolean autorenew) {
         Plan plan = getAccountPlan(account);
 
         boolean accountHasFree14DaysAbonement = false, accountHasInternalAbonement = false;
@@ -114,13 +120,28 @@ public class AbonementService {
             accountHasInternalAbonement = currentAccountAbonement.getAbonement().isInternal();
         }
 
-        Abonement abonement = checkAbonementAllownes(account, plan, abonementId, accountHasFree14DaysAbonement);
+        Abonement abonement = checkAbonementAllownes(account, plan, abonementId);
 
-        if (abonement.getService().getCost().compareTo(BigDecimal.ZERO) > 0) {
+        PaymentService service = abonement.getService();
+        BigDecimal cost = service.getCost();
+
+        AccountPromotion accountPromotion = accountPromotionManager.getServiceDiscountPromotion(account, service);
+
+        if (accountPromotion != null) {
+            cost = getDiscount(accountPromotion.getAction().getProperties()).getCost(cost);
+        }
+
+        if (cost.compareTo(BigDecimal.ZERO) > 0) {
 
             ChargeMessage chargeMessage = new ChargeMessage.Builder(abonement.getService())
                     .build();
             accountHelper.charge(account, chargeMessage);
+        }
+
+        //при использовании скидки стоимость может стать 0
+        //списания не будет, но отметить промоушен как использованный нужно
+        if (accountPromotion != null) {
+            accountPromotionManager.deactivateAccountPromotionById(accountPromotion.getId());
         }
 
         AccountAbonement accountAbonement = new AccountAbonement();
@@ -139,11 +160,13 @@ public class AbonementService {
             accountAbonementManager.delete(currentAccountAbonement);
         }
 
-        accountAbonementManager.insert(accountAbonement);
+        accountAbonement = accountAbonementManager.insert(accountAbonement);
 
         if (accountServiceHelper.accountHasService(account, plan.getServiceId())) {
             accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
         }
+
+        return accountAbonement;
     }
 
     /**
@@ -468,7 +491,7 @@ public class AbonementService {
         return plan;
     }
 
-    private Abonement checkAbonementAllownes(PersonalAccount account, Plan plan, String abonementId, Boolean accountHasFree14DaysAbonement) {
+    private Abonement checkAbonementAllownes(PersonalAccount account, Plan plan, String abonementId) {
 
         if (!plan.getAbonementIds().contains(abonementId)) {
             throw new ParameterValidationException("Current account plan does not have abonement with specified abonementId");
@@ -624,5 +647,71 @@ public class AbonementService {
             default:
                 throw new ParameterValidationException("Некорректный период");
         }
+    }
+
+    public BuyInfo getBuyInfo(PersonalAccount account, Abonement abonement) {
+        BuyInfo info = new BuyInfo();
+
+        if (abonement.isInternal()) {
+            info.getErrors().add("Нельзя заказать тестовый абонемент");
+        }
+
+        AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+
+        if (currentAccountAbonement != null && !currentAccountAbonement.getAbonement().isInternal()) {
+            info.getErrors().add("Нельзя купить абонемент при наличии другого абонемента");
+        }
+
+        Plan plan = getAccountPlan(account);
+
+        if (accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+            info.getErrors().add("Обслуживание по тарифу \"" + plan.getName() +  "\" прекращено");
+        }
+
+        if (!plan.getAbonementIds().contains(abonement.getId())) {
+            info.getErrors().add("На тарифе " + plan.getName() + " не доступен абонемент " + abonement.getName());
+        }
+
+        PaymentService service = abonement.getService();
+        BigDecimal cost = service.getCost();
+
+        AccountPromotion accountPromotion = accountPromotionManager.getServiceDiscountPromotion(account, service);
+
+        if (accountPromotion != null) {
+            cost = getDiscount(accountPromotion.getAction().getProperties()).getCost(cost);
+        }
+
+        BigDecimal balance = accountHelper.getBalance(account);
+
+        info.setBalance(balance);
+        info.setBalanceAfterOperation(balance.subtract(cost));
+
+        if (info.getErrors().isEmpty() && info.getBalanceAfterOperation().compareTo(BigDecimal.ZERO) >= 0) {
+            info.setAllowed(true);
+        }
+
+        return info;
+    }
+
+    private Discount getDiscount(Map<String, Object> props) {
+        Discount discount;
+
+        switch ((String) props.get("type")) {
+            case "percent":
+                discount = new DiscountPercent();
+                break;
+            case "absolute":
+                discount = new DiscountAbsolute();
+                break;
+            default:
+                discount = new DiscountExactCost();
+                break;
+        }
+
+        BigDecimal amount = Utils.getBigDecimalFromUnexpectedInput(props.get("amount"));
+
+        discount.setAmount(amount);
+
+        return discount;
     }
 }
