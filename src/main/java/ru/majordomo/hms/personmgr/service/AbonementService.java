@@ -134,6 +134,7 @@ public class AbonementService {
         if (cost.compareTo(BigDecimal.ZERO) > 0) {
 
             ChargeMessage chargeMessage = new ChargeMessage.Builder(abonement.getService())
+                    .setAmount(cost)
                     .build();
             accountHelper.charge(account, chargeMessage);
         }
