@@ -6,24 +6,24 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.event.task.SendLostClientInfoTaskEvent;
-import ru.majordomo.hms.personmgr.service.StatServiceHelper;
+import ru.majordomo.hms.personmgr.service.LostClientService;
 
 @Component
 @Slf4j
 public class InternalTasksListener {
 
-    private final StatServiceHelper statServiceHelper;
+    private final LostClientService lostClientService;
 
     @Autowired
     public InternalTasksListener(
-            StatServiceHelper statServiceHelper
+            LostClientService lostClientService
     ) {
-        this.statServiceHelper = statServiceHelper;
+        this.lostClientService = lostClientService;
     }
 
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void on(SendLostClientInfoTaskEvent e) {
-        statServiceHelper.sendLostClientsInfo();
+        lostClientService.sendLostClientsInfo();
     }
 }
