@@ -44,4 +44,6 @@ public interface AccountPromotionManager {
     void deactivateAccountPromotionById(String id);
 
     AccountPromotion getServiceDiscountPromotion(PersonalAccount account, PaymentService service);
+
+    boolean existsByPersonalAccountIdAndPromotionId(String personalAccountId, String promotionId);
 }

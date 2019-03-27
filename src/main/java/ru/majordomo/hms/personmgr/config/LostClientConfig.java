@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.*;
 import java.math.BigDecimal;
+import java.time.Period;
 import java.util.List;
 
 @ConfigurationProperties(prefix = "lost-client")
@@ -33,4 +34,12 @@ public class LostClientConfig {
     private boolean needSendToClient;
 
     private boolean needSendStatistics;
+
+    private String giftPromotionName;
+
+    private BigDecimal paymentAmountForAbonementDiscount;
+
+    private Period minLivePeriodForDiscount;
+
+    private String giftFeedbackTemplateApiName;
 }

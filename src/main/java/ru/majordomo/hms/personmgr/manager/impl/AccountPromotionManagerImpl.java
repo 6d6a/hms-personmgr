@@ -163,6 +163,11 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
         return null;
     }
 
+    @Override
+    public boolean existsByPersonalAccountIdAndPromotionId(String personalAccountId, String promotionId) {
+        return repository.existsByPersonalAccountIdAndPromotionId(personalAccountId, promotionId);
+    }
+
     private void setAccountPromotionStatusByIdAndActionId(String id, boolean status) {
         checkById(id);
 
