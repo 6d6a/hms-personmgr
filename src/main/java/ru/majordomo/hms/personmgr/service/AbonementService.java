@@ -249,6 +249,19 @@ public class AbonementService {
                 return;
             }
 
+            long daysToExpired = DAYS.between(LocalDateTime.now(), accountAbonement.getExpired());
+
+            boolean isDayForSms = Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND).contains(daysToExpired);
+
+            boolean isDayForEmail = Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired);
+
+            if (!isDayForEmail && !isDayForSms) {
+                logger.info("not need send email or sms: account {} abonement {} expired {}",
+                        account.getName(), accountAbonement.getAbonement().getName(), accountAbonement.getExpired()
+                );
+                return;
+            }
+
             BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
 
             logger.debug("We found expiring abonement: " + accountAbonement);
@@ -276,45 +289,51 @@ public class AbonementService {
                 }
             }
 
-
-            long daysToExpired = DAYS.between(LocalDateTime.now(), accountAbonement.getExpired());
-
-            boolean needSendEmail = false;
-
             boolean notEnoughMoneyForAbonement = balance.compareTo(abonementCost) < 0;
-            boolean notEnoughMoneyForMonth = balance.compareTo(monthCost) < 0;
-            boolean todayIsDayForSendingEmail = Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired);
 
-            if (todayIsDayForSendingEmail && notEnoughMoneyForAbonement) {
-                if (plan.isAbonementOnly() || notEnoughMoneyForMonth) {
-                    needSendEmail = true;
+            if (isDayForEmail) {
+                if (accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+                    accountNotificationHelper.emailBuilder()
+                            .account(account)
+                            .apiName("MajordomoVHExpiringArchivalAbonement")
+                            .from("noreply@majordomo.ru")
+                            .priority(1)
+                            .param("client_id", account.getAccountId())
+                            .param("acc_id", account.getName())
+                            .param("domains", accountNotificationHelper.getDomainForEmail(account))
+                            .param("balance", formatBigDecimalWithCurrency(balance))
+                            .param("cost", formatBigDecimalWithCurrency(abonementCost))
+                            .param("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
+                            .param("from", "noreply@majordomo.ru")
+                            .send();
+                } else if (notEnoughMoneyForAbonement) {
+                    if (plan.isAbonementOnly() || balance.compareTo(monthCost) < 0) {
+                        logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
+
+                        String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                                account, new PaymentLinkRequest(abonementCost)
+                        ).getPaymentLink();
+
+                        accountNotificationHelper.emailBuilder()
+                                .account(account)
+                                .apiName("MajordomoVHAbNoMoneyProlong")
+                                .from("noreply@majordomo.ru")
+                                .priority(1)
+                                .param("client_id", account.getAccountId())
+                                .param("acc_id", account.getName())
+                                .param("domains", accountNotificationHelper.getDomainForEmail(account))
+                                .param("balance", formatBigDecimalWithCurrency(balance))
+                                .param("cost", formatBigDecimalWithCurrency(abonementCost))
+                                .param("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
+                                .param("from", "noreply@majordomo.ru")
+                                .param("payment_link", paymentLink)
+                                .send();
+                    }
                 }
             }
 
-            if (needSendEmail) {
-                logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
-
-                String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
-                        account, new PaymentLinkRequest(abonementCost)
-                ).getPaymentLink();
-
-                //Отправим письмо
-                HashMap<String, String> parameters = new HashMap<>();
-                parameters.put("client_id", account.getAccountId());
-                parameters.put("acc_id", account.getName());
-                parameters.put("domains", accountNotificationHelper.getDomainForEmail(account));
-                parameters.put("balance", formatBigDecimalWithCurrency(balance));
-                parameters.put("cost", formatBigDecimalWithCurrency(abonementCost));
-                parameters.put("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-                parameters.put("from", "noreply@majordomo.ru");
-                parameters.put("payment_link", paymentLink);
-
-                accountNotificationHelper.sendMail(account, "MajordomoVHAbNoMoneyProlong", 1, parameters);
-            }
-
             if (!accountAbonement.isAutorenew() || notEnoughMoneyForAbonement) {
-                if (accountNotificationHelper.isSubscribedToSmsType(account, SMS_ABONEMENT_EXPIRING)
-                        && Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND).contains(daysToExpired))
+                if (isDayForSms && accountNotificationHelper.isSubscribedToSmsType(account, SMS_ABONEMENT_EXPIRING))
                 {
                     HashMap<String, String> paramsForSms = new HashMap<>();
                     paramsForSms.put("acc_id", account.getName());
@@ -416,7 +435,7 @@ public class AbonementService {
         chargeHelper.prepareAndProcessChargeRequest(account.getId(), LocalDate.now());
     }
 
-    public void changeArchivalAbonementToActive(PersonalAccount account, Plan fallbackPlan) {
+    void changeArchivalAbonementToActive(PersonalAccount account, Plan fallbackPlan) {
         Plan currentPlan = accountHelper.getPlan(account);
         accountServiceHelper.deleteAccountServiceByServiceId(account, currentPlan.getServiceId());
 
@@ -425,8 +444,14 @@ public class AbonementService {
         if (account.getPlanId().equals(PLAN_PARKING_PLUS_ID_STRING)) {
             List<Domain> domains = accountHelper.getDomains(account);
             if (domains == null || domains.isEmpty()) {
+                accountHelper.setPlanId(account.getId(), fallbackPlan.getId());
+                accountHelper.addArchivalPlanAccountNoticeRepository(account, currentPlan);
                 accountHelper.disableAccount(account);
-                history.save(account, "Архивный абонемент 'Парковка+' удален после истечения, аккаунт отключен.");
+
+                history.save(
+                        account,
+                        "Архивный абонемент 'Парковка+' удален после истечения, аккаунт отключен, тариф изменён" +
+                                " на " + fallbackPlan.getName());
                 return;
             }
         }

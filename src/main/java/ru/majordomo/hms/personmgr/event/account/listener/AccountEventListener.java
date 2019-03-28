@@ -532,7 +532,7 @@ public class AccountEventListener {
 
             if (addAbonementId != null) {
                 AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-                if (accountAbonement == null) {
+                if (accountAbonement == null && !accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
                     try {
                         abonementService.addAbonement(account, addAbonementId, true);
                         accountHelper.enableAccount(account);
