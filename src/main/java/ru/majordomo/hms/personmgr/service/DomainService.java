@@ -342,11 +342,17 @@ public class DomainService {
             }
 
             PromocodeAction action = accountPromotion.getAction();
-            List<String> availableTlds = (List<String>) action.getProperties().get("tlds");
 
-            if (availableTlds.contains(domainTld.getTld())) {
-                accountPromotion.setActive(false);
-                return accountPromotion;
+            switch (action.getActionType()) {
+                case SERVICE_FREE_DOMAIN:
+                case SERVICE_DOMAIN_DISCOUNT_RU_RF:
+                    List<String> availableTlds = (List<String>) action.getProperties().get("tlds");
+
+                    if (availableTlds.contains(domainTld.getTld())) {
+                        accountPromotion.setActive(false);
+                        return accountPromotion;
+                    }
+                    break;
             }
         }
 
