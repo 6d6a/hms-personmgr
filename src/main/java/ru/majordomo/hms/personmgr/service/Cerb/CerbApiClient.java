@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.*;
 import org.springframework.http.converter.FormHttpMessageConverter;
@@ -29,6 +28,7 @@ import java.net.URLEncoder;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -174,6 +174,9 @@ public class CerbApiClient {
         try {
             MultiValueMap<String, String> postParams = new LinkedMultiValueMap<>();
             postParams.add("fields[status]", ticketStatus.toString().toLowerCase());
+            ZoneId zoneId = ZoneId.systemDefault();
+            long unixtime = LocalDateTime.now().atZone(zoneId).toEpochSecond();
+            postParams.add("fields[updated]", Long.toString(unixtime));
 
             URI uri = buildUri("records/ticket/" + ticketId + ".json");
             HttpEntity<String> request = preparePutRequestData(uri, postParams);
