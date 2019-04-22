@@ -147,4 +147,7 @@ public class SslCertificateOrder extends AccountOrder {
 
     @JsonIgnore
     private String lastResponse;
+
+    @JsonIgnore
+    private LocalDate lastNotifyDate;
 }

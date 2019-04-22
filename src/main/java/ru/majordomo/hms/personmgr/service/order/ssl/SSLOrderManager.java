@@ -33,6 +33,7 @@ import java.net.IDN;
 import java.time.LocalDate;
 import java.util.*;
 
+import static java.time.temporal.ChronoUnit.DAYS;
 import static ru.majordomo.hms.personmgr.common.FileUtils.getZipFileBytes;
 import static ru.majordomo.hms.personmgr.model.order.ssl.ExternalState.REJECTED;
 
@@ -113,11 +114,7 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
                 Arrays.asList(ExternalState.CANCELED, REJECTED).contains(realExternalState)
         ) {
             if (order.getDocumentNumber() != null) {
-                try {
-                    accountHelper.unblock(order.getPersonalAccountId(), order.getDocumentNumber());
-                } catch (Exception e) {
-                    log.error("on unblock money for order {} e {} message {}", order, e.getClass(), e.getMessage());
-                }
+                unblockMoney(order, "состояние заказа в gogetssl: " + realExternalState);
             }
         } else {
             order.setLastResponse(
@@ -295,6 +292,26 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
                         finish(order, order.getOperator());
 
                         break;
+                    case PROCESSING:
+                        LocalDate dateForCheck = order.getLastNotifyDate() != null
+                                ? order.getLastNotifyDate()
+                                : order.getCreated().toLocalDate();
+
+                        long daysBetween = DAYS.between(dateForCheck, LocalDate.now());
+                        if (daysBetween != 0 && daysBetween % 5 == 0) {
+
+                            notificationHelper.emailBuilder()
+                                    .account(accountManager.findOne(order.getPersonalAccountId()))
+                                    .apiName("HmsMajordomoSslOrderConfirmYourEmail")
+                                    .param("approver_email", order.getApproverEmail().getName() + "@" + order.getDomainName())
+                                    .param("domain", order.getDomainName())
+                                    .send();
+
+                            order.setLastNotifyDate(LocalDate.now());
+                            save(order);
+                        }
+
+                        break;
                     case CANCELED:
                     case REJECTED:
                         decline(order, order.getOperator());
@@ -446,5 +463,20 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
             log.info("catch e {} in jsonStringify() message {} object {}", e.getClass(), e.getMessage(), o);
         }
         return result;
+    }
+
+    private void unblockMoney(SslCertificateOrder order, String reason) {
+        try {
+            accountHelper.unblock(order.getPersonalAccountId(), order.getDocumentNumber());
+            history.save(
+                    order.getPersonalAccountId(),
+                    "Списание с номером " + order.getDocumentNumber()
+                            + " за сертификат для " + order.getDomainName()
+                            + " удалено, причина: " + reason,
+                    order.getOperator()
+            );
+        } catch (Exception e) {
+            log.error("on unblock money for order {} e {} message {}", order, e.getClass(), e.getMessage());
+        }
     }
 }
