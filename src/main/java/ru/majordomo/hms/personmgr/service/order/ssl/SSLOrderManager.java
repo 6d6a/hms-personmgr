@@ -308,8 +308,8 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
                                     .send();
 
                             order.setLastNotifyDate(LocalDate.now());
-                            save(order);
                         }
+                        save(order);
 
                         break;
                     case CANCELED:
@@ -325,9 +325,6 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
             log.error("process ssl queue e {} message {} order {}", e.getClass(), e.getMessage(), order);
             e.printStackTrace();
         }
-
-
-
     }
 
     private void placeOrder(SslCertificateOrder order, GoGetSSLConnection connection) {
