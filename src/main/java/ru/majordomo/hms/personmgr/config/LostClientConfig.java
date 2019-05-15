@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.*;
@@ -12,6 +13,7 @@ import java.util.List;
 @ConfigurationProperties(prefix = "lost-client")
 @Data
 @Component
+@RefreshScope
 public class LostClientConfig {
     @NotEmpty
     private List<@NotBlank String> statEmails;
