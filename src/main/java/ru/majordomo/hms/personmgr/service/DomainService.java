@@ -484,9 +484,11 @@ public class DomainService {
 
         if (!isFreeDomain) {
             accountHelper.checkBalanceWithoutBonus(account, domainTld.getRegistrationService());
+        }
 
-            deactivateAccountPromotion(message);
+        deactivateAccountPromotion(message);
 
+        if (!isFreeDomain) {
             ChargeMessage chargeMessage = new ChargeMessage.Builder(domainTld.getRegistrationService())
                     .excludeBonusPaymentType()
                     .setComment(domainName)
