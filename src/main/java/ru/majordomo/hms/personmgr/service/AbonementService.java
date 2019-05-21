@@ -29,10 +29,6 @@ import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
-import ru.majordomo.hms.personmgr.model.discount.Discount;
-import ru.majordomo.hms.personmgr.model.discount.DiscountAbsolute;
-import ru.majordomo.hms.personmgr.model.discount.DiscountExactCost;
-import ru.majordomo.hms.personmgr.model.discount.DiscountPercent;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
@@ -66,6 +62,7 @@ public class AbonementService {
     private final AccountHistoryManager history;
     private final PaymentLinkHelper paymentLinkHelper;
     private final AccountPromotionManager accountPromotionManager;
+    private final DiscountFactory discountFactory;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -83,7 +80,8 @@ public class AbonementService {
             ChargeHelper chargeHelper,
             AccountHistoryManager history,
             PaymentLinkHelper paymentLinkHelper,
-            AccountPromotionManager accountPromotionManager
+            AccountPromotionManager accountPromotionManager,
+            DiscountFactory discountFactory
     ) {
         this.planManager = planManager;
         this.abonementRepository = abonementRepository;
@@ -98,6 +96,7 @@ public class AbonementService {
         this.history = history;
         this.paymentLinkHelper = paymentLinkHelper;
         this.accountPromotionManager = accountPromotionManager;
+        this.discountFactory = discountFactory;
     }
 
     /**
@@ -128,7 +127,7 @@ public class AbonementService {
         AccountPromotion accountPromotion = accountPromotionManager.getServiceDiscountPromotion(account, service);
 
         if (accountPromotion != null) {
-            cost = getDiscount(accountPromotion.getAction().getProperties()).getCost(cost);
+            cost = discountFactory.getDiscount(accountPromotion.getAction()).getCost(cost);
         }
 
         if (cost.compareTo(BigDecimal.ZERO) > 0) {
@@ -142,7 +141,7 @@ public class AbonementService {
         //при использовании скидки стоимость может стать 0
         //списания не будет, но отметить промоушен как использованный нужно
         if (accountPromotion != null) {
-            accountPromotionManager.deactivateAccountPromotionById(accountPromotion.getId());
+            accountPromotionManager.setAsUsedAccountPromotionById(accountPromotion.getId());
         }
 
         AccountAbonement accountAbonement = new AccountAbonement();
@@ -704,7 +703,7 @@ public class AbonementService {
         AccountPromotion accountPromotion = accountPromotionManager.getServiceDiscountPromotion(account, service);
 
         if (accountPromotion != null) {
-            cost = getDiscount(accountPromotion.getAction().getProperties()).getCost(cost);
+            cost = discountFactory.getDiscount(accountPromotion.getAction()).getCost(cost);
         }
 
         BigDecimal balance = accountHelper.getBalance(account);
@@ -717,27 +716,5 @@ public class AbonementService {
         }
 
         return info;
-    }
-
-    private Discount getDiscount(Map<String, Object> props) {
-        Discount discount;
-
-        switch ((String) props.get("type")) {
-            case "percent":
-                discount = new DiscountPercent();
-                break;
-            case "absolute":
-                discount = new DiscountAbsolute();
-                break;
-            default:
-                discount = new DiscountExactCost();
-                break;
-        }
-
-        BigDecimal amount = Utils.getBigDecimalFromUnexpectedInput(props.get("amount"));
-
-        discount.setAmount(amount);
-
-        return discount;
     }
 }

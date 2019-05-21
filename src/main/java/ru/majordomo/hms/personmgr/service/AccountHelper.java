@@ -257,17 +257,17 @@ public class AccountHelper {
     /**
      * @param account Аккаунт
      */
-    public void checkBalanceWithoutBonus(PersonalAccount account, PaymentService service) {
+    public void checkBalanceWithoutBonus(PersonalAccount account, BigDecimal cost) {
 
         BigDecimal available = getBalance(account);
 
         BigDecimal bonusBalanceAvailable = getBonusBalance(account.getId());
 
-        if (available.subtract(bonusBalanceAvailable).compareTo(service.getCost()) < 0) {
+        if (available.subtract(bonusBalanceAvailable).compareTo(cost) < 0) {
             throw new NotEnoughMoneyException("Бонусные средства недоступны для этой операции. " +
                     "Текущий баланс без учёта бонусных средств: " + formatBigDecimalWithCurrency(available.subtract(bonusBalanceAvailable)) +
-                    ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
-                    service.getCost().subtract(available.subtract(bonusBalanceAvailable))
+                    ", стоимость услуги: " + formatBigDecimalWithCurrency(cost),
+                    cost.subtract(available.subtract(bonusBalanceAvailable))
             );
         }
     }

@@ -134,7 +134,7 @@ public class AccountPromotionManagerImplTest {
         String promotionId = "2";
         String actionId = "3";
 
-        accountPromotionManager.activateAccountPromotionById(promotionId);
+        accountPromotionManager.setAsActiveAccountPromotionById(promotionId);
 
         AccountPromotion accountPromotion = accountPromotionManager.findOne(promotionId);
         Assert.assertTrue(accountPromotion.getActive());
@@ -146,7 +146,7 @@ public class AccountPromotionManagerImplTest {
         String promotionId = "1";
         String actionId = "3";
 
-        accountPromotionManager.deactivateAccountPromotionById(promotionId);
+        accountPromotionManager.setAsUsedAccountPromotionById(promotionId);
 
         AccountPromotion accountPromotion = accountPromotionManager.findOne(promotionId);
         Assert.assertFalse(accountPromotion.getActive());

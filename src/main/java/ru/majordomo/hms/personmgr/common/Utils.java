@@ -40,9 +40,33 @@ public class Utils {
         messages.add(form2);
         messages.add(form3);
 
-        Integer index = number % 10 == 1 && number % 100 != 11 ? 0 : (number % 10 >= 2 && number % 10 <= 4 && (number % 100 < 10 || number % 100 >= 20) ? 1 : 2);
+        int index = getFormIndex(number);
 
         return String.format(messages.get(index), number);
+    }
+
+    public static String pluralizeDays(Integer days) {
+        return pluralizef("%d день", "%d дня", "%d дней", days);
+    }
+
+    public static String currencyValue(BigDecimal bigDecimal) {
+        DecimalFormatSymbols decimalFormatSymbols = new DecimalFormatSymbols();
+        decimalFormatSymbols.setDecimalSeparator('.');
+        decimalFormatSymbols.setGroupingSeparator(' ');
+
+        List<String> messages = new LinkedList<>();
+
+        messages.add("#0.00 рубль");
+        messages.add("#0.00 рубля");
+        messages.add("#0.00 рублей");
+
+        int index = getFormIndex(bigDecimal.intValue());
+
+        return new DecimalFormat(messages.get(index), decimalFormatSymbols).format(bigDecimal);
+    }
+
+    private static int getFormIndex(Integer number) {
+        return number % 10 == 1 && number % 100 != 11 ? 0 : (number % 10 >= 2 && number % 10 <= 4 && (number % 100 < 10 || number % 100 >= 20) ? 1 : 2);
     }
 
     public static <E extends Enum<E>> boolean isInEnum(String value, Class<E> enumClass) {

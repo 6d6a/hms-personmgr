@@ -24,7 +24,9 @@ import ru.majordomo.hms.personmgr.validation.ObjectIdList;
                     @JsonSubTypes.Type(value = DiscountAbsolute.class,
                                 name = "absolute"),
                     @JsonSubTypes.Type(value = DiscountExactCost.class,
-                                name = "exact_cost")
+                                name = "exact_cost"),
+                    @JsonSubTypes.Type(value = DiscountFixCost.class,
+                            name = "fix_cost")
               })
 public abstract class Discount extends BaseModel {
     @NotNull
