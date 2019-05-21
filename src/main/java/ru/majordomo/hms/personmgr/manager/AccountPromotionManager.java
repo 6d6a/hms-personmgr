@@ -33,15 +33,17 @@ public interface AccountPromotionManager {
 
     List<AccountPromotion> findByPersonalAccountId(String personalAccountId);
 
+    List<AccountPromotion> findByPersonalAccountIdAndActive(String personalAccountId, boolean active);
+
     List<AccountPromotion> findByPersonalAccountIdAndPromotionId(String personalAccountId, String promotionId);
 
     List<AccountPromotion> findByPersonalAccountIdAndActionIdInAndActive(String personalAccountId, List<String> actionIds, boolean active);
 
     Long countByPersonalAccountIdAndPromotionIdAndActionId(String personalAccountId, String promotionId, String actionId);
 
-    void activateAccountPromotionById(String id);
+    void setAsActiveAccountPromotionById(String id);
 
-    void deactivateAccountPromotionById(String id);
+    void setAsUsedAccountPromotionById(String id);
 
     AccountPromotion getServiceDiscountPromotion(PersonalAccount account, PaymentService service);
 

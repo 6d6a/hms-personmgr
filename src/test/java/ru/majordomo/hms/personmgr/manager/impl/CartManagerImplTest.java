@@ -92,7 +92,7 @@ public class CartManagerImplTest {
 
         Mockito
                 .doNothing()
-                .when(accountPromotionManager).deactivateAccountPromotionById(anyString());
+                .when(accountPromotionManager).setAsUsedAccountPromotionById(anyString());
 
         Mockito
                 .when(domainService.usePromotion(domainName1, new ArrayList<>()))

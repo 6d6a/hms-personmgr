@@ -13,4 +13,6 @@ public interface AccountPromotionRepository extends MongoRepository<AccountPromo
     Long countByPersonalAccountIdAndPromotionIdAndActionId(String personalAccountId, String promotionId, String actionId);
 
     List<AccountPromotion> findByPersonalAccountIdAndActionIdInAndActive(String personalAccountId, List<String> actionIds, boolean active);
+
+    List<AccountPromotion> findByPersonalAccountIdAndActive(String personalAccountId, boolean active);
 }

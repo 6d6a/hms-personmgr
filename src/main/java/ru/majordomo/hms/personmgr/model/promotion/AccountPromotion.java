@@ -11,6 +11,8 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -33,4 +35,6 @@ public class AccountPromotion extends VersionedModelBelongsToPersonalAccount {
     private String actionId;
 
     private Boolean active;
+
+    private Map<String, Object> properties = new HashMap<>();
 }

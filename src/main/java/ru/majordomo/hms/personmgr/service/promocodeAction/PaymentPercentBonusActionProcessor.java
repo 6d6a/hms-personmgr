@@ -129,7 +129,7 @@ public class PaymentPercentBonusActionProcessor implements PromocodeActionProces
                         if (!ap.getCreated().plus(period).isBefore(LocalDateTime.now())) {
                             return true;
                         } else {
-                            accountPromotionManager.deactivateAccountPromotionById(ap.getId());
+                            accountPromotionManager.setAsUsedAccountPromotionById(ap.getId());
                             return false;
                         }
                     })

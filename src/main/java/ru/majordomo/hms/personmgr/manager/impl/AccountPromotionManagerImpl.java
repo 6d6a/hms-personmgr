@@ -105,6 +105,11 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
     }
 
     @Override
+    public List<AccountPromotion> findByPersonalAccountIdAndActive(String personalAccountId, boolean active) {
+        return repository.findByPersonalAccountIdAndActive(personalAccountId, active);
+    }
+
+    @Override
     public List<AccountPromotion> findByPersonalAccountIdAndPromotionId(String personalAccountId, String promotionId) {
         return repository.findByPersonalAccountIdAndPromotionId(personalAccountId, promotionId);
     }
@@ -120,12 +125,12 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
     }
 
     @Override
-    public void activateAccountPromotionById(String id) {
+    public void setAsActiveAccountPromotionById(String id) {
         setAccountPromotionStatusByIdAndActionId(id, true);
     }
 
     @Override
-    public void deactivateAccountPromotionById(String id) {
+    public void setAsUsedAccountPromotionById(String id) {
         setAccountPromotionStatusByIdAndActionId(id, false);
     }
 

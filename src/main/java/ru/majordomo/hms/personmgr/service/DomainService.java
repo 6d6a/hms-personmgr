@@ -4,21 +4,23 @@ import com.google.common.net.InternetDomainName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.util.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.net.IDN;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.dto.Container;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
-import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.feign.DomainRegistrarFeignClient;
@@ -33,11 +35,14 @@ import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.model.promotion.Promotion;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
-import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
+import static ru.majordomo.hms.personmgr.common.Utils.*;
 
 @Service
 public class DomainService {
@@ -55,7 +60,7 @@ public class DomainService {
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountHelper accountHelper;
     private final DomainTldService domainTldService;
-    private final ApplicationEventPublisher publisher;
+    private final DiscountFactory discountFactory;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
     private final BlackListService blackListService;
     private final PersonalAccountManager accountManager;
@@ -64,13 +69,14 @@ public class DomainService {
     private final AccountNotificationHelper accountNotificationHelper;
     private final BusinessHelper businessHelper;
     private final AccountHistoryManager history;
+    private final PaymentServiceRepository paymentServiceRepository;
 
     @Autowired
     public DomainService(
             RcUserFeignClient rcUserFeignClient,
             AccountHelper accountHelper,
             DomainTldService domainTldService,
-            ApplicationEventPublisher publisher,
+            DiscountFactory discountFactory,
             DomainRegistrarFeignClient domainRegistrarFeignClient,
             BlackListService blackListService,
             PersonalAccountManager accountManager,
@@ -78,12 +84,13 @@ public class DomainService {
             PromotionRepository promotionRepository,
             AccountNotificationHelper accountNotificationHelper,
             BusinessHelper businessHelper,
-            AccountHistoryManager history
+            AccountHistoryManager history,
+            PaymentServiceRepository paymentServiceRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
         this.domainTldService = domainTldService;
-        this.publisher = publisher;
+        this.discountFactory = discountFactory;
         this.domainRegistrarFeignClient = domainRegistrarFeignClient;
         this.blackListService = blackListService;
         this.accountManager = accountManager;
@@ -92,6 +99,7 @@ public class DomainService {
         this.accountNotificationHelper = accountNotificationHelper;
         this.businessHelper = businessHelper;
         this.history = history;
+        this.paymentServiceRepository = paymentServiceRepository;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -119,17 +127,20 @@ public class DomainService {
             List<Domain> expiringDomains = new ArrayList<>();
             List<Domain> expiredDomains = new ArrayList<>();
             List<Domain> expiringDomainsForSms = new ArrayList<>();
+            List<Domain> expiredDomainsForRenewDiscounts = new ArrayList<>();
 
             //Отправлять уведомление о истечении регистрации домена
             //на почту за сколько дней до
             List<Integer> daysBeforeExpiredForEmail = Arrays.asList(30, 25, 20, 15, 10, 7, 5, 3, 2, 1);
             //на почту через сколько дней после
             List<Integer> daysAfterExperedForEmail = Arrays.asList(1, 5, 10, 15, 20, 25);
+            //Скидки на продление конкретных доменов
+            List<Integer> daysAfterExpiredForAddRenewDiscount = Arrays.asList(3, 7, 10);
             //по sms за сколько дней до
-            Integer daysBeforeExpiredForSms = 5;
+            int daysBeforeExpiredForSms = 5;
 
             //Нужно ли отправлять SMS
-            Boolean sendSms = accountNotificationHelper.isSubscribedToSmsType(account, MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING);
+            boolean sendSms = accountNotificationHelper.isSubscribedToSmsType(account, MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING);
 
             int daysBeforeExpired;
 
@@ -139,6 +150,7 @@ public class DomainService {
                 if (daysBeforeExpiredForEmail.contains(daysBeforeExpired)) { expiringDomains.add(domain); }
                 else if (daysAfterExperedForEmail.contains(-daysBeforeExpired)) { expiredDomains.add(domain); }
                 if (sendSms && daysBeforeExpired == daysBeforeExpiredForSms) { expiringDomainsForSms.add(domain); }
+                if (daysAfterExpiredForAddRenewDiscount.contains(-daysBeforeExpired)) { expiredDomainsForRenewDiscounts.add(domain); }
             }
 
             //notification by email
@@ -161,6 +173,10 @@ public class DomainService {
                 accountNotificationHelper.sendSms(account, apiName, 10, parameters);
             }
 
+            if (!expiredDomainsForRenewDiscounts.isEmpty()) {
+                processAddRenewPromotions(expiredDomainsForRenewDiscounts, account);
+            }
+            
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in ru.majordomo.hms.personmgr.service.DomainService.processExpiringDomainsByAccount " + e.getMessage());
@@ -199,42 +215,25 @@ public class DomainService {
             if (domain.getAutoRenew()) {
 
                 BigDecimal balance = accountHelper.getBalance(account);
-
-                DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domain.getName(), domain.getRegSpec().getRegistrar());
-
-                BigDecimal pricePremium = domainRegistrarFeignClient.getRenewPremiumPrice(domain.getName());
-                if (pricePremium != null && pricePremium.compareTo(BigDecimal.ZERO) > 0) {
-                    domainTld.getRenewService().setCost(pricePremium);
-                }
-                try {
-                    accountHelper.checkBalance(account, domainTld.getRenewService());
-                    accountHelper.checkBalanceWithoutBonus(account, domainTld.getRenewService());
-                } catch (NotEnoughMoneyException e) {
-                    //Если денег не хватает
-                    //Запишем попытку в историю клиента
-                    history.saveForOperatorService(account, "Автоматическое продление " + domain.getName() + " невозможно, на счету " + balance + " руб.");
-
-                    domainNotProlong.add(domain);
-                }
-
-                ChargeMessage chargeMessage = new ChargeMessage.Builder(domainTld.getRenewService())
-                        .excludeBonusPaymentType()
-                        .setComment(domain.getName())
-                        .build();
-
-                SimpleServiceMessage blockResult = accountHelper.block(account, chargeMessage);
-
-                String documentNumber = (String) blockResult.getParam("documentNumber");
-
                 SimpleServiceMessage domainRenewMessage = new SimpleServiceMessage();
 
                 domainRenewMessage.setAccountId(account.getId());
                 domainRenewMessage.addParam(RESOURCE_ID_KEY, domain.getId());
                 domainRenewMessage.addParam("renew", true);
                 domainRenewMessage.addParam(AUTO_RENEW_KEY, true);
-                domainRenewMessage.addParam("documentNumber", documentNumber);
 
-                businessHelper.buildAction(BusinessActionType.DOMAIN_UPDATE_RC, domainRenewMessage);
+                try {
+                    blockMoneyBeforeRenewOrRegistrationExistsDomain(account, domainRenewMessage, domain);
+
+                    businessHelper.buildAction(BusinessActionType.DOMAIN_UPDATE_RC, domainRenewMessage);
+
+                } catch (Exception e) {
+                    //Если денег не хватает
+                    //Запишем попытку в историю клиента
+                    history.saveForOperatorService(account, "Автоматическое продление " + domain.getName() + " невозможно, на счету " + balance + " руб.");
+
+                    domainNotProlong.add(domain);
+                }
             }
         }
         //Отправим уведомления по почте и смс
@@ -325,8 +324,6 @@ public class DomainService {
     public AccountPromotion usePromotion(String domainName, List<AccountPromotion> accountPromotions) {
         DomainTld domainTld = getDomainTld(domainName);
 
-        Optional<AccountPromotion> foundAccountPromotion = Optional.empty();
-
         String prioritizedPromotionId = promotionRepository.findByName(FREE_DOMAIN_PROMOTION).getId();
 
         accountPromotions.sort((o1, o2) -> {
@@ -356,7 +353,7 @@ public class DomainService {
             }
         }
 
-        return foundAccountPromotion.orElse(null);
+        return null;
     }
 
     public BigDecimal getPrice(String domainName, AccountPromotion accountPromotion) {
@@ -453,7 +450,7 @@ public class DomainService {
                             if (foundAccountPromotion.isPresent()) {
                                 String foundAccountPromotionId = foundAccountPromotion.get().getId();
                                 isFreeDomain = true;
-                                message.addParam("freeDomainPromotionId", foundAccountPromotionId);
+                                message.addParam("accountPromotionId", foundAccountPromotionId);
                             }
                         }
 
@@ -473,7 +470,7 @@ public class DomainService {
 
                                 // Устанавливает цену со скидкой
                                 domainTld.getRegistrationService().setCost(BigDecimal.valueOf((Integer) action.getProperties().get("cost")));
-                                message.addParam("domainDiscountPromotionId", foundAccountPromotionId);
+                                message.addParam("accountPromotionId", foundAccountPromotionId);
                                 isDiscountedDomain = true;
                             }
                         }
@@ -483,10 +480,10 @@ public class DomainService {
         }
 
         if (!isFreeDomain) {
-            accountHelper.checkBalanceWithoutBonus(account, domainTld.getRegistrationService());
+            accountHelper.checkBalanceWithoutBonus(account, domainTld.getRegistrationService().getCost());
         }
 
-        deactivateAccountPromotion(message);
+        setAsUsedAccountPromotion(message);
 
         if (!isFreeDomain) {
             ChargeMessage chargeMessage = new ChargeMessage.Builder(domainTld.getRegistrationService())
@@ -500,7 +497,7 @@ public class DomainService {
                 message.addParam("documentNumber", documentNumber);
             } catch (Exception e) {
                 logger.info("DomainService.buy() with try block money catch " + e.getClass().getName() + " e.message: " + e.getMessage());
-                activateAccountPromotion(message);
+                setAsActiveAccountPromotion(message);
                 throw e;
             }
         }
@@ -510,9 +507,9 @@ public class DomainService {
         ProcessingBusinessAction processingBusinessAction = businessHelper.buildActionByOperation(BusinessActionType.DOMAIN_CREATE_RC, message, processingBusinessOperation);
 
         String actionText = isFreeDomain ?
-                "бесплатную регистрацию (actionPromotion Id: " + message.getParam("freeDomainPromotionId") + " )" :
+                "бесплатную регистрацию (actionPromotion Id: " + message.getParam("accountPromotionId") + " )" :
                 (isDiscountedDomain ?
-                        "регистрацию со скидкой (actionPromotion Id: " + message.getParam("domainDiscountPromotionId") + " )" :
+                        "регистрацию со скидкой (actionPromotion Id: " + message.getParam("accountPromotionId") + " )" :
                         "регистрацию");
 
         history.save(account, "Поступила заявка на " + actionText +" домена (имя: " + message.getParam("name") + ")", account.getName());
@@ -526,6 +523,17 @@ public class DomainService {
         if (domainTld == null) {
             logger.error("Домен: " + domainName + " недоступен. Зона домена отсутствует в системе");
             throw new ParameterValidationException("Домен: " + domainName + " недоступен. Зона домена отсутствует в системе");
+        }
+
+        return domainTld;
+    }
+
+    private DomainTld getDomainTld(Domain domain) {
+        DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domain.getName(), domain.getRegSpec().getRegistrar());
+
+        if (domainTld == null) {
+            logger.error("Домен: {} id {} недоступен. Зона домена отсутствует в системе", domain.getName(), domain.getId());
+            throw new ParameterValidationException("Домен: " + domain.getName() + " недоступен. Зона домена отсутствует в системе");
         }
 
         return domainTld;
@@ -625,23 +633,227 @@ public class DomainService {
 
     }
 
-    private void activateAccountPromotion(SimpleServiceMessage message) {
-        if (message.getParam("freeDomainPromotionId") != null) {
-            accountPromotionManager.activateAccountPromotionById((String) message.getParam("freeDomainPromotionId"));
-        }
-
-        if (message.getParam("domainDiscountPromotionId") != null) {
-            accountPromotionManager.activateAccountPromotionById((String) message.getParam("domainDiscountPromotionId"));
+    private void setAsActiveAccountPromotion(SimpleServiceMessage message) {
+        if (message.getParam("accountPromotionId") != null) {
+            accountPromotionManager.setAsActiveAccountPromotionById((String) message.getParam("accountPromotionId"));
         }
     }
 
-    private void deactivateAccountPromotion(SimpleServiceMessage message) {
-        if (message.getParam("freeDomainPromotionId") != null) {
-            accountPromotionManager.deactivateAccountPromotionById((String) message.getParam("freeDomainPromotionId"));
+    private void setAsUsedAccountPromotion(SimpleServiceMessage message) {
+        if (message.getParam("accountPromotionId") != null) {
+            accountPromotionManager.setAsUsedAccountPromotionById((String) message.getParam("accountPromotionId"));
+        }
+    }
+
+    public void blockMoneyBeforeRenewOrRegistrationExistsDomain(PersonalAccount account, SimpleServiceMessage message, Domain domain) {
+        boolean isRenew = message.getParam("renew") != null && (boolean) message.getParam("renew");
+        boolean isRegistration = message.getParam("register") != null && (boolean) message.getParam("register");
+
+        PaymentService service = isRegistration
+                ? getDomainTld(domain.getName()).getRegistrationService()
+                : isRenew
+                ? getDomainTld(domain).getRenewService()
+                : null;
+
+        BigDecimal premiumPrice = isRegistration
+                ? getAvailabilityInfo(domain.getName()).getPremiumPrice()
+                : isRenew
+                ? domainRegistrarFeignClient.getRenewPremiumPrice(domain.getName())
+                : null;
+
+        if (service == null) {
+            throw new InternalApiException("Не удалось найти услугу для продления домена " + domain.getName());
         }
 
-        if (message.getParam("domainDiscountPromotionId") != null) {
-            accountPromotionManager.deactivateAccountPromotionById((String) message.getParam("domainDiscountPromotionId"));
+        Container<BigDecimal> costContainer = new Container<>();
+        costContainer.setData(service.getCost());
+
+        if (premiumPrice != null && premiumPrice.compareTo(BigDecimal.ZERO) > 0) {
+            costContainer.setData(premiumPrice);
+        } else {
+            accountPromotionManager.findByPersonalAccountId(account.getId())
+                    .stream()
+                    .filter(p -> {
+                        if (!p.getActive()) return false;
+
+                        PromocodeActionType actionType = p.getAction().getActionType();
+                        List serviceIds = (List) p.getAction().getProperties().get("serviceIds");
+                        Object domainName = p.getProperties().get("domainName");
+
+                        return actionType.equals(PromocodeActionType.SERVICE_DISCOUNT)
+                                && (serviceIds).contains(service.getId())
+                                && (domainName == null || domainName.equals(domain.getName()));
+                    }).max((p1, p2) -> {
+                        Object d1 = p1.getProperties().get("domainName");
+                        Object d2 = p2.getProperties().get("domainName");
+                        return d1 == d2 ? 0 : d1 != null ? 1 : -1;
+                    }).ifPresent(accountPromotion -> {
+                        costContainer.setData(
+                                getDiscountCost(costContainer.getData(), accountPromotion)
+                        );
+
+                        message.addParam("accountPromotionId", accountPromotion.getId());
+                    });
         }
+
+        accountHelper.checkBalanceWithoutBonus(account, costContainer.getData());
+
+        setAsUsedAccountPromotion(message);
+
+        try {
+            ChargeMessage chargeMessage = new ChargeMessage.Builder(service)
+                    .setAmount(costContainer.getData())
+                    .excludeBonusPaymentType()
+                    .setComment(domain.getName())
+                    .build();
+
+            SimpleServiceMessage blockResult = accountHelper.block(account, chargeMessage);
+
+            String documentNumber = (String) blockResult.getParam("documentNumber");
+            message.addParam("documentNumber", documentNumber);
+        } catch (Throwable e) {
+            logger.error("Catch exception when block money for domain service  account {} domain {} e {} message {}",
+                    account.getId(), domain.getName(), e.getClass(), e.getMessage()
+            );
+            setAsActiveAccountPromotion(message);
+            throw e;
+        }
+    }
+
+    private void processAddRenewPromotions(List<Domain> domains, PersonalAccount account) {
+        Promotion promotion = promotionRepository.findByName("ru_rf_domain_renew_by_name_discount");
+
+        List<AccountPromotion> existsRenewPromotions = accountPromotionManager.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId())
+                .stream().filter(AccountPromotion::getActive)
+                .collect(Collectors.toList());
+
+        Lazy<Integer> domainCount = new Lazy<>(() -> rcUserFeignClient.getDomains(account.getAccountId()).size());
+
+        if (existsRenewPromotions.isEmpty() && domainCount.get() > 7) {
+            logger.info("account {} domains count > 7 and promotions not exists, can't add renew discount", account.getId());
+            return;
+        }
+
+        Map<PromocodeAction, List<PaymentService>> actionIdAndRenewService = new HashMap<>();
+
+        for (PromocodeAction action : promotion.getActions()) {
+            List<PaymentService> renewServices = new ArrayList<>();
+
+            paymentServiceRepository.findAllById(
+                    (List<String>) action.getProperties().get("serviceIds")
+            ).forEach(renewServices::add);
+
+            actionIdAndRenewService.put(action, renewServices);
+        }
+
+        Lazy<List<String>> emails = new Lazy<>(() -> accountHelper.getEmails(account));
+
+        domains.forEach(domain -> {
+            Container<PromocodeAction> action = new Container<>();
+            Container<PaymentService> service = new Container<>();
+
+            try {
+                DomainTld domainTld = getDomainTld(domain);
+                service.setData(domainTld.getRenewService());
+
+                actionIdAndRenewService.entrySet().stream().filter(entry -> entry.getValue()
+                        .stream()
+                        .anyMatch(s -> s.getId().equals(domainTld.getRenewServiceId())))
+                        .findFirst()
+                        .ifPresent(entry -> action.setData(entry.getKey()));
+
+                if (action.getData() == null) {
+                    return;
+                }
+
+                BigDecimal premiumPrice = domainRegistrarFeignClient.getRenewPremiumPrice(domain.getName());
+
+                if (premiumPrice != null && premiumPrice.compareTo(BigDecimal.ZERO) > 0) {
+                    logger.info("account {} domain {} has premium price {} , can't add renew discount", account.getId(), domain.getName());
+                    return;
+                }
+            } catch (Exception e) {
+                return;
+            }
+
+            Container<AccountPromotion> accountPromotionContainer = new Container<>();
+            accountPromotionContainer.setData(existsRenewPromotions.stream()
+                    .filter(ap -> ap.getActionId().equals(action.getData().getId())
+                            && domain.getName().equals(ap.getProperties().get("domainName")))
+                    .findFirst().orElse(null)
+            );
+
+            if (accountPromotionContainer.getData() == null && domainCount.get() <= 7) {
+                AccountPromotion accountPromotion = new AccountPromotion();
+                accountPromotion.setPersonalAccountId(account.getId());
+                accountPromotion.setPromotionId(promotion.getId());
+                accountPromotion.setPromotion(promotion);
+                accountPromotion.setCreated(LocalDateTime.now());
+                accountPromotion.setActionId(action.getData().getId());
+                accountPromotion.setAction(action.getData());
+                accountPromotion.setActive(true);
+                accountPromotion.getProperties().put("domainName", domain.getName());
+
+                accountPromotionManager.insert(accountPromotion);
+
+                accountPromotionContainer.setData(accountPromotion);
+
+                history.save(account, "Добавлена скидка " + action.getData().getDescription()
+                        + " для домена " + domain.getName());
+            }
+
+            if (accountPromotionContainer.getData() != null) {
+                BigDecimal discountCost = getDiscountCost(
+                        service.getData().getCost(), accountPromotionContainer.getData()
+                );
+
+                accountNotificationHelper.emailBuilder()
+                        .account(account)
+                        .emails(emails.get())
+                        .apiName("HmsDomainSkidka50")
+                        .param("reg_till", domain.getRegSpec().getPaidTillAsString())
+                        .param("days_to_free_date", Utils.pluralizeDays(differenceInDays(LocalDate.now(), domain.getRegSpec().getFreeDate())))
+                        .param("old_cost", service.getData().getCost().setScale(2, BigDecimal.ROUND_UP).toString())
+                        .param("new_cost", Utils.currencyValue(discountCost))
+                        .param("person", domain.getPerson().getName())
+                        .param("domain", domain.getName())
+                        .send();
+            }
+        });
+    }
+
+    private BigDecimal getDiscountCost(BigDecimal cost, AccountPromotion accountPromotion) {
+        if (accountPromotion == null) return cost;
+        return discountFactory.getDiscount(
+                accountPromotion.getAction()
+        ).getCost(cost);
+    }
+
+    public BigDecimal getRenewCost(String personalAccountId, String domainId) {
+        Domain domain = rcUserFeignClient.getDomain(personalAccountId, domainId);
+        DomainTld domainTld = getDomainTld(domain);
+
+        BigDecimal renewPremiumPrice = domainRegistrarFeignClient.getRenewPremiumPrice(domain.getName());
+
+        if (renewPremiumPrice != null && renewPremiumPrice.compareTo(domainTld.getRenewService().getCost()) > 0) {
+            return renewPremiumPrice;
+        }
+        List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountIdAndActive(
+                personalAccountId, true);
+
+        AccountPromotion accountPromotion = accountPromotions.stream().filter(ap -> {
+            switch (ap.getAction().getActionType()) {
+                case SERVICE_DISCOUNT:
+                    List<String> serviceIds = (List<String>) ap.getAction().getProperties().get("serviceIds");
+                    Object domainName = ap.getProperties().get("domainName");
+                    return serviceIds.contains(domainTld.getRenewServiceId())
+                            && (domainName == null || domain.getName().equals(domainName));
+
+                default:
+                    return false;
+            }
+        }).findFirst().orElse(null);
+
+        return getDiscountCost(domainTld.getRenewService().getCost(), accountPromotion);
     }
 }

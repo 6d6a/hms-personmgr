@@ -117,12 +117,8 @@ public class BusinessFlowDirector {
             }
 
             if (businessAction.getState() == State.ERROR) {
-                if (businessAction.getMessage().getParam("freeDomainPromotionId") != null) {
-                    accountPromotionManager.activateAccountPromotionById((String) businessAction.getMessage().getParam("freeDomainPromotionId"));
-                }
-
-                if (businessAction.getMessage().getParam("domainDiscountPromotionId") != null) {
-                    accountPromotionManager.activateAccountPromotionById((String) businessAction.getMessage().getParam("domainDiscountPromotionId"));
+                if (businessAction.getMessage().getParam("accountPromotionId") != null) {
+                    accountPromotionManager.setAsActiveAccountPromotionById((String) businessAction.getMessage().getParam("accountPromotionId"));
                 }
             }
 
