@@ -36,6 +36,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.time.temporal.ChronoUnit.MONTHS;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_NEWS;
 import static ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager.MAY_PROLONG_DAYS_BEFORE_EXPIRED;
@@ -240,6 +241,10 @@ public class AccountNotificationEventListener {
                 case 45:
                     apiName = "MajordomoHmsPartners";
                     break;
+
+                case 50:
+                    apiName = "MajordomoEventsAdvertising";
+                    break;
             }
         }
         if (apiName != null) { accountNotificationHelper.sendInfoMail(account, apiName); }
@@ -252,6 +257,13 @@ public class AccountNotificationEventListener {
         logger.debug("We got AccountNotifyInactiveLongTimeEvent\n");
 
         LocalDateTime deactivatedDateTime = account.getDeactivated();
+        LocalDate deactivatedDate = deactivatedDateTime.toLocalDate();
+
+        long monthsBetween = MONTHS.between(deactivatedDate, LocalDate.now());
+
+        if (!Arrays.asList(1L, 2L, 3L, 6L, 12L).contains(monthsBetween)) {
+            return;
+        }
 
         List<AccountStatType> types = new ArrayList<>();
         types.add(AccountStatType.VIRTUAL_HOSTING_ACC_OFF_NOT_ENOUGH_MONEY);
@@ -263,18 +275,9 @@ public class AccountNotificationEventListener {
         if (accountStat == null) { return; }
 
         //Если НЕ СОВПАДАЕТ  дата деактивации и последняя запись в статистике по причине отключения
-        LocalDate deactivatedDate = deactivatedDateTime.toLocalDate();
         if (!accountStat.getCreated().toLocalDate().isEqual(deactivatedDate)) { return; }
 
-        int[] monthsAgo = {1, 2, 3, 6, 12};
-
-        for (int months : monthsAgo) {
-            if (deactivatedDate.isEqual(LocalDate.now().minusMonths(months))) {
-                accountNotificationHelper.sendInfoMail(account, "MajordomoHmsReturnClient");
-                //Если найдено совпадения, дальше проверять не надо
-                break;
-            }
-        }
+        accountNotificationHelper.sendInfoMail(account, "MajordomoHmsReturnClient");
     }
 
     //Отправка писем в случае выключенного аккаунта из-за нехватки средств
