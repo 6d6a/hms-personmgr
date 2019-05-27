@@ -8,7 +8,7 @@ ENV TZ Europe/Moscow
 
 ADD http://archive.intr/Majordomo_LLC_Root_CA.crt /tmp/root.crt
 #RUN mkdir -p /etc/ssl/certs/java && keytool -trustcacerts -keystore /etc/ssl/certs/java/cacerts -storepass changeit -alias Root -import -file /tmp/root.crt -noprompt 
-RUN keytool -trustcacerts -keystore /usr/local/openjdk-8/jre/lib/security/cacerts -storepass changeit -alias Root -import -file /tmp/root.crt -noprompt
+RUN keytool -trustcacerts -keystore /usr/local/openjdk-8/lib/security/cacerts -storepass changeit -alias Root -import -file /tmp/root.crt -noprompt
 
 COPY ./build/libs /
 COPY healthcheck.sh /healthcheck.sh
