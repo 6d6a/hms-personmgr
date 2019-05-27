@@ -35,6 +35,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.time.temporal.ChronoUnit.MONTHS;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
@@ -259,9 +260,10 @@ public class AccountNotificationEventListener {
         LocalDateTime deactivatedDateTime = account.getDeactivated();
         LocalDate deactivatedDate = deactivatedDateTime.toLocalDate();
 
-        long monthsBetween = MONTHS.between(deactivatedDate, LocalDate.now());
+        boolean needSend = Stream.of(1, 2, 3, 6, 12)
+                .anyMatch(months -> deactivatedDate.isEqual(LocalDate.now().minusMonths(months)));
 
-        if (!Arrays.asList(1L, 2L, 3L, 6L, 12L).contains(monthsBetween)) {
+        if (!needSend) {
             return;
         }
 
