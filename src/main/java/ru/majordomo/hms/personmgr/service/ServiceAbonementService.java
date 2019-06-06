@@ -21,12 +21,13 @@ import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.AccountStatType;
+import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
+import ru.majordomo.hms.personmgr.dto.push.LowBalancePush;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredServiceAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.RedirectWasDisabledEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
-import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
@@ -62,7 +63,6 @@ public class ServiceAbonementService { //dis name
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final RcUserFeignClient rcUserFeignClient;
     private final PersonalAccountManager accountManager;
-    private final FinFeignClient finFeignClient;
     private final PaymentLinkHelper paymentLinkHelper;
 
     private static TemporalAdjuster FIVE_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(5));
@@ -80,7 +80,6 @@ public class ServiceAbonementService { //dis name
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             RcUserFeignClient rcUserFeignClient,
             PersonalAccountManager accountManager,
-            FinFeignClient finFeignClient,
             PaymentLinkHelper paymentLinkHelper
     ) {
         this.abonementManager = abonementManager;
@@ -94,7 +93,6 @@ public class ServiceAbonementService { //dis name
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountManager = accountManager;
-        this.finFeignClient = finFeignClient;
         this.paymentLinkHelper = paymentLinkHelper;
     }
 
@@ -256,6 +254,8 @@ public class ServiceAbonementService { //dis name
                         new PaymentLinkRequest(abonementCost)
                 ).getPaymentLink();
 
+                String serviceName = accountServiceAbonement.getAbonement().getService().getName();
+
                 //Отправим письмо
                 HashMap<String, String> parameters = new HashMap<>();
                 parameters.put("client_id", account.getAccountId());
@@ -263,11 +263,21 @@ public class ServiceAbonementService { //dis name
                 parameters.put("domains", String.join("<br>", domainNames));
                 parameters.put("balance", formatBigDecimalWithCurrency(balance));
                 parameters.put("date_finish", accountServiceAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-                parameters.put("service_name", accountServiceAbonement.getAbonement().getService().getName());
+                parameters.put("service_name", serviceName);
                 parameters.put("from", "noreply@majordomo.ru");
                 parameters.put("payment_link", paymentLink);
 
                 accountNotificationHelper.sendMail(account, "MajordomoHmsAddServicesAbonementSoonEnd", 1, parameters);
+
+                String dateFinish = "через " + Utils.pluralizeDays(Long.valueOf(daysToExpired).intValue());
+
+                accountNotificationHelper.push(new LowBalancePush(
+                        account,
+                        account.getName() + " Заканчивается абонемент на доп.услугу",
+                        "Для сохранения работы услуги пополните баланс аккаунта. Абонемент на услугу " + serviceName
+                                + " заканчивается " + dateFinish,
+                        abonementCost
+                ));
             }
         });
     }

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.util.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,7 @@ import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.dto.push.PaymentReceivedPush;
 import ru.majordomo.hms.personmgr.dto.partners.ActionStatRequest;
 import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
@@ -51,9 +53,9 @@ import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.service.promocodeAction.PaymentPercentBonusActionProcessor;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
+import static java.lang.String.format;
 import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
-import static ru.majordomo.hms.personmgr.common.Constants.DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT;
 import static ru.majordomo.hms.personmgr.common.Utils.getBigDecimalFromUnexpectedInput;
 
 @Component
@@ -469,13 +471,15 @@ public class AccountEventListener {
             return;
         }
 
+        Lazy<BigDecimal> amount = Lazy.of(() -> getBigDecimalFromUnexpectedInput(message.getParam(AMOUNT_KEY)));
+
         try {
             if (accountNotificationHelper.isSubscribedToSmsType(account, MailManagerMessageType.SMS_NEW_PAYMENT)) {
 
                 HashMap<String, String> paramsForSms = new HashMap<>();
                 paramsForSms.put("client_id", account.getAccountId());
                 paramsForSms.put("acc_id", account.getName());
-                paramsForSms.put("add_sum", Utils.formatBigDecimalWithCurrency(Utils.getBigDecimalFromUnexpectedInput(message.getParam(AMOUNT_KEY))));
+                paramsForSms.put("add_sum", Utils.formatBigDecimalWithCurrency(amount.get()));
 
                 accountNotificationHelper.sendSms(account, "MajordomoHMSNewPayment", 10, paramsForSms);
             }
@@ -483,6 +487,13 @@ public class AccountEventListener {
             logger.error("Can't send SMS for account " + account.getName() + ", exceptionMessage: " + e.getMessage());
             e.printStackTrace();
         }
+
+        accountNotificationHelper.push(
+                new PaymentReceivedPush(
+                        account, account.getName() + " получен платеж",
+                        format("На аккаунт %s начислен платеж %.0f руб.", account.getName(), amount.get()), amount.get()
+                )
+        );
     }
 
     /**
