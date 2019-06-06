@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.dto.push.LowBalancePush;
+import ru.majordomo.hms.personmgr.dto.push.Push;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
 import ru.majordomo.hms.personmgr.event.account.AccountNotificationRemainingDaysWasSentEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
@@ -58,6 +60,7 @@ public class AccountNotificationHelper {
     private final String finEmail;
     private final String inviteEmailApiName;
     private final PaymentLinkHelper paymentLinkHelper;
+    private final PushService pushService;
 
     @Autowired
     public AccountNotificationHelper(
@@ -69,7 +72,8 @@ public class AccountNotificationHelper {
             PersonalAccountManager accountManager,
             @Value("${mail_manager.department.fin}") String finEmail,
             @Value("${invites.client_api_name}") String inviteEmailApiName,
-            PaymentLinkHelper paymentLinkHelper
+            PaymentLinkHelper paymentLinkHelper,
+            PushService pushService
     ) {
         this.publisher = publisher;
         this.planManager = planManager;
@@ -80,6 +84,7 @@ public class AccountNotificationHelper {
         this.finEmail = finEmail;
         this.inviteEmailApiName = inviteEmailApiName;
         this.paymentLinkHelper = paymentLinkHelper;
+        this.pushService = pushService;
     }
 
     public String getDomainForEmail(PersonalAccount account) {
@@ -228,6 +233,14 @@ public class AccountNotificationHelper {
         parameters.put("payment_link", paymentLink);
 
         this.sendMail(account, "MajordomoHmsMoneyEnd", parameters);
+
+        push(
+                new LowBalancePush(account,
+                        account.getName() + " выключен",
+                        "Закончились средства на балансе. Аккаунт " + account.getName() + " блокирован.",
+                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                )
+        );
     }
 
     public void sendMailDeactivatedWithExpiredCredit(PersonalAccount account) {
@@ -252,6 +265,14 @@ public class AccountNotificationHelper {
         parameters.put("payment_link", paymentLink);
 
         sendMail(account, "MajordomoHmsServicesCreditMoneyEnd", 1, parameters);
+
+        push(
+                new LowBalancePush(account,
+                        account.getName() + " выключен",
+                        "Закончились кредитные средства на услуги хостинга на аккаунте " + account.getName(),
+                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                )
+        );
     }
 
     public void sendMailCreditJustActivatedWithHostingAbonement(PersonalAccount account) {
@@ -275,6 +296,14 @@ public class AccountNotificationHelper {
         String apiName = "MajordomoHmsAddServicesHostingVCredit";
 
         sendMail(account, apiName, 1, parameters);
+
+        push(
+                new LowBalancePush(account,
+                        account.getName() + " включена услуга \"Хостинг в кредит\"",
+                        "Закончились средства на балансе. Аккаунт " + account.getName() + " блокирован.",
+                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                )
+        );
 
         publisher.publishEvent(
                 new AccountNotificationRemainingDaysWasSentEvent(
@@ -306,6 +335,14 @@ public class AccountNotificationHelper {
 
         sendMail(account, apiName, 1, parameters);
 
+        push(
+                new LowBalancePush(account,
+                        account.getName() + " включена услуга \"Хостинг в кредит\"",
+                        "Средства на услуги хостинга на Вашем аккаунте " + account.getName() + " закончились. Включена услуга \"Хостинг в кредит\" на 14 дней",
+                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                )
+        );
+
         publisher.publishEvent(
                 new AccountNotificationRemainingDaysWasSentEvent(
                         account.getId(),
@@ -324,18 +361,29 @@ public class AccountNotificationHelper {
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 
+        String dateFinish = "через " + Utils.pluralizeDays(getRemainingDaysCreditPeriod(account));
+
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
         parameters.put("acc_id", account.getName());
         parameters.put("domains", getDomainForEmail(account));
         parameters.put("balance", formatBigDecimalWithCurrency(balance));
-        parameters.put("date_finish", "через " + Utils.pluralizef("%d день", "%d дня", "%d дней", getRemainingDaysCreditPeriod(account)));
+        parameters.put("date_finish", dateFinish);
         parameters.put("from", "noreply@majordomo.ru");
         parameters.put("payment_link", paymentLink);
 
         String apiName = "MajordomoHmsServicesCreditMoneySoonEndAbonement";
 
         sendMail(account, apiName, 1, parameters);
+
+        push(
+                new LowBalancePush(account,
+                        account.getName() + " Заканчиваются кредит. средства на доп.услуги",
+                        "Кредитные средства на оплату доп.услуг хостинга (SMS-информирование, увеличение квоты и т. д.) " +
+                                "на аккаунте " + account.getName() + " заканчиваются " + dateFinish,
+                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                )
+        );
 
         publisher.publishEvent(
                 new AccountNotificationRemainingDaysWasSentEvent(
@@ -355,12 +403,14 @@ public class AccountNotificationHelper {
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 
+        String dateFinish = "через " + Utils.pluralizeDays(getRemainingDaysCreditPeriod(account));
+
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
         parameters.put("acc_id", account.getName());
         parameters.put("domains", getDomainForEmail(account));
         parameters.put("balance", formatBigDecimalWithCurrency(balance));
-        parameters.put("date_finish", "через " + Utils.pluralizef("%d день", "%d дня", "%d дней", getRemainingDaysCreditPeriod(account)));
+        parameters.put("date_finish", dateFinish);
         parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
         parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
         parameters.put("from", "noreply@majordomo.ru");
@@ -369,6 +419,15 @@ public class AccountNotificationHelper {
         String apiName = "MajordomoHmsCreditMoneySoonEnd";
 
         sendMail(account, apiName, 1, parameters);
+
+        push(
+                new LowBalancePush(account,
+                        account.getName() + " Заканчивается кредит. Аккаунт будет отключен.",
+                        "Кредит на услуги хостинга на аккаунте " + account.getName() + " заканчивается " + dateFinish +
+                                " Для продолжения работы пополните баланс аккаунта или купите абонемент со скидкой",
+                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                )
+        );
 
         publisher.publishEvent(
                 new AccountNotificationRemainingDaysWasSentEvent(
@@ -401,6 +460,15 @@ public class AccountNotificationHelper {
 
         sendMail(account, apiName, 1, parameters);
 
+        push(
+                new LowBalancePush(account,
+                        account.getName() + " Закончился кредит. Дополнительные услуги отключены.",
+                        "Закончились кредитные средства на доп.услуги хостинга на аккаунте " + account.getName()
+                            + " Для возобновления работы доп.услуг пополните баланс аккаунта.",
+                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                )
+        );
+
         publisher.publishEvent(
                 new AccountNotificationRemainingDaysWasSentEvent(
                         account.getId(),
@@ -432,6 +500,15 @@ public class AccountNotificationHelper {
 
         sendMail(account, apiName, 1, parameters);
 
+        push(
+                new LowBalancePush(account,
+                        account.getName() + " Закончились средства. Дополнительные услуги отключены.",
+                        "Закончились средства на доп.услуги хостинга на аккаунте " + account.getName()
+                                + " Для возобновления работы доп.услуг пополните баланс аккаунта.",
+                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                )
+        );
+
         publisher.publishEvent(
                 new AccountNotificationRemainingDaysWasSentEvent(
                         account.getId(),
@@ -450,18 +527,29 @@ public class AccountNotificationHelper {
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 
+        String dateFinish = "через " + Utils.pluralizeDays(remainingDays);
+
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
         parameters.put("acc_id", account.getName());
         parameters.put("domains", getDomainForEmail(account));
         parameters.put("balance", formatBigDecimalWithCurrency(balance));
-        parameters.put("date_finish", "через " + Utils.pluralizef("%d день", "%d дня", "%d дней", remainingDays));
+        parameters.put("date_finish", dateFinish);
         parameters.put("from", "noreply@majordomo.ru");
         parameters.put("payment_link", paymentLink);
 
         String apiName = "MajordomoHmsAddServicesMoneySoonEndAbonement";
 
         sendMail(account, apiName, 1, parameters);
+
+        push(
+                new LowBalancePush(account,
+                        account.getName() + " Заканчиваются средства на дополнительные услуги",
+                        "Заканчиваются средства на доп.услуги хостинга на аккаунте " + account.getName() + " " + dateFinish
+                                + " Для сохранения работы доп.услуг пополните баланс аккаунта.",
+                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                )
+        );
 
         publisher.publishEvent(
                 new AccountNotificationRemainingDaysWasSentEvent(
@@ -481,12 +569,14 @@ public class AccountNotificationHelper {
                 new PaymentLinkRequest(plan.getService().getCost())
         ).getPaymentLink();
 
+        String dateFinish = "через " + Utils.pluralizeDays(remainingDays);
+
         Map<String, String> parameters = new HashMap<>();
         parameters.put("client_id", account.getAccountId());
         parameters.put("acc_id", account.getName());
         parameters.put("domains", getDomainForEmail(account));
         parameters.put("balance", formatBigDecimalWithCurrency(balance));
-        parameters.put("date_finish", "через " + Utils.pluralizef("%d день", "%d дня", "%d дней", remainingDays));
+        parameters.put("date_finish", dateFinish);
         parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
         parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
         parameters.put("from", "noreply@majordomo.ru");
@@ -495,6 +585,15 @@ public class AccountNotificationHelper {
         String apiName = "MajordomoHmsMoneySoonEnd";
 
         sendMail(account, apiName, 1, parameters);
+
+        push(
+                new LowBalancePush(account,
+                        account.getName() + " Заканчиваются средства. Пополните баланс.",
+                        "Средства на оплату услуг хостинга на аккаунте " + account.getName() + " заканчиваются " + dateFinish
+                                + " Для продолжения работы пополните баланс аккаунта.",
+                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                )
+        );
 
         publisher.publishEvent(
                 new AccountNotificationRemainingDaysWasSentEvent(
@@ -743,5 +842,9 @@ public class AccountNotificationHelper {
         public Map<String, String> build() {
             return attachment;
         }
+    }
+
+    public void push(Push push) {
+        pushService.send(push);
     }
 }

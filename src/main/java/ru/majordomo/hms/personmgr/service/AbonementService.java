@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.util.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -16,7 +17,9 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
 import ru.majordomo.hms.personmgr.common.*;
+import ru.majordomo.hms.personmgr.dto.push.LowBalancePush;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
+import ru.majordomo.hms.personmgr.dto.push.Push;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
@@ -38,6 +41,7 @@ import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
+import static java.lang.String.format;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE;
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_ABONEMENT;
@@ -291,7 +295,9 @@ public class AbonementService {
             boolean notEnoughMoneyForAbonement = balance.compareTo(abonementCost) < 0;
 
             if (isDayForEmail) {
+                Lazy<String> dateFinish = Lazy.of(() -> accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
                 if (accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+
                     accountNotificationHelper.emailBuilder()
                             .account(account)
                             .apiName("MajordomoVHExpiringArchivalAbonement")
@@ -302,9 +308,16 @@ public class AbonementService {
                             .param("domains", accountNotificationHelper.getDomainForEmail(account))
                             .param("balance", formatBigDecimalWithCurrency(balance))
                             .param("cost", formatBigDecimalWithCurrency(abonementCost))
-                            .param("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
+                            .param("date_finish", dateFinish.get())
                             .param("from", "noreply@majordomo.ru")
                             .send();
+
+                    accountNotificationHelper.push(
+                            new Push(account, account.getName() + " истекает архивный абонемент",
+                            "Архивный абонемент " + account.getName() + " заканчивается " + dateFinish.get()
+                                    + ". Мы автоматически переведем аккаунт на наиболее подходящий тариф из действующих."
+                            )
+                    );
                 } else if (notEnoughMoneyForAbonement) {
                     if (plan.isAbonementOnly() || balance.compareTo(monthCost) < 0) {
                         logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
@@ -323,10 +336,19 @@ public class AbonementService {
                                 .param("domains", accountNotificationHelper.getDomainForEmail(account))
                                 .param("balance", formatBigDecimalWithCurrency(balance))
                                 .param("cost", formatBigDecimalWithCurrency(abonementCost))
-                                .param("date_finish", accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
+                                .param("date_finish", dateFinish.get())
                                 .param("from", "noreply@majordomo.ru")
                                 .param("payment_link", paymentLink)
                                 .send();
+
+                        accountNotificationHelper.push(
+                                new LowBalancePush(account, account.getName() + " Абонемент истекает " + dateFinish.get(),
+                                        format("Срок действия абонемента на аккаунте %s заканчивается %s. " +
+                                                        "Для продолжения работы продлите абонемент со скидкой за %.0f",
+                                                account.getName(), dateFinish.get(), abonementCost
+                                        ), abonementCost
+                                )
+                        );
                     }
                 }
             }

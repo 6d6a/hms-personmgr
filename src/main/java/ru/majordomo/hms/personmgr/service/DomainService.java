@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.Container;
+import ru.majordomo.hms.personmgr.dto.push.DomainExpiredPush;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
@@ -566,13 +567,15 @@ public class DomainService {
 
         BigDecimal balance = accountHelper.getBalance(account);
 
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
         String domainsForMail = "";
         for (Domain domain : domains) {
             String autoRenew = domain.getAutoRenew() ? "включено" : "выключено";
             domainsForMail += String.format(
                     "%-20s - %s - %-10s<br>",
                     domain.getName(),
-                    domain.getRegSpec().getPaidTill().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                    domain.getRegSpec().getPaidTill().format(dateFormatter),
                     autoRenew
             );
         }
@@ -586,6 +589,24 @@ public class DomainService {
         accountNotificationHelper.sendMail(account,
                 expired ? "MajordomoHMSVHDomainsAfterExpired" : "MajordomoHMSVHDomainsExpires",
                 10, parameters);
+
+        String domainsCount = pluralizef("%d домен", "%d домена", "%d доменов", domains.size());
+
+        String domainsForPush = domains.stream()
+                .map(d -> d.getName() + " - " + d.getRegSpec().getPaidTill().format(dateFormatter))
+                .collect(Collectors.joining(", "));
+
+        if (expired) {
+            accountNotificationHelper.push(new DomainExpiredPush(
+                    account, account.getName() + " Срочно продлите домен",
+                    "У " + domainsCount + " истек срок регистрации: " + domainsForPush
+            ));
+        } else {
+            accountNotificationHelper.push(new DomainExpiredPush(
+                    account, account.getName() + " Окончание срока регистрации домена",
+                    "У " + domainsCount + " истекает срок регистрации: " + domainsForPush
+            ));
+        }
     }
 
     private void notifyForDomainNoProlongNoMoney(PersonalAccount account, List<Domain> domains) {
@@ -594,12 +615,14 @@ public class DomainService {
             //Email
             String balance = accountNotificationHelper.getBalanceForEmail(account);
 
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
             String domainsForMail = "";
             for (Domain domain : domains) {
                 domainsForMail += String.format(
                         "%-20s - %s<br>",
                         domain.getName(),
-                        domain.getRegSpec().getPaidTill().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                        domain.getRegSpec().getPaidTill().format(dateFormatter)
                 );
             }
 
@@ -612,6 +635,17 @@ public class DomainService {
             parameters.put("balance", balance);
 
             accountNotificationHelper.sendMail(account, "HMSVHNomoneyDomainProlong", 10, parameters);
+
+            String domainsForPush = domains.stream()
+                    .map(d -> d.getName() + " - " + d.getRegSpec().getPaidTill().format(dateFormatter))
+                    .collect(Collectors.joining(", "));
+
+            String domainsCount = pluralizef("%d домен", "%d домена", "%d доменов", domains.size());
+
+            accountNotificationHelper.push(new DomainExpiredPush(
+                    account, account.getName() + " Невозможно продлить " + domainsCount,
+                    "Недостаточно средств для автоматического продления следующих доменов: " + domainsForPush
+            ));
 
 //            //Если подключено СМС-уведомление, то также отправим его
 //            //Отправляем SMS за ... дней до истечения
