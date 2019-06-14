@@ -62,8 +62,6 @@ dependencies {
     compile("ru.majordomo.hms.rc.user:resources:1.5.22")
     compile("ru.majordomo.hms.rc.staff:resources:1+")
 
-    implementation("ru.majordomo.hms.alertaclient:alerta-client-starter:2.1.0-SNAPSHOT")
-
     compile("dnsjava:dnsjava:2.1.8")
 
     compile("org.springframework.boot:spring-boot-starter-data-mongodb")
