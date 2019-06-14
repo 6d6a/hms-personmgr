@@ -10,7 +10,6 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 @Data
 public class LostClientInfo {
@@ -20,5 +19,4 @@ public class LostClientInfo {
     private BigDecimal overallPaymentAmount = BigDecimal.ZERO;
     private Collection<Domain> domains = new ArrayList<>();
     private Abonement abonement;
-    private List<SiteInfo> siteInfoList;
 }

@@ -1,12 +1,10 @@
 package ru.majordomo.hms.personmgr.common;
 
-import org.apache.commons.io.IOUtils;
 import org.springframework.web.multipart.MultipartFile;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 
 import java.io.*;
 import java.math.BigDecimal;
-import java.net.InetAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
@@ -327,19 +325,5 @@ public class Utils {
             return attachment;
         }
         return null;
-    }
-
-    public static String getResourceAsString(String resourcePath, String enconding) throws IOException {
-        InputStream inputStream = resourcePath.getClass()
-                .getResourceAsStream(resourcePath);
-        return IOUtils.toString(inputStream, enconding);
-    }
-
-    public static long toLong(InetAddress inetAddress) {
-        byte[] bytes = inetAddress.getAddress();
-        return ((bytes [0] & 0xFFL) << (24)) +
-                        ((bytes [1] & 0xFFL) << (16)) +
-                        ((bytes [2] & 0xFFL) << (8)) +
-                        (bytes [3] & 0xFFL);
     }
 }
