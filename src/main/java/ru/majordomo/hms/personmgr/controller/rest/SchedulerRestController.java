@@ -23,6 +23,7 @@ import ru.majordomo.hms.personmgr.event.revisium.ProcessBulkRevisiumRequestEvent
 import ru.majordomo.hms.personmgr.event.task.SendLostClientInfoTaskEvent;
 import ru.majordomo.hms.personmgr.event.task.CleanFinishedTaskEvent;
 import ru.majordomo.hms.personmgr.event.task.NewTasksExecuteEvent;
+import ru.majordomo.hms.personmgr.event.task.SendLostDomainsInfoTaskEvent;
 import ru.majordomo.hms.personmgr.event.token.CleanTokensEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.BatchJobManager;
@@ -152,6 +153,10 @@ public class SchedulerRestController extends CommonRestController {
                 break;
             case "process_send_lost_client_info":
                 publisher.publishEvent(new SendLostClientInfoTaskEvent());
+
+                break;
+            case "process_send_lost_domains_info":
+                publisher.publishEvent(new SendLostDomainsInfoTaskEvent());
 
                 break;
             case "process_ssl_order":

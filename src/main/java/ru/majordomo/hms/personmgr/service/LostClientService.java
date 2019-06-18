@@ -147,7 +147,7 @@ public class LostClientService {
     }
 
     public void sendLostDomainsInfo() {
-        LocalDate disableDate = LocalDate.now().minusMonths(1);
+        LocalDate disableDate = LocalDate.now().minusMonths(2);
         List<SiteInfo> lostClientDomains = getLostDomainsStat(disableDate);
 
         if (lostClientConfig.isNeedSendStatistics()) {
@@ -155,7 +155,7 @@ public class LostClientService {
                     lostClientDomains
             );
 
-            String subject = "Статистика по отключенным клиентским доменам за " + disableDate.toString();
+            String subject = "Статистика по отключенным клиентским доменам с " + disableDate.minusMonths(1).toString() + " по " + disableDate.toString();
             String body = subject + ". Собрано " + LocalDate.now().toString() + "<br/><br/>" + table;
 
             notificationHelper.emailBuilder()
@@ -259,25 +259,34 @@ public class LostClientService {
         String tdOpen = "<td style=\"border-bottom: 1px solid #a9a9a9; border-left: 1px solid #a9a9a9; border-collapse: collapse;\">";
 
         String headRows = new StringJoiner("</td>" + tdOpen, "<tr>" + tdOpen, "</td></tr>")
+                .add("№")
                 .add("Домен")
                 .add("Делегирован")
                 .add("IP-адреса")
                 .add("Владелец IP")
                 .toString();
 
-        String bodyRows = infoList.stream().map(info -> new StringJoiner(
-                        "</td>" + tdOpen, "<tr>" + tdOpen, "</td></tr>"
-                ).add(info.getDomainName())
-                        .add(info.isRegistered() ? "да" : "нет")
-                        .add(String.join(", ", info.getARecords()))
-                        .toString()
-        ).collect(Collectors.joining());
+        StringBuilder bodyRows = new StringBuilder();
+
+        int index = 1;
+        for (SiteInfo info: infoList) {
+            bodyRows.append(
+                    new StringJoiner("</td>" + tdOpen, "<tr>" + tdOpen, "</td></tr>")
+                            .add(String.valueOf(index) + ".")
+                            .add(info.getDomainName())
+                            .add(info.isRegistered() ? "да" : "нет")
+                            .add(String.join(", ", info.getARecords()))
+                            .add(String.join(", ", info.getHostInfo()))
+                            .toString()
+            );
+            index++;
+        }
 
         return "<table><thead>" + headRows + "</thead><tbody>" + bodyRows + "</tbody></table>";
     }
 
     private List<SiteInfo> getLostDomainsStat(LocalDate date) {
-        return accountManager.findByActiveAndDeactivatedBetween(false, LocalDateTime.of(date, LocalTime.MIN),
+        return accountManager.findByActiveAndDeactivatedBetween(false, LocalDateTime.of(date.minusMonths(1), LocalTime.MIN),
                 LocalDateTime.of(date, LocalTime.MAX)).stream().map(rcUserFeignClient::getDomains)
                 .flatMap(Collection::stream)
                 .filter(d -> d.getParentDomainId() == null)
