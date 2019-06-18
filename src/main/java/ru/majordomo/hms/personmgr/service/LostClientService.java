@@ -3,8 +3,9 @@ package ru.majordomo.hms.personmgr.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.xbill.DNS.*;
 import ru.majordomo.hms.personmgr.config.LostClientConfig;
-import ru.majordomo.hms.personmgr.dto.stat.LostClientInfo;
+import ru.majordomo.hms.personmgr.dto.stat.*;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
@@ -15,13 +16,16 @@ import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
+import ru.majordomo.hms.rc.user.resources.Resource;
 
 import java.math.BigDecimal;
+import java.net.IDN;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE;
@@ -142,6 +146,28 @@ public class LostClientService {
         }
     }
 
+    public void sendLostDomainsInfo() {
+        LocalDate disableDate = LocalDate.now().minusMonths(1);
+        List<SiteInfo> lostClientDomains = getLostDomainsStat(disableDate);
+
+        if (lostClientConfig.isNeedSendStatistics()) {
+            String table = siteInfoToTable(
+                    lostClientDomains
+            );
+
+            String subject = "Статистика по отключенным клиентским доменам за " + disableDate.toString();
+            String body = subject + ". Собрано " + LocalDate.now().toString() + "<br/><br/>" + table;
+
+            notificationHelper.emailBuilder()
+                    .apiName(lostClientConfig.getStatTemplateApiName())
+                    .emails(lostClientConfig.getStatEmails())
+                    .priority(10)
+                    .param("subject", subject)
+                    .param("body", body)
+                    .send();
+        }
+    }
+
     private boolean canAddPromotion(LostClientConfig config, LostClientInfo info, Promotion promotion) {
         return info.getOverallPaymentAmount()
                     .compareTo(config.getPaymentAmountForAbonementDiscount()) >= 0
@@ -227,5 +253,107 @@ public class LostClientService {
         ).collect(Collectors.joining());
 
         return "<table><thead>" + headRows + "</thead><tbody>" + bodyRows + "</tbody></table>";
+    }
+
+    private String siteInfoToTable(List<SiteInfo> infoList) {
+        String tdOpen = "<td style=\"border-bottom: 1px solid #a9a9a9; border-left: 1px solid #a9a9a9; border-collapse: collapse;\">";
+
+        String headRows = new StringJoiner("</td>" + tdOpen, "<tr>" + tdOpen, "</td></tr>")
+                .add("Домен")
+                .add("Делегирован")
+                .add("IP-адреса")
+                .add("Владелец IP")
+                .toString();
+
+        String bodyRows = infoList.stream().map(info -> new StringJoiner(
+                        "</td>" + tdOpen, "<tr>" + tdOpen, "</td></tr>"
+                ).add(info.getDomainName())
+                        .add(info.isRegistered() ? "да" : "нет")
+                        .add(String.join(", ", info.getARecords()))
+                        .toString()
+        ).collect(Collectors.joining());
+
+        return "<table><thead>" + headRows + "</thead><tbody>" + bodyRows + "</tbody></table>";
+    }
+
+    private List<SiteInfo> getLostDomainsStat(LocalDate date) {
+        return accountManager.findByActiveAndDeactivatedBetween(false, LocalDateTime.of(date, LocalTime.MIN),
+                LocalDateTime.of(date, LocalTime.MAX)).stream().map(rcUserFeignClient::getDomains)
+                .flatMap(Collection::stream)
+                .filter(d -> d.getParentDomainId() == null)
+                .map(Resource::getName)
+                .map(SiteInfo::new)
+                .peek(info -> {
+                    List<ARecord> a = getA(IDN.toASCII(info.getDomainName()));
+                    a = a == null ? Collections.emptyList() : a;
+                    info.setRegistered(!a.isEmpty());
+                    log.info("domain {} a records: {}", info.getDomainName(), a.stream()
+                            .map(ARecord::getAddress).map(InetAddress::getHostAddress)
+                            .collect(Collectors.joining(", ")));
+
+                    info.getARecords().addAll(
+                            a.stream()
+                                    .map(ARecord::getAddress)
+                                    .map(InetAddress::getHostAddress)
+                                    .collect(Collectors.toList()
+                                    )
+                    );
+                })
+                .peek(i -> {
+                    if (i.getARecords().size() > 0) {
+                        String firstA = i.getARecords().get(0);
+                        InetAddress address = null;
+                        try {
+                            address = InetAddress.getByName(firstA);
+                        } catch (UnknownHostException e) {
+                            e.printStackTrace();
+                        }
+
+                        if (address != null) {
+                            String asn = new RipeClient().getAsnByAddress(address.getHostAddress());
+
+                            if (asn != null) {
+                                String holder = new RipeClient().getHolderByAsn(asn);
+                                if (holder != null) {
+                                    i.getHostInfo().add(holder);
+                                }
+                            }
+                        }
+                    }
+                })
+//                .peek(System.out::println)
+                .collect(Collectors.toList());
+    }
+
+    private List<ARecord> getA(String name) {
+        SimpleResolver resolver;
+        try {
+            resolver = new SimpleResolver("8.8.8.8");
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            log.error("Catch UnknownHostException message: %s, name: %s",
+                    e.getMessage(), name);
+            return null;
+        }
+
+        Record[] records = get(resolver, name, Type.A);
+
+        return Arrays.asList(Arrays.asList(records).toArray(new ARecord[0]));
+    }
+
+    private Record[] get(SimpleResolver resolver, String name, int type) {
+        Lookup lookup;
+        try {
+            lookup = new Lookup(name, type);
+        } catch (TextParseException e) {
+            log.error("Catch {}, message: {}, name: {}, type: {}", e.getClass().getName(), e.getMessage(), name, type);
+            return new Record[0];
+        }
+
+        lookup.setResolver(resolver);
+        lookup.setCache(null);
+
+        Record[] records = lookup.run();
+        return records == null ? new Record[0] : records;
     }
 }
