@@ -313,7 +313,7 @@ public class AbonementService {
                             .send();
 
                     accountNotificationHelper.push(
-                            new Push(account, account.getName() + " истекает архивный абонемент",
+                            new Push(account.getId(), account.getName() + " истекает архивный абонемент",
                             "Архивный абонемент " + account.getName() + " заканчивается " + dateFinish.get()
                                     + ". Мы автоматически переведем аккаунт на наиболее подходящий тариф из действующих."
                             )
@@ -342,10 +342,10 @@ public class AbonementService {
                                 .send();
 
                         accountNotificationHelper.push(
-                                new LowBalancePush(account, account.getName() + " Абонемент истекает " + dateFinish.get(),
+                                new LowBalancePush(account.getId(), account.getName() + " Абонемент истекает " + dateFinish.get(),
                                         format("Срок действия абонемента на аккаунте %s заканчивается %s. " +
-                                                        "Для продолжения работы продлите абонемент со скидкой за %.0f",
-                                                account.getName(), dateFinish.get(), abonementCost
+                                                        "Для продолжения работы продлите абонемент со скидкой за %s",
+                                                account.getName(), dateFinish.get(), Utils.formatBigDecimalWithCurrency(abonementCost)
                                         ), abonementCost
                                 )
                         );

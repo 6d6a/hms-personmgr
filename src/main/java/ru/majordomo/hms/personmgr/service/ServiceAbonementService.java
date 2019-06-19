@@ -272,7 +272,7 @@ public class ServiceAbonementService { //dis name
                 String dateFinish = "через " + Utils.pluralizeDays(Long.valueOf(daysToExpired).intValue());
 
                 accountNotificationHelper.push(new LowBalancePush(
-                        account,
+                        account.getId(),
                         account.getName() + " Заканчивается абонемент на доп.услугу",
                         "Для сохранения работы услуги пополните баланс аккаунта. Абонемент на услугу " + serviceName
                                 + " заканчивается " + dateFinish,

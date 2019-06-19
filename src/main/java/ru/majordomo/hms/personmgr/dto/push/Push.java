@@ -7,14 +7,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Push {
-    private final PersonalAccount account;
+    private final String accountId;
     private final String title;
     private final String body;
     private String channel;
     private final Map<String, String> params = new HashMap<>();
 
-    public Push(PersonalAccount account, String title, String body) {
-        this.account = account;
+    public Push(String accountId, String title, String body) {
+        this.accountId = accountId;
         this.title = title;
         this.body = body;
     }
@@ -32,7 +32,7 @@ public class Push {
 
     public SimpleServiceMessage toMessage() {
         SimpleServiceMessage message = new SimpleServiceMessage();
-        message.setAccountId(account.getId());
+        message.setAccountId(accountId);
         message.getParams().putAll(params);
         message.addParam("title", title);
         message.addParam("body", body);
