@@ -490,8 +490,8 @@ public class AccountEventListener {
 
         accountNotificationHelper.push(
                 new PaymentReceivedPush(
-                        account, account.getName() + " получен платеж",
-                        format("На аккаунт %s начислен платеж %.0f руб.", account.getName(), amount.get()), amount.get()
+                        account.getId(), account.getName() + " получен платеж",
+                        format("На аккаунт %s начислен платеж %s", account.getName(), Utils.formatBigDecimalWithCurrency(amount.get())), amount.get()
                 )
         );
     }

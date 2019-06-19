@@ -235,7 +235,7 @@ public class AccountNotificationHelper {
         this.sendMail(account, "MajordomoHmsMoneyEnd", parameters);
 
         push(
-                new LowBalancePush(account,
+                new LowBalancePush(account.getId(),
                         account.getName() + " выключен",
                         "Закончились средства на балансе. Аккаунт " + account.getName() + " блокирован.",
                         plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
@@ -267,7 +267,7 @@ public class AccountNotificationHelper {
         sendMail(account, "MajordomoHmsServicesCreditMoneyEnd", 1, parameters);
 
         push(
-                new LowBalancePush(account,
+                new LowBalancePush(account.getId(),
                         account.getName() + " выключен",
                         "Закончились кредитные средства на услуги хостинга на аккаунте " + account.getName(),
                         plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
@@ -298,7 +298,7 @@ public class AccountNotificationHelper {
         sendMail(account, apiName, 1, parameters);
 
         push(
-                new LowBalancePush(account,
+                new LowBalancePush(account.getId(),
                         account.getName() + " включена услуга \"Хостинг в кредит\"",
                         "Закончились средства на балансе. Аккаунт " + account.getName() + " блокирован.",
                         plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
@@ -336,7 +336,7 @@ public class AccountNotificationHelper {
         sendMail(account, apiName, 1, parameters);
 
         push(
-                new LowBalancePush(account,
+                new LowBalancePush(account.getId(),
                         account.getName() + " включена услуга \"Хостинг в кредит\"",
                         "Средства на услуги хостинга на Вашем аккаунте " + account.getName() + " закончились. Включена услуга \"Хостинг в кредит\" на 14 дней",
                         plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
@@ -377,7 +377,7 @@ public class AccountNotificationHelper {
         sendMail(account, apiName, 1, parameters);
 
         push(
-                new LowBalancePush(account,
+                new LowBalancePush(account.getId(),
                         account.getName() + " Заканчиваются кредит. средства на доп.услуги",
                         "Кредитные средства на оплату доп.услуг хостинга (SMS-информирование, увеличение квоты и т. д.) " +
                                 "на аккаунте " + account.getName() + " заканчиваются " + dateFinish,
@@ -421,7 +421,7 @@ public class AccountNotificationHelper {
         sendMail(account, apiName, 1, parameters);
 
         push(
-                new LowBalancePush(account,
+                new LowBalancePush(account.getId(),
                         account.getName() + " Заканчивается кредит. Аккаунт будет отключен.",
                         "Кредит на услуги хостинга на аккаунте " + account.getName() + " заканчивается " + dateFinish +
                                 " Для продолжения работы пополните баланс аккаунта или купите абонемент со скидкой",
@@ -461,7 +461,7 @@ public class AccountNotificationHelper {
         sendMail(account, apiName, 1, parameters);
 
         push(
-                new LowBalancePush(account,
+                new LowBalancePush(account.getId(),
                         account.getName() + " Закончился кредит. Дополнительные услуги отключены.",
                         "Закончились кредитные средства на доп.услуги хостинга на аккаунте " + account.getName()
                             + " Для возобновления работы доп.услуг пополните баланс аккаунта.",
@@ -501,7 +501,7 @@ public class AccountNotificationHelper {
         sendMail(account, apiName, 1, parameters);
 
         push(
-                new LowBalancePush(account,
+                new LowBalancePush(account.getId(),
                         account.getName() + " Закончились средства. Дополнительные услуги отключены.",
                         "Закончились средства на доп.услуги хостинга на аккаунте " + account.getName()
                                 + " Для возобновления работы доп.услуг пополните баланс аккаунта.",
@@ -543,7 +543,7 @@ public class AccountNotificationHelper {
         sendMail(account, apiName, 1, parameters);
 
         push(
-                new LowBalancePush(account,
+                new LowBalancePush(account.getId(),
                         account.getName() + " Заканчиваются средства на дополнительные услуги",
                         "Заканчиваются средства на доп.услуги хостинга на аккаунте " + account.getName() + " " + dateFinish
                                 + " Для сохранения работы доп.услуг пополните баланс аккаунта.",
@@ -587,7 +587,7 @@ public class AccountNotificationHelper {
         sendMail(account, apiName, 1, parameters);
 
         push(
-                new LowBalancePush(account,
+                new LowBalancePush(account.getId(),
                         account.getName() + " Заканчиваются средства. Пополните баланс.",
                         "Средства на оплату услуг хостинга на аккаунте " + account.getName() + " заканчиваются " + dateFinish
                                 + " Для продолжения работы пополните баланс аккаунта.",

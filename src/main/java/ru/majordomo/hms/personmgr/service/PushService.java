@@ -17,14 +17,20 @@ public class PushService {
     }
 
     public void send(Push push) {
-        SimpleServiceMessage message = push.toMessage();
+        SimpleServiceMessage message = null;
+        try {
+            message = push.toMessage();
+        } catch (Exception e) {
+            log.error("push not created: {} e.class: {} e.message: {}", push, e.getClass(), e.getMessage());
+            e.printStackTrace();
+        }
 
         try {
             sender.send("message.send", "notifier", message);
+            log.debug("push sent: " + message);
         } catch (Exception e) {
             log.error("push not sent: {} e.class: {} e.message: {}", message, e.getClass(), e.getMessage());
             e.printStackTrace();
         }
-        log.debug("push sent: " + message);
     }
 }

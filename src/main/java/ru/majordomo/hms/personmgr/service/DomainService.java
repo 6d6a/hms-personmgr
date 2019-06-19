@@ -598,12 +598,12 @@ public class DomainService {
 
         if (expired) {
             accountNotificationHelper.push(new DomainExpiredPush(
-                    account, account.getName() + " Срочно продлите домен",
+                    account.getId(), account.getName() + " Срочно продлите домен",
                     "У " + domainsCount + " истек срок регистрации: " + domainsForPush
             ));
         } else {
             accountNotificationHelper.push(new DomainExpiredPush(
-                    account, account.getName() + " Окончание срока регистрации домена",
+                    account.getId(), account.getName() + " Окончание срока регистрации домена",
                     "У " + domainsCount + " истекает срок регистрации: " + domainsForPush
             ));
         }
@@ -643,7 +643,7 @@ public class DomainService {
             String domainsCount = pluralizef("%d домен", "%d домена", "%d доменов", domains.size());
 
             accountNotificationHelper.push(new DomainExpiredPush(
-                    account, account.getName() + " Невозможно продлить " + domainsCount,
+                    account.getId(), account.getName() + " Невозможно продлить " + domainsCount,
                     "Недостаточно средств для автоматического продления следующих доменов: " + domainsForPush
             ));
 
