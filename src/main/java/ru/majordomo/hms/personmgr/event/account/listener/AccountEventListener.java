@@ -420,7 +420,9 @@ public class AccountEventListener {
             return;
         }
 
-        if (!params.get(OAUTH_CLIENT_ID).equals(MOBILE_APP_OAUTH_CLIENT_ID)) {
+        Map<String, String> metadata = (Map<String, String>) params.get(METADATA);
+
+        if (metadata.get(OAUTH_CLIENT_ID) == null || !metadata.get(OAUTH_CLIENT_ID).equals(MOBILE_APP_OAUTH_CLIENT_ID)) {
             return;
         }
 

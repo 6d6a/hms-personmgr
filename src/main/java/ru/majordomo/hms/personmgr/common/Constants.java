@@ -43,6 +43,7 @@ public class Constants {
     public static final String DOMAIN_NAME_KEY = "domainName";
     public static final String ACCOUNT_ID_KEY = "accountId";
     public static final String PASSWORD_KEY = "password";
+    public static final String METADATA = "metadata";
     public static final String OAUTH_CLIENT_ID = "oauthClientId";
     public static final String MOBILE_APP_OAUTH_CLIENT_ID = "mobile_app";
     public static final String NAME_KEY = "name";
