@@ -13,6 +13,8 @@ import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
+import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
+
 @Slf4j
 @Service
 public class FirstMobilePaymentProcessor {
@@ -58,7 +60,9 @@ public class FirstMobilePaymentProcessor {
                 );
                 history.save(
                         account,
-                        "Начислено " + bonusPaymentAmount + " бонусов (" + bonusPercent + " %) после первого пополнения баланса из мобильного приложения");
+                        "Начислен бонус " + formatBigDecimalWithCurrency(bonusPaymentAmount) +
+                                " (" + bonusPercent + " % от " + formatBigDecimalWithCurrency(amount) +
+                                ") после первого пополнения баланса из мобильного приложения");
             } catch (Exception e) {
                 e.printStackTrace();
                 log.error(e.getClass().getName() + ": " + e.getMessage());
