@@ -105,6 +105,11 @@ public interface PersonalAccountManager {
 
     void setGoogleActionUsed(String id, boolean googleActionUsed);
 
+    void setBonusOnFirstMobilePaymentActionUsed(
+            String id,
+            boolean bonusOnFirstMobilePaymentActionUsed
+    );
+
     void setCredit(String accountId, Boolean credit);
 
     void setAddQuotaIfOverquoted(String accountId, Boolean addQuotaIfOverquoted);
