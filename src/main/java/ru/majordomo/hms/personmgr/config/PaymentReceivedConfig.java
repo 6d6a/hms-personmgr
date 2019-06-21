@@ -11,11 +11,11 @@ import javax.validation.constraints.NotNull;
 
 import lombok.Data;
 
-@ConfigurationProperties(prefix = "paymentReceivedSettings")
+@ConfigurationProperties(prefix = "payment-received-config")
 @Data
 @Component
 @RefreshScope
-public class PaymentBonusConfig {
+public class PaymentReceivedConfig {
     @DecimalMin(value = "0")
     @NotNull
     private BigDecimal firstMobilePaymentBonusPercent = BigDecimal.ZERO;

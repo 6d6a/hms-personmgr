@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 
 import lombok.extern.slf4j.Slf4j;
-import ru.majordomo.hms.personmgr.config.PaymentBonusConfig;
+import ru.majordomo.hms.personmgr.config.PaymentReceivedConfig;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentRequest;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
@@ -19,22 +19,22 @@ public class FirstMobilePaymentProcessor {
     private final PersonalAccountManager accountManager;
     private final AccountHistoryManager history;
     private final FinFeignClient finFeignClient;
-    private final PaymentBonusConfig paymentBonusConfig;
+    private final PaymentReceivedConfig paymentReceivedConfig;
 
     @Autowired
     public FirstMobilePaymentProcessor(
             PersonalAccountManager accountManager,
             AccountHistoryManager history,
             FinFeignClient finFeignClient,
-            PaymentBonusConfig paymentBonusConfig) {
+            PaymentReceivedConfig paymentReceivedConfig) {
         this.accountManager = accountManager;
         this.history = history;
         this.finFeignClient = finFeignClient;
-        this.paymentBonusConfig = paymentBonusConfig;
+        this.paymentReceivedConfig = paymentReceivedConfig;
     }
 
     public void process(PersonalAccount account, BigDecimal amount) {
-        BigDecimal bonusPercent = paymentBonusConfig.getFirstMobilePaymentBonusPercent();
+        BigDecimal bonusPercent = paymentReceivedConfig.getFirstMobilePaymentBonusPercent();
 
         if (bonusPercent.compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal bonusPaymentAmount = amount.multiply(
