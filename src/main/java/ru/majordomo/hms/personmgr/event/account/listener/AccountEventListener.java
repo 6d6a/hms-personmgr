@@ -80,6 +80,7 @@ public class AccountEventListener {
     private final AccountNoticeRepository accountNoticeRepository;
     private final PaymentPercentBonusActionProcessor paymentPercentBonusActionProcessor;
     private final YaPromoterFeignClient yaPromoterFeignClient;
+    private final FirstMobilePaymentProcessor firstMobilePaymentProcessor;
 
     private final int deleteDataAfterDays;
 
@@ -103,6 +104,7 @@ public class AccountEventListener {
             AccountNoticeRepository accountNoticeRepository,
             PaymentPercentBonusActionProcessor paymentPercentBonusActionProcessor,
             YaPromoterFeignClient yaPromoterFeignClient,
+            FirstMobilePaymentProcessor firstMobilePaymentProcessor,
             @Value("${delete_data_after_days}") int deleteDataAfterDays
     ) {
         this.accountHelper = accountHelper;
@@ -123,6 +125,7 @@ public class AccountEventListener {
         this.accountNoticeRepository = accountNoticeRepository;
         this.paymentPercentBonusActionProcessor = paymentPercentBonusActionProcessor;
         this.yaPromoterFeignClient = yaPromoterFeignClient;
+        this.firstMobilePaymentProcessor = firstMobilePaymentProcessor;
         this.deleteDataAfterDays = deleteDataAfterDays;
     }
 
@@ -395,6 +398,47 @@ public class AccountEventListener {
         }
 
         paymentPercentBonusActionProcessor.processPayment(account, amount);
+    }
+
+    /**
+     * @param event должен содержать SimpleServiceMessage с информацией о платеже
+     * Начисление бонуса, если пришел первый реальный платеж с помощью мобильного приложения
+     *
+     * Обрабатывается только реальный платеж, бонусные (например, при возврате), партнерские или кредитные игнорируются
+     *
+     * Условия акции:
+     *              Акция действует только для первого платежа
+     */
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void addBonusOnFirstMobilePayment(PaymentWasReceivedEvent event) {
+        SimpleServiceMessage message = event.getSource();
+        Map<String, ?> params = message.getParams();
+
+        if (!params.get("paymentTypeKind").equals(REAL_PAYMENT_TYPE_KIND)) {
+            return;
+        }
+
+        Map<String, String> metadata = (Map<String, String>) params.get(METADATA);
+
+        if (metadata.get(OAUTH_CLIENT_ID) == null || !metadata.get(OAUTH_CLIENT_ID).equals(MOBILE_APP_OAUTH_CLIENT_ID)) {
+            return;
+        }
+
+        PersonalAccount account = accountManager.findOne(message.getAccountId());
+        if (account == null) {
+            return;
+        }
+
+        if (account.getProperties().getBonusOnFirstMobilePaymentActionUsed() != null &&
+                account.getProperties().getBonusOnFirstMobilePaymentActionUsed()) {
+            return;
+        }
+
+        BigDecimal amount = getBigDecimalFromUnexpectedInput(params.get(AMOUNT_KEY));
+
+        firstMobilePaymentProcessor.process(account, amount);
     }
 
     //Если пользователь кладёт деньги, но не покупает абонемент, то через 40 минут отправляем ему письмо

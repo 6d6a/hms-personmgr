@@ -545,6 +545,22 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
+    public void setBonusOnFirstMobilePaymentActionUsed(
+            String id,
+            boolean bonusOnFirstMobilePaymentActionUsed
+    ) {
+        checkById(id);
+
+        Query query = new Query(new Criteria("_id").is(id));
+        Update update = new Update().set(
+                "properties.bonusOnFirstMobilePaymentActionUsed",
+                bonusOnFirstMobilePaymentActionUsed
+        );
+
+        mongoOperations.updateFirst(query, update, PersonalAccount.class);
+    }
+
+    @Override
     public void setCredit(String id, Boolean credit) {
         setSettingByName(id, CREDIT, credit);
     }
