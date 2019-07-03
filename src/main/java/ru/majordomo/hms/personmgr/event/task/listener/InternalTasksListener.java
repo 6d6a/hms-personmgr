@@ -26,7 +26,6 @@ public class InternalTasksListener {
     @Async("threadPoolTaskExecutor")
     public void on(SendLostClientInfoTaskEvent e) {
         lostClientService.sendLostClientsInfo();
-        lostClientService.sendLostDomainsInfo();
     }
 
     @EventListener
