@@ -186,32 +186,6 @@ public class AccountAbonementRestController extends CommonRestController {
         return ResponseEntity.ok(accountAbonement);
     }
 
-    @DeleteMapping("/{accountAbonementId}")
-    public ResponseEntity<Object> deleteAccountAbonement(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @ObjectId(AccountAbonement.class) @PathVariable(value = "accountAbonementId") String accountAbonementId,
-            SecurityContextHolderAwareRequestWrapper request
-    ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
-
-        if (accountAbonement.getAbonement().isInternal()) {
-            throw new ParameterValidationException("Отказ от тестового абонемента невозможен");
-        }
-
-        if (planManager.findOne(account.getPlanId()).isAbonementOnly()) {
-            throw new ParameterValidationException("Удаление абонемента невозможно на вашем тарифном плане");
-        }
-
-        abonementService.deleteAbonement(account, accountAbonementId);
-
-        String operator = request.getUserPrincipal().getName();
-        history.save(account, "Произведен отказ от абонемента", operator);
-
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    }
-
     @GetMapping
     public ResponseEntity<Page<AccountAbonement>> getAccountAbonements(
             @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId,
