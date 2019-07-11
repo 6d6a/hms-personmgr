@@ -39,6 +39,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequestItem;
 import ru.majordomo.hms.personmgr.model.charge.Status;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.DiscountedService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
@@ -237,7 +238,7 @@ public class ChargeProcessor {
      *  отправляет письмо
      */
     private void processNotEnoughMoneyPersonalAccount(PersonalAccount account) {
-        if (accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+        if (accountHelper.getPlan(account).isArchival()) {
             logger.info("changeArchivalPlanToActive(PersonalAccount(id='" + account.getId() + "'))");
             accountHelper.changeArchivalPlanToActive(account);
         }

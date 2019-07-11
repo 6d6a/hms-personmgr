@@ -334,8 +334,10 @@ public class AccountAbonementRestController extends CommonRestController {
             throw new ParameterValidationException("Продление абонемента на пробном периоде не доступно");
         }
 
-        if (accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
-            throw new ParameterValidationException("Обслуживание по тарифу \"" + planManager.findOne(account.getPlanId()).getName() +  "\" прекращено");
+        Plan plan = planManager.findOne(account.getPlanId());
+
+        if (plan.isArchival()) {
+            throw new ParameterValidationException("Обслуживание по тарифу \"" + plan.getName() +  "\" прекращено");
         }
 
         //Абонемент нельзя продлить более чем на три года "всего", т.е. два срока абонемента
