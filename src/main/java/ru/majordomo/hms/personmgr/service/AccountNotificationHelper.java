@@ -39,6 +39,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static java.lang.String.format;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
@@ -601,6 +602,76 @@ public class AccountNotificationHelper {
                         apiName
                 )
         );
+    }
+
+    public void sendArchivalAbonementExpiring(
+            PersonalAccount account, BigDecimal balance, BigDecimal abonementCost, LocalDateTime expired
+    ) {
+        String dateFinish = expired.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        emailBuilder()
+                .account(account)
+                .apiName("MajordomoVHExpiringArchivalAbonement")
+                .from("noreply@majordomo.ru")
+                .priority(1)
+                .param("client_id", account.getAccountId())
+                .param("acc_id", account.getName())
+                .param("domains", getDomainForEmail(account))
+                .param("balance", formatBigDecimalWithCurrency(balance))
+                .param("cost", formatBigDecimalWithCurrency(abonementCost))
+                .param("date_finish", dateFinish)
+                .param("from", "noreply@majordomo.ru")
+                .send();
+
+        push(
+                new Push(account.getId(), account.getName() + " истекает архивный абонемент",
+                        "Архивный абонемент " + account.getName() + " заканчивается " + dateFinish
+                                + ". Мы автоматически переведем аккаунт на наиболее подходящий тариф из действующих."
+                )
+        );
+    }
+
+    public void sendHostingAbonementNoMoneyToProlong(
+            PersonalAccount account, BigDecimal balance, BigDecimal abonementCost, LocalDateTime expired
+    ) {
+        logger.debug("Account balance is too low to buy new abonement. Balance: {} abonementCost: {}", balance, abonementCost);
+
+        String dateFinish = expired.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+
+        String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
+                account, new PaymentLinkRequest(abonementCost)
+        ).getPaymentLink();
+
+        emailBuilder()
+                .account(account)
+                .apiName("MajordomoVHAbNoMoneyProlong")
+                .from("noreply@majordomo.ru")
+                .priority(1)
+                .param("client_id", account.getAccountId())
+                .param("acc_id", account.getName())
+                .param("domains", getDomainForEmail(account))
+                .param("balance", formatBigDecimalWithCurrency(balance))
+                .param("cost", formatBigDecimalWithCurrency(abonementCost))
+                .param("date_finish", dateFinish)
+                .param("from", "noreply@majordomo.ru")
+                .param("payment_link", paymentLink)
+                .send();
+
+        push(
+                new LowBalancePush(account.getId(), account.getName() + " Абонемент истекает " + dateFinish,
+                        format("Срок действия абонемента на аккаунте %s заканчивается %s. " +
+                                        "Для продолжения работы продлите абонемент со скидкой за %s",
+                                account.getName(), dateFinish, Utils.formatBigDecimalWithCurrency(abonementCost)
+                        ), abonementCost
+                )
+        );
+    }
+
+    public void sendSmsVhAbonementExpiring(PersonalAccount account, Long daysToExpired) {
+        HashMap<String, String> paramsForSms = new HashMap<>();
+        paramsForSms.put("acc_id", account.getName());
+        paramsForSms.put("client_id", account.getAccountId());
+        paramsForSms.put("remaining_days", Utils.pluralizeDays((daysToExpired).intValue()));
+        sendSms(account, "HmsMajordomoAbonementExpiring", 5, paramsForSms);
     }
 
     public void sendInviteMail(PersonalAccount account, String emailForInvite, String code) {
