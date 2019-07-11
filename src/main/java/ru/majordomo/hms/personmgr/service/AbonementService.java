@@ -45,8 +45,6 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.lang.String.format;
 import static java.time.temporal.ChronoUnit.DAYS;
-import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_ABONEMENT_DELETE;
-import static ru.majordomo.hms.personmgr.common.AccountStatType.VIRTUAL_HOSTING_USER_DELETE_ABONEMENT;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_ABONEMENT_EXPIRING;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
@@ -224,18 +222,6 @@ public class AbonementService {
         if (accountServiceHelper.accountHasService(account, plan.getServiceId())) {
             accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
         }
-    }
-
-    /**
-     * Удаление абонемента
-     *
-     * @param account Аккаунт
-     * @param accountAbonementId id абонемента на аккаунте
-     */
-    public void deleteAbonement(PersonalAccount account, String accountAbonementId) {
-        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(accountAbonementId, account.getId());
-
-        processAccountAbonementDelete(account, accountAbonement, VIRTUAL_HOSTING_USER_DELETE_ABONEMENT);
     }
 
     public void processExpiringAbonementsByAccount(PersonalAccount account) {
@@ -573,12 +559,12 @@ public class AbonementService {
      * @param account Аккаунт
      * @param accountAbonement абонемента на аккаунте
      */
-    private void processAccountAbonementDelete(PersonalAccount account, AccountAbonement accountAbonement, AccountStatType reason) {
+    private void processAccountAbonementDelete(PersonalAccount account, AccountAbonement accountAbonement) {
 
         accountAbonementManager.delete(accountAbonement);
 
         Plan plan = planManager.findOne(account.getPlanId());
-        boolean needToSendMail = false;
+        boolean needToSendMail;
         if (!plan.isAbonementOnly()) {
             BigDecimal balance = accountHelper.getBalance(account);
             BigDecimal costForOneMonth = plan.getService().getCost();
@@ -600,10 +586,6 @@ public class AbonementService {
         } else {
             chargeHelper.prepareAndProcessChargeRequest(account.getId(), LocalDate.now());
         }
-    }
-
-    private void processAccountAbonementDelete(PersonalAccount account, AccountAbonement accountAbonement) {
-        this.processAccountAbonementDelete(account, accountAbonement, VIRTUAL_HOSTING_ABONEMENT_DELETE);
     }
 
     /**
