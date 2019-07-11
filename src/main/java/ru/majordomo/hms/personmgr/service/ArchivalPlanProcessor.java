@@ -76,7 +76,7 @@ public class ArchivalPlanProcessor {
             PersonalAccount account = accountManager.findOne(accountId);
             Plan currentPlan = planManager.findOne(account.getPlanId());
 
-            if (accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+            if (currentPlan.isArchival()) {
                 int remainingDays = computeRemainingDays(account, currentPlan);
 
                 LocalDate changeAfter = getChargeAfter(remainingDays);
@@ -255,7 +255,9 @@ public class ArchivalPlanProcessor {
     private void processDeferredPlanChange(DeferredPlanChangeNotice notice) {
         PersonalAccount account = accountManager.findOne(notice.getPersonalAccountId());
 
-        if (!accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+        Plan currentPlan = planManager.findOne(account.getPlanId());
+
+        if (!currentPlan.isArchival()) {
             history.save(notice.getPersonalAccountId(),
                     "Смена архивного тарифа на активный не потребовалась", "service");
 
@@ -266,7 +268,6 @@ public class ArchivalPlanProcessor {
         } else if(accountAbonementManager.findByPersonalAccountId(account.getId()) != null) {
             log.error("account with id " + account.getId() + " and archival plan has abonement");
         } else {
-            Plan currentPlan = planManager.findOne(account.getPlanId());
             StringBuilder historyMessage = new StringBuilder(" текущий тариф: ").append(currentPlan.getName());
 
             Plan abonementFallbackPlan = abonementService.getArchivalFallbackPlan(currentPlan);

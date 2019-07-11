@@ -34,11 +34,13 @@ import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.plan.PlanFallback;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
+import ru.majordomo.hms.personmgr.repository.PlanFallbackRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.lang.String.format;
@@ -67,6 +69,7 @@ public class AbonementService {
     private final PaymentLinkHelper paymentLinkHelper;
     private final AccountPromotionManager accountPromotionManager;
     private final DiscountFactory discountFactory;
+    private final PlanFallbackRepository planFallbackRepository;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -85,7 +88,8 @@ public class AbonementService {
             AccountHistoryManager history,
             PaymentLinkHelper paymentLinkHelper,
             AccountPromotionManager accountPromotionManager,
-            DiscountFactory discountFactory
+            DiscountFactory discountFactory,
+            PlanFallbackRepository planFallbackRepository
     ) {
         this.planManager = planManager;
         this.abonementRepository = abonementRepository;
@@ -101,6 +105,7 @@ public class AbonementService {
         this.paymentLinkHelper = paymentLinkHelper;
         this.accountPromotionManager = accountPromotionManager;
         this.discountFactory = discountFactory;
+        this.planFallbackRepository = planFallbackRepository;
     }
 
     /**
@@ -296,7 +301,7 @@ public class AbonementService {
 
             if (isDayForEmail) {
                 Lazy<String> dateFinish = Lazy.of(() -> accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-                if (accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+                if (plan.isArchival()) {
 
                     accountNotificationHelper.emailBuilder()
                             .account(account)
@@ -388,7 +393,9 @@ public class AbonementService {
             BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
             String currentExpired = accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
 
-            if (!accountAbonement.getAbonement().isInternal() && accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+            Plan plan = getAccountPlan(account);
+
+            if (!accountAbonement.getAbonement().isInternal() && plan.isArchival()) {
                 processArchivalAbonement(account, accountAbonement);
             } else if (!accountAbonement.getAbonement().isInternal() && accountAbonement.isAutorenew()) {
                     logger.debug("Abonement has autorenew option enabled");
@@ -462,7 +469,7 @@ public class AbonementService {
 
         //Парковку+ без доменов нужно выключить
         //Если есть домены, то меняем на старт
-        if (account.getPlanId().equals(PLAN_PARKING_PLUS_ID_STRING)) {
+        if (currentPlan.getOldId().equals(PLAN_PARKING_PLUS_ID_STRING)) {
             List<Domain> domains = accountHelper.getDomains(account);
             if (domains == null || domains.isEmpty()) {
                 accountHelper.setPlanId(account.getId(), fallbackPlan.getId());
@@ -519,12 +526,11 @@ public class AbonementService {
     }
 
     public Plan getArchivalFallbackPlan(Plan currentPlan) {
-        switch (currentPlan.getOldId()) {
-            case PLAN_PARKING_PLUS_ID_STRING:
-            case SITE_VISITKA_PLAN_OLD_ID:
-                return planManager.findByOldId(String.valueOf(PLAN_PARKING_DOMAINS_ID));
-            default:
-                return null;
+        PlanFallback planFallback = planFallbackRepository.findOneByPlanId(currentPlan.getId());
+        if (planFallback != null && planFallback.getWithAbonementFallbackPlanId() != null) {
+            return planManager.findOne(planFallback.getWithAbonementFallbackPlanId());
+        } else {
+            return null;
         }
     }
 
@@ -711,7 +717,7 @@ public class AbonementService {
 
         Plan plan = getAccountPlan(account);
 
-        if (accountHelper.needChangeArchivalPlanToFallbackPlan(account)) {
+        if (plan.isArchival()) {
             info.getErrors().add("Обслуживание по тарифу \"" + plan.getName() +  "\" прекращено");
         }
 

@@ -55,6 +55,8 @@ public class Plan extends BaseModel {
     @Indexed
     private boolean active;
 
+    private boolean archival;
+
     @NotNull
     @Valid
     private PlanProperties planProperties;

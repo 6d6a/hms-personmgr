@@ -30,6 +30,7 @@ import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ArchivalPlanAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.plan.PlanFallback;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
@@ -39,6 +40,7 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
+import ru.majordomo.hms.personmgr.repository.PlanFallbackRepository;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
@@ -70,6 +72,7 @@ public class AccountHelper {
     private final ResourceArchiveService resourceArchiveService;
     private final TestPeriodConfig testPeriodConfig;
     private final GoogleAdsActionConfig googleAdsActionConfig;
+    private final PlanFallbackRepository planFallbackRepository;
 
     @Autowired
     public AccountHelper(
@@ -91,7 +94,8 @@ public class AccountHelper {
             AccountNoticeRepository accountNoticeRepository,
             ResourceArchiveService resourceArchiveService,
             TestPeriodConfig testPeriodConfig,
-            GoogleAdsActionConfig googleAdsActionConfig
+            GoogleAdsActionConfig googleAdsActionConfig,
+            PlanFallbackRepository planFallbackRepository
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -112,6 +116,7 @@ public class AccountHelper {
         this.resourceArchiveService = resourceArchiveService;
         this.testPeriodConfig = testPeriodConfig;
         this.googleAdsActionConfig = googleAdsActionConfig;
+        this.planFallbackRepository = planFallbackRepository;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -1073,17 +1078,11 @@ public class AccountHelper {
     }
 
     public Plan getArchivalFallbackPlan(Plan currentPlan) {
-        switch (currentPlan.getOldId()) {
-            case MAIL_PLAN_OLD_ID:
-            case SITE_VISITKA_PLAN_OLD_ID:
-            case PLAN_PARKING_PLUS_ID_STRING:
-                return planManager.findByOldId(String.valueOf(PLAN_START_ID));
-
-            case PLAN_PARKING_ID_STRING:
-                return planManager.findByOldId(String.valueOf(PLAN_PARKING_DOMAINS_ID));
-
-            default:
-                return getArchivalFallbackPlan();
+        PlanFallback planFallback = planFallbackRepository.findOneByPlanId(currentPlan.getId());
+        if (planFallback != null) {
+            return planManager.findOne(planFallback.getFallbackPlanId());
+        } else {
+            return getArchivalFallbackPlan();
         }
     }
 
