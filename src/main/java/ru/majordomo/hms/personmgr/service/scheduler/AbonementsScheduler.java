@@ -1,7 +1,6 @@
 package ru.majordomo.hms.personmgr.service.scheduler;
 
 import lombok.AllArgsConstructor;
-import net.javacrumbs.shedlock.core.SchedulerLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,16 +27,15 @@ public class AbonementsScheduler {
     private final AbonementManager<AccountAbonement> accountAbonementManager;
 
     //Выполняем обработку абонементов с истекающим сроком действия в 00:32:00 каждый день
-    @SchedulerLock(name = "processExpiringAbonements")
     public void processExpiringAbonements() {
         logger.info("Started processExpiringAbonements");
-        List<String> personalAccountIds = accountManager.findAllNotDeletedAccountIds();
+        List<String> personalAccountIds = accountAbonementManager.findPersonalAccountIdsByExpiredBefore(LocalDateTime.now().plusDays(14));
+        logger.info("Found {} accounts with expiring next 14 days hosting abonements", personalAccountIds.size());
         personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountProcessExpiringAbonementsEvent(accountId)));
         logger.info("Ended processExpiringAbonements");
     }
 
     //Выполняем обработку абонементов на услуги с истекающим сроком действия в 00:42:00 каждый день
-    @SchedulerLock(name = "processExpiringServiceAbonements")
     public void processExpiringServiceAbonements() {
         logger.info("Started processExpiringServiceAbonements");
         List<String> personalAccountIds = accountManager.findAllNotDeletedAccountIds();
@@ -46,7 +44,6 @@ public class AbonementsScheduler {
     }
 
     //Выполняем обработку абонементов с истекающим сроком действия в 01:44:00 каждый день
-    @SchedulerLock(name = "processAbonementAutoRenew")
     public void processAbonementsAutoRenew() {
         logger.info("Started processAbonementsAutoRenew");
         List<String> personalAccountIds = accountAbonementManager.findPersonalAccountIdsByExpiredBefore(LocalDateTime.now());
@@ -56,7 +53,6 @@ public class AbonementsScheduler {
     }
 
     //Выполняем обработку абонементов с истекающим сроком действия в 01:54:00 каждый день
-    @SchedulerLock(name = "processServiceAbonementAutoRenew")
     public void processServiceAbonementsAutoRenew() {
         logger.info("Started processServiceAbonementsAutoRenew");
         List<String> personalAccountIds = accountManager.findAllNotDeletedAccountIds();
@@ -65,7 +61,6 @@ public class AbonementsScheduler {
     }
 
     //Выполняем отправку писем истекшим абонементом в 02:42:00 каждый день
-    @SchedulerLock(name = "processNotifyExpiredAbonements")
     public void processNotifyExpiredAbonements() {
         logger.info("Started processNotifyExpiredAbonements");
         List<String> personalAccountIds = accountManager.findAllNotDeletedAccountIds();
