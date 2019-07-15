@@ -56,4 +56,6 @@ public interface AbonementManager<T extends AccountAbonement> {
     void setAutorenew(String id, boolean autorenew);
 
     boolean existsByPersonalAccountIdAndExpiredAfter(String personalAccountId, LocalDateTime expired);
+
+    List<String> findPersonalAccountIdsByExpiredBefore(LocalDateTime expired);
 }

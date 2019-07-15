@@ -4,16 +4,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
+import ru.majordomo.hms.personmgr.dto.IdsContainer;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Component
@@ -160,6 +165,28 @@ public class AccountAbonementManagerImpl implements AbonementManager<AccountAbon
     @Override
     public boolean existsByPersonalAccountIdAndExpiredAfter(String personalAccountId, LocalDateTime expired) {
         return repository.existsByPersonalAccountIdAndExpiredAfter(personalAccountId, expired);
+    }
+
+    @Override
+    public List<String> findPersonalAccountIdsByExpiredBefore(LocalDateTime expired) {
+        List<IdsContainer> results = mongoOperations.aggregate(
+                Aggregation.newAggregation(
+                        Aggregation.match(
+                                Criteria.where("expired").lte(
+                                        Date.from(expired.toInstant(ZoneOffset.ofHours(3)))
+                                )
+                        ),
+                        Aggregation.group().addToSet("personalAccountId").as("ids")
+                ),
+                AccountAbonement.class,
+                IdsContainer.class
+        ).getMappedResults();
+
+        if (results.isEmpty() || results.get(0).getIds() == null) {
+            return new ArrayList<>();
+        } else {
+            return results.get(0).getIds();
+        }
     }
 
     private void checkById(String id) {

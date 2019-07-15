@@ -174,7 +174,7 @@ public class AbonementService {
      * @param account Аккаунт
      * @param accountAbonement абонемент аккаунта
      */
-    public void renewAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
+    private void renewAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
         Plan plan = getAccountPlan(account);
 
         ChargeMessage chargeMessage = new ChargeMessage.Builder(accountAbonement.getAbonement().getService())
@@ -298,70 +298,76 @@ public class AbonementService {
     }
 
     public void processAbonementsAutoRenewByAccount(PersonalAccount account) {
-        //В итоге нам нужно получить абонементы которые закончились сегодня и раньше
-        LocalDateTime expireEnd = LocalDateTime.now();
+        List<AccountAbonement> allAbonements = accountAbonementManager.findAllByPersonalAccountId(account.getId());
 
-        logger.debug("Trying to find all expired abonements before expireEnd: "
-                + expireEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-        );
+        if (account.getDeleted() != null) {
+            processExpiredAbonementsForDeletedAccount(account, allAbonements);
+        } else {
+            Optional<AccountAbonement> optionalExpiredAbonement = getOneExpiredBeforeAbonement(LocalDateTime.now(), allAbonements);
 
-        List<AccountAbonement> accountAbonements  = accountAbonementManager.findByPersonalAccountIdAndExpiredBefore(account.getId(), expireEnd);
+            if (optionalExpiredAbonement.isPresent()) {
+                AccountAbonement accountAbonement = optionalExpiredAbonement.get();
 
-        if (accountAbonements.isEmpty()) {
-            logger.debug("Not found expired abonements for accountId: " + account.getId());
-        }
-
-        //Ну вообще-то должен быть только один Абонемент)
-        accountAbonements.forEach(accountAbonement -> {
-            logger.debug("We found expired abonement: " + accountAbonement);
-
-            BigDecimal balance = accountHelper.getBalance(account);
-            BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
-            String currentExpired = accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-
-            Plan plan = getAccountPlan(account);
-
-            if (!accountAbonement.getAbonement().isInternal() && plan.isArchival()) {
-                processArchivalAbonement(account, accountAbonement);
-            } else if (!accountAbonement.getAbonement().isInternal() && accountAbonement.isAutorenew()) {
-                    logger.debug("Abonement has autorenew option enabled");
-
-                    if (balance.compareTo(abonementCost) >= 0) {
-                        logger.debug("Buying new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
-
-                        renewAbonement(account, accountAbonement);
-
-                        history.saveForOperatorService(account,
-                                "Автоматическое продление абонемента. Со счета аккаунта списано " +
-                                formatBigDecimalWithCurrency(abonementCost) +
-                                " Новый срок окончания: " + accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-                    } else {
-                        logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
-
-                        //Удаляем абонемент и включаем услуги хостинга по тарифу
-                        processAccountAbonementDelete(account, accountAbonement);
-
-                        history.saveForOperatorService(account, "Абонемент удален, так как средств на счету аккаунта не достаточно. Стоимость абонемента: " +
-                                formatBigDecimalWithCurrency(abonementCost) +
-                                " Баланс: " + formatBigDecimalWithCurrency(balance) +
-                                " Дата окончания: " + currentExpired
-                        );
-
-                        //Сохраним "на будущее" установку автопокупки абонемента
-                        publisher.publishEvent(new AccountSetSettingEvent(account, AccountSetting.ABONEMENT_AUTO_RENEW, true));
-                    }
+                if (allAbonements.size() > 1) {
+                    processMoreThanOneAbonements(accountAbonement, allAbonements);
+                } else {
+                    processLastAbonement(account, accountAbonement);
+                }
             } else {
-                // Если абонемент бонусный (internal)
+                logger.error("Not found expired hosting abonement on account {}, abonements: {}",
+                        account.getId(), allAbonements);
+            }
+        }
+    }
+
+    private void processLastAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
+        logger.debug("We found expired abonement: " + accountAbonement);
+
+        BigDecimal balance = accountHelper.getBalance(account);
+        BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
+        String currentExpired = accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+
+        Plan plan = getAccountPlan(account);
+
+        if (!accountAbonement.getAbonement().isInternal() && plan.isArchival()) {
+            processArchivalAbonement(account, accountAbonement);
+        } else if (!accountAbonement.getAbonement().isInternal() && accountAbonement.isAutorenew()) {
+            logger.debug("Abonement has autorenew option enabled");
+
+            if (balance.compareTo(abonementCost) >= 0) {
+                logger.debug("Buying new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
+
+                renewAbonement(account, accountAbonement);
+
+                history.save(account, "Автоматическое продление абонемента. Со счета аккаунта списано " +
+                        formatBigDecimalWithCurrency(abonementCost) + " Новый срок окончания: "
+                        + accountAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+            } else {
+                logger.debug("Account balance is too low to buy new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
 
                 //Удаляем абонемент и включаем услуги хостинга по тарифу
                 processAccountAbonementDelete(account, accountAbonement);
 
-                history.saveForOperatorService(
-                        account,
-                        "Бонусный абонемент удален. Обычный абонемент не был предзаказн. Дата окончания: " + currentExpired
+                history.save(account, "Абонемент удален, так как средств на счету аккаунта не достаточно. " +
+                        "Стоимость абонемента: " + formatBigDecimalWithCurrency(abonementCost) +
+                        " Баланс: " + formatBigDecimalWithCurrency(balance) +
+                        " Дата окончания: " + currentExpired
                 );
+
+                //Сохраним "на будущее" установку автопокупки абонемента
+                publisher.publishEvent(new AccountSetSettingEvent(account, AccountSetting.ABONEMENT_AUTO_RENEW, true));
             }
-        });
+        } else {
+            // Если абонемент бонусный (internal)
+
+            //Удаляем абонемент и включаем услуги хостинга по тарифу
+            processAccountAbonementDelete(account, accountAbonement);
+
+            history.saveForOperatorService(
+                    account,
+                    "Бонусный абонемент удален. Обычный абонемент не был предзаказн. Дата окончания: " + currentExpired
+            );
+        }
     }
 
     private void processArchivalAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
@@ -381,7 +387,7 @@ public class AbonementService {
         }
     }
 
-    public void defaultProcessArchival(PersonalAccount account) {
+    private void defaultProcessArchival(PersonalAccount account) {
         accountHelper.changeArchivalPlanToActive(account);
 
         history.saveForOperatorService(account, "Архивный тариф, абонемент удален");
@@ -666,5 +672,42 @@ public class AbonementService {
         }
 
         return info;
+    }
+
+    private void processExpiredAbonementsForDeletedAccount(PersonalAccount account, List<AccountAbonement> all) {
+        LocalDateTime now = LocalDateTime.now();
+        for (AccountAbonement accountAbonement : all) {
+            if (accountAbonement.getExpired().isBefore(now)) {
+                accountAbonementManager.delete(accountAbonement);
+                all.remove(accountAbonement);
+            }
+        }
+        if (all.isEmpty()) {
+            accountServiceHelper.addAccountService(account, getAccountPlan(account).getServiceId());
+        } else {
+            AccountAbonement next = all.get(0);
+            accountAbonementManager.setExpired(next.getId(), now.plus(Period.parse(next.getAbonement().getPeriod())));
+        }
+    }
+
+    private void processMoreThanOneAbonements(AccountAbonement currentAbonement, List<AccountAbonement> allAbonements) {
+        allAbonements.remove(currentAbonement);
+        AccountAbonement next = allAbonements.get(0);
+        accountAbonementManager.delete(currentAbonement);
+        accountAbonementManager.setExpired(
+                next.getId(), LocalDateTime.now().plus(Period.parse(next.getAbonement().getPeriod()))
+        );
+    }
+
+    private Optional<AccountAbonement> getOneExpiredBeforeAbonement(
+            LocalDateTime expiredBefore, List<AccountAbonement> allAbonements
+    ) {
+        logger.debug("Trying to find all expired abonements before expireEnd: "
+                + expiredBefore.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        );
+
+        return allAbonements.stream()
+                .filter(a -> a.getExpired() != null && a.getExpired().isBefore(expiredBefore))
+                .min(Comparator.comparing(AccountAbonement::getExpired));
     }
 }
