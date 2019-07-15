@@ -4,7 +4,6 @@ import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.service.ChargeMessage;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -108,18 +107,9 @@ public class RegularToRegular extends Processor {
         if (newAbonementRequired) {
             if (freeTestAbonementExpired != null) {
                 addFreeTestAbonement(freeTestAbonementExpired);
-                return;
+            } else {
+                chargeAndAddAbonement(account, newPlan, ignoreRestricts);
             }
-
-            Abonement abonement = newPlan.getNotInternalAbonement();
-
-            ChargeMessage chargeMessage = new ChargeMessage.Builder(abonement.getService())
-                    .setForceCharge(ignoreRestricts)
-                    .build();
-
-            accountHelper.charge(account, chargeMessage);
-            addAccountAbonement(abonement);
-
         } else {
             addPlanService();
         }
