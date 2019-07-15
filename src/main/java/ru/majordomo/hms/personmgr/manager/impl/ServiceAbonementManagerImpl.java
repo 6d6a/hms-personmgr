@@ -162,6 +162,11 @@ public class ServiceAbonementManagerImpl implements AbonementManager<AccountServ
         return repository.existsByPersonalAccountIdAndExpiredAfter(personalAccountId, expired);
     }
 
+    @Override
+    public List<String> findPersonalAccountIdsByExpiredBefore(LocalDateTime expired) {
+        return null;
+    }
+
     private void checkById(String id) {
         if (!exists(id)) {
             throw new ResourceNotFoundException("ServiceAbonement с id: " + id + " не найден");

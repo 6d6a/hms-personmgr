@@ -1,37 +1,31 @@
 package ru.majordomo.hms.personmgr.service.scheduler;
 
+import lombok.AllArgsConstructor;
 import net.javacrumbs.shedlock.core.SchedulerLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import ru.majordomo.hms.personmgr.event.account.*;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
+import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 
 @Component
+@AllArgsConstructor
 public class AbonementsScheduler {
     private final static Logger logger = LoggerFactory.getLogger(AbonementsScheduler.class);
 
     private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
     private final AccountHelper accountHelper;
-
-    @Autowired
-    public AbonementsScheduler(
-            PersonalAccountManager accountManager,
-            ApplicationEventPublisher publisher,
-            AccountHelper accountHelper
-    ) {
-        this.accountManager = accountManager;
-        this.publisher = publisher;
-        this.accountHelper = accountHelper;
-    }
+    private final AbonementManager<AccountAbonement> accountAbonementManager;
 
     //Выполняем обработку абонементов с истекающим сроком действия в 00:32:00 каждый день
     @SchedulerLock(name = "processExpiringAbonements")
@@ -55,7 +49,8 @@ public class AbonementsScheduler {
     @SchedulerLock(name = "processAbonementAutoRenew")
     public void processAbonementsAutoRenew() {
         logger.info("Started processAbonementsAutoRenew");
-        List<String> personalAccountIds = accountManager.findAllNotDeletedAccountIds();
+        List<String> personalAccountIds = accountAbonementManager.findPersonalAccountIdsByExpiredBefore(LocalDateTime.now());
+        logger.info("Found {} accounts with expired hosting abonements", personalAccountIds.size());
         personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountProcessAbonementsAutoRenewEvent(accountId)));
         logger.info("Ended processAbonementsAutoRenew");
     }
