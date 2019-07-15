@@ -217,6 +217,10 @@ public class AbonementService {
     }
 
     public void processExpiringAbonementsByAccount(PersonalAccount account) {
+        if (account.getDeleted() != null) {
+            logger.info("processExpiringAbonementsByAccount: account {} is deleted, return");
+            return;
+        }
         //В итоге нам нужно получить абонементы которые заканчиваются через 14 дней и раньше
         LocalDateTime expireEnd = LocalDateTime.now().with(FOURTEEN_DAYS_AFTER);
 
