@@ -1,9 +1,7 @@
 package ru.majordomo.hms.personmgr.service.PlanChange;
 
-import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.service.ChargeMessage;
 
 import java.math.BigDecimal;
 
@@ -36,15 +34,7 @@ public class RegularToAbonementOnly extends Processor {
     @Override
     void addServices() {
         if (newAbonementRequired) {
-            Abonement abonement = newPlan.getNotInternalAbonement();
-
-            ChargeMessage chargeMessage = new ChargeMessage.Builder(abonement.getService())
-                    .setForceCharge(ignoreRestricts)
-                    .build();
-
-            accountHelper.charge(account, chargeMessage);
-
-            addAccountAbonement(abonement);
+            chargeAndAddAbonement(account, newPlan, ignoreRestricts);
         }
     }
 

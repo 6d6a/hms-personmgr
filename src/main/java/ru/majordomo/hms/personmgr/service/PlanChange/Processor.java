@@ -27,6 +27,8 @@ import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.service.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
@@ -35,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.lang.Math.floor;
+import static java.time.temporal.ChronoUnit.DAYS;
 import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.Utils.planLimitsComparator;
@@ -694,5 +697,58 @@ public abstract class Processor {
             accountManager.setCredit(account.getId(), false);
             history.save(account.getId(), "Для аккаунта отключен кредит в связи с переходом на тариф с обязательным абонементом", operator);
         }
+    }
+
+    protected BigDecimal calcCashBackAmountForAbonementOnlyToAny(AccountAbonement currentAccountAbonement) {
+        if (currentAccountAbonement == null || currentAccountAbonement.getAbonement().isInternal()) {
+            return BigDecimal.ZERO;
+        }
+
+        if (currentAccountAbonement.getExpired().isAfter(LocalDateTime.now())) {
+            long remainingDays = DAYS.between(LocalDateTime.now(), currentAccountAbonement.getExpired());
+
+            //Длительность абонемента в днях
+            Period abonementPeriod = Period.parse(currentAccountAbonement.getAbonement().getPeriod());
+            LocalDate now = LocalDate.now();
+            BigDecimal durationAbonementInDays = BigDecimal.valueOf(DAYS.between(now, now.plus(abonementPeriod)));
+
+            //Получим стоимость тарифа в день с точностью до семи знаков, округляя в меньшую сторону
+            BigDecimal dayCost =
+                    currentAccountAbonement
+                            .getAbonement()
+                            .getService()
+                            .getCost()
+                            .divide(durationAbonementInDays, 7, RoundingMode.DOWN);
+
+            BigDecimal remainedServiceCost = (BigDecimal.valueOf(remainingDays)).multiply(dayCost);
+            //Округлим до двух знаков в большую сторону
+            remainedServiceCost = remainedServiceCost.setScale(2, RoundingMode.HALF_UP);
+
+            //Не можем вернуть отрицательное количество неиспользованных средств
+            if (remainedServiceCost.compareTo(BigDecimal.ZERO) > 0) {
+                return remainedServiceCost;
+            }
+        }
+
+        return BigDecimal.ZERO;
+    }
+
+    protected void addServiceForAbonementOnlyToAnyNotDecline(PersonalAccount account, Plan newPlan, boolean newAbonementRequired, boolean ignoreRestricts) {
+        if (newAbonementRequired) {
+            chargeAndAddAbonement(account, newPlan, ignoreRestricts);
+        } else {
+            addPlanService();
+        }
+    }
+
+    protected void chargeAndAddAbonement(PersonalAccount account, Plan newPlan, boolean ignoreRestricts) {
+        Abonement abonement = newPlan.getNotInternalAbonement();
+
+        ChargeMessage chargeMessage = new ChargeMessage.Builder(abonement.getService())
+                .setForceCharge(ignoreRestricts)
+                .build();
+
+        accountHelper.charge(account, chargeMessage);
+        addAccountAbonement(abonement);
     }
 }

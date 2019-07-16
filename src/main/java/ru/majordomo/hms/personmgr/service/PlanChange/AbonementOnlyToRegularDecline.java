@@ -4,14 +4,10 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
 public class AbonementOnlyToRegularDecline extends AbonementOnlyToRegular {
-    private boolean refund = true;
-
-    AbonementOnlyToRegularDecline(PersonalAccount account) {
-        super(account, null);
-    }
+    private final boolean refund;
 
     AbonementOnlyToRegularDecline(PersonalAccount account, boolean refund) {
-        this(account);
+        super(account, null);
         this.refund = refund;
     }
 
