@@ -250,6 +250,14 @@ public class ArchivalPlanProcessor {
                 .stream()
                 .filter(n -> n.getWillBeChangedAfter().isBefore(LocalDate.now()))
                 .forEach(this::processDeferredPlanChange);
+
+        example.setViewed(true);
+
+        accountNoticeRepository
+                .findAll(Example.of(example))
+                .stream()
+                .filter(n -> n.getWillBeChangedAfter().isBefore(LocalDate.now()))
+                .forEach(this::processDeferredPlanChange);
     }
 
     private void processDeferredPlanChange(DeferredPlanChangeNotice notice) {
