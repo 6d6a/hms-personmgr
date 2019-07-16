@@ -221,25 +221,24 @@ public class AbonementService {
             logger.info("processExpiringAbonementsByAccount: account {} is deleted, return");
             return;
         }
-        //В итоге нам нужно получить абонементы которые заканчиваются через 14 дней и раньше
-        LocalDateTime expireEnd = LocalDateTime.now().with(FOURTEEN_DAYS_AFTER);
 
-        logger.debug("Trying to find all expiring abonements before expireEnd: "
-                + expireEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        List<AccountAbonement> allAbonements = accountAbonementManager.findAllByPersonalAccountId(account.getId());
+
+        Optional<AccountAbonement> optionalExpiredAbonement = getOneExpiredBeforeAbonement(
+                LocalDateTime.now().with(FOURTEEN_DAYS_AFTER), allAbonements
         );
 
-        List<AccountAbonement> accountAbonements  = accountAbonementManager.findByPersonalAccountIdAndExpiredBefore(account.getId(), expireEnd);
+        if (optionalExpiredAbonement.isPresent()) {
+            AccountAbonement current = optionalExpiredAbonement.get();
 
-        //Ну вообще-то должен быть только один Абонемент)
-        accountAbonements.forEach(accountAbonement -> {
-            if (accountAbonement.getAbonement() == null
-                    || accountAbonement.getAbonement().getService() == null
-                    || accountAbonement.getAbonement().getService().getCost() == null) {
-                logger.error("We found accountAbonement with null abonement or service or cost: " + accountAbonement);
-                return;
+            LocalDateTime expired = current.getExpired();
+
+            for (AccountAbonement abonement : allAbonements) {
+                if (!abonement.getId().equals(current.getId())) {
+                    expired = expired.plus(Period.parse(abonement.getAbonement().getPeriod()));
+                }
             }
 
-            LocalDateTime expired = accountAbonement.getExpired();
             long daysToExpired = DAYS.between(LocalDateTime.now(), expired);
 
             boolean isDayForSms = Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_SMS_SEND).contains(daysToExpired);
@@ -247,21 +246,30 @@ public class AbonementService {
             boolean isDayForEmail = Arrays.asList(DAYS_FOR_ABONEMENT_EXPIRED_EMAIL_SEND).contains(daysToExpired);
 
             if (!isDayForEmail && !isDayForSms) {
-                logger.info("not need send email or sms: account {} abonement {} expired {}",
-                        account.getName(), accountAbonement.getAbonement().getName(), expired
-                );
+                logger.info("not need send email or sms: account {} expired {} daysToExpired {}",
+                        account.getName(), expired, daysToExpired);
                 return;
             }
 
-            BigDecimal abonementCost = accountAbonement.getAbonement().getService().getCost();
+            Optional<AccountAbonement> lastAbonement = allAbonements.stream()
+                    .max(Comparator.comparing(AccountAbonement::getCreated));
 
-            logger.debug("We found expiring abonement: " + accountAbonement);
+            boolean isAutoRenew = lastAbonement.isPresent() && lastAbonement.get().isAutorenew();
+
+            Plan plan = planManager.findOne(account.getPlanId());
+
+            BigDecimal defaultP1YAbonementCost = plan.getDefaultP1YAbonementCost();
+
+            //todo стоимость абонемента может быть 0, например, если это тестовый или бонусный абонемент
+            //но у бонусных абонементов не может быть включено автопродление
+            BigDecimal abonementCost = lastAbonement.isPresent()
+                    ? lastAbonement.get().getAbonement().getService().getCost()
+                    : defaultP1YAbonementCost;
 
             BigDecimal balance = accountHelper.getBalance(account);
 
             // Высчитываем предполагаемую месячную стоимость аккаунта
             int daysInCurrentMonth = LocalDateTime.now().toLocalDate().lengthOfMonth();
-            Plan plan = planManager.findOne(account.getPlanId());
             PaymentService planAccountService = plan.getService();
             BigDecimal monthCost = planAccountService.getCost();
 
@@ -280,25 +288,28 @@ public class AbonementService {
                 }
             }
 
+            //todo добавить дневные списания на daysToExpired дней, иначе с посуточными услугами может не хватить на следующий абонемент
             boolean notEnoughMoneyForAbonement = balance.compareTo(abonementCost) < 0;
 
             if (isDayForEmail) {
                 if (plan.isArchival()) {
-                    accountNotificationHelper.sendArchivalAbonementExpiring(account, balance, abonementCost, expired);
+                    accountNotificationHelper.sendArchivalAbonementExpiring(account, balance, defaultP1YAbonementCost, expired);
                 } else if (notEnoughMoneyForAbonement) {
                     if (plan.isAbonementOnly() || balance.compareTo(monthCost) < 0) {
-                        accountNotificationHelper.sendHostingAbonementNoMoneyToProlong(account, balance, abonementCost, expired);
+                        accountNotificationHelper.sendHostingAbonementNoMoneyToProlong(account, balance, defaultP1YAbonementCost, expired);
                     }
                 }
             }
 
-            if (!accountAbonement.isAutorenew() || notEnoughMoneyForAbonement) {
-                if (isDayForSms && accountNotificationHelper.isSubscribedToSmsType(account, SMS_ABONEMENT_EXPIRING))
-                {
+            if (!isAutoRenew || notEnoughMoneyForAbonement) {
+                if (isDayForSms && accountNotificationHelper.isSubscribedToSmsType(account, SMS_ABONEMENT_EXPIRING)) {
                     accountNotificationHelper.sendSmsVhAbonementExpiring(account, daysToExpired);
                 }
             }
-        });
+        } else {
+            logger.error("Not found expired hosting abonement on account {}, abonements: {}",
+                    account.getId(), allAbonements);
+        }
     }
 
     public void processAbonementsAutoRenewByAccount(PersonalAccount account) {
