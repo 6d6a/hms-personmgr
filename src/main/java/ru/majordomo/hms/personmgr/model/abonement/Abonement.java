@@ -34,4 +34,6 @@ public class Abonement extends BaseModel {
 
     @Transient
     private PaymentService service;
+
+    private boolean trial;
 }
