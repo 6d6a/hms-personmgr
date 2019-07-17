@@ -25,7 +25,7 @@ public class AbonementOnlyToRegularDecline extends AbonementOnlyToRegular {
 
     @Override
     void deleteServices() {
-        if (currentAccountAbonement == null) {
+        if (currentAccountAbonements.isEmpty()) {
             return;
         }
 

@@ -118,6 +118,11 @@ public class AccountAbonementManagerImpl implements AbonementManager<AccountAbon
     }
 
     @Override
+    public boolean existsByPersonalAccountId(String personalAccountId) {
+        return repository.existsByPersonalAccountId(personalAccountId);
+    }
+
+    @Override
     public void deleteByPersonalAccountId(String personalAccountId) {
         repository.deleteByPersonalAccountId(personalAccountId);
     }

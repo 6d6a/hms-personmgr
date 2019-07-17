@@ -27,17 +27,13 @@ import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.service.*;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.lang.Math.floor;
-import static java.time.temporal.ChronoUnit.DAYS;
 import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.Utils.planLimitsComparator;
@@ -64,7 +60,7 @@ public abstract class Processor {
     protected final PersonalAccount account;
     protected Plan currentPlan;
     protected final Plan newPlan;
-    protected AccountAbonement currentAccountAbonement;
+    protected List<AccountAbonement> currentAccountAbonements;
     protected Boolean newAbonementRequired;
     private BigDecimal cashBackAmount;
     private PlanChangeAgreement requestPlanChangeAgreement;
@@ -110,7 +106,7 @@ public abstract class Processor {
 
     void postConstruct() {
         this.currentPlan = planManager.findOne(account.getPlanId());
-        this.currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+        this.currentAccountAbonements = accountAbonementManager.findAllByPersonalAccountId(account.getId());
         this.cashBackAmount = calcCashBackAmount();
         this.newAbonementRequired = needToAddAbonement();
     }
@@ -197,8 +193,9 @@ public abstract class Processor {
             planChangeAgreement.setBalanceChanges(true);
         }
 
+        Boolean hasFreeTestAbonement = hasOnlyFreeTestAbonement();
         // На бесплатном тестовом абонементе можно менять тариф туда сюда без ограничений
-        if (!hasFreeTestAbonement()) {
+        if (!hasFreeTestAbonement) {
             if (!ignoreRestricts) {
                 // С бизнеса можно только на бизнес
                 if (!checkBusinessPlan(planChangeAgreement)) {
@@ -207,10 +204,6 @@ public abstract class Processor {
 
                 // Если есть абонемент - можно перейти только на тариф большей ежемесячной стоимостью
                 if (!checkPlanCostWithActiveAbonement(planChangeAgreement)) {
-                    return planChangeAgreement;
-                }
-
-                if (!checkBonusAbonements(planChangeAgreement)) {
                     return planChangeAgreement;
                 }
 
@@ -228,22 +221,35 @@ public abstract class Processor {
         }
 
         if (
-            (hasFreeTestAbonement() && newPlan.getFree14DaysAbonement() == null)
+            (hasFreeTestAbonement && newPlan.getFree14DaysAbonement() == null)
             ||
-            (!hasFreeTestAbonement() && newAbonementRequired)
+            (!hasFreeTestAbonement && newAbonementRequired)
         ) {
             planChangeAgreement.setBalanceChanges(true);
 
-            if (newBalanceAfterCashBack.compareTo(newPlan.getNotInternalAbonement().getService().getCost()) < 0) {
-                // Денег на новый абонемент не хватает
-                planChangeAgreement.setNeedToFeelBalance(
-                        newPlan.getNotInternalAbonement().getService().getCost().subtract(newBalanceAfterCashBack)
-                );
-            }
+            Optional<Abonement> newNotInternalAbonement = getNotInternalAbonementAfterChangePlan();
 
-            planChangeAgreement.setBalanceAfterOperation(
-                    newBalanceAfterCashBack.subtract(newPlan.getNotInternalAbonement().getService().getCost())
-            );
+            if (newNotInternalAbonement.isPresent()) {
+
+                BigDecimal newAbonementCost = newNotInternalAbonement.get().getService().getCost();
+
+                if (newBalanceAfterCashBack.compareTo(newAbonementCost) < 0) {
+                    // Денег на новый абонемент не хватает
+                    planChangeAgreement.setNeedToFeelBalance(
+                            newAbonementCost.subtract(newBalanceAfterCashBack)
+                    );
+                }
+
+                planChangeAgreement.setBalanceAfterOperation(
+                        newBalanceAfterCashBack.subtract(newAbonementCost)
+                );
+            } else {
+                //Пока тарифов без абонементов нет
+                planChangeAgreement.addError(
+                        "На новом тарифе не найден подходящий абонемент, для смены тарифа дождитесь окончания абонемента"
+                );
+                return planChangeAgreement;
+            }
         }
 
         // Лимиты Database
@@ -335,23 +341,11 @@ public abstract class Processor {
     // ПРОВЕРКИ
 
     /**
-     * Проверка наличия бонусных абонементов
+     * Проверка является ли абонемент бесплатным тестовым и один ли он
      */
-    private Boolean checkBonusAbonements(PlanChangeAgreement planChangeAgreement) {
-        if (currentAccountAbonement != null && currentAccountAbonement.getAbonement().isInternal()) {
-            planChangeAgreement.addError("Для смены тарифного плана вам необходимо приобрести абонемент на " +
-                    "текущий тарифный план сроком на 1 год или дождаться окончания бесплатного абонемента");
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    /**
-     * Проверка является ли абонемент бесплатным тестовым
-     */
-    Boolean hasFreeTestAbonement() {
-        return currentAccountAbonement != null && currentAccountAbonement.getAbonement().getPeriod().equals("P14D");
+    Boolean hasOnlyFreeTestAbonement() {
+        return currentAccountAbonements.size() == 1 && currentAccountAbonements.stream()
+                .allMatch(a -> a.getAbonement().getPeriod().equals("P14D") && a.getAbonement().isInternal());
     }
 
     /**
@@ -377,7 +371,7 @@ public abstract class Processor {
         return accountOwner != null &&
                 (accountOwner.getType().equals(AccountOwner.Type.COMPANY)
                         || accountOwner.getType().equals(AccountOwner.Type.BUDGET_COMPANY))
-                && currentAccountAbonement != null
+                && !currentAccountAbonements.isEmpty()
                 && newAbonementRequired;
     }
 
@@ -391,7 +385,7 @@ public abstract class Processor {
     }
 
     private Boolean checkPlanCostWithActiveAbonement(PlanChangeAgreement planChangeAgreement) {
-        if (accountAbonementManager.findByPersonalAccountId(account.getId()) != null
+        if (accountAbonementManager.existsByPersonalAccountId(account.getId())
                 && newPlan.getService().getCost().compareTo(currentPlan.getService().getCost()) < 0) {
             planChangeAgreement.addError("Переход на тарифный план с меньшей стоимостью при активном абонементе невозможен");
             return false;
@@ -699,50 +693,12 @@ public abstract class Processor {
         }
     }
 
-    protected BigDecimal calcCashBackAmountForAbonementOnlyToAny(AccountAbonement currentAccountAbonement) {
-        if (currentAccountAbonement == null || currentAccountAbonement.getAbonement().isInternal()) {
-            return BigDecimal.ZERO;
-        }
-
-        if (currentAccountAbonement.getExpired().isAfter(LocalDateTime.now())) {
-            long remainingDays = DAYS.between(LocalDateTime.now(), currentAccountAbonement.getExpired());
-
-            //Длительность абонемента в днях
-            Period abonementPeriod = Period.parse(currentAccountAbonement.getAbonement().getPeriod());
-            LocalDate now = LocalDate.now();
-            BigDecimal durationAbonementInDays = BigDecimal.valueOf(DAYS.between(now, now.plus(abonementPeriod)));
-
-            //Получим стоимость тарифа в день с точностью до семи знаков, округляя в меньшую сторону
-            BigDecimal dayCost =
-                    currentAccountAbonement
-                            .getAbonement()
-                            .getService()
-                            .getCost()
-                            .divide(durationAbonementInDays, 7, RoundingMode.DOWN);
-
-            BigDecimal remainedServiceCost = (BigDecimal.valueOf(remainingDays)).multiply(dayCost);
-            //Округлим до двух знаков в большую сторону
-            remainedServiceCost = remainedServiceCost.setScale(2, RoundingMode.HALF_UP);
-
-            //Не можем вернуть отрицательное количество неиспользованных средств
-            if (remainedServiceCost.compareTo(BigDecimal.ZERO) > 0) {
-                return remainedServiceCost;
-            }
-        }
-
-        return BigDecimal.ZERO;
-    }
-
-    protected void addServiceForAbonementOnlyToAnyNotDecline(PersonalAccount account, Plan newPlan, boolean newAbonementRequired, boolean ignoreRestricts) {
-        if (newAbonementRequired) {
-            chargeAndAddAbonement(account, newPlan, ignoreRestricts);
-        } else {
-            addPlanService();
-        }
-    }
-
-    protected void chargeAndAddAbonement(PersonalAccount account, Plan newPlan, boolean ignoreRestricts) {
-        Abonement abonement = newPlan.getNotInternalAbonement();
+    /**
+     * Абонемент должен быть, иначе сломалось бы на
+     * @see Processor().getPlanChangeAgreement()
+     */
+    final void buyNotInternalAbonement() {
+        Abonement abonement = getNotInternalAbonementAfterChangePlan().get();
 
         ChargeMessage chargeMessage = new ChargeMessage.Builder(abonement.getService())
                 .setForceCharge(ignoreRestricts)
@@ -750,5 +706,31 @@ public abstract class Processor {
 
         accountHelper.charge(account, chargeMessage);
         addAccountAbonement(abonement);
+    }
+
+    private Optional<Abonement> getNotInternalAbonementAfterChangePlan() {
+        LocalDate now = LocalDate.now();
+
+        Optional<String> preferablePeriod = currentAccountAbonements.stream()
+                .filter(a -> !a.getAbonement().isInternal())
+                .max(Comparator.comparing(a ->
+                    a.getExpired() != null
+                            ? a.getExpired().toLocalDate()
+                            : now.plus(Period.parse(a.getAbonement().getPeriod()))
+                ))
+                .map(a -> a.getAbonement().getPeriod());
+
+        if (preferablePeriod.isPresent()) {
+            String period = preferablePeriod.get();
+            for (Abonement abonement : newPlan.getAbonements()) {
+                if (!abonement.isInternal() && abonement.getPeriod().equals(period)) {
+                    return Optional.of(abonement);
+                }
+            }
+        }
+
+        return newPlan.getAbonements().stream()
+                .filter(a -> !a.isInternal())
+                .max(Comparator.comparing(a -> now.plus(Period.parse(a.getPeriod()))));
     }
 }

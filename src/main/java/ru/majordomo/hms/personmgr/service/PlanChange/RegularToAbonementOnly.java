@@ -24,7 +24,7 @@ public class RegularToAbonementOnly extends Processor {
 
     @Override
     void deleteServices() {
-        if (currentAccountAbonement == null) {
+        if (currentAccountAbonements.isEmpty()) {
             deletePlanService();
         } else {
             deleteAbonements();
@@ -34,7 +34,7 @@ public class RegularToAbonementOnly extends Processor {
     @Override
     void addServices() {
         if (newAbonementRequired) {
-            chargeAndAddAbonement(account, newPlan, ignoreRestricts);
+            buyNotInternalAbonement();
         }
     }
 
