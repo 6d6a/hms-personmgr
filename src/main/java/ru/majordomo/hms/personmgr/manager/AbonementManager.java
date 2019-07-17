@@ -41,6 +41,8 @@ public interface AbonementManager<T extends AccountAbonement> {
 
     List<T> findAllByPersonalAccountId(String personalAccountId);
 
+    boolean existsByPersonalAccountId(String personalAccountId);
+
     void deleteByPersonalAccountId(String personalAccountId);
 
     Page<T> findByPersonalAccountId(String personalAccountId, Pageable pageable);

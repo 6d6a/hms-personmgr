@@ -20,4 +20,5 @@ public interface AccountAbonementRepository extends MongoRepository<AccountAbone
     List<AccountAbonement> findByPersonalAccountIdAndAbonementIdIn(String personalAccountId, List<String> abonementIds);
     void deleteByPersonalAccountId(String personalAccountId);
     boolean existsByPersonalAccountIdAndExpiredAfter(String personalAccountId, LocalDateTime expired);
+    boolean existsByPersonalAccountId(String personalAccountId);
 }

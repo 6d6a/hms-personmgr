@@ -4,11 +4,11 @@ import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.service.PlanChange.behavior.CashBackCalculator;
+import ru.majordomo.hms.personmgr.service.PlanChange.behavior.RegularToRegularCashBackCalculator;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.Period;
 
 public class RegularToRegular extends Processor {
 
@@ -20,80 +20,27 @@ public class RegularToRegular extends Processor {
 
     @Override
     public Boolean needToAddAbonement() {
-        return currentAccountAbonement != null;
+        return !currentAccountAbonements.isEmpty();
     }
 
+    // результат может быть как отрицательный (будет списано), так и положительный (будет начислено)
     @Override
     public BigDecimal calcCashBackAmount() {
-        if (currentAccountAbonement == null || hasFreeTestAbonement() || currentAccountAbonement.getAbonement().isInternal()) {
-            return BigDecimal.ZERO;
-        }
+        CashBackCalculator<AccountAbonement> cashBackCalculator = new RegularToRegularCashBackCalculator(currentPlan);
 
-        BigDecimal total = BigDecimal.ZERO;
-        BigDecimal delta;
-        BigDecimal currentPlanCost = currentPlan.getService().getCost();
-
-        Period abonementPeriod = Period.parse(currentAccountAbonement.getAbonement().getPeriod());
-
-        LocalDate accountAbonementCreated = currentAccountAbonement.getCreated().toLocalDate();
-        LocalDate accountAbonementExpired = currentAccountAbonement.getExpired().toLocalDate();
-
-        // Если смена тарифа с абонементом в тот же день, что он был куплен - возвращаем полную стоимость
-        if (accountAbonementCreated.isEqual(LocalDate.now())) {
-            LocalDate nextDate = accountAbonementExpired; // первая дата для начала пересчета АБ
-
-            long abonementCount = 0;
-
-            //Вычитаем по одному абонементу пока не получим первую дату до текущей, с неё будем начинать расчет
-            while (!nextDate.isEqual(accountAbonementCreated) && nextDate.isAfter(accountAbonementCreated)) {
-                nextDate = nextDate.minus(abonementPeriod);
-                abonementCount++;
-            }
-
-            delta = currentAccountAbonement
-                    .getAbonement()
-                    .getService()
-                    .getCost()
-                    .multiply(BigDecimal.valueOf(abonementCount));
-        } else {
-            LocalDate nextDate = accountAbonementExpired; // первая дата для начала пересчета АБ
-            LocalDate stopDate = LocalDate.now(); // дата окончания пересчета абонемента
-
-            long abonementCount = 0;
-
-            //Вычитаем по одному абонементу пока не получим первую дату до текущей, с неё будем начинать расчет
-            while (nextDate.isAfter(stopDate)) {
-                nextDate = nextDate.minus(abonementPeriod);
-                abonementCount++;
-            }
-
-            while (stopDate.isAfter(nextDate)) {
-                Integer daysInMonth = nextDate.lengthOfMonth();
-                total = total.add(currentPlanCost.divide(BigDecimal.valueOf(daysInMonth), 4, BigDecimal.ROUND_HALF_UP));
-                nextDate = nextDate.plusDays(1L);
-            }
-
-            delta = (currentAccountAbonement.
-                    getAbonement()
-                    .getService()
-                    .getCost()
-                    .multiply(BigDecimal.valueOf(abonementCount))
-            ).subtract(total);
-        }
-
-        // delta может быть как отрицательной (будет списано), так и положительной (будет начислено)
-        return delta;
+        return currentAccountAbonements.stream().map(cashBackCalculator::calc)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     @Override
     void deleteServices() {
-        if (currentAccountAbonement == null) {
+        if (currentAccountAbonements.isEmpty()) {
             deletePlanService();
             return;
         }
 
-        if (hasFreeTestAbonement()) {
-            freeTestAbonementExpired = currentAccountAbonement.getExpired();
+        if (hasOnlyFreeTestAbonement()) {
+            freeTestAbonementExpired = currentAccountAbonements.get(0).getExpired();
             deleteAbonements();
             return;
         }
@@ -108,7 +55,7 @@ public class RegularToRegular extends Processor {
             if (freeTestAbonementExpired != null) {
                 addFreeTestAbonement(freeTestAbonementExpired);
             } else {
-                chargeAndAddAbonement(account, newPlan, ignoreRestricts);
+                buyNotInternalAbonement();
             }
         } else {
             addPlanService();

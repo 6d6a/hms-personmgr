@@ -25,4 +25,5 @@ public interface ServiceAbonementRepository extends MongoRepository<AccountServi
 
     void deleteByPersonalAccountId(String personalAccountId);
     boolean existsByPersonalAccountIdAndExpiredAfter(String personalAccountId, LocalDateTime expired);
+    boolean existsByPersonalAccountId(String personalAccountId);
 }

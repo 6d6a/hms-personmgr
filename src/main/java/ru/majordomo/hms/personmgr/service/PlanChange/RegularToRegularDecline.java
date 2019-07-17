@@ -6,12 +6,8 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 public class RegularToRegularDecline extends RegularToRegular {
     private boolean refund = true;
 
-    RegularToRegularDecline(PersonalAccount account) {
-        super(account, null);
-    }
-
     RegularToRegularDecline(PersonalAccount account, boolean refund) {
-        this(account);
+        super(account, null);
         this.refund = refund;
     }
 
@@ -29,12 +25,7 @@ public class RegularToRegularDecline extends RegularToRegular {
 
     @Override
     void deleteServices() {
-        if (currentAccountAbonement == null) {
-            return;
-        }
-
-        if (hasFreeTestAbonement()) {
-            deleteAbonements();
+        if (currentAccountAbonements.isEmpty()) {
             return;
         }
 

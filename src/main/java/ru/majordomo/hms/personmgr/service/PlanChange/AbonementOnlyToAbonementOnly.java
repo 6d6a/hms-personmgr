@@ -1,7 +1,10 @@
 package ru.majordomo.hms.personmgr.service.PlanChange;
 
+import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.service.PlanChange.behavior.AbonementOnlyToAnyCashBackCalculator;
+import ru.majordomo.hms.personmgr.service.PlanChange.behavior.CashBackCalculator;
 
 import java.math.BigDecimal;
 
@@ -18,7 +21,9 @@ public class AbonementOnlyToAbonementOnly extends Processor {
 
     @Override
     BigDecimal calcCashBackAmount() {
-        return calcCashBackAmountForAbonementOnlyToAny(currentAccountAbonement);
+        CashBackCalculator<AccountAbonement> calculator = new AbonementOnlyToAnyCashBackCalculator();
+        return currentAccountAbonements.stream().map(calculator::calc)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     @Override
@@ -30,6 +35,10 @@ public class AbonementOnlyToAbonementOnly extends Processor {
 
     @Override
     void addServices() {
-        addServiceForAbonementOnlyToAnyNotDecline(account, newPlan, newAbonementRequired, ignoreRestricts);
+        if (newAbonementRequired) {
+            buyNotInternalAbonement();
+        } else {
+            addPlanService();
+        }
     }
 }
