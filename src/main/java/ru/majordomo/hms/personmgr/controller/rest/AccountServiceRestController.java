@@ -105,10 +105,9 @@ public class AccountServiceRestController extends CommonRestController {
             throw new ParameterValidationException("Услуга с Id " + accountServiceId + " не найдена на аккаунте " + accountId);
         }
 
-        AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-
-        if (currentAccountAbonement == null || (currentAccountAbonement.getExpired() != null
-                && currentAccountAbonement.getExpired().isBefore(LocalDateTime.now()))) {
+        if (accountAbonementManager.findAllByPersonalAccountId(account.getId()).stream()
+                .allMatch(a -> a.getExpired() != null && a.getExpired().isBefore(LocalDateTime.now()))
+        ) {
             List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountId(account.getId());
 
             Plan plan = planManager.findOne(account.getPlanId());

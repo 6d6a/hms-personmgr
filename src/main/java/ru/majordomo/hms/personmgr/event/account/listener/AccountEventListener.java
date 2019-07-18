@@ -458,12 +458,9 @@ public class AccountEventListener {
             return;
         }
 
-        AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-
-        if (accountAbonement == null
-                ||
-                accountAbonement.getAbonement().isInternal() && accountAbonement.getAbonement().getPeriod().equals("P14D")
-        ) {
+        if (accountAbonementManager.findAllByPersonalAccountId(account.getId()).stream().allMatch(
+                accountAbonement -> accountAbonement.getAbonement().isTrial()
+        )) {
             Plan plan = planManager.findOne(account.getPlanId());
             BigDecimal cost = plan.getNotInternalAbonement().getService().getCost();
 
@@ -586,8 +583,8 @@ public class AccountEventListener {
             String addAbonementId = plan.getNotInternalAbonementId();
 
             if (addAbonementId != null) {
-                AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-                if (accountAbonement == null && !plan.isArchival()) {
+                boolean hasAbonement = accountAbonementManager.existsByPersonalAccountId(account.getId());
+                if (!hasAbonement && !plan.isArchival()) {
                     try {
                         abonementService.addAbonement(account, addAbonementId, true);
                         accountHelper.enableAccount(account);

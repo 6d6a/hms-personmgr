@@ -109,7 +109,7 @@ public class Plan extends BaseModel {
 
     public Abonement getFree14DaysAbonement() {
         for (Abonement abonement : this.getAbonements()) {
-            if (abonement.isInternal() && abonement.getPeriod().equals("P14D")) {
+            if (abonement.isTrial() && abonement.getPeriod().equals("P14D")) {
                 return abonement;
             }
         }

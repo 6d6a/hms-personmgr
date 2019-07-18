@@ -516,9 +516,9 @@ public class PersonalAccountRestController extends CommonRestController {
                     throw new ParameterValidationException("Credit already activated. Credit disabling prohibited.");
                 }
             } else {
-                AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+                List<AccountAbonement> abonements = accountAbonementManager.findAllByPersonalAccountId(account.getId());
 
-                if (currentAccountAbonement != null && currentAccountAbonement.getAbonement().getPeriod().equals("P14D")) {
+                if (!abonements.isEmpty() && abonements.stream().anyMatch(a -> a.getAbonement().isTrial())) {
                     throw new ParameterValidationException("Включение кредита невозможно на тестовом периоде");
                 }
 
