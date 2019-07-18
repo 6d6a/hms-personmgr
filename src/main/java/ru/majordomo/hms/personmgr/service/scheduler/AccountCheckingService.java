@@ -166,9 +166,7 @@ public class AccountCheckingService {
     }
 
     private void checkAccountsWithoutServices(PersonalAccount account) {
-        AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-
-        if (currentAccountAbonement == null) {
+        if (!accountAbonementManager.existsByPersonalAccountId(account.getId())) {
             Plan plan = planManager.findOne(account.getPlanId());
 
             if (!accountServiceHelper.accountHasService(account, plan.getServiceId())) {

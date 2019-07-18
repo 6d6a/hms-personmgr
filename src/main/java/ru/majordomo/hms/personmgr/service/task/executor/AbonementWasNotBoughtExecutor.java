@@ -12,6 +12,7 @@ import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 public class AbonementWasNotBoughtExecutor implements Executor<SendMailIfAbonementWasNotBought> {
@@ -38,12 +39,10 @@ public class AbonementWasNotBoughtExecutor implements Executor<SendMailIfAboneme
 
     @Override
     public void execute(SendMailIfAbonementWasNotBought task) {
-        AccountAbonement abonement = abonementManager.findByPersonalAccountId(task.getPersonalAccountId());
-
-        if (abonement == null
-                ||
-                (abonement.getAbonement().isInternal() && abonement.getAbonement().getPeriod().equals("P14D"))
-        ) {
+        List<AccountAbonement> abonements = abonementManager.findAllByPersonalAccountId(task.getPersonalAccountId());
+        if (abonements.size() > 0 && abonements.stream().allMatch(
+                accountAbonement -> accountAbonement.getAbonement().isTrial()
+        )) {
             PersonalAccount account = accountManager.findOne(task.getPersonalAccountId());
 
             Plan plan = planManager.findOne(account.getPlanId());

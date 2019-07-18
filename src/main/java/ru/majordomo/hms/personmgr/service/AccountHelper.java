@@ -1123,7 +1123,9 @@ public class AccountHelper {
     }
 
     public void checkIsDomainAddAllowed(PersonalAccount account, String domainName) {
-        AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+        List<AccountAbonement> abonements = accountAbonementManager.findAllByPersonalAccountId(account.getId());
+
+        boolean onlyTrialAbonement = abonements.size() > 0 && abonements.stream().allMatch(a -> a.getAbonement().isTrial());
 
         BooleanSupplier hasNoMoney = () -> {
             BigDecimal overallPaymentAmount = finFeignClient.getOverallPaymentAmount(account.getId());
@@ -1131,7 +1133,7 @@ public class AccountHelper {
             return overallPaymentAmount.compareTo(currentPlan.getService().getCost()) < 0;
         };
 
-        if (currentAccountAbonement != null && currentAccountAbonement.getAbonement().getPeriod().equals("P14D")) {
+        if (onlyTrialAbonement) {
             List<Domain> domainsList = rcUserFeignClient.getDomains(account.getId());
             if (domainsList != null && !domainsList.isEmpty()) {
                 if (hasNoMoney.getAsBoolean()) {

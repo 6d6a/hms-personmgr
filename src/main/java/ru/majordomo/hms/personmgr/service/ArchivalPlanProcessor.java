@@ -218,7 +218,7 @@ public class ArchivalPlanProcessor {
                         "поддержки архивный тариф " + currentPlan.getName() + " заменен на " + newPlan.getName());
 
                 String message = format(messagePattern,
-                        accountAbonementManager.findByPersonalAccountId(accountId) != null,
+                        accountAbonementManager.existsByPersonalAccountId(accountId),
                         accountId,
                         currentPlan.getName(),
                         newPlan.getName(),
@@ -273,7 +273,7 @@ public class ArchivalPlanProcessor {
                     + " already change plan to active, passed deferred plan change");
             notice.setWasChanged(true);
             accountNoticeRepository.save(notice);
-        } else if(accountAbonementManager.findByPersonalAccountId(account.getId()) != null) {
+        } else if(accountAbonementManager.existsByPersonalAccountId(account.getId())) {
             log.error("account with id " + account.getId() + " and archival plan has abonement");
         } else {
             StringBuilder historyMessage = new StringBuilder(" текущий тариф: ").append(currentPlan.getName());

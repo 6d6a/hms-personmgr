@@ -344,8 +344,7 @@ public abstract class Processor {
      * Проверка является ли абонемент бесплатным тестовым и один ли он
      */
     Boolean hasOnlyFreeTestAbonement() {
-        return currentAccountAbonements.size() == 1 && currentAccountAbonements.stream()
-                .allMatch(a -> a.getAbonement().getPeriod().equals("P14D") && a.getAbonement().isInternal());
+        return currentAccountAbonements.size() == 1 && currentAccountAbonements.get(0).getAbonement().isTrial();
     }
 
     /**
