@@ -19,7 +19,7 @@ import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
 import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
-import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
+import ru.majordomo.hms.personmgr.service.Revisium.RevisiumRequestProcessor;
 import ru.majordomo.hms.personmgr.service.ServiceAbonementService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -37,7 +37,7 @@ public class RevisiumRequestRestController extends CommonRestController {
     private final RevisiumRequestRepository revisiumRequestRepository;
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final PersonalAccountManager personalAccountManager;
-    private final AccountServiceHelper accountServiceHelper;
+    private final RevisiumRequestProcessor revisiumRequestProcessor;
     private final ServiceAbonementService serviceAbonementService;
     private final ServicePlanRepository servicePlanRepository;
 
@@ -47,14 +47,14 @@ public class RevisiumRequestRestController extends CommonRestController {
     public RevisiumRequestRestController(
             RevisiumRequestRepository revisiumRequestRepository,
             PersonalAccountManager personalAccountManager,
-            AccountServiceHelper accountServiceHelper,
+            RevisiumRequestProcessor revisiumRequestProcessor,
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             ServiceAbonementService serviceAbonementService,
             ServicePlanRepository servicePlanRepository
     ) {
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.personalAccountManager = personalAccountManager;
-        this.accountServiceHelper = accountServiceHelper;
+        this.revisiumRequestProcessor = revisiumRequestProcessor;
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
         this.serviceAbonementService = serviceAbonementService;
         this.servicePlanRepository = servicePlanRepository;
@@ -278,7 +278,7 @@ public class RevisiumRequestRestController extends CommonRestController {
         revisiumRequestService.setSiteUrl(siteUrl);
         revisiumRequestServiceRepository.save(revisiumRequestService);
 
-        accountServiceHelper.revisiumCheckRequest(account, revisiumRequestService);
+        revisiumRequestProcessor.process(account, revisiumRequestService);
 
         revisiumRequestService = revisiumRequestServiceRepository
                 .findByPersonalAccountIdAndId(accountId, revisiumRequestService.getId());
