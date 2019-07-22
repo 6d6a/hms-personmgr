@@ -9,12 +9,10 @@ import ru.majordomo.hms.personmgr.dto.revisium.GetStatResponse;
 import ru.majordomo.hms.personmgr.dto.revisium.ResultStatus;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
-import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
-import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.service.Revisium.RevisiumApiClient;
+import ru.majordomo.hms.personmgr.service.Revisium.RevisiumRequestProcessor;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,19 +21,19 @@ public class RevisiumRequestScheduler {
     private final static Logger logger = LoggerFactory.getLogger(RevisiumRequestScheduler.class);
 
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
-    private final AccountServiceHelper accountServiceHelper;
+    private final RevisiumRequestProcessor revisiumRequestProcessor;
     private final PersonalAccountManager accountManager;
     private final RevisiumApiClient revisiumApiClient;
 
     @Autowired
     public RevisiumRequestScheduler(
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
-            AccountServiceHelper accountServiceHelper,
+            RevisiumRequestProcessor revisiumRequestProcessor,
             PersonalAccountManager accountManager,
             RevisiumApiClient revisiumApiClient
     ) {
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
-        this.accountServiceHelper = accountServiceHelper;
+        this.revisiumRequestProcessor = revisiumRequestProcessor;
         this.accountManager = accountManager;
         this.revisiumApiClient = revisiumApiClient;
     }
@@ -73,7 +71,7 @@ public class RevisiumRequestScheduler {
                                     }
                                     break;
                             }
-                            accountServiceHelper.revisiumCheckRequest(accountManager.findOne(item.getPersonalAccountId()), item);
+                        revisiumRequestProcessor.process(accountManager.findOne(item.getPersonalAccountId()), item);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
