@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.personmgr.dto.AbonementsWrapper;
 import ru.majordomo.hms.personmgr.dto.PaymentTypeKind;
 import ru.majordomo.hms.personmgr.feign.DomainRegistrarFeignClient;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
@@ -22,6 +23,7 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
@@ -323,32 +325,22 @@ public class RecurrentProcessorService {
     }
 
     private BigDecimal getAbonementRecurrentSum(String accountId) {
-        // --- АБОНЕМЕНТ ---
+        AbonementsWrapper wrapper = new AbonementsWrapper(
+                accountAbonementManager.findAllByPersonalAccountId(accountId)
+        );
 
-        Boolean accountIsOnAbonement = false;
+        LocalDateTime chargeDate = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
 
-        BigDecimal abonementRecurrentSum = BigDecimal.ZERO;
-
-        AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(accountId);
-        if (accountAbonement != null) {
-            accountIsOnAbonement = true;
-        }
-
-        LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
-
-        // тарифы и услуги - за 5, 4, 3, 2, 1 день до истечения + в день истечения + через 1, 2, 3, 4, 5 дней после
-
-        if (accountIsOnAbonement) {
-            if (!accountAbonement.getAbonement().isInternal()) {
-                // Проверям сколько осталось у абонементу
-                // Если истекает через 5 дней или меньше - добавляем стоимость абонмента
-                if (accountAbonement.getExpired().isBefore(chargeDate.plusDays(5L))) {
-                    abonementRecurrentSum = abonementRecurrentSum.add(accountAbonement.getAbonement().getService().getCost());
-                }
+        if (wrapper.getAll().size() > 0) {
+            if (wrapper.getLast() != null
+                    && !wrapper.getLast().getAbonement().isInternal()
+                    && wrapper.getExpired().isBefore(chargeDate.plusDays(5L))
+            ) {
+                return wrapper.getLast().getAbonement().getService().getCost();
             }
         }
 
-        return abonementRecurrentSum;
+        return BigDecimal.ZERO;
     }
 
     private BigDecimal getDailyCostForRecurrent(PersonalAccount account) {
