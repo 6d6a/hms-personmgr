@@ -590,7 +590,7 @@ public class DomainService {
                 expired ? "MajordomoHMSVHDomainsAfterExpired" : "MajordomoHMSVHDomainsExpires",
                 10, parameters);
 
-        String domainsCount = pluralizef("%d домен", "%d домена", "%d доменов", domains.size());
+        String domainsCount = pluralizef("%d домена", "%d доменов", "%d доменов", domains.size());
 
         String domainsForPush = domains.stream()
                 .map(d -> d.getName() + " - " + d.getRegSpec().getPaidTill().format(dateFormatter))
