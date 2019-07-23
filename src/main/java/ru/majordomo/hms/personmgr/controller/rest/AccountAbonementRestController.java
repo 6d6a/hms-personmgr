@@ -186,6 +186,13 @@ public class AccountAbonementRestController extends CommonRestController {
         return ResponseEntity.ok(accountAbonement);
     }
 
+    @GetMapping(headers = "X-HMS-Pageable=false")
+    public List<AccountAbonement> getAllByAccountId(
+            @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId
+    ) {
+        return accountAbonementManager.findAllByPersonalAccountId(accountId);
+    }
+    
     @GetMapping
     public ResponseEntity<Page<AccountAbonement>> getAccountAbonements(
             @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId,
