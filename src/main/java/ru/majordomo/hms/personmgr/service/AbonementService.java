@@ -14,8 +14,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.*;
+import ru.majordomo.hms.personmgr.dto.AbonementsWrapper;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
@@ -28,14 +30,12 @@ import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
-import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanFallback;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
-import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanFallbackRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -50,7 +50,7 @@ public class AbonementService {
 
     private final PlanManager planManager;
     private final AbonementRepository abonementRepository;
-    private final PaymentServiceRepository paymentServiceRepository;
+//    private final PaymentServiceRepository paymentServiceRepository;
     private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
@@ -69,7 +69,7 @@ public class AbonementService {
     public AbonementService(
             PlanManager planManager,
             AbonementRepository abonementRepository,
-            PaymentServiceRepository paymentServiceRepository,
+//            PaymentServiceRepository paymentServiceRepository,
             AbonementManager<AccountAbonement> accountAbonementManager,
             AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
@@ -84,7 +84,7 @@ public class AbonementService {
     ) {
         this.planManager = planManager;
         this.abonementRepository = abonementRepository;
-        this.paymentServiceRepository = paymentServiceRepository;
+//        this.paymentServiceRepository = paymentServiceRepository;
         this.accountAbonementManager = accountAbonementManager;
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
@@ -108,17 +108,20 @@ public class AbonementService {
     public AccountAbonement addAbonement(PersonalAccount account, String abonementId, Boolean autorenew) {
         Plan plan = getAccountPlan(account);
 
-        boolean accountHasFree14DaysAbonement = false, accountHasInternalAbonement = false;
+        Abonement abonement = plan.getAbonements().stream()
+                .filter(a -> a.getId().equals(abonementId))
+                .findFirst()
+                .orElseThrow(() -> new ParameterValidationException(
+                        "Current account plan does not have abonement with specified abonementId (not found in abonements)"
+                ));
 
-        AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
+        AbonementsWrapper wrapper = new AbonementsWrapper(
+                accountAbonementManager.findAllByPersonalAccountId(account.getId())
+        );
 
-        if (currentAccountAbonement != null) {
-            accountHasFree14DaysAbonement = currentAccountAbonement.getAbonement().getPeriod().equals("P14D");
-
-            accountHasInternalAbonement = currentAccountAbonement.getAbonement().isInternal();
-        }
-
-        Abonement abonement = checkAbonementAllownes(account, plan, abonementId);
+        List<AccountAbonement> trialAbonements = wrapper.getAll().stream().filter(
+                a -> a.getAbonement().isTrial()
+        ).collect(Collectors.toList());
 
         PaymentService service = abonement.getService();
         BigDecimal cost = service.getCost();
@@ -147,23 +150,20 @@ public class AbonementService {
         accountAbonement.setAbonementId(abonementId);
         accountAbonement.setPersonalAccountId(account.getId());
         accountAbonement.setCreated(LocalDateTime.now());
-        accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
-        accountAbonement.setAutorenew(autorenew);
 
-        if (!accountHasFree14DaysAbonement && accountHasInternalAbonement) {
-            accountAbonement.setCreated(currentAccountAbonement.getCreated());
-            accountAbonement.setExpired(currentAccountAbonement.getExpired().plus(Period.parse(abonement.getPeriod())));
+        if (wrapper.getAll().stream().noneMatch(a -> !a.getAbonement().isTrial() && a.getExpired() != null)) {
+            accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
         }
 
-        if (accountHasFree14DaysAbonement || accountHasInternalAbonement) {
-            accountAbonementManager.delete(currentAccountAbonement);
-        }
+        trialAbonements.forEach(accountAbonementManager::delete);
 
         accountAbonement = accountAbonementManager.insert(accountAbonement);
 
-        if (accountServiceHelper.accountHasService(account, plan.getServiceId())) {
-            accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
+        if (!abonement.isInternal() && !abonement.isTrial()) {
+            enableAbonementAutoRenewIfNotSet(account);
         }
+
+        deletePlanServiceIfExists(account, plan);
 
         if (!abonement.isInternal() && account.getSettings().get(AccountSetting.ABONEMENT_AUTO_RENEW) == null) {
             publisher.publishEvent(new AccountSetSettingEvent(account, AccountSetting.ABONEMENT_AUTO_RENEW, true));
@@ -192,30 +192,10 @@ public class AbonementService {
 
         accountAbonementManager.save(accountAbonement);
 
-        if (accountServiceHelper.accountHasService(account, plan.getServiceId())) {
-            accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
-        }
+        deletePlanServiceIfExists(account, plan);
     }
 
-    /**
-     * Продление абонемента с даты его окончания
-     *
-     * @param account Аккаунт
-     * @param accountAbonement абонемент аккаунта
-     */
-    public void prolongAbonement(PersonalAccount account, AccountAbonement accountAbonement) {
-        Plan plan = getAccountPlan(account);
-
-        ChargeMessage chargeMessage = new ChargeMessage.Builder(accountAbonement.getAbonement().getService())
-                .build();
-        accountHelper.charge(account, chargeMessage);
-
-        accountAbonementManager.setExpired(
-                accountAbonement.getId(),
-                accountAbonement.getExpired()
-                        .plus(Period.parse(accountAbonement.getAbonement().getPeriod()))
-        );
-
+    private void deletePlanServiceIfExists(PersonalAccount account, Plan plan) {
         if (accountServiceHelper.accountHasService(account, plan.getServiceId())) {
             accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
         }
@@ -380,14 +360,24 @@ public class AbonementService {
                         " Баланс: " + formatBigDecimalWithCurrency(balance) +
                         " Дата окончания: " + currentExpired
                 );
+
+                //Сохраним "на будущее" установку автопокупки абонемента
+                enableAbonementAutoRenewIfNotSet(account);
             }
         } else {
             //Удаляем абонемент и включаем услуги хостинга по тарифу
             processAccountAbonementDelete(account, accountAbonement);
+
             history.saveForOperatorService(
                     account,
                     "Абонемент удален, так как автопродление отключено. Дата окончания: " + currentExpired
             );
+        }
+    }
+
+    private void enableAbonementAutoRenewIfNotSet(PersonalAccount account) {
+        if (!account.getSettings().containsKey(AccountSetting.ABONEMENT_AUTO_RENEW)) {
+            publisher.publishEvent(new AccountSetSettingEvent(account, AccountSetting.ABONEMENT_AUTO_RENEW, true));
         }
     }
 
@@ -497,29 +487,6 @@ public class AbonementService {
         return plan;
     }
 
-    private Abonement checkAbonementAllownes(PersonalAccount account, Plan plan, String abonementId) {
-
-        if (!plan.getAbonementIds().contains(abonementId)) {
-            throw new ParameterValidationException("Current account plan does not have abonement with specified abonementId");
-        }
-
-        Optional<Abonement> newAbonement = plan.getAbonements().stream().filter(abonement1 -> abonement1.getId().equals(abonementId)).findFirst();
-
-        if (!newAbonement.isPresent()) {
-            throw new ParameterValidationException("Current account plan does not have abonement with specified abonementId (not found in abonements)");
-        }
-
-        Abonement abonement = newAbonement.get();
-
-        AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-
-        if (accountAbonement != null && !accountAbonement.getAbonement().isInternal()) {
-            throw new ParameterValidationException("Account already has abonement");
-        }
-
-        return abonement;
-    }
-
     /**
      * Удаление абонемента
      *
@@ -578,6 +545,32 @@ public class AbonementService {
         }
     }
 
+    public void addPromoAbonementWithActivePlan(PersonalAccount account, Period period) {
+        Plan plan = planManager.findOne(account.getPlanId());
+
+        List<Abonement> abonements = abonementRepository.findByIdInAndInternalAndPeriod(
+                plan.getAbonementIds(), true, period.toString());
+
+        for (Abonement abonement : abonements) {
+            if (abonement.getService().getCost().equals(BigDecimal.ZERO)) {
+                addAbonement(account, abonement.getId(), false);
+                return;
+            }
+        }
+
+        if (accountAbonementManager.existsByPersonalAccountId(account.getId())) {
+            throw new ParameterValidationException("Не найден абонемент с бесплатным периодом " + period);
+        } else {
+            Abonement internal = plan.getAbonements().stream().filter(a -> a.isInternal() && !a.isTrial()).findFirst()
+                    .orElseThrow(() -> new ParameterValidationException(
+                            "Добавление абонемента на период " + period + " недоступно"
+                    ));
+
+            AccountAbonement accountAbonement = addAbonement(account, internal.getId(), false);
+            accountAbonementManager.setExpired(accountAbonement.getId(), LocalDateTime.now().plus(period));
+        }
+    }
+/*
     public void addPromoAbonementWithActivePlan(PersonalAccount account, Period period) {
 
         Plan plan = planManager.findOne(account.getPlanId());
@@ -650,28 +643,40 @@ public class AbonementService {
                 throw new ParameterValidationException("Некорректный период");
         }
     }
+*/
 
     public BuyInfo getBuyInfo(PersonalAccount account, Abonement abonement) {
         BuyInfo info = new BuyInfo();
 
         if (abonement.isInternal()) {
             info.getErrors().add("Нельзя заказать тестовый абонемент");
-        }
-
-        AccountAbonement currentAccountAbonement = accountAbonementManager.findByPersonalAccountId(account.getId());
-
-        if (currentAccountAbonement != null && !currentAccountAbonement.getAbonement().isInternal()) {
-            info.getErrors().add("Нельзя купить абонемент при наличии другого абонемента");
+            return info;
         }
 
         Plan plan = getAccountPlan(account);
 
         if (plan.isArchival()) {
             info.getErrors().add("Обслуживание по тарифу \"" + plan.getName() +  "\" прекращено");
+            return info;
         }
 
         if (!plan.getAbonementIds().contains(abonement.getId())) {
             info.getErrors().add("На тарифе " + plan.getName() + " не доступен абонемент " + abonement.getName());
+            return info;
+        }
+
+        AbonementsWrapper container = new AbonementsWrapper(
+                accountAbonementManager.findAllByPersonalAccountId(account.getId())
+        );
+
+        LocalDateTime now = LocalDateTime.now();
+
+        LocalDateTime fullExpired = container.getExpired().plus(Period.parse(abonement.getPeriod()));
+
+        //Абонемент нельзя продлить более чем на три года
+        if (fullExpired.isAfter(now.plusYears(3))) {
+            info.getErrors().add("Продление абонемента возможно не более чем на три года");
+            return info;
         }
 
         PaymentService service = abonement.getService();

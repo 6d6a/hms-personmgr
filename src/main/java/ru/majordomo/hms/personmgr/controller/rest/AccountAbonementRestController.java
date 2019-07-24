@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.Period;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import javax.validation.Valid;
@@ -99,7 +97,7 @@ public class AccountAbonementRestController extends CommonRestController {
 
         update.keySet().forEach(key -> {
             switch (key) {
-                case "created":
+                case "created":/*
                     LocalDateTime created = LocalDateTime.parse(update.get(key));
                     if (created.isAfter(LocalDateTime.now())) {
                         throw new ParameterValidationException(
@@ -111,6 +109,8 @@ public class AccountAbonementRestController extends CommonRestController {
                     accountAbonement.setCreated(created);
 
                     break;
+                    */throw new ParameterValidationException("Редактирование даты создания абонемента отключено");
+
                 case "expired":
                     LocalDateTime expired = LocalDateTime.parse(update.get(key));
                     if (expired.isBefore(LocalDateTime.now())) {
@@ -150,7 +150,7 @@ public class AccountAbonementRestController extends CommonRestController {
     ) {
         return accountAbonementManager.findAllByPersonalAccountId(accountId);
     }
-    
+
     @GetMapping
     public ResponseEntity<Page<AccountAbonement>> getAccountAbonements(
             @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId,
@@ -268,26 +268,13 @@ public class AccountAbonementRestController extends CommonRestController {
                 accountAbonementId, account.getId()
         );
 
-        if (accountAbonement.getAbonement().isInternal()) {
-            throw new ParameterValidationException("Продление абонемента на пробном периоде не доступно");
+        BuyInfo info = abonementService.getBuyInfo(account, accountAbonement.getAbonement());
+
+        if (!info.isAllowed()) {
+            throw new ParameterValidationException(String.join(", ", info.getErrors()));
         }
 
-        Plan plan = planManager.findOne(account.getPlanId());
-
-        if (plan.isArchival()) {
-            throw new ParameterValidationException("Обслуживание по тарифу \"" + plan.getName() +  "\" прекращено");
-        }
-
-        //Абонемент нельзя продлить более чем на три года "всего", т.е. два срока абонемента
-        LocalDateTime expiredMinus3periods = accountAbonement
-                .getExpired()
-                .minus(Period.parse(accountAbonement.getAbonement().getPeriod()).multipliedBy(2));
-
-        if (expiredMinus3periods.isAfter(LocalDateTime.now())) {
-            throw new ParameterValidationException("Продление абонемента возможно не более чем на три года");
-        }
-
-        abonementService.prolongAbonement(account, accountAbonement);
+        abonementService.addAbonement(account, accountAbonement.getAbonementId(), true);
 
         history.save(
                 account,
@@ -310,33 +297,23 @@ public class AccountAbonementRestController extends CommonRestController {
             throw new ParameterValidationException("Можно добавить абонементы только следующей продолжительности: " + allowedPeriods.toString());
         }
 
-        AccountAbonement accountAbonement = accountAbonementManager.findByPersonalAccountId(accountId);
         PersonalAccount account = accountManager.findOne(accountId);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-        String message;
+        Plan plan = planManager.findOne(account.getPlanId());
 
         if (addAbonementRequest.getServiceId() != null) {
-            Plan plan = planManager.findOne(account.getPlanId());
-
             if (!addAbonementRequest.getServiceId().equals(plan.getServiceId())) {
                 Plan required = planManager.findByServiceId(addAbonementRequest.getServiceId());
-                throw new ParameterValidationException("Для добавления абонемента необходимо сменить тариф на " + required.getName());
+                throw new ParameterValidationException(
+                        "Для добавления абонемента необходимо сменить тариф на " + required.getName()
+                );
             }
+        } else if (!plan.isActive()) {
+            throw new ParameterValidationException("Для добавления абонемента измените тариф на активный");
         }
 
-        if (accountAbonement == null) {
-            abonementService.addPromoAbonementWithActivePlan(account, addAbonementRequest.getPeriod());
-            message = "Сгенерирован абонемент для planId " + account.getPlanId() + " периодом " + Utils.humanizePeriod(addAbonementRequest.getPeriod()) + " и добавлен на аккаунт";
-        } else {
-            if (accountAbonement.getAbonement().isInternal() && accountAbonement.getAbonement().getPeriod().equals("P14D")) {
-                abonementService.addPromoAbonementWithActivePlan(account, addAbonementRequest.getPeriod());
-                message = "Тестовый абонемент аккаунта удален. Добавлен бесплатный абонемент на период " + Utils.humanizePeriod(addAbonementRequest.getPeriod());
-            } else {
-                LocalDateTime newExpired = accountAbonement.getExpired().plus(addAbonementRequest.getPeriod());
-                accountAbonementManager.setExpired(accountAbonement.getId(), newExpired);
-                message = "Абонемент продлен на " + Utils.humanizePeriod(addAbonementRequest.getPeriod()) + " с " + accountAbonement.getExpired().format(formatter) + " на " + newExpired.format(formatter);
-            }
-        }
+        abonementService.addPromoAbonementWithActivePlan(account, addAbonementRequest.getPeriod());
+
+        String message = "Добавлен бесплатный абонемент с периодом " + Utils.humanizePeriod(addAbonementRequest.getPeriod());
 
         if (!account.isActive()) {
             accountHelper.enableAccount(account);

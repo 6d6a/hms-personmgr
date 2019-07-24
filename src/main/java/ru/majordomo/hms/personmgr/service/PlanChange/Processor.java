@@ -509,9 +509,7 @@ public abstract class Processor {
         accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
         accountAbonement.setAutorenew(true);
 
-        accountAbonementManager.insert(accountAbonement);
-
-        return accountAbonement;
+        return accountAbonementManager.insert(accountAbonement);
     }
 
     void deleteAbonements() {
