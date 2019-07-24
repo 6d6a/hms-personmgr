@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,15 +16,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.StringJoiner;
+import java.util.*;
 
 import javax.validation.Valid;
 
 import ru.majordomo.hms.personmgr.common.BuyInfo;
 import ru.majordomo.hms.personmgr.common.Utils;
+import ru.majordomo.hms.personmgr.dto.AbonementsWrapper;
 import ru.majordomo.hms.personmgr.dto.request.AddAbonementRequest;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
@@ -198,13 +197,18 @@ public class AccountAbonementRestController extends CommonRestController {
             @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId,
             Pageable pageable
     ) {
-        Page<AccountAbonement> accountAbonements = accountAbonementManager.findByPersonalAccountId(accountId, pageable);
-
-        if(accountAbonements == null || !accountAbonements.hasContent()){
+        List<AccountAbonement> all = accountAbonementManager.findAllByPersonalAccountId(accountId);
+        if (all.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } else {
+            return new ResponseEntity<>(
+                    new PageImpl<>(
+                            Collections.singletonList(
+                                    new AbonementsWrapper(all).toAbonement()
+                            )
+                    ), HttpStatus.OK
+            );
         }
-
-        return new ResponseEntity<>(accountAbonements, HttpStatus.OK);
     }
 
     @PreAuthorize("hasAuthority('DELETE_ACCOUNT_ABONEMENT')")
