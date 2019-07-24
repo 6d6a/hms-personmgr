@@ -225,13 +225,7 @@ public class AccountAbonementRestController extends CommonRestController {
         Abonement abonement = abonementRepository.findById(abonementId)
                 .orElseThrow(() -> new ResourceNotFoundException("Абонемент с id " + abonementId + " не найден"));
 
-        BuyInfo info = abonementService.getBuyInfo(account, abonement);
-
-        if (!info.isAllowed()) {
-            return new ResponseEntity<>(info, HttpStatus.FORBIDDEN);
-        } else {
-            return new ResponseEntity<>(info, HttpStatus.OK);
-        }
+        return new ResponseEntity<>(abonementService.getBuyInfo(account, abonement), HttpStatus.OK);
     }
 
     @PostMapping("/{abonementId}")
