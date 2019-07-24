@@ -162,7 +162,8 @@ public class AccountEventListener {
         logger.debug("InfoBannerAccountNotice saved: " + notification.toString());
     }
 
-    @EventListener
+    //Скидка отключена, на 24.07.2019 цена без скидки равна цене со скидкой
+    /*@EventListener
     @Async("threadPoolTaskExecutor")
     public void addPromotions(AccountCreatedEvent event) {
         PersonalAccount account = event.getSource();
@@ -172,7 +173,7 @@ public class AccountEventListener {
         for (int i = 1; i <= promotion.getLimitPerAccount(); i++) {
             accountHelper.giveGift(account, promotion);
         }
-    }
+    }*/
 
     @EventListener
     @Async("threadPoolTaskExecutor")
