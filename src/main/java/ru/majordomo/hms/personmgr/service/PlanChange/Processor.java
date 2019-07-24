@@ -3,11 +3,13 @@ package ru.majordomo.hms.personmgr.service.PlanChange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentRequest;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
+import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
@@ -705,6 +707,10 @@ public abstract class Processor {
 
         accountHelper.charge(account, chargeMessage);
         addAccountAbonement(abonement);
+
+        if (account.getSettings().get(AccountSetting.ABONEMENT_AUTO_RENEW) == null) {
+            publisher.publishEvent(new AccountSetSettingEvent(account, AccountSetting.ABONEMENT_AUTO_RENEW, true));
+        }
     }
 
     private Optional<Abonement> getNotInternalAbonementAfterChangePlan() {
