@@ -79,40 +79,6 @@ public class AccountAbonementRestController extends CommonRestController {
         return new ResponseEntity<>(accountAbonement, HttpStatus.OK);
     }
 
-    @PreAuthorize("hasRole('OPERATOR')")
-    @PatchMapping("/{accountAbonementId}")
-    public ResponseEntity<Object> changeAutorenewAccountAbonement(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @ObjectId(AccountAbonement.class) @PathVariable(value = "accountAbonementId") String accountAbonementId,
-            @RequestBody Map<String, String> requestBody,
-            SecurityContextHolderAwareRequestWrapper request
-    ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(
-                accountAbonementId, account.getId()
-        );
-
-        if (accountAbonement.getAbonement().isInternal()) {
-            throw new ParameterValidationException("Нельзя изменять автопродление тестового абонемента");
-        }
-
-        if (requestBody.get("autorenew") != null) {
-            Boolean autorenew = Boolean.valueOf(requestBody.get("autorenew"));
-            accountAbonementManager.setAutorenew(accountAbonement.getId(), autorenew);
-
-            String operator = request.getUserPrincipal().getName();
-            history.save(
-                    account,
-                    (autorenew ? "Включено" : "Выключено") +
-                            " автопродление абонемента '" + accountAbonement.getAbonement().getName() + "'",
-                    operator
-            );
-        }
-
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    }
-
     @PreAuthorize("hasAuthority('ACCOUNT_ABONEMENT_EDIT')")
     @PatchMapping("/{accountAbonementId}/update")
     public ResponseEntity<Object> updateAccountAbonement(
@@ -167,13 +133,6 @@ public class AccountAbonementRestController extends CommonRestController {
                                     .append(" и именем ").append(accountAbonement.getAbonement().getName())
                             .append(" на ").append(abonementId).append(" с именем ").append(abonement.getName()));
                     accountAbonement.setAbonementId(abonementId);
-
-                    break;
-                case "autorenew":
-                    Boolean autorenew = Boolean.valueOf(update.get(key));
-                    historyJoiner.add(
-                            new StringBuilder((autorenew ? "Включено" : "Выключено") + 
-                            " автопродление '" + accountAbonement.getAbonement().getName() + "'"));
 
                     break;
                 default:
