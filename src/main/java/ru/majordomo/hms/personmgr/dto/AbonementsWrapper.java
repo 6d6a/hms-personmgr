@@ -35,12 +35,12 @@ public class AbonementsWrapper {
                 .filter(a -> a.getExpired() != null)
                 .min(Comparator.comparing(AccountAbonement::getExpired)).orElse(null);
 
-        last = all.stream()
-                .max(Comparator.comparing(AccountAbonement::getCreated)).orElse(null);
-
         excludeCurrent = all.stream()
                 .filter(a -> a != current)
                 .collect(Collectors.toList());
+
+        last = all.size() == 1 ? current : excludeCurrent.stream()
+                .max(Comparator.comparing(AccountAbonement::getCreated)).orElse(null);
 
         if (current != null) {
             LocalDateTime expired = current.getExpired();
@@ -58,6 +58,7 @@ public class AbonementsWrapper {
             return  null;
         }
         AccountAbonement a = new AccountAbonement();
+        a.setId(last.getId());
         a.setAbonement(last.getAbonement());
         a.setAutorenew(last.isAutorenew());
         a.setAbonementId(last.getAbonementId());
