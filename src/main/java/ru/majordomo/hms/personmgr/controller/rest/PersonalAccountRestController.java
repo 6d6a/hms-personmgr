@@ -502,13 +502,13 @@ public class PersonalAccountRestController extends CommonRestController {
     @PatchMapping("/{accountId}/account/settings")
     public ResponseEntity<Object> setSettings(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            @RequestBody Map<String, Object> requestBody,
+            @RequestBody Map<AccountSetting, Object> requestBody,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        if (requestBody.get(AccountSetting.CREDIT.name()) != null) {
-            Boolean credit = (Boolean)requestBody.get(AccountSetting.CREDIT.name());
+        if (requestBody.get(AccountSetting.CREDIT) != null) {
+            Boolean credit = (Boolean)requestBody.get(AccountSetting.CREDIT);
             if (!credit) {
                 // Выключение кредита
                 if (account.isCredit() && account.getCreditActivationDate() != null) {
@@ -535,8 +535,8 @@ public class PersonalAccountRestController extends CommonRestController {
             history.save(account, (credit ? "Включен" : "Выключен") + " кредит", request);
         }
 
-        if (requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED.name()) != null) {
-            Boolean addQuotaIfOverquoted = (Boolean) requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED.name());
+        if (requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED) != null) {
+            Boolean addQuotaIfOverquoted = (Boolean) requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED);
             accountManager.setAddQuotaIfOverquoted(accountId, addQuotaIfOverquoted);
 
             //Установим новую квоту, начислим услуги и тд.
@@ -549,15 +549,15 @@ public class PersonalAccountRestController extends CommonRestController {
             publisher.publishEvent(new UserDisabledServiceEvent(account.getId(), quotaServiceId));
         }
 
-        if (requestBody.get(AccountSetting.AUTO_BILL_SENDING.name()) != null) {
-            Boolean autoBillSending = (Boolean) requestBody.get(AccountSetting.AUTO_BILL_SENDING.name());
+        if (requestBody.get(AccountSetting.AUTO_BILL_SENDING) != null) {
+            Boolean autoBillSending = (Boolean) requestBody.get(AccountSetting.AUTO_BILL_SENDING);
             accountManager.setAutoBillSending(accountId, autoBillSending);
 
             history.save(account, (autoBillSending ? "Включена" : "Выключена") + " автоматическая отправка бухгалтерских документов", request);
         }
 
-        if (requestBody.get(AccountSetting.NOTIFY_DAYS.name()) != null) {
-            Integer notifyDays = (Integer) requestBody.get(AccountSetting.NOTIFY_DAYS.name());
+        if (requestBody.get(AccountSetting.NOTIFY_DAYS) != null) {
+            Integer notifyDays = (Integer) requestBody.get(AccountSetting.NOTIFY_DAYS);
 
             Set<Integer> notifyDaysVariants = ImmutableSet.of(7, 14, 30);
             if (!notifyDaysVariants.contains(notifyDays)) {
@@ -569,8 +569,8 @@ public class PersonalAccountRestController extends CommonRestController {
             history.save(account, "Установлен срок отправки уведомлений об окончании оплаченного периода хостинга на '" + notifyDays + "' дней", request);
         }
 
-        if (requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name()) != null) {
-            String smsPhoneNumber = (String)requestBody.get(AccountSetting.SMS_PHONE_NUMBER.name());
+        if (requestBody.get(AccountSetting.SMS_PHONE_NUMBER) != null) {
+            String smsPhoneNumber = (String)requestBody.get(AccountSetting.SMS_PHONE_NUMBER);
 
             if (smsPhoneNumber.equals("") && accountServiceHelper.hasSmsNotifications(account)) {
                 throw new ParameterValidationException("SMSPhoneNumber can't be empty with active sms notifications.");
@@ -583,6 +583,14 @@ public class PersonalAccountRestController extends CommonRestController {
             accountManager.setSmsPhoneNumber(accountId, smsPhoneNumber);
 
             history.save(account, "Установлен телефон для СМС-уведомлений на '" + smsPhoneNumber + "'", request);
+        }
+
+        if (requestBody.get(AccountSetting.ABONEMENT_AUTO_RENEW) != null) {
+            Boolean autoRenew = (Boolean) requestBody.get(AccountSetting.ABONEMENT_AUTO_RENEW);
+
+            accountManager.setSettingByName(accountId, AccountSetting.ABONEMENT_AUTO_RENEW, autoRenew);
+
+            history.save(account, (autoRenew ? "Включено" : "Выключено") + " автопродление абонемента на хостинг", request);
         }
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
