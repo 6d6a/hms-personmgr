@@ -587,7 +587,7 @@ public class AccountEventListener {
                 boolean hasAbonement = accountAbonementManager.existsByPersonalAccountId(account.getId());
                 if (!hasAbonement && !plan.isArchival()) {
                     try {
-                        abonementService.addAbonement(account, addAbonementId, true);
+                        abonementService.addAbonement(account, addAbonementId);
                         accountHelper.enableAccount(account);
                     } catch (Exception e) {
                         logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
