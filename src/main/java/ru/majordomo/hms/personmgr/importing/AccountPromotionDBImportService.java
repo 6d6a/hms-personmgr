@@ -169,14 +169,14 @@ public class AccountPromotionDBImportService {
     }
 
     public void clean() {
-        accountPromotionManager.deleteAll();
+//        accountPromotionManager.deleteAll();
     }
 
     public void clean(String accountId) {
         List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountId(accountId);
 
         if (!accountPromotions.isEmpty()) {
-            accountPromotionManager.delete(accountPromotions);
+//            accountPromotionManager.delete(accountPromotions);
         }
     }
 

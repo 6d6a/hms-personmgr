@@ -47,7 +47,7 @@ public class DomainTldRestController extends CommonRestController {
         Map<String, BigDecimal> discountedCosts = new HashMap<>();
         for (AccountPromotion accountPromotion : accountPromotions) {
             PromocodeAction action = accountPromotion.getAction();
-            if (accountPromotion.getActive() && action.getActionType() == PromocodeActionType.SERVICE_DOMAIN_DISCOUNT_RU_RF) {
+            if (accountPromotion.isValidNow() && action.getActionType() == PromocodeActionType.SERVICE_DOMAIN_DISCOUNT_RU_RF) {
                 List<String> availableTlds = (List<String>) action.getProperties().get("tlds");
                 for (String tld : availableTlds) {
                     discountedCosts.put(tld, BigDecimal.valueOf((Integer) action.getProperties().get("cost")));

@@ -111,7 +111,7 @@ public class DomainResourceRestController extends CommonRestController {
         }
 
         if (isRegistration || isRenew) {
-            domainService.blockMoneyBeforeRenewOrRegistrationExistsDomain(account, message, domain);
+            domainService.blockMoneyBeforeManualRenewOrRegistrationExistsDomain(account, message, domain);
         }
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DOMAIN_UPDATE, BusinessActionType.DOMAIN_UPDATE_RC, message);

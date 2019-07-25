@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
@@ -49,43 +50,13 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
     }
 
     @Override
-    public void delete(String id) {
-        repository.deleteById(id);
-    }
-
-    @Override
-    public void delete(AccountPromotion accountPromotion) {
-        repository.delete(accountPromotion);
-    }
-
-    @Override
-    public void delete(Iterable<AccountPromotion> accountPromotions) {
-        repository.deleteAll(accountPromotions);
-    }
-
-    @Override
-    public void deleteAll() {
-        repository.deleteAll();
-    }
-
-    @Override
     public AccountPromotion save(AccountPromotion accountPromotion) {
         return repository.save(accountPromotion);
     }
 
     @Override
-    public List<AccountPromotion> save(Iterable<AccountPromotion> accountPromotions) {
-        return repository.saveAll(accountPromotions);
-    }
-
-    @Override
     public AccountPromotion insert(AccountPromotion accountPromotion) {
         return repository.insert(accountPromotion);
-    }
-
-    @Override
-    public List<AccountPromotion> insert(Iterable<AccountPromotion> accountPromotions) {
-        return repository.insert(accountPromotions);
     }
 
     @Override
@@ -106,7 +77,9 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
 
     @Override
     public List<AccountPromotion> findByPersonalAccountIdAndActive(String personalAccountId, boolean active) {
-        return repository.findByPersonalAccountIdAndActive(personalAccountId, active);
+        return repository.findByPersonalAccountIdAndActive(personalAccountId, active).stream()
+                .filter(accountPromotion -> active == accountPromotion.isValidNow())
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -116,7 +89,9 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
 
     @Override
     public List<AccountPromotion> findByPersonalAccountIdAndActionIdInAndActive(String personalAccountId, List<String> actionIds, boolean active) {
-        return repository.findByPersonalAccountIdAndActionIdInAndActive(personalAccountId, actionIds, active);
+        return repository.findByPersonalAccountIdAndActionIdInAndActive(personalAccountId, actionIds, active).stream()
+                .filter(accountPromotion -> active == accountPromotion.isValidNow())
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -138,7 +113,7 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
         List<AccountPromotion> promotions = findByPersonalAccountId(account.getId());
 
         for (AccountPromotion accountPromotion : promotions) {
-            if (!accountPromotion.getActive()) continue;
+            if (!accountPromotion.isValidNow()) continue;
 
             PromocodeAction action = mongoOperations.findById(accountPromotion.getActionId(), PromocodeAction.class);
 
@@ -174,8 +149,6 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
     }
 
     private void setAccountPromotionStatusByIdAndActionId(String id, boolean status) {
-        checkById(id);
-
         AccountPromotion accountPromotion = findOne(id);
         Query query = new Query(new Criteria("_id").is(id));
         Update update = new Update().set("active", status);

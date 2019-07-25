@@ -72,10 +72,7 @@ public class PaymentPercentBonusActionProcessor implements PromocodeActionProces
     public boolean isAllowed(PersonalAccount account, PromocodeAction action) {
         Promotion promotion = getPromotion();
 
-        List<AccountPromotion> accountPromotions = accountPromotionManager
-                .findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
-
-        return accountPromotions == null || accountPromotions.isEmpty();
+        return !accountPromotionManager.existsByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
     }
 
     public void processPayment(PersonalAccount account, BigDecimal amount) {

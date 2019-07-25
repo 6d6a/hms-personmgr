@@ -36,5 +36,11 @@ public class AccountPromotion extends VersionedModelBelongsToPersonalAccount {
 
     private Boolean active;
 
+    private LocalDateTime validUntil;
+
     private Map<String, Object> properties = new HashMap<>();
+
+    public boolean isValidNow() {
+        return active && (validUntil == null || validUntil.isAfter(LocalDateTime.now()));
+    }
 }
