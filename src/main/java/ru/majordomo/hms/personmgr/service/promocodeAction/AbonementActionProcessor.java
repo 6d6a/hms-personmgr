@@ -69,7 +69,7 @@ public class AbonementActionProcessor implements PromocodeActionProcessor {
         String period = action.getProperties().get("period").toString();
         // Ищем соответствующий abonementId по периоду и плану
         Optional<Abonement> abonementOptional = requiredPlan.getAbonements().stream()
-                .filter(a -> a.getPeriod().equals(period))
+                .filter(a -> a.isInternal() && a.getPeriod().equals(period))
                 .findFirst();
 
         if (!abonementOptional.isPresent()) {
