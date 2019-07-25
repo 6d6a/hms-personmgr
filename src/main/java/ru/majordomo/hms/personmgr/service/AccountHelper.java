@@ -41,6 +41,7 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PlanFallbackRepository;
+import ru.majordomo.hms.personmgr.service.promotion.AccountPromotionFactory;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
@@ -73,6 +74,7 @@ public class AccountHelper {
     private final TestPeriodConfig testPeriodConfig;
     private final GoogleAdsActionConfig googleAdsActionConfig;
     private final PlanFallbackRepository planFallbackRepository;
+    private final AccountPromotionFactory accountPromotionFactory;
 
     @Autowired
     public AccountHelper(
@@ -95,7 +97,8 @@ public class AccountHelper {
             ResourceArchiveService resourceArchiveService,
             TestPeriodConfig testPeriodConfig,
             GoogleAdsActionConfig googleAdsActionConfig,
-            PlanFallbackRepository planFallbackRepository
+            PlanFallbackRepository planFallbackRepository,
+            AccountPromotionFactory accountPromotionFactory
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
@@ -117,6 +120,7 @@ public class AccountHelper {
         this.testPeriodConfig = testPeriodConfig;
         this.googleAdsActionConfig = googleAdsActionConfig;
         this.planFallbackRepository = planFallbackRepository;
+        this.accountPromotionFactory = accountPromotionFactory;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -384,13 +388,8 @@ public class AccountHelper {
 
             if (currentCount < promotion.getLimitPerAccount() || promotion.getLimitPerAccount() == -1) {
 
-                AccountPromotion accountPromotion = new AccountPromotion();
-                accountPromotion.setPersonalAccountId(account.getId());
-                accountPromotion.setPromotionId(promotion.getId());
-                accountPromotion.setPromotion(promotion);
-                accountPromotion.setCreated(LocalDateTime.now());
-                accountPromotion.setActionId(action.getId());
-                accountPromotion.setActive(true);
+                AccountPromotion accountPromotion = accountPromotionFactory.build(account, promotion, action);
+
                 accountPromotionManager.insert(accountPromotion);
 
                 history.save(account, "Добавлен бонус " + description);

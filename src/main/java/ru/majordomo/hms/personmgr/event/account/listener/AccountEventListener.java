@@ -331,8 +331,7 @@ public class AccountEventListener {
         }
 
         Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
-        List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
-        if (accountPromotions != null && !accountPromotions.isEmpty()) {
+        if (accountPromotionManager.existsByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId())) {
             logger.info("account has accountPromotions with id " + promotion.getId() + " , message: " + message.toString());
             return;
         }

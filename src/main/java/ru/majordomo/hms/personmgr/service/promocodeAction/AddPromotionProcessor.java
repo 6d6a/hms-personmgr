@@ -43,11 +43,11 @@ public class AddPromotionProcessor implements PromocodeActionProcessor {
 
         Promotion promotion = byId.get();
 
-        List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
+        boolean exists = accountPromotionManager.existsByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
 
         String desc = promotion.getDescription() != null ? promotion.getDescription() : promotion.getName();
 
-        if (accountPromotions == null || accountPromotions.isEmpty()) {
+        if (!exists) {
 
             accountHelper.giveGift(account, promotion);
 
@@ -67,10 +67,7 @@ public class AddPromotionProcessor implements PromocodeActionProcessor {
 
         Promotion promotion = byId.get();
 
-        List<AccountPromotion> accountPromotions = accountPromotionManager
-                .findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
-
-        return accountPromotions == null || accountPromotions.isEmpty();
+        return !accountPromotionManager.existsByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
     }
 
     private Optional<Promotion> getPromotion(PromocodeAction action) {

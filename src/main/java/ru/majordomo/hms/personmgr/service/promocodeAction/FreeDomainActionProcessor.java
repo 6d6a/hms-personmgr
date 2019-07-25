@@ -45,9 +45,9 @@ public class FreeDomainActionProcessor implements PromocodeActionProcessor {
 
         Promotion promotion = getPromotion();
 
-        List<AccountPromotion> accountPromotions = accountPromotionManager.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
+        boolean exists = accountPromotionManager.existsByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
 
-        if (accountPromotions == null || accountPromotions.isEmpty()) {
+        if (!exists) {
 
             accountHelper.giveGift(account, promotion);
 
@@ -65,10 +65,7 @@ public class FreeDomainActionProcessor implements PromocodeActionProcessor {
     public boolean isAllowed(PersonalAccount account, PromocodeAction action) {
         Promotion promotion = getPromotion();
         
-        List<AccountPromotion> accountPromotions = accountPromotionManager
-                .findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
-
-        return accountPromotions == null || accountPromotions.isEmpty();
+        return !accountPromotionManager.existsByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId());
     }
 
     private Promotion getPromotion() {

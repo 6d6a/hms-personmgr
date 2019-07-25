@@ -11,21 +11,9 @@ public interface AccountPromotionManager {
 
     long count();
 
-    void delete(String id);
-
-    void delete(AccountPromotion accountPromotion);
-
-    void delete(Iterable<AccountPromotion> accountPromotions);
-
-    void deleteAll();
-
     AccountPromotion save(AccountPromotion accountPromotion);
 
-    List<AccountPromotion> save(Iterable<AccountPromotion> accountPromotions);
-
     AccountPromotion insert(AccountPromotion accountPromotion);
-
-    List<AccountPromotion> insert(Iterable<AccountPromotion> accountPromotions);
 
     AccountPromotion findOne(String id);
 

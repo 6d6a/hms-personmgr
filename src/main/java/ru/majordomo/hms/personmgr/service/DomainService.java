@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.net.IDN;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
@@ -40,6 +39,7 @@ import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
+import ru.majordomo.hms.personmgr.service.promotion.AccountPromotionFactory;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
@@ -71,6 +71,7 @@ public class DomainService {
     private final BusinessHelper businessHelper;
     private final AccountHistoryManager history;
     private final PaymentServiceRepository paymentServiceRepository;
+    private final AccountPromotionFactory accountPromotionFactory;
 
     @Autowired
     public DomainService(
@@ -86,7 +87,8 @@ public class DomainService {
             AccountNotificationHelper accountNotificationHelper,
             BusinessHelper businessHelper,
             AccountHistoryManager history,
-            PaymentServiceRepository paymentServiceRepository
+            PaymentServiceRepository paymentServiceRepository,
+            AccountPromotionFactory accountPromotionFactory
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
@@ -101,6 +103,7 @@ public class DomainService {
         this.businessHelper = businessHelper;
         this.history = history;
         this.paymentServiceRepository = paymentServiceRepository;
+        this.accountPromotionFactory = accountPromotionFactory;
     }
 
     public void processExpiringDomainsByAccount(PersonalAccount account) {
@@ -147,7 +150,7 @@ public class DomainService {
 
             for (Domain domain : domains) {
                 //дней до истечения, может быть отрицательным
-                daysBeforeExpired = Utils.differenceInDays(LocalDate.now(), domain.getRegSpec().getPaidTill());
+                daysBeforeExpired = differenceInDays(LocalDate.now(), domain.getRegSpec().getPaidTill());
                 if (daysBeforeExpiredForEmail.contains(daysBeforeExpired)) { expiringDomains.add(domain); }
                 else if (daysAfterExperedForEmail.contains(-daysBeforeExpired)) { expiredDomains.add(domain); }
                 if (sendSms && daysBeforeExpired == daysBeforeExpiredForSms) { expiringDomainsForSms.add(domain); }
@@ -224,7 +227,7 @@ public class DomainService {
                 domainRenewMessage.addParam(AUTO_RENEW_KEY, true);
 
                 try {
-                    blockMoneyBeforeRenewOrRegistrationExistsDomain(account, domainRenewMessage, domain);
+                    blockMoneyBeforeAutoRenewExistsDomain(account, domainRenewMessage, domain);
 
                     businessHelper.buildAction(BusinessActionType.DOMAIN_UPDATE_RC, domainRenewMessage);
 
@@ -335,7 +338,7 @@ public class DomainService {
         });
 
         for (AccountPromotion accountPromotion : accountPromotions) {
-            if (!accountPromotion.getActive()) {
+            if (!accountPromotion.isValidNow()) {
                 continue;
             }
 
@@ -679,7 +682,22 @@ public class DomainService {
         }
     }
 
-    public void blockMoneyBeforeRenewOrRegistrationExistsDomain(PersonalAccount account, SimpleServiceMessage message, Domain domain) {
+    public void blockMoneyBeforeManualRenewOrRegistrationExistsDomain(
+            PersonalAccount account, SimpleServiceMessage message, Domain domain
+    ) {
+        blockMoneyForExistsDomain(account, message, domain,
+                accountPromotionManager.findByPersonalAccountIdAndActive(account.getId(), true));
+    }
+
+    private void blockMoneyBeforeAutoRenewExistsDomain(
+            PersonalAccount account, SimpleServiceMessage message, Domain domain
+    ) {
+        blockMoneyForExistsDomain(account, message, domain, Collections.emptyList());
+    }
+
+    private void blockMoneyForExistsDomain(
+            PersonalAccount account, SimpleServiceMessage message, Domain domain, List<AccountPromotion> accountPromotions
+    ) {
         boolean isRenew = message.getParam("renew") != null && (boolean) message.getParam("renew");
         boolean isRegistration = message.getParam("register") != null && (boolean) message.getParam("register");
 
@@ -699,29 +717,14 @@ public class DomainService {
             throw new InternalApiException("Не удалось найти услугу для продления домена " + domain.getName());
         }
 
-        Container<BigDecimal> costContainer = new Container<>();
-        costContainer.setData(service.getCost());
+        Container<BigDecimal> costContainer = new Container<>(service.getCost());
+        Container<Optional<AccountPromotion>> promotionContainer = new Container<>(Optional.empty());
 
         if (premiumPrice != null && premiumPrice.compareTo(BigDecimal.ZERO) > 0) {
             costContainer.setData(premiumPrice);
         } else {
-            accountPromotionManager.findByPersonalAccountId(account.getId())
-                    .stream()
-                    .filter(p -> {
-                        if (!p.getActive()) return false;
-
-                        PromocodeActionType actionType = p.getAction().getActionType();
-                        List serviceIds = (List) p.getAction().getProperties().get("serviceIds");
-                        Object domainName = p.getProperties().get("domainName");
-
-                        return actionType.equals(PromocodeActionType.SERVICE_DISCOUNT)
-                                && (serviceIds).contains(service.getId())
-                                && (domainName == null || domainName.equals(domain.getName()));
-                    }).max((p1, p2) -> {
-                        Object d1 = p1.getProperties().get("domainName");
-                        Object d2 = p2.getProperties().get("domainName");
-                        return d1 == d2 ? 0 : d1 != null ? 1 : -1;
-                    }).ifPresent(accountPromotion -> {
+            findPromotion(accountPromotions, service, domain).ifPresent(accountPromotion -> {
+                        promotionContainer.setData(Optional.of(accountPromotion));
                         costContainer.setData(
                                 getDiscountCost(costContainer.getData(), accountPromotion)
                         );
@@ -733,6 +736,7 @@ public class DomainService {
         accountHelper.checkBalanceWithoutBonus(account, costContainer.getData());
 
         setAsUsedAccountPromotion(message);
+        promotionContainer.getData().ifPresent(a -> a.setActive(false));
 
         try {
             ChargeMessage chargeMessage = new ChargeMessage.Builder(service)
@@ -750,15 +754,37 @@ public class DomainService {
                     account.getId(), domain.getName(), e.getClass(), e.getMessage()
             );
             setAsActiveAccountPromotion(message);
+            promotionContainer.getData().ifPresent(a -> a.setActive(true));
             throw e;
         }
+    }
+
+    private Optional<AccountPromotion> findPromotion(
+            List<AccountPromotion> accountPromotions, PaymentService service, Domain domain
+    ) {
+        return accountPromotions.stream()
+                .filter(p -> {
+                    if (!p.isValidNow()) return false;
+
+                    PromocodeActionType actionType = p.getAction().getActionType();
+                    List serviceIds = (List) p.getAction().getProperties().get("serviceIds");
+                    Object domainName = p.getProperties().get("domainName");
+
+                    return actionType.equals(PromocodeActionType.SERVICE_DISCOUNT)
+                            && (serviceIds).contains(service.getId())
+                            && (domainName == null || domainName.equals(domain.getName()));
+                }).max((p1, p2) -> {
+            Object d1 = p1.getProperties().get("domainName");
+            Object d2 = p2.getProperties().get("domainName");
+            return d1 == d2 ? 0 : d1 != null ? 1 : -1;
+        });
     }
 
     private void processAddRenewPromotions(List<Domain> domains, PersonalAccount account) {
         Promotion promotion = promotionRepository.findByName("ru_rf_domain_renew_by_name_discount");
 
         List<AccountPromotion> existsRenewPromotions = accountPromotionManager.findByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId())
-                .stream().filter(AccountPromotion::getActive)
+                .stream().filter(AccountPromotion::isValidNow)
                 .collect(Collectors.toList());
 
         Lazy<Integer> domainCount = new Lazy<>(() -> rcUserFeignClient.getDomains(account.getAccountId()).size());
@@ -818,14 +844,9 @@ public class DomainService {
             );
 
             if (accountPromotionContainer.getData() == null && domainCount.get() <= 7) {
-                AccountPromotion accountPromotion = new AccountPromotion();
-                accountPromotion.setPersonalAccountId(account.getId());
-                accountPromotion.setPromotionId(promotion.getId());
-                accountPromotion.setPromotion(promotion);
-                accountPromotion.setCreated(LocalDateTime.now());
-                accountPromotion.setActionId(action.getData().getId());
-                accountPromotion.setAction(action.getData());
-                accountPromotion.setActive(true);
+
+                AccountPromotion accountPromotion = accountPromotionFactory.build(account, promotion, action.getData());
+
                 accountPromotion.getProperties().put("domainName", domain.getName());
 
                 accountPromotionManager.insert(accountPromotion);
