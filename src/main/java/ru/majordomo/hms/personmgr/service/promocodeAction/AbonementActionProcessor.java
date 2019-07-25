@@ -87,7 +87,7 @@ public class AbonementActionProcessor implements PromocodeActionProcessor {
 
         Abonement abonement = abonementOptional.get();
 
-        abonementService.addAbonement(account, abonement.getId(), false);
+        abonementService.addAbonement(account, abonement.getId());
 
         accountHelper.enableAccount(account);
 

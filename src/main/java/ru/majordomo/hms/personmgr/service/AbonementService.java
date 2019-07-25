@@ -103,9 +103,8 @@ public class AbonementService {
      *
      * @param account Аккаунт
      * @param abonementId id абонемента
-     * @param autorenew автопродление абонемента
      */
-    public AccountAbonement addAbonement(PersonalAccount account, String abonementId, Boolean autorenew) {
+    public AccountAbonement addAbonement(PersonalAccount account, String abonementId) {
         Plan plan = getAccountPlan(account);
 
         Abonement abonement = plan.getAbonements().stream()
@@ -431,7 +430,7 @@ public class AbonementService {
             Abonement fallbackAbonement = getFallbackAbonement(fallbackPlan);
             //Тут может выпасть исключение, если тариф не совпадает с покупаемым абонементом или нехватает денег
             account.setPlanId(fallbackPlan.getId());
-            addAbonement(account, fallbackAbonement.getId(), true);
+            addAbonement(account, fallbackAbonement.getId());
 
             //При успешной покупке абонемента устанавливаем id тарифа
             accountHelper.setPlanId(account.getId(), fallbackPlan.getId());
@@ -540,7 +539,7 @@ public class AbonementService {
         Abonement abonement = plan.getFree14DaysAbonement();
 
         if (abonement != null) {
-            addAbonement(account, abonement.getId(), false);
+            addAbonement(account, abonement.getId());
             history.saveForOperatorService(account, "Добавлен абонемент на тестовый период (14 дней)");
         }
     }
@@ -553,7 +552,7 @@ public class AbonementService {
 
         for (Abonement abonement : abonements) {
             if (abonement.getService().getCost().equals(BigDecimal.ZERO)) {
-                addAbonement(account, abonement.getId(), false);
+                addAbonement(account, abonement.getId());
                 return;
             }
         }
@@ -566,7 +565,7 @@ public class AbonementService {
                             "Добавление абонемента на период " + period + " недоступно"
                     ));
 
-            AccountAbonement accountAbonement = addAbonement(account, internal.getId(), false);
+            AccountAbonement accountAbonement = addAbonement(account, internal.getId());
             accountAbonementManager.setExpired(accountAbonement.getId(), LocalDateTime.now().plus(period));
         }
     }
