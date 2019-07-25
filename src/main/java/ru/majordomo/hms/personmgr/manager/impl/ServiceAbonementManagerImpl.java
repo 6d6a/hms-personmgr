@@ -103,11 +103,6 @@ public class ServiceAbonementManagerImpl implements AbonementManager<AccountServ
     }
 
     @Override
-    public AccountServiceAbonement findByPersonalAccountId(String personalAccountId) {
-        return repository.findByPersonalAccountId(personalAccountId);
-    }
-
-    @Override
     public List<AccountServiceAbonement> findAllByPersonalAccountId(String personalAccountId) {
         return repository.findAllByPersonalAccountId(personalAccountId);
     }

@@ -12,7 +12,6 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 public interface AccountAbonementRepository extends MongoRepository<AccountAbonement, String> {
     AccountAbonement findByIdAndPersonalAccountId(String id, String personalAccountId);
     List<AccountAbonement> findByAbonementId(String abonementId);
-    AccountAbonement findByPersonalAccountId(String personalAccountId);
     List<AccountAbonement> findAllByPersonalAccountId(String personalAccountId);
     Page<AccountAbonement> findByPersonalAccountId(String personalAccountId, Pageable pageable);
     List<AccountAbonement> findByPersonalAccountIdAndExpiredAfter(String personalAccountId, LocalDateTime expired);

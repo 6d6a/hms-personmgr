@@ -37,8 +37,6 @@ public interface AbonementManager<T extends AccountAbonement> {
 
     List<T> findByAbonementId(String abonementId);
 
-    T findByPersonalAccountId(String personalAccountId);
-
     List<T> findAllByPersonalAccountId(String personalAccountId);
 
     boolean existsByPersonalAccountId(String personalAccountId);
