@@ -158,10 +158,6 @@ public class AbonementService {
 
         accountAbonement = accountAbonementManager.insert(accountAbonement);
 
-        if (!abonement.isInternal() && !abonement.isTrial()) {
-            enableAbonementAutoRenewIfNotSet(account);
-        }
-
         deletePlanServiceIfExists(account, plan);
 
         if (!abonement.isInternal() && account.getSettings().get(AccountSetting.ABONEMENT_AUTO_RENEW) == null) {
@@ -359,9 +355,6 @@ public class AbonementService {
                         " Баланс: " + formatBigDecimalWithCurrency(balance) +
                         " Дата окончания: " + currentExpired
                 );
-
-                //Сохраним "на будущее" установку автопокупки абонемента
-                enableAbonementAutoRenewIfNotSet(account);
             }
         } else {
             //Удаляем абонемент и включаем услуги хостинга по тарифу
@@ -371,12 +364,6 @@ public class AbonementService {
                     account,
                     "Абонемент удален, так как автопродление отключено. Дата окончания: " + currentExpired
             );
-        }
-    }
-
-    private void enableAbonementAutoRenewIfNotSet(PersonalAccount account) {
-        if (!account.getSettings().containsKey(AccountSetting.ABONEMENT_AUTO_RENEW)) {
-            publisher.publishEvent(new AccountSetSettingEvent(account, AccountSetting.ABONEMENT_AUTO_RENEW, true));
         }
     }
 
