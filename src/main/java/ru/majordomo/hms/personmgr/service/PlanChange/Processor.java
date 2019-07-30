@@ -58,6 +58,7 @@ public abstract class Processor {
     private FinFeignClient finFeignClient;
     private PlanManager planManager;
     private ResourceNormalizer resourceNormalizer;
+    private ResourceHelper resourceHelper;
 
     protected final PersonalAccount account;
     protected Plan currentPlan;
@@ -88,7 +89,8 @@ public abstract class Processor {
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher,
             PlanManager planManager,
-            ResourceNormalizer resourceNormalizer
+            ResourceNormalizer resourceNormalizer,
+            ResourceHelper resourceHelper
     ) {
         this.finFeignClient = finFeignClient;
         this.accountAbonementManager = accountAbonementManager;
@@ -104,6 +106,7 @@ public abstract class Processor {
         this.publisher = publisher;
         this.planManager = planManager;
         this.resourceNormalizer = resourceNormalizer;
+        this.resourceHelper = resourceHelper;
     }
 
     void postConstruct() {
@@ -645,10 +648,10 @@ public abstract class Processor {
 
     private void normalizeMailbox() {
         if (!newPlan.isMailboxAllowed()) {
-            accountHelper.disableAndScheduleDeleteForAllMailboxes(account);
+            resourceHelper.disableAndScheduleDeleteForAllMailboxes(account);
             history.save(account, "Для аккаунта выключены и запланированы на удаление почтовые ящики в соответствии с тарифным планом", operator);
         } else {
-            accountHelper.unScheduleDeleteForAllMailboxes(account);
+            resourceHelper.unScheduleDeleteForAllMailboxes(account);
             history.save(account, "Для аккаунта отменено запланированное удаление почтовых ящиков в соответствии с тарифным планом", operator);
         }
     }
@@ -659,27 +662,27 @@ public abstract class Processor {
 
     private void normalizeSslCertificate() {
         if (!newPlan.isSslCertificateAllowed()) {
-            accountHelper.switchCertificates(account, false);
+            resourceHelper.switchCertificates(account, false);
             history.save(account, "Для аккаунта отключены SSL сертификаты в соответствии с тарифным планом", operator);
         }
     }
 
     private void normalizeDatabase() {
         if (!newPlan.isDatabaseAllowed()) {
-            accountHelper.disableAndScheduleDeleteForAllDatabases(account);
+            resourceHelper.disableAndScheduleDeleteForAllDatabases(account);
             history.save(account.getId(), "Для аккаунта выключены и запланированы на удаление базы данных в соответствии с тарифным планом", operator);
         }else {
-            accountHelper.unScheduleDeleteForAllDatabases(account);
+            resourceHelper.unScheduleDeleteForAllDatabases(account);
             history.save(account, "Для аккаунта отменено запланированное удаление баз данных в соответствии с тарифным планом", operator);
         }
     }
 
     private void normalizeDatabaseUser() {
         if (!newPlan.isDatabaseUserAllowed()) {
-            accountHelper.disableAndScheduleDeleteForAllDatabaseUsers(account);
+            resourceHelper.disableAndScheduleDeleteForAllDatabaseUsers(account);
             history.save(account.getId(), "Для аккаунта выключены и запланированы на удаление пользователи баз данных в соответствии с тарифным планом", operator);
         }else {
-            accountHelper.unScheduleDeleteForAllDatabaseUsers(account);
+            resourceHelper.unScheduleDeleteForAllDatabaseUsers(account);
             history.save(account.getId(), "Для аккаунта отменено запланированное удаление пользователей баз данных в соответствии с тарифным планом", operator);
         }
     }

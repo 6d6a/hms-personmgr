@@ -37,7 +37,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.time.temporal.ChronoUnit.MONTHS;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_NEWS;
 import static ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager.MAY_PROLONG_DAYS_BEFORE_EXPIRED;
@@ -46,7 +45,7 @@ import static ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager
 public class AccountNotificationEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountEventListener.class);
 
-    private final AccountHelper accountHelper;
+    private final ResourceHelper resourceHelper;
     private final AccountStatRepository accountStatRepository;
     private final PlanManager planManager;
     private final AccountNotificationHelper accountNotificationHelper;
@@ -60,7 +59,7 @@ public class AccountNotificationEventListener {
 
     @Autowired
     public AccountNotificationEventListener(
-            AccountHelper accountHelper,
+            ResourceHelper resourceHelper,
             AccountStatRepository accountStatRepository,
             PlanManager planManager,
             AccountNotificationHelper accountNotificationHelper,
@@ -72,7 +71,7 @@ public class AccountNotificationEventListener {
             BitrixLicenseOrderManager bitrixLicenseOrderManager,
             RcUserFeignClient rcUserFeignClient
     ) {
-        this.accountHelper = accountHelper;
+        this.resourceHelper = resourceHelper;
         this.accountStatRepository = accountStatRepository;
         this.planManager = planManager;
         this.accountNotificationHelper = accountNotificationHelper;
@@ -216,7 +215,7 @@ public class AccountNotificationEventListener {
                 case 25:
                     //отправляем, если есть домены и ни один не привязан к biz.mail.ru
                     //делегирован домен на наши NS или нет - неважно
-                    List<Domain> domains = accountHelper.getDomains(account);
+                    List<Domain> domains = resourceHelper.getDomains(account);
                     if (domains == null || domains.isEmpty()) {
                         break;
                     }

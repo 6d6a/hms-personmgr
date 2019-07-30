@@ -39,7 +39,7 @@ public class AccountQuotaService {
     private final PlanManager planManager;
     private final AccountServiceRepository accountServiceRepository;
     private final ApplicationEventPublisher publisher;
-    private final AccountHelper accountHelper;
+    private final ResourceHelper resourceHelper;
 
     @Autowired
     public AccountQuotaService(
@@ -51,7 +51,7 @@ public class AccountQuotaService {
             PlanManager planManager,
             AccountServiceRepository accountServiceRepository,
             ApplicationEventPublisher publisher,
-            AccountHelper accountHelper
+            ResourceHelper resourceHelper
     ) {
         this.accountManager = accountManager;
         this.accountCountersService = accountCountersService;
@@ -61,7 +61,7 @@ public class AccountQuotaService {
         this.planManager = planManager;
         this.accountServiceRepository = accountServiceRepository;
         this.publisher = publisher;
-        this.accountHelper = accountHelper;
+        this.resourceHelper = resourceHelper;
     }
 
     public void processQuotaCheck(PersonalAccount account) {
@@ -143,7 +143,7 @@ public class AccountQuotaService {
 
         //Обновим квоту юникс-аккаунта
         Long quotaInBytes = (planQuotaKBFreeLimit + (oneServiceCapacity * newAdditionalQuotaCount)) * 1024;
-        accountHelper.updateUnixAccountQuota(account, quotaInBytes);
+        resourceHelper.updateUnixAccountQuota(account, quotaInBytes);
 
         //Обновим writable для quotable-ресурсов аккаунта
         setWritable(account, writableState, plan);
@@ -151,8 +151,8 @@ public class AccountQuotaService {
 
     private void setWritable(PersonalAccount account, Boolean writableState, Plan plan) {
         //ищем все quotable-ресурсы с writable, который надо изменить
-        List<Quotable> resources = accountHelper.filterQuotableResoursesByWritableState(
-                accountHelper.getQuotableResources(account), !writableState
+        List<Quotable> resources = resourceHelper.filterQuotableResoursesByWritableState(
+                resourceHelper.getQuotableResources(account), !writableState
         );
 
         //Если у ресурса установлена собственная квота, то при её превышении оставляем writable = false
@@ -166,7 +166,7 @@ public class AccountQuotaService {
         }
         // если ресурсы найдены, устанавливаем writable  для ресурсов
         if (filteredResources != null && !filteredResources.isEmpty()) {
-            accountHelper.setWritableForAccountQuotaServicesByList(account, writableState, filteredResources);
+            resourceHelper.setWritableForAccountQuotaServicesByList(account, writableState, filteredResources);
 
             //Для аккаунтов без квоты, например, Парковка+
             Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);

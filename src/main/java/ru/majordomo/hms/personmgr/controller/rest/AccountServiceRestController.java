@@ -44,6 +44,7 @@ public class AccountServiceRestController extends CommonRestController {
     private final PlanManager planManager;
     private final AccountNotificationHelper accountNotificationHelper;
     private final DiscountServiceHelper discountServiceHelper;
+    private final ResourceHelper resourceHelper;
 
     @Autowired
     public AccountServiceRestController(
@@ -52,7 +53,8 @@ public class AccountServiceRestController extends CommonRestController {
             AbonementManager<AccountAbonement> accountAbonementManager,
             PlanManager planManager,
             AccountNotificationHelper accountNotificationHelper,
-            DiscountServiceHelper discountServiceHelper
+            DiscountServiceHelper discountServiceHelper,
+            ResourceHelper resourceHelper
     ) {
         this.accountServiceHelper = accountServiceHelper;
         this.accountHelper = accountHelper;
@@ -60,6 +62,7 @@ public class AccountServiceRestController extends CommonRestController {
         this.planManager = planManager;
         this.accountNotificationHelper = accountNotificationHelper;
         this.discountServiceHelper = discountServiceHelper;
+        this.resourceHelper = resourceHelper;
     }
 
     @GetMapping(value = "/{accountServiceId}")
@@ -172,7 +175,7 @@ public class AccountServiceRestController extends CommonRestController {
         processCustomService(account, plan.getService(), enabled);
 
         if (feature == Feature.ANTI_SPAM) {
-            accountHelper.switchAntiSpamForMailboxes(account, enabled);
+            resourceHelper.switchAntiSpamForMailboxes(account, enabled);
         }
 
         history.save(
