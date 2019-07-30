@@ -36,33 +36,33 @@ import java.util.stream.Collectors;
 public class AccountServiceAbonementRestController extends CommonRestController {
 
     private final AccountServiceHelper accountServiceHelper;
-    private final AccountHelper accountHelper;
     private final AbonementManager<AccountServiceAbonement> accountServiceAbonementManager;
     private final AccountNotificationHelper accountNotificationHelper;
     private final ServiceAbonementService serviceAbonementService;
     private final AccountRedirectServiceRepository redirectServiceRepository;
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final BackupService backupService;
+    private final ResourceHelper resourceHelper;
 
     @Autowired
     public AccountServiceAbonementRestController(
             AccountServiceHelper accountServiceHelper,
-            AccountHelper accountHelper,
             AbonementManager<AccountServiceAbonement> accountServiceAbonementManager,
             AccountNotificationHelper accountNotificationHelper,
             ServiceAbonementService serviceAbonementService,
             AccountRedirectServiceRepository redirectServiceRepository,
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
-            BackupService backupService
+            BackupService backupService,
+            ResourceHelper resourceHelper
     ) {
         this.accountServiceHelper = accountServiceHelper;
-        this.accountHelper = accountHelper;
         this.accountNotificationHelper = accountNotificationHelper;
         this.serviceAbonementService = serviceAbonementService;
         this.accountServiceAbonementManager = accountServiceAbonementManager;
         this.redirectServiceRepository = redirectServiceRepository;
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
         this.backupService = backupService;
+        this.resourceHelper = resourceHelper;
     }
 
     @GetMapping
@@ -94,13 +94,13 @@ public class AccountServiceAbonementRestController extends CommonRestController 
         switch (abonement.getAbonement().getType()) {
             case REDIRECT:
                 RedirectAccountService redirect = redirectServiceRepository.findByAccountServiceAbonementId(abonementId);
-                accountHelper.deleteRedirects(account, redirect.getFullDomainName());
+                resourceHelper.deleteRedirects(account, redirect.getFullDomainName());
                 redirectServiceRepository.delete(redirect);
                 message += " домен: " +  redirect.getFullDomainName();
 
                 break;
             case ANTI_SPAM:
-                accountHelper.switchAntiSpamForMailboxes(account, false);
+                resourceHelper.switchAntiSpamForMailboxes(account, false);
 
                 break;
             case REVISIUM:

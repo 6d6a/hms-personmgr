@@ -32,6 +32,7 @@ public class Factory {
     private final ApplicationEventPublisher publisher;
     private final PlanManager planManager;
     private final ResourceNormalizer resourceNormalizer;
+    private final ResourceHelper resourceHelper;
 
     @Autowired
     public Factory(
@@ -48,7 +49,8 @@ public class Factory {
             AccountHelper accountHelper,
             ApplicationEventPublisher publisher,
             PlanManager planManager,
-            ResourceNormalizer resourceNormalizer
+            ResourceNormalizer resourceNormalizer,
+            ResourceHelper resourceHelper
     ) {
         this.finFeignClient = finFeignClient;
         this.accountAbonementManager = accountAbonementManager;
@@ -64,6 +66,7 @@ public class Factory {
         this.publisher = publisher;
         this.planManager = planManager;
         this.resourceNormalizer = resourceNormalizer;
+        this.resourceHelper = resourceHelper;
     }
 
     public Processor createPlanChangeProcessor(PersonalAccount account, Plan newPlan) {
@@ -113,7 +116,8 @@ public class Factory {
                 accountHelper,
                 publisher,
                 planManager,
-                resourceNormalizer
+                resourceNormalizer,
+                resourceHelper
         );
 
         processor.postConstruct();
