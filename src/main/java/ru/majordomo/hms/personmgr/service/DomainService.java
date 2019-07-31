@@ -733,29 +733,33 @@ public class DomainService {
                     });
         }
 
-        accountHelper.checkBalanceWithoutBonus(account, costContainer.getData());
+        if (costContainer.getData().compareTo(BigDecimal.ZERO) > 0) {
+            accountHelper.checkBalanceWithoutBonus(account, costContainer.getData());
+        }
 
         setAsUsedAccountPromotion(message);
         promotionContainer.getData().ifPresent(a -> a.setActive(false));
 
-        try {
-            ChargeMessage chargeMessage = new ChargeMessage.Builder(service)
-                    .setAmount(costContainer.getData())
-                    .excludeBonusPaymentType()
-                    .setComment(domain.getName())
-                    .build();
+        if (costContainer.getData().compareTo(BigDecimal.ZERO) > 0) {
+            try {
+                ChargeMessage chargeMessage = new ChargeMessage.Builder(service)
+                        .setAmount(costContainer.getData())
+                        .excludeBonusPaymentType()
+                        .setComment(domain.getName())
+                        .build();
 
-            SimpleServiceMessage blockResult = accountHelper.block(account, chargeMessage);
+                    SimpleServiceMessage blockResult = accountHelper.block(account, chargeMessage);
 
-            String documentNumber = (String) blockResult.getParam("documentNumber");
-            message.addParam("documentNumber", documentNumber);
-        } catch (Throwable e) {
-            logger.error("Catch exception when block money for domain service  account {} domain {} e {} message {}",
-                    account.getId(), domain.getName(), e.getClass(), e.getMessage()
-            );
-            setAsActiveAccountPromotion(message);
-            promotionContainer.getData().ifPresent(a -> a.setActive(true));
-            throw e;
+                    String documentNumber = (String) blockResult.getParam("documentNumber");
+                    message.addParam("documentNumber", documentNumber);
+            } catch (Throwable e) {
+                logger.error("Catch exception when block money for domain service  account {} domain {} e {} message {}",
+                        account.getId(), domain.getName(), e.getClass(), e.getMessage()
+                );
+                setAsActiveAccountPromotion(message);
+                promotionContainer.getData().ifPresent(a -> a.setActive(true));
+                throw e;
+            }
         }
     }
 
