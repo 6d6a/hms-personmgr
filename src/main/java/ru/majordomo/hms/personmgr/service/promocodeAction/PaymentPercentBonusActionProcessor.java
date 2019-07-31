@@ -17,6 +17,7 @@ import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
+import ru.majordomo.hms.personmgr.service.GiftHelper;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -33,7 +34,7 @@ public class PaymentPercentBonusActionProcessor implements PromocodeActionProces
 
     private final PromotionRepository promotionRepository;
     private final AccountPromotionManager accountPromotionManager;
-    private final AccountHelper accountHelper;
+    private final GiftHelper giftHelper;
     private final AccountHistoryManager history;
     private final PromocodeActionRepository promocodeActionRepository;
     private final FinFeignClient finFeignClient;
@@ -42,14 +43,14 @@ public class PaymentPercentBonusActionProcessor implements PromocodeActionProces
     public PaymentPercentBonusActionProcessor(
             PromotionRepository promotionRepository,
             AccountPromotionManager accountPromotionManager,
-            AccountHelper accountHelper,
+            GiftHelper giftHelper,
             AccountHistoryManager history,
             PromocodeActionRepository promocodeActionRepository,
             FinFeignClient finFeignClient
     ) {
         this.promotionRepository = promotionRepository;
         this.accountPromotionManager = accountPromotionManager;
-        this.accountHelper = accountHelper;
+        this.giftHelper = giftHelper;
         this.history = history;
         this.promocodeActionRepository = promocodeActionRepository;
         this.finFeignClient = finFeignClient;
@@ -59,7 +60,7 @@ public class PaymentPercentBonusActionProcessor implements PromocodeActionProces
     public Result process(PersonalAccount account, PromocodeAction action, String code) {
         Promotion promotion = getPromotion();
 
-        accountHelper.giveGift(account, promotion);
+        giftHelper.giveGift(account, promotion);
 
         history.save(
                 account,

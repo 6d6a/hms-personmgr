@@ -3,13 +3,16 @@ package ru.majordomo.hms.personmgr.service.PlanChange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.util.Pair;
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.ResourceType;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentRequest;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
+import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
@@ -27,9 +30,9 @@ import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.service.*;
+import ru.majordomo.hms.personmgr.service.PlanChange.behavior.ReplaceAbonementAdviceBehavior;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
@@ -232,21 +235,23 @@ public abstract class Processor {
         ) {
             planChangeAgreement.setBalanceChanges(true);
 
-            Optional<Abonement> newNotInternalAbonement = getNotInternalAbonementAfterChangePlan();
+            List<Abonement> abonements = new ReplaceAbonementAdviceBehavior(
+                    newPlan, currentAccountAbonements
+            ).abonementsForReplace();
 
-            if (newNotInternalAbonement.isPresent()) {
+            if (!abonements.isEmpty()) {
+                BigDecimal cost = abonements.stream().map(a -> a.getService().getCost())
+                        .reduce(BigDecimal.ZERO, (a, c) -> c.add(a));
 
-                BigDecimal newAbonementCost = newNotInternalAbonement.get().getService().getCost();
-
-                if (newBalanceAfterCashBack.compareTo(newAbonementCost) < 0) {
+                if (newBalanceAfterCashBack.compareTo(cost) < 0) {
                     // Денег на новый абонемент не хватает
                     planChangeAgreement.setNeedToFeelBalance(
-                            newAbonementCost.subtract(newBalanceAfterCashBack)
+                            cost.subtract(newBalanceAfterCashBack)
                     );
                 }
 
                 planChangeAgreement.setBalanceAfterOperation(
-                        newBalanceAfterCashBack.subtract(newAbonementCost)
+                        newBalanceAfterCashBack.subtract(cost)
                 );
             } else {
                 //Пока тарифов без абонементов нет
@@ -504,15 +509,29 @@ public abstract class Processor {
      *
      * @param abonement новый абонемент
      */
-    AccountAbonement addAccountAbonement(Abonement abonement) {
+    void addAccountAbonement(Abonement abonement, LocalDateTime expired) {
         AccountAbonement accountAbonement = new AccountAbonement();
         accountAbonement.setAbonementId(abonement.getId());
         accountAbonement.setPersonalAccountId(account.getId());
         accountAbonement.setCreated(LocalDateTime.now());
-        accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
+        accountAbonement.setExpired(expired);
         accountAbonement.setAutorenew(true);
 
-        return accountAbonementManager.insert(accountAbonement);
+        accountAbonementManager.insert(accountAbonement);
+    }
+
+    private void addAccountAbonement(Abonement abonement) {
+        addAccountAbonement(abonement, LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
+    }
+
+    private void addAccountAbonements(List<Abonement> abonements) {
+        for (int i = 0; i < abonements.size(); i++) {
+            if (i == 0) {
+                addAccountAbonement(abonements.get(i));
+            } else {
+                addAccountAbonement(abonements.get(i), null);
+            }
+        }
     }
 
     void deleteAbonements() {
@@ -700,43 +719,39 @@ public abstract class Processor {
      * @see Processor().getPlanChangeAgreement()
      */
     final void buyNotInternalAbonement() {
-        Abonement abonement = getNotInternalAbonementAfterChangePlan().get();
+        List<Abonement> abonements = new ReplaceAbonementAdviceBehavior(
+                newPlan, currentAccountAbonements
+        ).abonementsForReplace();
 
-        ChargeMessage chargeMessage = new ChargeMessage.Builder(abonement.getService())
-                .setForceCharge(ignoreRestricts)
-                .build();
+        List<SimpleServiceMessage> chargeResults = new ArrayList<>();
+        for (Abonement abonement : abonements) {
+            ChargeMessage chargeMessage = new ChargeMessage.Builder(abonement.getService())
+                    .setForceCharge(ignoreRestricts)
+                    .build();
 
-        accountHelper.charge(account, chargeMessage);
-        addAccountAbonement(abonement);
+            try {
+                chargeResults.add(
+                        accountHelper.charge(account, chargeMessage)
+                );
+            } catch (Exception e) {
+                logger.info("account {} on charge for {} catch e {} message {}",
+                        account.getId(), chargeMessage.toString(), e.getClass(), e.getMessage()
+                );
+
+                for (SimpleServiceMessage chargeResult : chargeResults) {
+                    try {
+                        finFeignClient.unblock(account.getId(), (String) chargeResult.getParam("documentNubmer"));
+                    } catch (Exception ignore) {}
+                }
+
+                throw e;
+            }
+        }
+
+        addAccountAbonements(abonements);
 
         if (account.getSettings().get(AccountSetting.ABONEMENT_AUTO_RENEW) == null) {
             publisher.publishEvent(new AccountSetSettingEvent(account, AccountSetting.ABONEMENT_AUTO_RENEW, true));
         }
-    }
-
-    private Optional<Abonement> getNotInternalAbonementAfterChangePlan() {
-        LocalDate now = LocalDate.now();
-
-        Optional<String> preferablePeriod = currentAccountAbonements.stream()
-                .filter(a -> !a.getAbonement().isInternal())
-                .max(Comparator.comparing(a ->
-                    a.getExpired() != null
-                            ? a.getExpired().toLocalDate()
-                            : now.plus(Period.parse(a.getAbonement().getPeriod()))
-                ))
-                .map(a -> a.getAbonement().getPeriod());
-
-        if (preferablePeriod.isPresent()) {
-            String period = preferablePeriod.get();
-            for (Abonement abonement : newPlan.getAbonements()) {
-                if (!abonement.isInternal() && abonement.getPeriod().equals(period)) {
-                    return Optional.of(abonement);
-                }
-            }
-        }
-
-        return newPlan.getAbonements().stream()
-                .filter(a -> !a.isInternal())
-                .max(Comparator.comparing(a -> now.plus(Period.parse(a.getPeriod()))));
     }
 }

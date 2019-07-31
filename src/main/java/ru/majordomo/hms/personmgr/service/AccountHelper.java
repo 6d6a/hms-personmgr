@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.config.GoogleAdsActionConfig;
 import ru.majordomo.hms.personmgr.config.TestPeriodConfig;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountWasEnabled;
@@ -31,15 +30,11 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanFallback;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
-import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
-import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
-import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PlanFallbackRepository;
-import ru.majordomo.hms.personmgr.service.promotion.AccountPromotionFactory;
 import ru.majordomo.hms.rc.user.resources.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
@@ -54,7 +49,6 @@ public class AccountHelper {
 
     private final FinFeignClient finFeignClient;
     private final SiFeignClient siFeignClient;
-    private final AccountPromotionManager accountPromotionManager;
     private final ResourceHelper resourceHelper;
     private final PersonalAccountManager accountManager;
     private final ApplicationEventPublisher publisher;
@@ -69,15 +63,12 @@ public class AccountHelper {
     private final AccountNoticeRepository accountNoticeRepository;
     private final ResourceArchiveService resourceArchiveService;
     private final TestPeriodConfig testPeriodConfig;
-    private final GoogleAdsActionConfig googleAdsActionConfig;
     private final PlanFallbackRepository planFallbackRepository;
-    private final AccountPromotionFactory accountPromotionFactory;
 
     @Autowired
     public AccountHelper(
             FinFeignClient finFeignClient,
             SiFeignClient siFeignClient,
-            AccountPromotionManager accountPromotionManager,
             ResourceHelper resourceHelper,
             PersonalAccountManager accountManager,
             ApplicationEventPublisher publisher,
@@ -92,13 +83,10 @@ public class AccountHelper {
             AccountNoticeRepository accountNoticeRepository,
             ResourceArchiveService resourceArchiveService,
             TestPeriodConfig testPeriodConfig,
-            GoogleAdsActionConfig googleAdsActionConfig,
-            PlanFallbackRepository planFallbackRepository,
-            AccountPromotionFactory accountPromotionFactory
+            PlanFallbackRepository planFallbackRepository
     ) {
         this.finFeignClient = finFeignClient;
         this.siFeignClient = siFeignClient;
-        this.accountPromotionManager = accountPromotionManager;
         this.resourceHelper = resourceHelper;
         this.accountManager = accountManager;
         this.publisher = publisher;
@@ -113,9 +101,7 @@ public class AccountHelper {
         this.accountNoticeRepository = accountNoticeRepository;
         this.resourceArchiveService = resourceArchiveService;
         this.testPeriodConfig = testPeriodConfig;
-        this.googleAdsActionConfig = googleAdsActionConfig;
         this.planFallbackRepository = planFallbackRepository;
-        this.accountPromotionFactory = accountPromotionFactory;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -195,7 +181,7 @@ public class AccountHelper {
         return getBalanceByType(personalAccountId, "PARTNER");
     }
 
-    public BigDecimal getBalanceByType(String accountId, String type) {
+    private BigDecimal getBalanceByType(String accountId, String type) {
         Map<String, Object> balance = null;
 
         try {
@@ -290,8 +276,8 @@ public class AccountHelper {
         }
     }
 
-    public BigDecimal getDayCostByService(PaymentService service, LocalDateTime chargeDate) {
-        Integer daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
+    private BigDecimal getDayCostByService(PaymentService service, LocalDateTime chargeDate) {
+        int daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
 
         return service.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
     }
@@ -363,28 +349,6 @@ public class AccountHelper {
         return response;
     }
 
-    public void giveGift(PersonalAccount account, Promotion promotion) {
-        for (PromocodeAction action : promotion.getActions()) {
-
-            Long currentCount = accountPromotionManager.countByPersonalAccountIdAndPromotionIdAndActionId(
-                    account.getId(), promotion.getId(), action.getId()
-            );
-
-            String description = action.getDescription() != null ? action.getDescription() : promotion.getName();
-
-            if (currentCount < promotion.getLimitPerAccount() || promotion.getLimitPerAccount() == -1) {
-
-                AccountPromotion accountPromotion = accountPromotionFactory.build(account, promotion, action);
-
-                accountPromotionManager.insert(accountPromotion);
-
-                history.save(account, "Добавлен бонус " + description);
-            } else {
-                history.save(account, "Бонус не добавлен. Превышен лимит '" + promotion.getLimitPerAccount() + "' на " + description);
-            }
-        }
-    }
-
     public String getGooglePromocode(PersonalAccount account) {
 
         List<AccountPromocode> accountPromocodes = accountPromocodeRepository.findByPersonalAccountId(account.getId());
@@ -418,16 +382,6 @@ public class AccountHelper {
 
     public Boolean isGoogleActionUsed(PersonalAccount account) {
         return account.getProperties().getGoogleActionUsed() != null && account.getProperties().getGoogleActionUsed();
-    }
-
-    public Boolean isEnoughForGoogleAction(PersonalAccount account) {
-        try {
-            BigDecimal realSpentPaymentAmount = finFeignClient.getRealSpentPaymentAmount(account.getId());
-            return realSpentPaymentAmount.compareTo(googleAdsActionConfig.getMinAmount()) >= 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new ParameterValidationException("Ошибка при получении данных");
-        }
     }
 
     public String giveGooglePromocode(PersonalAccount account) {
@@ -482,8 +436,6 @@ public class AccountHelper {
         }
     }
 
-
-
     /*
      * получим стоимость абонемента на период через Plan, PlanId или PersonalAccount
      * @period - период действия абонемента, "P1Y" - на год
@@ -493,7 +445,7 @@ public class AccountHelper {
         return getCostAbonement(account.getPlanId(), "P1Y");
     }
 
-    public BigDecimal getCostAbonement(String planId, String period) {
+    private BigDecimal getCostAbonement(String planId, String period) {
         Plan plan = planManager.findOne(planId);
         return getCostAbonement(plan, period);
     }
@@ -502,7 +454,7 @@ public class AccountHelper {
         return this.getCostAbonement(plan, "P1Y");
     }
 
-    public BigDecimal getCostAbonement(Plan plan, String period) {
+    private BigDecimal getCostAbonement(Plan plan, String period) {
         return plan.getAbonements()
                 .stream().filter(
                         abonement -> abonement.getPeriod().equals(period)
@@ -580,22 +532,11 @@ public class AccountHelper {
         history.save(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
     }
 
-    public boolean needChangeArchivalPlanToFallbackPlan(PersonalAccount account) {
-        Plan plan = planManager.findOne(account.getPlanId());
-        if (plan.isActive()) {
-            return false;
-        } else if (plan.getService().getCost().compareTo(getArchivalFallbackPlan(plan).getService().getCost()) < 0) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     public Plan getArchivalFallbackPlan() {
         return planManager.findByOldId(String.valueOf(PLAN_UNLIMITED_ID));
     }
 
-    public Plan getArchivalFallbackPlan(Plan currentPlan) {
+    private Plan getArchivalFallbackPlan(Plan currentPlan) {
         PlanFallback planFallback = planFallbackRepository.findOneByPlanId(currentPlan.getId());
         if (planFallback != null) {
             return planManager.findOne(planFallback.getFallbackPlanId());

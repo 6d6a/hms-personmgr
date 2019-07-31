@@ -6,12 +6,10 @@ import ru.majordomo.hms.personmgr.dto.Result;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
-import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.GiftHelper;
 
-import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -19,16 +17,16 @@ import java.util.Optional;
 public class AddPromotionProcessor implements PromocodeActionProcessor {
     private final PromotionRepository promotionRepository;
     private final AccountPromotionManager accountPromotionManager;
-    private final AccountHelper accountHelper;
+    private final GiftHelper giftHelper;
 
     public AddPromotionProcessor(
             PromotionRepository promotionRepository,
             AccountPromotionManager accountPromotionManager,
-            AccountHelper accountHelper
+            GiftHelper giftHelper
     ) {
         this.promotionRepository = promotionRepository;
         this.accountPromotionManager = accountPromotionManager;
-        this.accountHelper = accountHelper;
+        this.giftHelper = giftHelper;
     }
 
     @Override
@@ -49,7 +47,7 @@ public class AddPromotionProcessor implements PromocodeActionProcessor {
 
         if (!exists) {
 
-            accountHelper.giveGift(account, promotion);
+            giftHelper.giveGift(account, promotion);
 
             return Result.success();
         } else {

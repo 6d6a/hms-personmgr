@@ -8,12 +8,9 @@ import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
-import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
-
-import java.util.List;
+import ru.majordomo.hms.personmgr.service.GiftHelper;
 
 import static ru.majordomo.hms.personmgr.common.Constants.FREE_DOMAIN_PROMOTION;
 
@@ -23,20 +20,20 @@ public class FreeDomainActionProcessor implements PromocodeActionProcessor {
 
     private final PromotionRepository promotionRepository;
     private final AccountPromotionManager accountPromotionManager;
-    private final AccountHelper accountHelper;
     private final AccountHistoryManager history;
+    private final GiftHelper giftHelper;
 
     @Autowired
     public FreeDomainActionProcessor(
             PromotionRepository promotionRepository,
             AccountPromotionManager accountPromotionManager,
-            AccountHelper accountHelper,
-            AccountHistoryManager history
+            AccountHistoryManager history,
+            GiftHelper giftHelper
     ) {
         this.promotionRepository = promotionRepository;
         this.accountPromotionManager = accountPromotionManager;
-        this.accountHelper = accountHelper;
         this.history = history;
+        this.giftHelper = giftHelper;
     }
 
     @Override
@@ -49,7 +46,7 @@ public class FreeDomainActionProcessor implements PromocodeActionProcessor {
 
         if (!exists) {
 
-            accountHelper.giveGift(account, promotion);
+            giftHelper.giveGift(account, promotion);
 
             history.save(
                     account,

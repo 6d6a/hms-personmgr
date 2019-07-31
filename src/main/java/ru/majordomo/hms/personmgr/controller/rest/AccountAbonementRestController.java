@@ -245,7 +245,7 @@ public class AccountAbonementRestController extends CommonRestController {
             return new ResponseEntity<>(info, HttpStatus.FORBIDDEN);
         }
 
-        AccountAbonement accountAbonement = abonementService.addAbonement(account, abonementId);
+        AccountAbonement accountAbonement = abonementService.buyAbonementManual(account, abonementId);
 
         if (accountAbonement != null) {
             accountHelper.enableAccount(account);
@@ -274,7 +274,7 @@ public class AccountAbonementRestController extends CommonRestController {
             throw new ParameterValidationException(String.join(", ", info.getErrors()));
         }
 
-        abonementService.addAbonement(account, accountAbonement.getAbonementId());
+        abonementService.buyAbonementManual(account, accountAbonement.getAbonementId());
 
         history.save(
                 account,
