@@ -17,6 +17,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
@@ -24,34 +26,21 @@ import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.push.PaymentReceivedPush;
 import ru.majordomo.hms.personmgr.dto.partners.ActionStatRequest;
-import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountNotifyFinOnChangeAbonementEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountNotifySupportOnChangePlanEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountOwnerChangeEmailEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountPasswordChangedEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverConfirmedEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountPasswordRecoverEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountWasEnabled;
-import ru.majordomo.hms.personmgr.event.account.PaymentWasReceivedEvent;
+import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.feign.PartnersFeignClient;
 import ru.majordomo.hms.personmgr.feign.YaPromoterFeignClient;
 import ru.majordomo.hms.personmgr.manager.*;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
-import ru.majordomo.hms.personmgr.model.account.DefaultAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.InfoBannerAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
-import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.task.SendMailIfAbonementWasNotBought;
 import ru.majordomo.hms.personmgr.model.task.State;
 import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
-import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.service.promocodeAction.PaymentPercentBonusActionProcessor;
-import ru.majordomo.hms.rc.user.resources.Domain;
 
 import static java.lang.String.format;
 import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
@@ -66,8 +55,6 @@ public class AccountEventListener {
     private final TokenManager tokenManager;
     private final ApplicationEventPublisher publisher;
     private final PlanManager planManager;
-    private final AccountPromotionManager accountPromotionManager;
-    private final PromotionRepository promotionRepository;
     private final AbonementService abonementService;
     private final PersonalAccountManager accountManager;
     private final AbonementManager<AccountAbonement> accountAbonementManager;
@@ -81,6 +68,7 @@ public class AccountEventListener {
     private final PaymentPercentBonusActionProcessor paymentPercentBonusActionProcessor;
     private final YaPromoterFeignClient yaPromoterFeignClient;
     private final FirstMobilePaymentProcessor firstMobilePaymentProcessor;
+    private final Consumer<Supplier<AccountBuyAbonement>> buyAbonementPromotionProcessor;
 
     private final int deleteDataAfterDays;
 
@@ -90,8 +78,6 @@ public class AccountEventListener {
             TokenManager tokenManager,
             ApplicationEventPublisher publisher,
             PlanManager planManager,
-            AccountPromotionManager accountPromotionManager,
-            PromotionRepository promotionRepository,
             AbonementService abonementService,
             PersonalAccountManager accountManager,
             AbonementManager<AccountAbonement> accountAbonementManager,
@@ -105,14 +91,13 @@ public class AccountEventListener {
             PaymentPercentBonusActionProcessor paymentPercentBonusActionProcessor,
             YaPromoterFeignClient yaPromoterFeignClient,
             FirstMobilePaymentProcessor firstMobilePaymentProcessor,
+            BuyAbonementPromotionProcessor buyAbonementPromotionProcessor,
             @Value("${delete_data_after_days}") int deleteDataAfterDays
     ) {
         this.accountHelper = accountHelper;
         this.tokenManager = tokenManager;
         this.publisher = publisher;
         this.planManager = planManager;
-        this.accountPromotionManager = accountPromotionManager;
-        this.promotionRepository = promotionRepository;
         this.abonementService = abonementService;
         this.accountManager = accountManager;
         this.accountAbonementManager = accountAbonementManager;
@@ -126,6 +111,7 @@ public class AccountEventListener {
         this.paymentPercentBonusActionProcessor = paymentPercentBonusActionProcessor;
         this.yaPromoterFeignClient = yaPromoterFeignClient;
         this.firstMobilePaymentProcessor = firstMobilePaymentProcessor;
+        this.buyAbonementPromotionProcessor = buyAbonementPromotionProcessor;
         this.deleteDataAfterDays = deleteDataAfterDays;
     }
 
@@ -280,72 +266,10 @@ public class AccountEventListener {
         accountNotificationHelper.sendMail(account, "MajordomoVHPassChAccount", 10, parameters);
     }
 
-    /**
-     * @param event должен содержать SimpleServiceMessage с информацией о платеже
-     *
-     * Начисление AccountPromotion для бесплатной регистрации домена .ru или .рф
-     *
-     * Обрабатывается только реальный платеж, бонусные (например, при возврате), партнерские или кредитные игнорируются
-     *
-     * Условия акции:
-     * При открытии нового аккаунта виртуального хостинга по тарифным планам «Безлимитный», «Безлимитный+», «Бизнес», «Бизнес+»
-     * мы бесплатно зарегистрируем на Вас 1 домен в зоне .ru или .рф при единовременной оплате за
-     * 3 месяца. Бонус предоставляется при открытии аккаунта для первого домена на аккаунте.
-     *
-     * Аккаунт считается новым, если на нём не было доменов
-     */
     @EventListener
     @Async("threadPoolTaskExecutor")
-    public void onAccountPromotionProcessByPayment(PaymentWasReceivedEvent event) {
-        SimpleServiceMessage message = event.getSource();
-        Map<String, ?> params = message.getParams();
-
-        if (!params.get("paymentTypeKind").equals(REAL_PAYMENT_TYPE_KIND)) {
-            logger.info("paymentTypeKind is not real, message: " + message.toString());
-            return;
-        }
-
-        PersonalAccount account = accountManager.findOne(message.getAccountId());
-        if (account == null || !account.isAccountNew()) {
-            logger.info("account is null or not new, message: " + message.toString());
-            return;
-        }
-
-        Plan plan = planManager.findOne(account.getPlanId());
-        if (!plan.isActive() || plan.isAbonementOnly() || plan.getOldId().equals(((Integer) PLAN_START_ID).toString())) {
-            logger.info("plan is abonementOnly or 'start' or not active, message: " + message.toString());
-            return;
-        }
-
-        BigDecimal costFor3Month = plan.getService().getCost().multiply(new BigDecimal(3L));
-        BigDecimal amount = getBigDecimalFromUnexpectedInput(params.get(AMOUNT_KEY));
-        if (amount.compareTo(costFor3Month) < 0) {
-            logger.info("amount less than cost for 3 month, message: " + message.toString());
-            return;
-        }
-
-        List<Domain> domains = accountHelper.getDomains(account);
-        if (domains != null && !domains.isEmpty()) {
-            logger.info("account has domains, message: " + message.toString());
-            return;
-        }
-
-        Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
-        if (accountPromotionManager.existsByPersonalAccountIdAndPromotionId(account.getId(), promotion.getId())) {
-            logger.info("account has accountPromotions with id " + promotion.getId() + " , message: " + message.toString());
-            return;
-        }
-
-        accountHelper.giveGift(account, promotion);
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("event", "freeDomain");
-
-        DefaultAccountNotice notice = new DefaultAccountNotice();
-        notice.setPersonalAccountId(account.getId());
-        notice.setData(data);
-
-        accountNoticeRepository.insert(notice);
+    public void onAccountPromotionProcessByBuyAbonement(AccountBuyAbonement event) {
+        buyAbonementPromotionProcessor.accept(() -> event);
     }
 
     /**

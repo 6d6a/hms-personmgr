@@ -52,30 +52,14 @@ public class RegularToRegular extends Processor {
     @Override
     void addServices() {
         if (newAbonementRequired) {
-            if (freeTestAbonementExpired != null) {
-                addFreeTestAbonement(freeTestAbonementExpired);
+            Abonement free14DaysAbonement = newPlan.getFree14DaysAbonement();
+            if (freeTestAbonementExpired != null && free14DaysAbonement != null) {
+                addAccountAbonement(free14DaysAbonement, freeTestAbonementExpired);
             } else {
                 buyNotInternalAbonement();
             }
         } else {
             addPlanService();
-        }
-    }
-
-    /**
-     * Добавление бесплатного абонмента
-     *
-     * @param expiredFreeTestAbonementDate дата истечения бесплатного абонемента
-     */
-    private void addFreeTestAbonement(
-            LocalDateTime expiredFreeTestAbonementDate
-    ) {
-        if (expiredFreeTestAbonementDate.isAfter(LocalDateTime.now())) {
-            Abonement abonement = newPlan.getFree14DaysAbonement();
-            if (abonement != null) {
-                AccountAbonement newFreeTestAbonement = addAccountAbonement(abonement);
-                accountAbonementManager.setExpired(newFreeTestAbonement.getId(), expiredFreeTestAbonementDate);
-            }
         }
     }
 }

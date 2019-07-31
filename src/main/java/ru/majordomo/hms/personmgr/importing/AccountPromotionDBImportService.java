@@ -17,7 +17,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.GiftHelper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -32,7 +32,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.*;
 public class AccountPromotionDBImportService {
 
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-    private final AccountHelper accountHelper;
+    private final GiftHelper giftHelper;
     private final PromotionRepository promotionRepository;
     private final PersonalAccountManager accountManager;
     private final AccountPromotionManager accountPromotionManager;
@@ -42,13 +42,13 @@ public class AccountPromotionDBImportService {
     @Autowired
     public AccountPromotionDBImportService(
             @Qualifier("namedParameterJdbcTemplate") NamedParameterJdbcTemplate namedParameterJdbcTemplate,
-            AccountHelper accountHelper,
+            GiftHelper giftHelper,
             PromotionRepository promotionRepository,
             PersonalAccountManager accountManager,
             AccountPromotionManager accountPromotionManager
     ) {
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
-        this.accountHelper = accountHelper;
+        this.giftHelper = giftHelper;
         this.promotionRepository = promotionRepository;
         this.accountManager = accountManager;
         this.accountPromotionManager = accountPromotionManager;
@@ -113,7 +113,7 @@ public class AccountPromotionDBImportService {
                     if (count_free_domain != null && count_free_domain == 1) {
                         Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
                         PersonalAccount account = accountManager.findByAccountId(rs.getString("id"));
-                        accountHelper.giveGift(account, promotion);
+                        giftHelper.giveGift(account, promotion);
                     }
                 } catch (EmptyResultDataAccessException e) {
                     // Промокода нет
@@ -151,7 +151,7 @@ public class AccountPromotionDBImportService {
                                 Promotion promotion = promotionRepository.findByName(FREE_DOMAIN_PROMOTION);
                                 PersonalAccount account = accountManager.findByAccountId(rs.getString("id"));
                                 if (account != null) {
-                                    accountHelper.giveGift(account, promotion);
+                                    giftHelper.giveGift(account, promotion);
                                 } else {
                                     logger.error("AccountPromotion Import Service. Account with id: " +
                                             rs.getString("id") + " not found.");

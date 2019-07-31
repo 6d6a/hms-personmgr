@@ -12,7 +12,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.GiftHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import java.util.List;
@@ -23,17 +23,17 @@ public class AccountPromotionRestController extends CommonRestController {
 
     private final AccountPromotionManager accountPromotionManager;
     private final PromotionRepository promotionRepository;
-    private final AccountHelper accountHelper;
+    private final GiftHelper giftHelper;
 
     @Autowired
     public AccountPromotionRestController(
             AccountPromotionManager accountPromotionManager,
             PromotionRepository promotionRepository,
-            AccountHelper accountHelper
+            GiftHelper giftHelper
     ) {
         this.accountPromotionManager = accountPromotionManager;
         this.promotionRepository = promotionRepository;
-        this.accountHelper = accountHelper;
+        this.giftHelper = giftHelper;
     }
 
     @GetMapping
@@ -57,7 +57,7 @@ public class AccountPromotionRestController extends CommonRestController {
 
         PersonalAccount account = accountManager.findOne(accountId);
 
-        accountHelper.giveGift(account, promotion);
+        giftHelper.giveGift(account, promotion);
 
         history.save(accountId, "Добавлен бонус '" + promotion.getName() + "'", request);
 

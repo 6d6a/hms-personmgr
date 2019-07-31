@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.dto.AbonementsWrapper;
+import ru.majordomo.hms.personmgr.event.account.AccountBuyAbonement;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSetSettingEvent;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
@@ -50,7 +51,7 @@ public class AbonementService {
 
     private final PlanManager planManager;
     private final AbonementRepository abonementRepository;
-//    private final PaymentServiceRepository paymentServiceRepository;
+    //    private final PaymentServiceRepository paymentServiceRepository;
     private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
@@ -96,6 +97,14 @@ public class AbonementService {
         this.accountPromotionManager = accountPromotionManager;
         this.discountFactory = discountFactory;
         this.planFallbackRepository = planFallbackRepository;
+    }
+
+    public AccountAbonement buyAbonementManual(PersonalAccount account, String abonementId) {
+        AccountAbonement accountAbonement = addAbonement(account, abonementId);
+
+        publisher.publishEvent(new AccountBuyAbonement(account.getId(), accountAbonement.getId()));
+
+        return accountAbonement;
     }
 
     /**

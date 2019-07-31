@@ -43,7 +43,7 @@ public class LostClientService {
     private final AccountOwnerManager ownerManager;
     private final AccountNotificationHelper notificationHelper;
     private final LostClientConfig lostClientConfig;
-    private final AccountHelper accountHelper;
+    private final GiftHelper giftHelper;
     private final PromotionRepository promotionRepository;
     private final AccountPromotionManager accountPromotionManager;
 
@@ -58,7 +58,7 @@ public class LostClientService {
             AccountOwnerManager ownerManager,
             AccountNotificationHelper notificationHelper,
             LostClientConfig lostClientConfig,
-            AccountHelper accountHelper,
+            GiftHelper giftHelper,
             PromotionRepository promotionRepository,
             AccountPromotionManager accountPromotionManager
     ) {
@@ -71,7 +71,7 @@ public class LostClientService {
         this.ownerManager = ownerManager;
         this.notificationHelper = notificationHelper;
         this.lostClientConfig = lostClientConfig;
-        this.accountHelper = accountHelper;
+        this.giftHelper = giftHelper;
         this.promotionRepository = promotionRepository;
         this.accountPromotionManager = accountPromotionManager;
     }
@@ -117,7 +117,7 @@ public class LostClientService {
                         log.info("give gift to {} created {} payment amount {}",
                                 info.getAccount().getName(), info.getAccount().getCreated(), info.getOverallPaymentAmount());
 
-                        accountHelper.giveGift(info.getAccount(), promotion);
+                        giftHelper.giveGift(info.getAccount(), promotion);
 
                         notificationHelper
                                 .emailBuilder()
