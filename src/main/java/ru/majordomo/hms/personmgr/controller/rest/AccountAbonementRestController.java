@@ -201,6 +201,29 @@ public class AccountAbonementRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    @PreAuthorize("hasAuthority('DELETE_ABONEMENT_WITHOUT_REFUND')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Page<AccountAbonement>> deleteAbonementWithoutExpired(
+            @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId,
+            @PathVariable(value = "id") @ObjectId(AccountAbonement.class) String id,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        AccountAbonement abonement = accountAbonementManager.findByIdAndPersonalAccountId(id, accountId);
+
+        if (abonement.getExpired() != null) {
+            throw new ParameterValidationException("Нельзя использовать для активного абонемента");
+        }
+
+        accountAbonementManager.delete(abonement);
+
+        history.save(account, "Удален неактивированный абонемент (" + abonement.getAbonement().getName()
+                + ") без возврата средств", request);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
     @PreAuthorize("hasAuthority('DELETE_ACCOUNT_ABONEMENT')")
     @GetMapping("/cashback")
     public ResponseEntity<BigDecimal> getCashBackAmount(
