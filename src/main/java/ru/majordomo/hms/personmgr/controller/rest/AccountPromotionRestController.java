@@ -16,6 +16,7 @@ import ru.majordomo.hms.personmgr.service.GiftHelper;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/{accountId}/account-promotion")
@@ -61,6 +62,28 @@ public class AccountPromotionRestController extends CommonRestController {
 
         history.save(accountId, "Добавлен бонус '" + promotion.getName() + "'", request);
 
+        return new ResponseEntity<>(HttpStatus.ACCEPTED);
+    }
+
+    @PreAuthorize("hasAuthority('ACCOUNT_PROMOTION_EDIT')")
+    @PatchMapping(value = "/{id}")
+    public ResponseEntity<AccountPromotion> patch(
+            @ObjectId(AccountPromotion.class) @PathVariable(value = "id") String id,
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody AccountPromotion update,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        AccountPromotion current = accountPromotionManager.findByIdAndPersonalAccountId(id, accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("AccountPromotion не найден"));
+
+        if (!Objects.equals(current.getActive(), update.getActive())) {
+            current.setActive(update.getActive());
+            
+            accountPromotionManager.save(current);
+
+            history.save(accountId, "Скидка " + current.getAction().getDescription() + " (id: " + current.getId()
+                    + ") отмечена как " + (current.getActive() ? "неиспльзованная" : "использованная"), request);
+        }
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 }

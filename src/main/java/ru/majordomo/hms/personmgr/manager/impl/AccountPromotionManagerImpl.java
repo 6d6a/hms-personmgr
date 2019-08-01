@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
@@ -146,6 +147,11 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
     @Override
     public boolean existsByPersonalAccountIdAndPromotionId(String personalAccountId, String promotionId) {
         return repository.existsByPersonalAccountIdAndPromotionId(personalAccountId, promotionId);
+    }
+
+    @Override
+    public Optional<AccountPromotion> findByIdAndPersonalAccountId(String id, String accountId) {
+        return repository.findByIdAndPersonalAccountId(id, accountId);
     }
 
     private void setAccountPromotionStatusByIdAndActionId(String id, boolean status) {
