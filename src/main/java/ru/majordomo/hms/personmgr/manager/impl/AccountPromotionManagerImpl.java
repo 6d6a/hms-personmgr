@@ -156,10 +156,9 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
 
     private void setAccountPromotionStatusByIdAndActionId(String id, boolean status) {
         AccountPromotion accountPromotion = findOne(id);
-        Query query = new Query(new Criteria("_id").is(id));
-        Update update = new Update().set("active", status);
+        accountPromotion.setActive(status);
 
-        mongoOperations.updateFirst(query, update, AccountPromotion.class);
+        save(accountPromotion);
 
         history.save(
                 accountPromotion.getPersonalAccountId(),
