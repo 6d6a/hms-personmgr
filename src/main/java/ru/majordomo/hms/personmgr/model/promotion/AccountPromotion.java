@@ -28,6 +28,8 @@ public class AccountPromotion extends VersionedModelBelongsToPersonalAccount {
     @CreatedDate
     private LocalDateTime created;
 
+    private LocalDateTime usedAt;
+
     @Transient
     private PromocodeAction action;
 

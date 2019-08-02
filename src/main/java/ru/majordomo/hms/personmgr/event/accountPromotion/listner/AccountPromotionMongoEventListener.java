@@ -5,12 +5,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventListener;
 import org.springframework.data.mongodb.core.mapping.event.AfterConvertEvent;
+import org.springframework.data.mongodb.core.mapping.event.BeforeConvertEvent;
 import org.springframework.stereotype.Component;
 
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
+
+import java.time.LocalDateTime;
 
 @Component
 public class AccountPromotionMongoEventListener extends AbstractMongoEventListener<AccountPromotion> {
@@ -33,5 +36,12 @@ public class AccountPromotionMongoEventListener extends AbstractMongoEventListen
         accountPromotion.setPersonalAccountName(mongoOperations.findById(accountPromotion.getPersonalAccountId(), PersonalAccount.class).getName());
 
         accountPromotion.setAction(mongoOperations.findById(accountPromotion.getActionId(), PromocodeAction.class));
+    }
+
+    @Override
+    public void onBeforeConvert(BeforeConvertEvent<AccountPromotion> event) {
+        super.onBeforeConvert(event);
+        AccountPromotion source = event.getSource();
+        source.setUsedAt(source.getActive() ? null : LocalDateTime.now());
     }
 }
