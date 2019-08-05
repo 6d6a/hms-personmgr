@@ -191,4 +191,16 @@ public class StatServiceRestController {
 
         return statServiceHelper.getMetaStat(start, end, search);
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/account-promotion")
+    public ResponseEntity<List<AccountPromotionCounter>> getAccountPromotionStat(
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @RequestParam(required = false) LocalDate date,
+            @RequestParam("active") boolean active
+    ) {
+        if (date == null) { date = LocalDate.now().minusDays(1); }
+
+        return ResponseEntity.ok(statServiceHelper.getAccountPromotionStat(date, active));
+    }
 }

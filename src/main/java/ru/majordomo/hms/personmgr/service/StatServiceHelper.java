@@ -7,6 +7,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
@@ -23,11 +24,12 @@ import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.projection.PlanByServerProjection;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.rc.staff.resources.Resource;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -636,5 +638,36 @@ public class StatServiceHelper {
         });
 
         return map.values();
+    }
+
+    public List<AccountPromotionCounter> getAccountPromotionStat(LocalDate date, boolean active) {
+        List<AccountPromotionCounter> result = mongoOperations.aggregate(
+                buildAggregationForAccountPromotionCounter(date, active),
+                AccountPromotion.class, AccountPromotionCounter.class
+        ).getMappedResults();
+
+        result.forEach(this::setActionName);
+
+        return result;
+    }
+
+    private void setActionName(AccountPromotionCounter counter) {
+        PromocodeAction action = mongoOperations.findById(counter.getResourceId(), PromocodeAction.class);
+        if (action != null) {
+            counter.setName(action.getDescription());
+        }
+    }
+
+    private Aggregation buildAggregationForAccountPromotionCounter(LocalDate date, boolean active) {
+        return newAggregation(
+                match(Criteria.where("active").is(active)
+                        .and(active ? "created" : "usedAt")
+                        .gte(Date.from(LocalDateTime.of(date, LocalTime.MIN).toInstant(ZoneOffset.ofHours(3))))
+                        .lte(Date.from(LocalDateTime.of(date, LocalTime.MAX).toInstant(ZoneOffset.ofHours(3))))),
+                group("promotionId", "actionId")
+                        .count().as("count")
+                        .first("promotionId").as("promotionId")
+                        .first("actionId").as("resourceId")
+        );
     }
 }
