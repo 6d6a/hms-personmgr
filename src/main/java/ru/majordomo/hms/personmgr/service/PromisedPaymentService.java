@@ -201,9 +201,15 @@ public class PromisedPaymentService {
     }
 
     private void addOptionByServicesExists(PromisedPaymentOptions options, PersonalAccount account) {
-        if (account.getServices().isEmpty()) {
+        List<AccountAbonement> abonements = abonementManager.findAllByPersonalAccountId(account.getId());
+
+        if (abonements.isEmpty()) {
+            options.getOptions().add(
+                    getCostForPeriod(account.getServices(), config.getDailyCostPeriod())
+            );
+        } else {
             AbonementsWrapper wrapper = new AbonementsWrapper(
-                    abonementManager.findAllByPersonalAccountId(account.getId())
+                    abonements
             );
             LocalDateTime withAbonementDateAvailable = LocalDateTime.now().plus(config.getMaxAbonementRemainingPeriod());
             if (wrapper.getExpired().isAfter(withAbonementDateAvailable)) {
@@ -219,10 +225,6 @@ public class PromisedPaymentService {
 
                 options.getOptions().add(withoutPlanOpt.add(planOpt));
             }
-        } else {
-            options.getOptions().add(
-                    getCostForPeriod(account.getServices(), config.getDailyCostPeriod())
-            );
         }
     }
 
