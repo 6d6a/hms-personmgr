@@ -11,10 +11,7 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.config.FeignConfig;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.dto.fin.MonthlyBill;
-import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
-import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkResponse;
-import ru.majordomo.hms.personmgr.dto.fin.PaymentRequest;
+import ru.majordomo.hms.personmgr.dto.fin.*;
 import ru.majordomo.hms.personmgr.dto.stat.MetaProjection;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
 
@@ -65,4 +62,10 @@ public interface FinFeignClient {
             @RequestParam("start") String startDate,
             @RequestParam("end") String endDate
     );
+
+    @PostMapping(value = "/{accountId}/promised-payment", consumes = "application/json")
+    Map<String, Object> addPromisedPayment(@PathVariable("accountId") String personalAccountId, PromisedPaymentRequest request);
+
+    @GetMapping(value = "/{accountId}/promised-payment", consumes = "application/json")
+    List<Object> getPromisedPayments(@PathVariable("accountId") String accountId);
 }

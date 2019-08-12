@@ -516,19 +516,20 @@ public class PersonalAccountRestController extends CommonRestController {
                     throw new ParameterValidationException("Credit already activated. Credit disabling prohibited.");
                 }
             } else {
-                List<AccountAbonement> abonements = accountAbonementManager.findAllByPersonalAccountId(account.getId());
-
-                if (!abonements.isEmpty() && abonements.stream().anyMatch(a -> a.getAbonement().isTrial())) {
-                    throw new ParameterValidationException("Включение кредита невозможно на тестовом периоде");
-                }
-
-                if (planManager.findOne(account.getPlanId()).isAbonementOnly()) {
-                    throw new ParameterValidationException("Включение кредита невозможно на вашем тарифном плане");
-                }
-                // Включение кредита
-                if (!account.isCredit() && !account.isActive()) {
-                    accountHelper.enableAccount(account);
-                }
+                throw new ParameterValidationException("Услуга 'Хостинг в кредит' недоступна");
+//                List<AccountAbonement> abonements = accountAbonementManager.findAllByPersonalAccountId(account.getId());
+//
+//                if (!abonements.isEmpty() && abonements.stream().anyMatch(a -> a.getAbonement().isTrial())) {
+//                    throw new ParameterValidationException("Включение кредита невозможно на тестовом периоде");
+//                }
+//
+//                if (planManager.findOne(account.getPlanId()).isAbonementOnly()) {
+//                    throw new ParameterValidationException("Включение кредита невозможно на вашем тарифном плане");
+//                }
+//                // Включение кредита
+//                if (!account.isCredit() && !account.isActive()) {
+//                    accountHelper.enableAccount(account);
+//                }
             }
             accountManager.setCredit(accountId, credit);
 
