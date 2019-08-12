@@ -211,9 +211,9 @@ public class PromisedPaymentService {
             AbonementsWrapper wrapper = new AbonementsWrapper(
                     abonements
             );
-            LocalDateTime withAbonementDateAvailable = LocalDateTime.now().plus(config.getMaxAbonementRemainingPeriod());
-            if (wrapper.getExpired().isAfter(withAbonementDateAvailable)) {
-                options.getResult().addError("Обещанный платеж недоступен до " + withAbonementDateAvailable.toLocalDate());
+            LocalDateTime whenWillBeAllowed = wrapper.getExpired().minus(config.getMaxAbonementRemainingPeriod());
+            if (whenWillBeAllowed.isAfter(LocalDateTime.now())) {
+                options.getResult().addError("Обещанный платеж недоступен до " + whenWillBeAllowed.toLocalDate());
             } else {
                 Plan plan = planManager.findOne(account.getPlanId());
                 List<AccountService> withoutPlanService = account.getServices().stream()
