@@ -43,6 +43,7 @@ import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.service.promocodeAction.PaymentPercentBonusActionProcessor;
 
 import static java.lang.String.format;
+import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT;
 import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.Utils.getBigDecimalFromUnexpectedInput;
@@ -498,6 +499,7 @@ public class AccountEventListener {
             if (balance.compareTo(BigDecimal.ZERO) >= 0) {
                 if (account.getCreditActivationDate() != null) {
                     accountManager.removeSettingByName(account.getId(), CREDIT_ACTIVATION_DATE);
+                    accountManager.removeSettingByName(account.getId(), CREDIT);
                 }
                 tryProcessChargeAndEnableAccount(account);
             }
