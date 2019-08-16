@@ -453,7 +453,7 @@ public class AccountNotificationEventListener {
                         null,
                         true
                 );
-        List<Integer> daysForNotify = Arrays.asList(15,10,5,1);
+        List<Integer> daysForNotify = Arrays.asList(1);
 
         bitrixLicenseOrderManager.findAll(predicate)
                 .stream()
