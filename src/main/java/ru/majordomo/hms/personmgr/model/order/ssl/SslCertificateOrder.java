@@ -120,7 +120,7 @@ public class SslCertificateOrder extends AccountOrder {
     private String addressLineFirst;
 
     @Size(max = 255)
-    @Pattern(regexp = "^[a-zA-Z0-9 .,-]+$")
+    @Pattern(regexp = "^[a-zA-Z0-9 .,-]*$")
     private String addressLineSecond;
 
     private String documentNumber;
