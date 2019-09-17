@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.*;
+import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -31,6 +32,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class CerbApiClient {
@@ -56,12 +58,12 @@ public class CerbApiClient {
         ObjectMapper objMapper = new ObjectMapper().configure(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT, true);
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
         converter.setObjectMapper(objMapper);
-        restTemplate.setMessageConverters(Arrays.asList(converter, new StringHttpMessageConverter(), new FormHttpMessageConverter()));
+        restTemplate.setMessageConverters(Arrays.asList(converter, new StringHttpMessageConverter(), new FormHttpMessageConverter(), new ByteArrayHttpMessageConverter()));
     }
 
     private String getFormattedDate() {
         LocalDateTime date = LocalDateTime.now(Clock.systemUTC());
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEE, dd MMM yy HH:mm:ss +0000");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEE, dd MMM yy HH:mm:ss +0000", Locale.US);
         return date.format(formatter);
     }
 
@@ -325,7 +327,7 @@ public class CerbApiClient {
         try {
             MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
             queryParams.add("q", "ticket.id:" + tiketId);
-            queryParams.add("expand", "content");
+            queryParams.add("expand", "content,attachments");
             queryParams.add("limit", "100");
 
             URI uri = buildUri("records/message/search.json", queryParams);
@@ -351,6 +353,14 @@ public class CerbApiClient {
                     LocalDateTime createdTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(item.getCreated()),
                             TimeZone.getDefault().toZoneId());
                     m.setCreated(createdTime);
+                    if (item.getAttachments() != null) {
+                        m.setAttachments(item.getAttachments().values().stream()
+                                .filter(attach -> attach != null && !"original_message.html".equals(attach.getName()))
+                                .collect(Collectors.toList())
+                        );
+                    } else {
+                        m.setAttachments(Collections.emptyList());
+                    }
                     messages.add(m);
                 });
 
@@ -372,6 +382,30 @@ public class CerbApiClient {
                     + (response.getBody() != null ? "Ответ от api: " + response.getBody() : "Ответ от api не получен."));
         } catch (Exception e) {
             logger.error("[CerbApiClient] Ошибка при поиске объектов Message. Exception: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    public AttachmentDownloadResponse getAttachment(Integer attachmentId) {
+        try {
+            URI uri = buildUri("attachments/" + attachmentId + "/download.json");
+            HttpEntity<String> request = prepareGetRequestData(uri);
+            ResponseEntity<byte[]> response = restTemplate.exchange(uri, HttpMethod.GET, request, byte[].class);
+            if (response.getBody() != null && response.getStatusCode().is2xxSuccessful()) {
+                AttachmentDownloadResponse result = new AttachmentDownloadResponse();
+                result.setBody(response.getBody());
+                if (response.getHeaders().getContentType() != null) {
+                    MediaType mt = response.getHeaders().getContentType();
+                    result.setContentType(mt.toString());
+                }
+                return result;
+            }
+            logger.error("[CerbApiClient] Ошибка при загрузке файла. " + (response.getBody() != null ? "Ответ от api: "
+                    + Arrays.toString(Arrays.copyOf(response.getBody(), Math.min(16, response.getBody().length)))
+                    : "Ответ от api не получен."));
+        } catch (Exception e) {
+            logger.error("[CerbApiClient] Ошибка при загрузке файла. Exception: " + e.getMessage());
         }
 
         return null;
