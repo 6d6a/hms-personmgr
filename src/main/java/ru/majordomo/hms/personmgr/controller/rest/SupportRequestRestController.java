@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +17,10 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.Department;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.config.EmailsConfig;
+import ru.majordomo.hms.personmgr.dto.cerb.Message;
 import ru.majordomo.hms.personmgr.dto.cerb.Ticket;
+import ru.majordomo.hms.personmgr.dto.cerb.api.AttachmentCerberus;
+import ru.majordomo.hms.personmgr.dto.cerb.api.AttachmentDownloadResponse;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
@@ -26,6 +30,8 @@ import ru.majordomo.hms.personmgr.repository.AccountTicketRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.Cerb.CerbApiClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
+
+import javax.servlet.http.HttpServletResponse;
 
 import static ru.majordomo.hms.personmgr.common.Utils.buildAttachment;
 
@@ -164,5 +170,45 @@ public class SupportRequestRestController extends CommonRestController {
         }
 
         return new ResponseEntity<>(ticket, HttpStatus.OK);
+    }
+
+    @GetMapping("/tickets/{ticketId}/file/{fileId}")
+    public void downloadFile(
+            @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
+            @PathVariable(value = "ticketId") int ticketId,
+            @PathVariable(value = "fileId") int fileId,
+            HttpServletResponse response
+    ) {
+
+        AccountTicket accountTicket = accountTicketRepository.findByPersonalAccountIdAndTicketId(accountId, ticketId);
+
+        Ticket ticket = cerbApiClient.getTicketWithMessages(accountTicket.getTicketId());
+
+        if (ticket == null || ticket.getMessages() == null) {
+            throw new ParameterValidationException("Ошибка при получении сообщений");
+        }
+
+        AttachmentCerberus attachmentCerberus = ticket.getMessages()
+                .stream().flatMap(mes -> mes.getAttachments().stream())
+                .filter(at -> at.getAttachmentId() == fileId).findFirst().orElse(null);
+
+        if (attachmentCerberus == null) {
+            throw new ParameterValidationException("Ошибка при поиске присоединенного файла");
+        }
+        AttachmentDownloadResponse downloadedAttachment = cerbApiClient.getAttachment(fileId);
+        if (downloadedAttachment == null) {
+            throw new ParameterValidationException("Ошибка при загрузке присоединенного файла");
+        }
+
+        try {
+            response.setContentType(downloadedAttachment.getContentType());
+            response.setHeader("Content-disposition", "attachment; filename=" + attachmentCerberus.getName());
+            OutputStream os = response.getOutputStream();
+            os.write(downloadedAttachment.getBody());
+            os.flush();
+        } catch (IOException e) {
+            logger.error("Не удалось отдать присоединенный файл, exceptionMessage: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }
