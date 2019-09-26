@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +16,9 @@ import ru.majordomo.hms.personmgr.event.account.AccountQuotaAddedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaDiscardEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
+import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
@@ -26,6 +29,8 @@ import static java.lang.Math.ceil;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_CAPACITY;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_5K_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_5K_CAPACITY;
 
 @Service
 public class AccountQuotaService {
@@ -87,6 +92,10 @@ public class AccountQuotaService {
 
         boolean hasZeroPlanQuotaKBLimit = planQuotaKBLimit != null && planQuotaKBLimit.compareTo(0L) == 0;
 
+        boolean isAccountHasAdditionalQuotaService5k = accountServiceHelper.hasAdditionalQuotaService5k(account);
+
+        Long planQuotaKBBaseLimit = isAccountHasAdditionalQuotaService5k ? planQuotaKBFreeLimit + ADDITIONAL_QUOTA_5K_CAPACITY : planQuotaKBFreeLimit;
+
         String quotaServiceId = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID).getId();
         List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), quotaServiceId);
         int currentAdditionalQuotaCount = 0;
@@ -95,15 +104,17 @@ public class AccountQuotaService {
         }
 
         Long oneServiceCapacity = ADDITIONAL_QUOTA_100_CAPACITY;
-        int newAdditionalQuotaCount = (int) ceil(((float) currentQuotaUsed - (planQuotaKBFreeLimit * 1024)) / (oneServiceCapacity  * 1024));
+        int newAdditionalQuotaCount = (int) ceil(((float) currentQuotaUsed - (planQuotaKBBaseLimit * 1024)) / (oneServiceCapacity  * 1024));
 
         logger.debug("Processing processQuotaService for account: " + account.getAccountId()
                 + " currentQuotaUsed: " + currentQuotaUsed
                 + " planQuotaKBFreeLimit: " + planQuotaKBFreeLimit
-                + " additionalServiceQuota: " + currentAdditionalQuotaCount * oneServiceCapacity);
+                + " planQuotaKBBaseLimit: " + planQuotaKBBaseLimit
+                + " additionalServiceQuota: " + currentAdditionalQuotaCount * oneServiceCapacity
+                + " isAccountHasAdditionalQuotaService5k: " + isAccountHasAdditionalQuotaService5k);
 
-        // Сравниваем текущее использование квоты c бесплатным лимитом
-        if (currentQuotaUsed > planQuotaKBFreeLimit * 1024) {
+        // Сравниваем текущее использование квоты c лимитом
+        if (currentQuotaUsed > planQuotaKBBaseLimit * 1024) {
             //Превышение квоты есть
             overquotedState = true;
             if (account.isAddQuotaIfOverquoted() && !hasZeroPlanQuotaKBLimit) {
@@ -142,7 +153,7 @@ public class AccountQuotaService {
         accountServiceHelper.setEnabledAccountService(account, quotaServiceId, addQuotaServiceState);
 
         //Обновим квоту юникс-аккаунта
-        Long quotaInBytes = (planQuotaKBFreeLimit + (oneServiceCapacity * newAdditionalQuotaCount)) * 1024;
+        Long quotaInBytes = (planQuotaKBBaseLimit + (oneServiceCapacity * newAdditionalQuotaCount)) * 1024;
         resourceHelper.updateUnixAccountQuota(account, quotaInBytes);
 
         //Обновим writable для quotable-ресурсов аккаунта

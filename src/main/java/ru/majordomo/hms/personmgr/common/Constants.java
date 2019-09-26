@@ -195,6 +195,10 @@ public class Constants {
     //Размер одной услуги Доп.место 100Мб
     public static final long ADDITIONAL_QUOTA_100_CAPACITY = 102400L;
 
+    public static final String ADDITIONAL_QUOTA_5K_ID = "additional_quota_5K";
+    public static final String ADDITIONAL_QUOTA_5K_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_QUOTA_5K_ID;
+    public static final long ADDITIONAL_QUOTA_5K_CAPACITY = 5242880L;
+
     //Значение Limit в тарифе, обозначающее "безлимитность"
     public static final int PLAN_PROPERTY_LIMIT_UNLIMITED = -1;
 
@@ -222,6 +226,7 @@ public class Constants {
     public static final String DOMAIN_DISCOUNT_RU_RF_ACTION_ID = "57f3c4b8038d8a6054409858";
     public static final String PARTNER_CHECKOUT_SERVICE_ID = "590745d8719fca09b485524c";
     public static final String TOCHKA_BANK_PROMOCODE_TAG_ID = "5c01593cd003d109804ebdcd";
+    public static final String ADDITIONAL_QUOTA_PLAN_ONLY_NAME = "unlimited-plus";
     public static final Long PARTNER_CHECKOUT_MIN_SUMM = 1500L;
 
     public static final Map<Integer, MailManagerMessageType> MANAGER_MESSAGE_TYPE_MAP = new HashMap<>();
