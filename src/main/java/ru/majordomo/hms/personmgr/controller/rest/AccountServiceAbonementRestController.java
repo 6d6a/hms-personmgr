@@ -13,9 +13,11 @@ import ru.majordomo.hms.personmgr.common.StorageType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
+import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
@@ -30,6 +32,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_PLAN_ONLY_NAME;
+
 @RestController
 @RequestMapping("/{accountId}/account-service-abonement")
 @Validated
@@ -43,6 +47,7 @@ public class AccountServiceAbonementRestController extends CommonRestController 
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final BackupService backupService;
     private final ResourceHelper resourceHelper;
+    private final PlanManager planManager;
 
     @Autowired
     public AccountServiceAbonementRestController(
@@ -53,7 +58,8 @@ public class AccountServiceAbonementRestController extends CommonRestController 
             AccountRedirectServiceRepository redirectServiceRepository,
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             BackupService backupService,
-            ResourceHelper resourceHelper
+            ResourceHelper resourceHelper,
+            PlanManager planManager
     ) {
         this.accountServiceHelper = accountServiceHelper;
         this.accountNotificationHelper = accountNotificationHelper;
@@ -63,6 +69,7 @@ public class AccountServiceAbonementRestController extends CommonRestController 
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
         this.backupService = backupService;
         this.resourceHelper = resourceHelper;
+        this.planManager = planManager;
     }
 
     @GetMapping
@@ -212,6 +219,13 @@ public class AccountServiceAbonementRestController extends CommonRestController 
 
             if (filtered.isEmpty()) {
                 throw new ParameterValidationException("Дополнительных резервных коопий не найдено");
+            }
+        }
+
+        if (feature == Feature.ADDITIONAL_QUOTA_5K) {
+            Plan accountPlan = planManager.findOne(account.getPlanId());
+            if (!accountPlan.getInternalName().equals(ADDITIONAL_QUOTA_PLAN_ONLY_NAME)) {
+                throw new ParameterValidationException("Услуга " + feature.name() + " недоступна");
             }
         }
 

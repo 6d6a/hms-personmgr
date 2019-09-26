@@ -305,6 +305,20 @@ public class AccountServiceHelper {
         }
     }
 
+    public boolean hasAdditionalQuotaService5k(PersonalAccount account) {
+        if (!account.isActive()) return false;
+
+        ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(Feature.ADDITIONAL_QUOTA_5K, true);
+
+        List<AccountServiceAbonement> abonements = abonementManager.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
+
+        if (abonements == null) {
+            return false;
+        }
+
+        return abonements.stream().anyMatch(item -> item.getExpired().isAfter(LocalDateTime.now()));
+    }
+
     public AccountService getAccountService(PersonalAccount account, Feature feature) {
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
 

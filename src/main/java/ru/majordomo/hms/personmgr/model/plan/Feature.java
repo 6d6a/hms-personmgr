@@ -18,6 +18,7 @@ public enum Feature {
     DATABASE_USER,
     BUSINESS_SERVICES,
     DOCUMENT_PACKAGE_ORDER,
+    ADDITIONAL_QUOTA_5K,
     REDIRECT,
     LONG_LIFE_RESOURCE_ARCHIVE,
     ADVANCED_BACKUP,
@@ -30,6 +31,7 @@ public enum Feature {
             case ANTI_SPAM:
             case ADVANCED_BACKUP:
             case ADVANCED_BACKUP_INSTANT_ACCESS:
+            case ADDITIONAL_QUOTA_5K:
                 return true;
             default:
                 return false;
