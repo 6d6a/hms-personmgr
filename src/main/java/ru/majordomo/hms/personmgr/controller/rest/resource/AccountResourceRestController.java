@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,8 +22,11 @@ import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.feign.SiFeignClient;
+import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
+import ru.majordomo.hms.personmgr.model.abonement.Abonement;
+import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -51,6 +55,7 @@ public class AccountResourceRestController extends CommonRestController {
     private final SiFeignClient siFeignClient;
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountTransferService accountTransferService;
+    private final AbonementManager abonementManager;
 
     @Autowired
     public AccountResourceRestController(
@@ -61,7 +66,8 @@ public class AccountResourceRestController extends CommonRestController {
             AccountOwnerManager accountOwnerManager,
             SiFeignClient siFeignClient,
             RcUserFeignClient rcUserFeignClient,
-            AccountTransferService accountTransferService
+            AccountTransferService accountTransferService,
+            AbonementManager abonementManager
     ) {
         this.sequenceCounterService = sequenceCounterService;
         this.processingBusinessOperationRepository = processingBusinessOperationRepository;
@@ -71,8 +77,8 @@ public class AccountResourceRestController extends CommonRestController {
         this.siFeignClient = siFeignClient;
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountTransferService = accountTransferService;
+        this.abonementManager = abonementManager;
     }
-
 
     @SuppressWarnings("unchecked")
     @RequestMapping(value = "/register", method = RequestMethod.POST)
@@ -129,6 +135,27 @@ public class AccountResourceRestController extends CommonRestController {
 
         createAccountService(personalAccount, plan);
 
+        plan.getAbonements().forEach(abonement -> System.out.println(agreement));
+
+        String periodStr = (String) message.getParam("plan");
+        if (StringUtils.isNotEmpty(periodStr)) {
+            Abonement abonement = plan.getAbonements().stream().findFirst().orElse(null);
+            if (abonement == null) {
+                logger.info("No abonement with period: " + periodStr);
+                return this.createErrorResponse("Не найден абонемент с указанным периодом: " + periodStr);
+            }
+
+            AccountAbonement accountAbonement = new AccountAbonement();
+            accountAbonement.setPreordered(true);
+            accountAbonement.setCreated(LocalDateTime.now());
+            accountAbonement.setPersonalAccountId(personalAccount.getId());
+            accountAbonement.setAbonementId(abonement.getId());
+            accountAbonement.setAutorenew(true);
+//            accountAbonement.setA
+            abonementManager.save(accountAbonement);
+        }
+
+
         //Сохраним в мессагу квоту по тарифу
         message.setAccountId(personalAccount.getId());
         message.addParam("username", personalAccount.getName());
@@ -138,7 +165,14 @@ public class AccountResourceRestController extends CommonRestController {
 
         logger.debug("processingBusinessOperation saved: " + processingBusinessOperation.toString());
 
-        SimpleServiceMessage siResponse = siFeignClient.createWebAccessAccount(message);
+        SimpleServiceMessage siResponse = null;
+
+        try {
+            siResponse = siFeignClient.createWebAccessAccount(message);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return this.createErrorResponse("WebAccessAccount creation failed. Exception: " + e.getMessage());
+        }
 
         if (siResponse.getParam("success") == null || !((boolean) siResponse.getParam("success"))) {
             return this.createErrorResponse("WebAccessAccount creation failed. Response params:" + siResponse.getParams());
