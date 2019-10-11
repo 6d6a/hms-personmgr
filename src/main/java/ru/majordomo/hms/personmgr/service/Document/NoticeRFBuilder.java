@@ -115,7 +115,8 @@ public class NoticeRFBuilder extends DocumentBuilderImpl {
                 " " + String.valueOf(LocalDate.now().getYear());
 
         replaceMap.put("#ORG_NAME#", accountOwner.getName());
-        replaceMap.put("#ORG_ADDRESS#", accountOwner.getContactInfo().getPostalAddress());
+        replaceMap.put("#ORG_ADDRESS#", accountOwner.getContactInfo().getPostalAddress() != null
+                ? accountOwner.getContactInfo().getPostalAddress() : "");
         replaceMap.put("#DATE#", dateInString);
         replaceMap.put("#STAMP#", isWithoutStamp() ? "" : stamp);
         replaceMap.put("#MAJORDOMO_LOGO#", getResourceInBase64("/images/majordomo.png"));
