@@ -450,4 +450,9 @@ public class AccountServiceHelper {
 
         return all;
     }
+
+    public BigDecimal getPlanCostDependingOnDiscount(PersonalAccount account) {
+        Plan plan = planManager.findOne(account.getPlanId());
+        return this.getServiceCostDependingOnDiscount(account, plan.getService());
+    }
 }
