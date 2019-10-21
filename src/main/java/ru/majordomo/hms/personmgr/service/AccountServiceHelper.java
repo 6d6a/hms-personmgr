@@ -14,12 +14,14 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
+import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
@@ -36,6 +38,8 @@ public class AccountServiceHelper {
     private final PaymentServiceRepository serviceRepository;
     private final AbonementManager<AccountServiceAbonement> abonementManager;
     private final ServicePlanRepository servicePlanRepository;
+    private final AccountPromotionManager accountPromotionManager;
+    private final DiscountFactory discountFactory;
 
     @Autowired
     public AccountServiceHelper(
@@ -43,13 +47,17 @@ public class AccountServiceHelper {
             PlanManager planManager,
             PaymentServiceRepository serviceRepository,
             AbonementManager<AccountServiceAbonement> abonementManager,
-            ServicePlanRepository servicePlanRepository
+            ServicePlanRepository servicePlanRepository,
+            AccountPromotionManager accountPromotionManager,
+            DiscountFactory discountFactory
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.planManager = planManager;
         this.serviceRepository = serviceRepository;
         this.abonementManager = abonementManager;
         this.servicePlanRepository = servicePlanRepository;
+        this.accountPromotionManager = accountPromotionManager;
+        this.discountFactory = discountFactory;
     }
 
     /**
@@ -345,7 +353,7 @@ public class AccountServiceHelper {
         dailyServices = accountServices.stream().filter(accountService ->
                 accountService.isEnabled()
                         && accountService.getPaymentService() != null
-                        && accountService.getPaymentService().getCost().compareTo(BigDecimal.ZERO) > 0
+                        && this.getServiceCostDependingOnDiscount(account, accountService.getPaymentService()).compareTo(BigDecimal.ZERO) > 0
                         && (isRegularAccountServiceNeedDailyCharge(accountService, chargeDate)))
                 .collect(Collectors.toList());
 
@@ -375,19 +383,19 @@ public class AccountServiceHelper {
         }
     }
 
-    public BigDecimal getDailyCostForService(AccountService accountService) {
-        return this.getDailyCostForService(accountService, LocalDate.now());
+    public BigDecimal getDailyCostForService(PersonalAccount account, AccountService accountService) {
+        return this.getDailyCostForService(account, accountService, LocalDate.now());
     }
 
-    public BigDecimal getDailyCostForService(AccountService accountService, LocalDate chargeDate) {
+    public BigDecimal getDailyCostForService(PersonalAccount account, AccountService accountService, LocalDate chargeDate) {
         Integer daysInCurrentMonth = chargeDate.lengthOfMonth();
         BigDecimal cost = BigDecimal.ZERO;
         switch (accountService.getPaymentService().getPaymentType()) {
             case MONTH:
-                cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
+                cost = this.getServiceCostDependingOnDiscount(account, accountService).divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
                 break;
             case DAY:
-                cost = accountService.getCost();
+                cost = this.getServiceCostDependingOnDiscount(account, accountService);
                 break;
         }
         return cost;
@@ -406,5 +414,40 @@ public class AccountServiceHelper {
         }
 
         return plan;
+    }
+
+    public BigDecimal getServiceCostDependingOnDiscount(PersonalAccount account, AccountService accountService) {
+        BigDecimal cost = this.getServiceCostDependingOnDiscount(account, accountService.getPaymentService());
+        return cost.multiply(BigDecimal.valueOf(accountService.getQuantity()));
+    }
+
+    public BigDecimal getServiceCostDependingOnDiscount(PersonalAccount account, PaymentService paymentService) {
+        BigDecimal cost = paymentService.getCost();
+
+        AccountPromotion accountPromotion = accountPromotionManager.getServiceDiscountPromotion(account, paymentService);
+
+        if (accountPromotion != null) {
+            cost = discountFactory.getDiscount(accountPromotion.getAction()).getCost(cost);
+        }
+
+        return cost;
+    }
+
+    public List<AccountService> getAllServicesDependingOnDiscount(PersonalAccount account) {
+        List<AccountService> all = accountServiceRepository.findByPersonalAccountId(account.getId());
+
+        all.forEach(item -> {
+            BigDecimal cost = item.getPaymentService().getCost();
+
+            AccountPromotion accountPromotion = accountPromotionManager.getServiceDiscountPromotion(account, item.getPaymentService());
+
+            if (accountPromotion != null) {
+                cost = discountFactory.getDiscount(accountPromotion.getAction()).getCost(cost);
+            }
+
+            item.getPaymentService().setCost(cost);
+        });
+
+        return all;
     }
 }

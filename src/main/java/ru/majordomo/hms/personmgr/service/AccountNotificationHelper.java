@@ -222,14 +222,18 @@ public class AccountNotificationHelper {
 
         String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
                 account,
-                new PaymentLinkRequest(plan.getService().getCost())
+                new PaymentLinkRequest(accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()))
         ).getPaymentLink();
 
         parameters.put("acc_id", account.getName());
         parameters.put("date_finish", dateFinish.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         parameters.put("balance", this.getBalanceForEmail(account));
-        parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
-        parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
+        parameters.put("cost_per_month", formatBigDecimalWithCurrency(
+                accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService())
+        ));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
+        parameters.put("cost_abonement", formatBigDecimalWithCurrency(accountServiceHelper.getServiceCostDependingOnDiscount(
+                account, plan.getDefaultP1YAbonementService()
+        )));
         parameters.put("domains", this.getDomainForEmail(account));
         parameters.put("payment_link", paymentLink);
 
@@ -239,7 +243,9 @@ public class AccountNotificationHelper {
                 new LowBalancePush(account.getId(),
                         account.getName() + " выключен",
                         "Закончились средства на балансе. Аккаунт " + account.getName() + " блокирован.",
-                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                        plan.isAbonementOnly() ? accountServiceHelper.getServiceCostDependingOnDiscount(
+                                account, plan.getDefaultP1YAbonementService()
+                        ) : accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService())
                 )
         );
     }
@@ -251,7 +257,7 @@ public class AccountNotificationHelper {
 
         String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
                 account,
-                new PaymentLinkRequest(plan.getService().getCost())
+                new PaymentLinkRequest(accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()))
         ).getPaymentLink();
 
         Map<String, String> parameters = new HashMap<>();
@@ -260,8 +266,12 @@ public class AccountNotificationHelper {
         parameters.put("domains", getDomainForEmail(account));
         parameters.put("balance", formatBigDecimalWithCurrency(balance));
         parameters.put("date_finish", "");
-        parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
-        parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
+        parameters.put("cost_per_month", formatBigDecimalWithCurrency(
+                accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()))
+        );//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
+        parameters.put("cost_abonement", formatBigDecimalWithCurrency(accountServiceHelper.getServiceCostDependingOnDiscount(
+                account, plan.getDefaultP1YAbonementService()
+        )));
         parameters.put("from", "noreply@majordomo.ru");
         parameters.put("payment_link", paymentLink);
 
@@ -271,7 +281,10 @@ public class AccountNotificationHelper {
                 new LowBalancePush(account.getId(),
                         account.getName() + " выключен",
                         "Закончились кредитные средства на услуги хостинга на аккаунте " + account.getName(),
-                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                        plan.isAbonementOnly() ? accountServiceHelper.getServiceCostDependingOnDiscount(
+                                account, plan.getDefaultP1YAbonementService()
+                        ) :
+                                accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService())
                 )
         );
     }
@@ -283,7 +296,7 @@ public class AccountNotificationHelper {
 
         String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
                 account,
-                new PaymentLinkRequest(plan.getService().getCost())
+                new PaymentLinkRequest(accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()))
         ).getPaymentLink();
 
         Map<String, String> parameters = new HashMap<>();
@@ -302,7 +315,9 @@ public class AccountNotificationHelper {
                 new LowBalancePush(account.getId(),
                         account.getName() + " включена услуга \"Хостинг в кредит\"",
                         "Закончились средства на балансе. Аккаунт " + account.getName() + " блокирован.",
-                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                        plan.isAbonementOnly() ? accountServiceHelper.getServiceCostDependingOnDiscount(
+                                account, plan.getDefaultP1YAbonementService()
+                        ) : accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService())
                 )
         );
 
@@ -321,7 +336,7 @@ public class AccountNotificationHelper {
 
         String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
                 account,
-                new PaymentLinkRequest(plan.getService().getCost())
+                new PaymentLinkRequest(accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()))
         ).getPaymentLink();
 
         Map<String, String> parameters = new HashMap<>();
@@ -340,7 +355,9 @@ public class AccountNotificationHelper {
                 new LowBalancePush(account.getId(),
                         account.getName() + " включена услуга \"Хостинг в кредит\"",
                         "Средства на услуги хостинга на Вашем аккаунте " + account.getName() + " закончились. Включена услуга \"Хостинг в кредит\" на 14 дней",
-                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                        plan.isAbonementOnly() ? accountServiceHelper.getServiceCostDependingOnDiscount(
+                                account, plan.getDefaultP1YAbonementService()
+                        ) : accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService())
                 )
         );
 
@@ -359,7 +376,7 @@ public class AccountNotificationHelper {
 
         String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
                 account,
-                new PaymentLinkRequest(plan.getService().getCost())
+                new PaymentLinkRequest(accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()))
         ).getPaymentLink();
 
         String dateFinish = "через " + Utils.pluralizeDays(getRemainingDaysCreditPeriod(account));
@@ -382,7 +399,9 @@ public class AccountNotificationHelper {
                         account.getName() + " Заканчиваются кредит. средства на доп.услуги",
                         "Кредитные средства на оплату доп.услуг хостинга (SMS-информирование, увеличение квоты и т. д.) " +
                                 "на аккаунте " + account.getName() + " заканчиваются " + dateFinish,
-                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                        plan.isAbonementOnly() ? accountServiceHelper.getServiceCostDependingOnDiscount(
+                                account, plan.getDefaultP1YAbonementService()
+                        ) : accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService())
                 )
         );
 
@@ -401,7 +420,7 @@ public class AccountNotificationHelper {
 
         String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
                 account,
-                new PaymentLinkRequest(plan.getService().getCost())
+                new PaymentLinkRequest(accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()))
         ).getPaymentLink();
 
         String dateFinish = "через " + Utils.pluralizeDays(getRemainingDaysCreditPeriod(account));
@@ -412,8 +431,12 @@ public class AccountNotificationHelper {
         parameters.put("domains", getDomainForEmail(account));
         parameters.put("balance", formatBigDecimalWithCurrency(balance));
         parameters.put("date_finish", dateFinish);
-        parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
-        parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
+        parameters.put("cost_per_month", formatBigDecimalWithCurrency(
+                accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()))
+        );//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
+        parameters.put("cost_abonement", formatBigDecimalWithCurrency(accountServiceHelper.getServiceCostDependingOnDiscount(
+                account, plan.getDefaultP1YAbonementService()
+        )));
         parameters.put("from", "noreply@majordomo.ru");
         parameters.put("payment_link", paymentLink);
 
@@ -426,7 +449,9 @@ public class AccountNotificationHelper {
                         account.getName() + " Заканчивается кредит. Аккаунт будет отключен.",
                         "Кредит на услуги хостинга на аккаунте " + account.getName() + " заканчивается " + dateFinish +
                                 " Для продолжения работы пополните баланс аккаунта или купите абонемент со скидкой",
-                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                        plan.isAbonementOnly() ? accountServiceHelper.getServiceCostDependingOnDiscount(
+                                account, plan.getDefaultP1YAbonementService()
+                        ) : accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService())
                 )
         );
 
@@ -445,7 +470,7 @@ public class AccountNotificationHelper {
 
         String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
                 account,
-                new PaymentLinkRequest(plan.getService().getCost())
+                new PaymentLinkRequest(accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()))
         ).getPaymentLink();
 
         Map<String, String> parameters = new HashMap<>();
@@ -466,7 +491,9 @@ public class AccountNotificationHelper {
                         account.getName() + " Закончился кредит. Дополнительные услуги отключены.",
                         "Закончились кредитные средства на доп.услуги хостинга на аккаунте " + account.getName()
                             + " Для возобновления работы доп.услуг пополните баланс аккаунта.",
-                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                        plan.isAbonementOnly() ? accountServiceHelper.getServiceCostDependingOnDiscount(
+                                account, plan.getDefaultP1YAbonementService()
+                        ) : accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService())
                 )
         );
 
@@ -485,7 +512,7 @@ public class AccountNotificationHelper {
 
         String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
                 account,
-                new PaymentLinkRequest(plan.getService().getCost())
+                new PaymentLinkRequest(accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()))
         ).getPaymentLink();
 
         Map<String, String> parameters = new HashMap<>();
@@ -506,7 +533,9 @@ public class AccountNotificationHelper {
                         account.getName() + " Закончились средства. Дополнительные услуги отключены.",
                         "Закончились средства на доп.услуги хостинга на аккаунте " + account.getName()
                                 + " Для возобновления работы доп.услуг пополните баланс аккаунта.",
-                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                        plan.isAbonementOnly() ? accountServiceHelper.getServiceCostDependingOnDiscount(
+                                account, plan.getDefaultP1YAbonementService()
+                        ) : accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService())
                 )
         );
 
@@ -525,7 +554,7 @@ public class AccountNotificationHelper {
 
         String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
                 account,
-                new PaymentLinkRequest(plan.getService().getCost())
+                new PaymentLinkRequest(accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()))
         ).getPaymentLink();
 
         String dateFinish = "через " + Utils.pluralizeDays(remainingDays);
@@ -548,7 +577,9 @@ public class AccountNotificationHelper {
                         account.getName() + " Заканчиваются средства на дополнительные услуги",
                         "Заканчиваются средства на доп.услуги хостинга на аккаунте " + account.getName() + " " + dateFinish
                                 + " Для сохранения работы доп.услуг пополните баланс аккаунта.",
-                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                        plan.isAbonementOnly() ? accountServiceHelper.getServiceCostDependingOnDiscount(
+                                account, plan.getDefaultP1YAbonementService()
+                        ) : accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService())
                 )
         );
 
@@ -567,7 +598,7 @@ public class AccountNotificationHelper {
 
         String paymentLink = paymentLinkHelper.generatePaymentLinkForMail(
                 account,
-                new PaymentLinkRequest(plan.getService().getCost())
+                new PaymentLinkRequest(accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()))
         ).getPaymentLink();
 
         String dateFinish = "через " + Utils.pluralizeDays(remainingDays);
@@ -578,8 +609,12 @@ public class AccountNotificationHelper {
         parameters.put("domains", getDomainForEmail(account));
         parameters.put("balance", formatBigDecimalWithCurrency(balance));
         parameters.put("date_finish", dateFinish);
-        parameters.put("cost_per_month", formatBigDecimalWithCurrency(plan.getService().getCost()));//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
-        parameters.put("cost_abonement", formatBigDecimalWithCurrency(plan.getDefaultP1YAbonementCost()));
+        parameters.put("cost_per_month", formatBigDecimalWithCurrency(
+                accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()))
+        );//У нас есть тарифы abonementOnly, возможно, стоит как-то по другому писать в письме для них цену
+        parameters.put("cost_abonement", formatBigDecimalWithCurrency(accountServiceHelper.getServiceCostDependingOnDiscount(
+                account, plan.getDefaultP1YAbonementService()
+        )));
         parameters.put("from", "noreply@majordomo.ru");
         parameters.put("payment_link", paymentLink);
 
@@ -592,7 +627,9 @@ public class AccountNotificationHelper {
                         account.getName() + " Заканчиваются средства. Пополните баланс.",
                         "Средства на оплату услуг хостинга на аккаунте " + account.getName() + " заканчиваются " + dateFinish
                                 + " Для продолжения работы пополните баланс аккаунта.",
-                        plan.isAbonementOnly() ? plan.getDefaultP1YAbonementCost() : plan.getService().getCost()
+                        plan.isAbonementOnly() ? accountServiceHelper.getServiceCostDependingOnDiscount(
+                                account, plan.getDefaultP1YAbonementService()
+                        ) : accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService())
                 )
         );
 

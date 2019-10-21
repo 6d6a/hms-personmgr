@@ -13,6 +13,7 @@ public class PromocodeActionProcessorFactory {
     private final BalanceFillActionProcessor balanceFillActionProcessor;
     private final PaymentPercentBonusActionProcessor paymentPercentBonusProcessor;
     private final AddPromotionProcessor addPromotionProcessor;
+    private final ServiceDiscountActionProcessor serviceDiscountActionProcessor;
 
     @Autowired
     public PromocodeActionProcessorFactory(
@@ -20,13 +21,15 @@ public class PromocodeActionProcessorFactory {
             AbonementActionProcessor abonementActionProcessor,
             BalanceFillActionProcessor balanceFillActionProcessor,
             PaymentPercentBonusActionProcessor paymentPercentBonusProcessor,
-            AddPromotionProcessor addPromotionProcessor
+            AddPromotionProcessor addPromotionProcessor,
+            ServiceDiscountActionProcessor serviceDiscountActionProcessor
     ) {
         this.freeDomainActionProcessor = freeDomainActionProcessor;
         this.abonementActionProcessor = abonementActionProcessor;
         this.balanceFillActionProcessor = balanceFillActionProcessor;
         this.paymentPercentBonusProcessor = paymentPercentBonusProcessor;
         this.addPromotionProcessor = addPromotionProcessor;
+        this.serviceDiscountActionProcessor = serviceDiscountActionProcessor;
     }
 
     public PromocodeActionProcessor getProcessor(PromocodeActionType type) {
@@ -45,6 +48,9 @@ public class PromocodeActionProcessorFactory {
 
             case ADD_PROMOTION:
                 return addPromotionProcessor;
+
+            case SERVICE_DISCOUNT:
+                return serviceDiscountActionProcessor;
 
             case SERVICE_DOMAIN_DISCOUNT_RU_RF:
             default:

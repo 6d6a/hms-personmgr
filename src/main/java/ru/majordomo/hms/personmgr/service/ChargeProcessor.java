@@ -168,7 +168,7 @@ public class ChargeProcessor {
             } else {
                 ChargeResult chargeResult = charger.makeCharge(accountService, chargeRequest.getChargeDate());
                 if (chargeResult.isSuccess()) {
-                    dailyCost = dailyCost.add(accountServiceHelper.getDailyCostForService(accountService, chargeRequest.getChargeDate()));
+                    dailyCost = dailyCost.add(accountServiceHelper.getDailyCostForService(account, accountService, chargeRequest.getChargeDate()));
                     chargeRequestItem.setStatus(Status.CHARGED);
                     accountServices.add(accountService);
                 } else if (!chargeResult.isSuccess() && !chargeResult.isGotException()) {

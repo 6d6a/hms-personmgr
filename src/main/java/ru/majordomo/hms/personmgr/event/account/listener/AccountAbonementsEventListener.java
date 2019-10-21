@@ -16,10 +16,7 @@ import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
-import ru.majordomo.hms.personmgr.service.AbonementService;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
-import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
-import ru.majordomo.hms.personmgr.service.ServiceAbonementService;
+import ru.majordomo.hms.personmgr.service.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -37,6 +34,7 @@ public class AccountAbonementsEventListener {
     private final AbonementService abonementService;
     private final ServiceAbonementService serviceAbonementService;
     private final AccountHelper accountHelper;
+    private final AccountServiceHelper accountServiceHelper;
     private final AccountStatRepository accountStatRepository;
     private final ApplicationEventPublisher publisher;
     private final PlanManager planManager;
@@ -52,7 +50,8 @@ public class AccountAbonementsEventListener {
             PlanManager planManager,
             AccountNotificationHelper accountNotificationHelper,
             PersonalAccountManager personalAccountManager,
-            ServiceAbonementService serviceAbonementService
+            ServiceAbonementService serviceAbonementService,
+            AccountServiceHelper accountServiceHelper
     ) {
         this.abonementService = abonementService;
         this.accountHelper = accountHelper;
@@ -62,6 +61,7 @@ public class AccountAbonementsEventListener {
         this.accountNotificationHelper = accountNotificationHelper;
         this.personalAccountManager = personalAccountManager;
         this.serviceAbonementService = serviceAbonementService;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     @EventListener
@@ -157,9 +157,11 @@ public class AccountAbonementsEventListener {
                     Calendar cal = Calendar.getInstance();
                     int daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
                     BigDecimal balance = accountHelper.getBalance(account);
+
+                    BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService());
+
                     needToSendMail = balance.compareTo(
-                            (plan.getService().getCost()
-                                    .divide(new BigDecimal(daysInMonth), BigDecimal.ROUND_FLOOR)
+                            (cost.divide(new BigDecimal(daysInMonth), BigDecimal.ROUND_FLOOR)
                                     .multiply(new BigDecimal(daysInMonth - dayAgo)))) < 0;
                 }
 

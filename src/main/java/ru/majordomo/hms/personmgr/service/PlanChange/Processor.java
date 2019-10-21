@@ -52,7 +52,7 @@ public abstract class Processor {
     private AccountCountersService accountCountersService;
     private PlanLimitsService planLimitsService;
     private AccountStatRepository accountStatRepository;
-    private AccountServiceHelper accountServiceHelper;
+    protected AccountServiceHelper accountServiceHelper;
     private PaymentServiceRepository paymentServiceRepository;
     private AccountQuotaService accountQuotaService;
     private PersonalAccountManager accountManager;
@@ -240,8 +240,9 @@ public abstract class Processor {
             ).abonementsForReplace();
 
             if (!abonements.isEmpty()) {
-                BigDecimal cost = abonements.stream().map(a -> a.getService().getCost())
-                        .reduce(BigDecimal.ZERO, (a, c) -> c.add(a));
+                BigDecimal cost = abonements.stream().map(
+                        a -> accountServiceHelper.getServiceCostDependingOnDiscount(account, a.getService())
+                ).reduce(BigDecimal.ZERO, (a, c) -> c.add(a));
 
                 if (newBalanceAfterCashBack.compareTo(cost) < 0) {
                     // Денег на новый абонемент не хватает

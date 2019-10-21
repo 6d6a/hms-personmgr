@@ -51,6 +51,7 @@ import ru.majordomo.hms.personmgr.model.account.AccountProperties;
 import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
@@ -154,6 +155,15 @@ public class PersonalAccountRestController extends CommonRestController {
         PersonalAccount account = accountManager.findOne(accountId);
 
         return new ResponseEntity<>(account, HttpStatus.OK);
+    }
+
+    @GetMapping("/{accountId}/discount-services")
+    public ResponseEntity<List<AccountService>> getDiscountServices(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        return new ResponseEntity<>(accountServiceHelper.getAllServicesDependingOnDiscount(account), HttpStatus.OK);
     }
 
     @GetMapping("/{accountId}/plan")
