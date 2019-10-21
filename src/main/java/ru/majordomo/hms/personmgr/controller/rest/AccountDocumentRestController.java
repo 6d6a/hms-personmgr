@@ -23,6 +23,7 @@ import ru.majordomo.hms.personmgr.repository.AccountDocumentRepository;
 import ru.majordomo.hms.personmgr.repository.DocumentOrderRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
+import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
 import ru.majordomo.hms.personmgr.service.Document.DocumentBuilder;
 import ru.majordomo.hms.personmgr.service.Document.DocumentBuilderFactory;
@@ -31,6 +32,7 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -51,6 +53,7 @@ public class AccountDocumentRestController extends CommonRestController {
     private final DocumentOrderRepository documentOrderRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     private final String documentOrderEmail;
+    private final AccountServiceHelper accountServiceHelper;
 
     private List<DocumentType> defaultDocumentTypes = Arrays.asList(
             VIRTUAL_HOSTING_BUDGET_CONTRACT,
@@ -68,7 +71,8 @@ public class AccountDocumentRestController extends CommonRestController {
             AccountHelper accountHelper,
             DocumentOrderRepository documentOrderRepository,
             AccountNotificationHelper accountNotificationHelper,
-            @Value("${mail_manager.document_order_email}") String documentOrderEmail
+            @Value("${mail_manager.document_order_email}") String documentOrderEmail,
+            AccountServiceHelper accountServiceHelper
     ){
         this.documentBuilderFactory = documentBuilderFactory;
         this.accountDocumentRepository = accountDocumentRepository;
@@ -76,6 +80,7 @@ public class AccountDocumentRestController extends CommonRestController {
         this.documentOrderRepository = documentOrderRepository;
         this.accountNotificationHelper = accountNotificationHelper;
         this.documentOrderEmail = documentOrderEmail;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     @GetMapping("/old/{documentType}")
@@ -285,7 +290,10 @@ public class AccountDocumentRestController extends CommonRestController {
 
             PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
 
+            BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, paymentService);
+
             ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
+                    .setAmount(cost)
                     .build();
             SimpleServiceMessage response = accountHelper.charge(account, chargeMessage);
 

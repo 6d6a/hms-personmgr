@@ -125,8 +125,8 @@ public class Plan extends BaseModel {
         return null;
     }
 
-    public BigDecimal getDefaultP1YAbonementCost() {
+    public PaymentService getDefaultP1YAbonementService() {
         Abonement abonement = getDefaultP1YAbonement();
-        return abonement != null && abonement.getService() != null ? abonement.getService().getCost() : null;
+        return abonement != null && abonement.getService() != null ? abonement.getService() : null;
     }
 }

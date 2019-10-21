@@ -245,6 +245,7 @@ public class BuyAbonementPromotionProcessorTest {
         Promotion promotion = new Promotion();
         promotion.setId(ObjectId.get().toString());
         promotion.setName(name);
+        promotion.setUnlimited(false);
         promotion.setActionIds(Collections.singletonList(action.getId()));
         promotion.setActions(Collections.singletonList(action));
         promotion.setLimitPerAccount(limit);

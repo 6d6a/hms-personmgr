@@ -33,6 +33,8 @@ public class Promotion extends BaseModel {
     @NotNull
     private int limitPerAccount;
 
+    private boolean unlimited = false;
+
     private List<String> actionIds = new ArrayList<>();
 
     private String description;

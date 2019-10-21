@@ -62,6 +62,7 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
     private final AccountNotificationHelper accountNotificationHelper;
     private final MongoOperations mongoOperations;
     private final AppscatFeignClient appscatFeignClient;
+    private final AccountServiceHelper accountServiceHelper;
 
     @Autowired
     public BitrixLicenseOrderManager(
@@ -72,7 +73,8 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
             FinFeignClient finFeignClient,
             AccountNotificationHelper accountNotificationHelper,
             MongoOperations mongoOperations,
-            AppscatFeignClient appscatFeignClient
+            AppscatFeignClient appscatFeignClient,
+            AccountServiceHelper accountServiceHelper
     ){
         this.publisher = publisher;
         this.accountHelper = accountHelper;
@@ -82,6 +84,7 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
         this.accountNotificationHelper = accountNotificationHelper;
         this.mongoOperations = mongoOperations;
         this.appscatFeignClient = appscatFeignClient;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     @Override

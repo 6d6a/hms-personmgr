@@ -295,14 +295,14 @@ public class AccountServiceRestController extends CommonRestController {
         try {
             DiscountedService discountedService = discountServiceHelper.getDiscountedService(account.getDiscounts(), paymentService);
             if (discountedService != null) {
-                dayCost = accountServiceHelper.getDailyCostForService(discountedService);
+                dayCost = accountServiceHelper.getDailyCostForService(account, discountedService);
             } else {
-                dayCost = accountHelper.getDayCostByService(paymentService);
+                dayCost = accountHelper.getDayCostByService(account, paymentService);
             }
         } catch (Exception e) {
             logger.error("Catch exception with getCost in AccountServiceRestController for paymentService " + paymentService + " and account " + account);
             e.printStackTrace();
-            dayCost = accountHelper.getDayCostByService(paymentService);
+            dayCost = accountHelper.getDayCostByService(account, paymentService);
         }
         return dayCost;
     }

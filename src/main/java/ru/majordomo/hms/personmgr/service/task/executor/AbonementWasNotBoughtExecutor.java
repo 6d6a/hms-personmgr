@@ -10,6 +10,7 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.task.SendMailIfAbonementWasNotBought;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
+import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -21,6 +22,7 @@ public class AbonementWasNotBoughtExecutor implements Executor<SendMailIfAboneme
     private AbonementManager<AccountAbonement> abonementManager;
     private AccountNotificationHelper notificationHelper;
     private AccountHelper accountHelper;
+    private AccountServiceHelper accountServiceHelper;
     private final PlanManager planManager;
 
     public AbonementWasNotBoughtExecutor(
@@ -28,12 +30,14 @@ public class AbonementWasNotBoughtExecutor implements Executor<SendMailIfAboneme
             AbonementManager<AccountAbonement> abonementManager,
             AccountNotificationHelper notificationHelper,
             AccountHelper accountHelper,
+            AccountServiceHelper accountServiceHelper,
             PlanManager planManager
     ) {
         this.accountManager = accountManager;
         this.abonementManager = abonementManager;
         this.notificationHelper = notificationHelper;
         this.accountHelper = accountHelper;
+        this.accountServiceHelper = accountServiceHelper;
         this.planManager = planManager;
     }
 
@@ -49,7 +53,7 @@ public class AbonementWasNotBoughtExecutor implements Executor<SendMailIfAboneme
 
             if (plan.isAbonementOnly()) { return; }
 
-            BigDecimal cost = plan.getNotInternalAbonement().getService().getCost();
+            BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getNotInternalAbonement().getService());
 
             BigDecimal balance = accountHelper.getBalance(account);
 

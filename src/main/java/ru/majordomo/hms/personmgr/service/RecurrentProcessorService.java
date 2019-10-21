@@ -132,7 +132,7 @@ public class RecurrentProcessorService {
 
 
             //Абонементы -------------
-            BigDecimal abonementRecurrentSum = getAbonementRecurrentSum(account.getId());
+            BigDecimal abonementRecurrentSum = getAbonementRecurrentSum(account);
 
             if (abonementRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
                 if (availableBalance.compareTo(abonementRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает на абонемент
@@ -235,7 +235,8 @@ public class RecurrentProcessorService {
                         // Проверям сколько осталось у абонементу
                         // Если истекает через 5 дней или меньше - добавляем стоимость абонемента
                         if (abonement.getExpired().isBefore(chargeDate.plusDays(5L))) {
-                            sum = sum.add(abonement.getAbonement().getService().getCost());
+
+                            sum = sum.add(accountServiceHelper.getServiceCostDependingOnDiscount(account, abonement.getAbonement().getService()));
                         }
                     }
                 }
@@ -262,11 +263,14 @@ public class RecurrentProcessorService {
                 }
 
                 if (!bonusProhibited && abonement.isAutorenew()) {
-                    if (!abonement.getAbonement().isInternal() && serviceAbonementService.isRevisiumServiceAbonementAllowedToProlong(account, abonement)) {
+                    if (!abonement.getAbonement().isInternal() &&
+                            serviceAbonementService.isRevisiumServiceAbonementAllowedToProlong(account, abonement)) {
                         // Проверям сколько осталось у абонементу
                         // Если истекает через 5 дней или меньше - добавляем стоимость абонемента
                         if (abonement.getExpired().isBefore(chargeDate.plusDays(5L))) {
-                            sum = sum.add(abonement.getAbonement().getService().getCost());
+                            sum = sum.add(
+                                    accountServiceHelper.getServiceCostDependingOnDiscount(account, abonement.getAbonement().getService())
+                            );
                         }
                     }
                 }
@@ -324,9 +328,9 @@ public class RecurrentProcessorService {
         return domainRecurrentSum;
     }
 
-    private BigDecimal getAbonementRecurrentSum(String accountId) {
+    private BigDecimal getAbonementRecurrentSum(PersonalAccount account) {
         AbonementsWrapper wrapper = new AbonementsWrapper(
-                accountAbonementManager.findAllByPersonalAccountId(accountId)
+                accountAbonementManager.findAllByPersonalAccountId(account.getId())
         );
 
         LocalDateTime chargeDate = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
@@ -336,7 +340,7 @@ public class RecurrentProcessorService {
                     && !wrapper.getLast().getAbonement().isInternal()
                     && wrapper.getExpired().isBefore(chargeDate.plusDays(5L))
             ) {
-                return wrapper.getLast().getAbonement().getService().getCost();
+                return accountServiceHelper.getServiceCostDependingOnDiscount(account, wrapper.getLast().getAbonement().getService());
             }
         }
 
@@ -368,7 +372,8 @@ public class RecurrentProcessorService {
 
             switch (accountService.getPaymentService().getPaymentType()) {
                 case MONTH:
-                    cost = accountService.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
+                    cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, accountService)
+                            .divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
                     dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
                     break;
                     //Ежедневные услуги не считаем в рекуррент (сейчас это только 'Хранение архива данных')

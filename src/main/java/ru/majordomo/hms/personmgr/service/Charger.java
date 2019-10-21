@@ -45,12 +45,13 @@ public class Charger {
             списания не было, значит успешно и выключать услугу не надо
         */
     ChargeResult makeCharge(AccountService accountService, LocalDate chargeDate) {
-        BigDecimal cost = accountServiceHelper.getDailyCostForService(accountService, chargeDate);
+        PersonalAccount account = accountManager.findOne(accountService.getPersonalAccountId());
+        BigDecimal cost = accountServiceHelper.getDailyCostForService(account, accountService, chargeDate);
 
         if (cost.compareTo(BigDecimal.ZERO) <= 0) { return ChargeResult.success(); }
 
         LocalDateTime chargeDateTime = LocalDateTime.of(chargeDate, LocalTime.of(0,0,0,0));
-        PersonalAccount account = accountManager.findOne(accountService.getPersonalAccountId());
+
         Boolean forceCharge = accountHelper.hasActiveCredit(account);
 
         SimpleServiceMessage response;

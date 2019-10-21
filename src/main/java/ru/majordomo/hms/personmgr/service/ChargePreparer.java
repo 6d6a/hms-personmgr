@@ -110,7 +110,7 @@ public class ChargePreparer {
             ChargeRequestItem chargeRequestItem = new ChargeRequest();
             chargeRequestItem.setAccountServiceId(accountService.getId());
             chargeRequestItem.setChargeDate(chargeDate);
-            chargeRequestItem.setAmount(accountServiceHelper.getDailyCostForService(accountService, chargeDate));
+            chargeRequestItem.setAmount(accountServiceHelper.getDailyCostForService(account, accountService, chargeDate));
 
             chargeRequest.addChargeRequest(chargeRequestItem);
         }

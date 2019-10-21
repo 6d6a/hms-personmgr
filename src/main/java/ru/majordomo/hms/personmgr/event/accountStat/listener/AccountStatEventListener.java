@@ -20,6 +20,7 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountNotificationStatRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
+import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.service.AccountStatHelper;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.feign.StatFeignClient;
@@ -44,6 +45,7 @@ public class AccountStatEventListener {
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
     private final StatFeignClient statFeignClient;
     private final PaymentServiceRepository paymentServiceRepository;
+    private final AccountServiceHelper accountServiceHelper;
 
     public AccountStatEventListener(
             RcUserFeignClient rcUserFeignClient,
@@ -52,7 +54,8 @@ public class AccountStatEventListener {
             AccountNotificationStatRepository accountNotificationStatRepository,
             ProcessingBusinessActionRepository processingBusinessActionRepository,
             StatFeignClient statFeignClient,
-            PaymentServiceRepository paymentServiceRepository
+            PaymentServiceRepository paymentServiceRepository,
+            AccountServiceHelper accountServiceHelper
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountStatHelper = accountStatHelper;
@@ -61,6 +64,7 @@ public class AccountStatEventListener {
         this.processingBusinessActionRepository = processingBusinessActionRepository;
         this.statFeignClient = statFeignClient;
         this.paymentServiceRepository = paymentServiceRepository;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     @EventListener
@@ -188,7 +192,8 @@ public class AccountStatEventListener {
                         "Не найден сервис с id " + event.getPaymentServiceId()
                 ));
 
-        if (paymentService.getCost().compareTo(BigDecimal.ZERO) <= 0) {
+        if (accountServiceHelper.getServiceCostDependingOnDiscount(account, paymentService)
+                .compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
 

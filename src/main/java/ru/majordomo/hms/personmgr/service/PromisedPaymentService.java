@@ -37,6 +37,7 @@ public class PromisedPaymentService {
     private final AbonementManager<AccountAbonement> abonementManager;
     private final PlanManager planManager;
     private final AccountHistoryManager history;
+    private final AccountServiceHelper accountServiceHelper;
 
     public PromisedPaymentOptions getOptions(String personalAccountId) {
         PersonalAccount account = accountManager.findOne(personalAccountId);
@@ -97,9 +98,11 @@ public class PromisedPaymentService {
 
         while (current.isBefore(end)) {
             for (AccountService service : services) {
+                PersonalAccount account = accountManager.findOne(service.getPersonalAccountId());
                 if (isDayForCharge(service, current) && canUseBonus(service.getPaymentService())) {
                     cost = cost.add(
-                            getCost(service.getCost(), service.getPaymentService().getPaymentType(), current)
+                            getCost(accountServiceHelper.getServiceCostDependingOnDiscount(account, service),
+                                    service.getPaymentService().getPaymentType(), current)
                     );
                 }
             }
@@ -108,7 +111,7 @@ public class PromisedPaymentService {
         return cost;
     }
 
-    private BigDecimal getCostForPeriod(PaymentService service, Period period) {
+    private BigDecimal getCostForPeriod(PersonalAccount account, PaymentService service, Period period) {
         LocalDate current = LocalDate.now();
         LocalDate end = current.plus(period);
 
@@ -117,7 +120,8 @@ public class PromisedPaymentService {
         while (current.isBefore(end)) {
             if (canUseBonus(service)) {
                 cost = cost.add(
-                        getCost(service.getCost(), service.getPaymentType(), current)
+                        getCost(accountServiceHelper.getServiceCostDependingOnDiscount(account, service),
+                                service.getPaymentType(), current)
                 );
             }
             current = current.plusDays(1);
@@ -221,7 +225,7 @@ public class PromisedPaymentService {
                         .collect(Collectors.toList());
 
                 BigDecimal withoutPlanOpt = getCostForPeriod(withoutPlanService, config.getDailyCostPeriod());
-                BigDecimal planOpt = getCostForPeriod(plan.getService(), config.getDailyCostPeriod());
+                BigDecimal planOpt = getCostForPeriod(account, plan.getService(), config.getDailyCostPeriod());
 
                 options.getOptions().add(withoutPlanOpt.add(planOpt));
             }

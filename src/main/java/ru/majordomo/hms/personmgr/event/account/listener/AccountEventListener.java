@@ -53,6 +53,7 @@ public class AccountEventListener {
     private final static Logger logger = LoggerFactory.getLogger(AccountEventListener.class);
 
     private final AccountHelper accountHelper;
+    private final AccountServiceHelper accountServiceHelper;
     private final TokenManager tokenManager;
     private final ApplicationEventPublisher publisher;
     private final PlanManager planManager;
@@ -76,6 +77,7 @@ public class AccountEventListener {
     @Autowired
     public AccountEventListener(
             AccountHelper accountHelper,
+            AccountServiceHelper accountServiceHelper,
             TokenManager tokenManager,
             ApplicationEventPublisher publisher,
             PlanManager planManager,
@@ -96,6 +98,7 @@ public class AccountEventListener {
             @Value("${delete_data_after_days}") int deleteDataAfterDays
     ) {
         this.accountHelper = accountHelper;
+        this.accountServiceHelper = accountServiceHelper;
         this.tokenManager = tokenManager;
         this.publisher = publisher;
         this.planManager = planManager;
@@ -387,7 +390,7 @@ public class AccountEventListener {
                 accountAbonement -> accountAbonement.getAbonement().isTrial()
         )) {
             Plan plan = planManager.findOne(account.getPlanId());
-            BigDecimal cost = plan.getNotInternalAbonement().getService().getCost();
+            BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getNotInternalAbonement().getService());
 
             SendMailIfAbonementWasNotBought example = new SendMailIfAbonementWasNotBought();
             example.setPersonalAccountId(account.getId());

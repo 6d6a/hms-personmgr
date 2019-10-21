@@ -30,6 +30,7 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanFallback;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
+import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
@@ -226,11 +227,13 @@ public class AccountHelper {
     public void checkBalance(PersonalAccount account, PaymentService service) {
         BigDecimal available = getBalance(account);
 
-        if (available.compareTo(service.getCost()) < 0) {
+        BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, service);
+
+        if (available.compareTo(cost) < 0) {
             throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
                     "Текущий баланс: " + formatBigDecimalWithCurrency(available) +
-                    ", стоимость услуги: " + formatBigDecimalWithCurrency(service.getCost()),
-                    service.getCost().subtract(available)
+                    ", стоимость услуги: " + formatBigDecimalWithCurrency(cost),
+                    cost
             );
         }
     }
@@ -262,7 +265,7 @@ public class AccountHelper {
         if (!forOneDay) {
             checkBalance(account, service);
         } else {
-            BigDecimal dayCost = getDayCostByService(service);
+            BigDecimal dayCost = getDayCostByService(account, service);
 
             BigDecimal available = getBalance(account);
 
@@ -276,16 +279,17 @@ public class AccountHelper {
         }
     }
 
-    private BigDecimal getDayCostByService(PaymentService service, LocalDateTime chargeDate) {
+    private BigDecimal getDayCostByService(PersonalAccount account, PaymentService service, LocalDateTime chargeDate) {
         int daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
 
-        return service.getCost().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
+        return accountServiceHelper.getServiceCostDependingOnDiscount(account, service)
+                .divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
     }
 
-    public BigDecimal getDayCostByService(PaymentService service) {
+    public BigDecimal getDayCostByService(PersonalAccount account, PaymentService service) {
         LocalDateTime chargeDate = LocalDateTime.now();
 
-        return getDayCostByService(service, chargeDate);
+        return getDayCostByService(account, service, chargeDate);
     }
 
 
@@ -442,23 +446,23 @@ public class AccountHelper {
      */
 
     public BigDecimal getCostAbonement(PersonalAccount account) {
-        return getCostAbonement(account.getPlanId(), "P1Y");
+        return getCostAbonement(account, "P1Y");
     }
 
-    private BigDecimal getCostAbonement(String planId, String period) {
-        Plan plan = planManager.findOne(planId);
-        return getCostAbonement(plan, period);
+    private BigDecimal getCostAbonement(PersonalAccount account, String period) {
+        Plan plan = planManager.findOne(account.getPlanId());
+        return getCostAbonement(account, plan, period);
     }
 
-    public BigDecimal getCostAbonement(Plan plan) {
-        return this.getCostAbonement(plan, "P1Y");
+    public BigDecimal getCostAbonement(PersonalAccount account, Plan plan) {
+        return this.getCostAbonement(account, plan, "P1Y");
     }
 
-    private BigDecimal getCostAbonement(Plan plan, String period) {
-        return plan.getAbonements()
+    private BigDecimal getCostAbonement(PersonalAccount account, Plan plan, String period) {
+        return accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getAbonements()
                 .stream().filter(
                         abonement -> abonement.getPeriod().equals(period)
-                ).collect(Collectors.toList()).get(0).getService().getCost();
+                ).collect(Collectors.toList()).get(0).getService());
     }
 
     public boolean hasActiveAbonement(String accountId) {
@@ -589,7 +593,7 @@ public class AccountHelper {
         BooleanSupplier hasNoMoney = () -> {
             BigDecimal overallPaymentAmount = finFeignClient.getOverallPaymentAmount(account.getId());
             Plan currentPlan = planManager.findOne(account.getPlanId());
-            return overallPaymentAmount.compareTo(currentPlan.getService().getCost()) < 0;
+            return overallPaymentAmount.compareTo(accountServiceHelper.getServiceCostDependingOnDiscount(account, currentPlan.getService())) < 0;
         };
 
         if (onlyTrialAbonement) {

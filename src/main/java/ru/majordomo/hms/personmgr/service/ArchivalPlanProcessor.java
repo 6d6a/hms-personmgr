@@ -121,12 +121,13 @@ public class ArchivalPlanProcessor {
                 .filter(accountService -> !accountService.getPaymentService().getId().equals(plan.getServiceId()))
                 .filter(AccountService::isEnabled)
                 .map(accountService ->
-                        accountService.getPaymentService().getCost()
+                        accountServiceHelper.getServiceCostDependingOnDiscount(account, accountService.getPaymentService())
                                 .multiply(BigDecimal.valueOf(accountService.getQuantity()))
                 )
                 .reduce(BigDecimal::add)
                 .orElse(BigDecimal.ZERO)
-                .add(plan.getService().getCost().divide(BigDecimal.valueOf(30), 4, BigDecimal.ROUND_HALF_UP));
+                .add(accountServiceHelper.getServiceCostDependingOnDiscount(
+                        account, plan.getService()).divide(BigDecimal.valueOf(30), 4, BigDecimal.ROUND_HALF_UP));
 
         if (dailyCost.compareTo(BigDecimal.ZERO) == 0) {
             log.info(format(template, account.getId(), maxPeriod, "дневное списание = 0"));
@@ -222,7 +223,9 @@ public class ArchivalPlanProcessor {
                         accountId,
                         currentPlan.getName(),
                         newPlan.getName(),
-                        newPlan.getService().getCost().subtract(currentPlan.getService().getCost()),
+
+                        accountServiceHelper.getServiceCostDependingOnDiscount(account, newPlan.getService())
+                                .subtract(accountServiceHelper.getServiceCostDependingOnDiscount(account, currentPlan.getService())),
                         account.getDeactivated() == null ? "null" : Utils.differenceInDays(account.getDeactivated().toLocalDate(), LocalDate.now())
                 );
                 result.append(message).append("\n");
@@ -300,8 +303,6 @@ public class ArchivalPlanProcessor {
             throw new InternalApiException("Услуга для списания с неактивных аккаунтов не найден");
         }
 
-        BigDecimal fullCost = accessToTheControlPanelService.getCost();
-
         List<String> accountIds = accountManager.findByActiveAndDeactivatedBefore(
                 false, LocalDateTime.now().minusDays(CHARGE_MONEY_AFTER_DAYS_INACTIVE)
         );
@@ -315,6 +316,8 @@ public class ArchivalPlanProcessor {
                 log.error("не удалось получить баланс для списания с неактивных аккаунтов, accountId: "+ accountId + " message: " + e.getMessage());
                 continue;
             }
+
+            BigDecimal fullCost = accountServiceHelper.getServiceCostDependingOnDiscount(account, accessToTheControlPanelService);
 
             if (balance.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal amount = balance.compareTo(fullCost) > 0 ? fullCost : balance;

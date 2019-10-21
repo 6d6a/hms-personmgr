@@ -61,7 +61,6 @@ public class AbonementService {
     private final ChargeHelper chargeHelper;
     private final AccountHistoryManager history;
     private final AccountPromotionManager accountPromotionManager;
-    private final DiscountFactory discountFactory;
     private final PlanFallbackRepository planFallbackRepository;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
@@ -80,7 +79,6 @@ public class AbonementService {
             ChargeHelper chargeHelper,
             AccountHistoryManager history,
             AccountPromotionManager accountPromotionManager,
-            DiscountFactory discountFactory,
             PlanFallbackRepository planFallbackRepository
     ) {
         this.planManager = planManager;
@@ -95,7 +93,6 @@ public class AbonementService {
         this.chargeHelper = chargeHelper;
         this.history = history;
         this.accountPromotionManager = accountPromotionManager;
-        this.discountFactory = discountFactory;
         this.planFallbackRepository = planFallbackRepository;
     }
 
@@ -132,13 +129,7 @@ public class AbonementService {
         ).collect(Collectors.toList());
 
         PaymentService service = abonement.getService();
-        BigDecimal cost = service.getCost();
-
-        AccountPromotion accountPromotion = accountPromotionManager.getServiceDiscountPromotion(account, service);
-
-        if (accountPromotion != null) {
-            cost = discountFactory.getDiscount(accountPromotion.getAction()).getCost(cost);
-        }
+        BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, service);
 
         if (cost.compareTo(BigDecimal.ZERO) > 0) {
 
@@ -150,8 +141,11 @@ public class AbonementService {
 
         //при использовании скидки стоимость может стать 0
         //списания не будет, но отметить промоушен как использованный нужно
+        AccountPromotion accountPromotion = accountPromotionManager.getServiceDiscountPromotion(account, service);
         if (accountPromotion != null) {
-            accountPromotionManager.setAsUsedAccountPromotionById(accountPromotion.getId());
+            if (!accountPromotion.getPromotion().isUnlimited()) {
+                accountPromotionManager.setAsUsedAccountPromotionById(accountPromotion.getId());
+            }
         }
 
         AccountAbonement accountAbonement = new AccountAbonement();
@@ -185,7 +179,10 @@ public class AbonementService {
     private void renewAbonement(PersonalAccount account, AccountAbonement accountAbonement, Abonement nextAbonement) {
         Plan plan = getAccountPlan(account);
 
+        BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, nextAbonement.getService());
+
         ChargeMessage chargeMessage = new ChargeMessage.Builder(nextAbonement.getService())
+                .setAmount(cost)
                 .build();
         accountHelper.charge(account, chargeMessage);
 
@@ -245,12 +242,14 @@ public class AbonementService {
 
             Plan plan = planManager.findOne(account.getPlanId());
 
-            BigDecimal defaultP1YAbonementCost = plan.getDefaultP1YAbonementCost();
+            BigDecimal defaultP1YAbonementCost = accountServiceHelper.getServiceCostDependingOnDiscount(
+                    account, plan.getDefaultP1YAbonementService()
+            );
 
             //todo стоимость абонемента может быть 0, например, если это тестовый или бонусный абонемент
             //но у бонусных абонементов не может быть включено автопродление
             BigDecimal abonementCost = lastAbonement.isPresent() && !lastAbonement.get().getAbonement().isInternal()
-                    ? lastAbonement.get().getAbonement().getService().getCost()
+                    ? accountServiceHelper.getServiceCostDependingOnDiscount(account, lastAbonement.get().getAbonement().getService())
                     : defaultP1YAbonementCost;
 
             BigDecimal balance = accountHelper.getBalance(account);
@@ -258,7 +257,7 @@ public class AbonementService {
             // Высчитываем предполагаемую месячную стоимость аккаунта
             int daysInCurrentMonth = LocalDateTime.now().toLocalDate().lengthOfMonth();
             PaymentService planAccountService = plan.getService();
-            BigDecimal monthCost = planAccountService.getCost();
+            BigDecimal monthCost = accountServiceHelper.getServiceCostDependingOnDiscount(account, planAccountService);
 
             List<AccountService> accountServices = account.getServices();
             for (AccountService accountService : accountServices) {
@@ -266,10 +265,11 @@ public class AbonementService {
                         && !accountService.getPaymentService().getId().equals(planAccountService.getId())) {
                     switch (accountService.getPaymentService().getPaymentType()) {
                         case MONTH:
-                            monthCost = monthCost.add(accountService.getCost());
+                            monthCost = monthCost.add(accountServiceHelper.getServiceCostDependingOnDiscount(account, accountService));
                             break;
                         case DAY:
-                            monthCost = monthCost.add(accountService.getCost().multiply(BigDecimal.valueOf(daysInCurrentMonth)));
+                            monthCost = monthCost.add(accountServiceHelper.getServiceCostDependingOnDiscount(account, accountService)
+                                    .multiply(BigDecimal.valueOf(daysInCurrentMonth)));
                             break;
                     }
                 }
@@ -336,14 +336,14 @@ public class AbonementService {
             logger.debug("Account has abonement autoRenew option enabled");
 
             Optional<Abonement> withEnoughMoney = plan.getAbonements().stream()
-                    .filter(a -> !a.isInternal() && balance.compareTo(a.getService().getCost()) >= 0)
-                    .max(Comparator.comparing(a -> a.getService().getCost()));
+                    .filter(a -> !a.isInternal() && balance.compareTo(accountServiceHelper.getServiceCostDependingOnDiscount(account, a.getService())) >= 0)
+                    .max(Comparator.comparing(a -> accountServiceHelper.getServiceCostDependingOnDiscount(account, a.getService())));
 
             Abonement nextAbonement = accountAbonement.getAbonement().isInternal()
                     ? withEnoughMoney.orElseGet(plan::getDefaultP1YAbonement)
                     : accountAbonement.getAbonement();
 
-            BigDecimal abonementCost = nextAbonement.getService().getCost();
+            BigDecimal abonementCost = accountServiceHelper.getServiceCostDependingOnDiscount(account, nextAbonement.getService());
 
             if (balance.compareTo(abonementCost) >= 0) {
                 logger.debug("Buying new abonement. Balance: " + balance + " abonementCost: " + abonementCost);
@@ -496,7 +496,7 @@ public class AbonementService {
         boolean needToSendMail;
         if (!plan.isAbonementOnly()) {
             BigDecimal balance = accountHelper.getBalance(account);
-            BigDecimal costForOneMonth = plan.getService().getCost();
+            BigDecimal costForOneMonth = accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService());
             needToSendMail = balance.compareTo(costForOneMonth) < 0;
         } else {
             needToSendMail = true;
@@ -547,7 +547,7 @@ public class AbonementService {
                 plan.getAbonementIds(), true, period.toString());
 
         for (Abonement abonement : abonements) {
-            if (abonement.getService().getCost().equals(BigDecimal.ZERO)) {
+            if (accountServiceHelper.getServiceCostDependingOnDiscount(account, abonement.getService()).equals(BigDecimal.ZERO)) {
                 addAbonement(account, abonement.getId());
                 return;
             }
@@ -675,13 +675,7 @@ public class AbonementService {
         }
 
         PaymentService service = abonement.getService();
-        BigDecimal cost = service.getCost();
-
-        AccountPromotion accountPromotion = accountPromotionManager.getServiceDiscountPromotion(account, service);
-
-        if (accountPromotion != null) {
-            cost = discountFactory.getDiscount(accountPromotion.getAction()).getCost(cost);
-        }
+        BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, service);
 
         BigDecimal balance = accountHelper.getBalance(account);
 
