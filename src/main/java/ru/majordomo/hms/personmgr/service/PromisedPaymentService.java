@@ -221,7 +221,7 @@ public class PromisedPaymentService {
             } else {
                 Plan plan = planManager.findOne(account.getPlanId());
                 List<AccountService> withoutPlanService = account.getServices().stream()
-                        .filter(a -> !a.getPaymentService().getId().equals(plan.getService().getId()))
+                        .filter(a -> a.isEnabled() && !a.getPaymentService().getId().equals(plan.getService().getId()))
                         .collect(Collectors.toList());
 
                 BigDecimal withoutPlanOpt = getCostForPeriod(withoutPlanService, config.getDailyCostPeriod());
