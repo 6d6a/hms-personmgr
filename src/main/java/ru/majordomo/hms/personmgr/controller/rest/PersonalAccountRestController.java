@@ -191,6 +191,24 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(new PlanCost(accountServiceHelper.getPlanCostDependingOnDiscount(account)), HttpStatus.OK);
     }
 
+    @GetMapping("/{accountId}/discount-plan")
+    public ResponseEntity<Plan> getDiscountAccountPlan(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Plan plan = planManager.findOne(account.getPlanId());
+
+        plan.getService().setCost(accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()));
+
+        plan.getAbonements().forEach(item-> {
+            BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, item.getService());
+            item.getService().setCost(cost);
+        });
+
+        return new ResponseEntity<>(plan, HttpStatus.OK);
+    }
+
     @PostMapping("/{accountId}/plan/{planId}")
     public ResponseEntity<Object> changeAccountPlan(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
