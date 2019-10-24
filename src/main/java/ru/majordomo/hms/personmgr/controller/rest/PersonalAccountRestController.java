@@ -52,7 +52,7 @@ import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.model.plan.PlanCost;
-import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.model.plan.ServiceCost;
 import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
@@ -158,15 +158,6 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(account, HttpStatus.OK);
     }
 
-    @GetMapping("/{accountId}/discount-services")
-    public ResponseEntity<List<AccountService>> getDiscountServices(
-            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
-    ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        return new ResponseEntity<>(accountServiceHelper.getAllServicesDependingOnDiscount(account), HttpStatus.OK);
-    }
-
     @GetMapping("/{accountId}/plan")
     public ResponseEntity<Plan> getAccountPlan(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
@@ -191,22 +182,22 @@ public class PersonalAccountRestController extends CommonRestController {
         return new ResponseEntity<>(new PlanCost(accountServiceHelper.getPlanCostDependingOnDiscount(account)), HttpStatus.OK);
     }
 
-    @GetMapping("/{accountId}/discount-plan")
-    public ResponseEntity<Plan> getDiscountAccountPlan(
+    @GetMapping("/{accountId}/discount-abonements-cost")
+    public ResponseEntity<List<ServiceCost>> getDiscountAbonementsCost(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
         Plan plan = planManager.findOne(account.getPlanId());
 
-        plan.getService().setCost(accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService()));
+        List<ServiceCost> serviceCosts = new ArrayList<>();
 
         plan.getAbonements().forEach(item-> {
             BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, item.getService());
-            item.getService().setCost(cost);
+            serviceCosts.add(new ServiceCost(item.getServiceId(), cost));
         });
 
-        return new ResponseEntity<>(plan, HttpStatus.OK);
+        return new ResponseEntity<>(serviceCosts, HttpStatus.OK);
     }
 
     @PostMapping("/{accountId}/plan/{planId}")

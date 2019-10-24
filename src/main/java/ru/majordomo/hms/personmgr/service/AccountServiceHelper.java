@@ -433,24 +433,6 @@ public class AccountServiceHelper {
         return cost;
     }
 
-    public List<AccountService> getAllServicesDependingOnDiscount(PersonalAccount account) {
-        List<AccountService> all = accountServiceRepository.findByPersonalAccountId(account.getId());
-
-        all.forEach(item -> {
-            BigDecimal cost = item.getPaymentService().getCost();
-
-            AccountPromotion accountPromotion = accountPromotionManager.getServiceDiscountPromotion(account, item.getPaymentService());
-
-            if (accountPromotion != null) {
-                cost = discountFactory.getDiscount(accountPromotion.getAction()).getCost(cost);
-            }
-
-            item.getPaymentService().setCost(cost);
-        });
-
-        return all;
-    }
-
     public BigDecimal getPlanCostDependingOnDiscount(PersonalAccount account) {
         Plan plan = planManager.findOne(account.getPlanId());
         return this.getServiceCostDependingOnDiscount(account, plan.getService());
