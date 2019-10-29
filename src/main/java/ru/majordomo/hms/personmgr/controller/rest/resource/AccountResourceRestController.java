@@ -26,6 +26,7 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.plan.Plans;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
@@ -153,10 +154,12 @@ public class AccountResourceRestController extends CommonRestController {
             }
         }
 
-
         Period planPeriod = null;
         boolean trial = false;
-        if ("TRIAL".equals(message.getParam("period"))) {
+
+        if (Plans.PARKING_DOMAIN.oldIdStr().equals(plan.getOldId())) {  // для тарифа парковка домена предзаказ недоступен
+            planPeriod = null;
+        } else if ("TRIAL".equals(message.getParam("period"))) {
             trial = true;
             if (plan.getFreeTrialAbonement() == null) {
                 logger.debug("Trial abonement not allowed for plan: " + plan);
