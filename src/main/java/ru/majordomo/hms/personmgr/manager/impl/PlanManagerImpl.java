@@ -133,4 +133,9 @@ public class PlanManagerImpl implements PlanManager {
 
         return repository.findAll(predicate, pageable);
     }
+
+    @Override
+    public Plan findByAbonementIds(String abonementId) {
+        return repository.findByAbonementIds(abonementId);
+    }
 }

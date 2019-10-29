@@ -7,6 +7,8 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
@@ -33,6 +35,7 @@ public class AccountAmqpController extends CommonAmqpController {
     private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final PlanManager planManager;
     private final PlanLimitsService planLimitsService;
+    private final PreorderService preorderService;
 
     @Autowired
     public AccountAmqpController(
@@ -41,6 +44,7 @@ public class AccountAmqpController extends CommonAmqpController {
             AbonementService abonementService,
             AbonementManager<AccountAbonement> accountAbonementManager,
             PlanManager planManager,
+            PreorderService preorderService,
             PlanLimitsService planLimitsService
     ) {
         this.businessHelper = businessHelper;
@@ -49,6 +53,7 @@ public class AccountAmqpController extends CommonAmqpController {
         this.accountAbonementManager = accountAbonementManager;
         this.planManager = planManager;
         this.planLimitsService = planLimitsService;
+        this.preorderService = preorderService;
         resourceName = "аккаунт";
     }
 
@@ -77,18 +82,30 @@ public class AccountAmqpController extends CommonAmqpController {
                     }
                     break;
                 case "fin":
+
                     if (state == State.PROCESSED) {
                         if (businessOperation != null) {
                             promocodeService.processRegistration(businessOperation);
+                            // в этом месте неопределенные обработчики промокодов меняют тариф и добавляют абонементы.
+
 
                             PersonalAccount account = accountManager.findOne(message.getAccountId());
 
-                            //Пробный период 14 дней - начисляем бонусный абонемент
-                            if (!accountAbonementManager.existsByPersonalAccountId(account.getId())) {
-                                abonementService.addFree14DaysAbonement(account);
+                            BigDecimal preorderCost = preorderService.getTotalCostPreorders(account);
+                            if (preorderCost == null) {
+                                // если предзаказа нет остается старое поведение.
+                                if (!accountAbonementManager.existsByPersonalAccountId(account.getId())) {
+                                    abonementService.addFree14DaysAbonement(account);
+                                }
+                            } else {
+                                preorderService.activateAllFreeAndDailyPreorder(account); // в этом месте заказ может быть удален, а аккаунт активирован
+                                account = accountManager.findOne(account.getId());
                             }
 
+
+
                             if (businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
+
                                 //После применения промокода может быть изменен тариф
                                 Plan plan = planManager.findOne(account.getPlanId());
                                 Long quota = planLimitsService.getQuotaBytesFreeLimit(plan);

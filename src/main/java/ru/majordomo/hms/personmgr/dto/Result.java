@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 public class Result {
     private boolean gotException = false;
-    private String message;
+    private String message = "";
     private List<Object> errors = new ArrayList<>();
 
     public boolean isSuccess() {
@@ -26,6 +26,7 @@ public class Result {
 
     public static  Result error(String message) {
         Result r = new Result();
+        r.message = message;
         r.addError(message);
         return r;
     }

@@ -62,6 +62,8 @@ public class PersonalAccount extends VersionedModel {
     @Indexed
     private boolean active;
 
+    private boolean preorder = false; // если есть какой либо неоплаченный предзаказ пометить true
+
     @NotNull
     @Indexed
     @JsonFormat

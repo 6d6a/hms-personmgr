@@ -15,6 +15,7 @@ import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.service.AbonementService;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
+import ru.majordomo.hms.personmgr.service.PreorderService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -32,6 +33,7 @@ public class AbonementActionProcessor implements PromocodeActionProcessor {
     private final AbonementService abonementService;
     private final AccountPromocodeRepository accountPromocodeRepository;
     private final AccountServiceHelper accountServiceHelper;
+    private final PreorderService preorderService;
 
     @Autowired
     public AbonementActionProcessor(
@@ -40,6 +42,7 @@ public class AbonementActionProcessor implements PromocodeActionProcessor {
             AccountHistoryManager history,
             AbonementService abonementService,
             AccountPromocodeRepository accountPromocodeRepository,
+            PreorderService preorderService,
             AccountServiceHelper accountServiceHelper) {
         this.planManager = planManager;
         this.accountHelper = accountHelper;
@@ -47,6 +50,7 @@ public class AbonementActionProcessor implements PromocodeActionProcessor {
         this.abonementService = abonementService;
         this.accountPromocodeRepository = accountPromocodeRepository;
         this.accountServiceHelper = accountServiceHelper;
+        this.preorderService = preorderService;
     }
 
     @Override
@@ -87,9 +91,12 @@ public class AbonementActionProcessor implements PromocodeActionProcessor {
 
         Abonement abonement = abonementOptional.get();
 
-        abonementService.addAbonement(account, abonement.getId());
-
-        accountHelper.enableAccount(account);
+        if (preorderService.isPreorder(account.getId())) {
+            preorderService.addPromoPreorder(account, abonement);
+        } else {
+            abonementService.addAbonement(account, abonement.getId());
+            accountHelper.enableAccount(account);
+        }
 
         history.save(account, "Добавлен абонемент " + abonement.getName() + " при использовании промокода " + code);
 

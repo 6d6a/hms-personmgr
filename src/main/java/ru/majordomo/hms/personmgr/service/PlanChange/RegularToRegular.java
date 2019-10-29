@@ -52,7 +52,7 @@ public class RegularToRegular extends Processor {
     @Override
     void addServices() {
         if (newAbonementRequired) {
-            Abonement free14DaysAbonement = newPlan.getFree14DaysAbonement();
+            Abonement free14DaysAbonement = newPlan.getFreeTrialAbonement();
             if (freeTestAbonementExpired != null && free14DaysAbonement != null) {
                 addAccountAbonement(free14DaysAbonement, freeTestAbonementExpired);
             } else {

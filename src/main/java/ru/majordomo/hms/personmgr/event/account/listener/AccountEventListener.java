@@ -20,10 +20,12 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.springframework.util.CollectionUtils;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.dto.Result;
 import ru.majordomo.hms.personmgr.dto.push.PaymentReceivedPush;
 import ru.majordomo.hms.personmgr.dto.partners.ActionStatRequest;
 import ru.majordomo.hms.personmgr.event.account.*;
@@ -31,6 +33,7 @@ import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.feign.PartnersFeignClient;
 import ru.majordomo.hms.personmgr.feign.YaPromoterFeignClient;
 import ru.majordomo.hms.personmgr.manager.*;
+import ru.majordomo.hms.personmgr.model.Preorder;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.InfoBannerAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -71,6 +74,7 @@ public class AccountEventListener {
     private final YaPromoterFeignClient yaPromoterFeignClient;
     private final FirstMobilePaymentProcessor firstMobilePaymentProcessor;
     private final Consumer<Supplier<AccountBuyAbonement>> buyAbonementPromotionProcessor;
+    private final PreorderService preorderService;
 
     private final int deleteDataAfterDays;
 
@@ -95,6 +99,7 @@ public class AccountEventListener {
             YaPromoterFeignClient yaPromoterFeignClient,
             FirstMobilePaymentProcessor firstMobilePaymentProcessor,
             BuyAbonementPromotionProcessor buyAbonementPromotionProcessor,
+            PreorderService preorderService,
             @Value("${delete_data_after_days}") int deleteDataAfterDays
     ) {
         this.accountHelper = accountHelper;
@@ -117,6 +122,7 @@ public class AccountEventListener {
         this.firstMobilePaymentProcessor = firstMobilePaymentProcessor;
         this.buyAbonementPromotionProcessor = buyAbonementPromotionProcessor;
         this.deleteDataAfterDays = deleteDataAfterDays;
+        this.preorderService = preorderService;
     }
 
     @EventListener
@@ -386,6 +392,10 @@ public class AccountEventListener {
             return;
         }
 
+        if (preorderService.isPreorder(account.getId())) {
+            return;
+        }
+
         if (accountAbonementManager.findAllByPersonalAccountId(account.getId()).stream().allMatch(
                 accountAbonement -> accountAbonement.getAbonement().isTrial()
         )) {
@@ -481,13 +491,15 @@ public class AccountEventListener {
             return;
         }
 
-        // Задержка (К примеру, в случае возврата денег в процессе смены тарифа)
         try {
-            Thread.sleep(20000);
+            // Задержка (К примеру, в случае возврата денег в процессе смены тарифа)
+            // если на аккаунте есть предзаказы с небольшой задержкой
+            Thread.sleep(preorderService.isPreorder(message.getAccountId()) ? 1000 : 20000);
         } catch (Exception e) {
             logger.error("Exception in class AccountEventListener.onAccountSwitchByPaymentCreatedEvent on sleep");
             e.printStackTrace();
         }
+
 
         PersonalAccount account = accountManager.findOne(message.getAccountId());
         if (account == null) {
@@ -497,35 +509,45 @@ public class AccountEventListener {
         BigDecimal balance = accountHelper.getBalance(account);
         Plan plan = planManager.findOne(account.getPlanId());
 
-        if (!plan.isAbonementOnly()) {
 
-            if (balance.compareTo(BigDecimal.ZERO) >= 0) {
-                if (account.getCreditActivationDate() != null) {
-                    accountManager.removeSettingByName(account.getId(), CREDIT_ACTIVATION_DATE);
-                    accountManager.removeSettingByName(account.getId(), CREDIT);
-                }
-                tryProcessChargeAndEnableAccount(account);
+        BigDecimal preordersCost = preorderService.getTotalCostPreorders(account);
+        if (preordersCost != null || account.isPreorder()) {
+            Result result = preorderService.buyOrder(account);
+            if (!result.isSuccess()) {
+                history.save(account, result.getMessage());
             }
-
         } else {
+            if (!plan.isAbonementOnly()) {
 
-            String addAbonementId = plan.getNotInternalAbonementId();
-
-            if (addAbonementId != null) {
-                boolean hasAbonement = accountAbonementManager.existsByPersonalAccountId(account.getId());
-                if (!hasAbonement && !plan.isArchival()) {
-                    try {
-                        abonementService.addAbonement(account, addAbonementId);
-                        accountHelper.enableAccount(account);
-                    } catch (Exception e) {
-                        logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
-                        e.printStackTrace();
+                if (balance.compareTo(BigDecimal.ZERO) >= 0) {
+                    if (account.getCreditActivationDate() != null) {
+                        accountManager.removeSettingByName(account.getId(), CREDIT_ACTIVATION_DATE);
+                        accountManager.removeSettingByName(account.getId(), CREDIT);
                     }
-                } else if (balance.compareTo(BigDecimal.ZERO) >= 0) {
                     tryProcessChargeAndEnableAccount(account);
+                }
+
+            } else {
+
+                String addAbonementId = plan.getNotInternalAbonementId();
+
+                if (addAbonementId != null) {
+                    boolean hasAbonement = accountAbonementManager.existsByPersonalAccountId(account.getId());
+                    if (!hasAbonement && !plan.isArchival()) {
+                        try {
+                            abonementService.addAbonement(account, addAbonementId);
+                            accountHelper.enableAccount(account);
+                        } catch (Exception e) {
+                            logger.info("Ошибка при покупке абонемента для AbonementOnly плана.");
+                            e.printStackTrace();
+                        }
+                    } else if (balance.compareTo(BigDecimal.ZERO) >= 0) {
+                        tryProcessChargeAndEnableAccount(account);
+                    }
                 }
             }
         }
+
     }
 
     @EventListener
