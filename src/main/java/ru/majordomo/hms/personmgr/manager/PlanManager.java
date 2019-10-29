@@ -29,6 +29,8 @@ public interface PlanManager {
 
     Plan findByOldId(String oldId);
 
+    Plan findByAbonementIds(String abonementId);
+
     <S extends Plan> List<S> save(Iterable<S> entites);
 
     <S extends Plan> S save(S entity);

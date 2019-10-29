@@ -229,7 +229,7 @@ public abstract class Processor {
         }
 
         if (
-            (hasFreeTestAbonement && newPlan.getFree14DaysAbonement() == null)
+            (hasFreeTestAbonement && newPlan.getFreeTrialAbonement() == null)
             ||
             (!hasFreeTestAbonement && newAbonementRequired)
         ) {

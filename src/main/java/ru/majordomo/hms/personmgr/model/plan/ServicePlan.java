@@ -67,14 +67,15 @@ public class ServicePlan extends BaseModel {
         return null;
     }
 
-    public Abonement getFree14DaysAbonement() {
+    /*
+    public Abonement getFreeTrialAbonement() {
         for (Abonement abonement : this.getAbonements()) {
-            if (abonement.isTrial() && abonement.getPeriod().equals("P14D")) {
+            if (abonement.isTrial() && abonement.getService().isActive()) {
                 return abonement;
             }
         }
         return null;
-    }
+    }*/
 
     public Abonement getAbonementById(String abonementId) {
         return getAbonements().stream().filter(abonement -> abonement.getId().equals(abonementId)).findFirst().orElse(null);

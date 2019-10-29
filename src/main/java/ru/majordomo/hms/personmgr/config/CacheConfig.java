@@ -23,6 +23,7 @@ public class CacheConfig extends CachingConfigurerSupport {
                 new ConcurrentMapCache("paymentServices"),
                 new ConcurrentMapCache("paymentServicesActive"),
                 new ConcurrentMapCache("paymentServicesOldId"),
+                new ConcurrentMapCache("plansByAbonementIds"),
                 new ConcurrentMapCache("plans"),
                 new ConcurrentMapCache("promocodes"),
                 new ConcurrentMapCache("servicePlans"),

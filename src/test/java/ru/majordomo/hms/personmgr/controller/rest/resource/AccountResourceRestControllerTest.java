@@ -81,6 +81,8 @@ public class AccountResourceRestControllerTest {
     protected ServicePlanRepository servicePlanRepository;
     @MockBean
     protected ServiceAbonementRepository serviceAbonementRepository;
+    @MockBean
+    protected PreorderService preorderService;
 
     @Autowired
     MockMvc mockMvc;

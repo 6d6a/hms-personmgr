@@ -29,6 +29,8 @@ public interface PlanRepository extends MongoRepository<Plan, String>,
     Plan findByServiceId(String serviceId);
     @Cacheable("plansByOldId")
     Plan findByOldId(String oldId);
+    @Cacheable("plansByAbonementIds")
+    Plan findByAbonementIds(String abonementIds);
 
     @Override
     @CachePut("plans")
@@ -53,4 +55,6 @@ public interface PlanRepository extends MongoRepository<Plan, String>,
     @Override
     @CacheEvict(value = "plans", allEntries = true)
     void deleteAll();
+
+
 }

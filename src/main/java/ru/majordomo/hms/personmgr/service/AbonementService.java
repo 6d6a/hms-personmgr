@@ -532,11 +532,11 @@ public class AbonementService {
 
     public void addFree14DaysAbonement(PersonalAccount account) {
         Plan plan = planManager.findOne(account.getPlanId());
-        Abonement abonement = plan.getFree14DaysAbonement();
+        Abonement abonement = plan.getFreeTrialAbonement();
 
         if (abonement != null) {
             addAbonement(account, abonement.getId());
-            history.saveForOperatorService(account, "Добавлен абонемент на тестовый период (14 дней)");
+            history.saveForOperatorService(account, "Добавлен абонемент на тестовый период");
         }
     }
 
