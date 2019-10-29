@@ -1,12 +1,14 @@
 package ru.majordomo.hms.personmgr.service;
 
 import lombok.AllArgsConstructor;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.config.PromisedPaymentConfig;
 import ru.majordomo.hms.personmgr.dto.*;
 import ru.majordomo.hms.personmgr.dto.fin.PromisedPaymentRequest;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
@@ -18,12 +20,14 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -90,20 +94,24 @@ public class PromisedPaymentService {
         return options.getResult();
     }
 
-    private BigDecimal getCostForPeriod(List<AccountService> services, Period period) {
+    private BigDecimal getCostForPeriod(@NonNull PersonalAccount account, @NonNull Period period, @Nullable Predicate<AccountService> accountServiceFilter) {
+        if (accountServiceFilter == null) {
+            accountServiceFilter = AccountService -> true;
+        }
+
         LocalDate current = LocalDate.now();
         LocalDate end = current.plus(period);
 
         BigDecimal cost = BigDecimal.ZERO;
 
         while (current.isBefore(end)) {
-            for (AccountService service : services) {
-                PersonalAccount account = accountManager.findOne(service.getPersonalAccountId());
-                if (isDayForCharge(service, current) && canUseBonus(service.getPaymentService())) {
-                    cost = cost.add(
-                            getCost(accountServiceHelper.getServiceCostDependingOnDiscount(account, service),
-                                    service.getPaymentService().getPaymentType(), current)
-                    );
+            for (AccountService service : account.getServices()) {
+                if (service.isEnabled() && accountServiceFilter.test(service) && isDayForCharge(service, current) && canUseBonus(service.getPaymentService())) {
+                    BigDecimal disountedCost = accountServiceHelper.getServiceCostDependingOnDiscount(account, service);
+                    if (disountedCost == null) {
+                        throw new InternalApiException("Cannot get cost for service " + service.getPaymentService());
+                    }
+                    cost = cost.add(getCost(disountedCost, service.getPaymentService().getPaymentType(), current));
                 }
             }
             current = current.plusDays(1);
@@ -209,7 +217,7 @@ public class PromisedPaymentService {
 
         if (abonements.isEmpty()) {
             options.getOptions().add(
-                    getCostForPeriod(account.getServices(), config.getDailyCostPeriod())
+                    getCostForPeriod(account, config.getDailyCostPeriod(), null)
             );
         } else {
             AbonementsWrapper wrapper = new AbonementsWrapper(
@@ -220,11 +228,12 @@ public class PromisedPaymentService {
                 options.getResult().addError("Обещанный платеж недоступен до " + whenWillBeAllowed.toLocalDate());
             } else {
                 Plan plan = planManager.findOne(account.getPlanId());
-                List<AccountService> withoutPlanService = account.getServices().stream()
-                        .filter(a -> a.isEnabled() && !a.getPaymentService().getId().equals(plan.getService().getId()))
-                        .collect(Collectors.toList());
 
-                BigDecimal withoutPlanOpt = getCostForPeriod(withoutPlanService, config.getDailyCostPeriod());
+                BigDecimal withoutPlanOpt = getCostForPeriod(
+                        account,
+                        config.getDailyCostPeriod(),
+                        accountService -> !accountService.getPaymentService().getId().equals(plan.getService().getId())
+                );
                 BigDecimal planOpt = getCostForPeriod(account, plan.getService(), config.getDailyCostPeriod());
 
                 options.getOptions().add(withoutPlanOpt.add(planOpt));
