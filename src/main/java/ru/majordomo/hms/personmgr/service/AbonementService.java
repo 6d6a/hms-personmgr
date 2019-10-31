@@ -62,6 +62,7 @@ public class AbonementService {
     private final AccountHistoryManager history;
     private final AccountPromotionManager accountPromotionManager;
     private final PlanFallbackRepository planFallbackRepository;
+    private final PreorderService preorderService;
 
     private static TemporalAdjuster FOURTEEN_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(14));
 
@@ -79,6 +80,7 @@ public class AbonementService {
             ChargeHelper chargeHelper,
             AccountHistoryManager history,
             AccountPromotionManager accountPromotionManager,
+            PreorderService preorderService,
             PlanFallbackRepository planFallbackRepository
     ) {
         this.planManager = planManager;
@@ -94,6 +96,7 @@ public class AbonementService {
         this.history = history;
         this.accountPromotionManager = accountPromotionManager;
         this.planFallbackRepository = planFallbackRepository;
+        this.preorderService = preorderService;
     }
 
     public AccountAbonement buyAbonementManual(PersonalAccount account, String abonementId) {
@@ -548,7 +551,11 @@ public class AbonementService {
 
         for (Abonement abonement : abonements) {
             if (accountServiceHelper.getServiceCostDependingOnDiscount(account, abonement.getService()).equals(BigDecimal.ZERO)) {
-                addAbonement(account, abonement.getId());
+                if (!preorderService.isPreorder(account.getId())) {
+                    addAbonement(account, abonement.getId());
+                } else {
+                    preorderService.addPromoPreorder(account, abonement);
+                }
                 return;
             }
         }
@@ -560,9 +567,12 @@ public class AbonementService {
                     .orElseThrow(() -> new ParameterValidationException(
                             "Добавление абонемента на период " + period + " недоступно"
                     ));
-
-            AccountAbonement accountAbonement = addAbonement(account, internal.getId());
-            accountAbonementManager.setExpired(accountAbonement.getId(), LocalDateTime.now().plus(period));
+            if (!preorderService.isPreorder(account.getId())) {
+                AccountAbonement accountAbonement = addAbonement(account, internal.getId());
+                accountAbonementManager.setExpired(accountAbonement.getId(), LocalDateTime.now().plus(period));
+            } else {
+                preorderService.addPromoPreorder(account, internal);
+            }
         }
     }
 /*
