@@ -338,7 +338,7 @@ public class AccountAbonementRestController extends CommonRestController {
 
         String message = "Добавлен бесплатный абонемент с периодом " + Utils.humanizePeriod(addAbonementRequest.getPeriod());
 
-        if (!account.isActive()) {
+        if (!account.isActive() && !account.isPreorder()) {
             accountHelper.enableAccount(account);
         }
 

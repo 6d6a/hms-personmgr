@@ -20,6 +20,7 @@ import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.service.*;
 
@@ -88,7 +89,6 @@ public class AccountAmqpController extends CommonAmqpController {
                             promocodeService.processRegistration(businessOperation);
                             // в этом месте неопределенные обработчики промокодов меняют тариф и добавляют абонементы.
 
-
                             PersonalAccount account = accountManager.findOne(message.getAccountId());
 
                             BigDecimal preorderCost = preorderService.getTotalCostPreorders(account);
@@ -101,9 +101,7 @@ public class AccountAmqpController extends CommonAmqpController {
                                 preorderService.activateAllFreeAndDailyPreorder(account); // в этом месте заказ может быть удален, а аккаунт активирован
                                 account = accountManager.findOne(account.getId());
                             }
-
-
-
+                            
                             if (businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {
 
                                 //После применения промокода может быть изменен тариф

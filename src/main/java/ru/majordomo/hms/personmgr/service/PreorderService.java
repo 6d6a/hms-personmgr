@@ -304,14 +304,15 @@ public class PreorderService {
      * Удаляет предзаказы,
      * Аккаунт при этом не включается.
      * @param account - аккаунт
+     * @param isFree - пометить если все заказанные услуги были бесплатные.
      */
-    private void clearPreorderAndActivate(@NonNull PersonalAccount account) {
+    private void clearPreorderAndActivate(@NonNull PersonalAccount account, boolean isFree) {
         preorderRepository.deleteByPersonalAccountId(account.getId());
         account.setPreorder(false);
         accountManager.save(account);
         preorderRepository.deleteByPersonalAccountId(account.getId());
-        history.save(account, "Заказанные услуги активированы");
-        logger.info("preorder paid and clear, account activate");
+        history.save(account, isFree ? "Заказанные бесплатные услуги активированы, аккаунт включен" : "Клиент оплатил заказанные услуги");
+        logger.info(isFree ? "All ordered service is free, activate account " + account.getId() : "Client paid ordered service, activate account " + account.getId());
 
         accountHelper.enableAccount(account.getId());
     }
@@ -487,7 +488,7 @@ public class PreorderService {
             return null;
         }
         return preorders.stream().map(this::getPreorderCost)
-                .peek(cost -> { if (cost == null) throw new InternalApiException("Cannot compute cost for order"); })
+                .peek(cost -> { if (cost == null) throw new InternalApiException("Cannot compute cost for order for account " + account.getId()); })
                 .reduce(BigDecimal::add).orElse(null);
     }
 
@@ -577,6 +578,45 @@ public class PreorderService {
         preorderRepository.save(preorder);
     }
 
+
+    /**
+     * Добавляет в список предзаказов уже добавленный абонемент (например из промокода).
+     * @param accountAbonement - абонемент на хостинг
+     */
+    public void addExistsAccountAbonement(@NonNull AccountAbonement accountAbonement) {
+        Preorder preorder = preorderRepository.findByPersonalAccountIdAndFeature(
+                accountAbonement.getPersonalAccountId(),
+                accountAbonement.getAbonement().getType()
+        );
+        if (preorder != null) {
+            if (Objects.equals(preorder.getAccountAbonementId(), accountAbonement.getId())) {
+                return;
+            }
+
+            if (!StringUtils.isEmpty(preorder.getChargeDocumentNumber())) {
+                throw new InternalApiException("Cannot change paid preorder: " + preorder);
+            }
+            if (preorder.getAccountAbonementId() != null) {
+                accountAbonementManager.delete(preorder.getAccountAbonementId());
+            }
+            if (preorder.getAccountServiceId() != null) {
+                accountServiceRepository.deleteById(preorder.getAccountServiceId());
+            }
+            preorder.setAccountAbonementId(null);
+            preorder.setAccountServiceId(null);
+        } else {
+            preorder = new Preorder();
+            preorder.setCreated(LocalDateTime.now());
+            preorder.setFeature(accountAbonement.getAbonement().getType());
+            preorder.setPersonalAccountId(accountAbonement.getPersonalAccountId());
+        }
+        preorder.setAbonement(accountAbonement.getAbonement());
+        preorder.setAccountAbonementId(accountAbonement.getId());
+        preorder.setPaymentService(accountAbonement.getAbonement().getService());
+        preorderRepository.save(preorder);
+        logger.debug("Added exists AccountAbonement to order list: " + accountAbonement);
+    }
+
     /**
      * активирует услуги с посуточным списанием и бесплатным абонементом. Если на аккаунте только бесплатные услуги, активирует аккаунт
      * @param account - аккаунт
@@ -594,7 +634,7 @@ public class PreorderService {
         List<Preorder> preorders = getPreorders(account.getId());
         preorders.forEach(this::activateOneFreeAndDailyPreorder);
         if (orderCost.signum() <= 0) {
-            clearPreorderAndActivate(account);
+            clearPreorderAndActivate(account, true);
             return true;
         }
         return false;
@@ -605,7 +645,7 @@ public class PreorderService {
 
         if (orderCost == null) {
             if (account.isPreorder()) {
-                logger.debug("Account have perorder flag and haven't preorders. Activated");
+                logger.debug("Account have perorder flag and haven't preorders. Activated. Id: " + account.getId());
                 history.save(account, "Метка предзаказов снята");
                 account.setPreorder(false);
                 accountManager.save(account);
@@ -627,11 +667,11 @@ public class PreorderService {
                     return Result.error("Не удалось активировать предзаказ на услугу " + preorder.getPaymentService().getName());
                 };
             }
-            clearPreorderAndActivate(account);
+            clearPreorderAndActivate(account, false);
 
             return Result.success();
         } else {
-            logger.info("Not enough money to pay for preorder");
+            logger.info("Not enough money to pay for preorder. Account: " + account.getId());
 //            history.save(account, "Недостаточно средств для оплаты предзаказа");
             return Result.error("Недостаточно средств для оплаты предзаказа");
         }
