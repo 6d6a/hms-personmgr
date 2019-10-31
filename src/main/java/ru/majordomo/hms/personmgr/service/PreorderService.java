@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
+import feign.FeignException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections.CollectionUtils;
@@ -7,11 +8,14 @@ import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.Result;
+import ru.majordomo.hms.personmgr.event.account.AccountBuyAbonement;
+import ru.majordomo.hms.personmgr.exception.BaseException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
@@ -59,7 +63,7 @@ public class PreorderService {
     private final AccountServiceRepository accountServiceRepository;
     private final ServicePlanRepository servicePlanRepository;
     private final AccountHistoryManager history;
-
+    private final ApplicationEventPublisher publisher;
 
     private final static Period P1M = Period.ofMonths(1);
 
@@ -86,6 +90,17 @@ public class PreorderService {
 
     }
 
+    /**
+     * Проверяет есть ли на аккаунте AccountService (услуга с ежедневным списанием) для тарифного плана на виртуальный хостинг
+     * todo - переписать без использования PaymentService.oldId
+     * @param account - аккаунт
+     * @param plan - план
+     * @return true - если тариф есть
+     */
+    private boolean hasVirtualHostingServicePlan(@NonNull PersonalAccount account, @Nullable Plan plan) {
+        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountId(account.getId());
+        return accountServices.stream().anyMatch(ac -> ac.getPaymentService().getOldId().toLowerCase().startsWith(Constants.PLAN_SERVICE_PREFIX));
+    }
 
     public void deletePreorder(@NonNull PersonalAccount account, @NonNull String preorderId) throws InternalApiException, ResourceNotFoundException {
         Preorder preorder = preorderRepository.findById(preorderId).orElseThrow(ResourceNotFoundException::new);
@@ -95,10 +110,7 @@ public class PreorderService {
         if (!Objects.equals(account.getId(), preorder.getPersonalAccountId())) {
             throw new InternalApiException("Неверный владелец заказа");
         }
-        if (preorder.getFeature() == Feature.VIRTUAL_HOSTING_PLAN) {
-            throw new NotImplementedException("удаление заказа на тарифный план не реализовано");
-        }
-        if (StringUtils.isNotEmpty(preorder.getAccountServiceId())) {
+        if (preorder.getFeature() != Feature.VIRTUAL_HOSTING_PLAN && StringUtils.isNotEmpty(preorder.getAccountServiceId())) {
             accountServiceHelper.deleteAccountServiceById(account, preorder.getAccountServiceId());
         }
         if (StringUtils.isNotEmpty(preorder.getAccountServiceAbonementId())) {
@@ -108,7 +120,39 @@ public class PreorderService {
             accountAbonementManager.delete(preorder.getAccountAbonementId());
         }
 
+        if (preorder.getFeature() == Feature.VIRTUAL_HOSTING_PLAN) {
+            Plan plan = planManager.findOne(account.getPlanId());
+            if (plan == null) {
+                logger.debug("Cannot load plan for account " + account.getId());
+                throw new InternalApiException("Cannot load plan for account " + account.getId());
+            }
+            if (!hasVirtualHostingServicePlan(account, plan)) {
+                AccountService accountService = new AccountService();
+                accountService.setPaymentService(plan.getService());
+                accountService.setEnabled(true);
+                accountService.setComment("добавлен после отмены предзаказа");
+                accountService.setQuantity(1);
+                accountService.setServiceId(plan.getService().getId());
+                accountService.setPersonalAccountId(preorder.getPersonalAccountId());
+                accountServiceRepository.insert(accountService);
+            }
+        }
         preorderRepository.deleteById(preorder.getId());
+
+        if (!isPreorder(account.getId())) {
+            account.setPreorder(false);
+            accountManager.save(account);
+            history.save(account, "Все заказы удалены");
+            logger.info("All preorder deleted manual for account " + account);
+            try {
+                BigDecimal balance = accountHelper.getBalance(account);
+                if (balance != null && balance.signum() >= 0) {
+                    accountHelper.enableAccount(account);
+                }
+            } catch (Exception ex) {
+                logger.debug("Cannot get balance and activate account " + account.getId());
+            }
+        }
     }
 
     /**
@@ -155,6 +199,11 @@ public class PreorderService {
         return preorderRepository.insert(preorder);
     }
 
+    /**
+     * форматирует один заказ, приводя его в удобный для обработки фронтэндом вид
+     * @param preorder - заказ
+     * @return - отформатированный заказ
+     */
     @Nullable
     public FormatedPreorder simplifyPreorder(Preorder preorder) {
         if (preorder == null) {
@@ -250,7 +299,9 @@ public class PreorderService {
 
     /**
      * добавляет услуги и удаляет предзаказ. Для бесплатных услуг и услуг с посуточным списанием ничего не делает. Они должны быть активированы ранее
-     * @param preorder
+     * @param preorder - заказ на услугу с платным абонементом
+     * @param account - аккаунт
+     * @param skipActivated - true - для услуг уже добавленых на аккаунт ничего не сделает, false - выбросит исключение ParameterValidationException
      * @return
      */
     private boolean buyOnePreorder(@NonNull Preorder preorder, PersonalAccount account, boolean skipActivated) throws ParameterValidationException {
@@ -291,7 +342,9 @@ public class PreorderService {
             return activateOneFreeAndDailyPreorder(preorder);
         } else if (preorder.getFeature() == Feature.VIRTUAL_HOSTING_PLAN) {
             AccountAbonement accountAbonement = new AccountAbonement(account.getId(), preorder.getAbonement(), null);
-            preorder.setAccountAbonementId(accountAbonementManager.insert(accountAbonement).getId());
+            String accountAbonementId = accountAbonementManager.insert(accountAbonement).getId();
+            preorder.setAccountAbonementId(accountAbonementId);
+            publisher.publishEvent(new AccountBuyAbonement(account.getId(), accountAbonementId));
         } else {
             AccountServiceAbonement accountAbonement = new AccountServiceAbonement(account.getId(), preorder.getAbonement(), null);
             preorder.setAccountServiceAbonementId(accountServiceAbonementManager.insert(accountAbonement).getId());
@@ -444,9 +497,9 @@ public class PreorderService {
 
     /**
      * Заказать тарифный план, абонемент или посуточно
-     * @param account
-     * @param period
-     * @param plan
+     * @param account - аккаунт
+     * @param period  - период
+     * @param plan - план
      * @throws ParameterValidationException, ResourceNotFoundException - выбросит если нельзя добавить согласно устовиям хостинга
      */
     public Preorder addPreorder(@NonNull PersonalAccount account, @NonNull Period period, @NonNull Plan plan) throws ParameterValidationException, ResourceNotFoundException {
@@ -660,19 +713,23 @@ public class PreorderService {
         BigDecimal balance = accountHelper.getBalance(account);
 
         if (balance.compareTo(orderCost) >= 0) {
-            List<Preorder> preorders = getPreorders(account.getAccountId());
-            for (Preorder preorder : preorders) {
-                if (!buyOnePreorder(preorder, account, true)) {
-                    logger.debug("Cannot activate preorder: " + preorder);
-                    return Result.error("Не удалось активировать предзаказ на услугу " + preorder.getPaymentService().getName());
-                };
+            try {
+                List<Preorder> preorders = getPreorders(account.getAccountId());
+                for (Preorder preorder : preorders) {
+                    if (!buyOnePreorder(preorder, account, true)) {
+                        logger.debug("Cannot activate preorder: " + preorder);
+                        return Result.error("Не удалось активировать предзаказ на услугу " + preorder.getPaymentService().getName());
+                    }
+                }
+                clearPreorderAndActivate(account, false);
+            } catch (BaseException | NullPointerException | FeignException ex) {
+                String message = String.format("Failed to buy preorders for account %s. Got exception %s", account.getAccountId(), ex);
+                logger.debug(message);
+                return Result.gotException(message);
             }
-            clearPreorderAndActivate(account, false);
-
             return Result.success();
         } else {
             logger.info("Not enough money to pay for preorder. Account: " + account.getId());
-//            history.save(account, "Недостаточно средств для оплаты предзаказа");
             return Result.error("Недостаточно средств для оплаты предзаказа");
         }
     }

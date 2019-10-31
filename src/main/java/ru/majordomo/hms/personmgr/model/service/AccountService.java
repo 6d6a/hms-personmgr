@@ -13,6 +13,9 @@ import javax.validation.constraints.NotNull;
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+/**
+ * Описывает услугу с посуточным списанием. Как дополнительную услугу так и тарифный план
+ */
 @Document
 public class AccountService extends ModelBelongsToPersonalAccount implements Comparable<AccountService> {
     @NotNull
