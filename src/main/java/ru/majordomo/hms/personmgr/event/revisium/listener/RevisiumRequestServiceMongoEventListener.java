@@ -30,10 +30,11 @@ public class RevisiumRequestServiceMongoEventListener extends AbstractMongoEvent
             service.setPersonalAccountName(account.getName());
         }
 
-        AccountServiceAbonement accountServiceAbonement = mongoOperations.findById(service.getAccountServiceAbonementId(), AccountServiceAbonement.class);
-
-        if (accountServiceAbonement != null) {
-            service.setAccountServiceAbonement(accountServiceAbonement);
+        if (service.getAccountServiceAbonementId() != null) {
+            AccountServiceAbonement accountServiceAbonement = mongoOperations.findById(service.getAccountServiceAbonementId(), AccountServiceAbonement.class);
+            if (accountServiceAbonement != null) {
+                service.setAccountServiceAbonement(accountServiceAbonement);
+            }
         }
     }
 }

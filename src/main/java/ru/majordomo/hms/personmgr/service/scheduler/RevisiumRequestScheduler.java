@@ -41,7 +41,7 @@ public class RevisiumRequestScheduler {
     //2 раза в день
     @SchedulerLock(name="processRequests")
     public void processRequests() {
-        logger.info("Started processRecurrents");
+        logger.info("Started processRevisiumRequests");
 
             List<RevisiumRequestService> revisiumRequestServices = revisiumRequestServiceRepository.findAll();
 
@@ -78,6 +78,6 @@ public class RevisiumRequestScheduler {
                 }
             }
 
-        logger.info("Ended processRecurrents");
+        logger.info("Ended processRevisiumRequests");
     }
 }
