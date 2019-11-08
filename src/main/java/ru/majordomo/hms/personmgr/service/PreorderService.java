@@ -138,21 +138,10 @@ public class PreorderService {
             }
         }
         preorderRepository.deleteById(preorder.getId());
+        history.save(account, "Удален заказ на услугу: " + preorder.getPaymentService().getName());
+        logger.info("Deleted preorder: " + preorder);
 
-        if (!isPreorder(account.getId())) {
-            account.setPreorder(false);
-            accountManager.save(account);
-            history.save(account, "Все заказы удалены");
-            logger.info("All preorder deleted manual for account " + account);
-            try {
-                BigDecimal balance = accountHelper.getBalance(account);
-                if (balance != null && balance.signum() >= 0) {
-                    accountHelper.enableAccount(account);
-                }
-            } catch (Exception ex) {
-                logger.debug("Cannot get balance and activate account " + account.getId());
-            }
-        }
+        buyOrder(account);
     }
 
     /**
@@ -698,7 +687,7 @@ public class PreorderService {
 
         if (orderCost == null) {
             if (account.isPreorder()) {
-                logger.debug("Account have perorder flag and haven't preorders. Activated. Id: " + account.getId());
+                logger.error("Account have perorder flag and haven't preorders. Activated. Id: " + account.getId());
                 history.save(account, "Метка предзаказов снята");
                 account.setPreorder(false);
                 accountManager.save(account);
@@ -717,14 +706,14 @@ public class PreorderService {
                 List<Preorder> preorders = getPreorders(account.getAccountId());
                 for (Preorder preorder : preorders) {
                     if (!buyOnePreorder(preorder, account, true)) {
-                        logger.debug("Cannot activate preorder: " + preorder);
+                        logger.warn("Cannot activate preorder: " + preorder);
                         return Result.error("Не удалось активировать предзаказ на услугу " + preorder.getPaymentService().getName());
                     }
                 }
                 clearPreorderAndActivate(account, false);
             } catch (BaseException | NullPointerException | FeignException ex) {
                 String message = String.format("Failed to buy preorders for account %s. Got exception %s", account.getAccountId(), ex);
-                logger.debug(message);
+                logger.error(message);
                 return Result.gotException(message);
             }
             return Result.success();
