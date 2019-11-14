@@ -157,18 +157,20 @@ public class ChargeProcessor {
                 continue;
             }
 
+            //TODO перенести эти 100%-е скидки к остальным
             DiscountedService discountedService = discountServiceHelper.getDiscountedService(account.getDiscounts(), accountService);
 
+            BigDecimal costToCharge = chargeRequestItem.getAmount();
             if (discountedService != null) {
-                accountService = discountedService;
+                costToCharge = discountedService.getCost();
             }
 
-            if (accountService.getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME) {
+            if (accountService.getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME || costToCharge.compareTo(BigDecimal.ZERO) <= 0) {
                 chargeRequestItem.setStatus(Status.SKIPPED);
             } else {
-                ChargeResult chargeResult = charger.makeCharge(accountService, chargeRequest.getChargeDate());
+                ChargeResult chargeResult = charger.makeCharge(accountService, chargeRequest.getChargeDate(), costToCharge);
                 if (chargeResult.isSuccess()) {
-                    dailyCost = dailyCost.add(accountServiceHelper.getDailyCostForService(account, accountService, chargeRequest.getChargeDate()));
+                    dailyCost = dailyCost.add(costToCharge);
                     chargeRequestItem.setStatus(Status.CHARGED);
                     accountServices.add(accountService);
                 } else if (!chargeResult.isSuccess() && !chargeResult.isGotException()) {
