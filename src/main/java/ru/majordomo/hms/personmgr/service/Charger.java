@@ -44,9 +44,9 @@ public class Charger {
             Значение по-умолчанию true, на случай если
             списания не было, значит успешно и выключать услугу не надо
         */
-    ChargeResult makeCharge(AccountService accountService, LocalDate chargeDate) {
+    ChargeResult makeCharge(AccountService accountService, LocalDate chargeDate, BigDecimal cost) {
         PersonalAccount account = accountManager.findOne(accountService.getPersonalAccountId());
-        BigDecimal cost = accountServiceHelper.getDailyCostForService(account, accountService, chargeDate);
+//        BigDecimal cost = accountServiceHelper.getDailyCostForService(account, accountService, chargeDate);
 
         if (cost.compareTo(BigDecimal.ZERO) <= 0) { return ChargeResult.success(); }
 
