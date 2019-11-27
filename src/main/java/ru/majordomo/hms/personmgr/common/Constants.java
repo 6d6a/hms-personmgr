@@ -30,6 +30,8 @@ public class Constants {
     public static final String BONUS_PARTNER_PERCENT = "0.25";
     public static final String INCREASED_BONUS_PARTNER_PERCENT = "0.3";
     public static final String INCREASED_BONUS_PARTNER_DATE = "2018-01-25 00:00:00";
+    @Deprecated
+    public static final String ADDITIONAL_QUOTA_PLAN_ONLY_NAME = "unlimited-plus";
     public static final String FREE_SERVICE_POSTFIX = "_free";
     public static final String FREE_SERVICE_NAME_POSTFIX = " (бесплатно)";
     public static final String SERVICE_PREFIX = "service_";
@@ -39,6 +41,7 @@ public class Constants {
     public static final String SERVICE_MONEY_RETURN_PREFIX = "service_money_return_";
     public static final String SERVICE_MONEY_TRANSFER_PREFIX = "service_money_transfer_";
     public static final String RESOURCE_ID_KEY = "resourceId";
+    public static final String TEMPLATE_ID_KEY = "templateId";
     public static final String ARCHIVED_RESOURCE_ID_KEY = "archivedResourceId";
     public static final String DOMAIN_NAME_KEY = "domainName";
     public static final String ACCOUNT_ID_KEY = "accountId";
@@ -129,6 +132,7 @@ public class Constants {
     public static final String REVERTING_KEY = "reverting";
     public static final String FINISH_INSTALL_KEY = "finishInstall";
     public static final String SUCCESS_KEY = "success";
+    public static final String SWITCHED_ON_KEY = "switchedOn";
     public static final String APPSCAT_ROUTING_KEY = "appscat";
     public static final String MJ_PARENT_CLIENT_ID_IN_REGISTRANT = "2";
     public static final String LONG_LIFE = "longLife";
@@ -136,6 +140,8 @@ public class Constants {
     public static final String RESOURCE_TYPE = "resourceType";
     public static final String PAYMENT_REDIRECT_PATH = "/payment-redirect";
 
+    public static final String WEBSITE_APACHE2_PERL = "WEBSITE_APACHE2_PERL*";
+    public static final String WEBSITE_APACHE2_PHP = "WEBSITE_APACHE2_PHP*";
     public static final int DOMAIN_DISCOUNT_RU_RF_REGISTRATION_FREE_COUNT = 3;
     public static final int PLAN_PARKING_ID = 109;
     public static final String PLAN_PARKING_ID_STRING = "109";
@@ -226,7 +232,6 @@ public class Constants {
     public static final String DOMAIN_DISCOUNT_RU_RF_ACTION_ID = "57f3c4b8038d8a6054409858";
     public static final String PARTNER_CHECKOUT_SERVICE_ID = "590745d8719fca09b485524c";
     public static final String TOCHKA_BANK_PROMOCODE_TAG_ID = "5c01593cd003d109804ebdcd";
-    public static final String ADDITIONAL_QUOTA_PLAN_ONLY_NAME = "unlimited-plus";
     public static final Long PARTNER_CHECKOUT_MIN_SUMM = 1500L;
 
     public static final Map<Integer, MailManagerMessageType> MANAGER_MESSAGE_TYPE_MAP = new HashMap<>();
@@ -390,6 +395,10 @@ public class Constants {
         public static final String REDIRECT_UPDATE = "redirect.update";
         public static final String REDIRECT_DELETE = "redirect.delete";
 
+        public static final String SERVICE_CREATE = "service.create";
+        public static final String SERVICE_UPDATE = "service.update";
+        public static final String SERVICE_DELETE = "service.delete";
+
         public static final String APPS_CAT_INSTALL = "appscat.install";
 
         public static Set<String> ALL_EXCHANGES;
@@ -437,7 +446,10 @@ public class Constants {
                     REDIRECT_CREATE,
                     REDIRECT_UPDATE,
                     REDIRECT_DELETE,
-                    APPS_CAT_INSTALL
+                    APPS_CAT_INSTALL,
+                    SERVICE_CREATE,
+                    SERVICE_UPDATE,
+                    SERVICE_DELETE
             ));
         }
     }

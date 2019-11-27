@@ -36,6 +36,9 @@ public class ServicePlan extends BaseModel {
     @Indexed
     private boolean active;
 
+    /**
+     * PaymentService.id
+     */
     @NotBlank
     @Indexed
     private String serviceId;
@@ -43,6 +46,11 @@ public class ServicePlan extends BaseModel {
     @NotNull
     @Indexed
     private boolean abonementOnly;
+
+    /**
+     * услуга может быть подключена только для некоторых тарифных планов, проверка по полю Plan.getAllowedFeature
+     */
+    private boolean forSomePlan = false;
 
     @ObjectIdList(value = Abonement.class)
     private List<String> abonementIds = new ArrayList<>();

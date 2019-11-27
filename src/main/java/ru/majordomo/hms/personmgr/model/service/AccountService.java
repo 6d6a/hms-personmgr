@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.model.service;
 
+import lombok.ToString;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -8,15 +9,23 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 
+
+import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Null;
 
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 /**
  * Описывает услугу с посуточным списанием. Как дополнительную услугу так и тарифный план
+
+ * @see ru.majordomo.hms.personmgr.model.abonement.AccountAbonement - аналогичный класс для абонементов на тарифный плана
+ * @see ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement - абонементы на дополнительные услуги
  */
 @Document
+@ToString(callSuper = true)
 public class AccountService extends ModelBelongsToPersonalAccount implements Comparable<AccountService> {
     @NotNull
     @ObjectId(PaymentService.class)
@@ -110,13 +119,4 @@ public class AccountService extends ModelBelongsToPersonalAccount implements Com
     public static Comparator<AccountService> ChargePriorityComparator =
             (e1, e2) -> e2.getPaymentService().getChargePriority() - e1.getPaymentService().getChargePriority();
 
-    @Override
-    public String toString() {
-        return "AccountService{" +
-                "serviceId='" + serviceId + '\'' +
-                ", quantity=" + quantity +
-                ", paymentService=" + paymentService +
-                ", lastBilled=" + lastBilled +
-                "} " + super.toString();
-    }
 }
