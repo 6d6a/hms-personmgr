@@ -25,6 +25,8 @@ public class FieldRoles {
     public static final Map<String, String> RESOURCE_SERVICE_ID = new HashMap<>();
     public static final Map<String, String> REDIRECT_POST = new HashMap<>();
     public static final Map<String, String> REDIRECT_PATCH = new HashMap<>();
+    public static final Map<String, String> DEDICATED_APP_SERVER_POST = new HashMap<>();
+    public static final Map<String, String> DEDICATED_APP_SERVER_PATCH = new HashMap<>();
     public static final Map<String, String> RESOURCE_TE_PARAMS = new HashMap<>();
 
     static {
@@ -39,6 +41,9 @@ public class FieldRoles {
         REDIRECT_POST.putAll(RESOURCE_SERVICE_ID);
         REDIRECT_POST.putAll(RESOURCE_TE_PARAMS);
         REDIRECT_PATCH.putAll(REDIRECT_POST);
+
+        DEDICATED_APP_SERVER_POST.putAll(RESOURCE_SWITCHED_ON);
+        DEDICATED_APP_SERVER_PATCH.putAll(DEDICATED_APP_SERVER_POST);
 
         MAILBOX_PATCH.put("mailFromAllowed", MAILBOX_MAIL_FROM_ALLOWED_EDIT);
         MAILBOX_PATCH.put("mailSpool", MAILBOX_MAIL_SPOOL_EDIT);

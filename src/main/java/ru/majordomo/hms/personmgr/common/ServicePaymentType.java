@@ -4,5 +4,14 @@ package ru.majordomo.hms.personmgr.common;
  * ServicePaymentType
  */
 public enum ServicePaymentType {
-    ONE_TIME, MINUTE, MONTH, DAY
+    /**
+     * обчыно используется для абонементов (например на год) и разовых платежей
+     */
+    ONE_TIME,
+    MINUTE,
+    /**
+     * обычно используется для посуточных списаний
+     */
+    MONTH,
+    DAY
 }

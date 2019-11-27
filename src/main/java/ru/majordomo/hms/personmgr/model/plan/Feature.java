@@ -6,6 +6,8 @@ import ru.majordomo.hms.personmgr.common.Constants;
 
 import javax.annotation.Nullable;
 
+//todo удалить forSomePlan, dailyPayment, oldId, вместо них использовать ServicePlan
+
 public enum Feature {
     VIRTUAL_HOSTING_PLAN("", true),
     ADDITIONAL_SERVICE,
@@ -24,32 +26,80 @@ public enum Feature {
     DATABASE_USER,
     BUSINESS_SERVICES,
     DOCUMENT_PACKAGE_ORDER,
-    ADDITIONAL_QUOTA_5K,
+    ADDITIONAL_QUOTA_5K(true),
     REDIRECT,
     LONG_LIFE_RESOURCE_ARCHIVE,
     ADVANCED_BACKUP,
-    ADVANCED_BACKUP_INSTANT_ACCESS;
+    ADVANCED_BACKUP_INSTANT_ACCESS,
+    /**
+     *  разрешение создавать базы данных и пользователей баз данных даже если они запрещены тарифом
+     */
+    ALLOW_USE_DATABASES,
+    DEDICATED_APP_SERVICE;
 
 
     @NonNull
     private final String oldId;
-    private final boolean dailyPayment;
+    private final boolean dailyPayment;     // для данной возможности доступны посуточные списания на основе коллекции AccountService
+    private final boolean forSomePlan;      // требуется дополнительная проверка разрешена ли дополнительная услуга для определенного тарифа
 
     Feature() {
         oldId = "";
         dailyPayment = false;
+        forSomePlan = false;
     }
 
+    /**
+     * @deprecated will delete
+     * @param forSomePlan
+     */
+    @Deprecated
+    Feature(boolean forSomePlan) {
+        this.forSomePlan = forSomePlan;
+        oldId = "";
+        dailyPayment = false;
+    }
+
+    /**
+     * @deprecated will delete
+     * @param oldId
+     * @param dailyPayment
+     * @param forSomePlan
+     */
+    @Deprecated
+    Feature(@NonNull String oldId, boolean dailyPayment, boolean forSomePlan) {
+        this.oldId = oldId;
+        this.dailyPayment = dailyPayment;
+        this.forSomePlan = forSomePlan;
+    }
+
+    /**
+     * @deprecated will delete, use ServicePlan
+     * @param oldId
+     * @param dailyPayment
+     */
     Feature(@NonNull String oldId, boolean dailyPayment) {
         this.oldId = oldId;
         this.dailyPayment = dailyPayment;
+        this.forSomePlan = false;
+    }
+
+    /**
+     * @deprecated will delete, use ServicePlan
+     * @return
+     */
+    @Deprecated
+    public boolean isForSomePlan() {
+        return forSomePlan;
     }
 
     /**
      * oldId - идентификатор экспортированный из старого билинга
      * PaymentService для услуг с посуточным списанием можно получить только по oldId;
      * @return oldId услуги или пустую строку
+     * @deprecated will delete, use ServicePlan
      */
+    @Deprecated
     public String getOldId() {
         return oldId;
     }
@@ -57,7 +107,9 @@ public enum Feature {
     /**
      * Проверка допускает услуга посуточные списания.
      * @return true если допускает.
+     * @deprecated will delete, use ServicePlan
      */
+    @Deprecated
     public boolean isDailyPayment() {
         return dailyPayment;
     }
@@ -66,8 +118,10 @@ public enum Feature {
      * Возвращает Feature по oldId
      * @param oldId ид из старой панели. Пригоден только для старых
      * @return Объект Feature или null - если нет подходящего идентификатора
+     * @deprecated will delete, use ServicePlan
      */
     @Nullable
+    @Deprecated
     public static Feature byOldId(String oldId) {
         return SMS_NOTIFICATIONS.oldId.equals(oldId) ? SMS_NOTIFICATIONS : (ANTI_SPAM.oldId.equals(oldId) ? ANTI_SPAM : null); // вызов в цикле сбивал бы с толку статический анализатор.
     }

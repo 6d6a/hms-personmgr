@@ -63,6 +63,8 @@ public class Plan extends BaseModel {
 
     private Set<ResourceType> prohibitedResourceTypes = new HashSet<>();
 
+    private Set<Feature> allowedFeature = new HashSet<>();      // разрешение подключать дополнительную услугу. Используется только для некоторых дополнительных услуг таких как ADDITIONAL_QUOTA_5K, ALLOW_DATABASE
+
     @ObjectIdList(value = Abonement.class)
     private List<String> abonementIds = new ArrayList<>();
 
@@ -115,7 +117,6 @@ public class Plan extends BaseModel {
         }
         return null;
     }
-
 
     public Abonement getDefaultP1YAbonement() {
         for (Abonement abonement : this.getAbonements()) {
