@@ -40,6 +40,7 @@ import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
 import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
 import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.NsCheckService;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.service.ServiceAbonementService;
@@ -63,6 +64,7 @@ public class RedirectServiceRestController extends CommonRestController {
     private NsCheckService nsCheckService;
     private ServicePlanRepository servicePlanRepository;
     private ServiceAbonementService serviceAbonementService;
+    private AccountHelper accountHelper;
 
     @Autowired
     public RedirectServiceRestController(
@@ -70,13 +72,15 @@ public class RedirectServiceRestController extends CommonRestController {
             AccountRedirectServiceRepository accountRedirectServiceRepository,
             NsCheckService nsCheckService,
             ServicePlanRepository servicePlanRepository,
-            ServiceAbonementService serviceAbonementService
+            ServiceAbonementService serviceAbonementService,
+            AccountHelper accountHelper
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountRedirectServiceRepository = accountRedirectServiceRepository;
         this.nsCheckService = nsCheckService;
         this.servicePlanRepository = servicePlanRepository;
         this.serviceAbonementService = serviceAbonementService;
+        this.accountHelper = accountHelper;
     }
 
     @GetMapping("/{accountId}/account-service-redirect")
@@ -173,6 +177,8 @@ public class RedirectServiceRestController extends CommonRestController {
         PersonalAccount account = accountManager.findOne(accountId);
         assertAccountIsActive(account);
 
+        accountHelper.checkIsAdditionalServiceAllowed(account, Feature.REDIRECT);
+
         Domain domain = rcUserFeignClient.getDomain(accountId, body.getDomainId());
 
         if (!nsCheckService.checkOurNs(domain)) {
@@ -217,6 +223,8 @@ public class RedirectServiceRestController extends CommonRestController {
 
         PersonalAccount account = accountManager.findOne(accountId);
         assertAccountIsActive(account);
+
+        accountHelper.checkIsAdditionalServiceAllowed(account, Feature.REDIRECT);
 
         Domain domain = rcUserFeignClient.getDomain(accountId, (String) body.getParam("domainId"));
 

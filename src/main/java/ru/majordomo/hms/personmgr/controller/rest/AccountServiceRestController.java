@@ -155,6 +155,10 @@ public class AccountServiceRestController extends CommonRestController {
             accountNotificationHelper.checkSmsAllowness(account);
         }
 
+        if (enabled) {
+            accountHelper.checkIsAdditionalServiceAllowed(account, feature);
+        }
+
         if (plan == null) {
             throw new ParameterValidationException("Услуга " + feature.name() + " не найдена");
         }
@@ -165,7 +169,7 @@ public class AccountServiceRestController extends CommonRestController {
         );
 
         if (accountServiceAbonements != null && !accountServiceAbonements.isEmpty()) {
-            throw new ParameterValidationException("При активном абонементе нельзя " + (enabled ? "включить" : "отключить") + "услугу");
+            throw new ParameterValidationException("При активном абонементе нельзя " + (enabled ? "включить" : "отключить") + " услугу");
         }
 
         if (plan.isAbonementOnly() && enabled) {

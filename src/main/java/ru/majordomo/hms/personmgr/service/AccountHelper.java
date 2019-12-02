@@ -14,6 +14,7 @@ import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.*;
+import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.config.TestPeriodConfig;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
@@ -26,8 +27,10 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.ArchivalPlanAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanFallback;
+import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
@@ -37,6 +40,7 @@ import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PlanFallbackRepository;
 import ru.majordomo.hms.rc.user.resources.*;
+//import ru.majordomo.hms.personmgr.service.DedicatedAppServiceHelper;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.PromocodeType.GOOGLE;
@@ -65,6 +69,8 @@ public class AccountHelper {
     private final ResourceArchiveService resourceArchiveService;
     private final TestPeriodConfig testPeriodConfig;
     private final PlanFallbackRepository planFallbackRepository;
+    private final ResourceChecker resourceChecker;
+//    private final DedicatedAppServiceHelper dedicatedAppServiceHelper;
 
     @Autowired
     public AccountHelper(
@@ -84,7 +90,9 @@ public class AccountHelper {
             AccountNoticeRepository accountNoticeRepository,
             ResourceArchiveService resourceArchiveService,
             TestPeriodConfig testPeriodConfig,
-            PlanFallbackRepository planFallbackRepository
+            PlanFallbackRepository planFallbackRepository,
+            ResourceChecker resourceChecker
+//            DedicatedAppServiceHelper dedicatedAppServiceHelper
     ) {
         this.finFeignClient = finFeignClient;
         this.siFeignClient = siFeignClient;
@@ -103,6 +111,8 @@ public class AccountHelper {
         this.resourceArchiveService = resourceArchiveService;
         this.testPeriodConfig = testPeriodConfig;
         this.planFallbackRepository = planFallbackRepository;
+        this.resourceChecker = resourceChecker;
+//        this.dedicatedAppServiceHelper = dedicatedAppServiceHelper;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -615,5 +625,70 @@ public class AccountHelper {
                 }
             }
         }
+    }
+
+    /**
+     * Проверка доступности дополнительной услуги на тарифном плане
+     * @param personalAccount PersonalAccount instance
+     * @param feature Feature instance
+     */
+    public void checkIsAdditionalServiceAllowed(PersonalAccount personalAccount, Feature feature) {
+        Plan plan = planManager.findOne(personalAccount.getPlanId());
+
+        switch (feature) {
+            case ADVANCED_BACKUP:
+            case ADVANCED_BACKUP_INSTANT_ACCESS:
+                if (!plan.isUnixAccountAllowed()) {
+                    throw new ParameterValidationException("Заказ услуги недоступен на вашем тарифном плане");
+                }
+                break;
+
+            case ANTI_SPAM:
+                if (!plan.isMailboxAllowed()) {
+                    throw new ParameterValidationException("Заказ услуги недоступен на вашем тарифном плане");
+                }
+                break;
+
+            case REDIRECT:
+            case REVISIUM:
+            case GOOGLE_3000:
+                if (!plan.isDomainAllowed()) {
+                    throw new ParameterValidationException("Заказ услуги недоступен на вашем тарифном плане");
+                }
+                break;
+
+            case SEO:
+                if (plan.isPartnerPlan()) {
+                    throw new ParameterValidationException("Заказ услуги недоступен на вашем тарифном плане");
+                }
+                break;
+        }
+    }
+
+    /**
+     * Проверка возможности установки CMS на текущем тарифном плане
+     * @param account PersonalAccount instance
+     */
+    public void checkIsCmsAllowed(PersonalAccount account) {
+        try {
+            resourceChecker.checkResource(account, ResourceType.DATABASE, null);
+        } catch (ParameterValidationException ex) {
+            throw new ParameterValidationException("Для установки CMS необходима возможность использовать базы данных");
+        }
+
+        Plan plan = planManager.findOne(account.getPlanId());
+
+        if (!plan.isWebSiteAllowed()) {
+            throw new ParameterValidationException("Для установки CMS необходима возможность использовать web-сайты");
+        }
+
+//        if (dedicatedAppServiceHelper.getServices(account.getId()).isEmpty()) {
+            if (plan.getPlanProperties() instanceof VirtualHostingPlanProperties) {
+                VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
+                if (!planProperties.getWebSiteAllowedServiceTypes().contains(Constants.WEBSITE_APACHE2_PHP)) {
+                    throw new ParameterValidationException("Для установки CMS необходим тарифный план с поддержкой PHP");
+                }
+            }
+//        }
     }
 }

@@ -24,6 +24,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.seo.SeoOrderedEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.seo.AccountSeoOrder;
 import ru.majordomo.hms.personmgr.model.seo.Seo;
 import ru.majordomo.hms.personmgr.repository.AccountSeoOrderRepository;
@@ -89,6 +90,8 @@ public class SeoRestController extends CommonRestController {
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
+
+        accountHelper.checkIsAdditionalServiceAllowed(account, Feature.SEO);
 
         Utils.checkRequiredParams(requestBody, ACCOUNT_SEO_ORDER_CREATE);
 

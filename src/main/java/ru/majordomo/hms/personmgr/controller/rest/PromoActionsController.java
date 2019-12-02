@@ -13,6 +13,7 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.promoActions.GoogleAdsRequest;
 import ru.majordomo.hms.personmgr.repository.GoogleAdsRequestRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
@@ -89,6 +90,8 @@ public class PromoActionsController {
         PersonalAccount account = accountManager.findOne(accountId);
         request.setPersonalAccountId(accountId);
         request.unSetId();
+
+        accountHelper.checkIsAdditionalServiceAllowed(account, Feature.GOOGLE_3000);
 
         if (request.getDomains().size() > 1) {
             throw new ParameterValidationException("Можно выбрать только один домен");

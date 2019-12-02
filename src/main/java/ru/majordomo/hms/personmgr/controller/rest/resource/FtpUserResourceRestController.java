@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -29,9 +30,13 @@ public class FtpUserResourceRestController extends CommonRestController {
 
         logger.debug("Creating ftpuser " + message.toString());
 
-        if (!accountManager.findOne(accountId).isActive()) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание FTP пользователя невозможно.");
         }
+
+        resourceChecker.checkResource(account, ResourceType.FTP_USER, message.getParams());
 
         if (!planCheckerService.canAddFtpUser(accountId)) {
             throw new ParameterValidationException("Лимит тарифного плана на создание FTP пользователей превышен");
@@ -56,9 +61,13 @@ public class FtpUserResourceRestController extends CommonRestController {
 
         logger.debug("Updating ftpuser with id " + resourceId + " " + message.toString());
 
-        if (!accountManager.findOne(accountId).isActive()) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление FTP пользователя невозможно.");
         }
+
+        resourceChecker.checkResource(account, ResourceType.FTP_USER, message.getParams());
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.FTP_USER_UPDATE, BusinessActionType.FTP_USER_UPDATE_RC, message);
 

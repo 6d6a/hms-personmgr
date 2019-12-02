@@ -6,7 +6,9 @@ public enum Plans {
     START("start", 9804),
     BUSINESS("business", 9806),
     BUSINESS_PLUS("business-plus", 9807),
-    PARKING_DOMAIN("parking-domains", 9803);
+    PARKING_DOMAIN("parking-domains", 9803),
+    DEDICATED_APP_SERVICES("dedicated-app-services", 9808),
+    PARTNER("partner", 9809);
 
 
     private final String internalName;

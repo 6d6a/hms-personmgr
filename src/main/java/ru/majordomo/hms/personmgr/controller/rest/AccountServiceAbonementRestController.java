@@ -48,6 +48,7 @@ public class AccountServiceAbonementRestController extends CommonRestController 
     private final BackupService backupService;
     private final ResourceHelper resourceHelper;
     private final PlanManager planManager;
+    private final AccountHelper accountHelper;
 
     @Autowired
     public AccountServiceAbonementRestController(
@@ -59,7 +60,8 @@ public class AccountServiceAbonementRestController extends CommonRestController 
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             BackupService backupService,
             ResourceHelper resourceHelper,
-            PlanManager planManager
+            PlanManager planManager,
+            AccountHelper accountHelper
     ) {
         this.accountServiceHelper = accountServiceHelper;
         this.accountNotificationHelper = accountNotificationHelper;
@@ -70,6 +72,7 @@ public class AccountServiceAbonementRestController extends CommonRestController 
         this.backupService = backupService;
         this.resourceHelper = resourceHelper;
         this.planManager = planManager;
+        this.accountHelper = accountHelper;
     }
 
     @GetMapping
@@ -198,6 +201,8 @@ public class AccountServiceAbonementRestController extends CommonRestController 
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
+        accountHelper.checkIsAdditionalServiceAllowed(account, feature);
+
         ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
 
         if (feature == Feature.SMS_NOTIFICATIONS) {
@@ -218,7 +223,7 @@ public class AccountServiceAbonementRestController extends CommonRestController 
                     .collect(Collectors.toList());
 
             if (filtered.isEmpty()) {
-                throw new ParameterValidationException("Дополнительных резервных коопий не найдено");
+                throw new ParameterValidationException("Дополнительных резервных копий не найдено");
             }
         }
 
