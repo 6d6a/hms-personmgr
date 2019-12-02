@@ -7,6 +7,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -53,6 +54,8 @@ public class DomainResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Добавление домена невозможно.");
         }
 
+        resourceChecker.checkResource(account, ResourceType.DOMAIN, message.getParams());
+
         logger.debug("Creating domain " + message.toString());
 
         String domainName = (String) message.getParam("name");
@@ -98,6 +101,8 @@ public class DomainResourceRestController extends CommonRestController {
         if (!request.isUserInRole("ADMIN") && !account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление домена невозможно.");
         }
+
+        resourceChecker.checkResource(account, ResourceType.DOMAIN, message.getParams());
 
         boolean switchedOn = message.getParam("switchedOn") != null && (boolean) message.getParam("switchedOn");
         boolean isRenew = message.getParam("renew") != null && (boolean) message.getParam("renew");

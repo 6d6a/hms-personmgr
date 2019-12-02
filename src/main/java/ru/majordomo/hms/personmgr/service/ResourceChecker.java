@@ -61,6 +61,15 @@ public class ResourceChecker {
                 checkDatabaseUser(account);
 
                 break;
+            case DOMAIN:
+                checkDomain(account);
+
+                break;
+
+            case FTP_USER:
+                checkFtpUser(account);
+
+                break;
         }
     }
 
@@ -144,6 +153,22 @@ public class ResourceChecker {
 
         if (!plan.isDatabaseUserAllowed()) {
             throw new ParameterValidationException("На вашем тарифном плане добавление пользователей баз данных недоступно");
+        }
+    }
+
+    private void checkDomain(PersonalAccount account) {
+        Plan plan = planManager.findOne(account.getPlanId());
+
+        if (!plan.isDomainAllowed()) {
+            throw new ParameterValidationException("На вашем тарифном плане добавление домена недоступно");
+        }
+    }
+
+    private void checkFtpUser(PersonalAccount account) {
+        Plan plan = planManager.findOne(account.getPlanId());
+
+        if (!plan.isFtpUserAllowed()) {
+            throw new ParameterValidationException("На вашем тарифном плане использование FTP недоступно");
         }
     }
 

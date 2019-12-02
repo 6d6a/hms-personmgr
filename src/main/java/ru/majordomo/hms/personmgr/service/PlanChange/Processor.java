@@ -364,7 +364,7 @@ public abstract class Processor {
     private Boolean checkBusinessPlan(PlanChangeAgreement planChangeAgreement) {
         VirtualHostingPlanProperties currentPlanProperties = (VirtualHostingPlanProperties) currentPlan.getPlanProperties();
         VirtualHostingPlanProperties newPlanProperties = (VirtualHostingPlanProperties) newPlan.getPlanProperties();
-        if (currentPlanProperties.isBusinessServices() && !newPlanProperties.isBusinessServices()) {
+        if (currentPlanProperties.isBusinessServices() && !newPlanProperties.isBusinessServices() && !newPlan.isPartnerPlan()) {
             planChangeAgreement.addError("Вы можете выбрать только другой корпоративный тарифный план");
             return false;
         } else {

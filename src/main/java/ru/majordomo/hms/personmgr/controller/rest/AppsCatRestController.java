@@ -14,6 +14,7 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AppsCatService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -23,10 +24,16 @@ import static ru.majordomo.hms.personmgr.common.Constants.ACCOUNT_ID_KEY;
 @Validated
 public class AppsCatRestController extends CommonRestController {
     private AppsCatService appsCatService;
+    private AccountHelper accountHelper;
 
     @Autowired
     public void setAppsCatService(AppsCatService appsCatService) {
         this.appsCatService = appsCatService;
+    }
+
+    @Autowired
+    public void setAccountHelper(AccountHelper accountHelper) {
+        this.accountHelper = accountHelper;
     }
 
     @PostMapping("/{accountId}/app_install")
@@ -45,6 +52,8 @@ public class AppsCatRestController extends CommonRestController {
         if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Установка приложений невозможна.");
         }
+
+        accountHelper.checkIsCmsAllowed(account);
 
         message.addParam(ACCOUNT_ID_KEY, account.getAccountId());
 

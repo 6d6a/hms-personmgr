@@ -22,10 +22,7 @@ import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.validation.ObjectIdList;
 
-import static ru.majordomo.hms.personmgr.common.ResourceType.DATABASE;
-import static ru.majordomo.hms.personmgr.common.ResourceType.DATABASE_USER;
-import static ru.majordomo.hms.personmgr.common.ResourceType.MAILBOX;
-import static ru.majordomo.hms.personmgr.common.ResourceType.SSL_CERTIFICATE;
+import static ru.majordomo.hms.personmgr.common.ResourceType.*;
 
 @Document
 @Data
@@ -93,6 +90,26 @@ public class Plan extends BaseModel {
 
     public Boolean isDatabaseUserAllowed() {
         return !prohibitedResourceTypes.contains(DATABASE_USER);
+    }
+
+    public Boolean isDomainAllowed() {
+        return !prohibitedResourceTypes.contains(DOMAIN);
+    }
+
+    public Boolean isFtpUserAllowed() {
+        return !prohibitedResourceTypes.contains(FTP_USER);
+    }
+
+    public Boolean isWebSiteAllowed() {
+        return !prohibitedResourceTypes.contains(WEB_SITE);
+    }
+
+    public Boolean isUnixAccountAllowed() {
+        return !prohibitedResourceTypes.contains(UNIX_ACCOUNT);
+    }
+
+    public Boolean isPartnerPlan() {
+        return Plans.PARTNER.oldIdStr().equals(this.oldId);
     }
 
     public String getNotInternalAbonementId() {

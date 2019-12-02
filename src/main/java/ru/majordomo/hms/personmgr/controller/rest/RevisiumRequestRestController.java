@@ -19,6 +19,7 @@ import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
 import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.Revisium.RevisiumRequestProcessor;
 import ru.majordomo.hms.personmgr.service.ServiceAbonementService;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
@@ -40,6 +41,7 @@ public class RevisiumRequestRestController extends CommonRestController {
     private final RevisiumRequestProcessor revisiumRequestProcessor;
     private final ServiceAbonementService serviceAbonementService;
     private final ServicePlanRepository servicePlanRepository;
+    private final AccountHelper accountHelper;
 
     private final String[] SCHEMES = {"http","https"};
 
@@ -50,7 +52,8 @@ public class RevisiumRequestRestController extends CommonRestController {
             RevisiumRequestProcessor revisiumRequestProcessor,
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             ServiceAbonementService serviceAbonementService,
-            ServicePlanRepository servicePlanRepository
+            ServicePlanRepository servicePlanRepository,
+            AccountHelper accountHelper
     ) {
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.personalAccountManager = personalAccountManager;
@@ -58,6 +61,7 @@ public class RevisiumRequestRestController extends CommonRestController {
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
         this.serviceAbonementService = serviceAbonementService;
         this.servicePlanRepository = servicePlanRepository;
+        this.accountHelper = accountHelper;
     }
 
     //Список всех услуг Ревизиума
@@ -210,6 +214,8 @@ public class RevisiumRequestRestController extends CommonRestController {
         if (account == null) {
             throw new ParameterValidationException("Аккаунт не найден");
         }
+
+        accountHelper.checkIsAdditionalServiceAllowed(account, Feature.REVISIUM);
 
         URL url;
 

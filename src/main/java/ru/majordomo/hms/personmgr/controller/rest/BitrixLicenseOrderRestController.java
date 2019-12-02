@@ -27,6 +27,7 @@ import ru.majordomo.hms.personmgr.dto.BitrixLicenseOrderRequest;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.order.BitrixLicenseOrder;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -38,12 +39,15 @@ import static ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager
 public class BitrixLicenseOrderRestController extends CommonRestController {
 
     private BitrixLicenseOrderManager manager;
+    private AccountHelper accountHelper;
 
     @Autowired
     public BitrixLicenseOrderRestController(
-            BitrixLicenseOrderManager manager
+            BitrixLicenseOrderManager manager,
+            AccountHelper accountHelper
     ) {
         this.manager = manager;
+        this.accountHelper = accountHelper;
     }
 
     @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
@@ -118,6 +122,7 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
+        accountHelper.checkIsCmsAllowed(account);
         String operator = request.getUserPrincipal().getName();
 
         BitrixLicenseOrder order = new BitrixLicenseOrder();
