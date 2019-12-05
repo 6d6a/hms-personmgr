@@ -14,6 +14,7 @@ public interface AccountServiceRepository extends MongoRepository<AccountService
     List<AccountService> findByPersonalAccountId(String personalAccountId);
     Page<AccountService> findByPersonalAccountId(String personalAccountId, Pageable pageable);
     List<AccountService> findByPersonalAccountIdAndServiceId(String personalAccountId, String serviceId);
+    List<AccountService> findByPersonalAccountIdAndServiceIdAndEnabled(String personalAccountId, String serviceId, boolean enabled);
     List<AccountService> findByServiceId(String serviceId);
     void deleteByPersonalAccountId(String personalAccountId);
     boolean existsByPersonalAccountIdAndServiceId(String personalAccountId, String serviceId);

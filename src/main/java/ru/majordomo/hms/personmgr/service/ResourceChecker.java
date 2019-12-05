@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -13,30 +15,35 @@ import ru.majordomo.hms.personmgr.feign.RcStaffFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.rc.staff.resources.Server;
 import ru.majordomo.hms.rc.staff.resources.Service;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
-import static ru.majordomo.hms.personmgr.common.Constants.APPLICATION_SERVICE_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_ID_KEY;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @Component
 public class ResourceChecker {
     private final RcUserFeignClient rcUserFeignClient;
     private final RcStaffFeignClient rcStaffFeignClient;
     private final PlanManager planManager;
+    private final AccountServiceHelper accountServiceHelper;
 
     public ResourceChecker(
             RcUserFeignClient rcUserFeignClient,
             RcStaffFeignClient rcStaffFeignClient,
+            AccountServiceHelper accountServiceHelper,
             PlanManager planManager
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.rcStaffFeignClient = rcStaffFeignClient;
         this.planManager = planManager;
+        this.accountServiceHelper = accountServiceHelper;
     }
 
     public void checkResource(PersonalAccount account, ResourceType resourceType, Map<String, Object> resource) {
@@ -54,11 +61,11 @@ public class ResourceChecker {
 
                 break;
             case DATABASE:
-                checkDatabase(account);
+                checkDatabase(account, resource);
 
                 break;
             case DATABASE_USER:
-                checkDatabaseUser(account);
+                checkDatabaseUser(account, resource);
 
                 break;
             case DOMAIN:
@@ -94,7 +101,7 @@ public class ResourceChecker {
         }
 
         try {
-            webSiteServices = rcStaffFeignClient.getWebsiteServicesByServerId(webSiteServer.getId());
+            webSiteServices = rcStaffFeignClient.getWebsiteServicesByAccountIdAndServerId(account.getId(), webSiteServer.getId());
         } catch (Exception e) {
             throw new ParameterValidationException("Ошибка при получении сервисов для вебсайтов для для сервера " + webSiteServer.getId());
         }
@@ -109,13 +116,15 @@ public class ResourceChecker {
             throw new ResourceNotFoundException("Тарифный план аккаунта не найден");
         }
 
-        if (plan.getPlanProperties() != null) {
+        boolean allowDedicatedAppService = !plan.getProhibitedResourceTypes().contains(ResourceType.DEDICATED_APP_SERVICE);
+
+        if (plan.getPlanProperties() instanceof VirtualHostingPlanProperties) {
             VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
 
             Set<String> allowedServiceTypes = planProperties.getWebSiteAllowedServiceTypes();
 
-            if (allowedServiceTypes != null && !allowedServiceTypes.isEmpty()) {
-                boolean foundAllowedService = serviceIdHasType(webSiteServiceId, webSiteServices, allowedServiceTypes);
+            if (CollectionUtils.isNotEmpty(allowedServiceTypes) || allowDedicatedAppService) {
+                boolean foundAllowedService = serviceIdHasType(webSiteServiceId, webSiteServices, allowedServiceTypes, allowDedicatedAppService, account.getId());
 
                 if (!foundAllowedService) {
                     throw new ResourceNotFoundException("Указанный для вебсайта serviceId не разрешен для вашего тарифа");
@@ -140,19 +149,41 @@ public class ResourceChecker {
         }
     }
 
-    private void checkDatabase(PersonalAccount account) {
+    private boolean hasSwitchedOnFalseOnly(@Nullable Map<String, Object> params) {
+        return params != null && params.get(SWITCHED_ON_KEY) instanceof Boolean && !((Boolean) params.get(SWITCHED_ON_KEY));
+    }
+
+    private void checkDatabase(PersonalAccount account, @Nullable Map<String, Object> params) {
         Plan plan = planManager.findOne(account.getPlanId());
 
         if (!plan.isDatabaseAllowed()) {
-            throw new ParameterValidationException("На вашем тарифном плане добавление баз данных недоступно");
+            if (plan.getAllowedFeature().contains(Feature.ALLOW_USE_DATABASES)) {
+                if (hasSwitchedOnFalseOnly(params)) {   // разрешить выключение баз данных оператором
+                    return;
+                }
+                if (!accountServiceHelper.hasAllowUseDbService(account)) {
+                    throw new ParameterValidationException("Поддержка баз данных недоступна, подключите дополнительную услугу");
+                }
+            } else {
+                throw new ParameterValidationException("На вашем тарифном плане работа с базами данных недоступна");
+            }
         }
     }
 
-    private void checkDatabaseUser(PersonalAccount account) {
+    private void checkDatabaseUser(PersonalAccount account, @Nullable Map<String, Object> params) {
         Plan plan = planManager.findOne(account.getPlanId());
 
         if (!plan.isDatabaseUserAllowed()) {
-            throw new ParameterValidationException("На вашем тарифном плане добавление пользователей баз данных недоступно");
+            if (plan.getAllowedFeature().contains(Feature.ALLOW_USE_DATABASES)) {
+                if (hasSwitchedOnFalseOnly(params)) {
+                    return;
+                }
+                if (!accountServiceHelper.hasAllowUseDbService(account)) {
+                    throw new ParameterValidationException("Поддержка баз данных недоступна, подключите дополнительную услугу");
+                }
+            } else {
+                throw new ParameterValidationException("На вашем тарифном плане работа с базами данных недоступна");
+            }
         }
     }
 
@@ -186,13 +217,23 @@ public class ResourceChecker {
         return webSite;
     }
 
-    private boolean serviceIdHasType(String serviceId, List<Service> services, Set<String> serviceTypes) {
-        return services
-                .stream()
-                .anyMatch(service -> service.getId().equals(serviceId) && serviceHasType(service, serviceTypes));
+    private boolean serviceIdHasType(@Nonnull String serviceId, @Nonnull List<Service> services,
+                                     @Nonnull Set<String> serviceTypes, boolean allowDedicatedAppService,
+                                     @Nullable String accountId) {
+        Service service = services.stream().filter(s -> s.isSwitchedOn() && serviceId.equals(s.getId())).findFirst().orElse(null);
+        if (service == null) {
+            return false;
+        }
+        return serviceHasType(service, serviceTypes, allowDedicatedAppService, accountId);
     }
 
-    static boolean serviceHasType(Service service, Set<String> serviceTypes) {
+    static boolean serviceHasType(Service service, Set<String> serviceTypes, boolean allowDedicatedAppService, String accountId) {
+        if (!service.isSwitchedOn()) {
+            return false;
+        }
+        if (StringUtils.isNotEmpty(service.getAccountId())) {
+            return allowDedicatedAppService  && service.getAccountId().equals(accountId);
+        }
         return serviceTypes
                 .stream()
                 .anyMatch(

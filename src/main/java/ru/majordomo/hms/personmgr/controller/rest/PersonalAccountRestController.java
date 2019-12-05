@@ -265,6 +265,10 @@ public class PersonalAccountRestController extends CommonRestController {
         PersonalAccount account = accountManager.findOne(accountId);
         Plan newPlan = planManager.findOne(planId);
 
+        if (newPlan == null) {
+            throw new ResourceNotFoundException("Не найден тарифный план с идентификатором: " + planId);
+        }
+        
         Processor planChangeProcessor = planChangeFactory.createPlanChangeProcessor(account, newPlan);
         planChangeProcessor.setIgnoreRestricts(ignoreRestricts);
         PlanChangeAgreement planChangeAgreement = planChangeProcessor.getPlanChangeAgreement();

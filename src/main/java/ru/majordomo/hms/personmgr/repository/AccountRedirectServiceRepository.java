@@ -12,9 +12,7 @@ import java.util.stream.Stream;
 public interface AccountRedirectServiceRepository extends MongoRepository<RedirectAccountService, String> {
     RedirectAccountService findByPersonalAccountIdAndFullDomainName(String personalAccountId, String fullDomainName);
     List<RedirectAccountService> findByPersonalAccountId(String personalAccountId);
-    boolean existsByPersonalAccountIdAndFullDomainNameAndExpireDateAfter(String personalAccountId, String fullDomainName, LocalDate date);
     RedirectAccountService findByPersonalAccountIdAndId(String accountId, String serviceId);
-    List<RedirectAccountService> findByPersonalAccountIdInAndExpireDateAfter(List<String> personalAccountIds, LocalDate date);
     RedirectAccountService findByAccountServiceAbonementId(String accountServiceAbonementId);
     @Query("{}")
     Stream<RedirectAccountService> findAllStream();

@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
  * Класс описывает подключенный на аккаунт абонемент для дополнительных услуг. Не подходит для тарифного плана.
  *
  * @see ru.majordomo.hms.personmgr.model.abonement.AccountAbonement - аналогичный класс для тарифного плана
+ * @see ru.majordomo.hms.personmgr.model.service.AccountService - класс для посуточных списаний
  */
 @NoArgsConstructor
 @Document

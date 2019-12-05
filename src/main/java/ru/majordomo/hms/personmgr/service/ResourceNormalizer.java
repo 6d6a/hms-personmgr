@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -63,7 +64,7 @@ public class ResourceNormalizer {
             }
 
             try {
-                webSiteServices = rcStaffFeignClient.getWebsiteServicesByServerId(webSiteServer.getId());
+                webSiteServices = rcStaffFeignClient.getWebsiteServicesByAccountIdAndServerId(account.getId(), webSiteServer.getId());
             } catch (Exception e) {
                 throw new ParameterValidationException("Ошибка при получении сервисов для вебсайтов для для сервера " + webSiteServer.getId());
             }
@@ -72,10 +73,12 @@ public class ResourceNormalizer {
                 throw new ParameterValidationException("Список сервисов вебсайтов для сервера " + webSiteServer.getId() + " пуст");
             }
 
-            if (plan.getPlanProperties() != null) {
+            if (plan.getPlanProperties() instanceof VirtualHostingPlanProperties) {
                 VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
 
                 Set<String> allowedServiceTypes = planProperties.getWebSiteAllowedServiceTypes();
+
+                boolean allowDedicatedAppService = !plan.getProhibitedResourceTypes().contains(ResourceType.DEDICATED_APP_SERVICE);
 
                 if (allowedServiceTypes != null && !allowedServiceTypes.isEmpty()) {
                     Service currentWebSiteService = webSiteServices
@@ -84,26 +87,13 @@ public class ResourceNormalizer {
                             .findFirst()
                             .orElseThrow(() -> new ParameterValidationException("Текущий сервис для вебсайта не найден"));
 
-                    boolean foundAllowedService = false;
+                    boolean allowedCurrentWebSiteService = ResourceChecker.serviceHasType(currentWebSiteService, allowedServiceTypes, allowDedicatedAppService, account.getId());
 
-                    for (String serviceType : allowedServiceTypes) {
-                        if (serviceType.endsWith("*")) {
-                            if (currentWebSiteService.getServiceTemplate().getServiceTypeName()
-                                    .startsWith(serviceType.substring(0, serviceType.length()-1))) {
-                                foundAllowedService = true;
-                            }
-                        } else {
-                            if (currentWebSiteService.getServiceTemplate().getServiceTypeName().equals(serviceType)) {
-                                foundAllowedService = true;
-                            }
-                        }
-                    }
-
-                    if (!foundAllowedService) {
+                    if (!allowedCurrentWebSiteService) {
                         //ставим какой-то, на самом деле первый ;) из доступных
                         Service selectedWebSiteService = webSiteServices
                                 .stream()
-                                .filter(service -> ResourceChecker.serviceHasType(service, allowedServiceTypes))
+                                .filter(service -> ResourceChecker.serviceHasType(service, allowedServiceTypes, allowDedicatedAppService, account.getId()))
                                 .findFirst()
                                 .orElseThrow(() -> new ParameterValidationException("Необходимый для вебсайта сервис не найден"));
 

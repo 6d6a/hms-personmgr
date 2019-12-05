@@ -50,7 +50,7 @@ public class DomainResourceRestController extends CommonRestController {
 
         PersonalAccount account = accountManager.findOne(accountId);
 
-        if (!account.isActive()) {
+        if (!account.isActive() || account.isPreorder()) {
             throw new ParameterValidationException("Аккаунт неактивен. Добавление домена невозможно.");
         }
 
@@ -98,7 +98,7 @@ public class DomainResourceRestController extends CommonRestController {
 
         logger.debug("Updating domain with id " + resourceId + " " + message.toString());
 
-        if (!request.isUserInRole("ADMIN") && !account.isActive()) {
+        if (!request.isUserInRole("ADMIN") && !account.isActive() || account.isPreorder()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление домена невозможно.");
         }
 

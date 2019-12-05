@@ -21,4 +21,6 @@ public interface ProcessingBusinessOperationRepository extends MongoRepository<P
     ProcessingBusinessOperation findByIdAndPersonalAccountId(String id, String accountId);
 
     List<ProcessingBusinessOperation> findAllByPersonalAccountIdAndTypeAndStateIn(String personalAccountId, BusinessOperationType type, Set<State> states);
+
+    List<ProcessingBusinessOperation> findAllByPersonalAccountIdAndTypeInAndStateIn(String personalAccountId, List<BusinessOperationType> type, Set<State> states);
 }

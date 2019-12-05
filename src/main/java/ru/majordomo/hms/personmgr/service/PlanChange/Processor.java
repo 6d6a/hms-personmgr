@@ -24,6 +24,7 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
@@ -63,6 +64,8 @@ public abstract class Processor {
     private ResourceNormalizer resourceNormalizer;
     private ResourceHelper resourceHelper;
 
+    private DedicatedAppServiceHelper dedicatedAppServiceHelper;
+
     protected final PersonalAccount account;
     protected Plan currentPlan;
     protected final Plan newPlan;
@@ -93,7 +96,8 @@ public abstract class Processor {
             ApplicationEventPublisher publisher,
             PlanManager planManager,
             ResourceNormalizer resourceNormalizer,
-            ResourceHelper resourceHelper
+            ResourceHelper resourceHelper,
+            DedicatedAppServiceHelper dedicatedAppServiceHelper
     ) {
         this.finFeignClient = finFeignClient;
         this.accountAbonementManager = accountAbonementManager;
@@ -110,6 +114,7 @@ public abstract class Processor {
         this.planManager = planManager;
         this.resourceNormalizer = resourceNormalizer;
         this.resourceHelper = resourceHelper;
+        this.dedicatedAppServiceHelper = dedicatedAppServiceHelper;
     }
 
     void postConstruct() {
@@ -142,10 +147,18 @@ public abstract class Processor {
 
     abstract void deleteServices();
 
+    public void deleteNotAllowedService() {
+        if (!newPlan.getAllowedFeature().contains(Feature.ALLOW_USE_DATABASES)
+                && accountServiceHelper.hasAllowUseDbService(account)) {
+            accountServiceHelper.deleteAccountServicesByFeature(account, Feature.ALLOW_USE_DATABASES, true);
+        }
+    }
+
     void replaceServices() {
         replaceSmsNotificationsService();
         processFtpUserService();
         processWebSiteService();
+        deleteNotAllowedService();
         accountQuotaService.processQuotaService(account, newPlan);
     }
 
@@ -274,10 +287,12 @@ public abstract class Processor {
 
         Boolean isWebSitesOk = checkAccountWebSites(planChangeAgreement);
 
+        Boolean isDedicatedAppServicesOk = checkAccountDedicatedAppServices(planChangeAgreement);
+
         // Лимиты Quota
         Boolean isQuotaLimitsOk = checkAccountQuotaLimits(planChangeAgreement);
 
-        if (!isDatabaseLimitsOk || !isFtpUserLimitsOk || !isWebSiteLimitsOk || !isQuotaLimitsOk || !isWebSitesOk) {
+        if (!isDatabaseLimitsOk || !isFtpUserLimitsOk || !isWebSiteLimitsOk || !isQuotaLimitsOk || !isWebSitesOk || !isDedicatedAppServicesOk) {
             return planChangeAgreement;
         }
 
@@ -447,6 +462,15 @@ public abstract class Processor {
         } else {
             return true;
         }
+    }
+    
+    private Boolean checkAccountDedicatedAppServices(PlanChangeAgreement planChangeAgreement) {
+        int serviceCount = dedicatedAppServiceHelper.getServices(account.getId()).size();
+        if (newPlan.getProhibitedResourceTypes().contains(ResourceType.DEDICATED_APP_SERVICE) && serviceCount > 0) {
+            planChangeAgreement.addError("На аккаунте заказаны выделенные сервисы приложений которые не поддерживаются на новом тарифе");
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -689,21 +713,35 @@ public abstract class Processor {
 
     private void normalizeDatabase() {
         if (!newPlan.isDatabaseAllowed()) {
-            resourceHelper.disableAndScheduleDeleteForAllDatabases(account);
-            history.save(account.getId(), "Для аккаунта выключены и запланированы на удаление базы данных в соответствии с тарифным планом", operator);
+            if (newPlan.getAllowedFeature().contains(Feature.ALLOW_USE_DATABASES)) {
+                resourceHelper.switchDatabases(account, false);
+            } else {
+                resourceHelper.disableAndScheduleDeleteForAllDatabases(account);
+                history.save(account.getId(), "Для аккаунта выключены и запланированы на удаление базы данных в соответствии с тарифным планом", operator);
+            }
         }else {
-            resourceHelper.unScheduleDeleteForAllDatabases(account);
-            history.save(account, "Для аккаунта отменено запланированное удаление баз данных в соответствии с тарифным планом", operator);
+            String message = resourceHelper.unScheduleDeleteForAllDatabases(account) ?
+                    "Для аккаунта отменено запланированное удаление баз данных в соответствии с тарифным планом" :
+                    "Базы данных включены в соответствии с тарифным планом";
+
+            history.save(account, message, operator);
         }
     }
 
     private void normalizeDatabaseUser() {
         if (!newPlan.isDatabaseUserAllowed()) {
-            resourceHelper.disableAndScheduleDeleteForAllDatabaseUsers(account);
-            history.save(account.getId(), "Для аккаунта выключены и запланированы на удаление пользователи баз данных в соответствии с тарифным планом", operator);
+            if (newPlan.getAllowedFeature().contains(Feature.ALLOW_USE_DATABASES)) {
+                resourceHelper.switchDatabaseUsers(account, false);
+            } else {
+                resourceHelper.disableAndScheduleDeleteForAllDatabaseUsers(account);
+                history.save(account.getId(), "Для аккаунта выключены и запланированы на удаление пользователи баз данных в соответствии с тарифным планом", operator);
+            }
         }else {
-            resourceHelper.unScheduleDeleteForAllDatabaseUsers(account);
-            history.save(account.getId(), "Для аккаунта отменено запланированное удаление пользователей баз данных в соответствии с тарифным планом", operator);
+            if (resourceHelper.unScheduleDeleteForAllDatabaseUsers(account)) {
+                history.save(account.getId(), "Для аккаунта отменено запланированное удаление пользователей баз данных в соответствии с тарифным планом", operator);
+            } else {
+                history.save(account.getId(), "Пользователи базы данных включены в соответствии с тарифным планом", operator);
+            }
         }
     }
 
