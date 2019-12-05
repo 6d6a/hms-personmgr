@@ -8,8 +8,10 @@ import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.rc.user.resources.*;
 
+import javax.annotation.Nonnull;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -85,12 +87,15 @@ public class ResourceHelper {
         }
     }
 
-    private void switchDatabaseUsers(PersonalAccount account, Boolean state) {
+    public void switchDatabaseUsers(PersonalAccount account, @Nonnull Boolean state) {
         try {
 
             List<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
 
             for (DatabaseUser databaseUser : databaseUsers) {
+                if (state.equals(databaseUser.getSwitchedOn())) {
+                    continue;
+                }
                 SimpleServiceMessage message = messageForSwitchOn(databaseUser, state);
 
                 businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
@@ -101,6 +106,37 @@ public class ResourceHelper {
 
         } catch (Exception e) {
             log.error("account DatabaseUsers switch failed for accountId: " + account.getId());
+            e.printStackTrace();
+        }
+    }
+
+    public boolean haveDatabases(PersonalAccount account) {
+        return !rcUserFeignClient.getDatabases(account.getId()).isEmpty();
+    }
+
+    public boolean haveDatabaseUsers(PersonalAccount account) {
+        return !rcUserFeignClient.getDatabaseUsers(account.getId()).isEmpty();
+    }
+
+    public void switchDatabases(PersonalAccount account, @Nonnull Boolean state) {
+        try {
+
+            Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+
+            for (Database database : databases) {
+                if (state.equals(database.getSwitchedOn())) {
+                    continue;
+                }
+                SimpleServiceMessage message = messageForSwitchOn(database, state);
+
+                businessHelper.buildAction(BusinessActionType.DATABASE_UPDATE_RC, message);
+
+                String historyMessage = "Отправлена заявка на " + (state ? "включение" : "выключение") + " пользователя базы данных '" + database.getName() + "'";
+                history.save(account, historyMessage);
+            }
+
+        } catch (Exception e) {
+            log.error("account Databases switch failed for accountId: " + account.getId());
             e.printStackTrace();
         }
     }
@@ -345,38 +381,60 @@ public class ResourceHelper {
         }
     }
 
-    public void unScheduleDeleteForAllDatabases(PersonalAccount account) {
+    public boolean unScheduleDeleteForAllDatabases(PersonalAccount account) {
         Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+
+        boolean isMarkDeletedDatabase = false;
 
         for (Database database : databases) {
             SimpleServiceMessage message = new SimpleServiceMessage();
             message.setParams(new HashMap<>());
             message.setAccountId(account.getId());
-            message.addParam("resourceId", database.getId());
-            message.addParam("willBeDeletedAfter", null);
-
+            message.addParam(Constants.RESOURCE_ID_KEY, database.getId());
+            String historyMessage;
+            if (database.isWillBeDeleted()) {
+                isMarkDeletedDatabase = true;
+                message.addParam(Constants.WILL_BE_DELETED_AFTER_KEY, null);
+                message.addParam(Constants.SWITCHED_ON_KEY, true);
+                historyMessage = "Отправлена заявка на отмену отложенного удаления базы данных '" + database.getName() + "'";
+            } else {
+                message.addParam(Constants.WILL_BE_DELETED_AFTER_KEY, null);
+                message.addParam(Constants.SWITCHED_ON_KEY, true);
+                historyMessage = "Отправлена заявка на включение базы данных '" + database.getName() + "'";
+            }
             businessHelper.buildAction(BusinessActionType.DATABASE_UPDATE_RC, message);
-
-            String historyMessage = "Отправлена заявка на отмену отложенного удаления базы данных '" + database.getName() + "'";
             history.save(account, historyMessage);
         }
+        return isMarkDeletedDatabase;
     }
 
-    public void unScheduleDeleteForAllDatabaseUsers(PersonalAccount account) {
+    public boolean unScheduleDeleteForAllDatabaseUsers(PersonalAccount account) {
         Collection<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
+
+        boolean isMarkDeletedDatabase = false;
 
         for (DatabaseUser databaseUser : databaseUsers) {
             SimpleServiceMessage message = new SimpleServiceMessage();
+            String historyMessage;
             message.setParams(new HashMap<>());
             message.setAccountId(account.getId());
-            message.addParam("resourceId", databaseUser.getId());
-            message.addParam("willBeDeletedAfter", null);
+            message.addParam(Constants.RESOURCE_ID_KEY, databaseUser.getId());
+
+            if (databaseUser.isWillBeDeleted()) {
+                message.addParam(Constants.SWITCHED_ON_KEY, true);
+                message.addParam(Constants.WILL_BE_DELETED_AFTER_KEY, null);
+                historyMessage = "Отправлена заявка на отмену отложенного удаления пользователя баз данных '" + databaseUser.getName() + "'";
+            } else {
+                message.addParam(Constants.WILL_BE_DELETED_AFTER_KEY, null);
+                message.addParam(Constants.SWITCHED_ON_KEY, true);
+                historyMessage = "Отправлена заявка на включение пользователя баз данных '" + databaseUser.getName() + "'";
+            }
 
             businessHelper.buildAction(BusinessActionType.DATABASE_USER_UPDATE_RC, message);
 
-            String historyMessage = "Отправлена заявка на отмену отложенного удаления пользователя баз данных '" + databaseUser.getName() + "'";
             history.save(account, historyMessage);
         }
+        return isMarkDeletedDatabase;
     }
 
     public List<Quotable> getQuotableResources(PersonalAccount account) {

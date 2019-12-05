@@ -39,12 +39,15 @@ public interface ServicePlanRepository extends MongoRepository<ServicePlan, Stri
     @CacheEvict(value = "servicePlans", allEntries = true)
     void deleteAll();
 
-    @Cacheable("servicePlansByFeatureAndActive")
+    @Cacheable("oneServicePlanByFeatureAndActive")
     ServicePlan findOneByFeatureAndActive(Feature feature, boolean active);
 
-    @Cacheable("servicePlansByFeatureAndServiceId")
+    @Cacheable("oneServicePlanByFeatureAndServiceId")
     ServicePlan findOneByFeatureAndServiceId(Feature feature, String serviceId);
 
-    @Cacheable("servicePlansByFeature")
+    @Cacheable("oneServicePlanByFeature")
     ServicePlan findOneByFeature(Feature feature);
+
+    @Cacheable("servicePlansByPaymentServiceId")
+    List<ServicePlan> findByServiceId(String ServiceId);
 }

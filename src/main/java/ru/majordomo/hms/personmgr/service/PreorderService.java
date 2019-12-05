@@ -32,6 +32,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
+import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.*;
@@ -111,7 +112,7 @@ public class PreorderService {
             throw new InternalApiException("Неверный владелец заказа");
         }
         if (preorder.getFeature() != Feature.VIRTUAL_HOSTING_PLAN && StringUtils.isNotEmpty(preorder.getAccountServiceId())) {
-            accountServiceHelper.deleteAccountServiceById(account, preorder.getAccountServiceId());
+            accountServiceHelper.deleteAccountServiceById(account, preorder.getAccountServiceId(), false);
         }
         if (StringUtils.isNotEmpty(preorder.getAccountServiceAbonementId())) {
             accountServiceAbonementManager.delete(preorder.getAccountServiceAbonementId());
@@ -454,8 +455,8 @@ public class PreorderService {
         if (!ALLOW_PREORDER.contains(feature)) {
             return Result.error(String.format("Для услуги %s недоступен предзаказ", featureToName(feature)));
         }
-        if (feature == Feature.ADDITIONAL_QUOTA_5K && !Constants.ADDITIONAL_QUOTA_PLAN_ONLY_NAME.equals(plan.getInternalName())) {
-            return Result.error(String.format("Нельзя заказать услугу 'Дополнительные 5Гб места' на тарифе %s", plan.getName()));
+        if (feature.isForSomePlan() && !plan.getAllowedFeature().contains(feature)) {
+            return Result.error(String.format("Подключение услуги '%s' на тарифе %s запрещено", featureToName(feature), plan.getName()));
         }
         if (feature == Feature.ANTI_SPAM && (!plan.isMailboxAllowed())) {
             return Result.error(String.format("На тарифе %s не поддерживается почта", plan.getName()));

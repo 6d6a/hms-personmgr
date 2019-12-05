@@ -1,9 +1,12 @@
 package ru.majordomo.hms.personmgr.config;
 
-import com.github.fakemongo.Fongo;
 import com.mongodb.MongoClient;
 
+import com.mongodb.ServerAddress;
+import de.bwaldvogel.mongo.MongoServer;
+import de.bwaldvogel.mongo.backend.memory.MemoryBackend;
 import org.bson.types.ObjectId;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
@@ -22,13 +25,20 @@ public class MongoConfigTest extends AbstractMongoConfiguration {
         return "personmgr-" + ObjectId.get().toString();
     }
 
-    @Override
-    public MongoClient mongoClient() {
-        return new Fongo(getDatabaseName()).getMongo();
+    @Bean(destroyMethod="shutdown")
+    public MongoServer mongoServer() {
+        MongoServer mongoServer = new MongoServer(new MemoryBackend());
+        mongoServer.bind();
+        return mongoServer;
     }
 
     @Override
-    public MongoTemplate mongoTemplate() {
+    public MongoClient mongoClient() {
+        return new MongoClient(new ServerAddress(mongoServer().getLocalAddress()));
+    }
+
+    @Override
+    public MongoTemplate mongoTemplate() throws Exception {
         return new MongoTemplate(new SimpleMongoDbFactory(mongoClient(), UUID.randomUUID().toString()));
     }
 }

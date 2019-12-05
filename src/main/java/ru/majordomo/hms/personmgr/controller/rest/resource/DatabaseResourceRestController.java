@@ -41,7 +41,7 @@ public class DatabaseResourceRestController extends CommonRestController {
 
         PersonalAccount account = accountManager.findOne(accountId);
 
-        if (!account.isActive()) {
+        if (!account.isActive() || account.isPreorder()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание базы данных невозможно.");
         }
 
@@ -79,7 +79,7 @@ public class DatabaseResourceRestController extends CommonRestController {
 
         PersonalAccount account = accountManager.findOne(accountId);
 
-        if (!account.isActive()) {
+        if (!account.isActive() || account.isPreorder()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление базы данных невозможно.");
         }
 

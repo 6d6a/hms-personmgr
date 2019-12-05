@@ -60,7 +60,7 @@ configurations {
 
 dependencies {
     compile("ru.majordomo.hms.rc.user:resources:1.5.22")
-    compile("ru.majordomo.hms.rc.staff:resources:1+")
+    compile("ru.majordomo.hms.rc.staff:resources:2.0.2") { changing = true }
 
     compile("dnsjava:dnsjava:2.1.8")
 
@@ -86,8 +86,6 @@ dependencies {
     compile("org.apache.httpcomponents:httpmime:4.5.6")
     compile("commons-io:commons-io:2.6")
 
-    compile("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.9.7")
-
     compile("commons-validator:commons-validator:1.6")
     compile("com.google.guava:guava:27.0-jre")
     
@@ -108,7 +106,7 @@ dependencies {
     testCompile("org.springframework.boot:spring-boot-starter-test") {
         exclude(module: "commons-logging")
     }
-    testCompile('com.github.fakemongo:fongo:2.2.0-RC2')
+    testCompile('de.bwaldvogel:mongo-java-server:1.19.0')
     compile("com.cronutils:cron-utils:5.0.1")
 
     compile("com.googlecode.libphonenumber:libphonenumber:8.10.2")

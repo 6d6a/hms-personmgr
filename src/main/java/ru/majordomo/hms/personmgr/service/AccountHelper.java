@@ -39,8 +39,9 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PlanFallbackRepository;
+import ru.majordomo.hms.rc.staff.resources.template.ApplicationServer;
 import ru.majordomo.hms.rc.user.resources.*;
-//import ru.majordomo.hms.personmgr.service.DedicatedAppServiceHelper;
+import ru.majordomo.hms.personmgr.service.DedicatedAppServiceHelper;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.PromocodeType.GOOGLE;
@@ -70,7 +71,7 @@ public class AccountHelper {
     private final TestPeriodConfig testPeriodConfig;
     private final PlanFallbackRepository planFallbackRepository;
     private final ResourceChecker resourceChecker;
-//    private final DedicatedAppServiceHelper dedicatedAppServiceHelper;
+    private final DedicatedAppServiceHelper dedicatedAppServiceHelper;
 
     @Autowired
     public AccountHelper(
@@ -91,8 +92,8 @@ public class AccountHelper {
             ResourceArchiveService resourceArchiveService,
             TestPeriodConfig testPeriodConfig,
             PlanFallbackRepository planFallbackRepository,
-            ResourceChecker resourceChecker
-//            DedicatedAppServiceHelper dedicatedAppServiceHelper
+            ResourceChecker resourceChecker,
+            DedicatedAppServiceHelper dedicatedAppServiceHelper
     ) {
         this.finFeignClient = finFeignClient;
         this.siFeignClient = siFeignClient;
@@ -112,7 +113,7 @@ public class AccountHelper {
         this.testPeriodConfig = testPeriodConfig;
         this.planFallbackRepository = planFallbackRepository;
         this.resourceChecker = resourceChecker;
-//        this.dedicatedAppServiceHelper = dedicatedAppServiceHelper;
+        this.dedicatedAppServiceHelper = dedicatedAppServiceHelper;
     }
 
     public String getEmail(PersonalAccount account) {
@@ -682,13 +683,19 @@ public class AccountHelper {
             throw new ParameterValidationException("Для установки CMS необходима возможность использовать web-сайты");
         }
 
-//        if (dedicatedAppServiceHelper.getServices(account.getId()).isEmpty()) {
-            if (plan.getPlanProperties() instanceof VirtualHostingPlanProperties) {
-                VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
-                if (!planProperties.getWebSiteAllowedServiceTypes().contains(Constants.WEBSITE_APACHE2_PHP)) {
+        if (plan.getPlanProperties() instanceof VirtualHostingPlanProperties) {
+            VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
+            if (!planProperties.getWebSiteAllowedServiceTypes().contains(Constants.WEBSITE_APACHE2_PHP)) {
+                if (plan.getAllowedFeature().contains(Feature.DEDICATED_APP_SERVICE)) {
+                    if (dedicatedAppServiceHelper.getServicesWithStaffService(account.getId()).stream()
+                            .noneMatch(das -> das.getService() != null && das.getService().getTemplate() instanceof ApplicationServer
+                                    && ((ApplicationServer) das.getService().getTemplate()).getLanguage() == ApplicationServer.Language.PHP)) {
+                        throw new ParameterValidationException("Для установки CMS необходимо заказать сервис с поддержкой PHP");
+                    }
+                } else {
                     throw new ParameterValidationException("Для установки CMS необходим тарифный план с поддержкой PHP");
                 }
             }
-//        }
+        }
     }
 }

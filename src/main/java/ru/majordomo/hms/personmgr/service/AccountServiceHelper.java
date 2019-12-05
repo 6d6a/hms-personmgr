@@ -1,6 +1,8 @@
 package ru.majordomo.hms.personmgr.service;
 
+import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -9,10 +11,14 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
+import ru.majordomo.hms.personmgr.event.account.DedicatedAppServiceDeleteEvent;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
@@ -28,6 +34,9 @@ import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 
+import javax.annotation.Nullable;
+import javax.validation.constraints.NotNull;
+
 import static ru.majordomo.hms.personmgr.common.Constants.ACCESS_TO_CONTROL_PANEL_SERVICE_OLD_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
 
@@ -40,6 +49,7 @@ public class AccountServiceHelper {
     private final ServicePlanRepository servicePlanRepository;
     private final AccountPromotionManager accountPromotionManager;
     private final DiscountFactory discountFactory;
+    private final ApplicationEventPublisher publisher;
 
     @Autowired
     public AccountServiceHelper(
@@ -49,7 +59,8 @@ public class AccountServiceHelper {
             AbonementManager<AccountServiceAbonement> abonementManager,
             ServicePlanRepository servicePlanRepository,
             AccountPromotionManager accountPromotionManager,
-            DiscountFactory discountFactory
+            DiscountFactory discountFactory,
+            ApplicationEventPublisher publisher
     ) {
         this.accountServiceRepository = accountServiceRepository;
         this.planManager = planManager;
@@ -58,6 +69,7 @@ public class AccountServiceHelper {
         this.servicePlanRepository = servicePlanRepository;
         this.accountPromotionManager = accountPromotionManager;
         this.discountFactory = discountFactory;
+        this.publisher = publisher;
     }
 
     /**
@@ -76,34 +88,81 @@ public class AccountServiceHelper {
      * @param account   Аккаунт
      * @param accountServiceId id услуги AccountService
      */
-    public void deleteAccountServiceById(PersonalAccount account, String accountServiceId) {
-        accountServiceRepository.deleteByPersonalAccountIdAndId(account.getId(), accountServiceId);
+
+    public void deleteAccountServiceById(@NonNull PersonalAccount account, String accountServiceId, boolean deleteOnly) throws ResourceNotFoundException {
+        AccountService accountService = accountServiceRepository.findByPersonalAccountIdAndId(account.getId(), accountServiceId);
+        if (accountService == null) {
+            throw new ResourceNotFoundException("Не удалось найти услугу с Id: " + accountServiceId);
+        }
+        deleteAccountServiceById(account, accountService, deleteOnly);
+    }
+
+    public void deleteAccountServicesByFeature(@NonNull PersonalAccount account, Feature feature, boolean deleteOnly) {
+        if (feature == null) {
+            return;
+        }
+        ServicePlan servicePlan = servicePlanRepository.findOneByFeature(feature); // todo обработать ситуацию когда servicePlan много
+        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(account.getId(), servicePlan.getServiceId());
+        for (AccountService accountService : accountServices) {
+            deleteAccountServiceById(account, accountService, deleteOnly);
+        }
     }
 
     /**
-     * Добавляем новую услугу
+     * Удаляем старую услугу
      *
      * @param account   Аккаунт
-     * @param newServiceId id новой услуги
+     * @param accountService
      */
-    public AccountService addAccountService(PersonalAccount account, String newServiceId) {
-        return addAccountService(account, newServiceId, 1);
+    public void deleteAccountServiceById(@NotNull PersonalAccount account, @NotNull AccountService accountService, boolean deleteOnly) {
+        if (!Objects.equals(accountService.getPersonalAccountId(), account.getId())) {
+            throw new ParameterValidationException(String.format("Сервис %s не принадлежит аккаунту %s", accountService.getName(), account.getName()));
+        }
+        accountServiceRepository.deleteByPersonalAccountIdAndId(account.getId(), accountService.getId());
+        if (deleteOnly) {
+            return;
+        }
+        Feature feature = findFeature(accountService.getServiceId());
+        if (feature == Feature.DEDICATED_APP_SERVICE) {
+            publisher.publishEvent(new DedicatedAppServiceDeleteEvent(account.getId(), accountService.getId()));
+        }
     }
 
     /**
      * Добавляем новую услугу
      *
      * @param account   Аккаунт
-     * @param newServiceId id новой услуги
+     * @param newPaymentServiceId PaymentService id новой услуги
+     */
+    public AccountService addAccountService(PersonalAccount account, String newPaymentServiceId) {
+        return addAccountService(account, newPaymentServiceId, 1);
+    }
+
+    public boolean hasAccountService(String accountServiceId) {
+        return accountServiceRepository.existsById(accountServiceId);
+    }
+
+    /**
+     * Добавляем новую услугу
+     *
+     * @param account   Аккаунт
+     * @param newPaymentServiceId PaymentService id новой услуги
      * @param quantity кол-во услуг
      */
-    private AccountService addAccountService(PersonalAccount account, String newServiceId, int quantity) {
+    private AccountService addAccountService(PersonalAccount account, String newPaymentServiceId, int quantity) {
         AccountService service = new AccountService();
         service.setPersonalAccountId(account.getId());
-        service.setServiceId(newServiceId);
+        service.setServiceId(newPaymentServiceId);
         service.setQuantity(quantity);
 
         return accountServiceRepository.save(service);
+    }
+
+    @Nullable
+    public Feature findFeature(String paymentServiceId) {
+        //todo добавить поддержку тарифного плана на хостинг и абонементов, пока работает только для доп.услуг
+        List<ServicePlan> servicePlans = servicePlanRepository.findByServiceId(paymentServiceId);
+        return servicePlans.isEmpty() ? null : servicePlans.get(0).getFeature();
     }
 
     /**
@@ -327,6 +386,25 @@ public class AccountServiceHelper {
         return abonements.stream().anyMatch(item -> item.getExpired().isAfter(LocalDateTime.now()));
     }
 
+    public boolean hasAllowUseDbService(PersonalAccount account) {
+        ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.ALLOW_USE_DATABASES, true);
+        if (servicePlan == null) {
+            throw new InternalApiException("Cannot find ServicePlan");
+        }
+        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceIdAndEnabled(account.getId(), servicePlan.getServiceId(), true);
+        if (!accountServices.isEmpty()) {
+            return true;
+        }
+
+        List<AccountServiceAbonement> abonements = abonementManager.findByPersonalAccountIdAndAbonementIdIn(account.getId(), servicePlan.getAbonementIds());
+
+        if (abonements == null) {
+            return false;
+        }
+
+        return abonements.stream().anyMatch(item -> item.getExpired().isAfter(LocalDateTime.now()));
+    }
+
     public AccountService getAccountService(PersonalAccount account, Feature feature) {
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
 
@@ -405,6 +483,7 @@ public class AccountServiceHelper {
         return serviceRepository.findByOldId(ACCESS_TO_CONTROL_PANEL_SERVICE_OLD_ID);
     }
 
+    @Nullable
     public ServicePlan getServicePlanForFeatureByAccount(Feature feature, PersonalAccount account) {
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
 

@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.UserDisabledServiceEvent;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
@@ -131,7 +132,7 @@ public class AccountServiceRestController extends CommonRestController {
             }
         }
 
-        accountServiceHelper.deleteAccountServiceById(account, accountServiceId);
+        accountServiceHelper.deleteAccountServiceById(account, accountServiceId, false);
 
         if (serviceName != null) {
             history.save(accountId, "Произведено удаление услуги '" + serviceName + "', id: " + accountServiceId, request);
@@ -148,6 +149,11 @@ public class AccountServiceRestController extends CommonRestController {
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
+
+        Plan accountPlan = planManager.findOne(account.getPlanId());
+        if (accountPlan == null) {
+            throw new InternalApiException("Cannot find plan");
+        }
 
         ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
 
@@ -176,7 +182,18 @@ public class AccountServiceRestController extends CommonRestController {
             throw new ParameterValidationException("Услуга " + feature.name() + " может работать только по абонементу");
         }
 
+        if (!(accountPlan.isDatabaseAllowed() || accountPlan.isDatabaseUserAllowed()) && feature == Feature.ALLOW_USE_DATABASES && !enabled) {
+            if (resourceHelper.haveDatabases(account)) {
+                throw new ParameterValidationException("Нельзя отключить услугу так как на аккаунте есть базы данных и пользователи");
+            };
+        }
+
         processCustomService(account, plan.getService(), enabled);
+
+        if (!(accountPlan.isDatabaseAllowed() || accountPlan.isDatabaseUserAllowed()) && feature == Feature.ALLOW_USE_DATABASES && enabled) {
+            resourceHelper.switchDatabases(account, true);
+            resourceHelper.switchDatabaseUsers(account, true);
+        }
 
         if (feature == Feature.ANTI_SPAM) {
             resourceHelper.switchAntiSpamForMailboxes(account, enabled);

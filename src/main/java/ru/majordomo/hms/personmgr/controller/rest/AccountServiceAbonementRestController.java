@@ -19,6 +19,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
+import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
@@ -31,8 +32,6 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_PLAN_ONLY_NAME;
 
 @RestController
 @RequestMapping("/{accountId}/account-service-abonement")
@@ -205,6 +204,10 @@ public class AccountServiceAbonementRestController extends CommonRestController 
 
         ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
 
+        if (plan == null) {
+            throw new ParameterValidationException("Услуга " + feature.name() + " не найдена");
+        }
+
         if (feature == Feature.SMS_NOTIFICATIONS) {
             accountNotificationHelper.checkSmsAllowness(account);
         }
@@ -227,15 +230,11 @@ public class AccountServiceAbonementRestController extends CommonRestController 
             }
         }
 
-        if (feature == Feature.ADDITIONAL_QUOTA_5K) {
+        if (plan.isForSomePlan()) {
             Plan accountPlan = planManager.findOne(account.getPlanId());
-            if (!accountPlan.getInternalName().equals(ADDITIONAL_QUOTA_PLAN_ONLY_NAME)) {
-                throw new ParameterValidationException("Услуга " + feature.name() + " недоступна");
+            if (!accountPlan.getAllowedFeature().contains(feature)) {
+                throw new ParameterValidationException("Услуга " + feature.name() + " недоступна для тарифного плана " + accountPlan.getName());
             }
-        }
-
-        if (plan == null) {
-            throw new ParameterValidationException("Услуга " + feature.name() + " не найдена");
         }
 
         if (abonementId != null && (!plan.getAbonementIds().contains(abonementId) || plan.getAbonementById(abonementId).isInternal())) {
