@@ -32,7 +32,7 @@ public class SslCertificateResourceRestController extends CommonRestController {
 
         PersonalAccount account = accountManager.findOne(accountId);
 
-        if (!account.isActive()) {
+        if (!account.isActive() || account.isPreorder()) {
             throw new ParameterValidationException("Аккаунт неактивен. Заказ SSL-сертификата невозможен.");
         }
 
