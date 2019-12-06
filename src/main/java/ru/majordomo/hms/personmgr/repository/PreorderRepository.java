@@ -11,4 +11,5 @@ public interface PreorderRepository extends MongoRepository<Preorder, String> {
     void deleteByPersonalAccountId(String personalAccountId);
     Preorder findByPersonalAccountIdAndFeature(String personalAccountId, Feature feature);
     boolean existsByAccountAbonementId(String accountAbonementId);
+    boolean existsByPersonalAccountId(String personalAccountId);
 }

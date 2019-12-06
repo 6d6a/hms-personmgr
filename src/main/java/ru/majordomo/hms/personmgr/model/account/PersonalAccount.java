@@ -62,7 +62,11 @@ public class PersonalAccount extends VersionedModel {
     @Indexed
     private boolean active;
 
-    private boolean preorder = false; // если есть какой либо неоплаченный предзаказ пометить true
+    /**
+     * Есть ли на аккаунте заказанные при регистрации но не оплаченные услуги
+     */
+    @Transient
+    private boolean preorder = false;
 
     @NotNull
     @Indexed
