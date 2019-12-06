@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+import ru.majordomo.hms.personmgr.model.Preorder;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.discount.AccountDiscount;
 import ru.majordomo.hms.personmgr.model.discount.Discount;
@@ -61,5 +62,7 @@ public class PersonalAccountMongoEventListener extends AbstractMongoEventListene
             }
             personalAccount.setServices(accountServiceListAfterDiscountConvert);
         }
+
+        personalAccount.setPreorder(mongoOperations.exists(new Query(where("personalAccountId").is(personalAccount.getId())), Preorder.class));
     }
 }
