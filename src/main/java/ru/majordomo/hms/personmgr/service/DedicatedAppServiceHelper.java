@@ -7,12 +7,10 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.DedicatedAppServiceDto;
-import ru.majordomo.hms.personmgr.event.account.DedicatedAppServiceEnabledEvent;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceIsLockedException;
@@ -30,20 +28,25 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.DedicatedAppService;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.DedicatedAppServiceRepository;
-import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 import ru.majordomo.hms.rc.staff.resources.Service;
+import ru.majordomo.hms.rc.staff.resources.template.ApplicationServer;
 import ru.majordomo.hms.rc.staff.resources.template.Template;
 import ru.majordomo.hms.rc.user.resources.UnixAccount;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
 import javax.annotation.Nullable;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Класс содержит в себе всю логику работы с выделенными сервисами
+ */
 @Component
 @RequiredArgsConstructor
 public class DedicatedAppServiceHelper {
@@ -122,7 +125,7 @@ public class DedicatedAppServiceHelper {
         return dedicatedAppService;
     }
 
-    private void assertLockedResource(String accountId, @Nullable String resourceId, @Nullable String templateId) {
+    private void assertLockedResource(String accountId, @Nullable String resourceId, @Nullable String templateId) throws ResourceIsLockedException {
         List<ProcessingBusinessOperation> operations = processingBusinessOperationRepository.findAllByPersonalAccountIdAndTypeInAndStateIn(
                 accountId,
                 DEDICATED_APP_SERVICE_OPERATIONS,
@@ -134,7 +137,45 @@ public class DedicatedAppServiceHelper {
         }
     }
 
-    public ProcessingBusinessAction create(@NonNull PersonalAccount account, @NonNull String templateId) throws ParameterValidationException, ResourceNotFoundException {
+    public void finishCreateOperation(ProcessingBusinessOperation processingBusinessOperation, String staffServiceId) {
+        finishUpdateOperation(processingBusinessOperation, staffServiceId);
+    }
+
+    public void finishUpdateOperation(ProcessingBusinessOperation processingBusinessOperation, String staffServiceId) {
+        String accountId = processingBusinessOperation.getPersonalAccountId();
+        Boolean switchedOn = null;
+        String templateId = null;
+        try {
+            switchedOn = (Boolean) processingBusinessOperation.getParam(Constants.SWITCHED_ON_KEY);
+            templateId = (String) processingBusinessOperation.getParam(Constants.TEMPLATE_ID_KEY);
+        } catch (ClassCastException ex) { /*ignore*/ }
+        DedicatedAppService dedicatedAppService = null;
+        if (templateId != null) {
+            dedicatedAppService = dedicatedAppServiceRepository.findByPersonalAccountIdAndTemplateId(accountId, templateId);
+        } else {
+            dedicatedAppService = dedicatedAppServiceRepository.findByStaffServiceId(staffServiceId);
+        }
+
+        if (dedicatedAppService == null) {
+            return;
+        }
+
+        if (dedicatedAppService.getAccountService() != null) {
+            if (!dedicatedAppService.getAccountService().isEnabled()
+                    && (processingBusinessOperation.getType() == BusinessOperationType.DEDICATED_APP_SERVICE_CREATE
+                    || Boolean.TRUE.equals(switchedOn))) {
+                accountServiceHelper.setEnabledAccountService(dedicatedAppService.getAccountService(), true);
+            } else if (dedicatedAppService.getAccountService().isEnabled() && Boolean.FALSE.equals(switchedOn)) {
+                accountServiceHelper.setEnabledAccountService(dedicatedAppService.getAccountService(), false);
+            }
+        }
+        if (dedicatedAppService.getStaffServiceId() == null) {
+            dedicatedAppService.setStaffServiceId(staffServiceId);
+        }
+        dedicatedAppServiceRepository.save(dedicatedAppService);
+    }
+
+    public ProcessingBusinessAction create(@NonNull PersonalAccount account, @NonNull String templateId) throws ParameterValidationException, ResourceNotFoundException, ResourceIsLockedException {
 
         assertAccountIsActive(account);
 
@@ -186,27 +227,39 @@ public class DedicatedAppServiceHelper {
             Service staffService = services.get(0);
             assertLockedResource(account.getId(), staffService.getId(), staffService.getTemplateId());
             if (!staffService.getSwitchedOn()){
-                message.addParam(Constants.RESOURCE_ID_KEY, staffService.getId());
-                message.addParam(Constants.SWITCHED_ON_KEY, true);
-                message.addParam(Constants.TEMPLATE_ID_KEY, staffService.getTemplateId()); // need for assertLockedResource
-                action = businessHelper.buildActionAndOperation(
-                        BusinessOperationType.DEDICATED_APP_SERVICE_UPDATE,
-                        BusinessActionType.DEDICATED_APP_SERVICE_UPDATE_RC_STAFF,
-                        message
-                );
-                history.save(account, "Поступила заявка на включение выделенного сервиса с templateId: " + template.getId());
+                action = switchStaffService(account,  staffService, true);
             } else {
                 action = null;
             }
         }
 
-        AccountService accountService = accountServiceHelper.addAccountService(account, servicePlan.getServiceId());
+        AccountService accountService = createAccountService(account, template, servicePlan.getService());
 
         dedicatedAppService = addService(account, template.getId(), accountService);
 
         history.save(account, "Заказана услуга выделенный сервис с templateId: " + template.getId());
 
         return action;
+    }
+
+    private AccountService createAccountService(PersonalAccount account, Template template, PaymentService paymentService) {
+        String comment = null;
+        if (template instanceof ApplicationServer) {
+            ApplicationServer as = (ApplicationServer) template;
+            String language = as.getLanguage() == ApplicationServer.Language.JAVASCRIPT ? "JS" : as.getLanguage().name();
+            comment = String.format("%s %s", language, as. getVersion());
+        } else {
+            comment = template.getName();
+        }
+        AccountService accountService = new AccountService();
+        accountService.setEnabled(false);
+        accountService.setComment(comment);
+        accountService.setPersonalAccountId(account.getId());
+        accountService.setQuantity(1);
+        accountService.setPaymentService(paymentService);
+        accountService.setServiceId(paymentService.getId());
+        accountService.setLastBilled(LocalDateTime.now());
+        return accountServiceHelper.save(accountService);
     }
 
     public DedicatedAppService findByAccountService(String personalAccountId, String accountServiceId) {
@@ -227,7 +280,7 @@ public class DedicatedAppServiceHelper {
             if (account == null) {
                 throw new ResourceNotFoundException("Не найден аккаунт " + accountId);
             }
-            disableDedicatedAppService(account, dedicatedAppService);
+            cancelDedicatedAppService(account, dedicatedAppService);
         } catch (ResourceNotFoundException | ParameterValidationException | FeignException ex) {
             logger.error(String.format("Cannot delete dedicated service with account service %s", accountServiceId), ex);
             throw ex;
@@ -235,7 +288,7 @@ public class DedicatedAppServiceHelper {
     }
 
     @Nullable
-    public ProcessingBusinessAction disableDedicatedAppService(String accountId, String dedicatedServiceId) {
+    public ProcessingBusinessAction cancelDedicatedAppService(String accountId, String dedicatedServiceId) {
         DedicatedAppService dedicatedAppService = getService(dedicatedServiceId);
         if (dedicatedAppService == null) {
             throw new ResourceNotFoundException("Не найден выделенный сервис с id: " + dedicatedServiceId);
@@ -245,18 +298,55 @@ public class DedicatedAppServiceHelper {
         if (account == null) {
             throw new ResourceNotFoundException("Не найден аккаунт " + accountId);
         }
-        return disableDedicatedAppService(account, dedicatedAppService);
+        return cancelDedicatedAppService(account, dedicatedAppService);
+    }
+
+    public void switchAllDedicatedAppService(PersonalAccount account, boolean state) {
+
+        String serverId = getServerId(account.getId());
+        if (StringUtils.isEmpty(serverId)) {
+            throw new ResourceNotFoundException("Не удалось найти сервер на котором находится аккаунт");
+        }
+        List<Service> staffServices = rcStaffFeignClient.getServiceByAccountIdAndServerId(account.getId(), serverId);
+        List<DedicatedAppService> services = getServices(account.getId());
+
+        for (DedicatedAppService appService : services) {
+            appService.setActive(state);
+            dedicatedAppServiceRepository.save(appService);
+            staffServices.stream().filter(ss -> ss.getTemplateId().equals(appService.getTemplateId()))
+                    .findFirst().ifPresent(staffService -> switchStaffService(account, staffService, state));
+        }
+    }
+
+    private ProcessingBusinessAction switchStaffService(PersonalAccount account, Service staffService, boolean state) throws ResourceIsLockedException {
+        assertServiceIsnotUser(account.getId(), staffService.getId());
+        assertLockedResource(account.getId(), staffService.getId(), staffService.getTemplateId());
+
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(account.getId());
+        message.addParam(Constants.RESOURCE_ID_KEY, staffService.getId());
+        message.addParam(Constants.SWITCHED_ON_KEY, state);
+        message.addParam(Constants.TEMPLATE_ID_KEY, staffService.getTemplateId()); // need for assertLockedResource
+
+        ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
+                BusinessOperationType.DEDICATED_APP_SERVICE_UPDATE,
+                BusinessActionType.DEDICATED_APP_SERVICE_UPDATE_RC_STAFF,
+                message
+        );
+        history.save(account, String.format("Поступила заявка на %s выделенного сервиса с id: %s", state ? "включение" : "отключение", staffService.getId()));
+
+        return action;
     }
 
     /**
-     * Удаляет DedicatedAppService, AccountService и сервис на rc-staff
+     * Действие которое происходит если пользователь отказывается от выделенного сервиса. Удаляет DedicatedAppService, AccountService и сервис на rc-staff только отключает
      * @param account
      * @param dedicatedAppService
      * @throws ParameterValidationException
      * @throws ResourceNotFoundException
      */
     @Nullable
-    private ProcessingBusinessAction disableDedicatedAppService(@NonNull PersonalAccount account, @NonNull DedicatedAppService dedicatedAppService) throws ParameterValidationException, ResourceNotFoundException {
+    private ProcessingBusinessAction cancelDedicatedAppService(@NonNull PersonalAccount account, @NonNull DedicatedAppService dedicatedAppService) throws ParameterValidationException, ResourceNotFoundException {
 
         List<ru.majordomo.hms.rc.staff.resources.Service> staffServices =
                 rcStaffFeignClient.getServicesByAccountIdAndTemplateId(
@@ -269,20 +359,7 @@ public class DedicatedAppServiceHelper {
         if (staffServices.size() > 0) {
             Service staffService = staffServices.get(0);
             assertServiceIsnotUser(account.getId(), staffService.getId());
-            assertLockedResource(account.getId(), staffService.getId(), staffService.getTemplateId());
-
-            SimpleServiceMessage message = new SimpleServiceMessage();
-            message.setAccountId(dedicatedAppService.getPersonalAccountId());
-            message.addParam(Constants.RESOURCE_ID_KEY, staffService.getId());
-            message.addParam(Constants.SWITCHED_ON_KEY, false);
-            message.addParam(Constants.TEMPLATE_ID_KEY, staffService.getTemplateId()); // need for assertLockedResource
-
-            action = businessHelper.buildActionAndOperation(
-                    BusinessOperationType.DEDICATED_APP_SERVICE_UPDATE,
-                    BusinessActionType.DEDICATED_APP_SERVICE_UPDATE_RC_STAFF,
-                    message
-            );
-            history.save(account, "Поступила заявка на отключение выделенного сервиса с id: " + staffServices.get(0).getId());
+            action = switchStaffService(account,  staffService, false);
         } else {
             assertLockedResource(account.getId(), null, dedicatedAppService.getTemplateId());
             history.save(account, "Поступила заявка на отключение выделенного сервиса. Сервисов не найдено, удалена услуга");

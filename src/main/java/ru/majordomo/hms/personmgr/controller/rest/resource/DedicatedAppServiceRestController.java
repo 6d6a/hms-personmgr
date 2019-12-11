@@ -87,7 +87,7 @@ public class DedicatedAppServiceRestController extends CommonRestController {
             @PathVariable @ObjectId(PersonalAccount.class) String accountId,
             @PathVariable @ObjectId(DedicatedAppService.class) String serviceId
     ) {
-        ProcessingBusinessAction action = dedicatedAppServiceHelper.disableDedicatedAppService(accountId, serviceId);
+        ProcessingBusinessAction action = dedicatedAppServiceHelper.cancelDedicatedAppService(accountId, serviceId);
         if (action != null) {
             return ResponseEntity.accepted().body(createSuccessResponse(action));
         } else {

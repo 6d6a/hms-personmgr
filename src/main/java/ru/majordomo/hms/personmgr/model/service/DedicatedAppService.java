@@ -35,4 +35,7 @@ public class DedicatedAppService extends ModelBelongsToPersonalAccount {
     private LocalDate createdDate;
 
     private boolean active;
+
+    @Nullable
+    private String staffServiceId;
 }

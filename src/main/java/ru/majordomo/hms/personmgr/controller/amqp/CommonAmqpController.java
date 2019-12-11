@@ -23,13 +23,7 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
-import ru.majordomo.hms.personmgr.service.AccountTransferService;
-import ru.majordomo.hms.personmgr.service.AmqpSender;
-import ru.majordomo.hms.personmgr.service.BusinessFlowDirector;
-import ru.majordomo.hms.personmgr.service.BusinessHelper;
-import ru.majordomo.hms.personmgr.service.FtpUserService;
-import ru.majordomo.hms.personmgr.service.ResourceArchiveService;
-import ru.majordomo.hms.personmgr.service.ResourceChecker;
+import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.rc.user.resources.ResourceArchiveType;
 
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ROUTING_KEY;
@@ -56,10 +50,16 @@ public class CommonAmqpController {
     private FtpUserService ftpUserService;
     protected AccountHistoryManager history;
     private ResourceArchiveService resourceArchiveService;
+    private DedicatedAppServiceHelper dedicatedAppServiceHelper;
 
     protected String resourceName = "";
 
     protected String instanceName;
+
+    @Autowired
+    public void setDedicatedAppServiceHelper(DedicatedAppServiceHelper dedicatedAppServiceHelper) {
+        this.dedicatedAppServiceHelper = dedicatedAppServiceHelper;
+    }
 
     @Autowired
     public void setAccountHistoryService(AccountHistoryManager history) {
@@ -305,6 +305,13 @@ public class CommonAmqpController {
                                 });
 
                         break;
+
+                    case DEDICATED_APP_SERVICE_CREATE_RC_STAFF:
+                        processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
+                            String resourceId = getResourceIdByObjRef(message.getObjRef());
+                            dedicatedAppServiceHelper.finishCreateOperation(operation, resourceId);
+                        });
+                        break;
                 }
             });
         }
@@ -386,6 +393,12 @@ public class CommonAmqpController {
                                 }
                             });
 
+                    break;
+                case DEDICATED_APP_SERVICE_UPDATE_RC_STAFF:
+                    processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
+                        String resourceId = getResourceIdByObjRef(message.getObjRef());
+                        dedicatedAppServiceHelper.finishUpdateOperation(operation, resourceId);
+                    });
                     break;
             }
             });

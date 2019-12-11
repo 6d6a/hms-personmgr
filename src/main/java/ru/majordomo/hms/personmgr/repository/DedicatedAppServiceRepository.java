@@ -13,6 +13,5 @@ public interface DedicatedAppServiceRepository extends MongoRepository<Dedicated
     DedicatedAppService findByIdAndPersonalAccountId(String id, String personalAccountId);
     DedicatedAppService findByPersonalAccountIdAndAccountServiceId(String personalAccountId, String accountServiceId);
     DedicatedAppService findByAccountServiceId(String accountServiceId);
-    @Query("{}")
-    Stream<DedicatedAppService> findAllStream();
+    DedicatedAppService findByStaffServiceId(String staffServiceId);
 }
