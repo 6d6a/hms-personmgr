@@ -134,8 +134,22 @@ public class AccountServiceHelper {
      * @param account   Аккаунт
      * @param newPaymentServiceId PaymentService id новой услуги
      */
+    public AccountService addAccountService(PersonalAccount account, String newPaymentServiceId, @Nullable String comment) {
+        return addAccountService(account, newPaymentServiceId, 1, comment);
+    }
+
+    public AccountService save(AccountService accountService) {
+        return accountServiceRepository.save(accountService);
+    }
+
+    /**
+     * Добавляем новую услугу
+     *
+     * @param account   Аккаунт
+     * @param newPaymentServiceId PaymentService id новой услуги
+     */
     public AccountService addAccountService(PersonalAccount account, String newPaymentServiceId) {
-        return addAccountService(account, newPaymentServiceId, 1);
+        return addAccountService(account, newPaymentServiceId, 1, null);
     }
 
     public boolean hasAccountService(String accountServiceId) {
@@ -149,11 +163,12 @@ public class AccountServiceHelper {
      * @param newPaymentServiceId PaymentService id новой услуги
      * @param quantity кол-во услуг
      */
-    private AccountService addAccountService(PersonalAccount account, String newPaymentServiceId, int quantity) {
+    private AccountService addAccountService(PersonalAccount account, String newPaymentServiceId, int quantity, @Nullable String comment) {
         AccountService service = new AccountService();
         service.setPersonalAccountId(account.getId());
         service.setServiceId(newPaymentServiceId);
         service.setQuantity(quantity);
+        service.setComment(comment);
 
         return accountServiceRepository.save(service);
     }
@@ -183,7 +198,7 @@ public class AccountServiceHelper {
 
             accountServiceRepository.save(accountService);
         } else {
-            addAccountService(account, serviceId, quantity);
+            addAccountService(account, serviceId, quantity, null);
         }
     }
 

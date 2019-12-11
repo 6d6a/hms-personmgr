@@ -27,6 +27,7 @@ public class ResourceHelper {
     private final RcUserFeignClient rcUserFeignClient;
     private final BusinessHelper businessHelper;
     private final AccountHistoryManager history;
+    private final DedicatedAppServiceHelper dedicatedAppServiceHelper;
 
     public List<Domain> getDomains(PersonalAccount account) {
         try {
@@ -65,6 +66,7 @@ public class ResourceHelper {
         switchFtpUsers(account, state);
         switchUnixAccounts(account, state);
         switchRedirects(account, state);
+        dedicatedAppServiceHelper.switchAllDedicatedAppService(account, state);
     }
 
     private void switchWebsites(PersonalAccount account, Boolean state) {
