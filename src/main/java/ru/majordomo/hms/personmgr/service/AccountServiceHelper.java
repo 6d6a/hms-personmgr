@@ -72,6 +72,12 @@ public class AccountServiceHelper {
         this.publisher = publisher;
     }
 
+    public void deletePlanServiceIfExists(PersonalAccount account, Plan plan) {
+        if (accountHasService(account, plan.getServiceId())) {
+            deleteAccountServiceByServiceId(account, plan.getServiceId());
+        }
+    }
+
     /**
      * Удаляем старую услугу
      *
