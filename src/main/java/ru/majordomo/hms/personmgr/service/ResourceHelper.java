@@ -66,7 +66,7 @@ public class ResourceHelper {
         switchFtpUsers(account, state);
         switchUnixAccounts(account, state);
         switchRedirects(account, state);
-        dedicatedAppServiceHelper.switchAllDedicatedAppService(account, state);
+        switchDedicatedAppServices(account, state);
     }
 
     private void switchWebsites(PersonalAccount account, Boolean state) {
@@ -89,13 +89,13 @@ public class ResourceHelper {
         }
     }
 
-    public void switchDatabaseUsers(PersonalAccount account, @Nonnull Boolean state) {
+    public void switchDatabaseUsers(PersonalAccount account, Boolean state) {
         try {
 
             List<DatabaseUser> databaseUsers = rcUserFeignClient.getDatabaseUsers(account.getId());
 
             for (DatabaseUser databaseUser : databaseUsers) {
-                if (state.equals(databaseUser.getSwitchedOn())) {
+                if (state == null || state.equals(databaseUser.getSwitchedOn())) {
                     continue;
                 }
                 SimpleServiceMessage message = messageForSwitchOn(databaseUser, state);
@@ -120,13 +120,25 @@ public class ResourceHelper {
         return !rcUserFeignClient.getDatabaseUsers(account.getId()).isEmpty();
     }
 
-    public void switchDatabases(PersonalAccount account, @Nonnull Boolean state) {
+    private void switchDedicatedAppServices(PersonalAccount account, Boolean state) {
+        if (state == null) {
+            return;
+        }
+        try {
+            dedicatedAppServiceHelper.switchAllDedicatedAppService(account, state);
+        } catch (Exception ex) {
+            log.error("account DedicatedAppServices switch failed for accountId: " + account.getId());
+            ex.printStackTrace();
+        }
+    }
+
+    public void switchDatabases(PersonalAccount account, Boolean state) {
         try {
 
             Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
 
             for (Database database : databases) {
-                if (state.equals(database.getSwitchedOn())) {
+                if (state == null || state.equals(database.getSwitchedOn())) {
                     continue;
                 }
                 SimpleServiceMessage message = messageForSwitchOn(database, state);
