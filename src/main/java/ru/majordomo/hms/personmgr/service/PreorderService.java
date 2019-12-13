@@ -530,9 +530,16 @@ public class PreorderService {
         if (CollectionUtils.isEmpty(preorders)) {
             return null;
         }
-        return preorders.stream().map(this::getPreorderCost)
-                .peek(cost -> { if (cost == null) throw new InternalApiException("Cannot compute cost for order for account " + account.getId()); })
-                .reduce(BigDecimal::add).orElse(null);
+        try {
+            return preorders.stream().map(this::getPreorderCost)
+                    .peek(cost -> {
+                        if (cost == null)
+                            throw new InternalApiException("Cannot compute cost for order for account " + account.getId());
+                    })
+                    .reduce(BigDecimal::add).orElse(null);
+        } catch (InternalApiException ex) {
+            return null;
+        }
     }
 
     private boolean isDailyPayment(Period period, Feature feature) {

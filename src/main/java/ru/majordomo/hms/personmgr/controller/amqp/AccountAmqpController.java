@@ -98,8 +98,15 @@ public class AccountAmqpController extends CommonAmqpController {
                                     abonementService.addFree14DaysAbonement(account);
                                 }
                             } else {
-                                preorderService.activateAllFreeAndDailyPreorder(account); // в этом месте заказ может быть удален, а аккаунт активирован
-                                account = accountManager.findOne(account.getId());
+                                try {
+                                    preorderService.activateAllFreeAndDailyPreorder(account); // в этом месте заказ может быть удален, а аккаунт активирован
+                                    account = accountManager.findOne(account.getId());
+                                } catch (Exception ex) {
+                                    logger.error(
+                                            "Can't process activate preorder e: {} message: {}, operation: {}",
+                                            ex.getClass(), ex.getMessage(), businessOperation.toString()
+                                    );
+                                }
                             }
                             
                             if (businessOperation.getType() == BusinessOperationType.ACCOUNT_CREATE) {

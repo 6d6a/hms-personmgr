@@ -7,14 +7,12 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpException;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.DedicatedAppServiceDto;
-import ru.majordomo.hms.personmgr.exception.InternalApiException;
-import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.exception.ResourceIsLockedException;
-import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
+import ru.majordomo.hms.personmgr.exception.*;
 import ru.majordomo.hms.personmgr.feign.RcStaffFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
@@ -301,13 +299,17 @@ public class DedicatedAppServiceHelper {
         return cancelDedicatedAppService(account, dedicatedAppService);
     }
 
-    public void switchAllDedicatedAppService(PersonalAccount account, boolean state) {
+    public boolean switchAllDedicatedAppService(PersonalAccount account, boolean state) throws BaseException, FeignException, AmqpException {
 
         String serverId = getServerId(account.getId());
         if (StringUtils.isEmpty(serverId)) {
-            throw new ResourceNotFoundException("Не удалось найти сервер на котором находится аккаунт");
+            return false;
         }
-        List<Service> staffServices = rcStaffFeignClient.getServiceByAccountIdAndServerId(account.getId(), serverId);
+        List<Service> staffServices;
+
+        staffServices = rcStaffFeignClient.getServiceByAccountIdAndServerId(account.getId(), serverId);
+
+
         List<DedicatedAppService> services = getServices(account.getId());
 
         for (DedicatedAppService appService : services) {
@@ -316,9 +318,11 @@ public class DedicatedAppServiceHelper {
             staffServices.stream().filter(ss -> ss.getTemplateId().equals(appService.getTemplateId()))
                     .findFirst().ifPresent(staffService -> switchStaffService(account, staffService, state));
         }
+
+        return true;
     }
 
-    private ProcessingBusinessAction switchStaffService(PersonalAccount account, Service staffService, boolean state) throws ResourceIsLockedException {
+    private ProcessingBusinessAction switchStaffService(PersonalAccount account, Service staffService, boolean state) throws ResourceIsLockedException, ParameterValidationException {
         assertServiceIsnotUser(account.getId(), staffService.getId());
         assertLockedResource(account.getId(), staffService.getId(), staffService.getTemplateId());
 
@@ -374,17 +378,17 @@ public class DedicatedAppServiceHelper {
         return action;
     }
 
-    private String getServerId(String accountId) throws ParameterValidationException {
+    private String getServerId(String accountId) {
         List<UnixAccount> unixAccounts = null;
         try {
             unixAccounts = (List<UnixAccount>) rcUserFeignClient.getUnixAccounts(accountId);
         } catch (Exception ignored) {}
 
-        if (unixAccounts == null || unixAccounts.isEmpty()) {
-            throw new ParameterValidationException("UnixAccount не найден");
+        if (CollectionUtils.isEmpty(unixAccounts)) {
+            return "";
+        } else {
+            return unixAccounts.get(0).getServerId();
         }
-
-        return unixAccounts.get(0).getServerId();
     }
 
     private DedicatedAppService addService(PersonalAccount account, String templateId, AccountService accountService) {
