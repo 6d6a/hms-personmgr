@@ -333,6 +333,10 @@ public class PreorderService {
         } else if (preorder.getFeature() == Feature.VIRTUAL_HOSTING_PLAN) {
             AccountAbonement accountAbonement = new AccountAbonement(account.getId(), preorder.getAbonement(), null);
             String accountAbonementId = accountAbonementManager.insert(accountAbonement).getId();
+            Plan plan = planManager.findOne(account.getPlanId());
+            if (plan != null) {
+                accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
+            }
             preorder.setAccountAbonementId(accountAbonementId);
             publisher.publishEvent(new AccountBuyAbonement(account.getId(), accountAbonementId));
         } else {
@@ -352,8 +356,6 @@ public class PreorderService {
     private void clearPreorderAndActivate(@NonNull PersonalAccount account, boolean isFree) {
         preorderRepository.deleteByPersonalAccountId(account.getId());
         account.setPreorder(false);
-        accountManager.save(account);
-        preorderRepository.deleteByPersonalAccountId(account.getId());
         history.save(account, isFree ? "Заказанные бесплатные услуги активированы, аккаунт включен" : "Клиент оплатил заказанные услуги");
         logger.info(isFree ? "All ordered service is free, activate account " + account.getId() : "Client paid ordered service, activate account " + account.getId());
 
@@ -408,6 +410,10 @@ public class PreorderService {
             accountService.setPersonalAccountId(preorder.getPersonalAccountId());
             preorder.setAccountServiceId(accountServiceRepository.insert(accountService).getId());
         } else if (preorder.getFeature() == Feature.VIRTUAL_HOSTING_PLAN) {
+            Plan plan = planManager.findOne(account.getPlanId());
+            if (plan != null) {
+                accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
+            }
             AccountAbonement accountAbonement = new AccountAbonement(account.getId(), preorder.getAbonement(), null);
             preorder.setAccountAbonementId(accountAbonementManager.insert(accountAbonement).getId());
         } else {
@@ -595,7 +601,7 @@ public class PreorderService {
     }
 
     public boolean isPreorder(String accountId) {
-        return CollectionUtils.isNotEmpty(preorderRepository.findByPersonalAccountId(accountId));
+        return preorderRepository.existsByPersonalAccountId(accountId);
     }
 
     public void addPromoPreorder(@NonNull PersonalAccount account, @NonNull Abonement abonement) {
