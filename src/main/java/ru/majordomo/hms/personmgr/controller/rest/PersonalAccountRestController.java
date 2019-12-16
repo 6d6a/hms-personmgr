@@ -773,15 +773,19 @@ public class PersonalAccountRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        Boolean delete = account.getDeleted() == null;
+        boolean delete = account.getDeleted() == null;
 
         Map<String, String> requestParams = new HashMap<>();
-        requestParams.put(DELETE_KEY, delete.toString());
+        requestParams.put(DELETE_KEY, Boolean.toString(delete));
 
         SimpleServiceMessage siResponse = siFeignClient.toggleDelete(account.getId(), requestParams);
 
         if (siResponse.getParam("success") == null || !((boolean) siResponse.getParam("success"))) {
             throw new ParameterValidationException("Не удалось удалить логин для входа в КП. Ошибка: " + siResponse.getParam(ERROR_MESSAGE_KEY));
+        }
+
+        if (delete) {
+            accountHelper.disableAccount(account);
         }
 
         accountManager.setDeleted(accountId, delete);
