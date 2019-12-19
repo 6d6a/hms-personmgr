@@ -61,7 +61,8 @@ public class ChargeHelper {
                 logger.info("Account {} not activated because chargeRequest isn't success", accountId); //todo change to debug
             }
         } else {
-            logger.info("Account {} not activated because chargeRequest is empty", accountId); //todo change to debug
+            accountHelper.enableAccount(accountId);
+            logger.info("ChargeRequest is empty, call enableAccount for account " + accountId); //todo change to debug
         }
     }
 }
