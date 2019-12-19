@@ -573,6 +573,7 @@ public class AccountEventListener {
 
     private void tryProcessChargeAndEnableAccount(PersonalAccount account) {
         if (!account.isActive()) {
+            logger.info("tryProcessChargeAndEnableAccount for account: " + account.getId()); //todo change to debug
             // сразу списываем за текущий день
             chargeHelper.prepareAndProcessChargeRequest(account.getId(), LocalDate.now());
         }
