@@ -379,8 +379,6 @@ public class AccountEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void userCanBuyAbonement(PaymentWasReceivedEvent event) {
-        logger.info("userCanBuyAbonement");
-
         SimpleServiceMessage message = event.getSource();
 
         if (!message.getParam("paymentTypeKind").equals(REAL_PAYMENT_TYPE_KIND)) {
@@ -486,6 +484,8 @@ public class AccountEventListener {
     @Async("vipThreadPoolTaskExecutor")
     public void onAccountSwitchByPaymentCreatedEvent(PaymentWasReceivedEvent event) {
         SimpleServiceMessage message = event.getSource();
+
+        logger.info("We got onAccountSwitchByPaymentCreatedEvent for account: " + message.getAccountId());
 
         if (message.getParam("paymentTypeKind").equals(CREDIT_PAYMENT_TYPE_KIND)) {
             return;
