@@ -57,7 +57,11 @@ public class ChargeHelper {
 
             if (chargeResult.isSuccess()) {
                 accountHelper.enableAccount(accountId);
+            } else {
+                logger.info("Account {} not activated because chargeRequest isn't success", accountId); //todo change to debug
             }
+        } else {
+            logger.info("Account {} not activated because chargeRequest is empty", accountId); //todo change to debug
         }
     }
 }
