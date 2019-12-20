@@ -329,6 +329,10 @@ public class RecurrentProcessorService {
     }
 
     private BigDecimal getAbonementRecurrentSum(PersonalAccount account) {
+        if (!account.isAbonementAutoRenew()) {
+            return BigDecimal.ZERO;
+        }
+
         AbonementsWrapper wrapper = new AbonementsWrapper(
                 accountAbonementManager.findAllByPersonalAccountId(account.getId())
         );
