@@ -25,7 +25,6 @@ import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
-import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
@@ -66,8 +65,8 @@ public class BuyAbonementPromotionProcessorTest {
     private PromotionRepository promotionRepository;
     @MockBean
     private PromocodeActionRepository actionRepository;
-    @Autowired
-    private AccountNoticeRepository accountNoticeRepository;
+    @MockBean
+    private AccountNoticeManager accountNoticeManager;
     @Autowired
     private AccountPromotionManager accountPromotionManager;
     @Autowired

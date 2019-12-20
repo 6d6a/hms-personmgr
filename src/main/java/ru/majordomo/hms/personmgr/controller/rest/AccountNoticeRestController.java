@@ -1,20 +1,15 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
-import com.querydsl.core.types.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.AccountNoticeType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.manager.AccountNoticeManager;
 import ru.majordomo.hms.personmgr.model.account.AccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import java.util.List;
@@ -23,13 +18,13 @@ import java.util.List;
 @Validated
 public class AccountNoticeRestController extends CommonRestController {
 
-    private final AccountNoticeRepository accountNoticeRepository;
+    private final AccountNoticeManager accountNoticeManager;
 
     @Autowired
     public AccountNoticeRestController(
-            AccountNoticeRepository accountNoticeRepository
+            AccountNoticeManager accountNoticeManager
     ) {
-        this.accountNoticeRepository = accountNoticeRepository;
+        this.accountNoticeManager = accountNoticeManager;
     }
 
     //Список всех нотификций
@@ -41,9 +36,9 @@ public class AccountNoticeRestController extends CommonRestController {
         List<AccountNotice> notices;
 
         if (type == null) {
-            notices = accountNoticeRepository.findByPersonalAccountId(accountId);
+            notices = accountNoticeManager.findByPersonalAccountId(accountId);
         } else {
-           notices = accountNoticeRepository.findByPersonalAccountIdAndType(accountId, type);
+           notices = accountNoticeManager.findByPersonalAccountIdAndType(accountId, type);
         }
 
         return new ResponseEntity<>(notices, HttpStatus.OK);
@@ -54,7 +49,7 @@ public class AccountNoticeRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @ObjectId(AccountNotice.class) @PathVariable(value = "accountNoticeId") String accountNoticeId
     ) {
-        AccountNotice notice = accountNoticeRepository.findByPersonalAccountIdAndId(accountId, accountNoticeId);
+        AccountNotice notice = accountNoticeManager.findByPersonalAccountIdAndId(accountId, accountNoticeId);
 
         return new ResponseEntity<>(notice, HttpStatus.OK);
     }
@@ -68,9 +63,9 @@ public class AccountNoticeRestController extends CommonRestController {
         List<AccountNotice> notices;
 
         if (type == null) {
-            notices = accountNoticeRepository.findByPersonalAccountIdAndViewed(accountId, false);
+            notices = accountNoticeManager.findByPersonalAccountIdAndViewed(accountId, false);
         } else {
-            notices = accountNoticeRepository.findByPersonalAccountIdAndViewedAndType(accountId, false, type);
+            notices = accountNoticeManager.findByPersonalAccountIdAndViewedAndType(accountId, false, type);
         }
 
         return new ResponseEntity<>(notices, HttpStatus.OK);
@@ -82,14 +77,14 @@ public class AccountNoticeRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "accountNoticeId") String accountNoticeId
     ) {
-        AccountNotice notification = accountNoticeRepository.findByPersonalAccountIdAndId(accountId, accountNoticeId);
+        AccountNotice notification = accountNoticeManager.findByPersonalAccountIdAndId(accountId, accountNoticeId);
 
         if (notification == null) {
             throw new ParameterValidationException("Уведомление с ID: '" + accountNoticeId + "' не найдено");
         }
 
         notification.setViewed(true);
-        accountNoticeRepository.save(notification);
+        accountNoticeManager.save(notification);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -100,14 +95,14 @@ public class AccountNoticeRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "accountNoticeId") String accountNoticeId
     ) {
-        AccountNotice notification = accountNoticeRepository.findByPersonalAccountIdAndId(accountId, accountNoticeId);
+        AccountNotice notification = accountNoticeManager.findByPersonalAccountIdAndId(accountId, accountNoticeId);
 
         if (notification == null) {
             throw new ParameterValidationException("Уведомление с ID: '" + accountNoticeId + "' не найдено");
         }
 
         notification.setViewed(false);
-        accountNoticeRepository.save(notification);
+        accountNoticeManager.save(notification);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
