@@ -15,6 +15,8 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import static ru.majordomo.hms.personmgr.common.Constants.SSL_CHECK_PROHIBITED_KEY;
+
 @RestController
 @RequestMapping("/{accountId}/ssl-certificate")
 @Validated
@@ -37,6 +39,7 @@ public class SslCertificateResourceRestController extends CommonRestController {
         }
 
         resourceChecker.checkResource(account, ResourceType.SSL_CERTIFICATE, message.getParams());
+        message.removeParam(SSL_CHECK_PROHIBITED_KEY);
 
         String domainName = (String) message.getParam("name");
 
@@ -71,6 +74,7 @@ public class SslCertificateResourceRestController extends CommonRestController {
         logger.debug("Update sslcertificate " + message.toString());
 
         resourceChecker.checkResource(account, ResourceType.SSL_CERTIFICATE, message.getParams());
+        message.removeParam(SSL_CHECK_PROHIBITED_KEY);
 
         boolean inProcessing = businessHelper.existsActiveOperations(accountId, BusinessOperationType.SSL_CERTIFICATE_UPDATE, message);
         if (inProcessing) {

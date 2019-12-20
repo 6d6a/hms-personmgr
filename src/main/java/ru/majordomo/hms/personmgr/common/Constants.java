@@ -140,6 +140,7 @@ public class Constants {
     public static final String RESOURCE_ARCHIVE_ID = "resourceArchiveId";
     public static final String RESOURCE_TYPE = "resourceType";
     public static final String PAYMENT_REDIRECT_PATH = "/payment-redirect";
+    public static final String SSL_CHECK_PROHIBITED_KEY = "ssl_check_prohibited";
 
     public static final String WEBSITE_APACHE2_PERL = "WEBSITE_APACHE2_PERL*";
     public static final String WEBSITE_APACHE2_PHP = "WEBSITE_APACHE2_PHP*";
