@@ -53,7 +53,7 @@ public class ResourceChecker {
 
                 break;
             case SSL_CERTIFICATE:
-                checkSSLCertificate(account);
+                checkSSLCertificate(account, resource);
 
                 break;
             case MAILBOX:
@@ -133,10 +133,18 @@ public class ResourceChecker {
         }
     }
 
-    private void checkSSLCertificate(PersonalAccount account) {
+    private void checkSSLCertificate(PersonalAccount account, Map<String, Object> params) {
         Plan plan = planManager.findOne(account.getPlanId());
 
-        if (!plan.isSslCertificateAllowed()) {
+        boolean sslCheckProhibited = true;
+        if (params.get(SSL_CHECK_PROHIBITED_KEY) instanceof Boolean) {
+            sslCheckProhibited = (Boolean) params.get(SSL_CHECK_PROHIBITED_KEY);
+        }
+
+        //Если на тарифе prohibitedResourceTypes содержит SSL_CERTIFICATE, то заблокировать заказ Let's Encrypt
+        //И разрешить установку пользовательских сертификатов
+        //Или запретить, если это партнерский тариф
+        if (sslCheckProhibited && !plan.isSslCertificateAllowed() || plan.isPartnerPlan()) {
             throw new ParameterValidationException("На вашем тарифном плане заказ SSL сертификатов недоступен");
         }
     }
