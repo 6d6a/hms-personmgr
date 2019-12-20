@@ -1,13 +1,16 @@
 package ru.majordomo.hms.personmgr.model.account;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.*;
+import org.springframework.data.mongodb.core.mapping.Document;
 import ru.majordomo.hms.personmgr.common.AccountNoticeType;
 
 import java.util.Map;
 
+@Getter
+@Setter
+@ToString
 @EqualsAndHashCode(callSuper = true)
-@Data
+@Document(collection = AccountNotice.COLLECTION_NAME)
 public class DefaultAccountNotice extends AccountNotice {
     public DefaultAccountNotice() {
         super(AccountNoticeType.DEFAULT);

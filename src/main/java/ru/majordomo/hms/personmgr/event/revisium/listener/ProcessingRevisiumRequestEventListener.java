@@ -15,12 +15,12 @@ import ru.majordomo.hms.personmgr.dto.revisium.ResultStatus;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessBulkRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessRevisiumRequestEvent;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
+import ru.majordomo.hms.personmgr.manager.AccountNoticeManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.RevisiumAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequest;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
-import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestRepository;
 import ru.majordomo.hms.personmgr.repository.RevisiumRequestServiceRepository;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
@@ -42,7 +42,7 @@ public class ProcessingRevisiumRequestEventListener {
     private final RevisiumRequestRepository revisiumRequestRepository;
     private final RevisiumRequestServiceRepository revisiumRequestServiceRepository;
     private final RevisiumRequestScheduler scheduler;
-    private final AccountNoticeRepository accountNoticeRepository;
+    private final AccountNoticeManager accountNoticeManager;
     private final AccountNotificationHelper accountNotificationHelper;
     private final AccountHistoryManager history;
 
@@ -54,7 +54,7 @@ public class ProcessingRevisiumRequestEventListener {
             RevisiumRequestRepository revisiumRequestRepository,
             RevisiumRequestServiceRepository revisiumRequestServiceRepository,
             RevisiumRequestScheduler scheduler,
-            AccountNoticeRepository accountNoticeRepository,
+            AccountNoticeManager accountNoticeManager,
             AccountNotificationHelper accountNotificationHelper,
             AccountHistoryManager history
     ) {
@@ -64,7 +64,7 @@ public class ProcessingRevisiumRequestEventListener {
         this.revisiumRequestRepository = revisiumRequestRepository;
         this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
         this.scheduler = scheduler;
-        this.accountNoticeRepository = accountNoticeRepository;
+        this.accountNoticeManager = accountNoticeManager;
         this.accountNotificationHelper = accountNotificationHelper;
         this.history = history;
     }
@@ -192,7 +192,7 @@ public class ProcessingRevisiumRequestEventListener {
                         notification.setRevisiumRequestServiceId(revisiumRequest.getRevisiumRequestServiceId());
                         notification.setRevisiumRequestId(revisiumRequest.getId());
 
-                        accountNoticeRepository.save(notification);
+                        accountNoticeManager.save(notification);
 
                         PersonalAccount account = personalAccountManager.findOne(revisiumRequest.getPersonalAccountId());
                         RevisiumRequestService revisiumRequestService =

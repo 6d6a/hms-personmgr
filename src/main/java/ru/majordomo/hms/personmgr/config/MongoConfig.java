@@ -18,7 +18,6 @@ import org.springframework.validation.beanvalidation.MethodValidationPostProcess
 
 import ru.majordomo.hms.personmgr.validation.event.listener.CustomValidatingMongoEventListener;
 
-
 /**
  * MongoConfig
  */

@@ -4,17 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.event.account.AccountBuyAbonement;
-import ru.majordomo.hms.personmgr.manager.AbonementManager;
-import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
-import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
-import ru.majordomo.hms.personmgr.manager.PlanManager;
+import ru.majordomo.hms.personmgr.manager.*;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.DefaultAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
-import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -41,7 +37,7 @@ public class BuyAbonementPromotionProcessor implements Consumer<Supplier<Account
     private final AccountHelper accountHelper;
     private final AccountPromotionManager accountPromotionManager;
     private final PromotionRepository promotionRepository;
-    private final AccountNoticeRepository accountNoticeRepository;
+    private final AccountNoticeManager accountNoticeManager;
 
     /**
      * Начисление AccountPromotion для бесплатной регистрации или продления домена .ru или .рф
@@ -129,7 +125,7 @@ public class BuyAbonementPromotionProcessor implements Consumer<Supplier<Account
                 notice.setPersonalAccountId(account.getId());
                 notice.setData(data);
 
-                accountNoticeRepository.insert(notice);
+                accountNoticeManager.insert(notice);
             }
         } else {
             giftHelper.giveGift(account, freeRegistrationPromotion);
@@ -141,7 +137,7 @@ public class BuyAbonementPromotionProcessor implements Consumer<Supplier<Account
             notice.setPersonalAccountId(account.getId());
             notice.setData(data);
 
-            accountNoticeRepository.insert(notice);
+            accountNoticeManager.insert(notice);
         }
     }
 

@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.springframework.util.CollectionUtils;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
@@ -33,7 +32,6 @@ import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.feign.PartnersFeignClient;
 import ru.majordomo.hms.personmgr.feign.YaPromoterFeignClient;
 import ru.majordomo.hms.personmgr.manager.*;
-import ru.majordomo.hms.personmgr.model.Preorder;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.InfoBannerAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -41,7 +39,6 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.task.SendMailIfAbonementWasNotBought;
 import ru.majordomo.hms.personmgr.model.task.State;
 import ru.majordomo.hms.personmgr.model.token.Token;
-import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.service.promocodeAction.PaymentPercentBonusActionProcessor;
 
@@ -69,7 +66,7 @@ public class AccountEventListener {
     private final BackupService backupService;
     private final PartnersFeignClient partnersFeignClient;
     private final TaskManager taskManager;
-    private final AccountNoticeRepository accountNoticeRepository;
+    private final AccountNoticeManager accountNoticeManager;
     private final PaymentPercentBonusActionProcessor paymentPercentBonusActionProcessor;
     private final YaPromoterFeignClient yaPromoterFeignClient;
     private final FirstMobilePaymentProcessor firstMobilePaymentProcessor;
@@ -94,7 +91,7 @@ public class AccountEventListener {
             BackupService backupService,
             PartnersFeignClient partnersFeignClient,
             TaskManager taskManager,
-            AccountNoticeRepository accountNoticeRepository,
+            AccountNoticeManager accountNoticeManager,
             PaymentPercentBonusActionProcessor paymentPercentBonusActionProcessor,
             YaPromoterFeignClient yaPromoterFeignClient,
             FirstMobilePaymentProcessor firstMobilePaymentProcessor,
@@ -116,7 +113,7 @@ public class AccountEventListener {
         this.backupService = backupService;
         this.partnersFeignClient = partnersFeignClient;
         this.taskManager = taskManager;
-        this.accountNoticeRepository = accountNoticeRepository;
+        this.accountNoticeManager = accountNoticeManager;
         this.paymentPercentBonusActionProcessor = paymentPercentBonusActionProcessor;
         this.yaPromoterFeignClient = yaPromoterFeignClient;
         this.firstMobilePaymentProcessor = firstMobilePaymentProcessor;
@@ -154,7 +151,7 @@ public class AccountEventListener {
         notification.setViewed(false);
         notification.setComponent("hello_user");
 
-        accountNoticeRepository.save(notification);
+        accountNoticeManager.save(notification);
         logger.debug("InfoBannerAccountNotice saved: " + notification.toString());
     }
 

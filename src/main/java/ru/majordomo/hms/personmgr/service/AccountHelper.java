@@ -33,15 +33,12 @@ import ru.majordomo.hms.personmgr.model.plan.PlanFallback;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
-import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.PlanFallbackRepository;
 import ru.majordomo.hms.rc.staff.resources.template.ApplicationServer;
 import ru.majordomo.hms.rc.user.resources.*;
-import ru.majordomo.hms.personmgr.service.DedicatedAppServiceHelper;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.PromocodeType.GOOGLE;
@@ -66,7 +63,7 @@ public class AccountHelper {
     private final AccountHistoryManager history;
     private final PlanManager planManager;
     private final AccountStatHelper accountStatHelper;
-    private final AccountNoticeRepository accountNoticeRepository;
+    private final AccountNoticeManager accountNoticeManager;
     private final ResourceArchiveService resourceArchiveService;
     private final TestPeriodConfig testPeriodConfig;
     private final PlanFallbackRepository planFallbackRepository;
@@ -88,7 +85,7 @@ public class AccountHelper {
             AccountHistoryManager history,
             PlanManager planManager,
             AccountStatHelper accountStatHelper,
-            AccountNoticeRepository accountNoticeRepository,
+            AccountNoticeManager accountNoticeManager,
             ResourceArchiveService resourceArchiveService,
             TestPeriodConfig testPeriodConfig,
             PlanFallbackRepository planFallbackRepository,
@@ -108,7 +105,7 @@ public class AccountHelper {
         this.history = history;
         this.planManager = planManager;
         this.accountStatHelper = accountStatHelper;
-        this.accountNoticeRepository = accountNoticeRepository;
+        this.accountNoticeManager = accountNoticeManager;
         this.resourceArchiveService = resourceArchiveService;
         this.testPeriodConfig = testPeriodConfig;
         this.planFallbackRepository = planFallbackRepository;
@@ -583,7 +580,7 @@ public class AccountHelper {
     }
 
     public void addArchivalPlanAccountNoticeRepository(PersonalAccount account, Plan plan) {
-        if (!accountNoticeRepository.existsByPersonalAccountIdAndTypeAndViewed(
+        if (!accountNoticeManager.existsByPersonalAccountIdAndTypeAndViewed(
                 account.getId(), AccountNoticeType.ARCHIVAL_PLAN_CHANGE, false)
         ) {
             ArchivalPlanAccountNotice notification = new ArchivalPlanAccountNotice();
@@ -592,7 +589,7 @@ public class AccountHelper {
             notification.setViewed(false);
             notification.setOldPlanName(plan.getName());
 
-            accountNoticeRepository.save(notification);
+            accountNoticeManager.save(notification);
         }
     }
 

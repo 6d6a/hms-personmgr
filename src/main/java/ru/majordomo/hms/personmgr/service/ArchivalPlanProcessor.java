@@ -3,7 +3,6 @@ package ru.majordomo.hms.personmgr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
@@ -14,7 +13,6 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -35,7 +33,7 @@ public class ArchivalPlanProcessor {
     private final static TemporalAdjuster MAX_PERIOD_ARCHIVAL_PLAN_MUST_BE_CHANGED =
             TemporalAdjusters.ofDateAdjuster(date -> date.plusMonths(3));
 
-    private AccountNoticeRepository accountNoticeRepository;
+    private AccountNoticeManager accountNoticeManager;
     private PlanManager planManager;
     private PersonalAccountManager accountManager;
     private AccountHelper accountHelper;
@@ -46,7 +44,7 @@ public class ArchivalPlanProcessor {
 
     @Autowired
     public ArchivalPlanProcessor(
-            AccountNoticeRepository accountNoticeRepository,
+            AccountNoticeManager accountNoticeManager,
             PlanManager planManager,
             PersonalAccountManager accountManager,
             AccountHelper accountHelper,
@@ -55,7 +53,7 @@ public class ArchivalPlanProcessor {
             AbonementManager<AccountAbonement> accountAbonementManager,
             AbonementService abonementService
     ) {
-        this.accountNoticeRepository = accountNoticeRepository;
+        this.accountNoticeManager = accountNoticeManager;
         this.planManager = planManager;
         this.accountManager = accountManager;
         this.accountHelper = accountHelper;
@@ -149,7 +147,7 @@ public class ArchivalPlanProcessor {
         DeferredPlanChangeNotice notice = new DeferredPlanChangeNotice();
         notice.setPersonalAccountId(account.getId());
         notice.setWillBeChangedAfter(changeAfter);
-        accountNoticeRepository.save(notice);
+        accountNoticeManager.save(notice);
     }
 
     private List<String> archivalTariffIds() {
@@ -245,22 +243,7 @@ public class ArchivalPlanProcessor {
     //Обрабатываются только аккаунты с посуточными списаниями (без абонементов),
     // абонементы обработаются после их окончания
     public void processDeferredPlanChange() {
-        DeferredPlanChangeNotice example = new DeferredPlanChangeNotice();
-        example.setWasChanged(false);
-
-        accountNoticeRepository
-                .findAll(Example.of(example))
-                .stream()
-                .filter(n -> n.getWillBeChangedAfter().isBefore(LocalDate.now()))
-                .forEach(this::processDeferredPlanChange);
-
-        example.setViewed(true);
-
-        accountNoticeRepository
-                .findAll(Example.of(example))
-                .stream()
-                .filter(n -> n.getWillBeChangedAfter().isBefore(LocalDate.now()))
-                .forEach(this::processDeferredPlanChange);
+        accountNoticeManager.findDeferredPlanChangeNoticeByWasChangedAndWillBeChangedAfterLessThan(false, LocalDate.now()).forEach(this::processDeferredPlanChange);
     }
 
     private void processDeferredPlanChange(DeferredPlanChangeNotice notice) {
@@ -275,7 +258,7 @@ public class ArchivalPlanProcessor {
             log.info("account with id " + account.getId()
                     + " already change plan to active, passed deferred plan change");
             notice.setWasChanged(true);
-            accountNoticeRepository.save(notice);
+            accountNoticeManager.save(notice);
         } else if(accountAbonementManager.existsByPersonalAccountId(account.getId())) {
             log.error("account with id " + account.getId() + " and archival plan has abonement");
         } else {
@@ -292,7 +275,7 @@ public class ArchivalPlanProcessor {
             history.save(account, historyMessage.toString());
 
             notice.setWasChanged(true);
-            accountNoticeRepository.save(notice);
+            accountNoticeManager.save(notice);
         }
     }
 
