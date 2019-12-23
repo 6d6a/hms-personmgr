@@ -25,6 +25,7 @@ import ru.majordomo.hms.personmgr.feign.SiFeignClient;
 import ru.majordomo.hms.personmgr.manager.*;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
+import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.ArchivalPlanAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
@@ -36,6 +37,7 @@ import ru.majordomo.hms.personmgr.model.promocode.Promocode;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
+import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PlanFallbackRepository;
 import ru.majordomo.hms.rc.staff.resources.template.ApplicationServer;
 import ru.majordomo.hms.rc.user.resources.*;
@@ -62,6 +64,7 @@ public class AccountHelper {
     private final AccountServiceHelper accountServiceHelper;
     private final AccountHistoryManager history;
     private final PlanManager planManager;
+    private final AccountStatRepository accountStatRepository;
     private final AccountStatHelper accountStatHelper;
     private final AccountNoticeManager accountNoticeManager;
     private final ResourceArchiveService resourceArchiveService;
@@ -85,6 +88,7 @@ public class AccountHelper {
             AccountHistoryManager history,
             PlanManager planManager,
             AccountStatHelper accountStatHelper,
+            AccountStatRepository accountStatRepository,
             AccountNoticeManager accountNoticeManager,
             ResourceArchiveService resourceArchiveService,
             TestPeriodConfig testPeriodConfig,
@@ -105,6 +109,7 @@ public class AccountHelper {
         this.history = history;
         this.planManager = planManager;
         this.accountStatHelper = accountStatHelper;
+        this.accountStatRepository = accountStatRepository;
         this.accountNoticeManager = accountNoticeManager;
         this.resourceArchiveService = resourceArchiveService;
         this.testPeriodConfig = testPeriodConfig;
@@ -563,6 +568,12 @@ public class AccountHelper {
 
     public Plan getPlan(PersonalAccount account) {
         return planManager.findOne(account.getPlanId());
+    }
+
+    public Plan getPreviousPlan(PersonalAccount account) {
+        AccountStat accountStat = accountStatRepository.findFirstByPersonalAccountIdAndTypeOrderByCreatedDesc(account.getId(), AccountStatType.VIRTUAL_HOSTING_PLAN_CHANGE);
+
+        return accountStat == null ? null : planManager.findOne(accountStat.getData().get("oldPlanId"));
     }
 
     public void changeArchivalPlanToActive(PersonalAccount account) {

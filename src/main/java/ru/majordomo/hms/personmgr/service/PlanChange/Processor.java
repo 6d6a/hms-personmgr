@@ -375,11 +375,29 @@ public abstract class Processor {
 
     /**
      * Может ли быть произведена смена тарифа (с Бизнес можно только на Бизнес)
+     * Предусмотрен переход "корпоративный -> партнерский -> (только!) корпоративный"
      */
     private Boolean checkBusinessPlan(PlanChangeAgreement planChangeAgreement) {
-        VirtualHostingPlanProperties currentPlanProperties = (VirtualHostingPlanProperties) currentPlan.getPlanProperties();
+        VirtualHostingPlanProperties oldPlanProperties;
         VirtualHostingPlanProperties newPlanProperties = (VirtualHostingPlanProperties) newPlan.getPlanProperties();
-        if (currentPlanProperties.isBusinessServices() && !newPlanProperties.isBusinessServices() && !newPlan.isPartnerPlan()) {
+
+        //Переход на партнерский тариф доступен с любого другого
+        if (newPlan.isPartnerPlan()) {
+            return true;
+        }
+
+        if (currentPlan.isPartnerPlan()) {  //Если переход с партнерского тарифа, то учесть предыдущий тариф, если есть
+            Plan previousPlan = accountHelper.getPreviousPlan(account);
+            if (previousPlan != null) {
+                oldPlanProperties = (VirtualHostingPlanProperties) previousPlan.getPlanProperties();
+            } else {
+                return true;
+            }
+        } else {    //Просто обработать текущий и новый запрашиваемый тарифы
+            oldPlanProperties = (VirtualHostingPlanProperties) currentPlan.getPlanProperties();
+        }
+
+        if (oldPlanProperties.isBusinessServices() && !newPlanProperties.isBusinessServices()) {
             planChangeAgreement.addError("Вы можете выбрать только другой корпоративный тарифный план");
             return false;
         } else {
