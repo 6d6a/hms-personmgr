@@ -34,6 +34,11 @@ public interface AccountStatRepository extends MongoRepository<AccountStat, Stri
             LocalDateTime created
     );
 
+    AccountStat findFirstByPersonalAccountIdAndTypeOrderByCreatedDesc(
+            String personalAccountId,
+            AccountStatType type
+    );
+
     boolean existsByPersonalAccountIdAndType(
             String personalAccountId,
             AccountStatType type
