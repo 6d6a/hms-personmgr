@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -104,7 +105,7 @@ public class AccountServiceRestController extends CommonRestController {
         String serviceName;
 
         if (accountService != null) {
-            serviceName = accountService.getName();
+            serviceName = StringUtils.isNotEmpty(accountService.getName()) ? accountService.getName() : "неопределено";
         } else {
             throw new ParameterValidationException("Услуга с Id " + accountServiceId + " не найдена на аккаунте " + accountId);
         }
@@ -134,9 +135,8 @@ public class AccountServiceRestController extends CommonRestController {
 
         accountServiceHelper.deleteAccountServiceById(account, accountServiceId, false);
 
-        if (serviceName != null) {
-            history.save(accountId, "Произведено удаление услуги '" + serviceName + "', id: " + accountServiceId, request);
-        }
+        logger.info(String.format("Delete accountService for account: %s, service: %s", account.getId(), accountService.toString()));
+        history.save(accountId, "Произведено удаление услуги '" + serviceName + "', id: " + accountServiceId, request);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
