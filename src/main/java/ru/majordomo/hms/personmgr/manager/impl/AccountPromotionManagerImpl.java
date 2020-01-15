@@ -102,12 +102,17 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
 
     @Override
     public void setAsActiveAccountPromotionById(String id) {
-        setAccountPromotionStatusByIdAndActionId(id, true);
+        setAccountPromotionStatusByIdAndActionId(id, true, null);
     }
 
     @Override
     public void setAsUsedAccountPromotionById(String id) {
-        setAccountPromotionStatusByIdAndActionId(id, false);
+        setAccountPromotionStatusByIdAndActionId(id, false, null);
+    }
+
+    @Override
+    public void setAsUsedAccountPromotionById(String id, String comment) {
+        setAccountPromotionStatusByIdAndActionId(id, false, comment);
     }
 
     public AccountPromotion getServiceDiscountPromotion(PersonalAccount account, PaymentService service) {
@@ -154,15 +159,22 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
         return repository.findByIdAndPersonalAccountId(id, accountId);
     }
 
-    private void setAccountPromotionStatusByIdAndActionId(String id, boolean status) {
+    private void setAccountPromotionStatusByIdAndActionId(String id, boolean status, String comment) {
         AccountPromotion accountPromotion = findOne(id);
         accountPromotion.setActive(status);
 
         save(accountPromotion);
 
+        String description = null;
+        if (accountPromotion.getPromotion() != null) {
+            description = accountPromotion.getPromotion().getDescription() != null ?
+                accountPromotion.getPromotion().getDescription() : accountPromotion.getPromotion().getName();
+        }
+
         history.save(
                 accountPromotion.getPersonalAccountId(),
-                "AccountPromotion Id: " + id + " помечен как " + (status ? "активный" : "неактивный"),
+                "AccountPromotion Id: " + id + (description != null ? " (" + description + ")" : "") +
+                        " помечен как " + (status ? "активный" : "неактивный") + (comment != null ? " (" + comment + ")" : ""),
                 "service"
         );
     }
