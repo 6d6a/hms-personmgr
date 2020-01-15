@@ -487,7 +487,7 @@ public class DomainService {
             accountHelper.checkBalanceWithoutBonus(account, domainTld.getRegistrationService().getCost());
         }
 
-        setAsUsedAccountPromotion(message);
+        setAsUsedAccountPromotion(message, domainName);
 
         if (!isFreeDomain) {
             ChargeMessage chargeMessage = new ChargeMessage.Builder(domainTld.getRegistrationService())
@@ -676,9 +676,10 @@ public class DomainService {
         }
     }
 
-    private void setAsUsedAccountPromotion(SimpleServiceMessage message) {
+    private void setAsUsedAccountPromotion(SimpleServiceMessage message, String domainName) {
         if (message.getParam("accountPromotionId") != null) {
-            accountPromotionManager.setAsUsedAccountPromotionById((String) message.getParam("accountPromotionId"));
+            accountPromotionManager.setAsUsedAccountPromotionById((String) message.getParam("accountPromotionId"),
+                    "Использован на домене: " + domainName);
         }
     }
 
@@ -737,7 +738,7 @@ public class DomainService {
             accountHelper.checkBalanceWithoutBonus(account, costContainer.getData());
         }
 
-        setAsUsedAccountPromotion(message);
+        setAsUsedAccountPromotion(message, domain.getName());
         promotionContainer.getData().ifPresent(a -> a.setActive(false));
 
         if (costContainer.getData().compareTo(BigDecimal.ZERO) > 0) {
