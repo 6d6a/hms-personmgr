@@ -59,7 +59,7 @@ configurations {
 }
 
 dependencies {
-    compile("ru.majordomo.hms.rc.user:resources:1.5.22")
+    compile("ru.majordomo.hms.rc.user:resources:1.5.24")
     compile("ru.majordomo.hms.rc.staff:resources:2.0.2") { changing = true }
 
     compile("dnsjava:dnsjava:2.1.8")
