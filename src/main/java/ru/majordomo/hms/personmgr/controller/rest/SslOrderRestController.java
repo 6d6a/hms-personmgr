@@ -158,6 +158,8 @@ public class SslOrderRestController extends CommonRestController {
         order.setOperator(operator);
         order.setState(OrderState.NEW);
 
+        manager.perValidate(order);
+
         Set<ConstraintViolation<@Valid SslCertificateOrder>> errors = validator.validate(order);
         if (errors != null && !errors.isEmpty()) {
             throw new ConstraintViolationException(errors);

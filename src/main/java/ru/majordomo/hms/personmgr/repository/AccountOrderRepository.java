@@ -6,7 +6,10 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.data.repository.NoRepositoryBean;
 
+import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.model.order.AccountOrder;
+
+import java.util.List;
 
 @NoRepositoryBean
 public interface AccountOrderRepository<T extends AccountOrder> extends MongoRepository<T, String>,
@@ -14,4 +17,5 @@ public interface AccountOrderRepository<T extends AccountOrder> extends MongoRep
 {
     Page<T> findByPersonalAccountId(String accountId, Pageable pageable);
     T findOneByIdAndPersonalAccountId(String id, String personalAccountId);
+    List<T> findByPersonalAccountIdAndStateIn(String id, List<OrderState> states);
 }

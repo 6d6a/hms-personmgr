@@ -10,9 +10,11 @@ import ru.majordomo.hms.personmgr.common.OrderState;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.model.order.AccountOrder;
+import ru.majordomo.hms.personmgr.model.order.ssl.SslCertificateOrder;
 import ru.majordomo.hms.personmgr.repository.AccountOrderRepository;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public abstract class OrderManager<T extends AccountOrder> {
@@ -34,6 +36,8 @@ public abstract class OrderManager<T extends AccountOrder> {
     protected void save(T accountOrder) {
         repository.save(accountOrder);
     }
+
+    protected void perValidate(T accountOrder) {}
 
     protected void updateState(T accountOrder, OrderState newState, String operator) {
         accountOrder.setState(newState);

@@ -65,6 +65,12 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
         this.history = history;
     }
 
+    public void perValidate(SslCertificateOrder order) {
+        if (isNotCompletedOrderByDomainNameExist(order.getPersonalAccountId(), order.getDomainName())) {
+            throw new ParameterValidationException("Есть незавершённый заказ по данному домену");
+        }
+    }
+
     @Override
     protected void onCreate(SslCertificateOrder order) {
         build(order);
@@ -218,6 +224,18 @@ public class SSLOrderManager extends OrderManager<SslCertificateOrder> {
         SslCertificateOrder order = super.findOne(id);
         build(order);
         return order;
+    }
+
+    private Boolean isNotCompletedOrderByDomainNameExist(String id, String domainName) {
+        List<SslCertificateOrder> orders = repository.findByPersonalAccountIdAndStateIn(
+                id,
+                Arrays.asList(OrderState.NEW, OrderState.IN_PROGRESS)
+        );
+        SslCertificateOrder order = orders.stream()
+                .filter(item -> item.getDomainName().equals(domainName))
+                .findAny()
+                .orElse(null);
+        return order != null;
     }
 
     public List<SslCertificateOrder> getPendingOrders() {
