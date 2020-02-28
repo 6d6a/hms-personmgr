@@ -202,6 +202,11 @@ public abstract class Processor {
             return planChangeAgreement;
         }
 
+        if (account.isFreeze()) {
+            planChangeAgreement.addError("Аккаунт заморожен");
+            return planChangeAgreement;
+        }
+
         BigDecimal balance = accountHelper.getBalance(account);
         planChangeAgreement.setBalance(balance);
         planChangeAgreement.setBalanceAfterOperation(balance);

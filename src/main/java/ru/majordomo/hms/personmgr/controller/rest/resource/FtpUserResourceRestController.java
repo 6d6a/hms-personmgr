@@ -36,6 +36,10 @@ public class FtpUserResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Создание FTP пользователя невозможно.");
         }
 
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Создание FTP пользователя невозможно.");
+        }
+
         resourceChecker.checkResource(account, ResourceType.FTP_USER, message.getParams());
 
         if (!planCheckerService.canAddFtpUser(accountId)) {
@@ -65,6 +69,10 @@ public class FtpUserResourceRestController extends CommonRestController {
 
         if (!account.isActive() || account.isPreorder()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление FTP пользователя невозможно.");
+        }
+
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Обновление FTP пользователя невозможно.");
         }
 
         resourceChecker.checkResource(account, ResourceType.FTP_USER, message.getParams());

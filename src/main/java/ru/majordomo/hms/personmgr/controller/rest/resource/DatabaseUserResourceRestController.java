@@ -41,6 +41,10 @@ public class DatabaseUserResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Создание пользователя базы данных невозможно.");
         }
 
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Создание пользователя базы данных невозможно.");
+        }
+
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
             checkParamsWithRoles(message.getParams(), DATABASE_USER_POST, authentication);
         } else {
@@ -77,6 +81,10 @@ public class DatabaseUserResourceRestController extends CommonRestController {
 
         if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление пользователя базы данных невозможно.");
+        }
+
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Обновление пользователя базы данных невозможно.");
         }
 
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {

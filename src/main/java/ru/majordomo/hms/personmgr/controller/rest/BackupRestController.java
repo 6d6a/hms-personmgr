@@ -84,6 +84,10 @@ public class BackupRestController extends CommonRestController{
         PersonalAccount account = accountManager.findOne(accountId);
         assertAccountIsActive(account);
 
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен.");
+        }
+
         if (restoreRequest instanceof MysqlRestoreRequest) {
             result = backupService.restoreMysql(account, (MysqlRestoreRequest) restoreRequest, request);
         } else if (restoreRequest instanceof FileRestoreRequest) {

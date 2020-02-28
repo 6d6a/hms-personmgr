@@ -16,7 +16,10 @@ import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
+
+import static java.time.temporal.ChronoUnit.DAYS;
 
 /**
  * Класс описывает подключенный на аккаунт абонемент для тарифного плана. Не подходит для дополнительных услуг.
@@ -41,22 +44,44 @@ public class AccountAbonement extends VersionedModelBelongsToPersonalAccount {
     @Indexed
     private boolean autorenew;
 
+    private LocalDateTime freezed;
+
+    private Long freezedDays = 0L;
+
     @Transient
     private Abonement abonement;
 
     /**
      * Конструктор инициализирует все поля класса
-     * @param accountId - аккаунт
+     * @param account - аккаунт
      * @param abonement - абонемент
      * @param created - дата создания или null. Если предать null, то
      */
-    public AccountAbonement(@NonNull String accountId, @NonNull Abonement abonement, @Nullable LocalDateTime created) {
-        this.setPersonalAccountId(accountId);
+    public AccountAbonement(@NonNull PersonalAccount account, @NonNull Abonement abonement, @Nullable LocalDateTime created) {
+        this.setPersonalAccountId(account.getId());
         this.abonement = abonement;
         this.abonementId = abonement.getId();
         this.setCreated(created == null ? LocalDateTime.now() : created);
         Period period = Period.parse(abonement.getPeriod());
         this.setExpired(this.created.plus(period));
         this.setAutorenew(!abonement.isInternal() && !abonement.isTrial());
+        if (account.isFreeze()) {
+            freeze();
+        }
+    }
+
+    public void freeze() {
+        freezed = LocalDateTime.now();
+    }
+
+    public void unFreeze() {
+        if (freezed != null) {
+            Long days = DAYS.between(freezed, LocalDateTime.now());
+            if (days > 0L) {
+                freezedDays = freezedDays == null ? days : freezedDays + days;
+                expired = expired.plusDays(days);
+            }
+            freezed = null;
+        }
     }
 }

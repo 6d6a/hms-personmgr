@@ -60,43 +60,43 @@ public interface RcStaffFeignClient {
     List<Server> getServersOnlyIdAndName();
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/template")
-    List<Template> getTemplatesAvailableToAccounts(@PathVariable String accountId);
+    List<Template> getTemplatesAvailableToAccounts(@PathVariable("accountId") String accountId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/template/{templateId}")
-    Template getTemplateAvailableToAccountsById(@PathVariable String accountId, @PathVariable String templateId);
+    Template getTemplateAvailableToAccountsById(@PathVariable("accountId") String accountId, @PathVariable("templateId") String templateId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/server/{serverId}/services?service-type=WEBSITE")
-    List<Service> getWebsiteServicesByAccountIdAndServerId(@PathVariable String accountId, @PathVariable String serverId);
+    List<Service> getWebsiteServicesByAccountIdAndServerId(@PathVariable("accountId") String accountId, @PathVariable("accountId") String serverId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/server/{serverId}/services?service-type=DATABASE")
-    List<Service> getDatabaseServicesByAccountIdAndServerId(@PathVariable String accountId, @PathVariable String serverId);
+    List<Service> getDatabaseServicesByAccountIdAndServerId(@PathVariable("accountId") String accountId, @PathVariable("accountId") String serverId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/server/{serverId}/services?service-type=STAFF_NGINX")
-    List<Service> getNginxServicesByAccountIdAndServerId(@PathVariable String accountId, @PathVariable String serverId);
+    List<Service> getNginxServicesByAccountIdAndServerId(@PathVariable("accountId") String accountId, @PathVariable("serverId") String serverId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/server/{serverId}/services?service-type={serviceType}")
     List<Service> getServicesByAccountIdAndServerIdAndServiceType(
-            @PathVariable String accountId,
-            @PathVariable String serverId,
-            @PathVariable String serviceType
+            @PathVariable("accountId") String accountId,
+            @PathVariable("serverId") String serverId,
+            @PathVariable("serviceType") String serviceType
     );
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/server/{serverId}/services?templateId={templateId}")
     List<Service> getServicesByAccountIdAndServerIdAndTemplateId(
-            @PathVariable String accountId,
-            @PathVariable String serverId,
-            @PathVariable String templateId
+            @PathVariable("accountId") String accountId,
+            @PathVariable("serverId") String serverId,
+            @PathVariable("templateId") String templateId
     );
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/service?templateId={templateId}")
     List<Service> getServicesByAccountIdAndTemplateId(
-            @PathVariable String accountId,
-            @PathVariable String templateId
+            @PathVariable("accountId") String accountId,
+            @PathVariable("templateId") String templateId
     );
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/service/{serviceId}")
-    Service getServiceByAccountIdAndId(@PathVariable String accountId, @PathVariable String serviceId);
+    Service getServiceByAccountIdAndId(@PathVariable("accountId") String accountId, @PathVariable("serviceId") String serviceId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/server/{serverId}/services?onlyDedicated=true")
-    List<Service> getServiceByAccountIdAndServerId(@PathVariable String accountId, @PathVariable String serverId);
+    List<Service> getServiceByAccountIdAndServerId(@PathVariable("accountId") String accountId, @PathVariable("serverId") String serverId);
 }

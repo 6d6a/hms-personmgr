@@ -44,8 +44,14 @@ public class DnsRecordResourceRestController extends CommonRestController {
 
         logger.debug("Creating DnsRecord. Message: " + message.toString());
 
-        if (!accountManager.findOne(accountId).isActive()) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание DNS-записи невозможно.");
+        }
+
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Создание DNS-записи невозможно.");
         }
 
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(BusinessOperationType.DNS_RECORD_CREATE, BusinessActionType.DNS_RECORD_CREATE_RC, message);
@@ -69,8 +75,14 @@ public class DnsRecordResourceRestController extends CommonRestController {
 
         logger.debug("Updating DnsRecord with id " + resourceId + " " + message.toString());
 
-        if (!accountManager.findOne(accountId).isActive()) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление DNS-записи невозможно.");
+        }
+
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Обновление DNS-записи невозможно.");
         }
 
         checkParamsWithRoles(message.getParams(), DNS_RECORD_PATCH, authentication);
@@ -111,6 +123,12 @@ public class DnsRecordResourceRestController extends CommonRestController {
                 .withParam("resourceId", resourceId);
 
         logger.debug("Deleting DnsRecord with id " + resourceId + " " + message.toString());
+
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Обновление DNS-записи невозможно.");
+        }
 
         history.save(accountId, "Поступила заявка на удаление днс-записи c Id: " + resourceId  + " (Данные: " +
                 getFromRecordForDnsHistory(accountId, resourceId) + ")", request);

@@ -129,6 +129,10 @@ public class AccountAbonementsEventListener {
     public void onAccountProccessNotifyExpiredAbonementEvent(AccountProcessNotifyExpiredAbonementsEvent event){
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
+        if (account.isFreeze()) {
+            return;
+        }
+
         logger.debug("We got AccountProcessNotifyExpiredAbonementsEvent");
 
         List<AccountStat> accountStats = accountStatRepository.findByPersonalAccountIdAndTypeAndCreatedAfterOrderByCreatedDesc(

@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.model.abonement;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import org.springframework.data.mongodb.core.mapping.Document;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.validation.UniquePersonalAccountIdModel;
 
 import javax.annotation.Nullable;
@@ -18,7 +19,7 @@ import java.time.LocalDateTime;
 @Document
 public class AccountServiceAbonement extends AccountAbonement {
 
-    public AccountServiceAbonement(@NonNull String accountId, @NonNull Abonement abonement, @Nullable LocalDateTime created) {
-        super(accountId, abonement, created);
+    public AccountServiceAbonement(@NonNull PersonalAccount account, @NonNull Abonement abonement, @Nullable LocalDateTime created) {
+        super(account, abonement, created);
     }
 }

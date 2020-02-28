@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -175,6 +176,14 @@ public class AccountServiceHelper {
         service.setServiceId(newPaymentServiceId);
         service.setQuantity(quantity);
         service.setComment(comment);
+
+        List<String> exceptions = Arrays.asList(
+                servicePlanRepository.findOneByFeature(Feature.FREEZING).getServiceId(),
+                servicePlanRepository.findOneByFeature(Feature.LONG_LIFE_RESOURCE_ARCHIVE).getServiceId()
+        );
+        if (!exceptions.contains(newPaymentServiceId)) {
+            service.setFreeze(account.isFreeze());
+        }
 
         return accountServiceRepository.save(service);
     }
@@ -450,7 +459,7 @@ public class AccountServiceHelper {
         List<AccountService> accountServices = account.getServices();
         if (accountServices == null || accountServices.isEmpty()) { return dailyServices;}
         dailyServices = accountServices.stream().filter(accountService ->
-                accountService.isEnabled()
+                accountService.isEnabled() && !accountService.isFreeze()
                         && accountService.getPaymentService() != null
                         && this.getServiceCostDependingOnDiscount(account, accountService.getPaymentService()).compareTo(BigDecimal.ZERO) > 0
                         && (isRegularAccountServiceNeedDailyCharge(accountService, chargeDate)))
@@ -461,6 +470,21 @@ public class AccountServiceHelper {
         accountServices.sort(AccountService.ChargePriorityComparator);
 
         return dailyServices;
+    }
+
+    public void switchServicesAfterFreeze(PersonalAccount account, Boolean freezeState) {
+        List<String> exceptions = Arrays.asList(
+                servicePlanRepository.findOneByFeature(Feature.FREEZING).getServiceId(),
+                servicePlanRepository.findOneByFeature(Feature.LONG_LIFE_RESOURCE_ARCHIVE).getServiceId()
+        );
+
+        List<AccountService> accountServices = account.getServices();
+        accountServices.forEach(item -> {
+            if (item.getPaymentService() != null && !exceptions.contains(item.getPaymentService().getId())) {
+                item.setFreeze(freezeState);
+                accountServiceRepository.save(item);
+            }
+        });
     }
 
     private Boolean isRegularAccountServiceNeedDailyCharge(AccountService accountService, LocalDateTime chargeDate) {

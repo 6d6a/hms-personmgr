@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 
 import com.querydsl.core.types.Predicate;
 
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -77,6 +78,7 @@ import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
 
 @RestController
 @Validated
+@AllArgsConstructor
 public class PersonalAccountRestController extends CommonRestController {
     private final PlanManager planManager;
     private final AccountOwnerManager accountOwnerManager;
@@ -91,39 +93,8 @@ public class PersonalAccountRestController extends CommonRestController {
     private final SiFeignClient siFeignClient;
     private final AbonementManager<AccountAbonement> accountAbonementManager;
     private final PaymentLinkHelper paymentLinkHelper;
-
-    @Autowired
-    public PersonalAccountRestController(
-            PlanManager planManager,
-            AccountOwnerManager accountOwnerManager,
-            RcUserFeignClient rcUserFeignClient,
-            ApplicationEventPublisher publisher,
-            AccountHelper accountHelper,
-            TokenManager tokenManager,
-            NotificationRepository notificationRepository,
-            AccountServiceRepository accountServiceRepository,
-            AccountServiceHelper accountServiceHelper,
-            Factory planChangeFactory,
-            AccountNotificationHelper accountNotificationHelper,
-            SiFeignClient siFeignClient,
-            AbonementManager<AccountAbonement> accountAbonementManager,
-            PaymentLinkHelper paymentLinkHelper
-    ) {
-        this.planManager = planManager;
-        this.accountOwnerManager = accountOwnerManager;
-        this.rcUserFeignClient = rcUserFeignClient;
-        this.publisher = publisher;
-        this.accountHelper = accountHelper;
-        this.tokenManager = tokenManager;
-        this.notificationRepository = notificationRepository;
-        this.siFeignClient = siFeignClient;
-        this.paymentLinkHelper = paymentLinkHelper;
-        this.accountServiceRepository = accountServiceRepository;
-        this.accountServiceHelper = accountServiceHelper;
-        this.planChangeFactory = planChangeFactory;
-        this.accountNotificationHelper = accountNotificationHelper;
-        this.accountAbonementManager = accountAbonementManager;
-    }
+    private final ServiceAbonementService serviceAbonementService;
+    private final AbonementService abonementService;
 
     @GetMapping("/accounts")
     public ResponseEntity<Page<PersonalAccount>> getAccounts(
@@ -761,6 +732,26 @@ public class PersonalAccountRestController extends CommonRestController {
         accountHelper.switchAccountActiveState(account, !account.isActive());
 
         history.save(account, "Аккаунт " + (!account.isActive() ? "включен" : "выключен"), request);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
+    @PostMapping("/{accountId}/account/toggle_freeze")
+    public ResponseEntity<Object> toggleAccountFreeze(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        Boolean switchState = !account.isFreeze();
+
+        accountServiceHelper.switchServicesAfterFreeze(account, switchState);
+        serviceAbonementService.switchServiceAbonementsAfterFreeze(account, switchState);
+        abonementService.switchAbonementsAfterFreeze(account, switchState);
+        accountHelper.switchAccountFreezeState(account, switchState);
+
+        history.save(account, "Аккаунт " + (!account.isFreeze() ? "заморожен" : "разморожен"), request);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

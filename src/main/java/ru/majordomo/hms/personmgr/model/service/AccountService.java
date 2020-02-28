@@ -44,6 +44,9 @@ public class AccountService extends ModelBelongsToPersonalAccount implements Com
     private PaymentService paymentService = new PaymentService();
 
     @Indexed
+    private boolean freeze = false;
+
+    @Indexed
     private LocalDateTime lastBilled;
 
     public String getServiceId() {
@@ -100,6 +103,14 @@ public class AccountService extends ModelBelongsToPersonalAccount implements Com
 
     public void setComment(String comment) {
         this.comment = comment;
+    }
+
+    public boolean isFreeze() {
+        return freeze;
+    }
+
+    public void setFreeze(boolean freeze) {
+        this.freeze = freeze;
     }
 
     public AccountService() {

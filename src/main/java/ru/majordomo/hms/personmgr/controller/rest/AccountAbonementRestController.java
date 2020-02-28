@@ -259,6 +259,10 @@ public class AccountAbonementRestController extends CommonRestController {
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Заказ абонемента невозможен.");
+        }
+
         Abonement abonement = abonementRepository.findById(abonementId)
                 .orElseThrow(() -> new ResourceNotFoundException("Абонемент с id " + abonementId + " не найден"));
 
@@ -286,6 +290,10 @@ public class AccountAbonementRestController extends CommonRestController {
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
+
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Продление абонемента невозможно.");
+        }
 
         AccountAbonement accountAbonement = accountAbonementManager.findByIdAndPersonalAccountId(
                 accountAbonementId, account.getId()

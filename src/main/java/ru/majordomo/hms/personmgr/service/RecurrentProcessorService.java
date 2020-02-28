@@ -80,7 +80,6 @@ public class RecurrentProcessorService {
     public void processRecurrent(PersonalAccount account) {
 
         try {
-
             BigDecimal balance = accountHelper.getBalance(account);
 
             BigDecimal iNeedMoreMoney = BigDecimal.ZERO;
@@ -116,12 +115,14 @@ public class RecurrentProcessorService {
 
             //Абонементы на услуги которые нельзя продлевать за бонусы -------------
             BigDecimal serviceAbonementRecurrentSumBonusProhibited = getServiceAbonementRecurrentBonusProhibitedSum(account);
-            if (serviceAbonementRecurrentSumBonusProhibited.compareTo(BigDecimal.ZERO) > 0) {
-                if (realBalance.compareTo(serviceAbonementRecurrentSumBonusProhibited) < 0) { //Остатка бонусных не хватает
-                    iNeedMoreMoney = iNeedMoreMoney.add(serviceAbonementRecurrentSumBonusProhibited.subtract(realBalance)); //На реккурент
-                    realBalance = BigDecimal.ZERO;
-                } else {
-                    realBalance = realBalance.subtract(serviceAbonementRecurrentSumBonusProhibited);
+            if (!account.isFreeze()) {
+                if (serviceAbonementRecurrentSumBonusProhibited.compareTo(BigDecimal.ZERO) > 0) {
+                    if (realBalance.compareTo(serviceAbonementRecurrentSumBonusProhibited) < 0) { //Остатка бонусных не хватает
+                        iNeedMoreMoney = iNeedMoreMoney.add(serviceAbonementRecurrentSumBonusProhibited.subtract(realBalance)); //На реккурент
+                        realBalance = BigDecimal.ZERO;
+                    } else {
+                        realBalance = realBalance.subtract(serviceAbonementRecurrentSumBonusProhibited);
+                    }
                 }
             }
 
@@ -133,24 +134,27 @@ public class RecurrentProcessorService {
 
             //Абонементы -------------
             BigDecimal abonementRecurrentSum = getAbonementRecurrentSum(account);
-
-            if (abonementRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
-                if (availableBalance.compareTo(abonementRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает на абонемент
-                    iNeedMoreMoney = iNeedMoreMoney.add(abonementRecurrentSum.subtract(availableBalance)); //На реккурент
-                    availableBalance = BigDecimal.ZERO;
-                } else {
-                    availableBalance = availableBalance.subtract(abonementRecurrentSum);
+            if (!account.isFreeze()) {
+                if (abonementRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
+                    if (availableBalance.compareTo(abonementRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает на абонемент
+                        iNeedMoreMoney = iNeedMoreMoney.add(abonementRecurrentSum.subtract(availableBalance)); //На реккурент
+                        availableBalance = BigDecimal.ZERO;
+                    } else {
+                        availableBalance = availableBalance.subtract(abonementRecurrentSum);
+                    }
                 }
             }
 
             //Отсавшиеся абонементы на услуги которые можно за бонусы -------------
             BigDecimal serviceAbonementRecurrentSum = getServiceAbonementRecurrentOtherSum(account);
-            if (serviceAbonementRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
-                if (availableBalance.compareTo(serviceAbonementRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает
-                    iNeedMoreMoney = iNeedMoreMoney.add(serviceAbonementRecurrentSum.subtract(availableBalance)); //На реккурент
-                    availableBalance = BigDecimal.ZERO;
-                } else {
-                    availableBalance = realBalance.subtract(serviceAbonementRecurrentSum);
+            if (!account.isFreeze()) {
+                if (serviceAbonementRecurrentSum.compareTo(BigDecimal.ZERO) > 0) {
+                    if (availableBalance.compareTo(serviceAbonementRecurrentSum) < 0) { //Остатка реальных и бонусных не хватает
+                        iNeedMoreMoney = iNeedMoreMoney.add(serviceAbonementRecurrentSum.subtract(availableBalance)); //На реккурент
+                        availableBalance = BigDecimal.ZERO;
+                    } else {
+                        availableBalance = realBalance.subtract(serviceAbonementRecurrentSum);
+                    }
                 }
             }
 
@@ -191,9 +195,9 @@ public class RecurrentProcessorService {
                         + ". Общий баланс: " + balance
                         + ". Бонусы: " + bonusBalance
                         + ". За домены: " + domainRecurrentSum
-                        + ". За абонементы: " + abonementRecurrentSum
-                        + ". За абонементы на услуги, которые нельзя за бонусы: " + serviceAbonementRecurrentSumBonusProhibited
-                        + ". За абонементы на услуги: " + serviceAbonementRecurrentSum
+                        + ". За абонементы: " + (account.isFreeze() ? 0 : abonementRecurrentSum)
+                        + ". За абонементы на услуги, которые нельзя за бонусы: " + (account.isFreeze() ? 0 : serviceAbonementRecurrentSumBonusProhibited)
+                        + ". За абонементы на услуги: " + (account.isFreeze() ? 0 : serviceAbonementRecurrentSum)
                         + ". За остальные услуги: " + servicesRecurrentSum + ".";
 
                 history.saveForOperatorService(account, message);

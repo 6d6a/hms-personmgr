@@ -73,6 +73,10 @@ public class AppsCatRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Установка приложений невозможна.");
         }
 
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Установка приложений невозможна.");
+        }
+
         accountHelper.checkIsCmsAllowed(account);
 
         message.addParam(ACCOUNT_ID_KEY, account.getAccountId());

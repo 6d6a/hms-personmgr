@@ -41,6 +41,10 @@ public class MailboxResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Создание почтового ящика невозможно.");
         }
 
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Создание почтового ящика невозможно.");
+        }
+
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
             checkParamsWithRoles(message.getParams(), MAILBOX_POST, authentication);
         } else {
@@ -75,6 +79,10 @@ public class MailboxResourceRestController extends CommonRestController {
 
         if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление почтового ящика невозможно.");
+        }
+
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Обновление почтового ящика невозможно.");
         }
 
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {

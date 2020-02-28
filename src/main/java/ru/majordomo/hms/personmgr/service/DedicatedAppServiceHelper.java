@@ -176,6 +176,7 @@ public class DedicatedAppServiceHelper {
     public ProcessingBusinessAction create(@NonNull PersonalAccount account, @NonNull String templateId) throws ParameterValidationException, ResourceNotFoundException, ResourceIsLockedException {
 
         assertAccountIsActive(account);
+        assertAccountIsFreezed(account);
 
         assertPlanAllowedDedicatedApp(account.getPlanId());
 
@@ -197,8 +198,6 @@ public class DedicatedAppServiceHelper {
         String serverId = getServerId(account.getId());
 
         List<Service> services = rcStaffFeignClient.getServicesByAccountIdAndServerIdAndTemplateId(account.getId(), serverId, templateId);
-
-        DedicatedAppService dedicatedAppService;
 
         ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.DEDICATED_APP_SERVICE, true);
         if (servicePlan == null) {
@@ -233,7 +232,7 @@ public class DedicatedAppServiceHelper {
 
         AccountService accountService = createAccountService(account, template, servicePlan.getService());
 
-        dedicatedAppService = addService(account, template.getId(), accountService);
+        addService(account, template.getId(), accountService);
 
         history.save(account, "Заказана услуга выделенный сервис с templateId: " + template.getId());
 
@@ -241,7 +240,7 @@ public class DedicatedAppServiceHelper {
     }
 
     private AccountService createAccountService(PersonalAccount account, Template template, PaymentService paymentService) {
-        String comment = null;
+        String comment;
         if (template instanceof ApplicationServer) {
             ApplicationServer as = (ApplicationServer) template;
             String language = as.getLanguage() == ApplicationServer.Language.JAVASCRIPT ? "JS" : as.getLanguage().name();
@@ -257,6 +256,7 @@ public class DedicatedAppServiceHelper {
         accountService.setPaymentService(paymentService);
         accountService.setServiceId(paymentService.getId());
         accountService.setLastBilled(LocalDateTime.now());
+        accountService.setFreeze(account.isFreeze());
         return accountServiceHelper.save(accountService);
     }
 
@@ -442,6 +442,12 @@ public class DedicatedAppServiceHelper {
     private void assertAccountIsActive(PersonalAccount account) {
         if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт не активен");
+        }
+    }
+
+    private void assertAccountIsFreezed(PersonalAccount account) {
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен");
         }
     }
 

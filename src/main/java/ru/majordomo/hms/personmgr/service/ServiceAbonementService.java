@@ -149,6 +149,10 @@ public class ServiceAbonementService { //dis name
             accountServiceAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
             accountServiceAbonement.setAutorenew(autorenew);
 
+            if (account.isFreeze()) {
+                accountServiceAbonement.freeze();
+            }
+
             abonementManager.insert(accountServiceAbonement);
         }
 
@@ -207,6 +211,11 @@ public class ServiceAbonementService { //dis name
     }
 
     public void processExpiringAbonementsByAccount(PersonalAccount account) {
+        if (account.isFreeze()) {
+            logger.info("processExpiringAbonementsByAccount: account {} is freezed, return", account.getId());
+            return;
+        }
+
         //В итоге нам нужно получить абонементы которые заканчиваются через 5 дней и раньше
         LocalDateTime expireEnd = LocalDateTime.now().with(FIVE_DAYS_AFTER);
 
@@ -321,6 +330,11 @@ public class ServiceAbonementService { //dis name
     }
 
     public void processAbonementsAutoRenewByAccount(PersonalAccount account) {
+        if (account.isFreeze()) {
+            logger.info("processAbonementsAutoRenewByAccount: account {} is freezed, return", account.getId());
+            return;
+        }
+
         //В итоге нам нужно получить абонементы которые закончились сегодня и раньше
         LocalDateTime expireEnd = LocalDateTime.now();
 
@@ -490,5 +504,18 @@ public class ServiceAbonementService { //dis name
         if (!servicePlan.isAbonementOnly() && !accountServiceHelper.accountHasService(account, servicePlan.getServiceId())) {
             accountServiceHelper.addAccountService(account, servicePlan.getServiceId());
         }
+    }
+
+    public void switchServiceAbonementsAfterFreeze(PersonalAccount account, Boolean freezeState) {
+        abonementManager.findAllByPersonalAccountId(account.getId()).forEach(item -> {
+            if (freezeState) {
+                item.freeze();
+                history.save(account, "Заморожен сервисный абонемент: " + item.getId() + " (" + item.getAbonement().getName() + ")");
+            } else {
+                item.unFreeze();
+                history.save(account, "Разморожен сервисный абонемент: " + item.getId() + " (" + item.getAbonement().getName() + ")");
+            }
+            abonementManager.save(item);
+        });
     }
 }

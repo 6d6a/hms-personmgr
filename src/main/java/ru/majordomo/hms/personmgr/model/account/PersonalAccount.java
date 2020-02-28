@@ -62,6 +62,10 @@ public class PersonalAccount extends VersionedModel {
     @Indexed
     private boolean active;
 
+    @NotNull
+    @Indexed
+    private boolean freeze = false;
+
     /**
      * Есть ли на аккаунте заказанные при регистрации но не оплаченные услуги
      */
@@ -88,6 +92,12 @@ public class PersonalAccount extends VersionedModel {
              pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime deleted;
+
+    @Indexed
+    @JsonFormat(shape = JsonFormat.Shape.STRING,
+             pattern = "yyyy-MM-dd HH:mm:ss")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime freezed;
 
     @NotNull
     @Indexed
