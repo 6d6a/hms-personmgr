@@ -809,6 +809,7 @@ public class AccountTransferService {
         try {
             oldServerNginxServices = rcStaffFeignClient.getNginxServicesByServerId(serverId);
         } catch (Exception e) {
+            e.printStackTrace();
             throw new ParameterValidationException("Ошибка при получении сервисов nginx для текущего сервера");
         }
 
@@ -843,6 +844,7 @@ public class AccountTransferService {
         try {
             oldServerWebSiteServices = rcStaffFeignClient.getWebsiteServicesByServerId(serverId);
         } catch (Exception e) {
+            e.printStackTrace();
             throw new ParameterValidationException("Ошибка при получении сервисов для вебсайтов для для сервера " + serverId);
         }
 
