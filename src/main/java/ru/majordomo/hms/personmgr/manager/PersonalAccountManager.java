@@ -43,6 +43,8 @@ public interface PersonalAccountManager {
 
     PersonalAccount findOneByIdIncludeIdAndActiveAndDeactivated(String id);
 
+    PersonalAccount findOneByIdIncludeIdAndFreezeAndFreezed(String id);
+
     PersonalAccount findOneByIdIncludeId(String id);
 
     PersonalAccount findByName(String name);
@@ -90,6 +92,8 @@ public interface PersonalAccountManager {
     Page<PersonalAccount> findByPredicate(Predicate predicate, Pageable pageable);
 
     void setActive(String accountId, Boolean active);
+
+    void setFreeze(String accountId, Boolean active);
 
     void setOwnerPersonId(String accountId, String personId);
 

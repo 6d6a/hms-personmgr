@@ -81,6 +81,10 @@ public class CartRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Покупки услуг невозможны.");
         }
 
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Покупки услуг невозможны.");
+        }
+
         BigDecimal cartPrice = requestBody.getOrDefault("price", BigDecimal.ZERO);
 
         List<ProcessingBusinessAction> processingBusinessActions = manager.buy(accountId, cartPrice);

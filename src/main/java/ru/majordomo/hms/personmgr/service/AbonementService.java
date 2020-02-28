@@ -156,6 +156,10 @@ public class AbonementService {
         accountAbonement.setPersonalAccountId(account.getId());
         accountAbonement.setCreated(LocalDateTime.now());
 
+        if (account.isFreeze()) {
+            accountAbonement.freeze();
+        }
+
         if (wrapper.getAll().stream().noneMatch(a -> !a.getAbonement().isTrial() && a.getExpired() != null)) {
             accountAbonement.setExpired(LocalDateTime.now().plus(Period.parse(abonement.getPeriod())));
         }
@@ -207,7 +211,12 @@ public class AbonementService {
 
     public void processExpiringAbonementsByAccount(PersonalAccount account) {
         if (account.getDeleted() != null) {
-            logger.info("processExpiringAbonementsByAccount: account {} is deleted, return");
+            logger.info("processExpiringAbonementsByAccount: account {} is deleted, return", account.getId());
+            return;
+        }
+
+        if (account.isFreeze()) {
+            logger.info("processExpiringAbonementsByAccount: account {} is freezed, return", account.getId());
             return;
         }
 
@@ -303,6 +312,11 @@ public class AbonementService {
     }
 
     public void processAbonementsAutoRenewByAccount(PersonalAccount account) {
+        if (account.isFreeze()) {
+            logger.info("processAbonementsAutoRenewByAccount: account {} is freezed, return", account.getId());
+            return;
+        }
+
         List<AccountAbonement> allAbonements = accountAbonementManager.findAllByPersonalAccountId(account.getId());
 
         if (account.getDeleted() != null) {
@@ -734,5 +748,18 @@ public class AbonementService {
         return allAbonements.stream()
                 .filter(a -> a.getExpired() != null && a.getExpired().isBefore(expiredBefore))
                 .min(Comparator.comparing(AccountAbonement::getExpired));
+    }
+
+    public void switchAbonementsAfterFreeze(PersonalAccount account, Boolean freezeState) {
+        accountAbonementManager.findAllByPersonalAccountId(account.getId()).forEach(item -> {
+            if (freezeState) {
+                item.freeze();
+                history.save(account, "Заморожен абонемент: " + item.getId() + " (" + item.getAbonement().getName() + ")");
+            } else {
+                item.unFreeze();
+                history.save(account, "Разморожен абонемент: " + item.getId() + " (" + item.getAbonement().getName() + ")");
+            }
+            accountAbonementManager.save(item);
+        });
     }
 }

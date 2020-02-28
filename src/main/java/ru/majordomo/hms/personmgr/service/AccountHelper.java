@@ -445,10 +445,23 @@ public class AccountHelper {
             history.save(account, "Аккаунт " + (state ? "включен" : "выключен"));
 
             accountManager.setActive(account.getId(), state);
-            resourceHelper.switchAccountResources(account, state);
+
+            if (!account.isFreeze()) {
+                resourceHelper.switchAccountResources(account, state);
+            }
 
             if (state) {
                 publisher.publishEvent(new AccountWasEnabled(account.getId(), account.getDeactivated()));
+            }
+        }
+    }
+
+    public void switchAccountFreezeState(PersonalAccount account, Boolean state) {
+        if (account.isFreeze() != state) {
+            history.save(account, "Аккаунт " + (state ? "заморожен" : "разморожен"));
+            accountManager.setFreeze(account.getId(), state);
+            if (account.isActive()) {
+                resourceHelper.switchAccountResources(account, !state);
             }
         }
     }

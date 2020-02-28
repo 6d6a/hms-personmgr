@@ -106,6 +106,7 @@ public class RedirectServiceRestController extends CommonRestController {
     ){
         PersonalAccount account = accountManager.findOne(accountId);
         assertAccountIsActive(account);
+        assertAccountIsFreeze(account);
 
         RedirectAccountService redirectAccountService = accountRedirectServiceRepository
                 .findByPersonalAccountIdAndId(account.getId(), serviceId);
@@ -176,6 +177,7 @@ public class RedirectServiceRestController extends CommonRestController {
     ){
         PersonalAccount account = accountManager.findOne(accountId);
         assertAccountIsActive(account);
+        assertAccountIsFreeze(account);
 
         accountHelper.checkIsAdditionalServiceAllowed(account, Feature.REDIRECT);
 
@@ -223,6 +225,7 @@ public class RedirectServiceRestController extends CommonRestController {
 
         PersonalAccount account = accountManager.findOne(accountId);
         assertAccountIsActive(account);
+        assertAccountIsFreeze(account);
 
         accountHelper.checkIsAdditionalServiceAllowed(account, Feature.REDIRECT);
 
@@ -268,6 +271,7 @@ public class RedirectServiceRestController extends CommonRestController {
         PersonalAccount account = accountManager.findOne(accountId);
 
         assertAccountIsActive(account);
+        assertAccountIsFreeze(account);
 
         checkRedirectLimits(account, message);
 
@@ -349,4 +353,11 @@ public class RedirectServiceRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт не активен");
         }
     }
+
+    private void assertAccountIsFreeze(PersonalAccount account) {
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен");
+        }
+    }
+
 }

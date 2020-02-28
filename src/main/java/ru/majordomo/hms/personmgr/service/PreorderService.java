@@ -331,7 +331,7 @@ public class PreorderService {
         if (preorder.getAbonement() == null) {
             return activateOneFreeAndDailyPreorder(preorder);
         } else if (preorder.getFeature() == Feature.VIRTUAL_HOSTING_PLAN) {
-            AccountAbonement accountAbonement = new AccountAbonement(account.getId(), preorder.getAbonement(), null);
+            AccountAbonement accountAbonement = new AccountAbonement(account, preorder.getAbonement(), null);
             String accountAbonementId = accountAbonementManager.insert(accountAbonement).getId();
             Plan plan = planManager.findOne(account.getPlanId());
             if (plan != null) {
@@ -340,7 +340,7 @@ public class PreorderService {
             preorder.setAccountAbonementId(accountAbonementId);
             publisher.publishEvent(new AccountBuyAbonement(account.getId(), accountAbonementId));
         } else {
-            AccountServiceAbonement accountAbonement = new AccountServiceAbonement(account.getId(), preorder.getAbonement(), null);
+            AccountServiceAbonement accountAbonement = new AccountServiceAbonement(account, preorder.getAbonement(), null);
             preorder.setAccountServiceAbonementId(accountServiceAbonementManager.insert(accountAbonement).getId());
         }
         preorderRepository.save(preorder);
@@ -414,10 +414,10 @@ public class PreorderService {
             if (plan != null) {
                 accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
             }
-            AccountAbonement accountAbonement = new AccountAbonement(account.getId(), preorder.getAbonement(), null);
+            AccountAbonement accountAbonement = new AccountAbonement(account, preorder.getAbonement(), null);
             preorder.setAccountAbonementId(accountAbonementManager.insert(accountAbonement).getId());
         } else {
-            AccountServiceAbonement accountAbonement = new AccountServiceAbonement(account.getId(), preorder.getAbonement(), null);
+            AccountServiceAbonement accountAbonement = new AccountServiceAbonement(account, preorder.getAbonement(), null);
             preorder.setAccountServiceAbonementId(accountServiceAbonementManager.insert(accountAbonement).getId());
         }
         preorderRepository.save(preorder);

@@ -38,6 +38,10 @@ public class SslCertificateResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Заказ SSL-сертификата невозможен.");
         }
 
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Заказ SSL-сертификата невозможен.");
+        }
+
         resourceChecker.checkResource(account, ResourceType.SSL_CERTIFICATE, message.getParams());
         message.removeParam(SSL_CHECK_PROHIBITED_KEY);
 
@@ -69,6 +73,10 @@ public class SslCertificateResourceRestController extends CommonRestController {
 
         if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Управление SSL-сертификатами недоступно.");
+        }
+
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Управление SSL-сертификатами недоступно.");
         }
 
         logger.debug("Update sslcertificate " + message.toString());

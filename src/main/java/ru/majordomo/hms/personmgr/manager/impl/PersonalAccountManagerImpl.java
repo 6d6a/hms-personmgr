@@ -131,6 +131,13 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
+    public PersonalAccount findOneByIdIncludeIdAndFreezeAndFreezed(String id) {
+        checkById(id);
+
+        return repository.findOneByIdIncludeIdAndFreezeAndFreezed(id);
+    }
+
+    @Override
     public PersonalAccount findOneByIdIncludeId(String id) {
         checkById(id);
 
@@ -421,6 +428,24 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
             }
         } else {
             update.unset("deactivated");
+        }
+
+        mongoOperations.updateFirst(query, update, PersonalAccount.class);
+    }
+
+    @Override
+    public void setFreeze(String id, Boolean active) {
+        PersonalAccount account = findOneByIdIncludeIdAndFreezeAndFreezed(id);
+
+        Query query = new Query(new Criteria("_id").is(id));
+        Update update = new Update().set("freeze", active);
+
+        if (active) {
+            if (account.getFreezed() == null) {
+                update.currentDate("freezed");
+            }
+        } else {
+            update.unset("freezed");
         }
 
         mongoOperations.updateFirst(query, update, PersonalAccount.class);

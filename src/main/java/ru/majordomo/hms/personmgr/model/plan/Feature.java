@@ -36,7 +36,8 @@ public enum Feature {
      *  разрешение создавать базы данных и пользователей баз данных даже если они запрещены тарифом
      */
     ALLOW_USE_DATABASES,
-    DEDICATED_APP_SERVICE;
+    DEDICATED_APP_SERVICE,
+    FREEZING;
 
 
     @NonNull

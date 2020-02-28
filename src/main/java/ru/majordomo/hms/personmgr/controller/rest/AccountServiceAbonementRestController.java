@@ -200,6 +200,10 @@ public class AccountServiceAbonementRestController extends CommonRestController 
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Заказ абонемента невозможен.");
+        }
+
         accountHelper.checkIsAdditionalServiceAllowed(account, feature);
 
         ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);

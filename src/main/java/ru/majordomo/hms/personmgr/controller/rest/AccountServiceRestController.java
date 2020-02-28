@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import lombok.AllArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -38,6 +39,7 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 @RestController
 @RequestMapping("/{accountId}/account-service")
 @Validated
+@AllArgsConstructor
 public class AccountServiceRestController extends CommonRestController {
 
     private final AccountServiceHelper accountServiceHelper;
@@ -47,25 +49,8 @@ public class AccountServiceRestController extends CommonRestController {
     private final AccountNotificationHelper accountNotificationHelper;
     private final DiscountServiceHelper discountServiceHelper;
     private final ResourceHelper resourceHelper;
-
-    @Autowired
-    public AccountServiceRestController(
-            AccountServiceHelper accountServiceHelper,
-            AccountHelper accountHelper,
-            AbonementManager<AccountAbonement> accountAbonementManager,
-            PlanManager planManager,
-            AccountNotificationHelper accountNotificationHelper,
-            DiscountServiceHelper discountServiceHelper,
-            ResourceHelper resourceHelper
-    ) {
-        this.accountServiceHelper = accountServiceHelper;
-        this.accountHelper = accountHelper;
-        this.accountAbonementManager = accountAbonementManager;
-        this.planManager = planManager;
-        this.accountNotificationHelper = accountNotificationHelper;
-        this.discountServiceHelper = discountServiceHelper;
-        this.resourceHelper = resourceHelper;
-    }
+    private final ServiceAbonementService serviceAbonementService;
+    private final AbonementService abonementService;
 
     @GetMapping(value = "/{accountServiceId}")
     public ResponseEntity<AccountService> get(
@@ -155,6 +140,10 @@ public class AccountServiceRestController extends CommonRestController {
             throw new InternalApiException("Cannot find plan");
         }
 
+        if (account.isFreeze() && feature != Feature.FREEZING && feature != Feature.LONG_LIFE_RESOURCE_ARCHIVE) {
+            throw new ParameterValidationException("На замороженном аккаунте нельзя управлять услугами");
+        }
+
         ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
 
         if (feature == Feature.SMS_NOTIFICATIONS && enabled) {
@@ -197,6 +186,13 @@ public class AccountServiceRestController extends CommonRestController {
 
         if (feature == Feature.ANTI_SPAM) {
             resourceHelper.switchAntiSpamForMailboxes(account, enabled);
+        }
+
+        if (feature == Feature.FREEZING) {
+            accountServiceHelper.switchServicesAfterFreeze(account, enabled);
+            serviceAbonementService.switchServiceAbonementsAfterFreeze(account, enabled);
+            abonementService.switchAbonementsAfterFreeze(account, enabled);
+            accountHelper.switchAccountFreezeState(account, enabled);
         }
 
         history.save(

@@ -59,6 +59,10 @@ public class InviteRestController {
             throw new ParameterValidationException("Аккаунт не активен");
         }
 
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен.");
+        }
+
         int sentToday = accountStatHelper.getCountInviteSend(accountId, LocalDate.now());
         if (sentToday >= maxInvitesPerDay) {
             throw new ParameterValidationException("Отправлено слишком много приглашений, действие временно заблокировано");

@@ -19,6 +19,9 @@ public interface PersonalAccountRepository extends MongoRepository<PersonalAccou
     @Query(value="{'_id' : ?0}", fields="{active : 1, deactivated : 1}")
     PersonalAccount findOneByIdIncludeIdAndActiveAndDeactivated(String id);
 
+    @Query(value="{'_id' : ?0}", fields="{freeze : 1, freezed : 1}")
+    PersonalAccount findOneByIdIncludeIdAndFreezeAndFreezed(String id);
+
     @Query(value="{'_id' : ?0}", fields="{_id : 1}")
     PersonalAccount findOneByIdIncludeId(String id);
 

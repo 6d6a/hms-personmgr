@@ -54,6 +54,10 @@ public class DomainResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Добавление домена невозможно.");
         }
 
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Добавление домена невозможно.");
+        }
+
         resourceChecker.checkResource(account, ResourceType.DOMAIN, message.getParams());
 
         logger.debug("Creating domain " + message.toString());

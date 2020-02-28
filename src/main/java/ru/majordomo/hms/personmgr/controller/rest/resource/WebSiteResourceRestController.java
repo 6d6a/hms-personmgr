@@ -41,6 +41,10 @@ public class WebSiteResourceRestController extends CommonRestController {
             throw new ParameterValidationException("Аккаунт неактивен. Создание сайта невозможно.");
         }
 
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Создание сайта невозможно.");
+        }
+
         if (!planCheckerService.canAddWebSite(accountId)) {
             throw new ParameterValidationException("Лимит тарифа на создание сайтов превышен");
         }
@@ -81,6 +85,10 @@ public class WebSiteResourceRestController extends CommonRestController {
 
         if (!account.isActive() || account.isPreorder()) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание сайта невозможно.");
+        }
+
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Создание сайта невозможно.");
         }
 
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {

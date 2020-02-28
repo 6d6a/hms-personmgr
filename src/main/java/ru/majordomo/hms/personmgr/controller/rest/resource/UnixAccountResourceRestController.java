@@ -47,8 +47,14 @@ public class UnixAccountResourceRestController extends CommonRestController {
 
         Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
 
-        if (!accountManager.findOne(accountId).isActive() && (unixAccounts != null && !unixAccounts.isEmpty())) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive() && (unixAccounts != null && !unixAccounts.isEmpty())) {
             throw new ParameterValidationException("Аккаунт неактивен. Создание Unix аккаунта невозможно.");
+        }
+
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Создание Unix аккаунта невозможно.");
         }
 
         logger.debug("Creating unix account " + message.toString());
@@ -77,8 +83,14 @@ public class UnixAccountResourceRestController extends CommonRestController {
         message.setAccountId(accountId);
         message.addParam("resourceId", resourceId);
 
-        if (!accountManager.findOne(accountId).isActive()) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (!account.isActive()) {
             throw new ParameterValidationException("Аккаунт неактивен. Обновление Unix аккаунта невозможно.");
+        }
+
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Обновление Unix аккаунта невозможно.");
         }
 
         logger.debug("Updating unix account with id " + resourceId + " " + message.toString());
@@ -105,6 +117,12 @@ public class UnixAccountResourceRestController extends CommonRestController {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.addParam("resourceId", resourceId);
         message.setAccountId(accountId);
+
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (account.isFreeze()) {
+            throw new ParameterValidationException("Аккаунт заморожен. Обновление Unix аккаунта невозможно.");
+        }
 
         logger.debug("Deleting unix account with id " + resourceId + " " + message.toString());
 
