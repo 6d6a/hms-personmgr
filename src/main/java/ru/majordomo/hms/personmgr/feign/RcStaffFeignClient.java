@@ -66,10 +66,10 @@ public interface RcStaffFeignClient {
     Template getTemplateAvailableToAccountsById(@PathVariable("accountId") String accountId, @PathVariable("templateId") String templateId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/server/{serverId}/services?service-type=WEBSITE")
-    List<Service> getWebsiteServicesByAccountIdAndServerId(@PathVariable("accountId") String accountId, @PathVariable("accountId") String serverId);
+    List<Service> getWebsiteServicesByAccountIdAndServerId(@PathVariable("accountId") String accountId, @PathVariable("serverId") String serverId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/server/{serverId}/services?service-type=DATABASE")
-    List<Service> getDatabaseServicesByAccountIdAndServerId(@PathVariable("accountId") String accountId, @PathVariable("accountId") String serverId);
+    List<Service> getDatabaseServicesByAccountIdAndServerId(@PathVariable("accountId") String accountId, @PathVariable("serverId") String serverId);
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/server/{serverId}/services?service-type=STAFF_NGINX")
     List<Service> getNginxServicesByAccountIdAndServerId(@PathVariable("accountId") String accountId, @PathVariable("serverId") String serverId);

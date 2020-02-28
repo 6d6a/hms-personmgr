@@ -66,6 +66,7 @@ public class ResourceNormalizer {
             try {
                 webSiteServices = rcStaffFeignClient.getWebsiteServicesByAccountIdAndServerId(account.getId(), webSiteServer.getId());
             } catch (Exception e) {
+                e.printStackTrace();
                 throw new ParameterValidationException("Ошибка при получении сервисов для вебсайтов для для сервера " + webSiteServer.getId());
             }
 
