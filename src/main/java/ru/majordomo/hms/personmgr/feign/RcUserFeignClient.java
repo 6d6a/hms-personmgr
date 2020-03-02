@@ -63,6 +63,14 @@ public interface RcUserFeignClient {
     @GetMapping(value = "/{accountId}/website", consumes = "application/json")
     List<WebSite> getWebSites(@PathVariable("accountId") String accountId);
 
+    /**
+     * Вернет только объекты WebSite, без Transient объектов в нем. Не бросает исключение в случае отсутствия домена, unix-аккаунта и т.п.
+     * @param accountId - PersonalAccount
+     * @return - список сайтов
+     */
+    @GetMapping(value = "/{accountId}/website?withoutBuiltIn=true", consumes = "application/json")
+    List<WebSite> getWebSitesOnly(@PathVariable("accountId") String accountId);
+
     @GetMapping(value = "/{accountId}/person/{personId}", consumes = "application/json")
     Person getPerson(@PathVariable("accountId") String accountId, @PathVariable("personId") String personId);
 
@@ -120,4 +128,7 @@ public interface RcUserFeignClient {
 
     @GetMapping(value = "/{accountId}/domain/get-dns-record/{recordId}", consumes = "application/json")
     DNSResourceRecord getRecord(@PathVariable("accountId") String accountId, @PathVariable("recordId") String recordId);
+
+    @PostMapping(value = "import/{accountId}", consumes = "application/json")
+    void importToMongo(@PathVariable String accountId, @RequestParam("accountEnabled") boolean accountEnabled, @RequestParam("allowAntispam") boolean allowAntispam);
 }

@@ -1,8 +1,10 @@
 package ru.majordomo.hms.personmgr.importing;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -18,6 +20,7 @@ import javax.validation.ConstraintViolationException;
 import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.config.ImportProfile;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
@@ -25,29 +28,13 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
  * Сервис для загрузки первичных данных в БД
  */
 @Service
-@ImportProfile
+@RequiredArgsConstructor
 public class AccountNotificationDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountNotificationDBImportService.class);
 
-    private PersonalAccountManager accountManager;
-    private NamedParameterJdbcTemplate jdbcTemplate;
-
-    @Autowired
-    public AccountNotificationDBImportService(
-            NamedParameterJdbcTemplate jdbcTemplate,
-            PersonalAccountManager accountManager
-    ) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.accountManager = accountManager;
-    }
-
-    public void pull() {
-        List<PersonalAccount> personalAccounts = accountManager.findAll();
-
-        for (PersonalAccount personalAccount : personalAccounts) {
-            this.pull(personalAccount.getAccountId());
-        }
-    }
+    private final PersonalAccountManager accountManager;
+    @Qualifier("namedParameterJdbcTemplate")
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
     private void pull(String accountId) {
         logger.info("[start] Searching for AccountNotification for acc " + accountId);
@@ -123,17 +110,17 @@ public class AccountNotificationDBImportService {
                                 .collect(Collectors.joining())
                 );
             }
+        } else {
+            String message = String.format("Cannot import notification, account %s not exists", accountId);
+            logger.error(message);
+            throw new ResourceNotFoundException(message);
         }
 
         logger.info("[finish] Searching for AccountNotification for acc " + accountId);
     }
 
-    public boolean importToMongo() {
-        pull();
-        return true;
-    }
-
     public boolean importToMongo(String accountId) {
+
         pull(accountId);
         return true;
     }

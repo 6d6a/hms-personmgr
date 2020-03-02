@@ -25,7 +25,6 @@ import ru.majordomo.hms.personmgr.repository.AccountCommentRepository;
  * Сервис для загрузки первичных данных в БД
  */
 @Service
-@ImportProfile
 public class AccountCommentDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountCommentDBImportService.class);
 
@@ -39,12 +38,6 @@ public class AccountCommentDBImportService {
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.accountCommentRepository = accountCommentRepository;
-    }
-
-    public void pull() {
-        String query = "SELECT comment_id, account_id, comment_date, comment_text, login FROM account_comments";
-
-        jdbcTemplate.query(query, this::rowMap);
     }
 
     public void pull(String accountId) {
@@ -87,19 +80,10 @@ public class AccountCommentDBImportService {
         return accountComment;
     }
 
-    public void clean() {
-        accountCommentRepository.deleteAll();
-    }
-
     public void clean(String accountId) {
         accountCommentRepository.deleteByPersonalAccountId(accountId);
     }
 
-    public boolean importToMongo() {
-        clean();
-        pull();
-        return true;
-    }
 
     public boolean importToMongo(String accountId) {
         clean(accountId);

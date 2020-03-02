@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,11 +10,14 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
+import ru.majordomo.hms.personmgr.importing.DBImportService;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
+
+import javax.annotation.Nullable;
 
 import static ru.majordomo.hms.personmgr.common.Utils.cleanBooleanSafe;
 
@@ -25,6 +29,14 @@ public class BusinessFlowDirector {
     private final BusinessActionProcessor businessActionProcessor;
     private final FinFeignClient finFeignClient;
     private final AccountPromotionManager accountPromotionManager;
+
+    @Nullable
+    private DBImportService dbImportService;
+
+    @Autowired
+    public void setDbImportService(@Nullable DBImportService dbImportService) {
+        this.dbImportService = dbImportService;
+    }
 
     @Autowired
     public BusinessFlowDirector(
@@ -100,19 +112,26 @@ public class BusinessFlowDirector {
                             if (businessOperation.getType() != BusinessOperationType.ACCOUNT_CREATE
                                     && businessOperation.getType() != BusinessOperationType.APP_INSTALL
                                     && businessOperation.getType() != BusinessOperationType.ACCOUNT_TRANSFER
-                                    && businessOperation.getType() != BusinessOperationType.APP_INSTALL) {
+                                    && businessOperation.getType() != BusinessOperationType.APP_INSTALL
+                                    && businessOperation.getType() != BusinessOperationType.IMPORT_FROM_BILLINGDB
+                            ) {
                                 businessOperation.setState(businessAction.getState());
+                                processingBusinessOperationRepository.save(businessOperation);
                             }
-
                             break;
                         case ERROR:
-                            businessOperation.setState(businessAction.getState());
-                            fillPublicParamsToBusinessOperation(message, businessOperation);
+                            if (dbImportService != null && businessOperation.getType() == BusinessOperationType.IMPORT_FROM_BILLINGDB) {
+                                dbImportService.processErrorAction(businessAction, businessOperation, message);
+                            } else {
+                                businessOperation.setState(businessAction.getState());
+                                fillPublicParamsToBusinessOperation(message, businessOperation);
+                                processingBusinessOperationRepository.save(businessOperation);
+                            }
+                            break;
                     }
                     logger.debug("ProcessingBusinessOperation -> " + businessOperation.getState() + ", operationIdentity: " +
                             message.getOperationIdentity()
                     );
-                    processingBusinessOperationRepository.save(businessOperation);
                 }
             }
 

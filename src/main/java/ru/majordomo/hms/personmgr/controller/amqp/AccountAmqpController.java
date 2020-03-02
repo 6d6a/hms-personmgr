@@ -115,11 +115,18 @@ public class AccountAmqpController extends CommonAmqpController {
                                 Plan plan = planManager.findOne(account.getPlanId());
                                 Long quota = planLimitsService.getQuotaBytesFreeLimit(plan);
 
-                                message.setParams(businessOperation.getParams());
-                                message.addParam("quota", quota);
+                                // создать новое сообщение чтобы не добавлялась ерунда отравленная пользователем и другими сервисами
+                                SimpleServiceMessage createMessage = new SimpleServiceMessage(
+                                        account.getId(),
+                                        businessOperation.getId(),
+                                        null
+                                );
+                                createMessage.addParam("quota", quota)
+                                        .addParam("password", businessOperation.getParam("password"))
+                                        .addParam("username", businessOperation.getParam("username")); // имя основного аккаунта, например AC_208849
 
-                                businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, message);
-                                history.save(account, "Заявка на первичное создание UNIX-аккаунта отправлена (имя: " + message.getParam("name") + ")");
+                                businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, createMessage);
+                                history.save(account, "Заявка на первичное создание UNIX-аккаунта отправлена");
                             }
                         }
                     } else {

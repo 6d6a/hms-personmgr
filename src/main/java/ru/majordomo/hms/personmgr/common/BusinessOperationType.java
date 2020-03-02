@@ -52,7 +52,8 @@ public enum BusinessOperationType {
     DATABASE_BACKUP_RESTORE,
     DEDICATED_APP_SERVICE_CREATE,
     DEDICATED_APP_SERVICE_UPDATE,
-    DEDICATED_APP_SERVICE_DELETE,;
+    DEDICATED_APP_SERVICE_DELETE,
+    IMPORT_FROM_BILLINGDB;
 
     public static Map<BusinessOperationType, String> BUSINESS_OPERATION_TYPE2HUMAN = new HashMap<>();
 
@@ -106,5 +107,6 @@ public enum BusinessOperationType {
         BUSINESS_OPERATION_TYPE2HUMAN.put(DEDICATED_APP_SERVICE_CREATE, "Создание выделенного сервиса");
         BUSINESS_OPERATION_TYPE2HUMAN.put(DEDICATED_APP_SERVICE_UPDATE, "Обновление выделенного сервиса");
         BUSINESS_OPERATION_TYPE2HUMAN.put(DEDICATED_APP_SERVICE_DELETE, "Удаление выделенного сервиса");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(IMPORT_FROM_BILLINGDB, "Перенос аккаунта из старой контрольной панели");
     }
 }

@@ -1,6 +1,16 @@
 package ru.majordomo.hms.personmgr.service;
 
+import com.mongodb.client.result.UpdateResult;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
@@ -16,31 +26,147 @@ import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 
+import javax.annotation.Nullable;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import static ru.majordomo.hms.personmgr.common.BusinessOperationType.BUSINESS_OPERATION_TYPE2HUMAN;
 import static ru.majordomo.hms.personmgr.common.Constants.ARCHIVED_RESOURCE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_TYPE;
-import static ru.majordomo.hms.personmgr.common.State.NEED_TO_PROCESS;
-import static ru.majordomo.hms.personmgr.common.State.PROCESSING;
+import static ru.majordomo.hms.personmgr.common.State.*;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class BusinessHelper {
+
     private final ProcessingBusinessOperationRepository operationRepository;
     private final BusinessActionRepository businessActionRepository;
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
     private final ApplicationEventPublisher publisher;
+    private final MongoOperations mongoOperations;
 
-    public BusinessHelper(
-            ProcessingBusinessOperationRepository operationRepository,
-            BusinessActionRepository businessActionRepository,
-            ProcessingBusinessActionRepository processingBusinessActionRepository,
-            ApplicationEventPublisher publisher
-    ) {
-        this.operationRepository = operationRepository;
-        this.businessActionRepository = businessActionRepository;
-        this.processingBusinessActionRepository = processingBusinessActionRepository;
-        this.publisher = publisher;
+    private final static Set<State> ACTIVE_STATES = Collections.unmodifiableSet(EnumSet.of(
+            NEED_TO_PROCESS,
+            PROCESSING
+    ));
+
+    @Nullable
+    public <T extends Enum<T>> T getStage(String operationId, Class<T> enumType) {
+        if (StringUtils.isEmpty(operationId)) {
+            return null;
+        }
+        ProcessingBusinessOperation operation = operationRepository.findById(operationId).orElse(null);
+        return getStage(operation, enumType);
+    }
+
+    @Nullable
+    public <T extends Enum<T>> T getStage(ProcessingBusinessOperation operation, Class<T> enumType) {
+        try {
+            return Enum.valueOf(enumType, (String) operation.getParam("stage"));
+        } catch (NullPointerException | ClassCastException | IllegalArgumentException ignore) {
+            return null;
+        }
+    }
+
+    public <T extends Enum<T>> boolean setStage(String operationId, Enum<T> stage) {
+        UpdateResult updateResult = mongoOperations.updateFirst(
+                Query.query(new Criteria("_id").is(operationId)),
+                Update.update("updatedDate", LocalDateTime.now()).set("params.stage", stage),
+                ProcessingBusinessOperation.class
+        );
+        boolean result = updateResult.getModifiedCount() == 1;
+        log.debug("Tried setStage {} for operation: {} with result {}", stage, operationId, updateResult);
+        return result;
+    }
+
+    @Nullable
+    public ProcessingBusinessOperation findOperation(String operationId) {
+        return operationRepository.findById(operationId).orElse(null);
+    }
+
+    /**
+     * Атомарный переход на другую стадию. 
+     * @param operationId - ProcessingBusinessOperation.id
+     * @param stage - сталия на которую нужно изменить
+     * @param needStage - стадия с которой возможен переход
+     * @return - true в случае изменения. false - в случае если: не выпонены условия перехода, задание не существует, завершено с ошибокой и т.д.
+     */
+    public <T extends Enum<T>> boolean setStage(String operationId, Enum<T> stage, Enum<T> needStage) {
+        UpdateResult updateResult = mongoOperations.updateFirst(
+                Query.query(Criteria.where("_id").is(operationId).and("state").is(PROCESSING).and("params.stage").is(needStage)),
+                Update.update("updatedDate", LocalDateTime.now()).set("params.stage", stage),
+                ProcessingBusinessOperation.class
+        );
+        boolean result = updateResult.getModifiedCount() == 1;
+        log.debug("Tried setStage {} for operation: {} with needStage {} and result {}", stage, operationId, needStage, updateResult);
+        return result;
+    }
+
+    public void setErrorStatus(ProcessingBusinessOperation operation, String errorMessage) {
+        operation.setState(ERROR);
+        operation.addPublicParam("message", errorMessage);
+        operation.setUpdatedDate(LocalDateTime.now());
+        operationRepository.save(operation);
+    }
+
+    public void setErrorStatus(String operationId, String errorMessage) {
+        operationRepository.findById(operationId).ifPresent(operation -> setErrorStatus(operation, errorMessage));
+    }
+
+    public boolean addWarning(String operationId, String warning) {
+        if (StringUtils.isEmpty(operationId) || StringUtils.isEmpty(warning)) {
+            return false;
+        }
+
+        UpdateResult result = mongoOperations.updateFirst(Query.query(new Criteria("_id").is(operationId)), Update.update("updatedDate", LocalDateTime.now()).push("publicParams.warnings", warning), ProcessingBusinessOperation.class);
+        return result.getModifiedCount() == 1;
+    }
+
+    public boolean setParam(String operationId, String paramName, Object value) {
+        if (StringUtils.isEmpty(operationId) || StringUtils.isEmpty(paramName)) {
+            return false;
+        }
+        UpdateResult result = mongoOperations.updateFirst(Query.query(new Criteria("_id").is(operationId)), Update.update("updatedDate", LocalDateTime.now()).set("params." + paramName, value), ProcessingBusinessOperation.class);
+        return result.getModifiedCount() == 1;
+    }
+
+    /**
+     * Атомарное на уровне mongodb создание ProcessingBusinessOperation, позволит избежать выполнения одних и тех же заданий несколько раз,
+     * даже если задания отправятся в разные экземпляры personmgr
+     * @param operationType - тип операции
+     * @param message - сообщение из которого создается операция.
+     * @param publicParams - ничего или параметры которые будет видно снаружи, сразу при создании
+     * @return - null если уже есть выполняемая операция или объект ProcessingBusinessOperation
+     * @throws NotImplementedException - если указанный BusinessOperationType не поддерживается
+     */
+    @Nullable
+    public ProcessingBusinessOperation buildOperationAtomic(BusinessOperationType operationType, SimpleServiceMessage message, @Nullable Map<String, Object> publicParams) throws NotImplementedException {
+        Query query;
+        switch (operationType) {
+            case IMPORT_FROM_BILLINGDB:
+                query = Query.query(new Criteria("type").is(operationType)
+                        .and("personalAccountId").is(message.getAccountId())
+                        .and("state").in(ACTIVE_STATES));
+                break;
+            default:
+                throw new NotImplementedException("Atomic build ProcessingBusinessOperation not implemented for type: " + operationType);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        Map<String, Object> copyPublicParams = MapUtils.isNotEmpty(publicParams) ? new HashMap<>(publicParams) : new HashMap<>();
+        copyPublicParams.put("warnings", Collections.emptyList()); // создать массив publicParams.warnings заранее чтобы работал запрос $push
+
+        Update update = new Update().setOnInsert("createdDate", now).setOnInsert("updatedDate", now)
+                .setOnInsert("params", message.getParams()).setOnInsert("publicParams", copyPublicParams)
+                .setOnInsert("state", PROCESSING).setOnInsert("name", BUSINESS_OPERATION_TYPE2HUMAN.get(operationType))
+                .setOnInsert("priority", 0).setOnInsert("_class", ProcessingBusinessOperation.class.getName());
+                //если update создал новую запись, заполнить её полями для ProcessingBusinessOperation
+
+
+        UpdateResult updateResult =  mongoOperations.upsert(query, update, ProcessingBusinessOperation.class);
+
+        return updateResult.getUpsertedId() == null ? null : mongoOperations.findById(updateResult.getUpsertedId(), ProcessingBusinessOperation.class);
     }
 
     public ProcessingBusinessAction buildActionAndOperation(
@@ -53,7 +179,7 @@ public class BusinessHelper {
         return buildActionByOperation(actionType, message, processingBusinessOperation);
     }
 
-    public ProcessingBusinessOperation buildOperation(BusinessOperationType operationType, SimpleServiceMessage message) {
+    public ProcessingBusinessOperation buildOperation(BusinessOperationType operationType, SimpleServiceMessage message, @Nullable Map<String, Object> publicParam) {
         ProcessingBusinessOperation operation = new ProcessingBusinessOperation();
 
         operation.setPersonalAccountId(message.getAccountId());
@@ -62,14 +188,22 @@ public class BusinessHelper {
         operation.setParams(message.getParams());
         operation.setType(operationType);
 
+        operation.addPublicParam("warnings", Collections.emptyList()); // создать массив publicParams.warnings заранее чтобы работал запрос $push
         String nameInParams = (String) message.getParam("name");
         if (nameInParams != null) {
             operation.addPublicParam("name", nameInParams);
+        }
+        if (MapUtils.isNotEmpty(publicParam)) {
+            publicParam.forEach(operation::addPublicParam);
         }
 
         operationRepository.save(operation);
 
         return operation;
+    }
+
+    public ProcessingBusinessOperation buildOperation(BusinessOperationType operationType, SimpleServiceMessage message) {
+        return buildOperation(operationType, message, null);
     }
 
     public ProcessingBusinessAction buildAction(
@@ -118,8 +252,11 @@ public class BusinessHelper {
         return action;
     }
 
+    public boolean existsActiveActions(String operationId) {
+        return processingBusinessActionRepository.existsByOperationIdAndStateIn(operationId, ACTIVE_STATES);
+    }
+
     public boolean existsActiveOperations(String personalAccountId, BusinessOperationType type, SimpleServiceMessage message) {
-        Set<State> activeStates = new HashSet<>(Arrays.asList(NEED_TO_PROCESS, PROCESSING));
 
         Map<String, String> params = new HashMap<>();
 
@@ -183,6 +320,8 @@ public class BusinessHelper {
                 params.put("resourceId", (String) message.getParam("resourceId"));
 
                 break;
+            case IMPORT_FROM_BILLINGDB:
+                break;
             case PERSON_CREATE:
             case ACCOUNT_DELETE:
             case ACCOUNT_UPDATE:
@@ -198,7 +337,7 @@ public class BusinessHelper {
                 return false;
         }
 
-        List<ProcessingBusinessOperation> operations = operationRepository.findAllByPersonalAccountIdAndTypeAndStateIn(personalAccountId, type, activeStates);
+        List<ProcessingBusinessOperation> operations = operationRepository.findAllByPersonalAccountIdAndTypeAndStateIn(personalAccountId, type, ACTIVE_STATES);
 
         return operations
                 .stream()

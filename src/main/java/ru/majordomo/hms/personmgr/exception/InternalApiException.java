@@ -13,4 +13,7 @@ public class InternalApiException extends BaseException{
     public InternalApiException(String message) {
         super(message);
     }
+    public InternalApiException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

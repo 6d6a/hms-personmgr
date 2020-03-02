@@ -18,6 +18,15 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.Views;
 
+/**
+ * Объект описывающий длительную операцию которая не может быть выполнена сразу в том потоке.
+ * Например что-то что потребовало обращение по rabbit, а результат придет неизвестно когда.
+ * По нему и ProcessingBusinessAction так же происходит запрет на создание повторных операций.
+ * 
+ * Один объект ProcessingBusinessOperation соответствует множеству ProcessingBusinessAction
+ *
+ * При изменении объекта нужно исправить большое количество написанных в ручную запросов к mongo в классе BusinessHelper
+ */
 @Document
 public class ProcessingBusinessOperation extends Step {
     @JsonView(Views.Public.class)

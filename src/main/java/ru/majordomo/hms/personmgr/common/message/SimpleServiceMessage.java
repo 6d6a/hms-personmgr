@@ -1,11 +1,14 @@
 package ru.majordomo.hms.personmgr.common.message;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.NoArgsConstructor;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+@NoArgsConstructor
 public class SimpleServiceMessage {
     private String operationIdentity;
     private String actionIdentity;
@@ -49,16 +52,23 @@ public class SimpleServiceMessage {
         this.params = params;
     }
 
+    public SimpleServiceMessage(String accountId, @Nullable String operationIdentity, @Nullable String actionIdentity) {
+        this.operationIdentity = operationIdentity;
+        this.actionIdentity = actionIdentity;
+        this.accountId = accountId;
+    }
+
     public void addParams(Map<String, Object> params) {
         this.params.putAll(params);
     }
 
-    public void addParam(String name, Object value) {
+    public SimpleServiceMessage addParam(String name, Object value) {
         if (params == null) {
             params = new HashMap<>();
         }
 
         params.put(name,value);
+        return this;
     }
 
     public void removeParam(String key) {
