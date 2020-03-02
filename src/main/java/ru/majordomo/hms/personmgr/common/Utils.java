@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -325,5 +326,16 @@ public class Utils {
             return attachment;
         }
         return null;
+    }
+
+    private final static Pattern CIDR_OR_IP_PATTERN = Pattern.compile("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(/([1-9]|[1-2]\\d|3[0-2]))?$");
+    private final static Pattern CIDR_PATTERN = Pattern.compile("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])/([1-9]|[1-2]\\d|3[0-2])$");
+
+    public static boolean cidrOrIpValid(String cidrOrIp) {
+        return CIDR_OR_IP_PATTERN.matcher(cidrOrIp).matches();
+    }
+
+    public static boolean cidrValid(String cidr) {
+        return CIDR_PATTERN.matcher(cidr).matches();
     }
 }

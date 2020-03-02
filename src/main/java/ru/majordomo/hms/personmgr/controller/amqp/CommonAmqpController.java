@@ -16,15 +16,17 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
+import ru.majordomo.hms.personmgr.importing.DBImportService;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
-import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.rc.user.resources.ResourceArchiveType;
+
+import javax.annotation.Nullable;
 
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ROUTING_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_CREATE;
@@ -51,6 +53,15 @@ public class CommonAmqpController {
     protected AccountHistoryManager history;
     private ResourceArchiveService resourceArchiveService;
     private DedicatedAppServiceHelper dedicatedAppServiceHelper;
+
+
+    @Nullable
+    private DBImportService dbImportService;
+
+    @Autowired
+    public void setDbImportService(@Nullable DBImportService dbImportService) {
+        this.dbImportService = dbImportService;
+    }
 
     protected String resourceName = "";
 
@@ -266,25 +277,43 @@ public class CommonAmqpController {
                                         params.put(PASSWORD_KEY, (String) operation.getParam(PASSWORD_KEY));
 
                                         publisher.publishEvent(new AccountCreatedEvent(account, params));
+                                    } else if (operation.getType() == BusinessOperationType.IMPORT_FROM_BILLINGDB && dbImportService != null) {
+                                        dbImportService.startStageSecondIfNeed(operation);
                                     }
                                 });
                         break;
 
                     case DATABASE_USER_CREATE_RC:
                         processingBusinessOperationRepository.findById(message.getOperationIdentity())
-                                .ifPresent(operation -> sendToAppscat(message, operation, DATABASE_USER_CREATE));
+                                .ifPresent(operation -> {
+                                    if (operation.getType() == BusinessOperationType.IMPORT_FROM_BILLINGDB && dbImportService != null) {
+                                        dbImportService.startStageSecondIfNeed(operation);
+                                    } else {
+                                        sendToAppscat(message, operation, DATABASE_USER_CREATE);
+                                    }
+                                });
 
                         break;
 
                     case DATABASE_CREATE_RC:
                         processingBusinessOperationRepository.findById(message.getOperationIdentity())
-                                .ifPresent(operation -> sendToAppscat(message, operation, DATABASE_CREATE));
+                                .ifPresent(operation -> {
+                                    if (dbImportService != null && operation.getType() == BusinessOperationType.IMPORT_FROM_BILLINGDB) {
+                                        dbImportService.finishImportIfNeed(operation);
+                                    } else {
+                                        sendToAppscat(message, operation, DATABASE_CREATE);
+                                    }
+                                });
 
                         break;
 
                     case FTP_USER_CREATE_RC:
+                        processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
+                            if (dbImportService != null && operation.getType() == BusinessOperationType.IMPORT_FROM_BILLINGDB) {
+                                dbImportService.finishImportIfNeed(operation);
+                            }
+                        });
                         ftpUserService.processServices(account);
-
                         break;
 
                     case RESOURCE_ARCHIVE_CREATE_RC:
@@ -310,6 +339,13 @@ public class CommonAmqpController {
                         processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
                             String resourceId = getResourceIdByObjRef(message.getObjRef());
                             dedicatedAppServiceHelper.finishCreateOperation(operation, resourceId);
+                        });
+                        break;
+                    case WEB_SITE_CREATE_RC:
+                        processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
+                            if (dbImportService != null && operation.getType() == BusinessOperationType.IMPORT_FROM_BILLINGDB) {
+                                dbImportService.finishImportIfNeed(operation);
+                            }
                         });
                         break;
                 }
@@ -436,6 +472,9 @@ public class CommonAmqpController {
                                             ResourceArchiveType.WEBSITE,
                                             resourceId
                                     );
+                                    if (operation.getType() == BusinessOperationType.IMPORT_FROM_BILLINGDB && dbImportService != null) {
+                                        dbImportService.startStageFirstIfNeed(operation);
+                                    }
                         });
                     }
 

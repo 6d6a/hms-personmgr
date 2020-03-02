@@ -39,11 +39,6 @@ public class PromocodeDBImportService {
         this.promocodeRepository = promocodeRepository;
     }
 
-    private void pull() {
-        String query = "SELECT p.id, p.accountid, p.postfix, p.active, p.created FROM promorecord p";
-        partnersNamedParameterJdbcTemplate.query(query, this::rowMap);
-    }
-
     private void pull(String accountId) {
         logger.info("[start] Searching for Promocode for acc " + accountId);
 
@@ -82,10 +77,6 @@ public class PromocodeDBImportService {
         return null;
     }
 
-    public void clean() {
-        promocodeRepository.deleteAll();
-    }
-
     public void clean(String accountId) {
         logger.info("clean of promocodesList for acc: " + accountId);
 
@@ -99,12 +90,6 @@ public class PromocodeDBImportService {
                 namedParametersE,
                 this::rowMapClean
         );
-    }
-
-    public boolean importToMongo() {
-        clean();
-        pull();
-        return true;
     }
 
     public boolean importToMongo(String accountId) {

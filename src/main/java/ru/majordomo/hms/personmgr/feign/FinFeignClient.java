@@ -68,4 +68,7 @@ public interface FinFeignClient {
 
     @GetMapping(value = "/{accountId}/promised-payment", consumes = "application/json")
     List<Object> getPromisedPayments(@PathVariable("accountId") String accountId);
+
+    @PostMapping(value = "/import/{accountId}")
+    List<String> importToMongo(@PathVariable("accountId") String accountId);
 }

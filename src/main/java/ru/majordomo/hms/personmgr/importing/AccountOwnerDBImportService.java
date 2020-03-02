@@ -26,7 +26,6 @@ import ru.majordomo.hms.personmgr.model.account.ContactInfo;
 import ru.majordomo.hms.personmgr.model.account.PersonalInfo;
 
 @Service
-@ImportProfile
 public class AccountOwnerDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountOwnerDBImportService.class);
 
@@ -41,19 +40,6 @@ public class AccountOwnerDBImportService {
     ) {
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
         this.accountOwnerManager = accountOwnerManager;
-    }
-
-    public void pull() {
-        String query = "SELECT a.id, " +
-                "c.Client_ID, c.name as client_name, c.phone, c.phone2, c.email, c.email2, c.email3, " +
-                "c.passport, '' as passport_number, '' as passport_org, '' as passport_date, " +
-                "c.HB as birthdate, c.address as legal_address, c.address_post, c.inn, c.kpp, c.ogrn, c.okpo, c.okved, " +
-                "c.bank_rekv, c.bank_name, c.bill as bank_account, c.coor_bill as bank_account_loro, c.bik as bank_bik, c.face, c.company_name " +
-                "FROM client c " +
-                "JOIN account a USING(client_id) " +
-                "ORDER BY a.id ASC";
-
-        namedParameterJdbcTemplate.query(query, this::rowMap);
     }
 
     public void pull(String accountId) {
@@ -109,18 +95,8 @@ public class AccountOwnerDBImportService {
         return accountOwner;
     }
 
-    public void clean() {
-        accountOwnerManager.deleteAll();
-    }
-
     public void clean(String accountId) {
         accountOwnerManager.deleteByPersonalAccountId(accountId);
-    }
-
-    public boolean importToMongo() {
-        clean();
-        pull();
-        return true;
     }
 
     public boolean importToMongo(String accountId) {

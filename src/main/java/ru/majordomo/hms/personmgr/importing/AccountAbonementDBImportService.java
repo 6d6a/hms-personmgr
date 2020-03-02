@@ -21,6 +21,7 @@ import ru.majordomo.hms.personmgr.config.ImportProfile;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
+import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -29,7 +30,6 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
  * Сервис для загрузки первичных данных в БД
  */
 @Service
-@ImportProfile
 public class AccountAbonementDBImportService {
     private final static Logger logger = LoggerFactory.getLogger(AccountAbonementDBImportService.class);
 
@@ -49,15 +49,6 @@ public class AccountAbonementDBImportService {
         this.accountAbonementManager = accountAbonementManager;
         this.planManager = planManager;
         this.accountManager = accountManager;
-    }
-
-    public void pull() {
-        String query = "SELECT a.acc_id, a.day_buy, a.date_end, aa.auto " +
-                "FROM abonement a " +
-                "LEFT JOIN abt_auto_buy aa USING(acc_id) " +
-                "WHERE 1 ORDER BY a.acc_id ASC";
-
-        jdbcTemplate.query(query, this::rowMap);
     }
 
     public void pull(String accountId) {
@@ -100,20 +91,23 @@ public class AccountAbonementDBImportService {
 
                 accountAbonement.setAutorenew(rs.getString("auto") != null);
 
-                accountAbonement.setAbonementId(plan.getNotInternalAbonementId());
-
-                try {
-                    accountAbonementManager.save(accountAbonement);
-                } catch (ConstraintViolationException e) {
-                    logger.debug(e.getMessage() + " with errors: " +
-                            e.getConstraintViolations()
-                                    .stream()
-                                    .map(ConstraintViolation::getMessage)
-                                    .collect(Collectors.joining())
-                    );
+                Abonement abonement = plan.getAbonements().stream().filter(ab -> !ab.isInternal() && "P1Y".equals(ab.getPeriod())).findFirst().orElse(null);
+                if (abonement != null) {
+                    accountAbonement.setAbonementId(abonement.getId());
+                    try {
+                        accountAbonementManager.save(accountAbonement);
+                        logger.info("Found accountAbonement for account: " + rs.getString("acc_id") + " accountAbonement: " + accountAbonement);
+                    } catch (ConstraintViolationException e) {
+                        logger.debug(e.getMessage() + " with errors: " +
+                                e.getConstraintViolations()
+                                        .stream()
+                                        .map(ConstraintViolation::getMessage)
+                                        .collect(Collectors.joining())
+                        );
+                    }
+                } else {
+                    logger.error("Abonement not found for account: " + rs.getString("acc_id") + " planId: " + account.getPlanId());
                 }
-
-                logger.info("Found accountAbonement for account: " + rs.getString("acc_id") + " accountAbonement: " + accountAbonement);
             } else {
                 logger.error("Plan not found account: " + rs.getString("acc_id") + " planId: " + account.getPlanId());
             }
@@ -124,17 +118,8 @@ public class AccountAbonementDBImportService {
         return accountAbonement;
     }
 
-    public void clean() {
-        accountAbonementManager.deleteAll();
-    }
-
     public void clean(String accountId) {
         accountAbonementManager.deleteByPersonalAccountId(accountId);
-    }
-    public boolean importToMongo() {
-        clean();
-        pull();
-        return true;
     }
 
     public boolean importToMongo(String accountId) {

@@ -17,6 +17,7 @@ import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
@@ -108,6 +109,14 @@ public class CommonRestController {
         return message;
     }
 
+    protected SimpleServiceMessage createSuccessResponse(ProcessingBusinessOperation businessOperation) {
+        SimpleServiceMessage message = createResponse();
+        message = fillStatus(message, true);
+        message = fillFromBusinessOperation(message, businessOperation);
+
+        return message;
+    }
+
     protected SimpleServiceMessage createSuccessResponse(String successMessage) {
         SimpleServiceMessage message = createResponse();
         message = fillStatus(message, true);
@@ -129,6 +138,17 @@ public class CommonRestController {
         message.setOperationIdentity(businessAction.getOperationId());
 
         message.addParams(businessAction.getParams());
+
+        return message;
+    }
+
+    private SimpleServiceMessage fillFromBusinessOperation(SimpleServiceMessage message, ProcessingBusinessOperation operation) {
+        message.setOperationIdentity(operation.getId());
+        message.setAccountId(operation.getPersonalAccountId());
+        message.addParam("createdDate", operation.getCreatedDate());
+        message.addParam("updatedDate", operation.getUpdatedDate());
+        message.addParam("state", operation.getState());
+        message.addParams(operation.getParams());
 
         return message;
     }

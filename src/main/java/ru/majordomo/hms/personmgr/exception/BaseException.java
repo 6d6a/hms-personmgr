@@ -35,4 +35,9 @@ public abstract class BaseException extends RuntimeException {
     public BaseException(String message) {
         this.message = message;
     }
+
+    public BaseException(String message, Throwable cause) {
+        super(message, cause);
+        this.message = message;
+    }
 }
