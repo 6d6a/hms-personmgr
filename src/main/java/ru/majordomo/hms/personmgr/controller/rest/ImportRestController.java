@@ -117,7 +117,7 @@ public class ImportRestController extends CommonRestController {
             @RequestParam boolean onHms,
             SecurityContextHolderAwareRequestWrapper request
     ) {
-        dbImportService.setOnHms(accountId, onHms, true); // сменит или бросит правильное исключение с текстом
+        dbImportService.setOnHms(accountId, onHms, request.isUserInRole("ADMIN")); // сменит или бросит правильное исключение с текстом
         return ResponseEntity.ok(Result.success());
     }
 }
