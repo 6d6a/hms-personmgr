@@ -121,7 +121,7 @@ public class DBImportService {
 
         try {
             Boolean onHmsBd = jdbcTemplate.queryForObject("SELECT on_hms FROM account WHERE id = :accountId", sqlParams, Boolean.class);
-            if (Boolean.TRUE.equals(onHmsBd) && !isAdmin) {
+            if (Boolean.TRUE.equals(onHmsBd)) {
                 throw new InternalApiException("Изменение флага on_hms запрещено");
             }
             sqlParams.addValue("onHms", onHms);
