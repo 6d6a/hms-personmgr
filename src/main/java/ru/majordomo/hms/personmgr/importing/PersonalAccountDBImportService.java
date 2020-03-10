@@ -156,6 +156,9 @@ public class PersonalAccountDBImportService {
 
         long quotaKb;
         boolean unixAccountDenied;
+        boolean ftpUserDenied = !plan.isFtpUserAllowed();
+        boolean websiteDenied = !plan.isWebSiteAllowed();
+        boolean databaseDenied = !plan.isDatabaseAllowed();
         if (plan.getPlanProperties() instanceof VirtualHostingPlanProperties) {
             VirtualHostingPlanProperties properties = (VirtualHostingPlanProperties) plan.getPlanProperties();
             quotaKb = properties.getQuotaKBLimit().getFreeLimit();
@@ -169,6 +172,9 @@ public class PersonalAccountDBImportService {
         businessHelper.setParam(operationId, "accountEnabled", status);
         businessHelper.setParam(operationId, "quotaBytes", quotaKb * 1024);
         businessHelper.setParam(operationId, "unixAccountDenied", unixAccountDenied);
+        businessHelper.setParam(operationId, "ftpUserDenied", ftpUserDenied);
+        businessHelper.setParam(operationId, "websiteDenied", websiteDenied);
+        businessHelper.setParam(operationId, "databaseDenied", databaseDenied);
 
         logger.info("[finish] Searching for PersonalAccount for acc " + accountId);
         return plan;
