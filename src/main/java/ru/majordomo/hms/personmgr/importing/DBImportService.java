@@ -174,6 +174,7 @@ public class DBImportService {
             boolean accountEnabled = MapUtils.getBooleanValue(operation.getParams(), "accountEnabled", true);
             boolean allowAntispam = MapUtils.getBooleanValue(operation.getParams(), "allowAntispam", false);
             boolean unixAccountDenied = MapUtils.getBooleanValue(operation.getParams(), "unixAccountDenied", false);
+            boolean databaseDenied = MapUtils.getBooleanValue(operation.getParams(), "databaseDenied", false);
             long quotaBytes = MapUtils.getLongValue(operation.getParams(), "quotaBytes");
 
             try {
@@ -185,7 +186,9 @@ public class DBImportService {
                 return;
             }
             try {
-                databaseUserDBImportService.importToMongo(accountId, mysqlServiceId, operationId, accountEnabled); // databaseDBImportService.importToMongo запустится в CommonAmqpController после создания пользователя
+                if (!databaseDenied) {
+                    databaseUserDBImportService.importToMongo(accountId, mysqlServiceId, operationId, accountEnabled); // databaseDBImportService.importToMongo запустится в CommonAmqpController после создания пользователя
+                }
             } catch (FeignException | BaseException | DataAccessException ex) {
                 logger.error("Got exception when import database users. account: " + accountId, ex);
                 businessHelper.addWarning(operationId, "Не удалось импортировать пользователей баз данных. Необходимо создать их вручную");
@@ -223,23 +226,32 @@ public class DBImportService {
                 throw new InternalApiException("Не удалось загрузить операцию импорта");
             }
             boolean accountEnabled = MapUtils.getBooleanValue(operation.getParams(), "accountEnabled", true);
+            boolean databaseDenied = MapUtils.getBooleanValue(operation.getParams(), "databaseDenied", false);
+            boolean ftpUserDenied = MapUtils.getBooleanValue(operation.getParams(), "ftpUserDenied", false);
+            boolean websiteDenied = MapUtils.getBooleanValue(operation.getParams(), "websiteDenied", false);
 
             try {
-                websiteDBImportService.importToMongo(accountId, serverId, operationId, accountEnabled);
+                if (!websiteDenied) {
+                    websiteDBImportService.importToMongo(accountId, serverId, operationId, accountEnabled);
+                }
             } catch (BaseException | FeignException | DataAccessException ex) {
                 logger.error("Got exception when import websites. account: " + accountId, ex);
                 businessHelper.addWarning(operationId, "Не удалось импортировать сайты. Необходимо создать их вручную");
             }
 
             try {
-                databaseDBImportService.importToMongo(accountId, mysqlServiceId, operationId, accountEnabled);
+                if (!databaseDenied) {
+                    databaseDBImportService.importToMongo(accountId, mysqlServiceId, operationId, accountEnabled);
+                }
             } catch (BaseException | FeignException | DataAccessException ex) {
                 logger.error("Got exception when import databases. account: " + accountId, ex);
                 businessHelper.addWarning(operationId, "Не удалось импортировать базы данных. Необходимо создать их вручную");
             }
 
             try {
-                ftpUserDBImportService.importToMongo(accountId, serverId, operationId, accountEnabled);
+                if (!ftpUserDenied) {
+                    ftpUserDBImportService.importToMongo(accountId, serverId, operationId, accountEnabled);
+                }
             } catch (BaseException | FeignException | DataAccessException ex) {
                 logger.error("Got exception when import ftp-users. account: " + accountId, ex);
                 businessHelper.addWarning(operationId, "Не удалось импортировать ftp-пользователей. Необходимо создать их вручную");
