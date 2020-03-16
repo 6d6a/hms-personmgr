@@ -175,7 +175,7 @@ public class ResourceHelper {
         }
     }
 
-    private void switchDomains(PersonalAccount account, Boolean state) {
+    public void switchDomains(PersonalAccount account, Boolean state) {
         try {
 
             List<Domain> domains = rcUserFeignClient.getDomains(account.getId());

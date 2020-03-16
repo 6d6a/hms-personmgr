@@ -200,7 +200,7 @@ public class ResourceChecker {
         Plan plan = planManager.findOne(account.getPlanId());
 
         if (!plan.isDomainAllowed()) {
-            throw new ParameterValidationException("На вашем тарифном плане добавление домена недоступно");
+            throw new ParameterValidationException("На вашем тарифном плане работа с доменами недоступна");
         }
     }
 
