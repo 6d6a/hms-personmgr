@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -23,6 +24,8 @@ public interface ProcessingBusinessOperationRepository extends MongoRepository<P
     List<ProcessingBusinessOperation> findAllByPersonalAccountIdAndTypeAndStateIn(String personalAccountId, BusinessOperationType type, Set<State> states);
 
     List<ProcessingBusinessOperation> findAllByPersonalAccountIdAndTypeInAndStateIn(String personalAccountId, List<BusinessOperationType> type, Set<State> states);
+
+    List<ProcessingBusinessOperation> findAllByPersonalAccountIdAndTypeAndStateInAndCreatedDateGreaterThanEqual(String personalAccountId, BusinessOperationType type, Set<State> states, LocalDateTime createdDate);
 
     boolean existsByPersonalAccountIdAndTypeAndStateIn(String personalAccountId, BusinessOperationType type, Set<State> states);
 }

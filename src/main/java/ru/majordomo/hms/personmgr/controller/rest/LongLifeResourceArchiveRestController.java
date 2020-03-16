@@ -123,6 +123,10 @@ public class LongLifeResourceArchiveRestController extends CommonRestController 
 //        String documentNumber = (String) blockResult.getParam("documentNumber");
 //        body.addParam("documentNumber", documentNumber);
 
+        if (businessHelper.existsActiveOperations(accountId, BusinessOperationType.RESOURCE_ARCHIVE_CREATE, body)) {
+            throw new ParameterValidationException("Создание архива находится в процессе выполнения");
+        }
+
         ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
                 BusinessOperationType.RESOURCE_ARCHIVE_CREATE,
                 BusinessActionType.RESOURCE_ARCHIVE_CREATE_RC,
@@ -148,6 +152,10 @@ public class LongLifeResourceArchiveRestController extends CommonRestController 
             message.setAccountId(accountId);
             message.addParam(RESOURCE_ID_KEY, longLifeResourceArchive.getResourceArchiveId());
             message.addParam(LONG_LIFE, true);
+
+            if (businessHelper.existsActiveOperations(accountId, BusinessOperationType.RESOURCE_ARCHIVE_DELETE, message)) {
+                throw new ParameterValidationException("Удаление архива находится в процессе выполнения");
+            }
 
             ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
                     BusinessOperationType.RESOURCE_ARCHIVE_DELETE,
