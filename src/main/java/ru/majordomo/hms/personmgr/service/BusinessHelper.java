@@ -31,8 +31,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 import static ru.majordomo.hms.personmgr.common.BusinessOperationType.BUSINESS_OPERATION_TYPE2HUMAN;
-import static ru.majordomo.hms.personmgr.common.Constants.ARCHIVED_RESOURCE_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_TYPE;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.State.*;
 
 @Slf4j
@@ -320,13 +319,15 @@ public class BusinessHelper {
                 params.put("resourceId", (String) message.getParam("resourceId"));
 
                 break;
+            case FILE_BACKUP_RESTORE:
+            case DATABASE_BACKUP_RESTORE:
+                params.put(DATASOURCE_URI_KEY, (String) message.getParam(DATASOURCE_URI_KEY));
+                break;
             case IMPORT_FROM_BILLINGDB:
                 break;
             case PERSON_CREATE:
             case ACCOUNT_DELETE:
             case ACCOUNT_UPDATE:
-            case FILE_BACKUP_RESTORE:
-            case DATABASE_BACKUP_RESTORE:
             case ACCOUNT_CREATE:
             case SEO_ORDER:
             case UNIX_ACCOUNT_CREATE:
@@ -337,7 +338,14 @@ public class BusinessHelper {
                 return false;
         }
 
-        List<ProcessingBusinessOperation> operations = operationRepository.findAllByPersonalAccountIdAndTypeAndStateIn(personalAccountId, type, ACTIVE_STATES);
+        LocalDateTime lowBorderOfTime = setLowBorderOfTime(type);
+
+        List<ProcessingBusinessOperation> operations;
+        if (lowBorderOfTime == null) {
+            operations = operationRepository.findAllByPersonalAccountIdAndTypeAndStateIn(personalAccountId, type, ACTIVE_STATES);
+        } else {
+            operations = operationRepository.findAllByPersonalAccountIdAndTypeAndStateInAndCreatedDateGreaterThanEqual(personalAccountId, type, ACTIVE_STATES, lowBorderOfTime);
+        }
 
         return operations
                 .stream()
@@ -348,5 +356,21 @@ public class BusinessHelper {
                                         e.getValue().equals((String) o.getParam(e.getKey()))
                                 )
                 );
+    }
+
+    /**
+     * В некоторых случаях в `processingBusinessOperation` остаются висеть задания со статусом "PROCESSING"
+     * В следствие чего затруднительно определить выполняется операция или висит
+     * @param type тип операции
+     * @return временная метка, после которой выполнять поиск существующих операций, либо null
+     */
+    private LocalDateTime setLowBorderOfTime(BusinessOperationType type) {
+        switch (type) {
+            case RESOURCE_ARCHIVE_CREATE:
+            case RESOURCE_ARCHIVE_DELETE:
+                return LocalDateTime.now().minusHours(1L);
+            default:
+                return null;
+        }
     }
 }

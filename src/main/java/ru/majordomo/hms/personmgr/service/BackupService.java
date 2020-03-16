@@ -103,6 +103,10 @@ public class BackupService {
 
         SimpleServiceMessage message = messageForRestore(database, snapshot, restoreRequest.getDeleteExtraneous());
 
+        if (businessHelper.existsActiveOperations(account.getAccountId(), BusinessOperationType.DATABASE_BACKUP_RESTORE, message)) {
+            throw new ParameterValidationException("Восстановление базы данных находится в процессе выполнения");
+        }
+
         ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
                 BusinessOperationType.DATABASE_BACKUP_RESTORE, DATABASE_RESTORE_TE, message);
 
@@ -229,6 +233,10 @@ public class BackupService {
 
         SimpleServiceMessage message = messageForRestore(
                 unixAccount, server, pathTo, pathFrom, deleteExtraneous, snapshot);
+
+        if (businessHelper.existsActiveOperations(account.getAccountId(), BusinessOperationType.FILE_BACKUP_RESTORE, message)) {
+            throw new ParameterValidationException("Восстановление из резервной копии находится в процессе выполнения");
+        }
 
         ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
                 BusinessOperationType.FILE_BACKUP_RESTORE, FILE_BACKUP_RESTORE_TE, message);
