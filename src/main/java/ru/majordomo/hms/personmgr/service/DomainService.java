@@ -188,6 +188,11 @@ public class DomainService {
     }
 
     public void processDomainsAutoRenewByAccount(PersonalAccount account) {
+        if (!accountHelper.getPlan(account).isDomainAllowed()) {
+            logger.debug("Domains AutoRenew for account '{}' is not available due to tariff restrictions", account.getId());
+            return;
+        }
+
         //Ищем paidTill начиная с 25 дней до текущей даты
         LocalDate paidTillStart = LocalDate.now().with(TWENTY_FIVE_DAYS_BEFORE);
         //И закакнчивая 50 днями после текущей даты

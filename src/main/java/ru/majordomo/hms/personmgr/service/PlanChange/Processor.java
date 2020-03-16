@@ -711,6 +711,19 @@ public abstract class Processor {
 
         //Разрешены ли установленные для сайтов serviceId на новом тарифе
         normalizeWebSite();
+
+        //Разрешены ли домены на новом тарифе
+        normalizeDomain();
+    }
+
+    private void normalizeDomain() {
+        if (!newPlan.isDomainAllowed()) {
+            resourceHelper.switchDomains(account, false);
+            history.save(account, "Для аккаунта отключены домены в соответствии с тарифным планом", operator);
+        } else {
+            resourceHelper.switchDomains(account, true);
+            history.save(account, "Для аккаунта включены домены в соответствии с тарифным планом", operator);
+        }
     }
 
     private void normalizeMailbox() {
