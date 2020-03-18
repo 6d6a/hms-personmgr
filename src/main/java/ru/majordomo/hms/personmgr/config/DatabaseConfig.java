@@ -17,6 +17,14 @@ import javax.sql.DataSource;
 
 @Configuration
 public class DatabaseConfig {
+
+    private HikariSettings hikariSettings;
+
+    @Autowired
+    public void setHikariSettings(HikariSettings hikariSettings) {
+        this.hikariSettings = hikariSettings;
+    }
+
     @Bean(name = "partnersDataSourceProperties")
     @ConfigurationProperties(prefix="datasource.partners")
     public DataSourceProperties partnersDataSourceProperties() {
@@ -25,7 +33,7 @@ public class DatabaseConfig {
 
     @Bean(name = "partnersDataSource")
     public DataSource partnersDataSource(@Qualifier("partnersDataSourceProperties") DataSourceProperties properties) {
-        return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+        return HikariConfigWrapper(properties.initializeDataSourceBuilder().type(HikariDataSource.class).build());
     }
 
     @Primary
@@ -37,7 +45,7 @@ public class DatabaseConfig {
 
     @Bean(name = "billingDataSource")
     public DataSource billingDataSource(@Qualifier("billingDataSourceProperties") DataSourceProperties properties) {
-        return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+        return HikariConfigWrapper(properties.initializeDataSourceBuilder().type(HikariDataSource.class).build());
     }
 
     @Bean(name = "billing2DataSourceProperties")
@@ -48,7 +56,7 @@ public class DatabaseConfig {
 
     @Bean(name = "billing2DataSource")
     public DataSource billing2DataSource(@Qualifier("billing2DataSourceProperties") DataSourceProperties properties) {
-        return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+        return HikariConfigWrapper(properties.initializeDataSourceBuilder().type(HikariDataSource.class).build());
     }
 
     @Bean(name = "partnersJdbcTemplate")
@@ -97,12 +105,21 @@ public class DatabaseConfig {
 
     @Bean(name = "mdb4DataSource")
     public HikariDataSource mdb4DataSource(@Qualifier("mdb4DataSourceProperties") DataSourceProperties properties) {
-        return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+        return HikariConfigWrapper(properties.initializeDataSourceBuilder().type(HikariDataSource.class).build());
     }
 
     @Bean(name = "mdb4NamedParameterJdbcTemplate")
     @Autowired
     public NamedParameterJdbcTemplate mdb4NamedParameterJdbcTemplate(@Qualifier("mdb4DataSource") DataSource dataSource) {
         return new NamedParameterJdbcTemplate(dataSource);
+    }
+
+    private HikariDataSource HikariConfigWrapper(HikariDataSource hikari) {
+        hikari.setMaximumPoolSize(hikariSettings.getMaximumPoolSize());
+        hikari.setConnectionTimeout(hikariSettings.getConnectionTimeout());
+        hikari.setIdleTimeout(hikariSettings.getIdleTimeout());
+        hikari.setMaxLifetime(hikariSettings.getMaxLifetime());
+
+        return hikari;
     }
 }

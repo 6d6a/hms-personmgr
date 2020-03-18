@@ -11,11 +11,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.retry.annotation.EnableRetry;
 
+import ru.majordomo.hms.personmgr.config.HikariSettings;
 import ru.majordomo.hms.personmgr.serializer.PageSerializer;
 
 @SpringBootApplication(exclude = {
@@ -24,6 +26,7 @@ import ru.majordomo.hms.personmgr.serializer.PageSerializer;
 })
 @EnableDiscoveryClient
 @EnableRetry
+@EnableConfigurationProperties({HikariSettings.class})
 public class Application implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
