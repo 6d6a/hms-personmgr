@@ -193,9 +193,10 @@ public class DedicatedAppServiceHelper {
             throw new ParameterValidationException("Не найден Template");
         }
 
-        assertLockedResource(account.getId(), null, templateId);
-
         String serverId = getServerId(account.getId());
+        if (StringUtils.isEmpty(serverId)) {
+            throw new InternalApiException("Не удалось получить сервер на котором находится аккаунт");
+        }
 
         List<Service> services = rcStaffFeignClient.getServicesByAccountIdAndServerIdAndTemplateId(account.getId(), serverId, templateId);
 
@@ -214,15 +215,17 @@ public class DedicatedAppServiceHelper {
 
         if (CollectionUtils.isEmpty(services)) {
             message.addParam(Constants.TEMPLATE_ID_KEY, template.getId());
-            action = businessHelper.buildActionAndOperation(
-                    BusinessOperationType.DEDICATED_APP_SERVICE_CREATE,
-                    BusinessActionType.DEDICATED_APP_SERVICE_CREATE_RC_STAFF,
-                    message
-            );
+            ProcessingBusinessOperation operation = businessHelper.buildOperationAtomic(BusinessOperationType.DEDICATED_APP_SERVICE_CREATE, message);
+            if (operation == null) {
+                throw new ResourceIsLockedException("Сервис занят, дождитесь завершения выполняемой операции");
+            }
+
+            action = businessHelper.buildActionByOperation(
+                    BusinessActionType.DEDICATED_APP_SERVICE_CREATE_RC_STAFF, message, operation);
+
             history.save(account, "Поступила заявка на создание выделенного сервиса с templateId: " + template.getId());
         } else {
             Service staffService = services.get(0);
-            assertLockedResource(account.getId(), staffService.getId(), staffService.getTemplateId());
             if (!staffService.getSwitchedOn()){
                 action = switchStaffService(account,  staffService, true);
             } else {
@@ -324,19 +327,21 @@ public class DedicatedAppServiceHelper {
 
     private ProcessingBusinessAction switchStaffService(PersonalAccount account, Service staffService, boolean state) throws ResourceIsLockedException, ParameterValidationException {
         assertServiceIsnotUser(account.getId(), staffService.getId());
-        assertLockedResource(account.getId(), staffService.getId(), staffService.getTemplateId());
 
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(account.getId());
         message.addParam(Constants.RESOURCE_ID_KEY, staffService.getId());
         message.addParam(Constants.SWITCHED_ON_KEY, state);
-        message.addParam(Constants.TEMPLATE_ID_KEY, staffService.getTemplateId()); // need for assertLockedResource
+        message.addParam(Constants.TEMPLATE_ID_KEY, staffService.getTemplateId()); // need for assertLockedResource and buildOperationAtomic
 
-        ProcessingBusinessAction action = businessHelper.buildActionAndOperation(
-                BusinessOperationType.DEDICATED_APP_SERVICE_UPDATE,
-                BusinessActionType.DEDICATED_APP_SERVICE_UPDATE_RC_STAFF,
-                message
-        );
+        ProcessingBusinessOperation operation = businessHelper.buildOperationAtomic(BusinessOperationType.DEDICATED_APP_SERVICE_UPDATE, message, null);
+        if (operation == null) {
+            throw new ResourceIsLockedException("Сервис занят, дождитесь завершения выполняемой операции");
+        }
+
+        ProcessingBusinessAction action = businessHelper.buildActionByOperation(
+                BusinessActionType.DEDICATED_APP_SERVICE_UPDATE_RC_STAFF, message, operation);
+
         history.save(account, String.format("Поступила заявка на %s выделенного сервиса с id: %s", state ? "включение" : "отключение", staffService.getId()));
 
         return action;
@@ -378,16 +383,23 @@ public class DedicatedAppServiceHelper {
         return action;
     }
 
+    /**
+     * Получает сервер на котором находится аккаунт
+     * @param accountId - аккаунт
+     * @return - id-сервера или пустая строка если ничего не нашло или не смогло подкучиться
+     */
     private String getServerId(String accountId) {
-        List<UnixAccount> unixAccounts = null;
+        Collection<UnixAccount> unixAccounts = null;
         try {
-            unixAccounts = (List<UnixAccount>) rcUserFeignClient.getUnixAccounts(accountId);
-        } catch (Exception ignored) {}
+            unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
+        } catch (RuntimeException ex) {
+            logger.error("Got exception when attempt get unix-account for account: " + accountId, ex);
+        }
 
         if (CollectionUtils.isEmpty(unixAccounts)) {
             return "";
         } else {
-            return unixAccounts.get(0).getServerId();
+            return unixAccounts.iterator().next().getServerId();
         }
     }
 
