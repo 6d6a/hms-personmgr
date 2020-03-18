@@ -18,6 +18,7 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.processingBusinessAction.ProcessingBusinessActionNewEvent;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.model.business.BusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
@@ -30,7 +31,7 @@ import javax.annotation.Nullable;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static ru.majordomo.hms.personmgr.common.BusinessOperationType.BUSINESS_OPERATION_TYPE2HUMAN;
+import static ru.majordomo.hms.personmgr.common.BusinessOperationType.*;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.State.*;
 
@@ -130,37 +131,52 @@ public class BusinessHelper {
         return result.getModifiedCount() == 1;
     }
 
+    @Nullable
+    public ProcessingBusinessOperation buildOperationAtomic(BusinessOperationType type, SimpleServiceMessage message) throws NotImplementedException {
+        return buildOperationAtomic(type, message, null);
+    }
+
     /**
      * Атомарное на уровне mongodb создание ProcessingBusinessOperation, позволит избежать выполнения одних и тех же заданий несколько раз,
      * даже если задания отправятся в разные экземпляры personmgr
-     * @param operationType - тип операции
+     * @param type - тип операции
      * @param message - сообщение из которого создается операция.
      * @param publicParams - ничего или параметры которые будет видно снаружи, сразу при создании
      * @return - null если уже есть выполняемая операция или объект ProcessingBusinessOperation
      * @throws NotImplementedException - если указанный BusinessOperationType не поддерживается
      */
     @Nullable
-    public ProcessingBusinessOperation buildOperationAtomic(BusinessOperationType operationType, SimpleServiceMessage message, @Nullable Map<String, Object> publicParams) throws NotImplementedException {
-        Query query;
-        switch (operationType) {
+    public ProcessingBusinessOperation buildOperationAtomic(BusinessOperationType type, SimpleServiceMessage message, @Nullable Map<String, Object> publicParams) throws NotImplementedException {
+        Criteria criteria = new Criteria("state").in(ACTIVE_STATES)
+                .and("personalAccountId").is(message.getAccountId());
+        switch (type) {
+            case DEDICATED_APP_SERVICE_CREATE:
+            case DEDICATED_APP_SERVICE_UPDATE:
+                String templateId = MapUtils.getString(message.getParams(), TEMPLATE_ID_KEY, "");
+                if (templateId.isEmpty()) {
+                    log.error("TemplateId required for atomic operation build for DedicatedAppService");
+                    throw new InternalApiException();
+                }
+                criteria.and("params." + TEMPLATE_ID_KEY).is(templateId)
+                        .and("type").in(DEDICATED_APP_SERVICE_CREATE, DEDICATED_APP_SERVICE_UPDATE);
+                break;
             case IMPORT_FROM_BILLINGDB:
-                query = Query.query(new Criteria("type").is(operationType)
-                        .and("personalAccountId").is(message.getAccountId())
-                        .and("state").in(ACTIVE_STATES));
+                criteria.and("type").is(IMPORT_FROM_BILLINGDB);
                 break;
             default:
-                throw new NotImplementedException("Atomic build ProcessingBusinessOperation not implemented for type: " + operationType);
+                throw new NotImplementedException("Atomic build ProcessingBusinessOperation not implemented for type: " + type);
         }
+        Query query = Query.query(criteria);
 
         LocalDateTime now = LocalDateTime.now();
         Map<String, Object> copyPublicParams = MapUtils.isNotEmpty(publicParams) ? new HashMap<>(publicParams) : new HashMap<>();
         copyPublicParams.put("warnings", Collections.emptyList()); // создать массив publicParams.warnings заранее чтобы работал запрос $push
 
-        Update update = new Update().setOnInsert("createdDate", now).setOnInsert("updatedDate", now)
+        Update update = new Update().setOnInsert("type", type).setOnInsert("createdDate", now).setOnInsert("updatedDate", now)
                 .setOnInsert("params", message.getParams()).setOnInsert("publicParams", copyPublicParams)
-                .setOnInsert("state", PROCESSING).setOnInsert("name", BUSINESS_OPERATION_TYPE2HUMAN.get(operationType))
+                .setOnInsert("state", PROCESSING).setOnInsert("name", BUSINESS_OPERATION_TYPE2HUMAN.get(type))
                 .setOnInsert("priority", 0).setOnInsert("_class", ProcessingBusinessOperation.class.getName());
-                //если update создал новую запись, заполнить её полями для ProcessingBusinessOperation
+        //если update создал новую запись, заполнить её полями для ProcessingBusinessOperation
 
 
         UpdateResult updateResult =  mongoOperations.upsert(query, update, ProcessingBusinessOperation.class);
