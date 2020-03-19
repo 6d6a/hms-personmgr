@@ -62,7 +62,7 @@ public class AccountNoticeManagerImpl implements AccountNoticeManager {
 
     @Override
     public AccountNotice insert(AccountNotice accountNotice) {
-        return mongoOperations.insert(accountNotice, AccountNotice.COLLECTION_NAME); // так как сохранение через accountNoticeRepository перестало работать после обновления Spring
+        return mongoOperations.insert(accountNotice); // так как сохранение через accountNoticeRepository перестало работать после обновления Spring
     }
 
     @Override

@@ -92,6 +92,7 @@ public class SchedulerRestController extends CommonRestController {
 
                 break;
             case "process_expiring_abonements":
+                // Здесь происходит отправка уведомлений об окончании абонементов на основной тариф. Не происходит списаний и продлений
                 publisher.publishEvent(new ProcessExpiringAbonementsEvent());
 
                 break;

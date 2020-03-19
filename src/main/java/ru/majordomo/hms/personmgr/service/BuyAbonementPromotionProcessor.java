@@ -124,6 +124,7 @@ public class BuyAbonementPromotionProcessor implements Consumer<Supplier<Account
                 DefaultAccountNotice notice = new DefaultAccountNotice();
                 notice.setPersonalAccountId(account.getId());
                 notice.setData(data);
+                notice.setViewed(false);
 
                 accountNoticeManager.insert(notice);
             }
