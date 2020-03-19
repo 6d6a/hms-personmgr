@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import org.apache.commons.collections.MapUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
@@ -8,13 +9,19 @@ import org.springframework.web.bind.annotation.*;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.common.message.*;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.exception.ResourceIsLockedException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
+
+import java.util.Collections;
+import java.util.HashMap;
 
 import static ru.majordomo.hms.personmgr.common.FieldRoles.WEB_SITE_PATCH;
 import static ru.majordomo.hms.personmgr.common.FieldRoles.WEB_SITE_POST;
@@ -99,11 +106,19 @@ public class WebSiteResourceRestController extends CommonRestController {
 
         resourceChecker.checkResource(account, ResourceType.WEB_SITE, message.getParams());
 
-        ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(
-                BusinessOperationType.WEB_SITE_UPDATE,
-                BusinessActionType.WEB_SITE_UPDATE_RC,
-                message
-        );
+        ProcessingBusinessOperation operation;
+
+        String extendedAction = MapUtils.getString(message.getParams(), Constants.EXTENDED_ACTION_KEY, "");
+        if (!extendedAction.isEmpty()) {
+            operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION, message, Collections.singletonMap(Constants.EXTENDED_ACTION_KEY, extendedAction));
+            if (operation == null) {
+                throw new ResourceIsLockedException();
+            }
+        } else {
+            operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE, message);
+        }
+        ProcessingBusinessAction businessAction = businessHelper.buildActionByOperation(BusinessActionType.WEB_SITE_UPDATE_RC, message, operation);;
+
 
         history.save(accountId, "Поступила заявка на обновление сайта (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 

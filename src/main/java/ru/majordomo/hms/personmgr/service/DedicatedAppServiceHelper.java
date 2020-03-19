@@ -4,6 +4,7 @@ import feign.FeignException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,6 +96,66 @@ public class DedicatedAppServiceHelper {
         return dedicatedAppServiceRepository.findByPersonalAccountId(accountId);
     }
 
+    public ProcessingBusinessAction restartDedicatedAppService(String accountId, SimpleServiceMessage userMessage) {
+        PersonalAccount account = accountManager.findOne(accountId);
+        assertAccountIsActive(account);
+        assertAccountIsFreezed(account);
+
+        assertPlanAllowedDedicatedApp(account.getPlanId());
+
+        String templateId = MapUtils.getString(userMessage.getParams(), Constants.TEMPLATE_ID_KEY, "");
+        String staffServiceId = MapUtils.getString(userMessage.getParams(), Constants.RESOURCE_ID_KEY, "");
+
+        Service staffService;
+        if (!staffServiceId.isEmpty()) {
+            try {
+                staffService = rcStaffFeignClient.getServiceByAccountIdAndServiceId(accountId, staffServiceId);
+                templateId = staffService.getTemplateId();
+            } catch (BaseException | FeignException ex) {
+                ex.printStackTrace();
+                logger.error(String.format("Got exception when get service: %s for account: %s", staffServiceId, accountId));
+                throw new InternalApiException("Не удалось получить сервис");
+            }
+        } else if (!templateId.isEmpty()) {
+            String serverId = getServerId(accountId);
+            if (StringUtils.isEmpty(serverId)) {
+                throw new InternalApiException("Не удалось получить сервер на котором находится аккаунт");
+            }
+            try {
+                List<Service> staffServices = rcStaffFeignClient.getServicesByAccountIdAndServerIdAndTemplateId(accountId, serverId, templateId);
+                if (CollectionUtils.isNotEmpty(staffServices)) {
+                    staffService = staffServices.get(0);
+                    staffServiceId = staffService.getId();
+                } else {
+                    throw new InternalApiException("Не удалось получить сервис");
+                }
+            } catch (InternalApiException ex) {
+                throw ex;
+            } catch (BaseException | FeignException ex) {
+                ex.printStackTrace();
+                logger.error(String.format("Got exception when get for template: %s for account: %s and server %s", staffServiceId, accountId, serverId));
+                throw new InternalApiException("Не удалось получить сервис");
+            }
+        } else {
+            throw new ParameterValidationException();
+        }
+
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(account.getId());
+        message.addParam(Constants.TEMPLATE_ID_KEY, templateId);
+        message.addParam(Constants.RESOURCE_ID_KEY, staffServiceId);
+        message.addParam("restart", true);
+
+        ProcessingBusinessOperation operation = businessHelper.buildOperationAtomic(BusinessOperationType.DEDICATED_APP_SERVICE_UPDATE, message);
+        if (operation == null) {
+            throw new ResourceIsLockedException("Сервис занят, дождитесь завершения выполняемой операции");
+        }
+
+        return businessHelper.buildActionByOperation(
+                BusinessActionType.DEDICATED_APP_SERVICE_UPDATE_RC_STAFF, message, operation
+        );
+    }
+
     @Nullable
     public DedicatedAppService getService( @NonNull String dedicatedAppServiceId, String personalAccountId) {
         return dedicatedAppServiceRepository.findByIdAndPersonalAccountId(dedicatedAppServiceId, personalAccountId);
@@ -123,7 +184,7 @@ public class DedicatedAppServiceHelper {
         return dedicatedAppService;
     }
 
-    private void assertLockedResource(String accountId, @Nullable String resourceId, @Nullable String templateId) throws ResourceIsLockedException {
+    private void assertLockedResource(String accountId, @Nullable String resourceId, @Nullable String templateId, String message) throws ResourceIsLockedException {
         List<ProcessingBusinessOperation> operations = processingBusinessOperationRepository.findAllByPersonalAccountIdAndTypeInAndStateIn(
                 accountId,
                 DEDICATED_APP_SERVICE_OPERATIONS,
@@ -131,7 +192,7 @@ public class DedicatedAppServiceHelper {
         if (operations.stream().anyMatch(operation ->
                 (StringUtils.isNotEmpty(resourceId) && resourceId.equals(operation.getParam(Constants.RESOURCE_ID_KEY)) ||
                         (StringUtils.isNotEmpty(templateId) && templateId.equals(operation.getParam(Constants.TEMPLATE_ID_KEY)))))) {
-            throw new ResourceIsLockedException();
+            throw StringUtils.isEmpty(message) ? new ResourceIsLockedException() : new ResourceIsLockedException(message);
         }
     }
 
@@ -146,7 +207,7 @@ public class DedicatedAppServiceHelper {
         try {
             switchedOn = (Boolean) processingBusinessOperation.getParam(Constants.SWITCHED_ON_KEY);
             templateId = (String) processingBusinessOperation.getParam(Constants.TEMPLATE_ID_KEY);
-        } catch (ClassCastException ex) { /*ignore*/ }
+        } catch (ClassCastException ignore) { }
         DedicatedAppService dedicatedAppService = null;
         if (templateId != null) {
             dedicatedAppService = dedicatedAppServiceRepository.findByPersonalAccountIdAndTemplateId(accountId, templateId);
@@ -370,7 +431,7 @@ public class DedicatedAppServiceHelper {
             assertServiceIsnotUser(account.getId(), staffService.getId());
             action = switchStaffService(account,  staffService, false);
         } else {
-            assertLockedResource(account.getId(), null, dedicatedAppService.getTemplateId());
+            assertLockedResource(account.getId(), null, dedicatedAppService.getTemplateId(), null);
             history.save(account, "Поступила заявка на отключение выделенного сервиса. Сервисов не найдено, удалена услуга");
         }
         if (staffServices.size() <= 1) {
@@ -415,14 +476,14 @@ public class DedicatedAppServiceHelper {
         return dedicatedAppServiceRepository.insert(dedicatedAppService);
     }
 
-    private void assertAccountIsOwnerOfResource(@NonNull String accountId, @NonNull ru.majordomo.hms.rc.staff.resources.Service staffService) {
+    private void assertAccountIsOwnerOfResource(@NonNull String accountId, @NonNull Service staffService) {
         if (!accountId.equals(staffService.getAccountId())) {
             throw new ParameterValidationException("Аккаунт не является владельцем ресурса");
         }
     }
 
     private void assertAccountIsOwnerOfResource(String accountId, String resourceId) {
-        ru.majordomo.hms.rc.staff.resources.Service service = null;
+        Service service = null;
         try {
             service = rcStaffFeignClient.getServiceByAccountIdAndId(accountId, resourceId);
         } catch (ResourceNotFoundException ignored) {}
@@ -452,7 +513,7 @@ public class DedicatedAppServiceHelper {
     }
 
     private void assertAccountIsActive(PersonalAccount account) {
-        if (!account.isActive()) {
+        if (!account.isActive() || account.isPreorder()) {
             throw new ParameterValidationException("Аккаунт не активен");
         }
     }

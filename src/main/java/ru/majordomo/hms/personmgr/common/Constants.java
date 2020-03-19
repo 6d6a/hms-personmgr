@@ -41,6 +41,7 @@ public class Constants {
     public static final String SERVICE_MONEY_RETURN_PREFIX = "service_money_return_";
     public static final String SERVICE_MONEY_TRANSFER_PREFIX = "service_money_transfer_";
     public static final String RESOURCE_ID_KEY = "resourceId";
+    public static final String EXTENDED_ACTION_KEY = "extendedAction";
     public static final String TEMPLATE_ID_KEY = "templateId";
     public static final String ARCHIVED_RESOURCE_ID_KEY = "archivedResourceId";
     public static final String DOMAIN_NAME_KEY = "domainName";
