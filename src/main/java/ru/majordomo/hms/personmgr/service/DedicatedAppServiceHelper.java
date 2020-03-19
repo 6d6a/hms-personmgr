@@ -137,7 +137,7 @@ public class DedicatedAppServiceHelper {
                 throw new InternalApiException("Не удалось получить сервис");
             }
         } else {
-            throw new ParameterValidationException();
+            throw new ParameterValidationException("Некорректный запрос на перезапуск сервиса");
         }
 
         SimpleServiceMessage message = new SimpleServiceMessage();
@@ -454,7 +454,8 @@ public class DedicatedAppServiceHelper {
         try {
             unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
         } catch (RuntimeException ex) {
-            logger.error("Got exception when attempt get unix-account for account: " + accountId, ex);
+            ex.printStackTrace();
+            logger.error("Got exception when attempt get unix-account for account: " + accountId);
         }
 
         if (CollectionUtils.isEmpty(unixAccounts)) {
