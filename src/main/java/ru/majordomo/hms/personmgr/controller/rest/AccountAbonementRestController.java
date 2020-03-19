@@ -251,6 +251,16 @@ public class AccountAbonementRestController extends CommonRestController {
         return new ResponseEntity<>(abonementService.getBuyInfo(account, abonement), HttpStatus.OK);
     }
 
+    /**
+     * Покупка самого первого абонемента на основной тариф. Когда на аккаунте еще нет ни одного.
+     *
+     * Из контрольной панели абонемент покупается здесь.
+     * Продление из кп тоже вызывает этот метод
+     * @param accountId
+     * @param abonementId
+     * @param request
+     * @return
+     */
     @PostMapping("/{abonementId}")
     public ResponseEntity<Object> addAccountAbonement(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -273,7 +283,7 @@ public class AccountAbonementRestController extends CommonRestController {
         }
 
         AccountAbonement accountAbonement = abonementService.buyAbonementManual(account, abonementId);
-
+        
         if (accountAbonement != null) {
             accountHelper.enableAccount(account);
         }

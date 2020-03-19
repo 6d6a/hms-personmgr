@@ -18,13 +18,11 @@ import java.time.LocalDateTime;
 public abstract class AccountNotice extends ModelBelongsToPersonalAccount {
     public static final String COLLECTION_NAME = "accountNotice";
 
-    @NotNull
     @Nonnull
     @Transient
     private final AccountNoticeType type;
 
-    @NotNull
-    private Boolean viewed = false;
+    private boolean viewed = false;
 
     @CreatedDate
     private LocalDateTime created;

@@ -201,6 +201,8 @@ public class AbonementService {
         accountAbonementManager.save(accountAbonement);
 
         deletePlanServiceIfExists(account, plan);
+
+        publisher.publishEvent(new AccountBuyAbonement(account.getId(), accountAbonement.getId()));
     }
 
     private void deletePlanServiceIfExists(PersonalAccount account, Plan plan) {
@@ -209,6 +211,11 @@ public class AbonementService {
         }
     }
 
+    /**
+     * Данный метод только рассылает уведомление об оканчивающихся абонементах на основной тариф.
+     * Не производит продления и списаний
+     * @param account - аккаунт
+     */
     public void processExpiringAbonementsByAccount(PersonalAccount account) {
         if (account.getDeleted() != null) {
             logger.info("processExpiringAbonementsByAccount: account {} is deleted, return", account.getId());
@@ -738,6 +745,12 @@ public class AbonementService {
         );
     }
 
+    /**
+     * Вернет самый ранний из просроченных абонементов
+     * @param expiredBefore - дата на которую он просрочен
+     * @param allAbonements - список абонементов
+     * @return - абонемент
+     */
     private Optional<AccountAbonement> getOneExpiredBeforeAbonement(
             LocalDateTime expiredBefore, List<AccountAbonement> allAbonements
     ) {
