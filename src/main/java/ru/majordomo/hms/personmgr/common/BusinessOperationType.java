@@ -11,6 +11,7 @@ public enum BusinessOperationType {
     WEB_SITE_CREATE,
     WEB_SITE_UPDATE,
     WEB_SITE_DELETE,
+    WEB_SITE_UPDATE_EXTENDED_ACTION,
     DATABASE_CREATE,
     DATABASE_UPDATE,
     DATABASE_DELETE,
@@ -64,6 +65,7 @@ public enum BusinessOperationType {
         BUSINESS_OPERATION_TYPE2HUMAN.put(ACCOUNT_DELETE, "Удаление аккаунта");
         BUSINESS_OPERATION_TYPE2HUMAN.put(WEB_SITE_CREATE, "Создание сайта");
         BUSINESS_OPERATION_TYPE2HUMAN.put(WEB_SITE_UPDATE, "Обновление сайта");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(WEB_SITE_UPDATE_EXTENDED_ACTION, "Обновление сайта");
         BUSINESS_OPERATION_TYPE2HUMAN.put(WEB_SITE_DELETE, "Удаление сайта");
         BUSINESS_OPERATION_TYPE2HUMAN.put(DATABASE_CREATE, "Создание базы данных");
         BUSINESS_OPERATION_TYPE2HUMAN.put(DATABASE_UPDATE, "Обновление базы данных");

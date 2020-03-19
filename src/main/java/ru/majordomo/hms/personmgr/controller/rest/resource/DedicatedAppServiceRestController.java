@@ -94,4 +94,13 @@ public class DedicatedAppServiceRestController extends CommonRestController {
             return ResponseEntity.ok(createSuccessResponse("Услуга выделенного сервиса удалена"));
         }
     }
+
+    @PostMapping("/{accountId}/dedicated-app-service/restart")
+    public ResponseEntity<SimpleServiceMessage> restart(
+            @PathVariable @ObjectId(PersonalAccount.class) String accountId,
+            @RequestBody SimpleServiceMessage message
+    ) {
+        ProcessingBusinessAction action = dedicatedAppServiceHelper.restartDedicatedAppService(accountId, message);
+        return ResponseEntity.accepted().body(createSuccessResponse(action));
+    }
 }

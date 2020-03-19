@@ -1,9 +1,11 @@
 package ru.majordomo.hms.personmgr.service;
 
-import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
@@ -23,6 +25,9 @@ import static ru.majordomo.hms.personmgr.common.Utils.cleanBooleanSafe;
 
 @Service
 public class BusinessFlowDirector {
+    @Value("${big_error_length:0}")
+    private int bigErrorLength = 0;
+
     private static final Logger logger = LoggerFactory.getLogger(BusinessFlowDirector.class);
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
     private final ProcessingBusinessOperationRepository processingBusinessOperationRepository;
@@ -170,8 +175,18 @@ public class BusinessFlowDirector {
 
     private void fillPublicParamsToBusinessOperation(SimpleServiceMessage message, ProcessingBusinessOperation businessOperation) {
         try {
-            if (message.getParam("errorMessage") != null && !message.getParam("errorMessage").equals("")) {
-                businessOperation.addPublicParam("message", String.valueOf(message.getParam("errorMessage")));
+            String errorMessage = MapUtils.getString(message.getParams(), "errorMessage", "");
+            String bigErrorMessage = MapUtils.getString(message.getParams(), "bigErrorMessage", "");
+            if (!errorMessage.isEmpty() && bigErrorMessage.isEmpty() && bigErrorLength > 0 && errorMessage.length() > bigErrorLength && businessOperation.getType() == BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION) {
+                bigErrorMessage = errorMessage;
+                errorMessage = StringUtils.substring(errorMessage, 0, bigErrorLength) + "...";
+            }
+            if (!errorMessage.isEmpty()) {
+                businessOperation.addPublicParam("message", errorMessage);
+            }
+            if (!bigErrorMessage.isEmpty()) {
+                businessOperation.addParam("bigErrorMessage", bigErrorMessage);
+                businessOperation.addPublicParam("isBigErrorMessage", true);
             }
             if (message.getParam("errors") != null) {
                 businessOperation.addPublicParam("errors", message.getParam("errors"));

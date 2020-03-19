@@ -99,4 +99,7 @@ public interface RcStaffFeignClient {
 
     @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/server/{serverId}/services?onlyDedicated=true")
     List<Service> getServiceByAccountIdAndServerId(@PathVariable("accountId") String accountId, @PathVariable("serverId") String serverId);
+
+    @RequestMapping(method = RequestMethod.GET, value = "/{accountId}/service/{serviceId}")
+    Service getServiceByAccountIdAndServiceId(@PathVariable("accountId") String accountId, @PathVariable("serviceId") String serviceId);
 }

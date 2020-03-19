@@ -4,40 +4,47 @@ import com.fasterxml.jackson.annotation.JsonView;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
+import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.Views;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.querydsl.ProcessingBusinessOperationQuerydslBinderCustomizer;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
+
 @RestController
 @Validated
+@RequiredArgsConstructor
 public class ProcessingBusinessOperationRestController extends CommonRestController {
 
     private final ProcessingBusinessOperationRepository repository;
-
-    @Autowired
-    public ProcessingBusinessOperationRestController(ProcessingBusinessOperationRepository repository) {
-        this.repository = repository;
-    }
+    private final MongoOperations mongoOperations;
 
     @JsonView(Views.Public.class)
     @RequestMapping(value = "/{accountId}/processing-operations", method = RequestMethod.GET)
@@ -54,9 +61,47 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
     @RequestMapping(value = "/{accountId}/processing-operations/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ProcessingBusinessOperation> get(
             @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
-            @ObjectId(ProcessingBusinessOperation.class) @PathVariable("id") String id
+            @ObjectId(ProcessingBusinessOperation.class) @PathVariable("id") String id,
+            @RequestParam(required = false) boolean fullError
     ) {
         ProcessingBusinessOperation operation = repository.findByIdAndPersonalAccountId(id, accountId);
+        if (operation != null && operation.getType() == BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION && fullError) {
+            String errorMessage = MapUtils.getString(operation.getParams(), "bigErrorMessage", "");
+            if (!errorMessage.isEmpty()) {
+                operation.addPublicParam("message", errorMessage);
+            }
+        }
+
+        return new ResponseEntity<>(operation, HttpStatus.OK);
+    }
+
+    @JsonView(Views.Public.class)
+    @RequestMapping(value = "/{accountId}/processing-operations/{type}/last", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ProcessingBusinessOperation> getLastOperation(
+            @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
+            @PathVariable("type") BusinessOperationType type,
+            @RequestParam(required = false) boolean fullError,
+            @RequestParam(required = false) String resourceId
+    ) {
+        ProcessingBusinessOperation operation;
+        if (StringUtils.isNotEmpty(resourceId)) {
+            Query query = Query.query(Criteria.where("personalAccountId").is(accountId).and("type").is(type)
+                    .and("params." + RESOURCE_ID_KEY).is(resourceId))
+                    .with(Sort.by(Sort.Direction.DESC, "createdDate"));
+            operation = mongoOperations.findOne(query, ProcessingBusinessOperation.class); // spring repository dql не может описать такой запрос
+        } else {
+            operation = repository.findTopByPersonalAccountIdAndTypeOrderByCreatedDateDesc(accountId, type);
+        }
+
+        if (operation == null) {
+            throw new ResourceNotFoundException();
+        }
+        if (operation.getType() == BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION && fullError) {
+            String errorMessage = MapUtils.getString(operation.getParams(), "bigErrorMessage", "");
+            if (!errorMessage.isEmpty()) {
+                operation.addPublicParam("message", errorMessage);
+            }
+        }
 
         return new ResponseEntity<>(operation, HttpStatus.OK);
     }

@@ -14,11 +14,14 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 
+import javax.annotation.Nullable;
+
 public interface ProcessingBusinessOperationRepository extends MongoRepository<ProcessingBusinessOperation, String>,
         QuerydslPredicateExecutor<ProcessingBusinessOperation> {
 
     Page<ProcessingBusinessOperation> findByPersonalAccountId(String accountId, Pageable pageable);
 
+    @Nullable
     ProcessingBusinessOperation findByIdAndPersonalAccountId(String id, String accountId);
 
     List<ProcessingBusinessOperation> findAllByPersonalAccountIdAndTypeAndStateIn(String personalAccountId, BusinessOperationType type, Set<State> states);
@@ -28,4 +31,7 @@ public interface ProcessingBusinessOperationRepository extends MongoRepository<P
     List<ProcessingBusinessOperation> findAllByPersonalAccountIdAndTypeAndStateInAndCreatedDateGreaterThanEqual(String personalAccountId, BusinessOperationType type, Set<State> states, LocalDateTime createdDate);
 
     boolean existsByPersonalAccountIdAndTypeAndStateIn(String personalAccountId, BusinessOperationType type, Set<State> states);
+
+    @Nullable
+    ProcessingBusinessOperation findTopByPersonalAccountIdAndTypeOrderByCreatedDateDesc(String accountId, BusinessOperationType type);
 }
