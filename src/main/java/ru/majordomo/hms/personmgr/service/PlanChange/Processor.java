@@ -259,7 +259,7 @@ public abstract class Processor {
 
             if (!abonements.isEmpty()) {
                 BigDecimal cost = abonements.stream().map(
-                        a -> accountServiceHelper.getServiceCostDependingOnDiscount(account, a.getService())
+                        a -> accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), a.getService())
                 ).reduce(BigDecimal.ZERO, (a, c) -> c.add(a));
 
                 if (newBalanceAfterCashBack.compareTo(cost) < 0) {

@@ -240,7 +240,7 @@ public class RecurrentProcessorService {
                         // Если истекает через 5 дней или меньше - добавляем стоимость абонемента
                         if (abonement.getExpired().isBefore(chargeDate.plusDays(5L))) {
 
-                            sum = sum.add(accountServiceHelper.getServiceCostDependingOnDiscount(account, abonement.getAbonement().getService()));
+                            sum = sum.add(accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), abonement.getAbonement().getService()));
                         }
                     }
                 }
@@ -273,7 +273,7 @@ public class RecurrentProcessorService {
                         // Если истекает через 5 дней или меньше - добавляем стоимость абонемента
                         if (abonement.getExpired().isBefore(chargeDate.plusDays(5L))) {
                             sum = sum.add(
-                                    accountServiceHelper.getServiceCostDependingOnDiscount(account, abonement.getAbonement().getService())
+                                    accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), abonement.getAbonement().getService())
                             );
                         }
                     }
@@ -348,7 +348,7 @@ public class RecurrentProcessorService {
                     && !wrapper.getLast().getAbonement().isInternal()
                     && wrapper.getExpired().isBefore(chargeDate.plusDays(5L))
             ) {
-                return accountServiceHelper.getServiceCostDependingOnDiscount(account, wrapper.getLast().getAbonement().getService());
+                return accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), wrapper.getLast().getAbonement().getService());
             }
         }
 
@@ -371,27 +371,19 @@ public class RecurrentProcessorService {
         LocalDateTime chargeDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
         Integer daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
 
-        BigDecimal dailyCostForRecurrent = BigDecimal.ZERO;
+        Map<AccountService, BigDecimal> accountServices = accountServiceHelper.getDailyServicesToCharge(account, chargeDate.toLocalDate());
 
-        List<AccountService> accountServices = accountServiceHelper.getDailyServicesToCharge(account, chargeDate);
-
-        for (AccountService accountService : accountServices) {
-            BigDecimal cost;
-
-            switch (accountService.getPaymentService().getPaymentType()) {
+        BigDecimal dailyCostForRecurrent = accountServices.entrySet().stream().map(e -> {
+            switch (e.getKey().getPaymentService().getPaymentType()) {
                 case MONTH:
-                    cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, accountService)
-                            .divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
-                    dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
-                    break;
-                    //Ежедневные услуги не считаем в рекуррент (сейчас это только 'Хранение архива данных')
-//                    case DAY:
-//                        cost = accountService.getCost();
-//                        dailyCostForRecurrent = dailyCostForRecurrent.add(cost);
-//                        break;
+                    return e.getValue().divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
+                //Ежедневные услуги не считаем в рекуррент (сейчас это только 'Хранение архива данных')
+//                case DAY:
+//                    return e.getValue();
+                default:
+                    return BigDecimal.ZERO;
             }
-
-        }
+        }).reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return dailyCostForRecurrent;
     }

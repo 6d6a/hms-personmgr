@@ -124,6 +124,13 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
+    public PersonalAccount findOneByIdIncludeIdAndActive(String id) {
+        checkById(id);
+
+        return repository.findOneByIdIncludeIdAndActive(id);
+    }
+
+    @Override
     public PersonalAccount findOneByIdIncludeIdAndActiveAndDeactivated(String id) {
         checkById(id);
 

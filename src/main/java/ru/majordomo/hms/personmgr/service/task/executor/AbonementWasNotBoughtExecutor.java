@@ -53,7 +53,7 @@ public class AbonementWasNotBoughtExecutor implements Executor<SendMailIfAboneme
 
             if (plan.isAbonementOnly()) { return; }
 
-            BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getNotInternalAbonement().getService());
+            BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), plan.getNotInternalAbonement().getService());
 
             BigDecimal balance = accountHelper.getBalance(account);
 

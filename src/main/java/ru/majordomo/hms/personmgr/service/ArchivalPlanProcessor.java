@@ -112,20 +112,17 @@ public class ArchivalPlanProcessor {
             return minPeriod;
         }
 
-        List<AccountService> accountServices = accountServiceHelper.getDailyServicesToCharge(account, LocalDate.now());
+        Map<AccountService, BigDecimal> accountServices = accountServiceHelper.getDailyServicesToCharge(account, LocalDate.now());
 
-        BigDecimal dailyCost = accountServices
+        BigDecimal dailyCost = accountServices.entrySet()
                 .stream()
-                .filter(accountService -> !accountService.getPaymentService().getId().equals(plan.getServiceId()))
-                .filter(AccountService::isEnabled)
-                .map(accountService ->
-                        accountServiceHelper.getServiceCostDependingOnDiscount(account, accountService.getPaymentService())
-                                .multiply(BigDecimal.valueOf(accountService.getQuantity()))
-                )
+                .filter(item -> !item.getKey().getPaymentService().getId().equals(plan.getServiceId()))
+                .filter(item -> item.getKey().isEnabled())
+                .map(item -> item.getValue().multiply(BigDecimal.valueOf(item.getKey().getQuantity())))
                 .reduce(BigDecimal::add)
                 .orElse(BigDecimal.ZERO)
                 .add(accountServiceHelper.getServiceCostDependingOnDiscount(
-                        account, plan.getService()).divide(BigDecimal.valueOf(30), 4, BigDecimal.ROUND_HALF_UP));
+                    account.getId(), plan.getService()).divide(BigDecimal.valueOf(30), 4, BigDecimal.ROUND_HALF_UP));
 
         if (dailyCost.compareTo(BigDecimal.ZERO) == 0) {
             log.info(format(template, account.getId(), maxPeriod, "дневное списание = 0"));
@@ -222,8 +219,8 @@ public class ArchivalPlanProcessor {
                         currentPlan.getName(),
                         newPlan.getName(),
 
-                        accountServiceHelper.getServiceCostDependingOnDiscount(account, newPlan.getService())
-                                .subtract(accountServiceHelper.getServiceCostDependingOnDiscount(account, currentPlan.getService())),
+                        accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), newPlan.getService())
+                                .subtract(accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), currentPlan.getService())),
                         account.getDeactivated() == null ? "null" : Utils.differenceInDays(account.getDeactivated().toLocalDate(), LocalDate.now())
                 );
                 result.append(message).append("\n");
@@ -300,7 +297,7 @@ public class ArchivalPlanProcessor {
                 continue;
             }
 
-            BigDecimal fullCost = accountServiceHelper.getServiceCostDependingOnDiscount(account, accessToTheControlPanelService);
+            BigDecimal fullCost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), accessToTheControlPanelService);
 
             if (balance.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal amount = balance.compareTo(fullCost) > 0 ? fullCost : balance;

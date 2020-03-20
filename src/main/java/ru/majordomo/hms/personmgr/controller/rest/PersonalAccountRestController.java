@@ -164,7 +164,7 @@ public class PersonalAccountRestController extends CommonRestController {
         List<ServiceCost> serviceCosts = new ArrayList<>();
 
         plan.getAbonements().forEach(item-> {
-            BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, item.getService());
+            BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), item.getService());
             serviceCosts.add(new ServiceCost(item.getServiceId(), cost));
         });
 

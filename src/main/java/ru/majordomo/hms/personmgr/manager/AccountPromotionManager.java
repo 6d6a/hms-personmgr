@@ -36,7 +36,7 @@ public interface AccountPromotionManager {
 
     void setAsUsedAccountPromotionById(String id, String comment);
 
-    AccountPromotion getServiceDiscountPromotion(PersonalAccount account, PaymentService service);
+    AccountPromotion getServiceDiscountPromotion(String accountId, PaymentService service);
 
     boolean existsByPersonalAccountIdAndPromotionId(String personalAccountId, String promotionId);
 

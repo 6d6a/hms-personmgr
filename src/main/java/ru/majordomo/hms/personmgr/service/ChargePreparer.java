@@ -16,8 +16,12 @@ import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequestItem;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -92,12 +96,12 @@ public class ChargePreparer {
     }
 
     public ChargeRequest prepareCharge(String accountId, LocalDate chargeDate, boolean chargeFromInactive) {
-        PersonalAccount account = accountManager.findOne(accountId);
+        PersonalAccount account = accountManager.findOneByIdIncludeIdAndActive(accountId);
 
         //Не списываем с неактивных аккаунтов если это не требуется указанием параметра chargeFromInactive
         if (!chargeFromInactive && !account.isActive()) { return null; }
 
-        List<AccountService> accountServices = accountServiceHelper.getDailyServicesToCharge(account, chargeDate);
+        Map<AccountService, BigDecimal> accountServices = accountServiceHelper.getDailyServicesToCharge(account, chargeDate);
 
         //Если списывать нечего
         if (accountServices.isEmpty()) { return null; }
@@ -105,15 +109,14 @@ public class ChargePreparer {
         ChargeRequest chargeRequest = new ChargeRequest();
         chargeRequest.setPersonalAccountId(accountId);
         chargeRequest.setChargeDate(chargeDate);
-
-        for(AccountService accountService: accountServices) {
+        accountServices.forEach((key, value) -> {
             ChargeRequestItem chargeRequestItem = new ChargeRequest();
-            chargeRequestItem.setAccountServiceId(accountService.getId());
+            chargeRequestItem.setAccountServiceId(key.getId());
             chargeRequestItem.setChargeDate(chargeDate);
-            chargeRequestItem.setAmount(accountServiceHelper.getDailyCostForService(account, accountService, chargeDate));
+            chargeRequestItem.setAmount(accountServiceHelper.getDailyCostForService(key, value, chargeDate));
 
             chargeRequest.addChargeRequest(chargeRequestItem);
-        }
+        });
 
         return chargeRequestManager.insert(chargeRequest);
     }

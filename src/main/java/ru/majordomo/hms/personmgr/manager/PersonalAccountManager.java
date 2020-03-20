@@ -47,6 +47,8 @@ public interface PersonalAccountManager {
 
     PersonalAccount findOneByIdIncludeId(String id);
 
+    PersonalAccount findOneByIdIncludeIdAndActive(String id);
+
     PersonalAccount findByName(String name);
 
     PersonalAccount findByClientId(String clientId);

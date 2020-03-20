@@ -192,7 +192,7 @@ public class AccountStatEventListener {
                         "Не найден сервис с id " + event.getPaymentServiceId()
                 ));
 
-        if (accountServiceHelper.getServiceCostDependingOnDiscount(account, paymentService)
+        if (accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), paymentService)
                 .compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }

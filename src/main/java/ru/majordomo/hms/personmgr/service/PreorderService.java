@@ -372,7 +372,7 @@ public class PreorderService {
         if (account == null) {
             account = accountManager.findOne(preorder.getPersonalAccountId());
         }
-        return accountServiceHelper.getServiceCostDependingOnDiscount(account, preorder.getPaymentService());
+        return accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), preorder.getPaymentService());
     }
 
     /**
