@@ -16,11 +16,13 @@ import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.Result;
+import ru.majordomo.hms.personmgr.dto.fin.BillingOperation;
 import ru.majordomo.hms.personmgr.event.account.AccountBuyAbonement;
 import ru.majordomo.hms.personmgr.exception.BaseException;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
+import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -44,10 +46,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.Period;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -73,8 +72,10 @@ public class PreorderService {
     private final ServicePlanRepository servicePlanRepository;
     private final AccountHistoryManager history;
     private final ApplicationEventPublisher publisher;
+    private final FinFeignClient finFeignClient;
 
     private final static Period P1M = Period.ofMonths(1);
+    private final static int SAFE_TIMEOUT_MINUTES = 20;
 
     private final static EnumSet<Feature> ALLOW_PREORDER = EnumSet.of( // список Feature для которых можно делать заказ. Только для дополнительных услуг
             Feature.ANTI_SPAM,
@@ -750,18 +751,28 @@ public class PreorderService {
         LocalDateTime olderDate = LocalDateTime.now().minus(attemptBuyPeriod);
 
         List<String> accountIds = mongoOperations.findDistinct(Query.query(Criteria.where("created").gt(olderDate)), "personalAccountId", Preorder.class, String.class);
+        LocalDateTime safeTimeValue = LocalDateTime.now().minusMinutes(SAFE_TIMEOUT_MINUTES);
 
-        List<String> needAccounts = new ArrayList<>();
+        int countSuccess = 0;
+        int countError = 0;
         for (String accountId : accountIds) {
             PersonalAccount account = accountRepository.findById(accountId).orElse(null);
             if (account == null || account.getDeleted() != null
-                    || account.getCreated().plusMinutes(20).isAfter(LocalDateTime.now()) // здесь пропускаются аккаунты которые еще не успели создаться
+                    || account.getCreated() == null || !safeTimeValue.isAfter(account.getCreated()) // здесь пропускаются аккаунты которые еще не успели создаться
             ) {
                 continue;
             }
             try {
-                if (accountHelper.getBalance(account).signum() > 0) {
-                    needAccounts.add(accountId);
+                BillingOperation payment = finFeignClient.getLastPayment(accountId);
+                if (payment != null && payment.getCreated() != null && safeTimeValue.isAfter(payment.getCreated())) { // в этом месте попытка избежать оплаты заказов 2 раза одновременно. Но не очень надежно.
+                    Result result = buyOrder(account);
+                    if (!result.isSuccess()) {
+                        countSuccess++;
+                        logger.error("Cannot buy preorder for account: {} with message: {}", accountId, result.getMessage());
+                    } else {
+                        countError++;
+                        logger.info("Bought preorders for account {} by periodic processor: ", accountId);
+                    }
                 }
             } catch (BaseException | FeignException ex) {
                 logger.error("Got exception when get balance for account: " + accountId, ex);
@@ -769,16 +780,6 @@ public class PreorderService {
             }
         }
 
-        for (String accountId : needAccounts) {
-            PersonalAccount account = accountManager.findOne(accountId);
-            Result result = buyOrder(account);
-            if (!result.isSuccess()) {
-                logger.error("Cannot buy preorder for account: {} with message: {}", accountId, result.getMessage());
-            } else {
-                logger.info("Bought preorders for account {} by periodic processor: ", accountId);
-            }
-        }
-
-        logger.info("End attemptBuyPreorders. Processed accounts: " + needAccounts.size());
+        logger.info("End attemptBuyPreorders. Processed success accounts: {}, error: {}", countSuccess, countError);
     }
 }
