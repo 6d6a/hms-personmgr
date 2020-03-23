@@ -17,7 +17,7 @@ import java.time.Period;
 public class FormatedPreorder {
     @NonNull
     private String name; // Имя предзаказанной услуги которое можно показывать пользователю
-    @NonNull
+
     private BigDecimal cost;
     @NonNull
     private Feature feature;
