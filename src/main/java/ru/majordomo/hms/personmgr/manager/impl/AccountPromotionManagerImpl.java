@@ -115,8 +115,8 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
         setAccountPromotionStatusByIdAndActionId(id, false, comment);
     }
 
-    public AccountPromotion getServiceDiscountPromotion(PersonalAccount account, PaymentService service) {
-        List<AccountPromotion> promotions = findByPersonalAccountId(account.getId());
+    public AccountPromotion getServiceDiscountPromotion(String accountId, PaymentService service) {
+        List<AccountPromotion> promotions = findByPersonalAccountId(accountId);
 
         for (AccountPromotion accountPromotion : promotions) {
             if (!accountPromotion.isValidNow()) continue;

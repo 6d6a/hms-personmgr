@@ -107,7 +107,7 @@ public class PromisedPaymentService {
         while (current.isBefore(end)) {
             for (AccountService service : account.getServices()) {
                 if (service.isEnabled() && accountServiceFilter.test(service) && isDayForCharge(service, current) && canUseBonus(service.getPaymentService())) {
-                    BigDecimal disountedCost = accountServiceHelper.getServiceCostDependingOnDiscount(account, service);
+                    BigDecimal disountedCost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), service);
                     if (disountedCost == null) {
                         throw new InternalApiException("Cannot get cost for service " + service.getPaymentService());
                     }
@@ -128,7 +128,7 @@ public class PromisedPaymentService {
         while (current.isBefore(end)) {
             if (canUseBonus(service)) {
                 cost = cost.add(
-                        getCost(accountServiceHelper.getServiceCostDependingOnDiscount(account, service),
+                        getCost(accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), service),
                                 service.getPaymentType(), current)
                 );
             }

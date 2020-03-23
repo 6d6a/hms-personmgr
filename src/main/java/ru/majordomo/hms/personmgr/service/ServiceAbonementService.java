@@ -108,7 +108,7 @@ public class ServiceAbonementService { //dis name
 
         Abonement abonement = checkAbonementAllownes(plan, abonementId);
 
-        BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, abonement.getService());
+        BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), abonement.getService());
         if (cost.compareTo(BigDecimal.ZERO) > 0) {
             ChargeMessage chargeMessage = new ChargeMessage.Builder(abonement.getService())
                     .setAmount(cost)
@@ -176,7 +176,7 @@ public class ServiceAbonementService { //dis name
 
         ServicePlan servicePlan = getServicePlan(accountServiceAbonement);
 
-        BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, accountServiceAbonement.getAbonement().getService());
+        BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), accountServiceAbonement.getAbonement().getService());
 
         ChargeMessage chargeMessage = new ChargeMessage.Builder(accountServiceAbonement.getAbonement().getService())
                 .setAmount(cost)
@@ -233,7 +233,7 @@ public class ServiceAbonementService { //dis name
                 return;
             }
 
-            BigDecimal abonementCost = accountServiceHelper.getServiceCostDependingOnDiscount(account, accountServiceAbonement.getAbonement().getService());
+            BigDecimal abonementCost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), accountServiceAbonement.getAbonement().getService());
 
             logger.debug("We found expiring service abonement: " + accountServiceAbonement);
 
@@ -353,7 +353,7 @@ public class ServiceAbonementService { //dis name
 
             BigDecimal balance = accountHelper.getBalance(account);
 
-            BigDecimal abonementCost = accountServiceHelper.getServiceCostDependingOnDiscount(account, accountServiceAbonement.getAbonement().getService());
+            BigDecimal abonementCost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), accountServiceAbonement.getAbonement().getService());
             String currentExpired = accountServiceAbonement.getExpired().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
 
             // Если абонемент не бонусный (internal) и стоит автопродление
@@ -446,7 +446,7 @@ public class ServiceAbonementService { //dis name
 
         BigDecimal balance = accountHelper.getBalance(account);
         if (!servicePlan.isAbonementOnly()) {
-            BigDecimal costForOneMonth = accountServiceHelper.getServiceCostDependingOnDiscount(account, servicePlan.getService());
+            BigDecimal costForOneMonth = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), servicePlan.getService());
             needToSendMail = balance.compareTo(costForOneMonth) < 0;
         } else {
             needToSendMail = true;

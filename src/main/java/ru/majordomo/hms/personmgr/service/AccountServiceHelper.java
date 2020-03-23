@@ -9,10 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
@@ -447,29 +444,33 @@ public class AccountServiceHelper {
         return abonementManager.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
     }
 
-    public List<AccountService> getDailyServicesToCharge(PersonalAccount account, LocalDate chargeDate) {
+    public Map<AccountService, BigDecimal> getDailyServicesToCharge(PersonalAccount account, LocalDate chargeDate) {
         return getDailyServicesToCharge(account, LocalDateTime.of(
                 chargeDate,
                 LocalTime.of(0, 0, 0, 0)
                 )
         );
     }
-    public List<AccountService> getDailyServicesToCharge(PersonalAccount account, LocalDateTime chargeDate) {
-        List<AccountService> dailyServices = new ArrayList<>();
+    private Map<AccountService, BigDecimal> getDailyServicesToCharge(PersonalAccount account, LocalDateTime chargeDate) {
+        Map<AccountService, BigDecimal> dailyServicesWithCost;
         List<AccountService> accountServices = account.getServices();
-        if (accountServices == null || accountServices.isEmpty()) { return dailyServices;}
-        dailyServices = accountServices.stream().filter(accountService ->
-                accountService.isEnabled() && !accountService.isFreeze()
+        if (accountServices == null || accountServices.isEmpty()) { return new HashMap<>();}
+
+        dailyServicesWithCost = accountServices.stream()
+                .filter(accountService -> accountService.isEnabled() && !accountService.isFreeze()
                         && accountService.getPaymentService() != null
-                        && this.getServiceCostDependingOnDiscount(account, accountService.getPaymentService()).compareTo(BigDecimal.ZERO) > 0
                         && (isRegularAccountServiceNeedDailyCharge(accountService, chargeDate)))
-                .collect(Collectors.toList());
+                .collect(Collectors.toMap(
+                        item -> item,
+                        item -> this.getServiceCostDependingOnDiscount(account.getId(), item.getPaymentService()))
+                ).entrySet().stream()
+                .filter(item -> item.getValue().compareTo(BigDecimal.ZERO) > 0)
+                //сортируем в порядке убывания paymentService.chargePriority
+                //в начало попадет сервис с тарифом
+                .sorted(Map.Entry.comparingByKey(AccountService.ChargePriorityComparator))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (oldValue, newValue) -> oldValue, LinkedHashMap::new));
 
-        //сортируем в порядке убывания paymentService.chargePriority
-        //в начало попадет сервис с тарифом
-        accountServices.sort(AccountService.ChargePriorityComparator);
-
-        return dailyServices;
+        return dailyServicesWithCost;
     }
 
     public void switchServicesAfterFreeze(PersonalAccount account, Boolean freezeState) {
@@ -511,14 +512,18 @@ public class AccountServiceHelper {
     }
 
     public BigDecimal getDailyCostForService(PersonalAccount account, AccountService accountService, LocalDate chargeDate) {
+        return this.getDailyCostForService(accountService, this.getServiceCostDependingOnDiscount(account.getId(), accountService), chargeDate);
+    }
+
+    public BigDecimal getDailyCostForService(AccountService accountService, BigDecimal serviceCost, LocalDate chargeDate) {
         Integer daysInCurrentMonth = chargeDate.lengthOfMonth();
         BigDecimal cost = BigDecimal.ZERO;
         switch (accountService.getPaymentService().getPaymentType()) {
             case MONTH:
-                cost = this.getServiceCostDependingOnDiscount(account, accountService).divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
+                cost = serviceCost.divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
                 break;
             case DAY:
-                cost = this.getServiceCostDependingOnDiscount(account, accountService);
+                cost = serviceCost;
                 break;
         }
         return cost;
@@ -540,15 +545,15 @@ public class AccountServiceHelper {
         return plan;
     }
 
-    public BigDecimal getServiceCostDependingOnDiscount(PersonalAccount account, AccountService accountService) {
-        BigDecimal cost = this.getServiceCostDependingOnDiscount(account, accountService.getPaymentService());
+    public BigDecimal getServiceCostDependingOnDiscount(String accountId, AccountService accountService) {
+        BigDecimal cost = this.getServiceCostDependingOnDiscount(accountId, accountService.getPaymentService());
         return cost.multiply(BigDecimal.valueOf(accountService.getQuantity()));
     }
 
-    public BigDecimal getServiceCostDependingOnDiscount(PersonalAccount account, PaymentService paymentService) {
+    public BigDecimal getServiceCostDependingOnDiscount(String accountId, PaymentService paymentService) {
         BigDecimal cost = paymentService.getCost();
 
-        AccountPromotion accountPromotion = accountPromotionManager.getServiceDiscountPromotion(account, paymentService);
+        AccountPromotion accountPromotion = accountPromotionManager.getServiceDiscountPromotion(accountId, paymentService);
 
         if (accountPromotion != null) {
             cost = discountFactory.getDiscount(accountPromotion.getAction()).getCost(cost);
@@ -559,6 +564,6 @@ public class AccountServiceHelper {
 
     public BigDecimal getPlanCostDependingOnDiscount(PersonalAccount account) {
         Plan plan = planManager.findOne(account.getPlanId());
-        return this.getServiceCostDependingOnDiscount(account, plan.getService());
+        return this.getServiceCostDependingOnDiscount(account.getId(), plan.getService());
     }
 }

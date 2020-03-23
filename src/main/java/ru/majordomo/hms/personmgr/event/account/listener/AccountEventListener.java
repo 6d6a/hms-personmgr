@@ -395,7 +395,7 @@ public class AccountEventListener {
                 accountAbonement -> accountAbonement.getAbonement().isTrial()
         )) {
             Plan plan = planManager.findOne(account.getPlanId());
-            BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getNotInternalAbonement().getService());
+            BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), plan.getNotInternalAbonement().getService());
 
             SendMailIfAbonementWasNotBought example = new SendMailIfAbonementWasNotBought();
             example.setPersonalAccountId(account.getId());

@@ -290,7 +290,7 @@ public class AccountDocumentRestController extends CommonRestController {
 
             PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
 
-            BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, paymentService);
+            BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), paymentService);
 
             ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
                     .setAmount(cost)

@@ -162,7 +162,7 @@ public class AccountAbonementsEventListener {
                     int daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
                     BigDecimal balance = accountHelper.getBalance(account);
 
-                    BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getService());
+                    BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), plan.getService());
 
                     needToSendMail = balance.compareTo(
                             (cost.divide(new BigDecimal(daysInMonth), BigDecimal.ROUND_FLOOR)

@@ -244,7 +244,7 @@ public class AccountHelper {
     public void checkBalance(PersonalAccount account, PaymentService service) {
         BigDecimal available = getBalance(account);
 
-        BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account, service);
+        BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), service);
 
         if (available.compareTo(cost) < 0) {
             throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
@@ -299,7 +299,7 @@ public class AccountHelper {
     private BigDecimal getDayCostByService(PersonalAccount account, PaymentService service, LocalDateTime chargeDate) {
         int daysInCurrentMonth = chargeDate.toLocalDate().lengthOfMonth();
 
-        return accountServiceHelper.getServiceCostDependingOnDiscount(account, service)
+        return accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), service)
                 .divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
     }
 
@@ -489,7 +489,7 @@ public class AccountHelper {
     }
 
     private BigDecimal getCostAbonement(PersonalAccount account, Plan plan, String period) {
-        return accountServiceHelper.getServiceCostDependingOnDiscount(account, plan.getAbonements()
+        return accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), plan.getAbonements()
                 .stream().filter(
                         abonement -> abonement.getPeriod().equals(period)
                 ).collect(Collectors.toList()).get(0).getService());
@@ -629,7 +629,7 @@ public class AccountHelper {
         BooleanSupplier hasNoMoney = () -> {
             BigDecimal overallPaymentAmount = finFeignClient.getOverallPaymentAmount(account.getId());
             Plan currentPlan = planManager.findOne(account.getPlanId());
-            return overallPaymentAmount.compareTo(accountServiceHelper.getServiceCostDependingOnDiscount(account, currentPlan.getService())) < 0;
+            return overallPaymentAmount.compareTo(accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), currentPlan.getService())) < 0;
         };
 
         if (onlyTrialAbonement) {
