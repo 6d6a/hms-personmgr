@@ -742,6 +742,7 @@ public class PreorderService {
 
     public void attemptBuyPreorders() {
         if (attemptBuyPeriod == null) {
+            logger.warn("attemptBuyPeriod don't set. Exit without processing");
             return;
         } else {
             logger.info("Start attemptBuyPreorders");
