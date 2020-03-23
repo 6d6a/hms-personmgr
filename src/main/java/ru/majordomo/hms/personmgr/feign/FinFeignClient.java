@@ -15,6 +15,8 @@ import ru.majordomo.hms.personmgr.dto.fin.*;
 import ru.majordomo.hms.personmgr.dto.stat.MetaProjection;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
 
+import javax.annotation.Nullable;
+
 @FeignClient(name = "fin", configuration = FeignConfig.class)
 public interface FinFeignClient {
     @RequestMapping(method = RequestMethod.POST, value = "/payment_integration/add_payment", consumes = "application/json")
@@ -71,4 +73,8 @@ public interface FinFeignClient {
 
     @PostMapping(value = "/import/{accountId}")
     List<String> importToMongo(@PathVariable("accountId") String accountId);
+
+    @GetMapping(value = "/{accountId}/payment_operations/last-payment", consumes = "application/json")
+    @Nullable
+    BillingOperation getLastPayment(@PathVariable("accountId") String accountId);
 }
