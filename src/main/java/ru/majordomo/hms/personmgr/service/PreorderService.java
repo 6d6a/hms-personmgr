@@ -1,14 +1,16 @@
 package ru.majordomo.hms.personmgr.service;
 
 import feign.FeignException;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.Utils;
@@ -32,16 +34,17 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
-import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.*;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
@@ -52,6 +55,10 @@ import java.util.stream.Collectors;
 public class PreorderService {
     private final static Logger logger = LoggerFactory.getLogger(PreorderService.class);
 
+    @Value("${hms.preorder.attempt-buy-period:#{null}}")
+    private Period attemptBuyPeriod;
+
+    private final MongoOperations mongoOperations;
     private final PreorderRepository preorderRepository;
     private final AbonementRepository abonementRepository;
     private final PlanManager planManager;
@@ -61,6 +68,7 @@ public class PreorderService {
     private final AccountServiceHelper accountServiceHelper;
     private final PaymentServiceRepository paymentServiceRepository;
     private final PersonalAccountManager accountManager;
+    private final PersonalAccountRepository accountRepository;
     private final AccountServiceRepository accountServiceRepository;
     private final ServicePlanRepository servicePlanRepository;
     private final AccountHistoryManager history;
@@ -98,12 +106,12 @@ public class PreorderService {
      * @param plan - план
      * @return true - если тариф есть
      */
-    private boolean hasVirtualHostingServicePlan(@NonNull PersonalAccount account, @Nullable Plan plan) {
+    private boolean hasVirtualHostingServicePlan(@Nonnull PersonalAccount account, @Nullable Plan plan) {
         List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountId(account.getId());
         return accountServices.stream().anyMatch(ac -> ac.getPaymentService().getOldId().toLowerCase().startsWith(Constants.PLAN_SERVICE_PREFIX));
     }
 
-    public void deletePreorder(@NonNull PersonalAccount account, @NonNull String preorderId) throws InternalApiException, ResourceNotFoundException {
+    public void deletePreorder(@Nonnull PersonalAccount account, @Nonnull String preorderId) throws InternalApiException, ResourceNotFoundException {
         Preorder preorder = preorderRepository.findById(preorderId).orElseThrow(ResourceNotFoundException::new);
         if (StringUtils.isNotEmpty(preorder.getChargeDocumentNumber())) {
             throw new InternalApiException("Нельзя удалить уже оплаченный заказ");
@@ -153,7 +161,7 @@ public class PreorderService {
      * @param plan - тарифный план. Используется только для валидации.
      * @throws ParameterValidationException - выбросит если нельзя подключить согласно условиям услуги или тарифа
      */
-    public Preorder addPreorder(@NonNull PersonalAccount account, @NonNull Period period, @NonNull Feature feature, @Nullable Plan plan) throws ParameterValidationException {
+    public Preorder addPreorder(@Nonnull PersonalAccount account, @Nonnull Period period, @Nonnull Feature feature, @Nullable Plan plan) throws ParameterValidationException {
         if (plan == null) {
             plan = planManager.findOne(account.getPlanId());
             if (plan == null) {
@@ -294,7 +302,7 @@ public class PreorderService {
      * @param skipActivated - true - для услуг уже добавленых на аккаунт ничего не сделает, false - выбросит исключение ParameterValidationException
      * @return
      */
-    private boolean buyOnePreorder(@NonNull Preorder preorder, PersonalAccount account, boolean skipActivated) throws ParameterValidationException {
+    private boolean buyOnePreorder(@Nonnull Preorder preorder, PersonalAccount account, boolean skipActivated) throws ParameterValidationException {
         if (isActivate(preorder)) {
             if (skipActivated) {
                 return true;
@@ -353,7 +361,7 @@ public class PreorderService {
      * @param account - аккаунт
      * @param isFree - пометить если все заказанные услуги были бесплатные.
      */
-    private void clearPreorderAndActivate(@NonNull PersonalAccount account, boolean isFree) {
+    private void clearPreorderAndActivate(@Nonnull PersonalAccount account, boolean isFree) {
         preorderRepository.deleteByPersonalAccountId(account.getId());
         account.setPreorder(false);
         history.save(account, isFree ? "Заказанные бесплатные услуги активированы, аккаунт включен" : "Клиент оплатил заказанные услуги");
@@ -363,12 +371,12 @@ public class PreorderService {
     }
 
     @Nullable
-    private BigDecimal getPreorderCost(@NonNull Preorder preorder) {
+    private BigDecimal getPreorderCost(@Nonnull Preorder preorder) {
         return getPreorderCost(preorder, null);
     }
 
     @Nullable
-    private BigDecimal getPreorderCost(@NonNull Preorder preorder, @Nullable PersonalAccount account) {
+    private BigDecimal getPreorderCost(@Nonnull Preorder preorder, @Nullable PersonalAccount account) {
         if (account == null) {
             account = accountManager.findOne(preorder.getPersonalAccountId());
         }
@@ -376,12 +384,12 @@ public class PreorderService {
     }
 
     /**
-     * Активация бесплатной услуги или услуги с посуточным списанием, такие услуги можно добавлять сразу, еще до создания аккаунта в finansier
+     * Активация бесплатной услуги абонемента или услуги с посуточным списанием, такие услуги можно добавлять сразу, еще до создания аккаунта в finansier
      * Для платных услуг ничего не делает
      * @param preorder предзаказ
      * @return false если предзаказ не подходит
      */
-    private boolean activateOneFreeAndDailyPreorder(@NonNull Preorder preorder) throws ParameterValidationException {
+    private boolean activateOneFreeAndDailyPreorder(@Nonnull Preorder preorder) throws ParameterValidationException {
         PersonalAccount account = accountManager.findOne(preorder.getPersonalAccountId());
         BigDecimal cost = getPreorderCost(preorder);
         if (cost == null) {
@@ -393,11 +401,6 @@ public class PreorderService {
         }
         if (preorder.getAbonement() != null && cost.signum() > 0) {
             return false;
-        }
-
-        if (!StringUtils.isEmpty(preorder.getChargeDocumentNumber())) {
-            logger.debug("Attempt activateFree already paid preorder " + preorder);
-            throw new ParameterValidationException("Attempt activateFree already paid preorder " + preorder);
         }
 
         if (preorder.getAbonement() == null) {
@@ -431,8 +434,8 @@ public class PreorderService {
      * @param plan план
      * @return сообщит в message текстом причины почему нельзя заказать
      */
-    @NonNull
-    public Result whyCannotPreorder(@NonNull Period period, @NonNull Plan plan) {
+    @Nonnull
+    public Result whyCannotPreorder(@Nonnull Period period, @Nonnull Plan plan) {
         if (!plan.isActive() || plan.isArchival()) {
             return Result.error(String.format("Тарифный план %s неактивен", plan.getName()));
         }
@@ -456,8 +459,8 @@ public class PreorderService {
      * @param plan план
      * @return сообщит в message текстом причины почему нельзя заказать
      */
-    @NonNull
-    public Result whyCannotPreorderService(@NonNull Period period, @NonNull Feature feature, @NonNull Plan plan) throws ParameterValidationException {
+    @Nonnull
+    public Result whyCannotPreorderService(@Nonnull Period period, @Nonnull Feature feature, @Nonnull Plan plan) throws ParameterValidationException {
         if (!ALLOW_PREORDER.contains(feature)) {
             return Result.error(String.format("Для услуги %s недоступен предзаказ", featureToName(feature)));
         }
@@ -481,9 +484,9 @@ public class PreorderService {
         }
         return Result.success();
     }
-    
-    @NonNull
-    private String featureToName(@NonNull Feature feature) {
+
+    @Nonnull
+    private String featureToName(@Nonnull Feature feature) {
         ServicePlan servicePlan = servicePlanRepository.findOneByFeature(feature);
         if (servicePlan != null) {
             return servicePlan.getName();
@@ -498,7 +501,7 @@ public class PreorderService {
      * @param plan - план
      * @throws ParameterValidationException, ResourceNotFoundException - выбросит если нельзя добавить согласно устовиям хостинга
      */
-    public Preorder addPreorder(@NonNull PersonalAccount account, @NonNull Period period, @NonNull Plan plan) throws ParameterValidationException, ResourceNotFoundException {
+    public Preorder addPreorder(@Nonnull PersonalAccount account, @Nonnull Period period, @Nonnull Plan plan) throws ParameterValidationException, ResourceNotFoundException {
         Result cause = whyCannotPreorder(period, plan);
         if (!cause.isSuccess()) {
             throw new ParameterValidationException(cause.getMessage());
@@ -560,8 +563,8 @@ public class PreorderService {
      * @param withDays - учитывать дни в периоде
      * @return итоговая стоимость с округлением до 2х знаков в большую сторону
      */
-    @NonNull
-    private BigDecimal calculateCost(@NonNull BigDecimal monthCost, @NonNull String period, boolean withDays) {
+    @Nonnull
+    private BigDecimal calculateCost(@Nonnull BigDecimal monthCost, @Nonnull String period, boolean withDays) {
         return calculateCost(monthCost, Period.parse(period), withDays);
     }
 
@@ -574,8 +577,8 @@ public class PreorderService {
      * @param withDays - учитывать дни в периоде
      * @return итоговая стоимость с округлением до 2х знаков в большую сторону
      */
-    @NonNull
-    private BigDecimal calculateCost(@NonNull BigDecimal monthCost, @NonNull Period period, boolean withDays) {
+    @Nonnull
+    private BigDecimal calculateCost(@Nonnull BigDecimal monthCost, @Nonnull Period period, boolean withDays) {
         BigDecimal countMount = BigDecimal.valueOf(period.getMonths() + period.getYears() * 12);
         if (withDays) {
             countMount = countMount.add(BigDecimal.valueOf(period.getDays() / 30.0));
@@ -591,7 +594,7 @@ public class PreorderService {
      * @return найденный абонемент
      */
     @Nullable
-    private Abonement findAbonement(@NonNull Period period, @NonNull Feature feature) {
+    private Abonement findAbonement(@Nonnull Period period, @Nonnull Feature feature) {
         List<Abonement> abonements = abonementRepository.findByPeriodAndTypeAndInternal(period.toString(), feature, false);
         return abonements.stream().filter(abonement -> abonement.getService().isActive()).findFirst().orElse(null);
     }
@@ -604,7 +607,7 @@ public class PreorderService {
         return preorderRepository.existsByPersonalAccountId(accountId);
     }
 
-    public void addPromoPreorder(@NonNull PersonalAccount account, @NonNull Abonement abonement) {
+    public void addPromoPreorder(@Nonnull PersonalAccount account, @Nonnull Abonement abonement) {
         Preorder preorder = preorderRepository.findByPersonalAccountIdAndFeature(account.getId(), abonement.getType());
         if (preorder != null) {
             if (!StringUtils.isEmpty(preorder.getChargeDocumentNumber())) {
@@ -639,7 +642,7 @@ public class PreorderService {
      * Добавляет в список предзаказов уже добавленный абонемент (например из промокода).
      * @param accountAbonement - абонемент на хостинг
      */
-    public void addExistsAccountAbonement(@NonNull AccountAbonement accountAbonement) {
+    public void addExistsAccountAbonement(@Nonnull AccountAbonement accountAbonement) {
         Preorder preorder = preorderRepository.findByPersonalAccountIdAndFeature(
                 accountAbonement.getPersonalAccountId(),
                 accountAbonement.getAbonement().getType()
@@ -678,7 +681,7 @@ public class PreorderService {
      * @param account - аккаунт
      * @return - true если аккаунт был активирован
      */
-    public boolean activateAllFreeAndDailyPreorder(@NonNull PersonalAccount account) {
+    public boolean activateAllFreeAndDailyPreorder(@Nonnull PersonalAccount account) {
         BigDecimal orderCost = getTotalCostPreorders(account);
         if (orderCost == null) {
             if (account.isPreorder()) {
@@ -696,7 +699,7 @@ public class PreorderService {
         return false;
     }
 
-    public Result buyOrder(@NonNull PersonalAccount account) {
+    public Result buyOrder(@Nonnull PersonalAccount account) {
         BigDecimal orderCost = getTotalCostPreorders(account);
 
         if (orderCost == null) {
@@ -735,5 +738,46 @@ public class PreorderService {
             logger.info("Not enough money to pay for preorder. Account: " + account.getId());
             return Result.error("Недостаточно средств для оплаты предзаказа");
         }
+    }
+
+    public void attemptBuyPreorders() {
+        if (attemptBuyPeriod == null) {
+            return;
+        } else {
+            logger.info("Start attemptBuyPreorders");
+        }
+        LocalDateTime olderDate = LocalDateTime.now().minus(attemptBuyPeriod);
+
+        List<String> accountIds = mongoOperations.findDistinct(Query.query(Criteria.where("created").gt(olderDate)), "personalAccountId", Preorder.class, String.class);
+
+        List<String> needAccounts = new ArrayList<>();
+        for (String accountId : accountIds) {
+            PersonalAccount account = accountRepository.findById(accountId).orElse(null);
+            if (account == null || account.getDeleted() != null
+                    || account.getCreated().plusMinutes(20).isAfter(LocalDateTime.now()) // здесь пропускаются аккаунты которые еще не успели создаться
+            ) {
+                continue;
+            }
+            try {
+                if (accountHelper.getBalance(account).signum() > 0) {
+                    needAccounts.add(accountId);
+                }
+            } catch (BaseException | FeignException ex) {
+                logger.error("Got exception when get balance for account: " + accountId, ex);
+                continue;
+            }
+        }
+
+        for (String accountId : needAccounts) {
+            PersonalAccount account = accountManager.findOne(accountId);
+            Result result = buyOrder(account);
+            if (!result.isSuccess()) {
+                logger.error("Cannot buy preorder for account: {} with message: {}", accountId, result.getMessage());
+            } else {
+                logger.info("Bought preorders for account {} by periodic processor: ", accountId);
+            }
+        }
+
+        logger.info("End attemptBuyPreorders. Processed accounts: " + needAccounts.size());
     }
 }

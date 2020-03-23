@@ -156,10 +156,14 @@ public class AccountHelper {
      * @param account Аккаунт
      */
     public BigDecimal getBalance(PersonalAccount account) {
+        return getBalance(account.getId());
+    }
+
+    public BigDecimal getBalance(String accountId) {
         Map<String, Object> balance = null;
 
         try {
-            balance = finFeignClient.getBalance(account.getId());
+            balance = finFeignClient.getBalance(accountId);
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in AccountHelper.getBalance #1 " + e.getMessage());
