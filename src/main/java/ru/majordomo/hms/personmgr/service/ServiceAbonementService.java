@@ -157,6 +157,8 @@ public class ServiceAbonementService { //dis name
         }
 
         if (accountServiceHelper.accountHasService(account, plan.getServiceId())) {
+            logger.info("[addAbonement] Найден service-план для удаления. (account: " + account.getId() +
+                    ", Plan serviceId" + plan.getServiceId() + ")");
             accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
         }
 
