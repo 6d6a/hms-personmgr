@@ -54,6 +54,8 @@ public class SchedulerRestController extends CommonRestController {
     public ResponseEntity<Void> processScheduleAction(
             @PathVariable(value = "scheduleAction") String scheduleAction
     ) {
+        logger.info("We got scheduler request with action: {}", scheduleAction);
+        
         switch (scheduleAction) {
             case "clean_tokens":
                 publisher.publishEvent(new CleanTokensEvent());

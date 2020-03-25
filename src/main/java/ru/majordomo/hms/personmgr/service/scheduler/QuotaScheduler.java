@@ -37,6 +37,6 @@ public class QuotaScheduler {
         logger.info("Started processQuotaChecks");
         List<String> personalAccountIds = accountManager.findAccountIdsByIdNotInAndNotDeleted(Collections.singletonList(TECHNICAL_ACCOUNT_ID));
         personalAccountIds.forEach(accountId -> publisher.publishEvent(new AccountCheckQuotaEvent(accountId)));
-        logger.info("Ended processQuotaChecks");
+        logger.info("Ended processQuotaChecks. Pushed event: {}", personalAccountIds.size());
     }
 }
