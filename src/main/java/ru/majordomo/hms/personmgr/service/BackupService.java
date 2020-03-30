@@ -451,6 +451,7 @@ public class BackupService {
         }
 
         List<Snapshot> allDbSnapshots = getDbSnapshots(account);
+        log.info("Found {} database snapshots for account: {}", allDbSnapshots.size(), account.getId());
 
         List<Snapshot> inactiveTimeDbSnapshots = getSnapshotsBetween(
                 allDbSnapshots, dataWillBeDeletedAfter, deactivated.toLocalDate());
@@ -480,7 +481,7 @@ public class BackupService {
     private void restoreUnixAccount(PersonalAccount account, LocalDateTime deactivated, LocalDate dataWillBeDeletedAfter) {
         Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(account.getId());
         if (unixAccounts.isEmpty()) {
-            log.info("account id {} not found unixAccount for restoring");
+            log.info("account id {} not found unixAccount for restoring", account.getId());
             return;
         }
 
@@ -493,6 +494,7 @@ public class BackupService {
         } else {
             allFileSnapshots = getFileSnapshots(account);
         }
+        log.info("Found {} file snapshots for account: {}", allFileSnapshots.size(), account.getId());
 
         List<Snapshot> inactiveTimeFileSnapshots = getSnapshotsBetween(
                 allFileSnapshots, dataWillBeDeletedAfter, deactivated.toLocalDate());
