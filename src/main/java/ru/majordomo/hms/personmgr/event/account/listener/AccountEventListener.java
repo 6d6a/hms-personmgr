@@ -607,7 +607,7 @@ public class AccountEventListener {
         }
 
         PersonalAccount account = accountManager.findOne(event.getSource());
-
+        logger.info("Need restore data for account {}, deactivated: {}, isActive: {}, isFreeze: {}, deleted: " + event.getSource(), deactivated, account.isActive(), account.isFreeze(), account.getDeactivated());
         backupService.restoreAccountAfterEnabled(account, deactivated, dataWillBeDeletedAfter);
     }
 }
