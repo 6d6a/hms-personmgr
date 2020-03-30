@@ -47,11 +47,8 @@ public class AccountChargesEventListener {
         logger.debug("We got AccountPrepareChargesEvent");
 
         try {
-            ChargeRequest chargeRequest = chargePreparer.prepareCharge(event.getSource(), event.getChargeDate());
-
-            if (chargeRequest != null) {
-                batchJobManager.incrementProcessed(event.getBatchJobId());
-            }
+            chargePreparer.prepareCharge(event.getSource(), event.getChargeDate());
+            batchJobManager.incrementProcessed(event.getBatchJobId());
         } catch (Exception e) {
             if (e instanceof DuplicateKeyException || e instanceof com.mongodb.DuplicateKeyException) {
                 batchJobManager.incrementProcessed(event.getBatchJobId());
