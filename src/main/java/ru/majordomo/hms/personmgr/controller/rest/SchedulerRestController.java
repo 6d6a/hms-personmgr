@@ -183,6 +183,8 @@ public class SchedulerRestController extends CommonRestController {
             @PathVariable(value = "scheduleAction") String scheduleAction,
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam(required = false) LocalDate date
     ) {
+        logger.info("We got scheduler request with action: {}", scheduleAction);
+
         if (date == null) {
             date = LocalDate.now();
         }
