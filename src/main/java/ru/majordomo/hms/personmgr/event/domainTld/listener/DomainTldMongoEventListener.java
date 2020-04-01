@@ -38,21 +38,21 @@ public class DomainTldMongoEventListener extends AbstractMongoEventListener<Doma
             e.printStackTrace();
         }
 
-        // Заплатка для акциий
-        // TODO включение\выключений акций через биллинг?
-        LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        LocalDateTime startDate = LocalDateTime.parse(ACTION_DOMAIN_START_DATE, formatter);
-        LocalDateTime endDate = LocalDateTime.parse(ACTION_DOMAIN_END_DATE, formatter);
-
-        if (now.isAfter(startDate)) {
-            if (ACTION_DOMAINS_REGISTRATION_COST.containsKey(domainTld.getTld())) {
-                domainTld.getRegistrationService().setCost(ACTION_DOMAINS_REGISTRATION_COST.get(domainTld.getTld()));
-            }
-
-            if (ACTION_DOMAINS_RENEW_COST.containsKey(domainTld.getTld())) {
-                domainTld.getRenewService().setCost(ACTION_DOMAINS_RENEW_COST.get(domainTld.getTld()));
-            }
-        }
+//        // Заплатка для акциий
+//        // TODO включение\выключений акций через биллинг?
+//        LocalDateTime now = LocalDateTime.now();
+//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+//        LocalDateTime startDate = LocalDateTime.parse(ACTION_DOMAIN_START_DATE, formatter);
+//        LocalDateTime endDate = LocalDateTime.parse(ACTION_DOMAIN_END_DATE, formatter);
+//
+//        if (now.isAfter(startDate)) {
+//            if (ACTION_DOMAINS_REGISTRATION_COST.containsKey(domainTld.getTld())) {
+//                domainTld.getRegistrationService().setCost(ACTION_DOMAINS_REGISTRATION_COST.get(domainTld.getTld()));
+//            }
+//
+//            if (ACTION_DOMAINS_RENEW_COST.containsKey(domainTld.getTld())) {
+//                domainTld.getRenewService().setCost(ACTION_DOMAINS_RENEW_COST.get(domainTld.getTld()));
+//            }
+//        }
     }
 }
