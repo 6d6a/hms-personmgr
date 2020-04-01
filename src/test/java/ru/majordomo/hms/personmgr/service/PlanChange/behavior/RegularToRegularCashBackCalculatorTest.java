@@ -48,7 +48,8 @@ public class RegularToRegularCashBackCalculatorTest {
 
         //for every day that can daily charge subtract from abonement cost
         accountAbonement.setExpired(now.plusYears(1).minusDays(1));
-        Assert.assertEquals(abonementCost.subtract(dailyCost), calculator.calc(accountAbonement));
+        Assert.assertEquals(abonementCost.subtract(dailyCost).setScale(0, BigDecimal.ROUND_HALF_UP),
+                calculator.calc(accountAbonement).setScale(0, BigDecimal.ROUND_HALF_UP));
 
         //for decline almost full year cashBack is negative because (daily cost * day in year) > abonement cost
         accountAbonement.setExpired(now.plusDays(1));
