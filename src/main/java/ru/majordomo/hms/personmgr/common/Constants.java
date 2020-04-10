@@ -332,14 +332,23 @@ public class Constants {
         ACTION_DOMAINS_RENEW_COST = Collections.unmodifiableMap(temp);
     }
 
-    public static final String ACTION_DOMAIN_START_DATE = "2019-01-14 00:00:00";
-    public static final String ACTION_DOMAIN_END_DATE = "2018-11-30 23:59:59";
+    public static final String ACTION_ABONEMENT_START_DATE = "2020-04-12 00:00:00";
+    public static final String ACTION_ABONEMENT_END_DATE = "2020-04-17 23:59:59";
 
-    public static final String[] RU_RF_DOMAINS = new String[] {
-            "ru",
-            "xn--p1ai"
-    };
-    public static final String RU_RF_DOMAIN_NEW_PRICE_DATE = "2017-07-01 00:00:00";
+    public static final String ACTION_ABONEMENT_PROMOTION_ID = "5e85aca9a35057dbcdb22ed5";
+
+    public final static List<String> ABONEMENT_ACTION_IDS = Arrays.asList(
+            "59074666719fca0bb6bd2e25",
+            "59074667719fca0bb6bd2e33",
+            "59074667719fca0bb6bd2e38",
+            "59074668719fca0bb6bd2e3d",
+            "59074668719fca0bb6bd2e42",
+            "5d8b65f798952dac5c69a3fe",
+            "5d8b6d9198952dac5c7d9f4a",
+            "5d8b6e5498952dac5c827441",
+            "5e7b531da35057dbcd584bda",
+            "5e7b532ea35057dbcd58d984"
+    );
 
     public static class Exchanges {
         public static final String ACCOUNT_CREATE = "account.create";

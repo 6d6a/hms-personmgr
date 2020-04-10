@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
+import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -9,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,20 +27,22 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
+import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 
 import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 
-import static ru.majordomo.hms.personmgr.common.Constants.ACCESS_TO_CONTROL_PANEL_SERVICE_OLD_ID;
-import static ru.majordomo.hms.personmgr.common.Constants.SMS_NOTIFICATIONS_29_RUB_SERVICE_ID;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @Service
+@AllArgsConstructor
 public class AccountServiceHelper {
     private final AccountServiceRepository accountServiceRepository;
     private final PlanManager planManager;
@@ -48,27 +52,7 @@ public class AccountServiceHelper {
     private final AccountPromotionManager accountPromotionManager;
     private final DiscountFactory discountFactory;
     private final ApplicationEventPublisher publisher;
-
-    @Autowired
-    public AccountServiceHelper(
-            AccountServiceRepository accountServiceRepository,
-            PlanManager planManager,
-            PaymentServiceRepository serviceRepository,
-            AbonementManager<AccountServiceAbonement> abonementManager,
-            ServicePlanRepository servicePlanRepository,
-            AccountPromotionManager accountPromotionManager,
-            DiscountFactory discountFactory,
-            ApplicationEventPublisher publisher
-    ) {
-        this.accountServiceRepository = accountServiceRepository;
-        this.planManager = planManager;
-        this.serviceRepository = serviceRepository;
-        this.abonementManager = abonementManager;
-        this.servicePlanRepository = servicePlanRepository;
-        this.accountPromotionManager = accountPromotionManager;
-        this.discountFactory = discountFactory;
-        this.publisher = publisher;
-    }
+    private final PromocodeActionRepository promocodeActionRepository;
 
     public void deletePlanServiceIfExists(PersonalAccount account, Plan plan) {
         if (accountHasService(account, plan.getServiceId())) {
@@ -557,6 +541,20 @@ public class AccountServiceHelper {
 
         if (accountPromotion != null) {
             cost = discountFactory.getDiscount(accountPromotion.getAction()).getCost(cost);
+        }
+
+        if (ABONEMENT_ACTION_IDS.contains(paymentService.getId()) && accountPromotion == null) {
+            LocalDateTime now = LocalDateTime.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            LocalDateTime startDate = LocalDateTime.parse(ACTION_ABONEMENT_START_DATE, formatter);
+            LocalDateTime endDate = LocalDateTime.parse(ACTION_ABONEMENT_END_DATE, formatter);
+
+            if (now.isAfter(startDate) && now.isBefore(endDate)) {
+                Optional<PromocodeAction> fakeAction = promocodeActionRepository.findById(ACTION_ABONEMENT_PROMOTION_ID);
+                if (fakeAction.isPresent()) {
+                    cost = discountFactory.getDiscount(fakeAction.get()).getCost(cost);
+                }
+            }
         }
 
         return cost;
