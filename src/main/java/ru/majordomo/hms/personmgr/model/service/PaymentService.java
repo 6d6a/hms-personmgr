@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.PersistenceConstructor;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -30,6 +31,9 @@ public class PaymentService extends BaseModel {
 
     @NotNull
     private BigDecimal cost;
+
+    @Transient
+    private BigDecimal discountCost = null;
 
     @NotNull
     private int limit;
@@ -130,6 +134,14 @@ public class PaymentService extends BaseModel {
 
     public void setOldId(String oldId) {
         this.oldId = oldId;
+    }
+
+    public BigDecimal getDiscountCost() {
+        return discountCost;
+    }
+
+    public void setDiscountCost(BigDecimal discountCost) {
+        this.discountCost = discountCost;
     }
 
     public PaymentService() {

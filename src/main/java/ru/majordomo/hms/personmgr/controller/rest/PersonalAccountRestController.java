@@ -141,6 +141,11 @@ public class PersonalAccountRestController extends CommonRestController {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
 
+        plan.getAbonements().forEach(item-> {
+            BigDecimal discountCost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), item.getService());
+            item.getService().setDiscountCost(discountCost);
+        });
+
         return new ResponseEntity<>(plan, HttpStatus.OK);
     }
 
