@@ -9,12 +9,16 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
@@ -51,6 +55,8 @@ public class AccountAbonement extends VersionedModelBelongsToPersonalAccount {
     @Transient
     private Abonement abonement;
 
+    private List<AbonementBuyInfo> abonementBuyInfos = new ArrayList<>();
+
     /**
      * Конструктор инициализирует все поля класса
      * @param account - аккаунт
@@ -83,5 +89,33 @@ public class AccountAbonement extends VersionedModelBelongsToPersonalAccount {
             }
             freezed = null;
         }
+    }
+
+    public void fillInBuyInformation(Abonement ab, BigDecimal customCost) {
+        AbonementBuyInfo info = new AbonementBuyInfo();
+        info.setAbonementId(ab.getId());
+        info.setBuyDate(LocalDateTime.now());
+        info.setBuyPeriod(ab.getPeriod());
+        info.setBuyPrice(customCost);
+
+        abonementBuyInfos.add(info);
+    }
+
+    public void fillInBuyInformation(Abonement ab) {
+        fillInBuyInformation(ab, ab.getService().getCost());
+    }
+
+    public void fillInBuyInformation() {
+        if (abonement == null) {
+            throw new ResourceNotFoundException("Абонемент для заполнения информации не найден");
+        }
+        fillInBuyInformation(abonement, abonement.getService().getCost());
+    }
+
+    public void fillInBuyInformation(BigDecimal customCost) {
+        if (abonement == null) {
+            throw new ResourceNotFoundException("Абонемент для заполнения информации не найден");
+        }
+        fillInBuyInformation(abonement, customCost);
     }
 }
