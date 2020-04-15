@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.service.PlanChange.behavior;
 
 import lombok.extern.slf4j.Slf4j;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
+import ru.majordomo.hms.personmgr.model.abonement.AbonementBuyInfo;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 
@@ -10,6 +11,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
 
 @Slf4j
 public class RegularToRegularCashBackCalculator implements CashBackCalculator<AccountAbonement> {
@@ -20,6 +24,9 @@ public class RegularToRegularCashBackCalculator implements CashBackCalculator<Ac
     }
 
     public BigDecimal calc(AccountAbonement currentAccountAbonement) {
+        List<AbonementBuyInfo> buyInfo = currentAccountAbonement.getAbonementBuyInfos();
+        buyInfo.sort(Comparator.comparing(AbonementBuyInfo::getBuyDate).reversed());
+
         Abonement abonement = currentAccountAbonement.getAbonement();
         BigDecimal abonementCost = abonement.getService().getCost();
 
@@ -38,12 +45,19 @@ public class RegularToRegularCashBackCalculator implements CashBackCalculator<Ac
         LocalDate accountAbonementExpired = currentAccountAbonement.getExpired().toLocalDate();
         Period abonementPeriod = Period.parse(abonement.getPeriod());
         LocalDate now = LocalDate.now();
-        int abonementCount = 0;
         LocalDate nextDate = accountAbonementExpired; // первая дата для начала пересчета АБ
+
+        BigDecimal sumAbCost = BigDecimal.ZERO;
+        Iterator<AbonementBuyInfo> iter = buyInfo.iterator();
 
         while (!nextDate.isEqual(now) && nextDate.isAfter(now)) {
             nextDate = nextDate.minus(abonementPeriod);
-            abonementCount++;
+            if (iter.hasNext()) {
+                AbonementBuyInfo a = iter.next();
+                sumAbCost = sumAbCost.add(a.getBuyPrice());
+            } else {
+                sumAbCost = sumAbCost.add(abonementCost);
+            }
         }
 
         BigDecimal dailyChargesAmount = BigDecimal.ZERO;
@@ -56,6 +70,6 @@ public class RegularToRegularCashBackCalculator implements CashBackCalculator<Ac
             }
         }
 
-        return abonementCost.multiply(BigDecimal.valueOf(abonementCount)).subtract(dailyChargesAmount);
+        return sumAbCost.subtract(dailyChargesAmount);
     }
 }

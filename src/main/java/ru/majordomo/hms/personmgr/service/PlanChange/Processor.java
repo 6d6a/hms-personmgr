@@ -565,6 +565,9 @@ public abstract class Processor {
         accountAbonement.setExpired(expired);
         accountAbonement.setAutorenew(true);
 
+        BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), abonement.getService());
+        accountAbonement.fillInBuyInformation(abonement, cost);
+
         accountAbonementManager.insert(accountAbonement);
     }
 
@@ -801,6 +804,7 @@ public abstract class Processor {
         List<SimpleServiceMessage> chargeResults = new ArrayList<>();
         for (Abonement abonement : abonements) {
             ChargeMessage chargeMessage = new ChargeMessage.Builder(abonement.getService())
+                    .setAmount(accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), abonement.getService()))
                     .setForceCharge(ignoreRestricts)
                     .build();
 

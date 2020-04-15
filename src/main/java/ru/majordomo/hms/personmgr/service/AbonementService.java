@@ -155,6 +155,7 @@ public class AbonementService {
         accountAbonement.setAbonementId(abonementId);
         accountAbonement.setPersonalAccountId(account.getId());
         accountAbonement.setCreated(LocalDateTime.now());
+        accountAbonement.fillInBuyInformation(abonement, cost);
 
         if (account.isFreeze()) {
             accountAbonement.freeze();
@@ -197,6 +198,8 @@ public class AbonementService {
         accountAbonement.setExpired(
                 accountAbonement.getExpired().plus(Period.parse(nextAbonement.getPeriod()))
         );
+        Optional<Abonement> a = abonementRepository.findById(nextAbonement.getId());
+        a.ifPresent(abonement -> accountAbonement.fillInBuyInformation(abonement, cost));
 
         accountAbonementManager.save(accountAbonement);
 
