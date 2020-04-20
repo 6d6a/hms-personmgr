@@ -127,7 +127,7 @@ public class PromoActionsController {
                 "<br/>Рекламируемые домены: <br/>" + String.join("<br/>", request.getDomains());
 
         Map<String, String> params = new HashMap<>();
-        params.put("subject", "Участник акции 500-5000 от Majordomo");
+        params.put("subject", "Участник акции 3000-3000 от Majordomo");
         params.put("body", body);
 
         googleAdsActionConfig.getEmails().forEach(email ->
