@@ -13,10 +13,12 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.retry.annotation.EnableRetry;
 
+import ru.majordomo.hms.personmgr.config.FeignConfig;
 import ru.majordomo.hms.personmgr.config.HikariSettings;
 import ru.majordomo.hms.personmgr.serializer.PageSerializer;
 
@@ -27,6 +29,7 @@ import ru.majordomo.hms.personmgr.serializer.PageSerializer;
 @EnableDiscoveryClient
 @EnableRetry
 @EnableConfigurationProperties({HikariSettings.class})
+@EnableFeignClients(basePackages = "ru.majordomo.hms.personmgr.feign")
 public class Application implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
