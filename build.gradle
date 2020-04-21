@@ -117,6 +117,7 @@ dependencies {
     compile("org.jongo:jongo:1.4.0")
 
     compile("org.projectlombok:lombok:1.18.4")
+    compile group: 'com.jayway.jsonpath', name: 'json-path', version: '2.4.0'
 }
 
 dependencyManagement {

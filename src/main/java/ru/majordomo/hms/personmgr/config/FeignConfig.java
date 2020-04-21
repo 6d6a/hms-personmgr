@@ -21,8 +21,6 @@ import feign.RequestInterceptor;
 import ru.majordomo.hms.personmgr.exception.handler.MajordomoFeignErrorDecoder;
 import ru.majordomo.hms.personmgr.security.OAuth2FeignRequestInterceptor;
 
-@EnableFeignClients(basePackages = "ru.majordomo.hms.personmgr.feign")
-@Configuration
 public class FeignConfig {
     @Value("${security.oauth2.client.accessTokenUri}")
     private String accessTokenUri;
