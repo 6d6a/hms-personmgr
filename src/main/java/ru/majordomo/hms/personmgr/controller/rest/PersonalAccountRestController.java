@@ -642,6 +642,10 @@ public class PersonalAccountRestController extends CommonRestController {
                     + " отметка о том что клиент 'скандальный'", request);
         }
 
+        if (accountProperties.getShowScamWarningDisabled() != null) {
+            accountManager.setScamWarning(accountId, accountProperties.getShowScamWarningDisabled());
+        }
+
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
