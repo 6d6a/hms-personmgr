@@ -31,10 +31,10 @@ public class FindDataRestController {
         String[] parts = StringUtils.trimToEmpty(fullName).split("\\s+");
         FullName result = new FullName();
         if (parts.length > 0) {
-            result.setFirstName(parts[0]);
+            result.setLastName(parts[0]);
         }
         if (parts.length > 1) {
-            result.setLastName(parts[1]);
+            result.setFirstName(parts[1]);
         }
         if (parts.length > 2) {
             result.setMiddleName(parts[2]);
