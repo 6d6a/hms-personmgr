@@ -4,7 +4,7 @@ ENV XMS 512M
 ENV XMX 512M
 ENV XMN 192M
 #temp debug
-ENV DEBUG "-Dcom.sun.management.jmxremote.port=8070 -Dcom.sun.management.jmxremote.password.file=/usr/local/openjdk-8/lib/management/jmxremote.password"
+ENV DEBUG "-Dcom.sun.management.jmxremote.port=8075 -Dcom.sun.management.jmxremote.password.file=/usr/local/openjdk-8/lib/management/jmxremote.password"
 ENV TZ Europe/Moscow
 
 ADD http://archive.intr/Majordomo_LLC_Root_CA.crt /tmp/root.crt
