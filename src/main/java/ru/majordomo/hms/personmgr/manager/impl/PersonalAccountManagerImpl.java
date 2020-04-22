@@ -557,6 +557,16 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
+    public void setScamWarning(String id, boolean scamWarning) {
+        checkById(id);
+
+        Query query = new Query(new Criteria("_id").is(id));
+        Update update = new Update().set("properties.showScamWarningDisabled", scamWarning);
+
+        mongoOperations.updateFirst(query, update, PersonalAccount.class);
+    }
+
+    @Override
     public void setHideGoogleAdWords(String id, boolean hideGoogleAdWords) {
         checkById(id);
 

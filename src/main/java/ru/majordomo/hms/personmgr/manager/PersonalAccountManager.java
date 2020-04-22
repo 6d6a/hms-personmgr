@@ -107,6 +107,8 @@ public interface PersonalAccountManager {
 
     void setAngryClient(String id, boolean angryClient);
 
+    void setScamWarning(String id, boolean scamWarning);
+
     void setHideGoogleAdWords(String id, boolean hideGoogleAdWords);
 
     void setGoogleActionUsed(String id, boolean googleActionUsed);

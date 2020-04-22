@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class AccountProperties {
     private Boolean angryClient;
+    private Boolean showScamWarningDisabled;
     private Boolean hideGoogleAdWords;
     private Boolean googleActionUsed;
     private Boolean bonusOnFirstMobilePaymentActionUsed;
