@@ -20,8 +20,8 @@ public class AsyncConfig extends AsyncConfigurerSupport {
     @Override
     public Executor getAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(5);
-        executor.setMaxPoolSize(5);
+        executor.setCorePoolSize(6);
+        executor.setMaxPoolSize(6);
         executor.setThreadNamePrefix("PM-Thread-");
         executor.initialize();
         return executor;
@@ -33,6 +33,16 @@ public class AsyncConfig extends AsyncConfigurerSupport {
         executor.setCorePoolSize(3);
         executor.setMaxPoolSize(3);
         executor.setThreadNamePrefix("PM-Vip-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = "mailThreadPoolTaskExecutor")
+    public Executor getMailAsyncExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(6);
+        executor.setMaxPoolSize(6);
+        executor.setThreadNamePrefix("PM-Mail-");
         executor.initialize();
         return executor;
     }
