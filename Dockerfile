@@ -3,16 +3,10 @@ FROM openjdk:8-jre-slim
 ENV XMS 512M
 ENV XMX 512M
 ENV XMN 192M
-#temp debug
-ENV DEBUG "-Dcom.sun.management.jmxremote.port=8075 -Dcom.sun.management.jmxremote.password.file=/usr/local/openjdk-8/lib/management/jmxremote.password -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.rmi.port=8075 -Djava.rmi.server.hostname=172.16.103.158 -Dcom.sun.management.jmxremote.local.only=false
-
-"
 ENV TZ Europe/Moscow
 
 ADD http://archive.intr/Majordomo_LLC_Root_CA.crt /tmp/root.crt
-#RUN mkdir -p /etc/ssl/certs/java && keytool -trustcacerts -keystore /etc/ssl/certs/java/cacerts -storepass changeit -alias Root -import -file /tmp/root.crt -noprompt 
 RUN keytool -trustcacerts -keystore /usr/local/openjdk-8/lib/security/cacerts -storepass changeit -alias Root -import -file /tmp/root.crt -noprompt
-#Temp debug
 RUN echo 'monitorRole password' >> /usr/local/openjdk-8/lib/management/jmxremote.password && echo 'controlRole password' >> /usr/local/openjdk-8/lib/management/jmxremote.password && \
 chmod 600 /usr/local/openjdk-8/lib/management/jmxremote.password 
 
