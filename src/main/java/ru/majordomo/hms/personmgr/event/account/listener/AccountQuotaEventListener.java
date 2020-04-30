@@ -34,7 +34,7 @@ public class AccountQuotaEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("quotaThreadPoolTaskExecutor")
     public void onAccountCheckQuota(AccountCheckQuotaEvent event) {
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
@@ -44,7 +44,7 @@ public class AccountQuotaEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("quotaThreadPoolTaskExecutor")
     public void on(ProcessQuotaChecksEvent event) {
         logger.debug("We got ProcessQuotaChecksEvent");
 
