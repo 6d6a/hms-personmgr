@@ -35,6 +35,7 @@ import ru.majordomo.hms.personmgr.feign.PartnersFeignClient;
 import ru.majordomo.hms.personmgr.feign.YaPromoterFeignClient;
 import ru.majordomo.hms.personmgr.manager.*;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
+import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.InfoBannerAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -351,6 +352,11 @@ public class AccountEventListener {
 
         PersonalAccount account = accountManager.findOne(message.getAccountId());
         if (account == null) {
+            return;
+        }
+
+        AccountOwner owner = accountHelper.getOwnerByPersonalAccountId(account.getId());
+        if (owner.getType().equals(AccountOwner.Type.INDIVIDUAL)) {
             return;
         }
 
