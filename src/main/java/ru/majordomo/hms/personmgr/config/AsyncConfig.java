@@ -50,9 +50,19 @@ public class AsyncConfig extends AsyncConfigurerSupport {
     @Bean(name = "quotaThreadPoolTaskExecutor")
     public Executor getQuotaAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(5);
-        executor.setMaxPoolSize(5);
+        executor.setCorePoolSize(9);
+        executor.setMaxPoolSize(9);
         executor.setThreadNamePrefix("PM-Quota-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = "revisiumThreadPoolTaskExecutor")
+    public Executor getRevisiumThreadPoolTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(3);
+        executor.setMaxPoolSize(3);
+        executor.setThreadNamePrefix("PM-Revisium-");
         executor.initialize();
         return executor;
     }

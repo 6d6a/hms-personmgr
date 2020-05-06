@@ -25,10 +25,12 @@ import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.Result;
+import ru.majordomo.hms.personmgr.dto.fin.PaymentRequest;
 import ru.majordomo.hms.personmgr.dto.push.PaymentReceivedPush;
 import ru.majordomo.hms.personmgr.dto.partners.ActionStatRequest;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
+import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.feign.PartnersFeignClient;
 import ru.majordomo.hms.personmgr.feign.YaPromoterFeignClient;
 import ru.majordomo.hms.personmgr.manager.*;
@@ -72,6 +74,7 @@ public class AccountEventListener {
     private final FirstMobilePaymentProcessor firstMobilePaymentProcessor;
     private final Consumer<Supplier<AccountBuyAbonement>> buyAbonementPromotionProcessor;
     private final PreorderService preorderService;
+    private final FinFeignClient finFeignClient;
 
     private final int deleteDataAfterDays;
 
@@ -97,7 +100,8 @@ public class AccountEventListener {
             FirstMobilePaymentProcessor firstMobilePaymentProcessor,
             BuyAbonementPromotionProcessor buyAbonementPromotionProcessor,
             PreorderService preorderService,
-            @Value("${delete_data_after_days}") int deleteDataAfterDays
+            @Value("${delete_data_after_days}") int deleteDataAfterDays,
+            FinFeignClient finFeignClient
     ) {
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
@@ -120,6 +124,7 @@ public class AccountEventListener {
         this.buyAbonementPromotionProcessor = buyAbonementPromotionProcessor;
         this.deleteDataAfterDays = deleteDataAfterDays;
         this.preorderService = preorderService;
+        this.finFeignClient = finFeignClient;
     }
 
     @EventListener
@@ -329,6 +334,56 @@ public class AccountEventListener {
         }
 
         paymentPercentBonusActionProcessor.processPayment(account, amount);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onPaymentBillCreatedEvent(PaymentWasReceivedEvent event) {
+        SimpleServiceMessage message = event.getSource();
+
+        if (!message.getParam("paymentTypeKind").equals(REAL_PAYMENT_TYPE_KIND)) {
+            return;
+        }
+
+        if (!message.getParam("paymentTypeId").equals(ACTION_BONUS_PAYMENT_BILL_ID)) {
+            return;
+        }
+
+        PersonalAccount account = accountManager.findOne(message.getAccountId());
+        if (account == null) {
+            return;
+        }
+
+        Map<String, ?> paramsForPublisher = message.getParams();
+        BigDecimal amount = getBigDecimalFromUnexpectedInput(paramsForPublisher.get(AMOUNT_KEY));
+
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        LocalDateTime startDate = LocalDateTime.parse(ACTION_BONUS_PAYMENT_BILL_START_DATE, formatter);
+        LocalDateTime endDate = LocalDateTime.parse(ACTION_BONUS_PAYMENT_BILL_END_DATE, formatter);
+
+        if (now.isAfter(startDate) && now.isBefore(endDate)) {
+
+            BigDecimal bonusPaymentAmount = amount.multiply(new BigDecimal("0.1"));
+
+            if (bonusPaymentAmount.compareTo(BigDecimal.ZERO) <= 0) { return; }
+
+            try {
+                finFeignClient.addPayment(
+                        new PaymentRequest(account.getName())
+                                .withAmount(bonusPaymentAmount)
+                                .withBonusType()
+                                .withMessage("Бонус за пополнение счета")
+                                .withDisableAsync(true)
+                );
+                history.save(
+                        account,
+                        "Начислено " + bonusPaymentAmount + " бонусов после пополнения баланса за акцию +10% за безнал");
+            } catch (Exception e) {
+                e.printStackTrace();
+                logger.error(e.getClass().getName() + ": " + e.getMessage());
+            }
+        }
     }
 
     /**

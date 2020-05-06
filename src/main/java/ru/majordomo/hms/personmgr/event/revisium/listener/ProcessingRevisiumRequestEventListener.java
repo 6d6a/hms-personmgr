@@ -70,7 +70,7 @@ public class ProcessingRevisiumRequestEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("revisiumThreadPoolTaskExecutor")
     public void onProcessingRevisiumRequestEventAction(ProcessRevisiumRequestEvent event) {
 
         logger.debug("We got ProcessingRevisiumRequestEvent");

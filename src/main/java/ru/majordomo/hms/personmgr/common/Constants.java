@@ -335,6 +335,10 @@ public class Constants {
     public static final String ACTION_ABONEMENT_START_DATE = "2020-04-12 00:00:00";
     public static final String ACTION_ABONEMENT_END_DATE = "2020-04-17 23:59:59";
 
+    public static final String ACTION_BONUS_PAYMENT_BILL_START_DATE = "2020-05-07 00:00:00";
+    public static final String ACTION_BONUS_PAYMENT_BILL_END_DATE = "2020-05-12 23:59:59";
+    public static final String ACTION_BONUS_PAYMENT_BILL_ID = "24";
+
     public static final String ACTION_ABONEMENT_PROMOTION_ID = "5e85aca9a35057dbcdb22ed5";
 
     public final static List<String> ABONEMENT_ACTION_IDS = Arrays.asList(
