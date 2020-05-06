@@ -11,8 +11,8 @@ RUN apt-get update \
  && curl -s -o /tmp/root.crt http://archive.intr/Majordomo_LLC_Root_CA.crt \
  && keytool -trustcacerts -keystore /usr/local/openjdk-8/lib/security/cacerts -storepass changeit -alias Root -import -file /tmp/root.crt -noprompt
 
-RUN echo 'monitorRole password' >> /usr/local/openjdk-8/lib/management/jmxremote.password && echo 'controlRole password' >> /usr/local/openjdk-8/lib/management/jmxremote.password && \
-    chmod 600 /usr/local/openjdk-8/lib/management/jmxremote.password
+#RUN echo 'monitorRole password' >> /usr/local/openjdk-8/lib/management/jmxremote.password && echo 'controlRole password' >> /usr/local/openjdk-8/lib/management/jmxremote.password && \
+#    chmod 600 /usr/local/openjdk-8/lib/management/jmxremote.password
 
 COPY ./build/libs /
 COPY healthcheck.sh /healthcheck.sh
