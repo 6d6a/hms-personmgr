@@ -6,9 +6,11 @@ ENV XMN 192M
 ENV DEBUG "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=6006"
 ENV TZ Europe/Moscow
 
-ADD http://archive.intr/Majordomo_LLC_Root_CA.crt /tmp/root.crt
-#RUN mkdir -p /etc/ssl/certs/java && keytool -trustcacerts -keystore /etc/ssl/certs/java/cacerts -storepass changeit -alias Root -import -file /tmp/root.crt -noprompt
-RUN keytool -trustcacerts -keystore /usr/local/openjdk-8/jre/lib/security/cacerts -storepass changeit -alias Root -import -file /tmp/root.crt -noprompt
+RUN apt-get update \
+ && apt-get install -y curl jq \
+ && apt-get autoremove -y && apt-get clean && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* /usr/share/doc/* /usr/share/man/* \
+ && curl -s -o /tmp/root.crt http://archive.intr/Majordomo_LLC_Root_CA.crt \
+ && keytool -trustcacerts -keystore /usr/local/openjdk-8/jre/lib/security/cacerts -storepass changeit -alias Root -import -file /tmp/root.crt -noprompt
 
 COPY ./build/libs /
 COPY healthcheck.sh /healthcheck.sh
