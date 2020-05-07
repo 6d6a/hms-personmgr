@@ -25,7 +25,7 @@ public class MailManagerEventListener {
     }
 
     @EventListener
-    @Async("mailThreadPoolTaskExecutor")
+    @Async("threadPoolTaskExecutor")
     public void onSendMail(SendMailEvent event) {
         SimpleServiceMessage message = event.getSource();
 
@@ -45,7 +45,7 @@ public class MailManagerEventListener {
     }
 
     @EventListener
-    @Async("mailThreadPoolTaskExecutor")
+    @Async("threadPoolTaskExecutor")
     public void onSendSms(SendSmsEvent event) {
         SimpleServiceMessage message = event.getSource();
 
