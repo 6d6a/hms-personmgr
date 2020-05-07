@@ -37,16 +37,6 @@ public class AsyncConfig extends AsyncConfigurerSupport {
         return executor;
     }
 
-    @Bean(name = "mailThreadPoolTaskExecutor")
-    public Executor getMailAsyncExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(3);
-        executor.setMaxPoolSize(3);
-        executor.setThreadNamePrefix("PM-Mail-");
-        executor.initialize();
-        return executor;
-    }
-
     @Bean(name = "quotaThreadPoolTaskExecutor")
     public Executor getQuotaAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
