@@ -388,7 +388,11 @@ public class AccountResourceRestController extends CommonRestController {
             personalAccount.setNotifications(EnumSet.of(
                     MailManagerMessageType.SMS_ABONEMENT_EXPIRING,
                     MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING,
-                    MailManagerMessageType.SMS_REMAINING_DAYS));
+                    MailManagerMessageType.SMS_REMAINING_DAYS,
+                    MailManagerMessageType.TELEGRAM_ABONEMENT_EXPIRING,
+                    MailManagerMessageType.TELEGRAM_DOMAIN_DELEGATION_ENDING,
+                    MailManagerMessageType.TELEGRAM_REMAINING_DAYS
+            ));
             personalAccount.setSmsPhoneNumber(smsProneNumber);
         }
 
