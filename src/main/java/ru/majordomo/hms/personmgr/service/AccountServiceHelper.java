@@ -543,20 +543,6 @@ public class AccountServiceHelper {
             cost = discountFactory.getDiscount(accountPromotion.getAction()).getCost(cost);
         }
 
-        if (ABONEMENT_ACTION_IDS.contains(paymentService.getId()) && accountPromotion == null) {
-            LocalDateTime now = LocalDateTime.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            LocalDateTime startDate = LocalDateTime.parse(ACTION_ABONEMENT_START_DATE, formatter);
-            LocalDateTime endDate = LocalDateTime.parse(ACTION_ABONEMENT_END_DATE, formatter);
-
-            if (now.isAfter(startDate) && now.isBefore(endDate)) {
-                Optional<PromocodeAction> fakeAction = promocodeActionRepository.findById(ACTION_ABONEMENT_PROMOTION_ID);
-                if (fakeAction.isPresent()) {
-                    cost = discountFactory.getDiscount(fakeAction.get()).getCost(cost);
-                }
-            }
-        }
-
         return cost;
     }
 
