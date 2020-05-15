@@ -20,18 +20,7 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.ChargeResult;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
-import ru.majordomo.hms.personmgr.event.account.AccountCreditExpiredWithHostingAbonementSendMailEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountCreditExpiringSendMailEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountCreditExpiringWithHostingAbonementSendMailEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountCreditJustActivatedSendMailEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountCreditJustActivatedWithHostingAbonementSendMailEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountDeactivatedSendMailEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountDeactivatedWithExpiredCreditSendMailEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountSendSmsNotificationRemainingDaysEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountServicesDisabledWithHostingAbonementSendMailEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountServicesExpiringSendMailEvent;
-import ru.majordomo.hms.personmgr.event.account.AccountServicesExpiringWithHostingAbonementSendMailEvent;
-import ru.majordomo.hms.personmgr.event.account.ProcessChargeEvent;
+import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.manager.BatchJobManager;
 import ru.majordomo.hms.personmgr.manager.ChargeRequestManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -349,8 +338,16 @@ public class ChargeProcessor {
         if (Arrays.asList(5, 1).contains(remainingDays) &&
                 accountNotificationHelper.isSubscribedToSmsType(
                         account,
-                        MailManagerMessageType.SMS_REMAINING_DAYS)) {
+                        MailManagerMessageType.SMS_REMAINING_DAYS)
+        ) {
             publisher.publishEvent(new AccountSendSmsNotificationRemainingDaysEvent(account.getId(), remainingDays));
+        }
+        if (Arrays.asList(5, 1).contains(remainingDays) &&
+                accountNotificationHelper.isSubscribedToTelegramType(
+                        account,
+                        MailManagerMessageType.TELEGRAM_REMAINING_DAYS)
+        ) {
+            publisher.publishEvent(new AccountSendTelegramNotificationRemainingDaysEvent(account.getId(), remainingDays));
         }
     }
 }

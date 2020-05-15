@@ -1,5 +1,8 @@
 package ru.majordomo.hms.personmgr.service;
 
+import feign.FeignException;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,19 +12,24 @@ import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.dto.TelegramMessageData;
 import ru.majordomo.hms.personmgr.dto.push.LowBalancePush;
 import ru.majordomo.hms.personmgr.dto.push.Push;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
 import ru.majordomo.hms.personmgr.event.account.AccountNotificationRemainingDaysWasSentEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
+import ru.majordomo.hms.personmgr.exception.BaseException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.personmgr.feign.TelegramFeignClient;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.telegram.AccountTelegram;
+import ru.majordomo.hms.personmgr.repository.AccountTelegramRepository;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
@@ -45,6 +53,7 @@ import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
 @Service
+@RequiredArgsConstructor
 public class AccountNotificationHelper {
 
     private static final String EMAIL = "EMAIL";
@@ -52,41 +61,22 @@ public class AccountNotificationHelper {
 
     private final static Logger logger = LoggerFactory.getLogger(AccountNotificationHelper.class);
 
+    @Value("${mail_manager.department.fin}")
+    private final String finEmail;
+    @Value("${invites.client_api_name}")
+    private final String inviteEmailApiName;
+
     private final ApplicationEventPublisher publisher;
     private final PlanManager planManager;
     private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final NotificationRepository notificationRepository;
     private final PersonalAccountManager accountManager;
-    private final String finEmail;
-    private final String inviteEmailApiName;
     private final PaymentLinkHelper paymentLinkHelper;
     private final PushService pushService;
+    private final TelegramRestClient telegramRestClient;
+    private final AccountTelegramRepository accountTelegramRepository;
 
-    @Autowired
-    public AccountNotificationHelper(
-            ApplicationEventPublisher publisher,
-            PlanManager planManager,
-            AccountHelper accountHelper,
-            AccountServiceHelper accountServiceHelper,
-            NotificationRepository notificationRepository,
-            PersonalAccountManager accountManager,
-            @Value("${mail_manager.department.fin}") String finEmail,
-            @Value("${invites.client_api_name}") String inviteEmailApiName,
-            PaymentLinkHelper paymentLinkHelper,
-            PushService pushService
-    ) {
-        this.publisher = publisher;
-        this.planManager = planManager;
-        this.accountHelper = accountHelper;
-        this.accountServiceHelper = accountServiceHelper;
-        this.notificationRepository = notificationRepository;
-        this.accountManager = accountManager;
-        this.finEmail = finEmail;
-        this.inviteEmailApiName = inviteEmailApiName;
-        this.paymentLinkHelper = paymentLinkHelper;
-        this.pushService = pushService;
-    }
 
     public String getDomainForEmail(PersonalAccount account) {
 
@@ -735,6 +725,43 @@ public class AccountNotificationHelper {
                 && notificationRepository.findByTypeAndActive(messageType, true) != null
                 && accountServiceHelper.hasSmsNotifications(account)
         );
+    }
+
+    public boolean isSubscribedToTelegramType(PersonalAccount account, MailManagerMessageType messageType) {
+        return account.hasNotification(messageType) && getTelegramChanId(account) != 0;
+    }
+
+    /**
+     * Получения идентификатора telegram чата или проверка на доступность телеграм
+     * @param account
+     * @return 0 если телеграм не настроен или id чата
+     */
+    private long getTelegramChanId(PersonalAccount account) {
+        AccountTelegram accountTelegram = accountTelegramRepository.findByPersonalAccountId(account.getId()).orElse(null);
+        if (accountTelegram == null || !accountTelegram.getActive()) {
+            return 0;
+        }
+        return NumberUtils.toLong(accountTelegram.getChatId());
+    }
+
+    /**
+     * Отправить сообщение в telegram если возможно. Если не настроено ничего не делать.
+     * @param account
+     * @param apiName
+     * @param parameters
+     */
+    public void sendTelegram(PersonalAccount account, String apiName, Map<String, String> parameters) {
+        long chatId = getTelegramChanId(account);
+        if (chatId == 0) {
+            return;
+        }
+        try {
+            telegramRestClient.callSendTelegramMessage(new TelegramMessageData(chatId, null, apiName, parameters));
+        } catch (BaseException | FeignException ex) {
+            logger.error("We got exception when send telegram message", ex);
+        } catch (Exception ex) {
+            logger.error("We got unknown exception when send telegram message", ex);
+        }
     }
 
     public void sendSms(PersonalAccount account, String apiName, int priority, Map<String, String> parameters) {

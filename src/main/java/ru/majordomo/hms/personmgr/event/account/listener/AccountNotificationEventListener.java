@@ -127,6 +127,20 @@ public class AccountNotificationEventListener {
 
     @EventListener
     @Async("threadPoolTaskExecutor")
+    public void onSendTelegramNotificationRemainingDaysEvent(AccountSendTelegramNotificationRemainingDaysEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        int remainingDays = event.getRemainingDays();
+        String apiName = "TelegramMajordomoRemainingDays";
+        HashMap<String, String> paramsForSms = new HashMap<>();
+        paramsForSms.put("remaining_days", Utils.pluralizef("остался %d день", "осталось %d дня", "осталось %d дней", remainingDays));
+        paramsForSms.put("client_id", account.getAccountId());
+
+        accountNotificationHelper.sendTelegram(account, apiName, paramsForSms);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
     public void onAccountNotifyNotRegisteredDomainsInCart(AccountNotifyNotRegisteredDomainsInCart event){
 
         List<Integer> daysForNotify = Arrays.asList(1, 6, 11, 16, 21, 26);
@@ -340,6 +354,7 @@ public class AccountNotificationEventListener {
         paramsForSms.put("acc_id", account.getName());
         paramsForSms.put("client_id", account.getAccountId());
         accountNotificationHelper.sendSms(account, apiName, 1, paramsForSms);
+        accountNotificationHelper.sendTelegram(account, apiName, paramsForSms);
     }
 
     @EventListener

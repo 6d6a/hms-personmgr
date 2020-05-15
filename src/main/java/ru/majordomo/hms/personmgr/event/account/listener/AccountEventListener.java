@@ -509,14 +509,16 @@ public class AccountEventListener {
         Lazy<BigDecimal> amount = Lazy.of(() -> getBigDecimalFromUnexpectedInput(message.getParam(AMOUNT_KEY)));
 
         try {
+            HashMap<String, String> paramsForSms = new HashMap<>();
+            paramsForSms.put("client_id", account.getAccountId());
+            paramsForSms.put("acc_id", account.getName());
+            paramsForSms.put("add_sum", Utils.formatBigDecimalWithCurrency(amount.get()));
+
             if (accountNotificationHelper.isSubscribedToSmsType(account, MailManagerMessageType.SMS_NEW_PAYMENT)) {
-
-                HashMap<String, String> paramsForSms = new HashMap<>();
-                paramsForSms.put("client_id", account.getAccountId());
-                paramsForSms.put("acc_id", account.getName());
-                paramsForSms.put("add_sum", Utils.formatBigDecimalWithCurrency(amount.get()));
-
                 accountNotificationHelper.sendSms(account, "MajordomoHMSNewPayment", 10, paramsForSms);
+            }
+            if (accountNotificationHelper.isSubscribedToTelegramType(account, MailManagerMessageType.TELEGRAM_NEW_PAYMENT)) {
+                accountNotificationHelper.sendTelegram(account, "TelegramMajordomoHMSNewPayment", paramsForSms);
             }
         } catch (Exception e) {
             logger.error("Can't send SMS for account " + account.getName() + ", exceptionMessage: " + e.getMessage());

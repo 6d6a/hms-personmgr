@@ -143,9 +143,6 @@ public class DomainService {
             //по sms за сколько дней до
             int daysBeforeExpiredForSms = 5;
 
-            //Нужно ли отправлять SMS
-            boolean sendSms = accountNotificationHelper.isSubscribedToSmsType(account, MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING);
-
             int daysBeforeExpired;
 
             for (Domain domain : domains) {
@@ -153,7 +150,7 @@ public class DomainService {
                 daysBeforeExpired = differenceInDays(LocalDate.now(), domain.getRegSpec().getPaidTill());
                 if (daysBeforeExpiredForEmail.contains(daysBeforeExpired)) { expiringDomains.add(domain); }
                 else if (daysAfterExperedForEmail.contains(-daysBeforeExpired)) { expiredDomains.add(domain); }
-                if (sendSms && daysBeforeExpired == daysBeforeExpiredForSms) { expiringDomainsForSms.add(domain); }
+                if (daysBeforeExpired == daysBeforeExpiredForSms) { expiringDomainsForSms.add(domain); }
                 if (daysAfterExpiredForAddRenewDiscount.contains(-daysBeforeExpired)) { expiredDomainsForRenewDiscounts.add(domain); }
             }
 
@@ -167,14 +164,24 @@ public class DomainService {
                 sendMailForExpiringAndExpiredDomain(account, expiredDomains, true);
             }
 
+            //Нужно ли отправлять SMS
+            boolean sendSms = accountNotificationHelper.isSubscribedToSmsType(account, MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING);
+            boolean sendTelegram = account.hasNotification(MailManagerMessageType.TELEGRAM_DOMAIN_DELEGATION_ENDING);
             //sms
-            if (sendSms && !expiringDomainsForSms.isEmpty()) {
-                String apiName = expiringDomainsForSms.size() == 1 ? "MajordomoOneDomainDelegationEnding" : "MajordomoSomeDomainsDelegationEnding";
+            if (!expiringDomainsForSms.isEmpty()) {
+                boolean oneDomain = expiringDomainsForSms.size() == 1;
                 HashMap<String, String> parameters = new HashMap<>();
                 parameters.put("client_id", account.getAccountId());
                 parameters.put("domain", expiringDomainsForSms.get(0).getName());
                 parameters.put("acc_id", account.getName());
-                accountNotificationHelper.sendSms(account, apiName, 10, parameters);
+                if (sendSms) {
+                    String apiName = oneDomain ? "MajordomoOneDomainDelegationEnding" : "MajordomoSomeDomainsDelegationEnding";
+                    accountNotificationHelper.sendSms(account, apiName, 10, parameters);
+                }
+                if (sendTelegram) {
+                    String telegramApiName = oneDomain ? "TelegramMajordomoOneDomainDelegationEnding" : "TelegramMajordomoSomeDomainsDelegationEnding";
+                    accountNotificationHelper.sendTelegram(account, telegramApiName, parameters);
+                }
             }
 
             if (!expiredDomainsForRenewDiscounts.isEmpty()) {

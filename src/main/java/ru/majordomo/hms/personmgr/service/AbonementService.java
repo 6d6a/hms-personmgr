@@ -43,6 +43,7 @@ import ru.majordomo.hms.rc.user.resources.Domain;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_ABONEMENT_EXPIRING;
+import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.TELEGRAM_ABONEMENT_EXPIRING;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
 @Service
@@ -310,9 +311,16 @@ public class AbonementService {
                 }
             }
 
-            if (!account.isAbonementAutoRenew() || notEnoughMoneyForAbonement) {
-                if (isDayForSms && accountNotificationHelper.isSubscribedToSmsType(account, SMS_ABONEMENT_EXPIRING)) {
+            if ((!account.isAbonementAutoRenew() || notEnoughMoneyForAbonement) && isDayForSms) {
+                if (accountNotificationHelper.isSubscribedToSmsType(account, SMS_ABONEMENT_EXPIRING)) {
                     accountNotificationHelper.sendSmsVhAbonementExpiring(account, daysToExpired);
+                }
+                if (accountNotificationHelper.isSubscribedToTelegramType(account, TELEGRAM_ABONEMENT_EXPIRING)) {
+                    HashMap<String, String> paramsForTelegram = new HashMap<>();
+                    paramsForTelegram.put("acc_id", account.getName());
+                    paramsForTelegram.put("client_id", account.getAccountId());
+                    paramsForTelegram.put("remaining_days", Utils.pluralizeDays((int) daysToExpired));
+                    accountNotificationHelper.sendTelegram(account, "TelegramHmsMajordomoAbonementExpiring", paramsForTelegram);
                 }
             }
         } else {
