@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.exception.BaseException;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.TokenManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -36,24 +37,30 @@ public class AccountTelegramRestController extends CommonRestController {
     public ResponseEntity<Map<String, String>> getToken(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        PersonalAccount account = accountManager.findOne(accountId);
-        String botName;
         try {
-            botName = telegramRestClient.callGetTelegramBotName();
-        } catch (FeignException | BaseException ex) {
-            botName = "";
-            log.error("We got exception when ask telegram bot name", ex);
+            PersonalAccount account = accountManager.findOne(accountId);
+            String botName;
+            try {
+                botName = telegramRestClient.callGetTelegramBotName();
+            } catch (FeignException | BaseException ex) {
+                botName = "";
+                log.error("We got exception when ask telegram bot name", ex);
+            }
+
+            Token token = tokenManager.getToken(TokenType.TELEGRAM, account.getId());
+            String responseToken = token == null ?
+                    tokenManager.generateToken(account, TokenType.TELEGRAM, null) : token.getId();
+
+            Map<String, String> response = new HashMap<>();
+            response.put("token", responseToken);
+            response.put("botName", botName);
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (Exception ex) {
+            log.error("We got unrecognized exception when create telegram token", ex);
+            ex.printStackTrace();
+            throw new InternalApiException();
         }
-
-        Token token = tokenManager.getToken(TokenType.TELEGRAM, account.getId());
-        String responseToken = token == null ?
-                tokenManager.generateToken(account, TokenType.TELEGRAM, null) : token.getId();
-
-        Map<String, String> response = new HashMap<>();
-        response.put("token", responseToken);
-        response.put("botName", botName);
-
-        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
