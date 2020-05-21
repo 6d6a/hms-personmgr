@@ -5,7 +5,9 @@ import com.google.common.collect.ImmutableSet;
 import com.querydsl.core.types.Predicate;
 
 import lombok.AllArgsConstructor;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +40,7 @@ import ru.majordomo.hms.personmgr.common.TokenType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.*;
+import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
@@ -95,6 +98,8 @@ public class PersonalAccountRestController extends CommonRestController {
     private final PaymentLinkHelper paymentLinkHelper;
     private final ServiceAbonementService serviceAbonementService;
     private final AbonementService abonementService;
+    @Value("${mail_manager.unsubscribe_email:}")
+    String unsubscribeEmail;
 
     @GetMapping("/accounts")
     public ResponseEntity<Page<PersonalAccount>> getAccounts(
@@ -707,8 +712,12 @@ public class PersonalAccountRestController extends CommonRestController {
     @PreAuthorize("hasAuthority('UNSUBSCRIBE_EMAIL_NEWS')")
     @PostMapping("/unsubscribe/{accountId}")
     public Map<String, Object> unsubscribe(
-            @PathVariable("accountId") String accountId
+            @PathVariable("accountId") String accountId,
+            @RequestBody Map<String, String> params
     ) {
+        if (params == null) {
+            params = Collections.emptyMap();
+        }
         PersonalAccountWithNotificationsProjection account = accountManager.findOneByAccountIdWithNotifications(accountId);
 
         if (account == null) {
@@ -719,6 +728,7 @@ public class PersonalAccountRestController extends CommonRestController {
             return result;
         }
 
+
         Set<MailManagerMessageType> notifications = account
                 .getNotifications()
                 .stream()
@@ -726,6 +736,28 @@ public class PersonalAccountRestController extends CommonRestController {
                 .collect(Collectors.toSet());
 
         accountManager.setNotifications(account.getId(), notifications);
+
+        if (StringUtils.isNotEmpty(unsubscribeEmail)) {
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.setAccountId(account.getId());
+            message.setParams(new HashMap<>());
+            message.addParam("email", unsubscribeEmail);
+            message.addParam("api_name", "MajordomoServiceMessage");
+            message.addParam("priority", 10);
+
+            HashMap<String, String> parameters = new HashMap<>();
+            parameters.put("client_id", message.getAccountId());
+            parameters.put("body", String.format(
+                    "HMS Аккаунт %s отказался от рассылок на адрес: %s. Причина: %s",
+                    message.getAccountId(),
+                    params.getOrDefault("email", ""),
+                    params.getOrDefault("cause", "")
+            ));
+            parameters.put("subject", "Клиент отписался от рассылки");
+            message.addParam("parametrs", parameters);
+
+            publisher.publishEvent(new SendMailEvent(message));
+        }
 
         return Collections.singletonMap("success", true);
     }
