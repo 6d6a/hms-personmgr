@@ -37,7 +37,8 @@ public enum Feature {
      */
     ALLOW_USE_DATABASES,
     DEDICATED_APP_SERVICE,
-    FREEZING;
+    FREEZING,
+    DOMAIN_TRANSFER_RU_RF;
 
 
     @NonNull
