@@ -17,6 +17,7 @@ import ru.majordomo.hms.personmgr.feign.DomainRegistrarFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
+import ru.majordomo.hms.personmgr.manager.DomainInTransferManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
@@ -53,6 +54,8 @@ public class DomainServiceTest {
     @MockBean
     private AccountHelper accountHelper;
     @MockBean
+    private AccountStatHelper accountStatHelper;
+    @MockBean
     private DiscountFactory discountFactory;
     @MockBean
     private DomainRegistrarFeignClient domainRegistrarFeignClient;
@@ -62,6 +65,8 @@ public class DomainServiceTest {
     private PersonalAccountManager accountManager;
     @MockBean
     private AccountPromotionManager accountPromotionManager;
+    @MockBean
+    private DomainInTransferManager domainInTransferManager;
     @MockBean
     private AccountNotificationHelper accountNotificationHelper;
     @MockBean

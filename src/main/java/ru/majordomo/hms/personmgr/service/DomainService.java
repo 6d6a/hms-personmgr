@@ -26,21 +26,27 @@ import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.feign.DomainRegistrarFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
+import ru.majordomo.hms.personmgr.manager.DomainInTransferManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
+import ru.majordomo.hms.personmgr.model.domain.DomainInTransfer;
 import ru.majordomo.hms.personmgr.model.domain.DomainTld;
+import ru.majordomo.hms.personmgr.model.plan.Feature;
+import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
+import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 import ru.majordomo.hms.personmgr.service.promotion.AccountPromotionFactory;
 import ru.majordomo.hms.rc.user.resources.Domain;
+import ru.majordomo.hms.rc.user.resources.Person;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.Utils.*;
@@ -60,13 +66,16 @@ public class DomainService {
 
     private final RcUserFeignClient rcUserFeignClient;
     private final AccountHelper accountHelper;
+    private final AccountStatHelper accountStatHelper;
     private final DomainTldService domainTldService;
     private final DiscountFactory discountFactory;
     private final DomainRegistrarFeignClient domainRegistrarFeignClient;
     private final BlackListService blackListService;
     private final PersonalAccountManager accountManager;
     private final AccountPromotionManager accountPromotionManager;
+    private final DomainInTransferManager domainInTransferManager;
     private final PromotionRepository promotionRepository;
+    private final ServicePlanRepository servicePlanRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     private final BusinessHelper businessHelper;
     private final AccountHistoryManager history;
@@ -77,13 +86,16 @@ public class DomainService {
     public DomainService(
             RcUserFeignClient rcUserFeignClient,
             AccountHelper accountHelper,
+            AccountStatHelper accountStatHelper,
             DomainTldService domainTldService,
             DiscountFactory discountFactory,
             DomainRegistrarFeignClient domainRegistrarFeignClient,
             BlackListService blackListService,
             PersonalAccountManager accountManager,
             AccountPromotionManager accountPromotionManager,
+            DomainInTransferManager domainInTransferManager,
             PromotionRepository promotionRepository,
+            ServicePlanRepository servicePlanRepository,
             AccountNotificationHelper accountNotificationHelper,
             BusinessHelper businessHelper,
             AccountHistoryManager history,
@@ -92,13 +104,16 @@ public class DomainService {
     ) {
         this.rcUserFeignClient = rcUserFeignClient;
         this.accountHelper = accountHelper;
+        this.accountStatHelper = accountStatHelper;
         this.domainTldService = domainTldService;
         this.discountFactory = discountFactory;
         this.domainRegistrarFeignClient = domainRegistrarFeignClient;
         this.blackListService = blackListService;
         this.accountManager = accountManager;
         this.accountPromotionManager = accountPromotionManager;
+        this.domainInTransferManager = domainInTransferManager;
         this.promotionRepository = promotionRepository;
+        this.servicePlanRepository = servicePlanRepository;
         this.accountNotificationHelper = accountNotificationHelper;
         this.businessHelper = businessHelper;
         this.history = history;
@@ -337,6 +352,12 @@ public class DomainService {
         getAvailabilityInfo(domainName);
     }
 
+    public void checkForTransfer(String domainName, String accountId) {
+        checkBlacklist(domainName, accountId);
+
+        getDomainTld(domainName);
+    }
+
     public AccountPromotion usePromotion(String domainName, List<AccountPromotion> accountPromotions) {
         DomainTld domainTld = getDomainTld(domainName);
 
@@ -422,6 +443,208 @@ public class DomainService {
         }
 
         return domainTld.getRegistrationService().getCost();
+    }
+
+    /**
+     * Делаем запрос с помощью AuthInfo в reg-rpc на отправку кода подтверждения трансфера в email/sms (TRANSFER_GET_EMAIL)
+     *
+     * @param accountId  ID аккаунта, на который будет назначен переносимый домен
+     * @param personId   ID персоны, на которую будет назначен переносимый домен
+     * @param domainName Доменное имя
+     * @param authInfo   AuthInfo-код для верификации трансфера
+     * @return DomainInTransfer - объект, связанный с новым|существующим запросом на трансфер
+     */
+    public DomainInTransfer requestDomainTransfer(String accountId, String personId, String domainName, String authInfo) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        DomainInTransfer domainInTransfer = domainInTransferManager.findNeedToProcessByAccountId(accountId);
+        if (domainInTransfer != null) {
+            return domainInTransfer;
+        }
+
+        ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.DOMAIN_TRANSFER_RU_RF, true);
+        accountHelper.checkBalanceWithoutBonus(account, servicePlan.getService().getCost());
+
+        Person person = rcUserFeignClient.getPerson(accountId, personId);
+
+        domainRegistrarFeignClient.transferRequest(person.getNicHandle(), authInfo, domainName);
+
+        domainInTransfer = new DomainInTransfer();
+        domainInTransfer.setPersonalAccountId(accountId);
+        domainInTransfer.setPersonId(personId);
+        domainInTransfer.setDomainName(domainName);
+        domainInTransfer.setState(DomainInTransfer.State.NEED_TO_PROCESS);
+        domainInTransferManager.save(domainInTransfer);
+
+        logger.debug("Created request for transfer domain {} to account {} with person {}", domainName, accountId, personId);
+
+        return domainInTransfer;
+    }
+
+    /**
+     * Подтверждаем перенос домена к нам с помощью кода подтверждения. Создаем запрос на трансфер домена в reg-rpc (TRANSFER_FROM)
+     *
+     * @param accountId        ID аккаунта, на который будет назначен переносимый домен
+     * @param verificationCode Код подтверждения переноса
+     * @return DomainInTransfer - объект, связанный с созданным запросом на трансфер домена
+     */
+    public DomainInTransfer confirmDomainTransfer(String accountId, String verificationCode) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        DomainInTransfer domainInTransfer = domainInTransferManager.findNeedToProcessByAccountId(accountId);
+        if (domainInTransfer == null) {
+            logger.error("DomainInTransfer to confirm not found on account {}", accountId);
+            throw new ParameterValidationException("Запрос на трансфер не найден");
+        }
+
+        ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.DOMAIN_TRANSFER_RU_RF, true);
+        accountHelper.checkBalanceWithoutBonus(account, servicePlan.getService().getCost());
+
+        ChargeMessage chargeMessage = new ChargeMessage.Builder(servicePlan.getService())
+                .excludeBonusPaymentType()
+                .setComment("Domain transfer: " + domainInTransfer.getDomainName())
+                .build();
+
+        String documentNumber;
+        try {
+            SimpleServiceMessage blockResult = accountHelper.block(account, chargeMessage);
+            documentNumber = (String) blockResult.getParam("documentNumber");
+        } catch (Exception e) {
+            logger.error("DomainService.confirmDomainTransfer() got Exception on money block (fin): " + e.getClass().getName() +
+                    " e.message: " + e.getMessage());
+            throw e;
+        }
+
+        Person person = rcUserFeignClient.getPerson(accountId, domainInTransfer.getPersonId());
+        try {
+            domainRegistrarFeignClient.transferConfirmation(person.getNicHandle(), verificationCode);
+        } catch (Exception e) {
+            accountHelper.unblock(accountId, documentNumber);
+            logger.error("DomainService.confirmDomainTransfer() got Exception on transfer confirmation (reg-rpc): " + e.getClass().getName() +
+                    " e.message: " + e.getMessage());
+            throw e;
+        }
+
+        logger.debug("Domain {} transfer request to accound {} and person {} confirmed. Going to create DomainInTransfer and charge payment",
+                domainInTransfer.getDomainName(), accountId, person.getId());
+
+        domainInTransfer.setState(DomainInTransfer.State.PROCESSING);
+        domainInTransfer.setDocumentNumber(documentNumber);
+        domainInTransferManager.save(domainInTransfer);
+
+        String historyMessage = "Поступила заявка на перенос к нам домена " + domainInTransfer.getDomainName();
+        history.save(account, historyMessage);
+
+        return domainInTransfer;
+    }
+
+    /**
+     * Перенос домена был выполнен успешно. Ставим соответствующий статус в DomainInTransfer и создаем домен в rc-user
+     *
+     * @param domainName Перенесенный к нам домен
+     * @return ProcessingBusinessAction
+     */
+    public ProcessingBusinessAction processSuccessfulTransfer(String domainName) {
+        DomainInTransfer domainInTransfer = domainInTransferManager.findProcessingByDomainName(domainName.toLowerCase());
+
+        if (domainInTransfer == null) {
+            String errorMsg = "DomainService.processSuccessfulTransfer(): DomainInTransfer " + domainName + " not found";
+            logger.error(errorMsg);
+            throw new ParameterValidationException(errorMsg);
+        }
+
+        logger.debug("Domain {} transferred to us. Creating domain in rc-user", domainName);
+
+        domainInTransfer.setState(DomainInTransfer.State.ACCEPTED);
+        domainInTransferManager.save(domainInTransfer);
+
+        PersonalAccount account = accountManager.findOne(domainInTransfer.getPersonalAccountId());
+
+        SimpleServiceMessage message = new SimpleServiceMessage();
+        message.setAccountId(account.getAccountId());
+        message.addParam("name", domainInTransfer.getDomainName());
+        message.addParam("personId", domainInTransfer.getPersonId());
+        message.addParam("documentNumber", domainInTransfer.getDocumentNumber());
+        message.addParam("transfer", true);
+
+        ProcessingBusinessOperation processingBusinessOperation = businessHelper.buildOperation(
+                BusinessOperationType.DOMAIN_CREATE,
+                message
+        );
+        ProcessingBusinessAction processingBusinessAction = businessHelper.buildActionByOperation(
+                BusinessActionType.DOMAIN_CREATE_RC,
+                message,
+                processingBusinessOperation
+        );
+
+        history.save(account, "Перенос домена " + domainName + " подтвержден. Отправлен запрос на создание домена");
+
+        Map<String, String> stat = new HashMap<>();
+        stat.put(DOMAIN_NAME_KEY, domainInTransfer.getDomainName());
+        stat.put(PERSON_ID_KEY, domainInTransfer.getPersonId());
+        accountStatHelper.add(account.getAccountId(), AccountStatType.VIRTUAL_HOSTING_DOMAIN_TRANSFER_ACCEPT, stat);
+
+        return processingBusinessAction;
+    }
+
+    /**
+     * Перенос домена был отклонен. Ставим соответствующий статус в DomainInTransfer и снимаем блокировку средств
+     *
+     * @param domainName Отклоненный домен
+     */
+    public void processRejectedTransfer(String domainName) {
+        DomainInTransfer domainInTransfer = domainInTransferManager.findProcessingByDomainName(domainName);
+
+        if (domainInTransfer == null) {
+            String errorMsg = "DomainService.processRejectedTransfer(): DomainInTransfer " + domainName + " not found";
+            logger.error(errorMsg);
+            throw new ParameterValidationException(errorMsg);
+        }
+
+        logger.debug("Domain {} transfer was rejected", domainName);
+
+        accountHelper.unblock(domainInTransfer.getPersonalAccountId(), domainInTransfer.getDocumentNumber());
+
+        domainInTransfer.setState(DomainInTransfer.State.REJECTED);
+        domainInTransferManager.save(domainInTransfer);
+
+        PersonalAccount account = accountManager.findOne(domainInTransfer.getPersonalAccountId());
+        history.save(account, "Перенос домена " + domainName + " был отклонен.");
+
+        Map<String, String> stat = new HashMap<>();
+        stat.put(DOMAIN_NAME_KEY, domainInTransfer.getDomainName());
+        stat.put(PERSON_ID_KEY, domainInTransfer.getPersonId());
+        accountStatHelper.add(account.getAccountId(), AccountStatType.VIRTUAL_HOSTING_DOMAIN_TRANSFER_REJECT, stat);
+    }
+
+    /**
+     * Перенос домена был отменен. Ставим соответствующий статус в DomainInTransfer и снимаем блокировку средств
+     *
+     * @param domainName Отмененный домен
+     */
+    public void processCancelledTransfer(String domainName) {
+        DomainInTransfer domainInTransfer = domainInTransferManager.findProcessingByDomainName(domainName);
+
+        if (domainInTransfer == null) {
+            String errorMsg = "DomainService.processCancelledTransfer(): DomainInTransfer " + domainName + " not found";
+            logger.error(errorMsg);
+            throw new ParameterValidationException(errorMsg);
+        }
+
+        logger.debug("Domain {} transfer was cancelled", domainName);
+
+        accountHelper.unblock(domainInTransfer.getPersonalAccountId(), domainInTransfer.getDocumentNumber());
+
+        domainInTransfer.setState(DomainInTransfer.State.CANCELLED);
+        domainInTransferManager.save(domainInTransfer);
+
+        PersonalAccount account = accountManager.findOne(domainInTransfer.getPersonalAccountId());
+        history.save(account, "Перенос домена " + domainName + " был отменен.");
+
+        Map<String, String> stat = new HashMap<>();
+        stat.put(DOMAIN_NAME_KEY, domainInTransfer.getDomainName());
+        stat.put(PERSON_ID_KEY, domainInTransfer.getPersonId());
+        accountStatHelper.add(account.getAccountId(), AccountStatType.VIRTUAL_HOSTING_DOMAIN_TRANSFER_CANCEL, stat);
     }
 
     public ProcessingBusinessAction buy(String accountId, DomainCartItem domain, List<AccountPromotion> accountPromotions, AccountPromotion accountPromotion) {

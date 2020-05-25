@@ -13,6 +13,13 @@ import java.math.BigDecimal;
 public interface DomainRegistrarFeignClient {
     @RequestMapping(method = RequestMethod.GET, value = "/domain/{domainName}/availability-info", consumes = "application/json")
     AvailabilityInfo getAvailabilityInfo(@PathVariable("domainName") String domainName);
+
     @RequestMapping(method = RequestMethod.GET, value = "/domain/{domainName}/get-renew-premium-price", consumes = "application/json")
     BigDecimal getRenewPremiumPrice(@PathVariable("domainName") String domainName);
+
+    @RequestMapping(method = RequestMethod.POST, value = "/person/{nicHandle}/transfer/request/{authInfo}/domain/{domain}", consumes = "application/json")
+    void transferRequest(@PathVariable String nicHandle, @PathVariable String authInfo, @PathVariable String domain);
+
+    @RequestMapping(method = RequestMethod.POST, value = "/person/{nicHandle}/transfer/confirmation/{verificationCode}", consumes = "application/json")
+    void transferConfirmation(@PathVariable String nicHandle, @PathVariable String verificationCode);
 }

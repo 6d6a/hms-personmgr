@@ -46,6 +46,7 @@ public class Constants {
     public static final String ARCHIVED_RESOURCE_ID_KEY = "archivedResourceId";
     public static final String DOMAIN_NAME_KEY = "domainName";
     public static final String ACCOUNT_ID_KEY = "accountId";
+    public static final String PERSON_ID_KEY = "personId";
     public static final String PASSWORD_KEY = "password";
     public static final String METADATA = "metadata";
     public static final String OAUTH_CLIENT_ID = "oauthClientId";
@@ -360,6 +361,7 @@ public class Constants {
         public static final String DOMAIN_CREATE = "domain.create";
         public static final String DOMAIN_UPDATE = "domain.update";
         public static final String DOMAIN_DELETE = "domain.delete";
+        public static final String DOMAIN_TRANSFER_SYNCHRONIZATION = "domain.transfer-synchronization";
 
         public static final String FTP_USER_CREATE = "ftp-user.create";
         public static final String FTP_USER_UPDATE = "ftp-user.update";
@@ -421,6 +423,7 @@ public class Constants {
                     DOMAIN_CREATE,
                     DOMAIN_UPDATE,
                     DOMAIN_DELETE,
+                    DOMAIN_TRANSFER_SYNCHRONIZATION,
                     FTP_USER_CREATE,
                     FTP_USER_UPDATE,
                     FTP_USER_DELETE,

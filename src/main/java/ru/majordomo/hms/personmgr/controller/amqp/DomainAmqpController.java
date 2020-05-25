@@ -14,29 +14,35 @@ import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.dto.domainTransfer.DomainTransferSynchronization;
 import ru.majordomo.hms.personmgr.event.accountStat.AccountStatDomainUpdateEvent;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.service.AccountStatHelper;
+import ru.majordomo.hms.personmgr.service.DomainService;
 
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DOMAIN_CREATE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DOMAIN_DELETE;
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DOMAIN_UPDATE;
+import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DOMAIN_TRANSFER_SYNCHRONIZATION;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @Service
 public class DomainAmqpController extends CommonAmqpController {
     private final CartManager cartManager;
+    private final DomainService domainService;
     private final AccountStatHelper accountStatHelper;
 
     @Autowired
     public DomainAmqpController(
             CartManager cartManager,
+            DomainService domainService,
             AccountStatHelper accountStatHelper
     ) {
         this.cartManager = cartManager;
         this.accountStatHelper = accountStatHelper;
+        this.domainService = domainService;
         resourceName = "домен";
     }
 
@@ -138,5 +144,28 @@ public class DomainAmqpController extends CommonAmqpController {
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DOMAIN_DELETE)
     public void delete(Message amqpMessage, @Payload SimpleServiceMessage message, @Headers Map<String, String> headers) {
         handleDeleteEventFromRc(message, headers);
+    }
+
+    @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DOMAIN_TRANSFER_SYNCHRONIZATION)
+    public void transferSynchronization(Message amqpMessage, @Payload DomainTransferSynchronization response, @Headers Map<String, String> headers) {
+        logger.debug("Received domain transfer synchronization message: " + response.toString());
+
+        if (!response.isValid()) {
+            logger.error("Синхронизация домена после трансфера не выполнена: " + response.getValidationError());
+            return;
+        }
+
+        try {
+            if (response.isTransferAccepted()) {
+                domainService.processSuccessfulTransfer(response.getDomainName());
+            } else if (response.isTransferRejected()) {
+                domainService.processRejectedTransfer(response.getDomainName());
+            } else if (response.isTransferCancelled()) {
+                domainService.processCancelledTransfer(response.getDomainName());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Got Exception in DomainAmqpController.transferSynchronization: " + e.getMessage());
+        }
     }
 }
