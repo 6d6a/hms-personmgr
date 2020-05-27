@@ -38,7 +38,11 @@ public enum Feature {
     ALLOW_USE_DATABASES,
     DEDICATED_APP_SERVICE,
     FREEZING,
-    DOMAIN_TRANSFER_RU_RF;
+    DOMAIN_TRANSFER_RU_RF,
+    /**
+     * Возможность добавлять услугу дополнительные 100 mb квоты на тариф
+     */
+    ADDITIONAL_QUOTA_100;
 
 
     @NonNull
