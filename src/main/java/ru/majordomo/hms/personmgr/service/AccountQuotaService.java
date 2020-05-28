@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +15,6 @@ import ru.majordomo.hms.personmgr.event.account.AccountQuotaAddedEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountQuotaDiscardEvent;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
-import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -29,7 +27,6 @@ import static java.lang.Math.ceil;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_CAPACITY;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_100_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.SERVICE_NAME_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_5K_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.Constants.ADDITIONAL_QUOTA_5K_CAPACITY;
 
 @Service
@@ -91,6 +88,8 @@ public class AccountQuotaService {
         Long planQuotaKBLimit = planLimitsService.getQuotaKBLimit(plan);
 
         boolean hasZeroPlanQuotaKBLimit = planQuotaKBLimit != null && planQuotaKBLimit.compareTo(0L) == 0;
+        boolean planCanAddQuotaIfOverquoted = !hasZeroPlanQuotaKBLimit &&
+                plan.getAllowedFeature().contains(Feature.ADDITIONAL_QUOTA_100);
 
         boolean isAccountHasAdditionalQuotaService5k = accountServiceHelper.hasAdditionalQuotaService5k(account);
 
@@ -117,7 +116,7 @@ public class AccountQuotaService {
         if (currentQuotaUsed > planQuotaKBBaseLimit * 1024) {
             //Превышение квоты есть
             overquotedState = true;
-            if (account.isAddQuotaIfOverquoted() && !hasZeroPlanQuotaKBLimit) {
+            if (account.isAddQuotaIfOverquoted() && planCanAddQuotaIfOverquoted) {
                 writableState = true;
                 addQuotaServiceState = true;
             } else {
