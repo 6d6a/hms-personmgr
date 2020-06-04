@@ -344,6 +344,52 @@ public class DomainService {
         }
     }
 
+    private boolean isDomainTransferAvailable(List<Domain> domains, String accountId) {
+        for (Domain d: domains) {
+            if (!d.getAccountId().equals(accountId) || d.getRegSpec() != null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void checkBlacklistOnTransfer(String domainName, String accountId) {
+        domainName = IDN.toUnicode(domainName);
+
+        List<Domain> domainList = getDomainsByName(domainName);
+
+        //Домен с таким именем уже присутствует в системе
+        if (!domainList.isEmpty()) {
+            //Исключение, если домен не принадлежит текущему пользователю, уже зарегистрирован (не просто добавлен) в системе или он в черном списке
+            if (!isDomainTransferAvailable(domainList, accountId) || blackListService.domainExistsInControlBlackList(domainName)) {
+                logger.debug("domain: " + domainName + " exists in control BlackList");
+                throw new ParameterValidationException("Домен " + domainName
+                        + " уже присутствует в системе и не может быть добавлен.");
+            }
+        }
+
+
+        String topPrivateDomainName = domainName;
+        try {
+            InternetDomainName domain = InternetDomainName.from(domainName);
+            topPrivateDomainName = IDN.toUnicode(domain.topPrivateDomain().toString());
+        } catch (Exception ignored) {
+        }
+
+        //Аналогичная проверка, если удалось выделить из переданного доменного имени домен высшего уровня
+        if (!domainName.equals(topPrivateDomainName)) {
+            domainList = getDomainsByName(topPrivateDomainName);
+
+            if (!domainList.isEmpty()) {
+                if (!isDomainTransferAvailable(domainList, accountId) || blackListService.domainExistsInControlBlackList(topPrivateDomainName)) {
+                    logger.debug("domain: " + topPrivateDomainName + " exists in control BlackList");
+                    throw new ParameterValidationException("Домен " + topPrivateDomainName
+                            + " уже присутствует в системе и не может быть перенесен.");
+                }
+            }
+        }
+    }
+
     public void check(String domainName, String accountId) {
         checkBlacklist(domainName, accountId);
 
@@ -353,7 +399,7 @@ public class DomainService {
     }
 
     public void checkForTransfer(String domainName, String accountId) {
-        checkBlacklist(domainName, accountId);
+        checkBlacklistOnTransfer(domainName, accountId);
 
         getDomainTld(domainName);
     }
@@ -560,24 +606,51 @@ public class DomainService {
 
         PersonalAccount account = accountManager.findOne(domainInTransfer.getPersonalAccountId());
 
+        List<Domain> domainsList = getDomainsByName(domainInTransfer.getDomainName());
+        Domain existDomain = domainsList
+                .stream()
+                .filter(d -> d.getName().equals(domainInTransfer.getDomainName()))
+                .findFirst()
+                .orElse(null);
+
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(account.getAccountId());
-        message.addParam("name", domainInTransfer.getDomainName());
         message.addParam("personId", domainInTransfer.getPersonId());
         message.addParam("documentNumber", domainInTransfer.getDocumentNumber());
         message.addParam("transfer", true);
 
-        ProcessingBusinessOperation processingBusinessOperation = businessHelper.buildOperation(
-                BusinessOperationType.DOMAIN_CREATE,
-                message
-        );
-        ProcessingBusinessAction processingBusinessAction = businessHelper.buildActionByOperation(
-                BusinessActionType.DOMAIN_CREATE_RC,
-                message,
-                processingBusinessOperation
-        );
+        ProcessingBusinessAction processingBusinessAction;
+        if (existDomain == null) {
+            //После выполнения трансфера создать новый домен в rc-user
+            message.addParam("name", domainInTransfer.getDomainName());
 
-        history.save(account, "Перенос домена " + domainName + " подтвержден. Отправлен запрос на создание домена");
+            ProcessingBusinessOperation processingBusinessOperation = businessHelper.buildOperation(
+                    BusinessOperationType.DOMAIN_CREATE,
+                    message
+            );
+            processingBusinessAction = businessHelper.buildActionByOperation(
+                    BusinessActionType.DOMAIN_CREATE_RC,
+                    message,
+                    processingBusinessOperation
+            );
+
+            history.save(account, "Перенос домена " + domainName + " подтвержден. Отправлен запрос на создание домена");
+        } else {
+            //Если пользователь переносит домен, который уже "просто добавлен" в панель, то нужно обновить существующую запись
+            message.addParam("resourceId", existDomain.getId());
+
+            ProcessingBusinessOperation processingBusinessOperation = businessHelper.buildOperation(
+                    BusinessOperationType.DOMAIN_UPDATE,
+                    message
+            );
+            processingBusinessAction = businessHelper.buildActionByOperation(
+                    BusinessActionType.DOMAIN_UPDATE_RC,
+                    message,
+                    processingBusinessOperation
+            );
+
+            history.save(account, "Перенос домена " + domainName + " подтвержден. Отправлен запрос на обновление домена");
+        }
 
         Map<String, String> stat = new HashMap<>();
         stat.put(DOMAIN_NAME_KEY, domainInTransfer.getDomainName());
