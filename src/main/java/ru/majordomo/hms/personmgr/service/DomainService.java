@@ -666,7 +666,7 @@ public class DomainService {
      * @param domainName Отклоненный домен
      */
     public void processRejectedTransfer(String domainName) {
-        DomainInTransfer domainInTransfer = domainInTransferManager.findProcessingByDomainName(domainName);
+        DomainInTransfer domainInTransfer = domainInTransferManager.findProcessingByDomainName(domainName.toLowerCase());
 
         if (domainInTransfer == null) {
             String errorMsg = "DomainService.processRejectedTransfer(): DomainInTransfer " + domainName + " not found";
@@ -676,7 +676,14 @@ public class DomainService {
 
         logger.debug("Domain {} transfer was rejected", domainName);
 
-        accountHelper.unblock(domainInTransfer.getPersonalAccountId(), domainInTransfer.getDocumentNumber());
+        try {
+            accountHelper.unblock(domainInTransfer.getPersonalAccountId(), domainInTransfer.getDocumentNumber());
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("DomainService.processRejectedTransfer(): Unblock money error. " +
+                            "Account: {}, DocumentNumber: {}, e.class: {},  e.message: {}",
+                    domainInTransfer.getPersonalAccountId(), domainInTransfer.getDocumentNumber(), e.getClass().getName(), e.getMessage());
+        }
 
         domainInTransfer.setState(DomainInTransfer.State.REJECTED);
         domainInTransferManager.save(domainInTransfer);
@@ -696,7 +703,7 @@ public class DomainService {
      * @param domainName Отмененный домен
      */
     public void processCancelledTransfer(String domainName) {
-        DomainInTransfer domainInTransfer = domainInTransferManager.findProcessingByDomainName(domainName);
+        DomainInTransfer domainInTransfer = domainInTransferManager.findProcessingByDomainName(domainName.toLowerCase());
 
         if (domainInTransfer == null) {
             String errorMsg = "DomainService.processCancelledTransfer(): DomainInTransfer " + domainName + " not found";
@@ -706,7 +713,14 @@ public class DomainService {
 
         logger.debug("Domain {} transfer was cancelled", domainName);
 
-        accountHelper.unblock(domainInTransfer.getPersonalAccountId(), domainInTransfer.getDocumentNumber());
+        try {
+            accountHelper.unblock(domainInTransfer.getPersonalAccountId(), domainInTransfer.getDocumentNumber());
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("DomainService.processCancelledTransfer(): Unblock money error. " +
+                            "Account: {}, DocumentNumber: {}, e.class: {}, e.message: {}",
+                    domainInTransfer.getPersonalAccountId(), domainInTransfer.getDocumentNumber(), e.getClass().getName(), e.getMessage());
+        }
 
         domainInTransfer.setState(DomainInTransfer.State.CANCELLED);
         domainInTransferManager.save(domainInTransfer);
