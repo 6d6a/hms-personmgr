@@ -24,7 +24,7 @@ public class DomainInTransferManagerImpl implements DomainInTransferManager {
 
     @Override
     public DomainInTransfer findProcessingByDomainName(String domainName) {
-        return repository.findByDomainNameAndState(domainName, DomainInTransfer.State.PROCESSING);
+        return repository.findFirstByDomainNameAndStateOrderByCreatedDesc(domainName, DomainInTransfer.State.PROCESSING);
     }
 
     @Override
