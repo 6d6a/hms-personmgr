@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.*;
@@ -248,7 +249,7 @@ public class AccountHelper {
 
         if (available.compareTo(cost) < 0) {
             throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
-                    "Текущий баланс: " + formatBigDecimalWithCurrency(available) +
+                    "Текущий баланс: " + formatBigDecimalWithCurrency(available.setScale(2, RoundingMode.DOWN)) +
                     ", стоимость услуги: " + formatBigDecimalWithCurrency(cost),
                     cost
             );
@@ -266,7 +267,7 @@ public class AccountHelper {
 
         if (available.subtract(bonusBalanceAvailable).compareTo(cost) < 0) {
             throw new NotEnoughMoneyException("Бонусные средства недоступны для этой операции. " +
-                    "Текущий баланс без учёта бонусных средств: " + formatBigDecimalWithCurrency(available.subtract(bonusBalanceAvailable)) +
+                    "Текущий баланс без учёта бонусных средств: " + formatBigDecimalWithCurrency(available.subtract(bonusBalanceAvailable).setScale(2, RoundingMode.DOWN)) +
                     ", стоимость услуги: " + formatBigDecimalWithCurrency(cost),
                     cost.subtract(available.subtract(bonusBalanceAvailable))
             );
@@ -288,7 +289,7 @@ public class AccountHelper {
 
             if (available.compareTo(dayCost) < 0) {
                 throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги. " +
-                        "Текущий баланс: " + formatBigDecimalWithCurrency(available)
+                        "Текущий баланс: " + formatBigDecimalWithCurrency(available.setScale(2, RoundingMode.DOWN))
                         + " стоимость услуги за 1 день: " + formatBigDecimalWithCurrency(dayCost),
                         dayCost.subtract(available)
                 );
