@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.common;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 
@@ -337,5 +338,21 @@ public class Utils {
 
     public static boolean cidrValid(String cidr) {
         return CIDR_PATTERN.matcher(cidr).matches();
+    }
+
+    /**
+     * Метод проверяет подходит ли версия
+     * @param requiredVersion - требуемая версия, * - любая
+     * @param version - имеющаяся версия
+     * @return результат
+     */
+    public static boolean isSuitableVersion(@Nullable String requiredVersion, @Nullable String version) {
+        if ("*".equals(requiredVersion)) {
+            return true;
+        }
+        if (StringUtils.isEmpty(requiredVersion) || StringUtils.isEmpty(version)) {
+            return false;
+        }
+        return requiredVersion.equals(version);
     }
 }

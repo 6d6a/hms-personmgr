@@ -1,21 +1,20 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.StaffServiceUtils;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.AccountTransferRequest;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.feign.RcStaffFeignClient;
@@ -28,6 +27,8 @@ import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationReposito
 import ru.majordomo.hms.rc.staff.resources.Server;
 import ru.majordomo.hms.rc.staff.resources.Service;
 import ru.majordomo.hms.rc.user.resources.*;
+
+import javax.annotation.Nonnull;
 
 import static ru.majordomo.hms.personmgr.common.Constants.DATASOURCE_URI_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.DATA_KEY;
@@ -43,7 +44,6 @@ import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_DATABASE_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_UNIX_ACCOUNT_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.NEW_WEBSITE_SERVER_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.NGINX_SERVICE_TEMPLATE_TYPE_NAME;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_DATABASE_HOST_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_DATABASE_SERVER_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.OLD_HTTP_PROXY_IP_KEY;
@@ -91,7 +91,8 @@ public class AccountTransferService {
 
     public ProcessingBusinessAction startTransfer(SimpleServiceMessage message) {
         String newServerId = (String) message.getParam(SERVER_ID_KEY);
-        Boolean transferDatabases = (Boolean) message.getParam(TRANSFER_DATABASES_KEY);
+
+        boolean transferDatabases = !Boolean.FALSE.equals(message.getParam(TRANSFER_DATABASES_KEY));
 
         List<UnixAccount> unixAccounts = (List<UnixAccount>) rcUserFeignClient.getUnixAccounts(message.getAccountId());
 
@@ -101,6 +102,10 @@ public class AccountTransferService {
 
         String oldUnixAccountServerId = unixAccounts.get(0).getServerId();
 
+        if (newServerId.equals(oldUnixAccountServerId)) {
+            throw new ParameterValidationException("Запрещено переносить аккаунт на тот же сервер");
+        }
+
         AccountTransferRequest accountTransferRequest = new AccountTransferRequest();
         accountTransferRequest.setAccountId(message.getAccountId());
         accountTransferRequest.setUnixAccountId(unixAccounts.get(0).getId());
@@ -109,7 +114,7 @@ public class AccountTransferService {
         accountTransferRequest.setNewUnixAccountServerId(newServerId);
         accountTransferRequest.setNewDatabaseServerId(newServerId);
         accountTransferRequest.setNewWebSiteServerId(newServerId);
-        accountTransferRequest.setTransferDatabases(transferDatabases != null ? transferDatabases : true);
+        accountTransferRequest.setTransferDatabases(transferDatabases);
 
         return startTransferUnixAccountAndDatabase(accountTransferRequest);
     }
@@ -214,16 +219,17 @@ public class AccountTransferService {
             if (!dataSourceUri.endsWith("/")) {
                 dataSourceUri = dataSourceUri + "/";
             }
+
+            String nginxIp = StaffServiceUtils.getFirstNginxIpAddress(oldServer.getServices());
+            if (StringUtils.isEmpty(nginxIp)) {
+                throw new InternalApiException("Не удалось найти IP-адрес у сервиса Nginx");
+            }
+
             teParams.put(DATASOURCE_URI_KEY, dataSourceUri);
             teParams.put(OLD_SERVER_NAME_KEY, oldServer.getName());
             teParams.put(
                     OLD_HTTP_PROXY_IP_KEY,
-                    oldServer.getServices()
-                            .stream()
-                            .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(NGINX_SERVICE_TEMPLATE_TYPE_NAME))
-                            .findFirst()
-                            .orElseThrow(() -> new ParameterValidationException("Сервис Nginx на старом сервере не найден"))
-                            .getServiceSockets().get(0).getAddressAsString()
+                    nginxIp
             );
 
             unixAccountMessage.addParam(TE_PARAMS_KEY, teParams);
@@ -270,12 +276,12 @@ public class AccountTransferService {
 
             Service oldDatabaseService = getDatabaseServiceByServerId(accountTransferRequest.getOldDatabaseServerId());
 
-            oldDatabaseHost = oldDatabaseService.getServiceSockets().get(0).getAddressAsString();
+            oldDatabaseHost = StaffServiceUtils.getFirstIpAddress(oldDatabaseService);
             accountTransferRequest.setOldDatabaseHost(oldDatabaseHost);
 
             Service newDatabaseService = getDatabaseServiceByServerId(accountTransferRequest.getNewDatabaseServerId());
 
-            newDatabaseHost = newDatabaseService.getServiceSockets().get(0).getAddressAsString();
+            newDatabaseHost = StaffServiceUtils.getFirstIpAddress(newDatabaseService);
             accountTransferRequest.setNewDatabaseHost(newDatabaseHost);
 
             for (DatabaseUser databaseUser : databaseUsers) {
@@ -288,15 +294,15 @@ public class AccountTransferService {
 
                 Map<String, Object> teParams = new HashMap<>();
 
+                String nginxIp = StaffServiceUtils.getFirstNginxIpAddress(oldServer.getServices());
+                if (StringUtils.isEmpty(nginxIp)) {
+                    throw new InternalApiException("Не удалось найти IP-адрес у сервиса Nginx");
+                }
+
                 teParams.put(OLD_SERVER_NAME_KEY, oldServer.getName());
                 teParams.put(
                         OLD_HTTP_PROXY_IP_KEY,
-                        oldServer.getServices()
-                                .stream()
-                                .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(NGINX_SERVICE_TEMPLATE_TYPE_NAME))
-                                .findFirst()
-                                .orElseThrow(() -> new ParameterValidationException("Сервис Nginx на старом сервере не найден"))
-                                .getServiceSockets().get(0).getAddressAsString()
+                        nginxIp
                 );
 
                 databaseUserMessage.addParam(TE_PARAMS_KEY, teParams);
@@ -319,15 +325,15 @@ public class AccountTransferService {
                     teParams.put(DATASOURCE_URI_KEY, "mysql://" + accountTransferRequest.getOldDatabaseHost() +
                             "/" + database.getName());
 
+                    String nginxIp = StaffServiceUtils.getFirstNginxIpAddress(oldServer.getServices());
+                    if (StringUtils.isEmpty(nginxIp)) {
+                        throw new InternalApiException("Не удалось найти IP-адрес у сервиса Nginx");
+                    }
+
                     teParams.put(OLD_SERVER_NAME_KEY, oldServer.getName());
                     teParams.put(
                             OLD_HTTP_PROXY_IP_KEY,
-                            oldServer.getServices()
-                                    .stream()
-                                    .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(NGINX_SERVICE_TEMPLATE_TYPE_NAME))
-                                    .findFirst()
-                                    .orElseThrow(() -> new ParameterValidationException("Сервис Nginx на старом сервере не найден"))
-                                    .getServiceSockets().get(0).getAddressAsString()
+                            nginxIp
                     );
 
                     databaseMessage.addParam(TE_PARAMS_KEY, teParams);
@@ -608,15 +614,15 @@ public class AccountTransferService {
 
                     teParams.put(DATA_POSTPROCESSOR_ARGS_KEY, dataPostprocessorArgs);
 
+                    String nginxIp = StaffServiceUtils.getFirstNginxIpAddress(oldServer.getServices());
+                    if (StringUtils.isEmpty(nginxIp)) {
+                        throw new InternalApiException("Не удалось найти IP-адрес у сервиса Nginx");
+                    }
+
                     teParams.put(OLD_SERVER_NAME_KEY, oldServer.getName());
                     teParams.put(
                             OLD_HTTP_PROXY_IP_KEY,
-                            oldServer.getServices()
-                                    .stream()
-                                    .filter(service -> service.getServiceTemplate().getServiceTypeName().equals(NGINX_SERVICE_TEMPLATE_TYPE_NAME))
-                                    .findFirst()
-                                    .orElseThrow(() -> new ParameterValidationException("Сервис Nginx на старом сервере не найден"))
-                                    .getServiceSockets().get(0).getAddressAsString()
+                            nginxIp
                     );
 
                     webSiteMessage.addParam(TE_PARAMS_KEY, teParams);
@@ -797,12 +803,14 @@ public class AccountTransferService {
         }
     }
 
+    @Nonnull
     private String getNginxHostByServerId(String serverId) {
         Service oldNginxService = getNginxByServerId(serverId);
 
-        return oldNginxService.getServiceSockets().get(0).getAddressAsString();
+        return StaffServiceUtils.getFirstIpAddress(oldNginxService);
     }
 
+    @Nonnull
     private Service getNginxByServerId(String serverId) {
         List<Service> oldServerNginxServices;
 
@@ -813,13 +821,15 @@ public class AccountTransferService {
             throw new ParameterValidationException("Ошибка при получении сервисов nginx для текущего сервера");
         }
 
-        if (oldServerNginxServices == null || oldServerNginxServices.isEmpty()) {
+        if (oldServerNginxServices == null || oldServerNginxServices.isEmpty()
+                || oldServerNginxServices.get(0) == null) {
             throw new ParameterValidationException("Сервисы nginx не найдены на текущем сервере");
         }
 
         return oldServerNginxServices.get(0);
     }
 
+    @Nonnull
     private Service getDatabaseServiceByServerId(String serverId) {
         List<Service> databaseServices;
 
@@ -829,9 +839,8 @@ public class AccountTransferService {
             throw new ParameterValidationException("Не найдены сервисы баз данных для сервера " + serverId);
         }
 
-        if (databaseServices == null
-                || databaseServices.isEmpty()
-                || databaseServices.get(0).getServiceSockets().isEmpty()) {
+        if (databaseServices == null || databaseServices.isEmpty() || databaseServices.get(0) == null
+                || databaseServices.get(0).getSockets().isEmpty()) {
             throw new ParameterValidationException("Список сервисов баз данных для сервера " + serverId + " пуст");
         }
 

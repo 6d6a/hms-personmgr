@@ -1,13 +1,13 @@
 package ru.majordomo.hms.personmgr.service;
 
-import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.Language;
 import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -19,6 +19,7 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.rc.staff.resources.Server;
 import ru.majordomo.hms.rc.staff.resources.Service;
+import ru.majordomo.hms.rc.staff.resources.comparator.StaffServiceComparator;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
@@ -74,44 +75,41 @@ public class ResourceNormalizer {
                 throw new ParameterValidationException("Список сервисов вебсайтов для сервера " + webSiteServer.getId() + " пуст");
             }
 
-            if (plan.getPlanProperties() instanceof VirtualHostingPlanProperties) {
-                VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
+            if (!(plan.getPlanProperties() instanceof VirtualHostingPlanProperties)) {
+                throw new ParameterValidationException("Необходимый для вебсайта сервис не найден");
+            }
+            VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
+            Map<Language, List<String>> allowedLanguages = planProperties.getAllowedLanguages();
 
-                Set<String> allowedServiceTypes = planProperties.getWebSiteAllowedServiceTypes();
+            boolean allowDedicatedAppService = !plan.getProhibitedResourceTypes().contains(ResourceType.DEDICATED_APP_SERVICE);
 
-                boolean allowDedicatedAppService = !plan.getProhibitedResourceTypes().contains(ResourceType.DEDICATED_APP_SERVICE);
+            Service currentWebSiteService = webSiteServices
+                    .stream()
+                    .filter(service -> service.getId().equals(webSite.getServiceId()))
+                    .findFirst()
+                    .orElseThrow(() -> new ParameterValidationException("Текущий сервис для вебсайта не найден"));
 
-                if (allowedServiceTypes != null && !allowedServiceTypes.isEmpty()) {
-                    Service currentWebSiteService = webSiteServices
-                            .stream()
-                            .filter(service -> service.getId().equals(webSite.getServiceId()))
-                            .findFirst()
-                            .orElseThrow(() -> new ParameterValidationException("Текущий сервис для вебсайта не найден"));
+            boolean allowedCurrentWebSiteService = ResourceChecker.serviceHasType(currentWebSiteService, allowedLanguages, allowDedicatedAppService, account.getId());
 
-                    boolean allowedCurrentWebSiteService = ResourceChecker.serviceHasType(currentWebSiteService, allowedServiceTypes, allowDedicatedAppService, account.getId());
+            if (!allowedCurrentWebSiteService) {
+                //ставим какой-то, на самом деле с самой большой версией
+                Service selectedWebSiteService = webSiteServices.stream()
+                        .filter(service -> ResourceChecker.serviceHasType(service, allowedLanguages, allowDedicatedAppService, account.getId()))
+                        .min(new StaffServiceComparator())
+                        .orElseThrow(() -> new ParameterValidationException("Необходимый для вебсайта сервис не найден"));
 
-                    if (!allowedCurrentWebSiteService) {
-                        //ставим какой-то, на самом деле первый ;) из доступных
-                        Service selectedWebSiteService = webSiteServices
-                                .stream()
-                                .filter(service -> ResourceChecker.serviceHasType(service, allowedServiceTypes, allowDedicatedAppService, account.getId()))
-                                .findFirst()
-                                .orElseThrow(() -> new ParameterValidationException("Необходимый для вебсайта сервис не найден"));
+                if (applyChanges) {
+                    SimpleServiceMessage message = new SimpleServiceMessage();
+                    message.setParams(new HashMap<>());
+                    message.setAccountId(account.getId());
+                    message.addParam(RESOURCE_ID_KEY, webSite.getId());
+                    message.addParam(SERVICE_ID_KEY, selectedWebSiteService.getId());
 
-                        if (applyChanges) {
-                            SimpleServiceMessage message = new SimpleServiceMessage();
-                            message.setParams(new HashMap<>());
-                            message.setAccountId(account.getId());
-                            message.addParam(RESOURCE_ID_KEY, webSite.getId());
-                            message.addParam(SERVICE_ID_KEY, selectedWebSiteService.getId());
+                    businessHelper.buildAction(BusinessActionType.WEB_SITE_UPDATE_RC, message);
 
-                            businessHelper.buildAction(BusinessActionType.WEB_SITE_UPDATE_RC, message);
+                    String historyMessage = "Отправлена заявка на изменение serviceId сайта '" + webSite.getName() + "'";
 
-                            String historyMessage = "Отправлена заявка на изменение serviceId сайта '" + webSite.getName() + "'";
-
-                            history.saveForOperatorService(account, historyMessage);
-                        }
-                    }
+                    history.saveForOperatorService(account, historyMessage);
                 }
             }
         }

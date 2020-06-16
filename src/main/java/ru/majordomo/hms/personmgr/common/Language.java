@@ -11,7 +11,7 @@ public enum Language {
      */
     STATIC;
 
-    public boolean equals(@Nullable ApplicationServer.Language language) {
+    public boolean equivalent(@Nullable ApplicationServer.Language language) {
         return language != null && name().equals(language.name());
     }
 }

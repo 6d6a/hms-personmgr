@@ -344,7 +344,7 @@ public class AccountResourceRestController extends CommonRestController {
 
         String desiredServerId = (String) message.getParam(SERVER_ID_KEY);
 
-        if (desiredServerId.equals("")) {
+        if (StringUtils.isEmpty(desiredServerId)) {
             throw new ParameterValidationException("Передано пустое значение в параметре " + SERVER_ID_KEY);
         }
 

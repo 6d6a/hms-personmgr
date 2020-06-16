@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,6 @@ import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.*;
-import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.config.TestPeriodConfig;
 import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
@@ -712,7 +712,7 @@ public class AccountHelper {
 
         if (plan.getPlanProperties() instanceof VirtualHostingPlanProperties) {
             VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
-            if (!planProperties.getWebSiteAllowedServiceTypes().contains(Constants.WEBSITE_APACHE2_PHP)) {
+            if (CollectionUtils.isEmpty(planProperties.getAllowedLanguages().get(Language.PHP))) {
                 if (plan.getAllowedFeature().contains(Feature.DEDICATED_APP_SERVICE)) {
                     if (dedicatedAppServiceHelper.getServicesWithStaffService(account.getId()).stream()
                             .noneMatch(das -> das.getService() != null && das.getService().getTemplate() instanceof ApplicationServer

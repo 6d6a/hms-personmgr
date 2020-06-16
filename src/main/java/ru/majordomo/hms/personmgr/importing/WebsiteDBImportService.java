@@ -80,7 +80,7 @@ public class WebsiteDBImportService{
             if (service.getTemplate() instanceof HttpServer && language == Language.STATIC) {
                 return true;
             } else if (service.getTemplate() instanceof ApplicationServer &&
-                    language.equals(((ApplicationServer) service.getTemplate()).getLanguage())
+                    language.equivalent(((ApplicationServer) service.getTemplate()).getLanguage())
             ) {
                 if (StringUtils.isNotEmpty(version) && !version.equals(((ApplicationServer) service.getTemplate()).getVersion())) {
                     return false;
