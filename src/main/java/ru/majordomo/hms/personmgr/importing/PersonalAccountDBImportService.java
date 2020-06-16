@@ -80,13 +80,11 @@ public class PersonalAccountDBImportService {
             return Collections.emptySet();
         }
         VirtualHostingPlanProperties prop = (VirtualHostingPlanProperties) plan.getPlanProperties();
-        if (prop.getSitesLimit().getFreeLimit() == 0 || CollectionUtils.isEmpty(prop.getWebSiteAllowedServiceTypes())) {
+        if (prop.getSitesLimit().getFreeLimit() == 0) {
             return Collections.emptySet();
         }
 
-        return prop.getWebSiteAllowedServiceTypes().stream()
-                .map(s -> s.startsWith("WEBSITE_APACHE2_PHP") ? Language.PHP : s.startsWith("WEBSITE_APACHE2_PERL") ? Language.PERL :
-                "STAFF_NGINX".equals(s) ? Language.STATIC : null).filter(Objects::nonNull).collect(Collectors.toSet());
+        return prop.getAllowedLanguages().keySet();
     }
 
 

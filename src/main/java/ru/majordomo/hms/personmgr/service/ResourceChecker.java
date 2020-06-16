@@ -1,14 +1,15 @@
 package ru.majordomo.hms.personmgr.service;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
+import ru.majordomo.hms.personmgr.common.Language;
+import ru.majordomo.hms.personmgr.common.StaffServiceUtils;
 import ru.majordomo.hms.personmgr.common.ResourceType;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.feign.RcStaffFeignClient;
@@ -18,7 +19,6 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
-import ru.majordomo.hms.rc.staff.resources.Server;
 import ru.majordomo.hms.rc.staff.resources.Service;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
@@ -81,7 +81,7 @@ public class ResourceChecker {
     }
 
     private void checkWebSite(PersonalAccount account, Map<String, Object> resource) {
-        List<Service> webSiteServices;
+//        List<Service> webSiteServices;
         String webSiteServiceId;
 
         if (resource.get(SERVICE_ID_KEY) != null) {
@@ -94,21 +94,9 @@ public class ResourceChecker {
             webSiteServiceId = webSite.getServiceId();
         }
 
-        Server webSiteServer = rcStaffFeignClient.getServerByServiceId(webSiteServiceId);
-
-        if (webSiteServer == null) {
-            throw new ParameterValidationException("веб-сервер не найден");
-        }
-
-        try {
-            webSiteServices = rcStaffFeignClient.getWebsiteServicesByAccountIdAndServerId(account.getId(), webSiteServer.getId());
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new ParameterValidationException("Ошибка при получении сервисов для вебсайтов для для сервера " + webSiteServer.getId());
-        }
-
-        if (webSiteServices == null || webSiteServices.isEmpty()) {
-            throw new ParameterValidationException("Список сервисов вебсайтов для сервера " + webSiteServer.getId() + " пуст");
+        Service webSiteService = rcStaffFeignClient.getServiceById(webSiteServiceId);
+        if (webSiteService == null) {
+            throw new ParameterValidationException("Сервис для сайта не найден");
         }
 
         Plan plan = planManager.findOne(account.getPlanId());
@@ -122,15 +110,12 @@ public class ResourceChecker {
         if (plan.getPlanProperties() instanceof VirtualHostingPlanProperties) {
             VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
 
-            Set<String> allowedServiceTypes = planProperties.getWebSiteAllowedServiceTypes();
-
-            if (CollectionUtils.isNotEmpty(allowedServiceTypes) || allowDedicatedAppService) {
-                boolean foundAllowedService = serviceIdHasType(webSiteServiceId, webSiteServices, allowedServiceTypes, allowDedicatedAppService, account.getId());
-
-                if (!foundAllowedService) {
-                    throw new ResourceNotFoundException("Указанный для вебсайта serviceId не разрешен для вашего тарифа");
-                }
+            Map<Language, List<String>> allowedLanguages = planProperties.getAllowedLanguages();
+            if (!serviceHasType(webSiteService, allowedLanguages, allowDedicatedAppService, account.getId())) {
+                throw new ResourceNotFoundException("Указанный для вебсайта сервис не разрешен для вашего тарифа");
             }
+        } else {
+            throw new InternalApiException("Неправильный тип тарифного плана");
         }
     }
 
@@ -227,28 +212,23 @@ public class ResourceChecker {
     }
 
     private boolean serviceIdHasType(@Nonnull String serviceId, @Nonnull List<Service> services,
-                                     @Nonnull Set<String> serviceTypes, boolean allowDedicatedAppService,
+                                     @Nonnull Map<Language, List<String>> allowedLanguages, boolean allowDedicatedAppService,
                                      @Nullable String accountId) {
         Service service = services.stream().filter(s -> s.isSwitchedOn() && serviceId.equals(s.getId())).findFirst().orElse(null);
         if (service == null) {
             return false;
         }
-        return serviceHasType(service, serviceTypes, allowDedicatedAppService, accountId);
+        return serviceHasType(service, allowedLanguages, allowDedicatedAppService, accountId);
     }
 
-    static boolean serviceHasType(Service service, Set<String> serviceTypes, boolean allowDedicatedAppService, String accountId) {
-        if (!service.isSwitchedOn()) {
+    public static boolean serviceHasType(@Nullable Service service, Map<Language, List<String>> allowedLanguages, boolean allowDedicatedAppService, String accountId) {
+        if (service == null || !service.isSwitchedOn()) {
             return false;
         }
+
         if (StringUtils.isNotEmpty(service.getAccountId())) {
-            return allowDedicatedAppService  && service.getAccountId().equals(accountId);
+            return allowDedicatedAppService && service.getAccountId().equals(accountId);
         }
-        return serviceTypes
-                .stream()
-                .anyMatch(
-                        s -> s.endsWith("*") ?
-                                service.getServiceTemplate().getServiceTypeName().startsWith(s.substring(0, s.length()-1)) :
-                                service.getServiceTemplate().getServiceTypeName().equals(s)
-                );
+        return StaffServiceUtils.isSuitableTemplate(service.getTemplate(), allowedLanguages);
     }
 }

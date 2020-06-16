@@ -109,7 +109,7 @@ public class DedicatedAppServiceHelper {
         Service staffService;
         if (!staffServiceId.isEmpty()) {
             try {
-                staffService = rcStaffFeignClient.getServiceByAccountIdAndServiceId(accountId, staffServiceId);
+                staffService = rcStaffFeignClient.getServiceByAccountIdAndId(accountId, staffServiceId);
                 templateId = staffService.getTemplateId();
             } catch (BaseException | FeignException ex) {
                 ex.printStackTrace();
