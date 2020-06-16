@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -105,6 +106,11 @@ public class BatchJobManagerImpl implements BatchJobManager {
     @Override
     public BatchJob findFirstByRunDateAndTypeOrderByCreatedDesc(LocalDate runDate, BatchJob.Type type) {
         return repository.findFirstByRunDateAndTypeOrderByCreatedDesc(runDate, type);
+    }
+
+    @Override
+    public Optional<BatchJob> findFirstByStateAndTypeOrderByCreatedDesc(BatchJob.State state, BatchJob.Type type) {
+        return repository.findFirstByStateAndTypeOrderByCreatedDesc(state, type);
     }
 
     @Override
