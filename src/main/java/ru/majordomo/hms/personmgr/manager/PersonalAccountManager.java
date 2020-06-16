@@ -67,7 +67,7 @@ public interface PersonalAccountManager {
 
     List<String> findAllNotDeletedAccountIds();
 
-    List<String> findAccountIdsByIdNotInAndNotDeleted(List<String> ids);
+    List<String> findAccountIdsByActiveAndIdNotInAndNotDeleted(boolean active, List<String> ids);
 
     List<String> findAccountIdsByActiveAndNotDeleted(boolean active);
 

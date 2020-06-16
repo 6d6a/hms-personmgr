@@ -31,7 +31,8 @@ public class QuotaScheduler {
     @SchedulerLock(name = "processQuotaChecks")
     public void processQuotaChecks() {
         logger.info("Started processQuotaChecks");
-        List<String> personalAccountIds = accountManager.findAccountIdsByIdNotInAndNotDeleted(Collections.singletonList(TECHNICAL_ACCOUNT_ID));
+        List<String> personalAccountIds = accountManager
+                .findAccountIdsByActiveAndIdNotInAndNotDeleted(true, Collections.singletonList(TECHNICAL_ACCOUNT_ID));
 
         int needToProcess = personalAccountIds.size();
 
