@@ -33,8 +33,6 @@ public interface BatchJobManager {
 
     BatchJob findFirstByRunDateAndTypeOrderByCreatedDesc(LocalDate runDate, BatchJob.Type type);
 
-    Optional<BatchJob> findFirstByStateAndTypeOrderByCreatedDesc(BatchJob.State state, BatchJob.Type type);
-
     void setStateToProcessing(String id);
 
     void setStateToFinished(String id);

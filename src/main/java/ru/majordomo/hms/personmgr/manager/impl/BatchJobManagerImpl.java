@@ -109,11 +109,6 @@ public class BatchJobManagerImpl implements BatchJobManager {
     }
 
     @Override
-    public Optional<BatchJob> findFirstByStateAndTypeOrderByCreatedDesc(BatchJob.State state, BatchJob.Type type) {
-        return repository.findFirstByStateAndTypeOrderByCreatedDesc(state, type);
-    }
-
-    @Override
     public void setStateToProcessing(String id) {
         checkById(id);
 

@@ -55,22 +55,15 @@ public class AccountQuotaEventListener {
         //Вызывается из сервиса кронометр раз в 10 минут.
         logger.debug("We got ProcessQuotaChecksEvent");
 
-        Optional<BatchJob> batchJob = batchJobManager.findFirstByStateAndTypeOrderByCreatedDesc(
-                BatchJob.State.PROCESSING, BatchJob.Type.PROCESS_QUOTA);
-
-        if (batchJob.isPresent()) {
-            // На случай если пм вдруг крашнулся или был перезапущен в активном стеке
-            if (isJobStacked()) {
-                batchJobManager.setStateToFinished(batchJob.get().getId());
-            }
+        if (areWeBusy()) {
             return;
         }
 
         scheduler.processQuotaChecks();
     }
 
-    private Boolean isJobStacked() {
+    private Boolean areWeBusy() {
         ThreadPoolTaskExecutor quotaThread = (ThreadPoolTaskExecutor) quotaThreadPoolTaskExecutor;
-        return quotaThread.getThreadPoolExecutor().getQueue().size() <= 0;
+        return quotaThread.getThreadPoolExecutor().getQueue().size() > 0;
     }
 }
