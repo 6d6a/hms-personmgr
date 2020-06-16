@@ -113,7 +113,8 @@ public class BatchJob extends VersionedModel {
     public enum Type {
         PREPARE_CHARGES,
         PROCESS_CHARGES,
-        PROCESS_ERROR_CHARGES
+        PROCESS_ERROR_CHARGES,
+        PROCESS_QUOTA
     }
 
     public enum State {

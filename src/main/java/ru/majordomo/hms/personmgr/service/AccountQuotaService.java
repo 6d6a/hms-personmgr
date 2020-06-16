@@ -67,7 +67,6 @@ public class AccountQuotaService {
     }
 
     public void processQuotaCheck(PersonalAccount account) {
-        logger.debug("Processing processQuotaCheck for account: " + account.getAccountId());
         Plan plan = planManager.findOne(account.getPlanId());
         processQuotaService(account, plan);
     }
