@@ -246,7 +246,7 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
-    public List<String> findAccountIdsByIdNotInAndNotDeleted(List<String> ids) {
+    public List<String> findAccountIdsByActiveAndIdNotInAndNotDeleted(boolean active, List<String> ids) {
         MatchOperation match = match(
                 new Criteria()
                         .andOperator(
@@ -258,7 +258,10 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
                                                         .where("deleted").is(null)
                                         ),
                                 Criteria
-                                        .where("_id").nin(ids)
+                                        .where("_id").nin(ids),
+                                Criteria
+                                        .where("active")
+                                        .is(active)
                         )
         );
 
