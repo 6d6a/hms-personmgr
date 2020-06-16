@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -20,6 +20,7 @@ import ru.majordomo.hms.personmgr.service.AccountQuotaService;
 import ru.majordomo.hms.personmgr.service.scheduler.QuotaScheduler;
 
 import java.util.Optional;
+import java.util.concurrent.Executor;
 
 @Component
 @AllArgsConstructor
@@ -30,7 +31,8 @@ public class AccountQuotaEventListener {
     private final QuotaScheduler scheduler;
     private final PersonalAccountManager personalAccountManager;
     private final BatchJobManager batchJobManager;
-    private ApplicationContext appContext;
+    @Qualifier("quotaThread")
+    private Executor quotaThreadPoolTaskExecutor;
 
     @EventListener
     @Async("quotaThreadPoolTaskExecutor")
@@ -68,7 +70,7 @@ public class AccountQuotaEventListener {
     }
 
     private Boolean isJobStacked() {
-        ThreadPoolTaskExecutor quotaThread = (ThreadPoolTaskExecutor) appContext.getBean("quotaThreadPoolTaskExecutor");
+        ThreadPoolTaskExecutor quotaThread = (ThreadPoolTaskExecutor) quotaThreadPoolTaskExecutor;
         return quotaThread.getThreadPoolExecutor().getQueue().size() <= 0;
     }
 }

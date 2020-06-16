@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.config;
 
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -38,6 +39,7 @@ public class AsyncConfig extends AsyncConfigurerSupport {
     }
 
     @Bean(name = "quotaThreadPoolTaskExecutor")
+    @Qualifier("quotaThread")
     public Executor getQuotaAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(6);
