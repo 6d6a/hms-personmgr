@@ -1,11 +1,14 @@
 package ru.majordomo.hms.personmgr.service;
 
+import com.google.common.net.InternetDomainName;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.xbill.DNS.*;
+import ru.majordomo.hms.personmgr.common.AvailabilityInfo;
 import ru.majordomo.hms.personmgr.config.LostClientConfig;
 import ru.majordomo.hms.personmgr.dto.stat.*;
+import ru.majordomo.hms.personmgr.feign.DomainRegistrarFeignClient;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
@@ -16,6 +19,7 @@ import ru.majordomo.hms.personmgr.model.promotion.Promotion;
 import ru.majordomo.hms.personmgr.repository.AbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PromotionRepository;
+import ru.majordomo.hms.personmgr.service.Rpc.RegRpcClient;
 import ru.majordomo.hms.rc.user.resources.Resource;
 
 import java.math.BigDecimal;
@@ -40,6 +44,8 @@ public class LostClientService {
     private final AccountStatRepository accountStatRepository;
     private final RcUserFeignClient rcUserFeignClient;
     private final FinFeignClient finFeignClient;
+    private final DomainRegistrarFeignClient registrarFeignClient;
+    private final RegRpcClient regRpc;
     private final AccountOwnerManager ownerManager;
     private final AccountNotificationHelper notificationHelper;
     private final LostClientConfig lostClientConfig;
@@ -55,6 +61,8 @@ public class LostClientService {
             AccountStatRepository accountStatRepository,
             RcUserFeignClient rcUserFeignClient,
             FinFeignClient finFeignClient,
+            DomainRegistrarFeignClient registrarFeignClient,
+            RegRpcClient regRpc,
             AccountOwnerManager ownerManager,
             AccountNotificationHelper notificationHelper,
             LostClientConfig lostClientConfig,
@@ -68,6 +76,8 @@ public class LostClientService {
         this.accountStatRepository = accountStatRepository;
         this.rcUserFeignClient = rcUserFeignClient;
         this.finFeignClient = finFeignClient;
+        this.registrarFeignClient = registrarFeignClient;
+        this.regRpc = regRpc;
         this.ownerManager = ownerManager;
         this.notificationHelper = notificationHelper;
         this.lostClientConfig = lostClientConfig;
@@ -262,6 +272,7 @@ public class LostClientService {
                 .add("№")
                 .add("Домен")
                 .add("Делегирован")
+                .add("Зарегистрирован")
                 .add("IP-адреса")
                 .add("Владелец IP")
                 .toString();
@@ -274,6 +285,7 @@ public class LostClientService {
                     new StringJoiner("</td>" + tdOpen, "<tr>" + tdOpen, "</td></tr>")
                             .add(String.valueOf(index) + ".")
                             .add(info.getDomainName())
+                            .add(info.isDelegated() ? "да" : "нет")
                             .add(info.isRegistered() ? "да" : "нет")
                             .add(String.join(", ", info.getARecords()))
                             .add(String.join(", ", info.getHostInfo()))
@@ -285,17 +297,54 @@ public class LostClientService {
         return "<table><thead>" + headRows + "</thead><tbody>" + bodyRows + "</tbody></table>";
     }
 
+    /**
+     * Сбор статистики по отключенным аккаунтам
+     * По всем отключенным аккаунтам забираем домены из rc-user, исключая поддомены
+     * проверяем, что они были зарегистрированы в нашей системе через reg-rpc,
+     * по оставшимся строим объект SiteInfo:
+     * - Доменное имя
+     * - Зарегистрирован
+     * - Делегирован
+     * - А записи
+     * - Имена хостов, на которые в данный момент делегирован домен
+     *
+     * @param date Сбор статистики выполняется за прошедший до этой даты месяц
+     * @return Собранная статистика доменов по отключенным за указанный период аккаунтам
+     * @see SiteInfo
+     */
     private List<SiteInfo> getLostDomainsStat(LocalDate date) {
-        return accountManager.findByActiveAndDeactivatedBetween(false, LocalDateTime.of(date.minusMonths(1), LocalTime.MIN),
-                LocalDateTime.of(date, LocalTime.MAX)).stream().map(rcUserFeignClient::getDomains)
+        List<String> domains = accountManager.findByActiveAndDeactivatedBetween(
+                false,
+                LocalDateTime.of(date.minusMonths(1), LocalTime.MIN),
+                LocalDateTime.of(date, LocalTime.MAX)
+        )
+                .stream()
+                .map(rcUserFeignClient::getDomains)
                 .flatMap(Collection::stream)
-                .filter(d -> d.getParentDomainId() == null)
+                .filter(d -> {  //Исключаем домены 3 уровня и выше
+                    //Добавленные прямо как поддомен
+                    if (d.getParentDomainId() != null) return false;
+
+                    //Либо добавленные в качестве отдельного домена
+                    String topDomainName = d.getName();
+                    try {
+                        InternetDomainName internetDomainName = InternetDomainName.from(d.getName());
+                        topDomainName = IDN.toUnicode(internetDomainName.topPrivateDomain().toString());
+                    } catch (Exception ignored) {
+                    }
+                    return d.getName().equals(topDomainName);
+                })
                 .map(Resource::getName)
+                .collect(Collectors.toList());
+
+        return regRpc.checkDomainsInRegRpc(domains)
+                .stream()
+                .map(IDN::toUnicode)
                 .map(SiteInfo::new)
                 .peek(info -> {
                     List<ARecord> a = getA(IDN.toASCII(info.getDomainName()));
-                    a = a == null ? Collections.emptyList() : a;
-                    info.setRegistered(!a.isEmpty());
+                    a = (a == null ? Collections.emptyList() : a);
+
                     log.info("domain {} a records: {}", info.getDomainName(), a.stream()
                             .map(ARecord::getAddress).map(InetAddress::getHostAddress)
                             .collect(Collectors.joining(", ")));
@@ -304,12 +353,14 @@ public class LostClientService {
                             a.stream()
                                     .map(ARecord::getAddress)
                                     .map(InetAddress::getHostAddress)
-                                    .collect(Collectors.toList()
-                                    )
+                                    .collect(Collectors.toList())
                     );
                 })
                 .peek(i -> {
                     if (i.getARecords().size() > 0) {
+                        i.setDelegated(true);
+                        i.setRegistered(true);
+
                         String firstA = i.getARecords().get(0);
                         InetAddress address = null;
                         try {
@@ -328,9 +379,17 @@ public class LostClientService {
                                 }
                             }
                         }
+                    } else {
+                        try {
+                            AvailabilityInfo availabilityInfo = registrarFeignClient.getAvailabilityInfo(i.getDomainName());
+                            log.info("domain {} availabilityInfo: {}", i.getDomainName(), availabilityInfo);
+                            if (availabilityInfo != null) {
+                                i.setRegistered(!availabilityInfo.getFree());
+                            }
+                        } catch (Exception ignore) {
+                        }
                     }
                 })
-//                .peek(System.out::println)
                 .collect(Collectors.toList());
     }
 
