@@ -17,6 +17,7 @@ public class RegRpcClient {
     private static final String DOMAIN_CONTROLLER = "domains.";
     private static final String GET_CERTIFICATE_METHOD = DOMAIN_CONTROLLER + "get_certificate";
     private static final String GET_DOMAINS_METHOD = DOMAIN_CONTROLLER + "get_domains";
+    private static final String CHECK_DOMAINS_IN_REG_RPC = DOMAIN_CONTROLLER + "check_domains_in_system_ever_for_hms";
 
     private static final String CLIENTS_GET_CLIENT_INFO = "clients.get_client_info";
 
@@ -79,5 +80,18 @@ public class RegRpcClient {
 
     public BaseRpcResponse setPromocodeUsed(String code) {
         return newConnection().call(BaseRpcResponse.class, "clients.set_promocode_used", code, "hms");
+    }
+
+    /**
+     * Отправляет список доменов в reg-rpc с целью определить, обрабатывались ли они через нашу систему
+     * Прошедшие проверку учитываются в статистике по отключенным доменам
+     *
+     * @param domains Список доменов на "проверку"
+     * @return Список доменов (в punycode), прошедших "проверку". Только они будут учтены в статистике
+     * @see ru.majordomo.hms.personmgr.service.LostClientService#getLostDomainsStat(java.time.LocalDate)
+     */
+    public List<String> checkDomainsInRegRpc(List<String> domains) {
+        List<String> result = newConnection().call(CheckDomainsInRegRpcResponse.class, CHECK_DOMAINS_IN_REG_RPC, domains).getDomains();
+        return result != null ? result : new ArrayList<>();
     }
 }

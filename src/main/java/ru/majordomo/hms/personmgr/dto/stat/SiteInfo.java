@@ -9,6 +9,7 @@ import java.util.List;
 public class SiteInfo {
     private final String domainName;
     private boolean registered;
+    private boolean delegated;
     private final List<String> aRecords = new ArrayList<>();
     private final List<String> hostInfo = new ArrayList<>();
 }
