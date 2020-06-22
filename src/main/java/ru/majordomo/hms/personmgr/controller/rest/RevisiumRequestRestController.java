@@ -161,6 +161,8 @@ public class RevisiumRequestRestController extends CommonRestController {
 
         PersonalAccount account = personalAccountManager.findOne(accountId);
 
+        accountHelper.checkIsAdditionalServiceAllowed(account, Feature.REVISIUM);
+
         RevisiumRequestService revisiumRequestService = revisiumRequestServiceRepository
                 .findByPersonalAccountIdAndId(accountId, revisiumRequestServiceId);
 

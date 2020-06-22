@@ -248,10 +248,6 @@ public class AccountNotificationEventListener {
                     apiName = "MajordomoHmsProdvigenie";
                     break;
 
-                case 40:
-                    apiName = "MajordomoHmsProtectSite";
-                    break;
-
                 case 45:
                     apiName = "MajordomoHmsPartners";
                     break;
