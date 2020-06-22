@@ -677,7 +677,6 @@ public class AccountHelper {
                 break;
 
             case REDIRECT:
-            case REVISIUM:
             case GOOGLE_3000:
             case DOMAIN_TRANSFER_RU_RF:
                 if (!plan.isDomainAllowed()) {
@@ -690,6 +689,9 @@ public class AccountHelper {
                     throw new ParameterValidationException("Заказ услуги недоступен на вашем тарифном плане");
                 }
                 break;
+
+            case REVISIUM:
+                throw new ParameterValidationException("Заказ услуги более недоступен");
         }
     }
 
