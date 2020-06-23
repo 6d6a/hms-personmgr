@@ -715,7 +715,7 @@ public class AccountHelper {
         if (plan.getPlanProperties() instanceof VirtualHostingPlanProperties) {
             VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
             if (CollectionUtils.isEmpty(planProperties.getAllowedLanguages().get(Language.PHP))) {
-                if (plan.getAllowedFeature().contains(Feature.DEDICATED_APP_SERVICE)) {
+                if (!plan.getProhibitedResourceTypes().contains(ResourceType.DEDICATED_APP_SERVICE)) {
                     if (dedicatedAppServiceHelper.getServicesWithStaffService(account.getId()).stream()
                             .noneMatch(das -> das.getService() != null && das.getService().getTemplate() instanceof ApplicationServer
                                     && ((ApplicationServer) das.getService().getTemplate()).getLanguage() == ApplicationServer.Language.PHP)) {
