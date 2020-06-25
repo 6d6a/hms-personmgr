@@ -91,11 +91,11 @@ public class WebSiteResourceRestController extends CommonRestController {
         PersonalAccount account = accountManager.findOne(accountId);
 
         if (!account.isActive() || account.isPreorder()) {
-            throw new ParameterValidationException("Аккаунт неактивен. Создание сайта невозможно.");
+            throw new ParameterValidationException("Аккаунт неактивен. Изменение сайта невозможно.");
         }
 
         if (account.isFreeze()) {
-            throw new ParameterValidationException("Аккаунт заморожен. Создание сайта невозможно.");
+            throw new ParameterValidationException("Аккаунт заморожен. Изменение сайта невозможно.");
         }
 
         if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {

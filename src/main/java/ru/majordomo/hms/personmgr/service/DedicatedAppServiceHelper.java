@@ -259,14 +259,14 @@ public class DedicatedAppServiceHelper {
             throw new InternalApiException("Не удалось получить сервер на котором находится аккаунт");
         }
 
-        List<Service> services = rcStaffFeignClient.getServicesByAccountIdAndServerIdAndTemplateId(account.getId(), serverId, templateId);
-
         ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.DEDICATED_APP_SERVICE, true);
         if (servicePlan == null) {
             logger.error("Cannot found ServicePlan for DEDICATED_APP_SERVICE, database is wrong");
             throw new InternalApiException();
         }
 
+        List<Service> services = rcStaffFeignClient.getServicesByAccountIdAndServerIdAndTemplateId(account.getId(), serverId, templateId);
+        services = services.stream().filter(service -> serverId.equals(service.getServerId())).collect(Collectors.toList());
 
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(account.getId());
@@ -417,12 +417,12 @@ public class DedicatedAppServiceHelper {
      */
     @Nullable
     private ProcessingBusinessAction cancelDedicatedAppService(@NonNull PersonalAccount account, @NonNull DedicatedAppService dedicatedAppService) throws ParameterValidationException, ResourceNotFoundException {
-
-        List<ru.majordomo.hms.rc.staff.resources.Service> staffServices =
-                rcStaffFeignClient.getServicesByAccountIdAndTemplateId(
-                        account.getId(),
-                        dedicatedAppService.getTemplateId()
-                );
+        String serverId = getServerId(account.getId());
+        if (StringUtils.isEmpty(serverId)) {
+            throw new InternalApiException();
+        }
+        List<Service> staffServices = rcStaffFeignClient.getServicesByAccountIdAndServerIdAndTemplateId(account.getId(), serverId, dedicatedAppService.getTemplateId());
+        staffServices =  staffServices.stream().filter(service -> serverId.equals(service.getServerId())).collect(Collectors.toList()); // на всякий случай
 
         ProcessingBusinessAction action = null;
 
