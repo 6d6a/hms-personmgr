@@ -2,7 +2,6 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -19,6 +18,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.event.account.AntiSpamServiceSwitchEvent;
 import ru.majordomo.hms.personmgr.event.account.UserDisabledServiceEvent;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -185,7 +185,7 @@ public class AccountServiceRestController extends CommonRestController {
         }
 
         if (feature == Feature.ANTI_SPAM) {
-            resourceHelper.switchAntiSpamForMailboxes(account, enabled);
+            publisher.publishEvent(new AntiSpamServiceSwitchEvent(account.getId(), enabled));
         }
 
         if (feature == Feature.FREEZING) {

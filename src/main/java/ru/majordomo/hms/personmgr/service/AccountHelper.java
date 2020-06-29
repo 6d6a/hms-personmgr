@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.config.TestPeriodConfig;
-import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountWasEnabled;
 import ru.majordomo.hms.personmgr.exception.*;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
@@ -35,7 +34,6 @@ import ru.majordomo.hms.personmgr.model.plan.PlanFallback;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.model.promocode.AccountPromocode;
 import ru.majordomo.hms.personmgr.model.promocode.Promocode;
-import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromocodeRepository;
 import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
@@ -68,7 +66,6 @@ public class AccountHelper {
     private final AccountStatRepository accountStatRepository;
     private final AccountStatHelper accountStatHelper;
     private final AccountNoticeManager accountNoticeManager;
-    private final ResourceArchiveService resourceArchiveService;
     private final TestPeriodConfig testPeriodConfig;
     private final PlanFallbackRepository planFallbackRepository;
     private final ResourceChecker resourceChecker;
@@ -91,7 +88,6 @@ public class AccountHelper {
             AccountStatHelper accountStatHelper,
             AccountStatRepository accountStatRepository,
             AccountNoticeManager accountNoticeManager,
-            ResourceArchiveService resourceArchiveService,
             TestPeriodConfig testPeriodConfig,
             PlanFallbackRepository planFallbackRepository,
             ResourceChecker resourceChecker,
@@ -112,7 +108,6 @@ public class AccountHelper {
         this.accountStatHelper = accountStatHelper;
         this.accountStatRepository = accountStatRepository;
         this.accountNoticeManager = accountNoticeManager;
-        this.resourceArchiveService = resourceArchiveService;
         this.testPeriodConfig = testPeriodConfig;
         this.planFallbackRepository = planFallbackRepository;
         this.resourceChecker = resourceChecker;
@@ -532,39 +527,6 @@ public class AccountHelper {
             accountManager.setCreditActivationDate(account.getId(), now);
             history.save(account, "Установлена дата активации кредита на " + now);
         }
-    }
-
-    /*
-     *  Ставит active=false в accountService
-     *  Если это доп.квота, то кидает ивент на пересчет квоты
-     *  Остальные услуги, если требуеются  нужно добавлять индивидуально
-     */
-
-    public void disableAdditionalService(AccountService accountService) {
-        PersonalAccount account = accountManager.findOne(accountService.getPersonalAccountId());
-
-        if (accountService.getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME) {
-            accountServiceHelper.disableAccountService(accountService);
-        } else {
-            accountServiceHelper.disableAccountService(account, accountService.getServiceId());
-        }
-
-        String paymentServiceOldId = accountService.getPaymentService().getOldId();
-        if (paymentServiceOldId.equals(ADDITIONAL_QUOTA_100_SERVICE_ID)) {
-            account.setAddQuotaIfOverquoted(false);
-            publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
-        } else if (paymentServiceOldId.equals(ANTI_SPAM_SERVICE_ID)) {
-            try {
-                resourceHelper.switchAntiSpamForMailboxes(account, false);
-            } catch (Exception e) {
-                e.printStackTrace();
-                logger.error("Switch account Mailboxes anti-spam failed");
-            }
-        } else if (paymentServiceOldId.equals(LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID)) {
-            resourceArchiveService.processAccountServiceDelete(accountService);
-        }
-
-        history.save(account, "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств.");
     }
 
     public Plan getArchivalFallbackPlan() {

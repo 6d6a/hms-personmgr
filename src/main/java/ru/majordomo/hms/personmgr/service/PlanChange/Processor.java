@@ -794,7 +794,7 @@ public abstract class Processor {
 
     /**
      * Абонемент должен быть, иначе сломалось бы на
-     * @see Processor().getPlanChangeAgreement()
+     * @see Processor#getPlanChangeAgreement()
      */
     final void buyNotInternalAbonement() {
         List<Abonement> abonements = new ReplaceAbonementAdviceBehavior(

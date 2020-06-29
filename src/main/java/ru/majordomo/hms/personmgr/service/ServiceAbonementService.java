@@ -415,7 +415,7 @@ public class ServiceAbonementService { //dis name
         ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(serviceAbonement.getAbonement().getType(), account);
 
         if (plan == null) {
-            throw new ResourceNotFoundException("ServicePlan not found");
+            throw new ResourceNotFoundException("[ServiceAbonementService#getServicePlan] ServicePlan not found");
         }
 
         return plan;
