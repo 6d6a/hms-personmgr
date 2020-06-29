@@ -28,7 +28,6 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequest;
 import ru.majordomo.hms.personmgr.model.charge.ChargeRequestItem;
 import ru.majordomo.hms.personmgr.model.charge.Status;
-import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.DiscountedService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
@@ -182,7 +181,11 @@ public class ChargeProcessor {
                             return chargeResult;
                         case "ADDITIONAL_SERVICE":
                         default:
-                            accountHelper.disableAdditionalService(accountService);
+                            accountServiceHelper.completeDisableAdditionalService(
+                                    account,
+                                    accountService,
+                                    "Услуга " + accountService.getPaymentService().getName() + " отключена в связи с нехваткой средств"
+                            );
                             additionalServicesDisabled = true;
                     }
                     chargeRequestItem.setStatus(Status.SKIPPED);

@@ -10,6 +10,7 @@ import org.springframework.security.web.servletapi.SecurityContextHolderAwareReq
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.StorageType;
+import ru.majordomo.hms.personmgr.event.account.AntiSpamServiceSwitchEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
@@ -19,7 +20,6 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
-import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.model.revisium.RevisiumRequestService;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
@@ -109,7 +109,7 @@ public class AccountServiceAbonementRestController extends CommonRestController 
 
                 break;
             case ANTI_SPAM:
-                resourceHelper.switchAntiSpamForMailboxes(account, false);
+                publisher.publishEvent(new AntiSpamServiceSwitchEvent(account.getId(), false));
 
                 break;
             case REVISIUM:

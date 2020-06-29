@@ -11,7 +11,6 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.rc.user.resources.*;
 
-import javax.annotation.Nonnull;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -39,14 +38,13 @@ public class ResourceHelper {
         }
     }
 
-    public void switchAntiSpamForMailboxes(PersonalAccount account, Boolean state) {
-
-        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(account.getId());
+    public void switchAntiSpamForMailboxes(String accountId, Boolean state) {
+        Collection<Mailbox> mailboxes = rcUserFeignClient.getMailboxes(accountId);
 
         for (Mailbox mailbox : mailboxes) {
             SimpleServiceMessage message = new SimpleServiceMessage();
             message.setParams(new HashMap<>());
-            message.setAccountId(account.getId());
+            message.setAccountId(accountId);
             message.addParam("resourceId", mailbox.getId());
             message.addParam("antiSpamEnabled", state);
 
@@ -54,7 +52,7 @@ public class ResourceHelper {
 
             String historyMessage = "Отправлена заявка на" + (state ? "включение" : "отключение") + "анти-спама у почтового ящика '"
                     + mailbox.getFullName() + "' в связи с " + (state ? "включением" : "отключением") + " услуги";
-            history.save(account, historyMessage);
+            history.save(accountId, historyMessage);
         }
     }
 

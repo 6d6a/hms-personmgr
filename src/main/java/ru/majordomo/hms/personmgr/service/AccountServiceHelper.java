@@ -2,7 +2,6 @@ package ru.majordomo.hms.personmgr.service;
 
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
@@ -14,12 +13,17 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
+import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
+import ru.majordomo.hms.personmgr.event.account.AntiSpamServiceSwitchEvent;
 import ru.majordomo.hms.personmgr.event.account.DedicatedAppServiceDeleteEvent;
+import ru.majordomo.hms.personmgr.event.account.RedirectWasDisabledEvent;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
+import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
@@ -27,13 +31,13 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
-import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
+import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
+import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PromocodeActionRepository;
 import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 
 import javax.annotation.Nullable;
@@ -52,7 +56,10 @@ public class AccountServiceHelper {
     private final AccountPromotionManager accountPromotionManager;
     private final DiscountFactory discountFactory;
     private final ApplicationEventPublisher publisher;
-    private final PromocodeActionRepository promocodeActionRepository;
+    private final ResourceArchiveService resourceArchiveService;
+    private final AccountHistoryManager history;
+    private final AccountStatHelper accountStatHelper;
+    private final AccountRedirectServiceRepository accountRedirectServiceRepository;
 
     public void deletePlanServiceIfExists(PersonalAccount account, Plan plan) {
         if (accountHasService(account, plan.getServiceId())) {
@@ -426,6 +433,112 @@ public class AccountServiceHelper {
         ServicePlan plan = servicePlanRepository.findOneByFeatureAndActive(feature, true);
 
         return abonementManager.findByPersonalAccountIdAndAbonementIdIn(account.getId(), plan.getAbonementIds());
+    }
+
+    /**
+     * @param accountService Услуга, подключенная на аккаунт
+     * @return Является ли она дополнительной услугой такой как "дисковое пространство", "СМС" и т.п.
+     */
+    public boolean isPaymentServiceTypeAdditional(AccountService accountService) {
+        if (accountService == null) return false;
+        return getPaymentServiceType(accountService).equals("ADDITIONAL_SERVICE");
+    }
+
+    /**
+     * @param account Аккаунт
+     * @return Список всех подключенных услуг с абонементом
+     */
+    public List<AccountServiceAbonement> getAllAccountServiceAbonements(PersonalAccount account) {
+        return abonementManager.findAllByPersonalAccountId(account.getId());
+    }
+
+    /**
+     * Отключить все дополнительные услуги с ежедневным списанием
+     * @param account Аккаунт
+     */
+    public void completeDisableAllAdditionalServices(PersonalAccount account, String reason) {
+        account.getServices()
+                .stream()
+                .filter(this::isPaymentServiceTypeAdditional)
+                .forEach(s -> this.completeDisableAdditionalService(account, s,
+                        "Услуга " + s.getPaymentService().getName() + " отключена: " + reason));
+    }
+
+    /**
+     * Удалить все абонементы дополнительных услуг
+     * @param account Аккаунт
+     */
+    public void completeDisableAllAdditionalServiceAbonements(PersonalAccount account) {
+        abonementManager.findAllByPersonalAccountId(account.getId())
+                .forEach(ab -> this.completeDisableAdditionalServiceAbonement(account, ab));
+    }
+
+    /**
+     * Отключить указанную дополнительную услугу
+     *  Ставит active=false в accountService
+     *  Если это доп.квота, то кидает event на пересчет квоты
+     *  Остальные услуги, если требуются, нужно добавлять индивидуально
+     * @param account Аккаунт
+     * @param accountService Дополнительная услуга
+     * @param historyMessage Кастомное сообщение в историю аккаунта
+     */
+    public void completeDisableAdditionalService(PersonalAccount account, AccountService accountService, String historyMessage) {
+        if (accountService.getPaymentService().getPaymentType() == ServicePaymentType.ONE_TIME) {
+            disableAccountService(accountService);
+        } else {
+            disableAccountService(account, accountService.getServiceId());
+        }
+
+        switch (accountService.getPaymentService().getOldId()) {
+            case ADDITIONAL_QUOTA_100_SERVICE_ID:
+                account.setAddQuotaIfOverquoted(false);
+                publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
+                break;
+            case ANTI_SPAM_SERVICE_ID:
+                publisher.publishEvent(new AntiSpamServiceSwitchEvent(account.getId(), false));
+                break;
+            case LONG_LIFE_RESOURCE_ARCHIVE_SERVICE_ID:
+                resourceArchiveService.processAccountServiceDelete(accountService);
+                break;
+        }
+
+        if (historyMessage != null) {
+            history.save(account, historyMessage);
+        } else {
+            history.save(account, "Услуга " + accountService.getPaymentService().getName() + " отключена");
+        }
+    }
+
+    /**
+     * Удалить указанный абонемент на дополнительную услугу
+     * @param account Аккаунт
+     * @param accountServiceAbonement Абонемент на услугу
+     */
+    public void completeDisableAdditionalServiceAbonement(PersonalAccount account, AccountServiceAbonement accountServiceAbonement) {
+        abonementManager.delete(accountServiceAbonement);
+
+        ServicePlan servicePlan = getServicePlanForFeatureByAccount(accountServiceAbonement.getAbonement().getType(), account);
+        if (servicePlan == null) {
+            throw new ResourceNotFoundException("[AccountServiceHelper#disableAdditionalServiceAbonement] ServicePlan not found");
+        }
+
+        switch (servicePlan.getFeature()) {
+            case REDIRECT:
+                RedirectAccountService redirectAccountService = accountRedirectServiceRepository.findByAccountServiceAbonementId(accountServiceAbonement.getId());
+                publisher.publishEvent(new RedirectWasDisabledEvent(redirectAccountService.getPersonalAccountId(), redirectAccountService.getFullDomainName()));
+                redirectAccountService.setActive(false);
+                accountRedirectServiceRepository.save(redirectAccountService);
+                break;
+            case ANTI_SPAM:
+                publisher.publishEvent(new AntiSpamServiceSwitchEvent(account.getId(), false));
+                break;
+        }
+
+        Map<String, String> statData = new HashMap<>();
+        statData.put("abonementId", accountServiceAbonement.getAbonementId());
+        statData.put("expires", accountServiceAbonement.getExpired().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        statData.put("disabled", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        accountStatHelper.add(account.getId(), AccountStatType.VIRTUAL_HOSTING_SERVICE_ABONEMENT_DELETE, statData);
     }
 
     public Map<AccountService, BigDecimal> getDailyServicesToCharge(PersonalAccount account, LocalDate chargeDate) {

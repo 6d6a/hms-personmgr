@@ -88,7 +88,11 @@ public class Factory {
                 processor = new RegularToRegularDecline(account, refund);
             }
         } else {
-            if (currentPlan.isAbonementOnly() && newPlan.isAbonementOnly()) {
+            if (newPlan.isPartnerPlan()) {
+                processor = currentPlan.isAbonementOnly() ?
+                        new AbonementOnlyToPartner(account, newPlan) :
+                        new RegularToPartner(account, newPlan);
+            } else if (currentPlan.isAbonementOnly() && newPlan.isAbonementOnly()) {
                 processor = new AbonementOnlyToAbonementOnly(account, newPlan);
             } else if (currentPlan.isAbonementOnly() && !newPlan.isAbonementOnly()) {
                 processor = new AbonementOnlyToRegular(account, newPlan);

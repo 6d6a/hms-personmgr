@@ -40,13 +40,17 @@ public interface AccountHistoryManager {
         save(account, message, "service");
     }
 
-    default void save(PersonalAccount account, String message, String operator) {
-        save(account.getId(), message, operator);
-    }
-
     void save(String personalAccountId, String message, String operator);
+
+    default void save(String personalAccountId, String message) {
+        save(personalAccountId, message, "service");
+    }
 
     default void save(PersonalAccount account, String message) {
         save(account.getId(), message, "service");
+    }
+
+    default void save(PersonalAccount account, String message, String operator) {
+        save(account.getId(), message, operator);
     }
 }
