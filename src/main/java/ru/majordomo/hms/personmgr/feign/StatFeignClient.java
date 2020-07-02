@@ -17,4 +17,7 @@ public interface StatFeignClient {
 
     @RequestMapping(method = RequestMethod.POST, value = "/collector/user-disabled-service-after-notification/increment", consumes = "application/json")
     void userDisabledServiceAfterNotificationIncrement(Map<String, Object> body);
+
+    @RequestMapping(method = RequestMethod.POST, value = "/collector/unsubscribe", consumes = "application/json")
+    void saveUnsubscribeStat(Map<String, String> body);
 }
