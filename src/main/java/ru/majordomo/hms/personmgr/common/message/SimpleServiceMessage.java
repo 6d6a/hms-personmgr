@@ -1,6 +1,8 @@
 package ru.majordomo.hms.personmgr.common.message;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.annotation.Nullable;
@@ -8,7 +10,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+@Data
 @NoArgsConstructor
+@AllArgsConstructor
 public class SimpleServiceMessage {
     private String operationIdentity;
     private String actionIdentity;
@@ -16,46 +20,22 @@ public class SimpleServiceMessage {
     private String objRef;
     private Map<String, Object> params = new HashMap<>();
 
-    public String getOperationIdentity() {
-        return operationIdentity;
-    }
-
-    public void setOperationIdentity(String operationIdentity) {
-        this.operationIdentity = operationIdentity;
-    }
-
-    public String getActionIdentity() {
-        return actionIdentity;
-    }
-
-    public void setActionIdentity(String actionIdentity) {
-        this.actionIdentity = actionIdentity;
-    }
-
-    public String getObjRef() {
-        return objRef;
-    }
-
-    public void setObjRef(String objRef) {
-        this.objRef = objRef;
-    }
-
     public Object getParam(String param) {
         return params.get(param);
-    }
-
-    public Map<String, Object> getParams() {
-        return params;
-    }
-
-    public void setParams(Map<String, Object> params) {
-        this.params = params;
     }
 
     public SimpleServiceMessage(String accountId, @Nullable String operationIdentity, @Nullable String actionIdentity) {
         this.operationIdentity = operationIdentity;
         this.actionIdentity = actionIdentity;
         this.accountId = accountId;
+    }
+
+    public SimpleServiceMessage(SimpleServiceMessage message) {
+        accountId = message.getAccountId();
+        actionIdentity = message.getActionIdentity();
+        operationIdentity = message.getOperationIdentity();
+        objRef = message.getObjRef();
+        params.putAll(message.getParams());
     }
 
     public void addParams(Map<String, Object> params) {
@@ -75,14 +55,6 @@ public class SimpleServiceMessage {
         if (params != null) {
             params.remove(key);
         }
-    }
-
-    public String getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(String accountId) {
-        this.accountId = accountId;
     }
 
     public String toJson() {

@@ -8,12 +8,11 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.BusinessOperationType;
-import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AccountCreatedEvent;
 import ru.majordomo.hms.personmgr.importing.DBImportService;
@@ -414,6 +413,31 @@ public class CommonAmqpController {
                                         amqpSender.send(WEBSITE_UPDATE, APPSCAT_ROUTING_KEY, message);
                                     } catch (Exception e) {
                                         e.printStackTrace();
+                                    }
+                                } else if (operation.getType() == BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION) {
+                                    if (State.PROCESSED.equals(state)) {
+                                        ExtendedActionStage stage = businessHelper.getStage(operation, ExtendedActionStage.class);
+                                        if (EnumSet.of(ExtendedActionStage.BEFORE_FULL_SHELLUPDATE, ExtendedActionStage.BEFORE_FULL_SHELL).contains(stage)) {
+                                            SimpleServiceMessage actionMessage = new SimpleServiceMessage(operation.getPersonalAccountId(), operation.getId(), null);
+                                            String newAction;
+                                            if (stage == ExtendedActionStage.BEFORE_FULL_SHELL) {
+                                                stage = ExtendedActionStage.FULL_SHELL;
+                                                newAction = ExtendedActionConstants.SHELL;
+                                            } else {
+                                                stage = ExtendedActionStage.FULL_SHELLUPDATE;
+                                                newAction = ExtendedActionConstants.SHELLUPDATE;
+                                            }
+                                            businessHelper.setStage(operation.getId(), stage);
+                                            actionMessage.addParam(ExtendedActionConstants.EXTENDED_ACTION_KEY, newAction);
+                                            actionMessage.addParam(RESOURCE_ID_KEY, operation.getParam(RESOURCE_ID_KEY));
+                                            businessHelper.buildActionByOperation(BusinessActionType.WEB_SITE_UPDATE_RC, actionMessage, operation);
+                                        } else {
+                                            operation.setState(State.PROCESSED);
+                                            processingBusinessOperationRepository.save(operation);
+                                        }
+                                    } else if (State.ERROR.equals(state)){
+                                        operation.setState(State.ERROR);
+                                        processingBusinessOperationRepository.save(operation);
                                     }
                                 }
                             });

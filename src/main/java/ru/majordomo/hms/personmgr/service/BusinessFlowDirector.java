@@ -1,13 +1,10 @@
 package ru.majordomo.hms.personmgr.service;
 
 import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -18,7 +15,6 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
-
 import javax.annotation.Nullable;
 
 import static ru.majordomo.hms.personmgr.common.Utils.cleanBooleanSafe;
@@ -114,7 +110,7 @@ public class BusinessFlowDirector {
                             if (businessOperation.getType() != BusinessOperationType.ACCOUNT_CREATE
                                     && businessOperation.getType() != BusinessOperationType.APP_INSTALL
                                     && businessOperation.getType() != BusinessOperationType.ACCOUNT_TRANSFER
-                                    && businessOperation.getType() != BusinessOperationType.APP_INSTALL
+                                    && businessOperation.getType() != BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION
                                     && businessOperation.getType() != BusinessOperationType.IMPORT_FROM_BILLINGDB
                             ) {
                                 businessOperation.setState(businessAction.getState());
