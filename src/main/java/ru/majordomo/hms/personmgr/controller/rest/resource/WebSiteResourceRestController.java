@@ -7,10 +7,7 @@ import org.springframework.security.web.servletapi.SecurityContextHolderAwareReq
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.BusinessOperationType;
-import ru.majordomo.hms.personmgr.common.Constants;
-import ru.majordomo.hms.personmgr.common.ResourceType;
+import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.*;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -21,7 +18,6 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import java.util.Collections;
-import java.util.HashMap;
 
 import static ru.majordomo.hms.personmgr.common.FieldRoles.WEB_SITE_PATCH;
 import static ru.majordomo.hms.personmgr.common.FieldRoles.WEB_SITE_POST;
@@ -107,18 +103,35 @@ public class WebSiteResourceRestController extends CommonRestController {
         resourceChecker.checkResource(account, ResourceType.WEB_SITE, message.getParams());
 
         ProcessingBusinessOperation operation;
+        SimpleServiceMessage actionMessage = message;
 
-        String extendedAction = MapUtils.getString(message.getParams(), Constants.EXTENDED_ACTION_KEY, "");
-        if (!extendedAction.isEmpty()) {
-            operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION, message, Collections.singletonMap(Constants.EXTENDED_ACTION_KEY, extendedAction));
-            if (operation == null) {
-                throw new ResourceIsLockedException();
-            }
-        } else {
-            operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE, message);
+        String extendedAction = MapUtils.getString(message.getParams(), ExtendedActionConstants.EXTENDED_ACTION_KEY, "");
+        switch (extendedAction) {
+            case "":
+                operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE, message);
+                break;
+
+            case ExtendedActionConstants.LOAD_INSTALL_SHELL:
+                actionMessage = new SimpleServiceMessage(message);
+                actionMessage.addParam(ExtendedActionConstants.EXTENDED_ACTION_KEY, ExtendedActionConstants.LOAD_INSTALL);
+                operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION, message, Collections.singletonMap(Constants.EXTENDED_ACTION_KEY, extendedAction));
+                businessHelper.setStage(operation.getId(), ExtendedActionStage.BEFORE_FULL_SHELL);
+                break;
+
+            case ExtendedActionConstants.LOAD_INSTALL_SHELLUPDATE:
+                actionMessage = new SimpleServiceMessage(message);
+                actionMessage.addParam(ExtendedActionConstants.EXTENDED_ACTION_KEY, ExtendedActionConstants.LOAD_INSTALL);
+                operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION, message, Collections.singletonMap(Constants.EXTENDED_ACTION_KEY, extendedAction));
+                businessHelper.setStage(operation.getId(), ExtendedActionStage.BEFORE_FULL_SHELLUPDATE);
+                break;
+
+            default:
+                operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION, message, Collections.singletonMap(Constants.EXTENDED_ACTION_KEY, extendedAction));
+                if (operation == null) {
+                    throw new ResourceIsLockedException();
+                }
         }
-        ProcessingBusinessAction businessAction = businessHelper.buildActionByOperation(BusinessActionType.WEB_SITE_UPDATE_RC, message, operation);;
-
+        ProcessingBusinessAction businessAction = businessHelper.buildActionByOperation(BusinessActionType.WEB_SITE_UPDATE_RC, actionMessage, operation);;
 
         history.save(accountId, "Поступила заявка на обновление сайта (Id: " + resourceId  + ", имя: " + message.getParam("name") + ")", request);
 
