@@ -114,19 +114,19 @@ public class WebSiteResourceRestController extends CommonRestController {
             case ExtendedActionConstants.LOAD_INSTALL_SHELL:
                 actionMessage = new SimpleServiceMessage(message);
                 actionMessage.addParam(ExtendedActionConstants.EXTENDED_ACTION_KEY, ExtendedActionConstants.LOAD_INSTALL);
-                operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION, message, Collections.singletonMap(Constants.EXTENDED_ACTION_KEY, extendedAction));
+                operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION, message, Collections.singletonMap(ExtendedActionConstants.EXTENDED_ACTION_KEY, extendedAction));
                 businessHelper.setStage(operation.getId(), ExtendedActionStage.BEFORE_FULL_SHELL);
                 break;
 
             case ExtendedActionConstants.LOAD_INSTALL_SHELLUPDATE:
                 actionMessage = new SimpleServiceMessage(message);
                 actionMessage.addParam(ExtendedActionConstants.EXTENDED_ACTION_KEY, ExtendedActionConstants.LOAD_INSTALL);
-                operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION, message, Collections.singletonMap(Constants.EXTENDED_ACTION_KEY, extendedAction));
+                operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION, message, Collections.singletonMap(ExtendedActionConstants.EXTENDED_ACTION_KEY, extendedAction));
                 businessHelper.setStage(operation.getId(), ExtendedActionStage.BEFORE_FULL_SHELLUPDATE);
                 break;
 
             default:
-                operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION, message, Collections.singletonMap(Constants.EXTENDED_ACTION_KEY, extendedAction));
+                operation = businessHelper.buildOperation(BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION, message, Collections.singletonMap(ExtendedActionConstants.EXTENDED_ACTION_KEY, extendedAction));
                 if (operation == null) {
                     throw new ResourceIsLockedException();
                 }
