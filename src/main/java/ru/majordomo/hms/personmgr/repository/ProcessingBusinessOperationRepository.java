@@ -20,6 +20,7 @@ public interface ProcessingBusinessOperationRepository extends MongoRepository<P
         QuerydslPredicateExecutor<ProcessingBusinessOperation> {
 
     Page<ProcessingBusinessOperation> findByPersonalAccountId(String accountId, Pageable pageable);
+    Page<ProcessingBusinessOperation> findByPersonalAccountIdAndTypeNot(String accountId, BusinessOperationType type, Pageable pageable);
 
     @Nullable
     ProcessingBusinessOperation findByIdAndPersonalAccountId(String id, String accountId);
