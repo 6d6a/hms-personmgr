@@ -494,7 +494,7 @@ public class AccountServiceHelper {
         switch (accountService.getPaymentService().getOldId()) {
             case ADDITIONAL_QUOTA_100_SERVICE_ID:
                 account.setAddQuotaIfOverquoted(false);
-                accountManager.setAddQuotaIfOverquoted(account.getId(), false);
+//                accountManager.setAddQuotaIfOverquoted(account.getId(), false); //TODO Раскомментировать
                 publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
                 break;
             case ANTI_SPAM_SERVICE_ID:

@@ -129,7 +129,7 @@ public class AccountQuotaService {
                 //TODO Чтобы применить новую логику по "Доп. дисковому пространству"
                 canAddQuota = true;//Удалить это
 
-                //Раскомментировать это и поправить списание в AccountServiceHelper#getDailyServicesToCharge:566
+                //Раскомментировать это и поправить: AccountServiceHelper#getDailyServicesToCharge:566, AccountServiceHelper#completeDisableAdditionalService:497
                 /*try {
                     BigDecimal quotaServiceFullCost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), quotaPaymentService)
                             .multiply(BigDecimal.valueOf(newAdditionalQuotaCount));
