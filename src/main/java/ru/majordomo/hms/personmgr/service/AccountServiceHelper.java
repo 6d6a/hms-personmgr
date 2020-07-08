@@ -562,7 +562,8 @@ public class AccountServiceHelper {
                         && (isRegularAccountServiceNeedDailyCharge(accountService, chargeDate)))
                 .collect(Collectors.toMap(
                         item -> item,
-                        item -> this.getServiceCostDependingOnDiscount(account.getId(), item)
+                        item -> this.getServiceCostDependingOnDiscount(account.getId(), item.getPaymentService())
+//                        item -> this.getServiceCostDependingOnDiscount(account.getId(), item) //TODO Заменить верхнюю строчку на эту
                 )).entrySet().stream()
                 .filter(item -> item.getValue().compareTo(BigDecimal.ZERO) > 0)
                 //сортируем в порядке убывания paymentService.chargePriority

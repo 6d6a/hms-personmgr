@@ -126,7 +126,11 @@ public class AccountQuotaService {
 
             //Проверяем, что можем добавить квоту, и что у клиента достаточно средств для оплаты 1 дня услуги
             if (account.isAddQuotaIfOverquoted() && planCanAddQuotaIfOverquoted) {
-                try {
+                //TODO Чтобы применить новую логику по "Доп. дисковому пространству"
+                canAddQuota = true;//Удалить это
+
+                //Раскомментировать это и поправить списание в AccountServiceHelper#getDailyServicesToCharge:566
+                /*try {
                     BigDecimal quotaServiceFullCost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), quotaPaymentService)
                             .multiply(BigDecimal.valueOf(newAdditionalQuotaCount));
 
@@ -137,7 +141,7 @@ public class AccountQuotaService {
                 } catch (Exception e) {
                     logger.info("[processQuotaService] Cant't add more quota, account: {}, current: {}, limit: {}, servicesCount {} -> {}, message: {}",
                             account.getId(), currentQuotaUsed, planQuotaKBBaseLimit * 1024, currentAdditionalQuotaCount, newAdditionalQuotaCount, e.getMessage());
-                }
+                }*/
             }
 
             if (canAddQuota) {
