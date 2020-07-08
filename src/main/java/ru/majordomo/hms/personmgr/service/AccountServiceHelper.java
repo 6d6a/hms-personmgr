@@ -24,6 +24,7 @@ import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.manager.AbonementManager;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
+import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
@@ -50,6 +51,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.*;
 public class AccountServiceHelper {
     private final AccountServiceRepository accountServiceRepository;
     private final PlanManager planManager;
+    private final PersonalAccountManager accountManager;
     private final PaymentServiceRepository serviceRepository;
     private final AbonementManager<AccountServiceAbonement> abonementManager;
     private final ServicePlanRepository servicePlanRepository;
@@ -492,6 +494,7 @@ public class AccountServiceHelper {
         switch (accountService.getPaymentService().getOldId()) {
             case ADDITIONAL_QUOTA_100_SERVICE_ID:
                 account.setAddQuotaIfOverquoted(false);
+                accountManager.setAddQuotaIfOverquoted(account.getId(), false);
                 publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
                 break;
             case ANTI_SPAM_SERVICE_ID:
@@ -545,9 +548,9 @@ public class AccountServiceHelper {
         return getDailyServicesToCharge(account, LocalDateTime.of(
                 chargeDate,
                 LocalTime.of(0, 0, 0, 0)
-                )
-        );
+        ));
     }
+
     private Map<AccountService, BigDecimal> getDailyServicesToCharge(PersonalAccount account, LocalDateTime chargeDate) {
         Map<AccountService, BigDecimal> dailyServicesWithCost;
         List<AccountService> accountServices = account.getServices();
@@ -559,8 +562,8 @@ public class AccountServiceHelper {
                         && (isRegularAccountServiceNeedDailyCharge(accountService, chargeDate)))
                 .collect(Collectors.toMap(
                         item -> item,
-                        item -> this.getServiceCostDependingOnDiscount(account.getId(), item.getPaymentService()))
-                ).entrySet().stream()
+                        item -> this.getServiceCostDependingOnDiscount(account.getId(), item)
+                )).entrySet().stream()
                 .filter(item -> item.getValue().compareTo(BigDecimal.ZERO) > 0)
                 //сортируем в порядке убывания paymentService.chargePriority
                 //в начало попадет сервис с тарифом
@@ -608,14 +611,22 @@ public class AccountServiceHelper {
         return this.getDailyCostForService(account, accountService, LocalDate.now());
     }
 
+    public BigDecimal getDailyCostForService(PaymentService paymentService, BigDecimal serviceCost) {
+        return this.getDailyCostForService(paymentService, serviceCost, LocalDate.now());
+    }
+
     public BigDecimal getDailyCostForService(PersonalAccount account, AccountService accountService, LocalDate chargeDate) {
         return this.getDailyCostForService(accountService, this.getServiceCostDependingOnDiscount(account.getId(), accountService), chargeDate);
     }
 
     public BigDecimal getDailyCostForService(AccountService accountService, BigDecimal serviceCost, LocalDate chargeDate) {
+        return this.getDailyCostForService(accountService.getPaymentService(), serviceCost, chargeDate);
+    }
+
+    public BigDecimal getDailyCostForService(PaymentService paymentService, BigDecimal serviceCost, LocalDate chargeDate) {
         Integer daysInCurrentMonth = chargeDate.lengthOfMonth();
         BigDecimal cost = BigDecimal.ZERO;
-        switch (accountService.getPaymentService().getPaymentType()) {
+        switch (paymentService.getPaymentType()) {
             case MONTH:
                 cost = serviceCost.divide(BigDecimal.valueOf(daysInCurrentMonth), 4, BigDecimal.ROUND_HALF_UP);
                 break;

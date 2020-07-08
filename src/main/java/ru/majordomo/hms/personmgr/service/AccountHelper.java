@@ -269,6 +269,18 @@ public class AccountHelper {
         }
     }
 
+    public void checkBalance(PersonalAccount account, BigDecimal cost) {
+        BigDecimal available = getBalance(account);
+
+        if (available.compareTo(cost) < 0) {
+            throw new NotEnoughMoneyException("Баланс аккаунта недостаточен для заказа услуги." +
+                    " Текущий баланс: " + formatBigDecimalWithCurrency(available.setScale(2, RoundingMode.DOWN)) +
+                    " стоимость услуги: " + formatBigDecimalWithCurrency(cost),
+                    cost.subtract(available)
+            );
+        }
+    }
+
     /**
      * Проверим хватает ли баланса на один день услуги
      *
