@@ -12,7 +12,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -249,16 +248,9 @@ public class AccountServiceRestController extends CommonRestController {
 
     private void enableCustomService(PersonalAccount account, PaymentService paymentService, boolean accountHasService){
         if (accountHasService) {
-
-            AccountService currentService = getAccountServiceByPaymentServiceId(account, paymentService.getId());
-
-            if (currentService.getLastBilled() == null || currentService.getLastBilled().toLocalDate().compareTo(LocalDate.now()) < 0) {
-                chargeMoneyAndAddService(account, paymentService, accountHasService);
-            }
             accountServiceHelper.enableAccountService(account, paymentService.getId());
-
         } else {
-            chargeMoneyAndAddService(account, paymentService, accountHasService);
+            accountServiceHelper.addAccountService(account, paymentService.getId());
         }
     }
 
@@ -266,7 +258,7 @@ public class AccountServiceRestController extends CommonRestController {
         checkAccountHasOneServiceWithId(account, paymentService.getId());
         accountServiceHelper.disableAccountService(account, paymentService.getId());
     }
-
+    
     private void chargeMoneyAndAddService(PersonalAccount account, PaymentService paymentService, boolean accountHasService) {
         accountHelper.checkBalance(account, paymentService, true);
 
