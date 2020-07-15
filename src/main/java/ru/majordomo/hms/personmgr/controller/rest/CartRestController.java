@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.controller.rest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -95,5 +96,12 @@ public class CartRestController extends CommonRestController {
                 .collect(Collectors.toList());
 
         return new ResponseEntity<>(simpleServiceMessages, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('OPERATOR')")
+    @RequestMapping(value = "/processing", method = RequestMethod.PATCH)
+    public ResponseEntity<Cart> unlockCart(@ObjectId(PersonalAccount.class) @PathVariable String accountId) {
+        manager.setProcessing(accountId, false);
+        return ResponseEntity.ok(manager.findByPersonalAccountId(accountId));
     }
 }
