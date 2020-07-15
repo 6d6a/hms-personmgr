@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +38,6 @@ public class AccountQuotaService {
     private final AccountCountersService accountCountersService;
     private final PlanLimitsService planLimitsService;
     private final PaymentServiceRepository paymentServiceRepository;
-    private final AccountHelper accountHelper;
     private final AccountServiceHelper accountServiceHelper;
     private final PlanManager planManager;
     private final AccountServiceRepository accountServiceRepository;
@@ -52,7 +50,6 @@ public class AccountQuotaService {
             AccountCountersService accountCountersService,
             PlanLimitsService planLimitsService,
             PaymentServiceRepository paymentServiceRepository,
-            AccountHelper accountHelper,
             AccountServiceHelper accountServiceHelper,
             PlanManager planManager,
             AccountServiceRepository accountServiceRepository,
@@ -63,7 +60,6 @@ public class AccountQuotaService {
         this.accountCountersService = accountCountersService;
         this.planLimitsService = planLimitsService;
         this.paymentServiceRepository = paymentServiceRepository;
-        this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
         this.planManager = planManager;
         this.accountServiceRepository = accountServiceRepository;
@@ -110,6 +106,7 @@ public class AccountQuotaService {
 
         Long oneServiceCapacity = ADDITIONAL_QUOTA_100_CAPACITY;
         int newAdditionalQuotaCount = (int) ceil(((float) currentQuotaUsed - (planQuotaKBBaseLimit * 1024)) / (oneServiceCapacity  * 1024));
+        int potentialQuotaCount = 0;
 
         logger.debug("Processing processQuotaService for account: " + account.getAccountId()
                 + " currentQuotaUsed: " + currentQuotaUsed
@@ -122,33 +119,13 @@ public class AccountQuotaService {
         if (currentQuotaUsed > planQuotaKBBaseLimit * 1024) {
             //Превышение квоты есть
             overquotedState = true;
-            boolean canAddQuota = false;
 
-            //Проверяем, что можем добавить квоту, и что у клиента достаточно средств для оплаты 1 дня услуги
             if (account.isAddQuotaIfOverquoted() && planCanAddQuotaIfOverquoted) {
-                //TODO Чтобы применить новую логику по "Доп. дисковому пространству"
-                canAddQuota = true;//Удалить это
-
-                //Раскомментировать это и поправить: AccountServiceHelper#getDailyServicesToCharge:566, AccountServiceHelper#completeDisableAdditionalService:497
-                /*try {
-                    BigDecimal quotaServiceFullCost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), quotaPaymentService)
-                            .multiply(BigDecimal.valueOf(newAdditionalQuotaCount));
-
-                    BigDecimal quotaServiceDailyCost = accountServiceHelper.getDailyCostForService(quotaPaymentService, quotaServiceFullCost);
-                    accountHelper.checkBalance(account, quotaServiceDailyCost);
-
-                    canAddQuota = true;
-                } catch (Exception e) {
-                    logger.info("[processQuotaService] Cant't add more quota, account: {}, current: {}, limit: {}, servicesCount {} -> {}, message: {}",
-                            account.getId(), currentQuotaUsed, planQuotaKBBaseLimit * 1024, currentAdditionalQuotaCount, newAdditionalQuotaCount, e.getMessage());
-                }*/
-            }
-
-            if (canAddQuota) {
                 writableState = true;
                 addQuotaServiceState = true;
             } else {
                 writableState = false;
+                potentialQuotaCount = newAdditionalQuotaCount;
                 newAdditionalQuotaCount = 0;
                 addQuotaServiceState = false;
             }
@@ -178,6 +155,11 @@ public class AccountQuotaService {
         }
         //Обновим состояние услуги доп квоты
         accountServiceHelper.setEnabledAccountService(account, quotaServiceId, addQuotaServiceState);
+
+        //Обновим количество доп.квот, которые не были подключены (для контроля ручного включения доп.квоты клиентом)
+        if (account.getPotentialQuotaCount() != potentialQuotaCount) {
+            accountManager.setPotentialQuotaCount(account.getId(), potentialQuotaCount);
+        }
 
         //Обновим квоту юникс-аккаунта
         Long quotaInBytes = (planQuotaKBBaseLimit + (oneServiceCapacity * newAdditionalQuotaCount)) * 1024;

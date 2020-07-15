@@ -4,6 +4,7 @@ package ru.majordomo.hms.personmgr.common;
 public enum AccountSetting {
     OVERQUOTED,
     ADD_QUOTA_IF_OVERQUOTED,
+    POTENTIAL_QUOTA_COUNT,
     AUTO_BILL_SENDING,
     ABONEMENT_AUTO_RENEW,
     CREDIT,

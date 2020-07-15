@@ -43,14 +43,7 @@ import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.project;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.ADD_QUOTA_IF_OVERQUOTED;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.AUTO_BILL_SENDING;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.CREDIT_ACTIVATION_DATE;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.NEW_ACCOUNT;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.NOTIFY_DAYS;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.OVERQUOTED;
-import static ru.majordomo.hms.personmgr.common.AccountSetting.SMS_PHONE_NUMBER;
+import static ru.majordomo.hms.personmgr.common.AccountSetting.*;
 
 @Component
 public class PersonalAccountManagerImpl implements PersonalAccountManager {
@@ -618,6 +611,11 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     @Override
     public void setOverquoted(String id, Boolean overquoted) {
         setSettingByName(id, OVERQUOTED, overquoted);
+    }
+
+    @Override
+    public void setPotentialQuotaCount(String accountId, Integer overquotedCount) {
+        setSettingByName(accountId, POTENTIAL_QUOTA_COUNT, overquotedCount);
     }
 
     @Override
