@@ -124,6 +124,8 @@ public interface PersonalAccountManager {
 
     void setOverquoted(String accountId, Boolean overquoted);
 
+    void setPotentialQuotaCount(String accountId, Integer overquotedCount);
+
     void setAutoBillSending(String accountId, Boolean autoBillSending);
 
     void setNotifyDays(String accountId, Integer notifyDays);

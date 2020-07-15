@@ -166,6 +166,14 @@ public class PersonalAccount extends VersionedModel {
         setBooleanSettingByName(OVERQUOTED, value);
     }
 
+    public Integer getPotentialQuotaCount() {
+        return getIntegerSettingByName(POTENTIAL_QUOTA_COUNT);
+    }
+
+    public void setPotentialQuotaCount(Integer value) {
+        setIntegerSettingByName(POTENTIAL_QUOTA_COUNT, value);
+    }
+
     public Boolean isAddQuotaIfOverquoted() {
         return getBooleanSettingByName(ADD_QUOTA_IF_OVERQUOTED);
     }

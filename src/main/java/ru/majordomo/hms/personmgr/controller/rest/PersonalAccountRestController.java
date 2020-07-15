@@ -53,6 +53,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.model.plan.PlanCost;
 import ru.majordomo.hms.personmgr.model.plan.ServiceCost;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
@@ -545,6 +546,18 @@ public class PersonalAccountRestController extends CommonRestController {
 
         if (requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED) != null) {
             Boolean addQuotaIfOverquoted = (Boolean) requestBody.get(AccountSetting.ADD_QUOTA_IF_OVERQUOTED);
+
+            //Если пользователь пытается включить услугу на аккаунте с уже превышенной, но неактивной квотой,
+            // проверить, что баланса хватает хотя бы на 1 день
+            //Иначе возможен баг #13066, когда при ночных списаниях услуга выключается из-за нехватки средств, а здесь
+            // пользователь ее снова может включить и, таким образом, избежать списаний вообще
+            if (addQuotaIfOverquoted && account.getPotentialQuotaCount() > 0) {
+                PaymentService quotaPaymentService = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID);
+                BigDecimal additionalQuotaCost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), quotaPaymentService)
+                        .multiply(BigDecimal.valueOf(account.getPotentialQuotaCount()));
+                accountHelper.checkBalance(account, accountServiceHelper.getDailyCostForService(quotaPaymentService, additionalQuotaCost));
+            }
+
             accountManager.setAddQuotaIfOverquoted(accountId, addQuotaIfOverquoted);
 
             //Установим новую квоту, начислим услуги и тд.

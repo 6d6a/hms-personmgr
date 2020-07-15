@@ -494,7 +494,7 @@ public class AccountServiceHelper {
         switch (accountService.getPaymentService().getOldId()) {
             case ADDITIONAL_QUOTA_100_SERVICE_ID:
                 account.setAddQuotaIfOverquoted(false);
-//                accountManager.setAddQuotaIfOverquoted(account.getId(), false); //TODO Раскомментировать
+                accountManager.setAddQuotaIfOverquoted(account.getId(), false);
                 publisher.publishEvent(new AccountCheckQuotaEvent(account.getId()));
                 break;
             case ANTI_SPAM_SERVICE_ID:
@@ -562,8 +562,7 @@ public class AccountServiceHelper {
                         && (isRegularAccountServiceNeedDailyCharge(accountService, chargeDate)))
                 .collect(Collectors.toMap(
                         item -> item,
-                        item -> this.getServiceCostDependingOnDiscount(account.getId(), item.getPaymentService())
-//                        item -> this.getServiceCostDependingOnDiscount(account.getId(), item) //TODO Заменить верхнюю строчку на эту
+                        item -> this.getServiceCostDependingOnDiscount(account.getId(), item)
                 )).entrySet().stream()
                 .filter(item -> item.getValue().compareTo(BigDecimal.ZERO) > 0)
                 //сортируем в порядке убывания paymentService.chargePriority
