@@ -97,23 +97,6 @@ public class DatabaseConfig {
         return new NamedParameterJdbcTemplate(billingDataSource);
     }
 
-    @Bean(name = "mdb4DataSourceProperties")
-    @ConfigurationProperties("datasource.mdb4")
-    public DataSourceProperties mdb4DataSourceProperties() {
-        return new DataSourceProperties();
-    }
-
-    @Bean(name = "mdb4DataSource")
-    public HikariDataSource mdb4DataSource(@Qualifier("mdb4DataSourceProperties") DataSourceProperties properties) {
-        return HikariConfigWrapper(properties.initializeDataSourceBuilder().type(HikariDataSource.class).build());
-    }
-
-    @Bean(name = "mdb4NamedParameterJdbcTemplate")
-    @Autowired
-    public NamedParameterJdbcTemplate mdb4NamedParameterJdbcTemplate(@Qualifier("mdb4DataSource") DataSource dataSource) {
-        return new NamedParameterJdbcTemplate(dataSource);
-    }
-
     private HikariDataSource HikariConfigWrapper(HikariDataSource hikari) {
         hikari.setMaximumPoolSize(hikariSettings.getMaximumPoolSize());
         hikari.setConnectionTimeout(hikariSettings.getConnectionTimeout());

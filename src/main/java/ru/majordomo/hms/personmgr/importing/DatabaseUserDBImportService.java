@@ -27,8 +27,6 @@ public class DatabaseUserDBImportService {
 
     @Qualifier("namedParameterJdbcTemplate")
     private final NamedParameterJdbcTemplate billingDbJdbcTemplate;
-    @Qualifier("mdb4NamedParameterJdbcTemplate")
-    private final NamedParameterJdbcTemplate mdb4JdbcTemplate;
     private final BusinessHelper businessHelper;
     private final ImportHelper importHelper;
 
@@ -64,20 +62,7 @@ public class DatabaseUserDBImportService {
 
             boolean pwdLoadWarning = false;
             if (!localDb) {
-                SqlParameterSource param = new MapSqlParameterSource("user", userName);
-                try {
-                    mdb4JdbcTemplate.query("Select User, Password from user where User = :user", param, rs1 -> {
-                        String hash = rs1.getString("Password");
-                        if (StringUtils.isNotBlank(hash)) {
-                            databaseUser.setPasswordHash(hash);
-                        }
-                    });
-                } catch (EmptyResultDataAccessException ignore) {
-                    pwdLoadWarning = true;
-                } catch (Exception ex) {
-                    logger.error("Exception when query to mdb4", ex);
-                    pwdLoadWarning = true;
-                }
+                pwdLoadWarning = true;
             } else {
                 pwdLoadWarning = true;
             }
