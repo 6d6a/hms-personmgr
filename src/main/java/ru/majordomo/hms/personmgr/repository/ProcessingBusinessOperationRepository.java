@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 
 
@@ -21,6 +22,9 @@ public interface ProcessingBusinessOperationRepository extends MongoRepository<P
 
     Page<ProcessingBusinessOperation> findByPersonalAccountId(String accountId, Pageable pageable);
     Page<ProcessingBusinessOperation> findByPersonalAccountIdAndTypeNot(String accountId, BusinessOperationType type, Pageable pageable);
+
+    @Query(value = "{'personalAccountId' : ?0, 'type' : {$ne : ?1}, 'params.lock': {$exists: false}}")
+    Page<ProcessingBusinessOperation> findByPersonalAccountIdAndTypeNotWithoutLockOperations(String accountId, BusinessOperationType type, Pageable pageable);
 
     @Nullable
     ProcessingBusinessOperation findByIdAndPersonalAccountId(String id, String accountId);

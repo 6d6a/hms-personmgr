@@ -52,7 +52,7 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
             @ObjectId(PersonalAccount.class) @PathVariable("accountId") String accountId,
             Pageable pageable
     ) {
-        Page<ProcessingBusinessOperation> operations = repository.findByPersonalAccountIdAndTypeNot(accountId, BusinessOperationType.RESOURCE_ARCHIVE_UPDATE, pageable);
+        Page<ProcessingBusinessOperation> operations = repository.findByPersonalAccountIdAndTypeNotWithoutLockOperations(accountId, BusinessOperationType.RESOURCE_ARCHIVE_UPDATE, pageable);
 
         return new ResponseEntity<>(operations, HttpStatus.OK);
     }
