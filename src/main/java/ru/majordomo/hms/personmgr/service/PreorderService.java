@@ -35,6 +35,7 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.plan.Plans;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
@@ -781,5 +782,29 @@ public class PreorderService {
         }
 
         logger.info("End attemptBuyPreorders. Processed success accounts: {}, error: {}", countSuccess, countError);
+    }
+
+    @Nonnull
+    public Result cancel(@Nonnull PersonalAccount account) {
+        Plan plan = planManager.findOne(account.getPlanId());
+        if (!plan.getAllowedFeature().contains(Feature.CANCEL_PREORDER)) {
+            throw new ParameterValidationException("Отмена заказов запрещена для тарифного плана: " + plan.getName());
+        }
+        List<Preorder> preorders = getPreorders(account.getId());
+        if (CollectionUtils.isEmpty(preorders)) {
+            throw new ParameterValidationException("На аккаунте отсутствуют предзаказы");
+        }
+
+        for (Preorder preorder : preorders) {
+            deletePreorder(account, preorder.getId());
+        }
+
+        Abonement trialAbonemen = plan.getFreeTrialAbonement();
+        if (trialAbonemen != null && !accountAbonementManager.existsByPersonalAccountIdAndExpiredAfter(account.getId(), LocalDateTime.now())) {
+            accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
+            AccountAbonement accountAbonement = new AccountAbonement(account, trialAbonemen, null);
+            accountAbonementManager.insert(accountAbonement);
+        }
+        return Result.success();
     }
 }
