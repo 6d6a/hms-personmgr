@@ -42,7 +42,8 @@ public enum Feature {
     /**
      * Возможность добавлять услугу дополнительные 100 mb квоты на тариф
      */
-    ADDITIONAL_QUOTA_100;
+    ADDITIONAL_QUOTA_100,
+    CANCEL_PREORDER;
 
 
     @NonNull

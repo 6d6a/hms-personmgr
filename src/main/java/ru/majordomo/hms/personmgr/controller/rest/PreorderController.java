@@ -75,5 +75,19 @@ public class PreorderController extends CommonRestController {
             return new ResponseEntity<>(Result.gotException(ex.getMessage()), HttpStatus.BAD_REQUEST);
         }
     }
+
+    @PostMapping("cancel")
+    public ResponseEntity<Result> cancelPreorder(
+            @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId
+    ) {
+        try {
+            PersonalAccount account = accountManager.findOne(accountId);
+            Result result = preorderService.cancel(account);
+            return new ResponseEntity<>(result, result.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
+        } catch (Exception ex) {
+            logger.debug("We got exception when cancel preorder", ex);
+            throw ex;
+        }
+    }
 }
 

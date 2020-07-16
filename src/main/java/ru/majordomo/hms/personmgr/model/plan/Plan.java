@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
@@ -126,6 +127,7 @@ public class Plan extends BaseModel {
         return null;
     }
 
+    @Nullable
     public Abonement getFreeTrialAbonement() {
         for (Abonement abonement : this.getAbonements()) {
             if (abonement.isTrial() && abonement.getService().isActive() ) {
