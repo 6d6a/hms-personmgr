@@ -89,6 +89,7 @@ public class Constants {
     public static final String DATABASE_SERVICE_ID_KEY = "databaseServiceId";
     public static final String DOMAIN_ID_KEY = "domainId";
     public static final String DATABASE_HOST_KEY = "databaseHost";
+    public static final String UNIX_ACCOUNT_HOMEDIR_KEY = "unixAccountHomedir";
     public static final String APP_ID_KEY = "appId";
     public static final String APPSCAT_DOMAIN_NAME_KEY = "DOMAIN_NAME";
     public static final String APPSCAT_APP_TITLE_KEY = "APP_TITLE";

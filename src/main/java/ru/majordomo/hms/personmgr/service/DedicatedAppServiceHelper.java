@@ -254,10 +254,11 @@ public class DedicatedAppServiceHelper {
             throw new ParameterValidationException("Не найден Template");
         }
 
-        String serverId = getServerId(account.getId());
-        if (StringUtils.isEmpty(serverId)) {
+        UnixAccount unixAccount = getUnixAccount(account.getId());
+        if (unixAccount == null) {
             throw new InternalApiException("Не удалось получить сервер на котором находится аккаунт");
         }
+        String serverId = unixAccount.getServerId();
 
         ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.DEDICATED_APP_SERVICE, true);
         if (servicePlan == null) {
@@ -271,6 +272,7 @@ public class DedicatedAppServiceHelper {
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(account.getId());
         message.addParam("serverId", serverId);
+        message.addParam(Constants.UNIX_ACCOUNT_HOMEDIR_KEY, unixAccount.getHomeDir());
 
         ProcessingBusinessAction action;
 
@@ -462,6 +464,18 @@ public class DedicatedAppServiceHelper {
             return "";
         } else {
             return unixAccounts.iterator().next().getServerId();
+        }
+    }
+
+    @Nullable
+    private UnixAccount getUnixAccount(String accountId) {
+        try {
+            Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
+            return CollectionUtils.isEmpty(unixAccounts) ? null : unixAccounts.iterator().next();
+        } catch (RuntimeException ex) {
+            ex.printStackTrace();
+            logger.error("Got exception when attempt get unix-account for account: " + accountId);
+            return null;
         }
     }
 
