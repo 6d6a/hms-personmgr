@@ -656,7 +656,7 @@ public class PersonalAccountRestController extends CommonRestController {
         if (accountProperties.getShowScamWarningDisabled() != null) {
             accountManager.setScamWarning(accountId, accountProperties.getShowScamWarningDisabled());
         }
-        if (accountProperties.getAppHostingMessageDisabled()) {
+        if (accountProperties.getAppHostingMessageDisabled() != null) {
             accountManager.setAppHostingMessageDisabled(accountId, accountProperties.getShowScamWarningDisabled());
         }
 
