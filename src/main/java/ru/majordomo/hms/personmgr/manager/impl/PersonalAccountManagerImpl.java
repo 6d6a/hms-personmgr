@@ -1,6 +1,5 @@
 package ru.majordomo.hms.personmgr.manager.impl;
 
-
 import com.mongodb.BasicDBObject;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;

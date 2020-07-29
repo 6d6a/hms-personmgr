@@ -639,7 +639,7 @@ public class PersonalAccountRestController extends CommonRestController {
     }
 
     @PatchMapping("/{accountId}/account/properties")
-    public ResponseEntity<Object> setProperties(
+    public ResponseEntity<AccountProperties> setProperties(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestBody AccountProperties accountProperties,
             SecurityContextHolderAwareRequestWrapper request
@@ -657,10 +657,11 @@ public class PersonalAccountRestController extends CommonRestController {
             accountManager.setScamWarning(accountId, accountProperties.getShowScamWarningDisabled());
         }
         if (accountProperties.getAppHostingMessageDisabled() != null) {
-            accountManager.setAppHostingMessageDisabled(accountId, accountProperties.getShowScamWarningDisabled());
+            accountManager.setAppHostingMessageDisabled(accountId, accountProperties.getAppHostingMessageDisabled());
         }
 
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        account = accountManager.findOne(accountId);
+        return ResponseEntity.ok(account.getProperties());
     }
 
     @PatchMapping("/{accountId}/account/notifications/sms")
