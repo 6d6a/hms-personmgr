@@ -7,6 +7,7 @@ import javax.annotation.Nullable;
 @Data
 public class AccountProperties {
     private Boolean angryClient;
+    @Nullable
     private Boolean showScamWarningDisabled;
     @Nullable
     private Boolean appHostingMessageDisabled;
