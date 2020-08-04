@@ -403,7 +403,10 @@ public class AccountServiceHelper {
             return false;
         }
 
-        return abonements.stream().anyMatch(item -> item.getExpired().isAfter(LocalDateTime.now()));
+        return abonements.stream().anyMatch(item ->
+                item.getExpired().isAfter(LocalDateTime.now()) ||
+                        item.getExpired().toLocalDate().equals(LocalDate.now()) && item.isAutorenew()
+        );
     }
 
     public boolean hasAllowUseDbService(PersonalAccount account) {
