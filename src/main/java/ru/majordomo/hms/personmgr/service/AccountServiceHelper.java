@@ -403,10 +403,15 @@ public class AccountServiceHelper {
             return false;
         }
 
-        return abonements.stream().anyMatch(item ->
-                item.getExpired().isAfter(LocalDateTime.now()) ||
-                        item.getExpired().toLocalDate().equals(LocalDate.now()) && item.isAutorenew()
-        );
+        return abonements.stream().anyMatch(item -> {
+            //Если абонемент еще действителен, то услуга активна
+            if (item.getExpired().isAfter(LocalDateTime.now())) return true;
+
+            //Если абонемент закончился, но должен быть автоматически продлен в следующее ближайшее время (01:54 + задержка),
+            // то считаем услугу активной (пока абонемент либо не продлится, либо не удалится)
+            LocalDateTime nextProlong = item.getExpired().plusDays(1L).with(LocalTime.of(2, 10));
+            return item.isAutorenew() && nextProlong.isAfter(LocalDateTime.now());
+        });
     }
 
     public boolean hasAllowUseDbService(PersonalAccount account) {
