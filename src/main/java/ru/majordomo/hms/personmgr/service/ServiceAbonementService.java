@@ -202,6 +202,7 @@ public class ServiceAbonementService { //dis name
                     .plus(Period.parse(prolongPeriod));
         }
 
+        accountServiceAbonement.setExpired(newExpireDate);
         abonementManager.setExpired(
                 accountServiceAbonement.getId(),
                 newExpireDate
