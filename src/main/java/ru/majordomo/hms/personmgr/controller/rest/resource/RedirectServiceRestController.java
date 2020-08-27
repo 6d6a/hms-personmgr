@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,7 @@ import javax.validation.Valid;
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.config.NsCheckConfig;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
 import ru.majordomo.hms.personmgr.dto.request.RedirectServiceBuyRequest;
 import ru.majordomo.hms.personmgr.event.account.RedirectWasProlongEvent;
@@ -54,34 +56,19 @@ import static ru.majordomo.hms.personmgr.common.FieldRoles.REDIRECT_POST;
 
 @RestController
 @Validated
+@RequiredArgsConstructor
 public class RedirectServiceRestController extends CommonRestController {
     private static final TemporalAdjuster PLUS_ONE_YEAR = TemporalAdjusters.ofDateAdjuster(date -> date.plusYears(1));
     private static final int LIMIT_REDIRECT_FOR_DOMAIN = 10;
     private static final int MAX_YEARS_PROLONG = 3;
 
-    private RcUserFeignClient rcUserFeignClient;
-    private AccountRedirectServiceRepository accountRedirectServiceRepository;
-    private NsCheckService nsCheckService;
-    private ServicePlanRepository servicePlanRepository;
-    private ServiceAbonementService serviceAbonementService;
-    private AccountHelper accountHelper;
-
-    @Autowired
-    public RedirectServiceRestController(
-            RcUserFeignClient rcUserFeignClient,
-            AccountRedirectServiceRepository accountRedirectServiceRepository,
-            NsCheckService nsCheckService,
-            ServicePlanRepository servicePlanRepository,
-            ServiceAbonementService serviceAbonementService,
-            AccountHelper accountHelper
-    ) {
-        this.rcUserFeignClient = rcUserFeignClient;
-        this.accountRedirectServiceRepository = accountRedirectServiceRepository;
-        this.nsCheckService = nsCheckService;
-        this.servicePlanRepository = servicePlanRepository;
-        this.serviceAbonementService = serviceAbonementService;
-        this.accountHelper = accountHelper;
-    }
+    private final RcUserFeignClient rcUserFeignClient;
+    private final AccountRedirectServiceRepository accountRedirectServiceRepository;
+    private final NsCheckService nsCheckService;
+    private final ServicePlanRepository servicePlanRepository;
+    private final ServiceAbonementService serviceAbonementService;
+    private final AccountHelper accountHelper;
+    private final NsCheckConfig nsCheckConfig;
 
     @GetMapping("/{accountId}/account-service-redirect")
     public List<RedirectAccountService> getServices(
@@ -123,9 +110,10 @@ public class RedirectServiceRestController extends CommonRestController {
         }
 
         if (!nsCheckService.checkOurNs(domain)) {
-            throw new ParameterValidationException(
-                    "Домен должен быть делегирован на наши DNS-серверы (ns.majordomo.ru, ns2.majordomo.ru и ns3.majordomo.ru)"
-            );
+            throw new ParameterValidationException(String.format(
+                    "Домен должен быть делегирован на наши DNS-серверы (%s)",
+                    String.join(", ", nsCheckConfig.getAllowedNsList())
+            ));
         }
 
         if (redirectAccountService.getAccountServiceAbonement() == null) {
@@ -184,9 +172,10 @@ public class RedirectServiceRestController extends CommonRestController {
         Domain domain = rcUserFeignClient.getDomain(accountId, body.getDomainId());
 
         if (!nsCheckService.checkOurNs(domain)) {
-            throw new ParameterValidationException(
-                    "Домен должен быть делегирован на наши DNS-серверы (ns.majordomo.ru, ns2.majordomo.ru и ns3.majordomo.ru)"
-            );
+            throw new ParameterValidationException(String.format(
+                    "Домен должен быть делегирован на наши DNS-серверы (%s)",
+                    String.join(", ", nsCheckConfig.getAllowedNsList())
+            ));
         }
 
         RedirectAccountService redirectAccountService = accountRedirectServiceRepository
