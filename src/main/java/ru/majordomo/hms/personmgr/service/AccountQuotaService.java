@@ -80,9 +80,9 @@ public class AccountQuotaService {
      */
 
     public void processQuotaService(PersonalAccount account, Plan plan) {
-        Boolean writableState;
-        Boolean overquotedState;
-        Boolean addQuotaServiceState;
+        boolean writableState;
+        boolean overquotedState;
+        boolean addQuotaServiceState;
         Long currentQuotaUsed = accountCountersService.getCurrentQuotaUsed(account.getId());
         Long planQuotaKBFreeLimit = planLimitsService.getQuotaKBFreeLimit(plan);
         Long planQuotaKBLimit = planLimitsService.getQuotaKBLimit(plan);
@@ -93,7 +93,7 @@ public class AccountQuotaService {
 
         boolean isAccountHasAdditionalQuotaService5k = accountServiceHelper.hasAdditionalQuotaService5k(account);
 
-        Long planQuotaKBBaseLimit = isAccountHasAdditionalQuotaService5k ? planQuotaKBFreeLimit + ADDITIONAL_QUOTA_5K_CAPACITY : planQuotaKBFreeLimit;
+        long planQuotaKBBaseLimit = isAccountHasAdditionalQuotaService5k ? planQuotaKBFreeLimit + ADDITIONAL_QUOTA_5K_CAPACITY : planQuotaKBFreeLimit;
 
         PaymentService quotaPaymentService = paymentServiceRepository.findByOldId(ADDITIONAL_QUOTA_100_SERVICE_ID);
         String quotaServiceId = quotaPaymentService.getId();
@@ -104,7 +104,7 @@ public class AccountQuotaService {
             currentAdditionalQuotaCount = accountServices.get(0).getQuantity();
         }
 
-        Long oneServiceCapacity = ADDITIONAL_QUOTA_100_CAPACITY;
+        long oneServiceCapacity = ADDITIONAL_QUOTA_100_CAPACITY;
         int newAdditionalQuotaCount = (int) ceil(((float) currentQuotaUsed - (planQuotaKBBaseLimit * 1024)) / (oneServiceCapacity  * 1024));
         int potentialQuotaCount = 0;
 

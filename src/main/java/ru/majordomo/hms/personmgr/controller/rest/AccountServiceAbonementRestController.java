@@ -10,6 +10,7 @@ import org.springframework.security.web.servletapi.SecurityContextHolderAwareReq
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.StorageType;
+import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AntiSpamServiceSwitchEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
@@ -206,9 +207,9 @@ public class AccountServiceAbonementRestController extends CommonRestController 
 
         accountHelper.checkIsAdditionalServiceAllowed(account, feature);
 
-        ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
+        ServicePlan servicePlan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
 
-        if (plan == null) {
+        if (servicePlan == null) {
             throw new ParameterValidationException("Услуга " + feature.name() + " не найдена");
         }
 
@@ -234,25 +235,29 @@ public class AccountServiceAbonementRestController extends CommonRestController 
             }
         }
 
-        if (plan.isForSomePlan()) {
+        if (servicePlan.isForSomePlan()) {
             Plan accountPlan = planManager.findOne(account.getPlanId());
             if (!accountPlan.getAllowedFeature().contains(feature)) {
-                throw new ParameterValidationException("Услуга " + feature.name() + " недоступна для тарифного плана " + accountPlan.getName());
+                throw new ParameterValidationException(String.format(
+                        "Услуга '%s' недоступна для тарифного плана '%s'",
+                        servicePlan.getName(),
+                        accountPlan.getName()
+                ));
             }
         }
 
-        if (abonementId != null && (!plan.getAbonementIds().contains(abonementId) || plan.getAbonementById(abonementId).isInternal())) {
+        if (abonementId != null && (!servicePlan.getAbonementIds().contains(abonementId) || servicePlan.getAbonementById(abonementId).isInternal())) {
             throw new ParameterValidationException("Абонемент на услугу " + feature.name() + " не найден");
         }
 
         List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceId(
                 account.getId(),
-                plan.getServiceId()
+                servicePlan.getServiceId()
         );
 
         if (accountServices != null && feature.isOnlyOnePerAccount() && accountServices.size() > 1) {
             throw new ParameterValidationException(
-                    "На аккаунте обнаружено больше одной услуги '" + plan.getService().getName()
+                    "На аккаунте обнаружено больше одной услуги '" + servicePlan.getService().getName()
                             + "'. Пожалуйста, обратитесь в финансовый отдел.");
         }
 
@@ -260,7 +265,7 @@ public class AccountServiceAbonementRestController extends CommonRestController 
 
         AccountServiceAbonement accountServiceAbonement = serviceAbonementService.addAbonement(
                 account,
-                abonementId != null ? abonementId : plan.getNotInternalAbonementId(),
+                abonementId != null ? abonementId : servicePlan.getNotInternalAbonementId(),
                 feature,
                 autorenew
         );

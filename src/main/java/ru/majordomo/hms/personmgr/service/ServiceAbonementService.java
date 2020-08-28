@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +25,11 @@ import ru.majordomo.hms.personmgr.common.AccountStatType;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.dto.fin.PaymentLinkRequest;
 import ru.majordomo.hms.personmgr.dto.push.LowBalancePush;
+import ru.majordomo.hms.personmgr.event.account.AccountCheckQuotaEvent;
 import ru.majordomo.hms.personmgr.event.account.AccountSendEmailWithExpiredServiceAbonementEvent;
 import ru.majordomo.hms.personmgr.event.account.RedirectWasDisabledEvent;
+import ru.majordomo.hms.personmgr.exception.BaseException;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
@@ -49,6 +53,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.DAYS_FOR_SERVICE_ABONE
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
 @Service
+@RequiredArgsConstructor
 public class ServiceAbonementService { //dis name
     private final static Logger logger = LoggerFactory.getLogger(ServiceAbonementService.class);
 
@@ -64,37 +69,9 @@ public class ServiceAbonementService { //dis name
     private final RcUserFeignClient rcUserFeignClient;
     private final PersonalAccountManager accountManager;
     private final PaymentLinkHelper paymentLinkHelper;
+    private final AccountQuotaService accountQuotaService;
 
     private static TemporalAdjuster FIVE_DAYS_AFTER = TemporalAdjusters.ofDateAdjuster(date -> date.plusDays(5));
-
-    @Autowired
-    public ServiceAbonementService(
-            AbonementManager<AccountServiceAbonement> abonementManager,
-            AccountHelper accountHelper,
-            AccountServiceHelper accountServiceHelper,
-            ApplicationEventPublisher publisher,
-            AccountStatHelper accountStatHelper,
-            AccountNotificationHelper accountNotificationHelper,
-            AccountHistoryManager history,
-            AccountRedirectServiceRepository accountRedirectServiceRepository,
-            RevisiumRequestServiceRepository revisiumRequestServiceRepository,
-            RcUserFeignClient rcUserFeignClient,
-            PersonalAccountManager accountManager,
-            PaymentLinkHelper paymentLinkHelper
-    ) {
-        this.abonementManager = abonementManager;
-        this.accountHelper = accountHelper;
-        this.accountServiceHelper = accountServiceHelper;
-        this.publisher = publisher;
-        this.accountStatHelper = accountStatHelper;
-        this.accountNotificationHelper = accountNotificationHelper;
-        this.history = history;
-        this.accountRedirectServiceRepository = accountRedirectServiceRepository;
-        this.revisiumRequestServiceRepository = revisiumRequestServiceRepository;
-        this.rcUserFeignClient = rcUserFeignClient;
-        this.accountManager = accountManager;
-        this.paymentLinkHelper = paymentLinkHelper;
-    }
 
     /**
      * Покупка абонемента
@@ -104,9 +81,9 @@ public class ServiceAbonementService { //dis name
      * @param autorenew автопродление абонемента
      */
     public AccountServiceAbonement addAbonement(PersonalAccount account, String abonementId, Feature feature, Boolean autorenew) {
-        ServicePlan plan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
+        ServicePlan servicePlan = accountServiceHelper.getServicePlanForFeatureByAccount(feature, account);
 
-        Abonement abonement = checkAbonementAllownes(plan, abonementId);
+        Abonement abonement = checkAbonementAllownes(servicePlan, abonementId);
 
         BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), abonement.getService());
         if (cost.compareTo(BigDecimal.ZERO) > 0) {
@@ -118,12 +95,12 @@ public class ServiceAbonementService { //dis name
 
         List<AccountServiceAbonement> currentAccountServiceAbonements = abonementManager.findByPersonalAccountIdAndAbonementIdIn(
                 account.getId(),
-                plan.getAbonementIds()
+                servicePlan.getAbonementIds()
         );
 
         AccountServiceAbonement accountServiceAbonement;
 
-        if (plan.getFeature().isOnlyOnePerAccount() && currentAccountServiceAbonements != null && !currentAccountServiceAbonements.isEmpty()) {
+        if (servicePlan.getFeature().isOnlyOnePerAccount() && currentAccountServiceAbonements != null && !currentAccountServiceAbonements.isEmpty()) {
             accountServiceAbonement = currentAccountServiceAbonements.get(0);
 
             accountServiceAbonement.setAbonementId(abonementId);
@@ -156,10 +133,21 @@ public class ServiceAbonementService { //dis name
             abonementManager.insert(accountServiceAbonement);
         }
 
-        if (accountServiceHelper.accountHasService(account, plan.getServiceId())) {
+        if (accountServiceHelper.accountHasService(account, servicePlan.getServiceId())) {
             logger.info("[addAbonement] Найден service-план для удаления. (account: " + account.getId() +
-                    ", Plan serviceId" + plan.getServiceId() + ")");
-            accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
+                    ", Plan serviceId" + servicePlan.getServiceId() + ")");
+            accountServiceHelper.deleteAccountServiceByServiceId(account, servicePlan.getServiceId());
+        }
+
+
+        if (feature == Feature.ADDITIONAL_QUOTA_5K) {
+            try {
+                accountQuotaService.processQuotaCheck(account);
+            } catch (BaseException e) {
+                throw e;
+            } catch (Exception e) {
+                logger.error("We got exception when attempt update quota", e);
+            }
         }
 
         return accountServiceAbonement;

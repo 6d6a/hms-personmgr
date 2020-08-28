@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.model.plan;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import javax.annotation.Nullable;
 import javax.validation.constraints.NotBlank;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -36,9 +37,7 @@ public class ServicePlan extends BaseModel {
     @Indexed
     private boolean active;
 
-    /**
-     * PaymentService.id
-     */
+    /** PaymentService.id */
     @NotBlank
     @Indexed
     private String serviceId;
@@ -47,9 +46,7 @@ public class ServicePlan extends BaseModel {
     @Indexed
     private boolean abonementOnly;
 
-    /**
-     * услуга может быть подключена только для некоторых тарифных планов, проверка по полю Plan.getAllowedFeature
-     */
+    /** услуга может быть подключена только для некоторых тарифных планов, проверка по полю Plan.getAllowedFeature */
     private boolean forSomePlan = false;
 
     @ObjectIdList(value = Abonement.class)
@@ -75,16 +72,7 @@ public class ServicePlan extends BaseModel {
         return null;
     }
 
-    /*
-    public Abonement getFreeTrialAbonement() {
-        for (Abonement abonement : this.getAbonements()) {
-            if (abonement.isTrial() && abonement.getService().isActive()) {
-                return abonement;
-            }
-        }
-        return null;
-    }*/
-
+    @Nullable
     public Abonement getAbonementById(String abonementId) {
         return getAbonements().stream().filter(abonement -> abonement.getId().equals(abonementId)).findFirst().orElse(null);
     }
