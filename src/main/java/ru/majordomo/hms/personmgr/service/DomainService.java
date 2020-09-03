@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.net.IDN;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.Container;
+import ru.majordomo.hms.personmgr.dto.DomainPriceInfo;
 import ru.majordomo.hms.personmgr.dto.push.DomainExpiredPush;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -47,6 +49,10 @@ import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 import ru.majordomo.hms.personmgr.service.promotion.AccountPromotionFactory;
 import ru.majordomo.hms.rc.user.resources.Domain;
 import ru.majordomo.hms.rc.user.resources.Person;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.Utils.*;
@@ -439,7 +445,47 @@ public class DomainService {
         return null;
     }
 
-    public BigDecimal getPrice(String domainName, AccountPromotion accountPromotion) {
+    /**
+     * Возвращает информацию о стоимости и возможности регистрации домена с учетом имеющихся акций
+     * @param accountId
+     * @param domainName имя домена в unicode
+     * @return
+     * @throws ParameterValidationException
+     * @throws InternalApiException - может бростить если не ответил domain-registrar
+     */
+    @Nonnull
+    @ParametersAreNonnullByDefault
+    public DomainPriceInfo getRegistrationPriceWithPromotion(String accountId, String domainName) throws ParameterValidationException, InternalApiException {
+        AvailabilityInfo availabilityInfo = getAvailabilityInfo(domainName, true);
+        DomainPriceInfo result = new DomainPriceInfo();
+        result.setFree(Boolean.TRUE.equals(availabilityInfo.getFree()));
+        if (!result.isFree()) {
+            return result;
+        }
+        if (availabilityInfo.isPremium()) {
+            result.setPremium(true);
+            result.setPrice(availabilityInfo.getPremiumPrice());
+            return result;
+        }
+        List<AccountPromotion> promotions = accountPromotionManager.findByPersonalAccountIdAndActive(accountId, true);
+        PaymentService paymentService = getDomainTld(domainName).getRegistrationService();
+        if (paymentService == null) {
+            logger.error("Cannot find PaymentService for registration domain: {}", domainName);
+            throw new InternalApiException("Не удалось найти сервис для регистрации домена");
+        }
+        result.setPriceWithoutDiscount(paymentService.getCost());
+        result.setPrice(paymentService.getCost());
+        findPromotion(promotions, paymentService, domainName, true)
+                .ifPresent(accountPromotion -> {
+                    result.setPrice(getDiscountCost(paymentService.getCost(), accountPromotion));
+                    result.setAccountPromotion(accountPromotion);
+                });
+        return result;
+    }
+
+    @Nullable
+    @ParametersAreNonnullByDefault
+    public BigDecimal getPrice(String domainName, @Nullable AccountPromotion accountPromotion) throws InternalApiException, ParameterValidationException {
         DomainTld domainTld;
 
         try {
@@ -843,7 +889,8 @@ public class DomainService {
         return processingBusinessAction;
     }
 
-    private DomainTld getDomainTld(String domainName) {
+    @Nonnull
+    private DomainTld getDomainTld(String domainName) throws ParameterValidationException {
         DomainTld domainTld = domainTldService.findActiveDomainTldByDomainName(domainName);
 
         if (domainTld == null) {
@@ -854,7 +901,8 @@ public class DomainService {
         return domainTld;
     }
 
-    private DomainTld getDomainTld(Domain domain) {
+    @Nonnull
+    private DomainTld getDomainTld(Domain domain) throws ParameterValidationException {
         DomainTld domainTld = domainTldService.findDomainTldByDomainNameAndRegistrator(domain.getName(), domain.getRegSpec().getRegistrar());
 
         if (domainTld == null) {
@@ -865,7 +913,13 @@ public class DomainService {
         return domainTld;
     }
 
-    private AvailabilityInfo getAvailabilityInfo(String domainName) {
+    @ParametersAreNonnullByDefault
+    private AvailabilityInfo getAvailabilityInfo(String domainName) throws InternalApiException, ParameterValidationException {
+        return getAvailabilityInfo(domainName, false);
+    }
+
+    @ParametersAreNonnullByDefault
+    private AvailabilityInfo getAvailabilityInfo(String domainName, boolean noDomainNotFreeException) throws InternalApiException, ParameterValidationException {
         //Проверить домен на доступность/премиальность
         AvailabilityInfo availabilityInfo = null;
 
@@ -880,7 +934,7 @@ public class DomainService {
             throw new InternalApiException("Домен: " + domainName + ". Сервис регистрации недоступен.");
         }
 
-        if (!availabilityInfo.getFree()) {
+        if (!noDomainNotFreeException && !availabilityInfo.getFree()) {
             logger.error("Домен: " + domainName + " по данным whois занят.");
             throw new ParameterValidationException("Домен: " + domainName + " по данным whois занят.");
         }
@@ -1020,7 +1074,7 @@ public class DomainService {
 
     private void blockMoneyForExistsDomain(
             PersonalAccount account, SimpleServiceMessage message, Domain domain, List<AccountPromotion> accountPromotions
-    ) {
+    ) throws ParameterValidationException, InternalApiException {
         boolean isRenew = message.getParam("renew") != null && (boolean) message.getParam("renew");
         boolean isRegistration = message.getParam("register") != null && (boolean) message.getParam("register");
 
@@ -1046,7 +1100,7 @@ public class DomainService {
         if (premiumPrice != null && premiumPrice.compareTo(BigDecimal.ZERO) > 0) {
             costContainer.setData(premiumPrice);
         } else {
-            findPromotion(accountPromotions, service, domain).ifPresent(accountPromotion -> {
+            findPromotion(accountPromotions, service, domain.getName(), isRegistration).ifPresent(accountPromotion -> {
                         promotionContainer.setData(Optional.of(accountPromotion));
                         costContainer.setData(
                                 getDiscountCost(costContainer.getData(), accountPromotion)
@@ -1054,6 +1108,34 @@ public class DomainService {
 
                         message.addParam("accountPromotionId", accountPromotion.getId());
                     });
+        }
+
+        if (message.getParam("displayedCost") != null) {
+            /* необязательный параметр.
+            Нужен чтобы не отобразить в интерфейсе пользователя стоимость меньше чем спишется на самом деле
+            При ошибке  со свойством {errors: {displayedCostNotEqualReal: цена}}
+            frontend сможет показать ошибку или обновить цену */
+
+            Object displayedCostObj = message.getParam("displayedCost");
+            BigDecimal displayedCost;
+            try {
+                if (displayedCostObj instanceof String) {
+                    displayedCost = new BigDecimal((String) displayedCostObj);
+                } else if (displayedCostObj instanceof Number) {
+                    displayedCost = BigDecimal.valueOf(((Number) displayedCostObj).doubleValue())
+                            .setScale(4, BigDecimal.ROUND_HALF_UP); // из-за неточности double и float
+                } else {
+                    throw new NumberFormatException();
+                }
+                if (!displayedCost.equals(costContainer.getData())) {
+                    throw new ParameterValidationException(
+                            String.format("Отображенная стоимость домена не совпадает с настоящей. Стоимость домена %s",
+                                    Utils.formatBigDecimalWithCurrency(costContainer.getData())),
+                            Collections.singletonMap("displayedCostNotEqualReal", costContainer.getData()));
+                }
+            } catch (NumberFormatException e) {
+                throw new ParameterValidationException("Некорректное значение параметра отображенной стоимости домена");
+            }
         }
 
         if (costContainer.getData().compareTo(BigDecimal.ZERO) > 0) {
@@ -1086,25 +1168,56 @@ public class DomainService {
         }
     }
 
+    /**
+     * Пытается найти акцию для регистрации или продления 1 домена.
+     * Находит акцию подходящую для домена, с минимальной ценой и раньше всех заканчивающуюся.
+     * @param accountPromotions
+     * @param service
+     * @param domainName
+     * @param isRegistration - true регистрация, false - продление
+     * @return
+     */
+    @ParametersAreNonnullByDefault
     private Optional<AccountPromotion> findPromotion(
-            List<AccountPromotion> accountPromotions, PaymentService service, Domain domain
-    ) {
+            List<AccountPromotion> accountPromotions, PaymentService service, String domainName, boolean isRegistration
+    ) throws ParameterValidationException {
         return accountPromotions.stream()
                 .filter(p -> {
                     if (!p.isValidNow()) return false;
+                    if (!Boolean.TRUE.equals(p.getActive())) return false;
 
-                    PromocodeActionType actionType = p.getAction().getActionType();
-                    List serviceIds = (List) p.getAction().getProperties().get("serviceIds");
-                    Object domainName = p.getProperties().get("domainName");
-
-                    return actionType.equals(PromocodeActionType.SERVICE_DISCOUNT)
-                            && (serviceIds).contains(service.getId())
-                            && (domainName == null || domainName.equals(domain.getName()));
-                }).max((p1, p2) -> {
-            Object d1 = p1.getProperties().get("domainName");
-            Object d2 = p2.getProperties().get("domainName");
-            return d1 == d2 ? 0 : d1 != null ? 1 : -1;
-        });
+                    boolean result;
+                    switch (p.getAction().getActionType()) {
+                        case SERVICE_DISCOUNT:
+                            List serviceIds = (List) p.getAction().getProperties().get("serviceIds");
+                            Object promoDomainName = p.getProperties().get("domainName");
+                            result = (serviceIds).contains(service.getId()) && (promoDomainName == null || promoDomainName.equals(domainName));
+                            return result;
+                        case SERVICE_DOMAIN_DISCOUNT_RU_RF: // Скидка регистрацию на домена в зонах ru/рф
+                        case SERVICE_FREE_DOMAIN: // Бесплатная регистрация домен в зонах ru/рф
+                            if (!isRegistration) return false;
+                            DomainTld domainTld = getDomainTld(domainName); // не найдет tld бросит ParameterValidationException
+                            Object tldsObj = p.getAction().getProperties().get("tlds");
+                            result = tldsObj instanceof List && ((List<?>) tldsObj).contains(domainTld.getTld());
+                            return result;
+                        default:
+                            return false;
+                    }
+                }).min((promo1, promo2) -> {
+                    BigDecimal cost1 = getDiscountCost(service.getCost(), promo1);
+                    BigDecimal cost2 = getDiscountCost(service.getCost(), promo2);
+                    int cmpResult = cost1.compareTo(cost2);
+                    if (cmpResult != 0) {
+                        return cmpResult;
+                    } else {
+                        LocalDateTime validUntil1 =  promo1.getValidUntil();
+                        LocalDateTime validUntil2 =  promo2.getValidUntil();
+                        if (validUntil1 == null || validUntil2 == null) {
+                            return validUntil1 == validUntil2 ? 0 : validUntil1 != null ? -1 : 1;
+                        }
+                        return validUntil1.compareTo(validUntil2);
+                    }
+                });
     }
 
     private void processAddRenewPromotions(List<Domain> domains, PersonalAccount account) {

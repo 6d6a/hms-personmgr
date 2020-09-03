@@ -9,6 +9,8 @@ import ru.majordomo.hms.personmgr.model.domain.DomainTld;
 import ru.majordomo.hms.personmgr.repository.DomainTldRepository;
 import ru.majordomo.hms.rc.user.resources.DomainRegistrar;
 
+import javax.annotation.Nullable;
+
 @Service
 public class DomainTldService {
     private final DomainTldRepository domainTldRepository;
@@ -18,6 +20,7 @@ public class DomainTldService {
         this.domainTldRepository = domainTldRepository;
     }
 
+    @Nullable
     public DomainTld findActiveDomainTldByDomainName(String domainName) {
         String tld = getTldFromDomain(domainName);
 

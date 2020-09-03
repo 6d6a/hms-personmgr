@@ -19,6 +19,7 @@ import java.net.IDN;
  */
 @Document
 public class DomainTld extends BaseModel {
+    /** tld в формате punycode */
     @Indexed
     @NotNull
     private String tld;
