@@ -9,6 +9,7 @@ import ru.majordomo.hms.personmgr.model.VersionedModelBelongsToPersonalAccount;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ public class AccountPromotion extends VersionedModelBelongsToPersonalAccount {
     @CreatedDate
     private LocalDateTime created;
 
+    @Nullable
     private LocalDateTime usedAt;
 
     @Transient
@@ -38,6 +40,7 @@ public class AccountPromotion extends VersionedModelBelongsToPersonalAccount {
 
     private Boolean active;
 
+    @Nullable
     private LocalDateTime validUntil;
 
     private Map<String, Object> properties = new HashMap<>();
