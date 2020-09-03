@@ -1127,7 +1127,7 @@ public class DomainService {
                 } else {
                     throw new NumberFormatException();
                 }
-                if (!displayedCost.equals(costContainer.getData())) {
+                if (displayedCost.compareTo(costContainer.getData()) != 0) {
                     throw new ParameterValidationException(
                             String.format("Отображенная стоимость домена не совпадает с настоящей. Стоимость домена %s",
                                     Utils.formatBigDecimalWithCurrency(costContainer.getData())),
