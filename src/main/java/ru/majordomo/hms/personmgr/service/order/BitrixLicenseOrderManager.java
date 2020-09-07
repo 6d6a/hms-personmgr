@@ -45,7 +45,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.*;
 @Service
 public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> {
 
-    public final static int MAY_PROLONG_DAYS_BEFORE_EXPIRED = 15;
+    public final static int MAY_PROLONG_DAYS_BEFORE_EXPIRED = 30;
 
     private final static int DAYS_AFTER_EXPIRED_WITH_MAX_DISCOUNT = 30;
     private final static BigDecimal PROLONG_DISCOUNT_MAX = new BigDecimal("0.22");
