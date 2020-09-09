@@ -379,4 +379,12 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
                     + order.getId() + "') message: " + ignore.getMessage());
         }
     }
+
+    public void updateComment(BitrixLicenseOrder order, String comment) {
+        if (comment != null) {
+            comment = comment.trim();
+            order.setComment(!comment.isEmpty() ? comment : null);
+            save(order);
+        }
+    }
 }
