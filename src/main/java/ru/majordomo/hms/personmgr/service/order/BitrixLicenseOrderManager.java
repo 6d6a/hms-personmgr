@@ -165,6 +165,11 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
         return exists(predicate);
     }
 
+    /**
+     * При продлении нам точно неизвестно, когда клиент активировал лицензию и, соответственно, истекла ли она
+     * Поэтому просто создаем заказ и уведомляем сотрудников и клиента о созданной заявке на продление
+     * @param order Новый заказ лицензии
+     */
     protected void onCreateByProlong(BitrixLicenseOrder order) {
         BitrixLicenseOrder previousOrder = order.getPreviousOrder();
 
@@ -174,39 +179,9 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
                 () -> new ParameterValidationException("Не найден сервис с id " + previousOrder.getServiceId())
         );
 
-        BigDecimal discount;
-
-        if(previousOrder.getUpdated().plusYears(1).plusDays(DAYS_AFTER_EXPIRED_WITH_MAX_DISCOUNT)
-                .isAfter(LocalDateTime.now())
-        ){
-            discount = PROLONG_DISCOUNT_MAX;
-        } else {
-            discount = PROLONG_DISCOUNT_MIN;
-        }
-
-        BigDecimal cost = paymentService.getCost().multiply(discount).setScale(0, BigDecimal.ROUND_CEILING);
-
         PersonalAccount account = personalAccountManager.findOne(order.getPersonalAccountId());
 
-        BigDecimal balance = accountHelper.getBalance(account);
-
-        if (cost.compareTo(balance) > 0) {
-            updateState(order, OrderState.DECLINED, "service");
-            throw new NotEnoughMoneyException("Баланс недостаточен для продления лицензии", cost.subtract(balance));
-        }
-
-        //Списываем деньги
-        ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
-                .setAmount(cost)
-                .setComment("Скидка на продление, цена умножена на " + discount)
-                .build();
-
-        SimpleServiceMessage response = accountHelper.block(account, chargeMessage);
-
-        order.setDocumentNumber((String) response.getParam("documentNumber"));
-
-        //Уведомление
-        notifyStaffByProlong(order, account, paymentService.getName(), cost);
+        notifyStaffByProlong(order, account, paymentService.getName());
 
         notifyClientByProlong(account, paymentService.getName());
     }
@@ -221,15 +196,15 @@ public class BitrixLicenseOrderManager extends OrderManager<BitrixLicenseOrder> 
         accountNotificationHelper.sendMail(account, "HmsVHMajordomoZakazprodleniya1CBitrix", 1, parameters);
     }
 
-    private void notifyStaffByProlong(BitrixLicenseOrder accountOrder, PersonalAccount account, String licenseName, BigDecimal cost) {
+    private void notifyStaffByProlong(BitrixLicenseOrder accountOrder, PersonalAccount account, String licenseName) {
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put(CLIENT_ID_KEY, account.getId());
 
         parameters.put("body",
                 "1. Аккаунт: " + account.getName() + "<br/>" +
-                        "2. Продление лицензии Битрикс для: " + accountOrder.getDomainName() + "<br/>" +
-                        "3. Тип лицензии: " + licenseName + "<br/>" +
-                        "4. Списано " + cost + " рублей<br/>");
+                "2. Продление лицензии Битрикс для: " + accountOrder.getDomainName() + "<br/>" +
+                "3. Тип лицензии: " + licenseName + "<br/>"
+        );
         parameters.put("subject", "Продление лицензии 1С-Битрикс Управление сайтом");
         notifyStaff(account, parameters);
     }
