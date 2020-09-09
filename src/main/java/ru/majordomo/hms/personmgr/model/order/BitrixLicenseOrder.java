@@ -28,6 +28,7 @@ public class BitrixLicenseOrder extends AccountOrder {
     private String documentNumber;
     private LicenseType type;
     private String previousOrderId;
+    private String comment;
 
     @Transient
     private BitrixLicenseOrder previousOrder;

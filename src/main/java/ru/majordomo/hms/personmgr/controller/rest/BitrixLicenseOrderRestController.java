@@ -115,6 +115,20 @@ public class BitrixLicenseOrderRestController extends CommonRestController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ACCOUNT_BITRIX_LICENSE_ORDER_VIEW')")
+    @PatchMapping("/{accountId}/bitrix-license-order/{orderId}/comment")
+    public ResponseEntity<Void> update(
+            @ObjectId(PersonalAccount.class) @PathVariable String accountId,
+            @ObjectId(BitrixLicenseOrder.class) @PathVariable String orderId,
+            @RequestBody Map<String, Object> params
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+        BitrixLicenseOrder order = manager.findOneByIdAndPersonalAccountId(orderId, account.getId());
+        manager.updateComment(order, (String) params.get("comment"));
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+
     @PostMapping("/{accountId}/bitrix-license-order")
     public ResponseEntity<Void> create(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
