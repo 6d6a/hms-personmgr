@@ -82,7 +82,7 @@ public class AccountPromotionRestController extends CommonRestController {
             accountPromotionManager.save(current);
 
             history.save(accountId, "Скидка " + current.getAction().getDescription() + " (id: " + current.getId()
-                    + ") отмечена как " + (current.getActive() ? "неиспльзованная" : "использованная"), request);
+                    + ") отмечена как " + (current.getActive() ? "неиспользованная" : "использованная"), request);
         }
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
