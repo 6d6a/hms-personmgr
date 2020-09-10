@@ -56,8 +56,7 @@ public class BusinessFlowDirector {
 
         switch (businessAction.getState()) {
             case ERROR:
-                logger.debug("Found error businessAction " + businessAction.toString()
-                );
+                logger.debug("Found error businessAction " + businessAction.toString());
             case PROCESSING:
             case PROCESSED:
             case FINISHED:
