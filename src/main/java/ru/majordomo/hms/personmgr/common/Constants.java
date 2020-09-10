@@ -333,8 +333,6 @@ public class Constants {
         ACTION_DOMAINS_RENEW_COST = Collections.unmodifiableMap(temp);
     }
 
-    public static final String ACTION_BITRIX_END_DATE = "2020-05-30 00:00:00";
-
     public static final String ACTION_BONUS_PAYMENT_BILL_START_DATE = "2020-05-07 00:00:00";
     public static final String ACTION_BONUS_PAYMENT_BILL_END_DATE = "2020-05-15 12:00:00";
     public static final String ACTION_BONUS_PAYMENT_BILL_ID = "24";
