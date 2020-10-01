@@ -1,37 +1,39 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
 import com.fasterxml.jackson.annotation.JsonView;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.majordomo.hms.personmgr.common.Department;
+import ru.majordomo.hms.personmgr.common.Views;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.cerb.CerbTicket;
+import ru.majordomo.hms.personmgr.model.notification.Notification;
+import ru.majordomo.hms.personmgr.repository.CerbTicketRepository;
+import ru.majordomo.hms.personmgr.repository.NotificationRepository;
+import ru.majordomo.hms.personmgr.repository.PersonalAccountRepository;
+import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
+import ru.majordomo.hms.personmgr.service.Cerb.CerbApiClient;
+import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 import java.util.List;
 
-import ru.majordomo.hms.personmgr.common.Views;
-import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.model.notification.Notification;
-import ru.majordomo.hms.personmgr.repository.NotificationRepository;
-import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
-import ru.majordomo.hms.personmgr.validation.ObjectId;
 
 @RestController
 @Validated
+@AllArgsConstructor
 public class NotificationRestController extends CommonRestController {
     private final NotificationRepository notificationRepository;
     private final AccountNotificationHelper accountNotificationHelper;
-
-    @Autowired
-    public NotificationRestController(
-            NotificationRepository notificationRepository,
-            AccountNotificationHelper accountNotificationHelper
-    ) {
-        this.notificationRepository = notificationRepository;
-        this.accountNotificationHelper = accountNotificationHelper;
-    }
+    private final AccountHelper accountHelper;
+    private final PersonalAccountRepository personalAccountRepository;
+    private final CerbTicketRepository cerbTicketRepository;
+    private final CerbApiClient cerbApiClient;
 
     @JsonView(Views.Public.class)
     @RequestMapping(value = "/{accountId}/notifications/{notificationId}", method = RequestMethod.GET)
@@ -79,6 +81,23 @@ public class NotificationRestController extends CommonRestController {
             @RequestBody SimpleServiceMessage message
     ) {
         accountNotificationHelper.sendNotification(message);
+        return ResponseEntity.ok().build();
+    }
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/phpmail-disable-notify")
+    public ResponseEntity<String> gotAccountId(
+            @RequestBody String accountId
+    ) {
+
+        PersonalAccount account = personalAccountRepository.findByAccountId(accountId);
+        Department department = Department.TECH;
+        String subject = "Владельцу аккаунта AC_" + accountId + " от компании Majordomo";
+        String contactEmails = accountHelper.getEmail(account);
+        String content = cerbTicketRepository.findByViolation("phpmail").getTicketMessage()
+                .replace("REPLACE_ACCOUND_ID", accountId);
+
+        cerbApiClient.sendTicket(subject, department, contactEmails, content);
+
         return ResponseEntity.ok().build();
     }
 }
