@@ -322,6 +322,55 @@ public class CerbApiClient {
         return null;
     }
 
+    public Integer sendTicket(String subject, Department department, String contactEmails,  String content) {
+
+        String groupId = null;
+
+        switch (department) {
+            case FIN:
+                groupId = "7";
+                break;
+            case INFO:
+                groupId = "19";
+                break;
+            case DOMAIN:
+                groupId = "16";
+                break;
+            case TECH:
+                groupId = "31";
+                break;
+            case PLAYGROUND:
+                groupId = "73";
+                break;
+        }
+
+
+        try {
+            MultiValueMap<String, String> postParams = new LinkedMultiValueMap<>();
+            postParams.add("content", content);
+            postParams.add("content_format", "markdown");
+            postParams.add("group_id", groupId);
+            postParams.add("html_template_id", "2");
+            postParams.add("subject", subject);
+            postParams.add("to", contactEmails);
+
+            URI uri = buildUri("tickets/compose.json");
+            HttpEntity<String> request = preparePostRequestData(uri, postParams);
+            ResponseEntity<CreateTicketApiResponse> response = restTemplate.exchange(uri, HttpMethod.POST, request, CreateTicketApiResponse.class);
+
+            if (response.getBody() != null) {
+                if (response.getBody().getStatus().equals("success")) return response.getBody().getId();
+            }
+
+            logger.error("[CerbApiClient] Ошибка при создании объекта Ticket. "
+                    + (response.getBody() != null ? "Ответ от api: " + response.getBody() : "Ответ от api не получен."));
+        } catch (Exception e) {
+            logger.error("[CerbApiClient] Ошибка при создании объекта Ticket. Exception: " + e.getMessage());
+        }
+
+        return null;
+    }
+
     @Cacheable("getTicketWithMessages")
     public Ticket getTicketWithMessages(Integer tiketId) {
         try {

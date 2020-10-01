@@ -4,5 +4,6 @@ public enum Department {
     INFO,
     TECH,
     FIN,
-    DOMAIN
+    DOMAIN,
+    PLAYGROUND
 }
