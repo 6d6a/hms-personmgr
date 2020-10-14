@@ -1,17 +1,11 @@
 package ru.majordomo.hms.personmgr.common;
 
+import ru.majordomo.hms.rc.user.resources.DomainRegistrar;
+
 import java.math.BigDecimal;
 import java.util.*;
 
-import ru.majordomo.hms.rc.user.resources.DomainRegistrar;
-
-import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_CHANGE_ACCOUNT_PASSWORD;
-import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_CHANGE_FTP_PASSWORD;
-import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_LOGIN_TO_CONTROL_PANEL;
-import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_DOMAIN_DELEGATION_ENDING;
-import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_NEW_PAYMENT;
-import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_NO_MONEY_TO_AUTORENEW_DOMAIN;
-import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.SMS_REMAINING_DAYS;
+import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.*;
 
 public class Constants {
     public static final String TECHNICAL_ACCOUNT_ID = "999";
@@ -401,6 +395,7 @@ public class Constants {
 
         public static final String APPS_CAT_INSTALL = "appscat.install";
 
+        public static final String AUTH_IP_NEW = "auth.ip.new";
         public static Set<String> ALL_EXCHANGES;
 
         static {
@@ -409,6 +404,7 @@ public class Constants {
                     ACCOUNT_UPDATE,
                     ACCOUNT_DELETE,
                     ACCOUNT_HISTORY,
+                    AUTH_IP_NEW,
                     DATABASE_CREATE,
                     DATABASE_UPDATE,
                     DATABASE_DELETE,
