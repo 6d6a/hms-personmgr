@@ -417,6 +417,15 @@ public class AccountNotificationEventListener {
 
     @EventListener
     @Async("threadPoolTaskExecutor")
+    public void onNewAuthNotify(NewAuthNotifyEvent event) {
+        PersonalAccount account = event.getSource();
+        Map<String, String> params = event.getParams();
+
+        accountNotificationHelper.sendMail(account, "MajordomoVHNewAuthNotify", 10, params);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
     public void onAccountQuotaAdded(AccountQuotaAddedEvent event) {
         PersonalAccount account = event.getSource();
         Map<String, ?> params = event.getParams();

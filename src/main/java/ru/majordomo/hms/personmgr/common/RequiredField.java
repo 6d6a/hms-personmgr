@@ -33,6 +33,8 @@ public class RequiredField {
 
     public static final Set<String> ACCOUNT_EMAIL_NEWS_PATCH = new HashSet<>();
 
+    public static final Set<String> ACCOUNT_EMAIL_NEW_AUTH_NOTIFY_PATCH = new HashSet<>();
+
     static {
         ACCOUNT_CREATE.addAll(Arrays.asList(
                 "plan",
@@ -81,5 +83,7 @@ public class RequiredField {
         ));
 
         ACCOUNT_EMAIL_NEWS_PATCH.add("enabled");
+
+        ACCOUNT_EMAIL_NEW_AUTH_NOTIFY_PATCH.add("new-auth-notify");
     }
 }

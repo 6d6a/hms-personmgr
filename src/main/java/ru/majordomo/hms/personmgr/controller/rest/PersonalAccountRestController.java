@@ -1,11 +1,8 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
 import com.google.common.collect.ImmutableSet;
-
 import com.querydsl.core.types.Predicate;
-
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,18 +17,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServletRequest;
-
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
 import ru.majordomo.hms.personmgr.common.TokenType;
@@ -41,38 +26,43 @@ import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.token.TokenDeleteEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
+import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.feign.SiFeignClient;
 import ru.majordomo.hms.personmgr.feign.StatFeignClient;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.manager.TokenManager;
-import ru.majordomo.hms.personmgr.model.account.AccountOwner;
-import ru.majordomo.hms.personmgr.model.account.AccountProperties;
-import ru.majordomo.hms.personmgr.model.account.ContactInfo;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.*;
+import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
+import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
 import ru.majordomo.hms.personmgr.model.plan.PlanCost;
 import ru.majordomo.hms.personmgr.model.plan.ServiceCost;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.model.token.Token;
-import ru.majordomo.hms.personmgr.model.plan.Plan;
-import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
+import ru.majordomo.hms.personmgr.repository.AuthIpRedisRepository;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 import ru.majordomo.hms.personmgr.service.*;
-import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
-import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.PlanChange.Factory;
 import ru.majordomo.hms.personmgr.service.PlanChange.Processor;
-import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
+
+import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.PhoneNumberManager.phoneValid;
-import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_EMAIL_NEWS_PATCH;
-import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_CHANGE;
-import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_PASSWORD_RECOVER;
+import static ru.majordomo.hms.personmgr.common.RequiredField.*;
 import static ru.majordomo.hms.personmgr.common.Utils.getClientIP;
 
 @RestController
@@ -94,6 +84,7 @@ public class PersonalAccountRestController extends CommonRestController {
     private final PaymentLinkHelper paymentLinkHelper;
     private final ServiceAbonementService serviceAbonementService;
     private final AbonementService abonementService;
+    private final AuthIpRedisRepository authIpRedisRepository;
 
     @GetMapping("/accounts")
     public ResponseEntity<Page<PersonalAccount>> getAccounts(
@@ -880,6 +871,56 @@ public class PersonalAccountRestController extends CommonRestController {
         if (change) {
             accountManager.setNotifications(accountId, notifications);
             history.save(account, notification.getName() + (state ? " включено." : " отключено."), request);
+        }
+    }
+
+    @GetMapping(value = "/{accountId}/account/notifications/new-auth-notify")
+    public ResponseEntity<Map<String, Boolean>> getAuthNotification(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
+    ) {
+        AuthIPRedis authIPRedis = null;
+
+        try {
+            authIPRedis = authIpRedisRepository.findById(accountId).orElse(null);
+        } catch (Exception ignored) { }
+
+        return new ResponseEntity<>(Collections.singletonMap("new-auth-notify", authIPRedis.isNotify()), HttpStatus.OK);
+    }
+
+    @PostMapping("/{accountId}/account/notifications/new-auth-notify")
+    public ResponseEntity<Object> addAuthNotification(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody Map<String, Object> requestBody,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+
+        Utils.checkRequiredParams(requestBody, ACCOUNT_EMAIL_NEW_AUTH_NOTIFY_PATCH);
+        boolean newState;
+
+        try {
+            newState = (boolean) requestBody.get("new-auth-notify");
+        } catch (ClassCastException e) {
+            throw new ParameterValidationException("Некорректный параметр 'enabled'. Параметр должен быть 'true' или 'false'");
+        }
+
+        setNewAuthNotification(accountId, newState, request);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    private void setNewAuthNotification(String accountId, boolean state, SecurityContextHolderAwareRequestWrapper request) {
+
+        PersonalAccount account = accountManager.findOne(accountId);
+        AuthIPRedis authIPRedis = null;
+
+        try {
+            authIPRedis = authIpRedisRepository.findById(accountId).orElse(null);
+        } catch (Exception ignored) { }
+
+        if (authIPRedis != null && authIPRedis.isNotify() != state) {
+            authIPRedis.setNotify(state);
+            authIpRedisRepository.save(authIPRedis);
+            history.save(account, "Уведомления об авторизации с новых IP-адресов" + (state ? " включены." : " отключены."), request);
         }
     }
 }
