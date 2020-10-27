@@ -14,12 +14,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.State;
@@ -29,6 +24,7 @@ import ru.majordomo.hms.personmgr.config.AppConfigTest;
 import ru.majordomo.hms.personmgr.config.MongoConfigTest;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
+import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
@@ -38,6 +34,7 @@ import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.repository.CartRepository;
 import ru.majordomo.hms.personmgr.service.DomainService;
+import ru.majordomo.hms.rc.user.resources.Person;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
@@ -73,6 +70,9 @@ public class CartManagerImplTest {
 
     @MockBean(name="accountPromotionManager")
     private AccountPromotionManager accountPromotionManager;
+
+    @MockBean(name="rcUserFeignClient")
+    private RcUserFeignClient rcUserFeignClient;
 
     @Autowired
     private CartManager manager;
@@ -113,6 +113,12 @@ public class CartManagerImplTest {
                         invocation.getArgument(1)
                 ))
         ;
+        Mockito.when(rcUserFeignClient.getPersons(anyString())).thenAnswer(invocation -> {
+            Person person = new Person();
+            person.setId("1");
+            person.setAccountId(invocation.getArgument(0));
+            return Collections.singletonList(person);
+        });
     }
 
     @After

@@ -6,11 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -19,6 +15,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -56,6 +53,17 @@ public class CartRestController extends CommonRestController {
             SecurityContextHolderAwareRequestWrapper request
     ) {
         Cart cart = manager.addCartItem(accountId, cartItem);
+
+        return new ResponseEntity<>(cart, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/items")
+    public ResponseEntity<Cart> deleteCartItem(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestParam @NotBlank String name,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        Cart cart = manager.deleteCartItemByName(accountId, name);
 
         return new ResponseEntity<>(cart, HttpStatus.OK);
     }
@@ -103,5 +111,16 @@ public class CartRestController extends CommonRestController {
     public ResponseEntity<Cart> unlockCart(@ObjectId(PersonalAccount.class) @PathVariable String accountId) {
         manager.setProcessing(accountId, false);
         return ResponseEntity.ok(manager.findByPersonalAccountId(accountId));
+    }
+
+    @PatchMapping(value = "/items/fields")
+    public ResponseEntity<Cart> setCartItemsPersonId(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestParam String personId,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        Cart cart = manager.setCartPersonId(accountId, personId);
+
+        return new ResponseEntity<>(cart, HttpStatus.OK);
     }
 }

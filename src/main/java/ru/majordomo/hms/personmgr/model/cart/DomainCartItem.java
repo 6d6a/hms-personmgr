@@ -1,9 +1,9 @@
 package ru.majordomo.hms.personmgr.model.cart;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import javax.validation.constraints.NotBlank;
 import org.springframework.data.annotation.Transient;
 
@@ -16,6 +16,7 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.strategy.CartItemStrategy;
 import ru.majordomo.hms.personmgr.strategy.DomainCartItemStrategy;
+import ru.majordomo.hms.rc.user.resources.Person;
 
 public class DomainCartItem implements CartItem {
     @Transient
@@ -25,7 +26,7 @@ public class DomainCartItem implements CartItem {
     @NotBlank
     private String name;
 
-    @NotBlank
+    /** {@link Person#getId()} может быть сохранен фронтэндом пустым ли неверным, нужно проверять перед покупкой */
     private String personId;
 
     private Boolean autoRenew = false;
