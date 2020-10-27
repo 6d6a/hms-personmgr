@@ -48,4 +48,6 @@ public interface CartManager {
     List<ProcessingBusinessAction> buy(String accountId, BigDecimal cartPrice);
 
     List<Cart> findNotEmptyCartsAtLastMonth();
+
+    Cart setCartPersonId(String accountId, String personId);
 }

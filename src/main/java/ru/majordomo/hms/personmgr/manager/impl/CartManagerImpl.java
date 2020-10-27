@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.manager.impl;
 
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.mongodb.core.MongoOperations;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
+import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
@@ -26,30 +29,20 @@ import ru.majordomo.hms.personmgr.model.cart.DomainCartItem;
 import ru.majordomo.hms.personmgr.repository.CartRepository;
 import ru.majordomo.hms.personmgr.service.DomainService;
 import ru.majordomo.hms.personmgr.strategy.DomainCartItemStrategy;
+import ru.majordomo.hms.rc.user.resources.Person;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
 import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 
 @Component
+@RequiredArgsConstructor
 public class CartManagerImpl implements CartManager {
     private final CartRepository repository;
     private final MongoOperations mongoOperations;
     private final DomainService domainService;
     private final AccountPromotionManager accountPromotionManager;
-
-    @Autowired
-    public CartManagerImpl(
-            CartRepository repository,
-            MongoOperations mongoOperations,
-            DomainService domainService,
-            AccountPromotionManager accountPromotionManager
-    ) {
-        this.repository = repository;
-        this.mongoOperations = mongoOperations;
-        this.domainService = domainService;
-        this.accountPromotionManager = accountPromotionManager;
-    }
+    private final RcUserFeignClient rcUserFeignClient;
 
     @Override
     public boolean exists(String id) {
@@ -215,7 +208,7 @@ public class CartManagerImpl implements CartManager {
     }
 
     @Override
-    public List<ProcessingBusinessAction> buy(String accountId, BigDecimal cartPrice) {
+    public List<ProcessingBusinessAction> buy(String accountId, BigDecimal cartPrice) throws ParameterValidationException {
         Cart cart = findByPersonalAccountId(accountId);
 
         if (cart.getProcessing()) {
@@ -227,6 +220,15 @@ public class CartManagerImpl implements CartManager {
                     "Передано: " + formatBigDecimalWithCurrency(cartPrice) +
                     " Текущая: " + formatBigDecimalWithCurrency(cart.getPrice())
             );
+        }
+
+        Set<String> personIds = rcUserFeignClient.getPersons(accountId).stream().map(Person::getId)
+                .filter(StringUtils::isNotEmpty).collect(Collectors.toSet());
+
+        if (cart.getItems().stream().filter(cartItem -> cartItem instanceof DomainCartItem)
+                .map(cartItem -> (DomainCartItem) cartItem)
+                .anyMatch(domainCartItem -> !personIds.contains(domainCartItem.getPersonId()))) {
+            throw new ParameterValidationException("Некорректная персона");
         }
 
         setProcessing(accountId, true);
@@ -277,5 +279,18 @@ public class CartManagerImpl implements CartManager {
         domainCartItemStrategy.reloadAccountPromotions();
 
         cart.setDomainCartItemStrategy(domainCartItemStrategy);
+    }
+
+    @Override
+    @Retryable(include = {OptimisticLockingFailureException.class}, maxAttempts = 5)
+    public Cart setCartPersonId(String accountId, String personId) {
+        Cart cart = findByPersonalAccountId(accountId);
+        for (CartItem cartItem : cart.getItems()) {
+            if (cartItem instanceof DomainCartItem) {
+                ((DomainCartItem) cartItem).setPersonId(personId);
+            }
+        }
+        save(cart);
+        return cart;
     }
 }
