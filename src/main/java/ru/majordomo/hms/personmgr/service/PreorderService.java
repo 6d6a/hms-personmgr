@@ -796,13 +796,17 @@ public class PreorderService {
         }
 
         for (Preorder preorder : preorders) {
+            if (preorder.getAbonement() != null && preorder.getAbonement().getType() == Feature.VIRTUAL_HOSTING_PLAN &&
+                preorder.getAbonement().getService().getCost().signum() == 0
+            ) {
+                continue;
+            }
             deletePreorder(account, preorder.getId());
         }
-
-        Abonement trialAbonemen = plan.getFreeTrialAbonement();
-        if (trialAbonemen != null && !accountAbonementManager.existsByPersonalAccountIdAndExpiredAfter(account.getId(), LocalDateTime.now())) {
+        
+        if (plan.getFreeTrialAbonement() != null && !accountAbonementManager.existsByPersonalAccountId(account.getId())) {
             accountServiceHelper.deleteAccountServiceByServiceId(account, plan.getServiceId());
-            AccountAbonement accountAbonement = new AccountAbonement(account, trialAbonemen, null);
+            AccountAbonement accountAbonement = new AccountAbonement(account, plan.getFreeTrialAbonement(), null);
             accountAbonementManager.insert(accountAbonement);
         }
         return Result.success();
