@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.NotImplementedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.dto.Result;
 import ru.majordomo.hms.personmgr.exception.BaseException;
@@ -78,11 +79,15 @@ public class PreorderController extends CommonRestController {
 
     @PostMapping("cancel")
     public ResponseEntity<Result> cancelPreorder(
-            @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId
+            @PathVariable(value = "accountId") @ObjectId(PersonalAccount.class) String accountId,
+            SecurityContextHolderAwareRequestWrapper request
     ) {
         try {
             PersonalAccount account = accountManager.findOne(accountId);
             Result result = preorderService.cancel(account);
+            if (result.isSuccess()) {
+                history.save(accountId, "Запрос на отмену заказов выполнен", request);
+            }
             return new ResponseEntity<>(result, result.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
         } catch (Exception ex) {
             logger.debug("We got exception when cancel preorder", ex);
