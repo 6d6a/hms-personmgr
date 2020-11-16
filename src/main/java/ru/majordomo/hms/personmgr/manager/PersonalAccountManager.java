@@ -107,6 +107,10 @@ public interface PersonalAccountManager {
 
     void setAngryClient(String id, boolean angryClient);
 
+    void setSbis(String id, boolean sbis);
+
+    List<String> findAccountIdsForSbis();
+
     void setScamWarning(String id, boolean scamWarning);
 
     void setAppHostingMessageDisabled(String id, boolean newValue);
