@@ -552,6 +552,16 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
+    public void setSbis(String id, boolean sbis) {
+        checkById(id);
+
+        Query query = new Query(new Criteria("_id").is(id));
+        Update update = new Update().set("properties.sbis", sbis);
+
+        mongoOperations.updateFirst(query, update, PersonalAccount.class);
+    }
+
+    @Override
     public void setScamWarning(String id, boolean scamWarning) {
         checkById(id);
 
@@ -718,6 +728,29 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
                                                 ),
                                         Criteria.where("planId").in(planIds),
                                         Criteria.where("active").is(accountIsActive)
+                                )
+                ),
+                Aggregation.group().addToSet("id").as("ids")
+        );
+
+        List<String> accountIds = new ArrayList<>();
+
+        List<IdsContainer> idsContainers = mongoOperations.aggregate(aggregation, PersonalAccount.class, IdsContainer.class)
+                .getMappedResults();
+
+        if (idsContainers != null && !idsContainers.isEmpty()) {
+            accountIds = idsContainers.get(0).getIds();
+        }
+
+        return accountIds;
+    }
+
+    public List<String> findAccountIdsForSbis() {
+        Aggregation aggregation = newAggregation(
+                Aggregation.match(
+                        new Criteria()
+                                .andOperator(
+                                        Criteria.where("properties.sbis").is(true)
                                 )
                 ),
                 Aggregation.group().addToSet("id").as("ids")

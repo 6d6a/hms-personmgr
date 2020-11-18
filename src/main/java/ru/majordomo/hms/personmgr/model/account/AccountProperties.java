@@ -14,4 +14,6 @@ public class AccountProperties {
     private Boolean hideGoogleAdWords;
     private Boolean googleActionUsed;
     private Boolean bonusOnFirstMobilePaymentActionUsed;
+    @Nullable
+    private Boolean sbis;
 }

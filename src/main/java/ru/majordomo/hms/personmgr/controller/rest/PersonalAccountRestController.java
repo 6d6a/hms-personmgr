@@ -655,6 +655,32 @@ public class PersonalAccountRestController extends CommonRestController {
         return ResponseEntity.ok(account.getProperties());
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('FIN')")
+    @PatchMapping("/{accountId}/account/sbis")
+    public ResponseEntity<AccountProperties> setSbis(
+            @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
+            @RequestBody AccountProperties accountProperties,
+            SecurityContextHolderAwareRequestWrapper request
+    ) {
+        PersonalAccount account = accountManager.findOne(accountId);
+
+        if (accountProperties.getSbis() != null) {
+            accountManager.setSbis(accountId, accountProperties.getSbis());
+
+            history.save(account, (accountProperties.getAngryClient() ? "Включена" : "Выключена")
+                    + " отправка актов в SBIS", request);
+        }
+
+        account = accountManager.findOne(accountId);
+        return ResponseEntity.ok(account.getProperties());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/accounts/sbis")
+    public ResponseEntity<List<String>> getSbisAccounts() {
+        return ResponseEntity.ok(accountManager.findAccountIdsForSbis());
+    }
+
     @PatchMapping("/{accountId}/account/notifications/sms")
     public ResponseEntity<Object> setSmsNotifications(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
