@@ -331,6 +331,25 @@ public class Constants {
     public static final String ACTION_BONUS_PAYMENT_BILL_END_DATE = "2020-05-15 12:00:00";
     public static final String ACTION_BONUS_PAYMENT_BILL_ID = "24";
 
+    public static final String ACTION_BLACK_FRIDAY_START_DATE = "2020-11-27 00:00:00";
+    public static final String ACTION_BLACK_FRIDAY_END_DATE = "2020-11-30 00:00:00";
+
+    public static final String ACTION_BLACK_FRIDAY_PROMOTION_ID = "5fb7e0baa35057dbcdc34018";
+
+    public final static List<String> ABONEMENT_BLACK_FRIDAY_IDS = Arrays.asList(
+            "59074608719fca0a88a148b3",
+            "59074609719fca0a88a148b4",
+            "59ccba481598a62b5de11002",
+            "5c053355a35057dbcd84d348",
+            "5dedf5d6a35057dbcd27423b",
+            "5dedf5e3a35057dbcd27d59e",
+            "5f0d80a0a35057dbcd6620d8",
+            "5f0d8112a35057dbcd6c8c3d",
+            "5f0d8191a35057dbcd7664ee",
+            "5f0d81f3a35057dbcd78ad1f",
+            "5f0d828fa35057dbcd83454e"
+    );
+
     public static class Exchanges {
         public static final String ACCOUNT_CREATE = "account.create";
         public static final String ACCOUNT_UPDATE = "account.update";
