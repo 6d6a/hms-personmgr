@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,6 +32,7 @@ import ru.majordomo.hms.personmgr.model.seo.Seo;
 import ru.majordomo.hms.personmgr.repository.AccountSeoOrderRepository;
 import ru.majordomo.hms.personmgr.repository.SeoRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
+import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
 import ru.majordomo.hms.personmgr.service.ChargeMessage;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
@@ -40,24 +43,13 @@ import static ru.majordomo.hms.personmgr.common.RequiredField.ACCOUNT_SEO_ORDER_
 @RestController
 @RequestMapping("/{accountId}/seo")
 @Validated
+@AllArgsConstructor
 public class SeoRestController extends CommonRestController {
     private final AccountSeoOrderRepository accountSeoOrderRepository;
     private final SeoRepository seoRepository;
     private final AccountHelper accountHelper;
     private final ApplicationEventPublisher publisher;
-
-    @Autowired
-    public SeoRestController(
-            AccountSeoOrderRepository accountSeoOrderRepository,
-            SeoRepository seoRepository,
-            AccountHelper accountHelper,
-            ApplicationEventPublisher publisher
-    ) {
-        this.accountSeoOrderRepository = accountSeoOrderRepository;
-        this.seoRepository = seoRepository;
-        this.accountHelper = accountHelper;
-        this.publisher = publisher;
-    }
+    private final AccountServiceHelper accountServiceHelper;
 
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<List<Seo>> getSeos(
@@ -134,6 +126,7 @@ public class SeoRestController extends CommonRestController {
         accountSeoOrderRepository.save(order);
 
         ChargeMessage chargeMessage = new ChargeMessage.Builder(seo.getService())
+                .setAmount(accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), seo.getService()))
                 .build();
         accountHelper.charge(account, chargeMessage);
 

@@ -32,14 +32,12 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
+import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
-import ru.majordomo.hms.personmgr.repository.AccountRedirectServiceRepository;
-import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
-import ru.majordomo.hms.personmgr.repository.PaymentServiceRepository;
-import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
+import ru.majordomo.hms.personmgr.repository.*;
 
 import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
@@ -62,6 +60,7 @@ public class AccountServiceHelper {
     private final AccountHistoryManager history;
     private final AccountStatHelper accountStatHelper;
     private final AccountRedirectServiceRepository accountRedirectServiceRepository;
+    private final PromocodeActionRepository promocodeActionRepository;
 
     public void deletePlanServiceIfExists(PersonalAccount account, Plan plan) {
         if (accountHasService(account, plan.getServiceId())) {
@@ -673,6 +672,20 @@ public class AccountServiceHelper {
 
         if (accountPromotion != null) {
             cost = discountFactory.getDiscount(accountPromotion.getAction()).getCost(cost);
+        }
+
+        if (ABONEMENT_BLACK_FRIDAY_IDS.contains(paymentService.getId()) && accountPromotion == null) {
+            LocalDateTime now = LocalDateTime.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            LocalDateTime startDate = LocalDateTime.parse(ACTION_BLACK_FRIDAY_START_DATE, formatter);
+            LocalDateTime endDate = LocalDateTime.parse(ACTION_BLACK_FRIDAY_END_DATE, formatter);
+
+            if (now.isAfter(startDate) && now.isBefore(endDate)) {
+                Optional<PromocodeAction> bfAction = promocodeActionRepository.findById(ACTION_BLACK_FRIDAY_PROMOTION_ID);
+                if (bfAction.isPresent()) {
+                    cost = discountFactory.getDiscount(bfAction.get()).getCost(cost);
+                }
+            }
         }
 
         return cost;
