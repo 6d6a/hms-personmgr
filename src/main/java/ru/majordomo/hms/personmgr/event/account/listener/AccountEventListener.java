@@ -412,9 +412,11 @@ public class AccountEventListener {
             return;
         }
 
-        Map<String, String> metadata = (Map<String, String>) params.get(METADATA);
+        @SuppressWarnings("unchecked")
+        Map<Object, Object> metadata = params.get(METADATA) instanceof Map ?
+                (Map<Object, Object>) params.get(METADATA) : null;
 
-        if (metadata.get(OAUTH_CLIENT_ID) == null || !metadata.get(OAUTH_CLIENT_ID).equals(MOBILE_APP_OAUTH_CLIENT_ID)) {
+        if (metadata == null || metadata.get(OAUTH_CLIENT_ID) == null || !metadata.get(OAUTH_CLIENT_ID).equals(MOBILE_APP_OAUTH_CLIENT_ID)) {
             return;
         }
 
