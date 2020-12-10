@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.AntiSpamServiceSwitchEvent;
@@ -173,7 +174,7 @@ public class AccountServiceRestController extends CommonRestController {
         if (!(accountPlan.isDatabaseAllowed() || accountPlan.isDatabaseUserAllowed()) && feature == Feature.ALLOW_USE_DATABASES && !enabled) {
             if (resourceHelper.haveDatabases(account)) {
                 throw new ParameterValidationException("Нельзя отключить услугу так как на аккаунте есть базы данных и пользователи");
-            };
+            }
         }
 
         processCustomService(account, plan.getService(), enabled);
@@ -207,7 +208,7 @@ public class AccountServiceRestController extends CommonRestController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<List<AccountService>> getService(
+    public ResponseEntity<List<AccountService>>  getService(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestParam(value = "feature") Feature feature
     ) {
@@ -225,7 +226,9 @@ public class AccountServiceRestController extends CommonRestController {
         );
 
         if (accountServices == null || accountServices.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            List<AccountService> accountAllEnabledServices = accountServiceRepository.findByPersonalAccountIdAndEnabled(account.getId(), true);
+            List<AccountService> fallbackEnabledSmsService = Collections.singletonList(accountAllEnabledServices.stream().filter(o -> o.getName().equals("SMS-уведомления")).findFirst().orElse(null));
+            return new ResponseEntity<>(fallbackEnabledSmsService, HttpStatus.OK);
         } else if (feature.isOnlyOnePerAccount() && accountServices.size() > 1) {
             throw new ParameterValidationException(
                     "На аккаунте обнаружено больше одной услуги '" + plan.getService().getName()
