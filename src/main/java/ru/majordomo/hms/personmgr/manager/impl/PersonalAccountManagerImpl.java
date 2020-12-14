@@ -768,6 +768,14 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
         return accountIds;
     }
 
+    public Page<PersonalAccount> findAccountsForSbis(Pageable pageable) {
+        return repository.findByAccountIdIn(this.findAccountIdsForSbis(), pageable);
+    }
+
+    public Page<PersonalAccount> findAccountsForSbis(String accId, Pageable pageable) {
+        return repository.findByAccountIdIn(Collections.singletonList(accId), pageable);
+    }
+
     @Override
     public List<String> findByActiveAndDeactivatedBefore(boolean active, LocalDateTime deactivated) {
         Aggregation aggregation = newAggregation(

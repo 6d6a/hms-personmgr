@@ -54,5 +54,7 @@ public interface PersonalAccountRepository extends MongoRepository<PersonalAccou
     List<PersonalAccount> findByAccountIdContaining(String accountId);
     Page<PersonalAccount> findByAccountIdContaining(String accountId, Pageable pageable);
 
+    Page<PersonalAccount> findByAccountIdIn(List<String> accountId, Pageable pageable);
+
     List<PersonalAccount> findByCreatedBetween(LocalDateTime from, LocalDateTime to);
 }
