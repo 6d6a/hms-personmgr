@@ -111,6 +111,10 @@ public interface PersonalAccountManager {
 
     List<String> findAccountIdsForSbis();
 
+    Page<PersonalAccount> findAccountsForSbis(Pageable pageable);
+
+    Page<PersonalAccount> findAccountsForSbis(String accountId, Pageable pageable);
+
     void setScamWarning(String id, boolean scamWarning);
 
     void setAppHostingMessageDisabled(String id, boolean newValue);

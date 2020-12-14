@@ -39,6 +39,7 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
 import ru.majordomo.hms.personmgr.model.plan.PlanCost;
 import ru.majordomo.hms.personmgr.model.plan.ServiceCost;
+import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.model.token.Token;
 import ru.majordomo.hms.personmgr.repository.AuthIpRedisRepository;
@@ -667,7 +668,7 @@ public class PersonalAccountRestController extends CommonRestController {
         if (accountProperties.getSbis() != null) {
             accountManager.setSbis(accountId, accountProperties.getSbis());
 
-            history.save(account, (accountProperties.getAngryClient() ? "Включена" : "Выключена")
+            history.save(account, (accountProperties.getSbis() ? "Включена" : "Выключена")
                     + " отправка актов в SBIS", request);
         }
 
@@ -679,6 +680,25 @@ public class PersonalAccountRestController extends CommonRestController {
     @GetMapping("/accounts/sbis")
     public ResponseEntity<List<String>> getSbisAccounts() {
         return ResponseEntity.ok(accountManager.findAccountIdsForSbis());
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('FIN')")
+    @GetMapping(value = "/sbis-list")
+    public ResponseEntity<Page<PersonalAccount>> getAllOrders(
+            Pageable pageable,
+            @RequestParam Map<String, String> search
+    ) {
+        String accId = getAccountIdFromNameOrAccountId(search.getOrDefault("personalAccountId", ""));
+
+        Page<PersonalAccount> orders;
+
+        if (!accId.isEmpty()) {
+            orders = accountManager.findAccountsForSbis(accId, pageable);
+        } else {
+            orders = accountManager.findAccountsForSbis(pageable);
+        }
+
+        return new ResponseEntity<>(orders, HttpStatus.OK);
     }
 
     @PatchMapping("/{accountId}/account/notifications/sms")
