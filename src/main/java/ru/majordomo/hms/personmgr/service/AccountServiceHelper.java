@@ -674,15 +674,16 @@ public class AccountServiceHelper {
             cost = discountFactory.getDiscount(accountPromotion.getAction()).getCost(cost);
         }
 
-        if (ABONEMENT_BLACK_FRIDAY_IDS.contains(paymentService.getId()) && accountPromotion == null) {
-            LocalDateTime now = LocalDateTime.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            LocalDateTime startDate = LocalDateTime.parse(ACTION_BLACK_FRIDAY_START_DATE, formatter);
-            LocalDateTime endDate = LocalDateTime.parse(ACTION_BLACK_FRIDAY_END_DATE, formatter);
+        Optional<PromocodeAction> bfAction = promocodeActionRepository.findById(ACTION_BLACK_FRIDAY_PROMOTION_ID);
+        if (bfAction.isPresent()) {
+            List serviceIds = (List) bfAction.get().getProperties().get("serviceIds");
+            if (serviceIds.contains(paymentService.getId()) && accountPromotion == null) {
+                LocalDateTime now = LocalDateTime.now();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                LocalDateTime startDate = LocalDateTime.parse(ACTION_BLACK_FRIDAY_START_DATE, formatter);
+                LocalDateTime endDate = LocalDateTime.parse(ACTION_BLACK_FRIDAY_END_DATE, formatter);
 
-            if (now.isAfter(startDate) && now.isBefore(endDate)) {
-                Optional<PromocodeAction> bfAction = promocodeActionRepository.findById(ACTION_BLACK_FRIDAY_PROMOTION_ID);
-                if (bfAction.isPresent()) {
+                if (now.isAfter(startDate) && now.isBefore(endDate)) {
                     cost = discountFactory.getDiscount(bfAction.get()).getCost(cost);
                 }
             }
