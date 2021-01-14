@@ -73,6 +73,10 @@ public class SchedulerRestController extends CommonRestController {
                 publisher.publishEvent(new ProcessAccountDeactivatedSendSmsEvent());
 
                 break;
+            case "process_account_no_abonement_send_mail":
+                publisher.publishEvent(new ProcessAccountNoAbonementSendMailEvent());
+
+                break;
             case "process_notify_inactive_long_time":
                 publisher.publishEvent(new ProcessNotifyInactiveLongTimeEvent());
 
