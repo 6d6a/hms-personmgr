@@ -158,6 +158,11 @@ public class Constants {
     public static final String TECHNICAL_SUPPORT_EMAIL = "support@majordomo.ru";
     public static final Long PLAN_MIN_COST_TO_ORDER_ABONEMENT = 245L;
 
+    public static final String SERVICE_ID_PLAN_UNLIMITED_DAILY_CHARGES = "59074666719fca0bb6bd2e24";
+    public static final String SERVICE_ID_PLAN_UNLIMITED_PLUS_DAILY_CHARGES = "59074667719fca0bb6bd2e37";
+    public static final String SERVICE_ID_PLAN_BUSINESS_DAILY_CHARGES = "59074667719fca0bb6bd2e3c";
+    public static final String SERVICE_ID_PLAN_BUSINESS_PLUS_DAILY_CHARGES = "59074668719fca0bb6bd2e41";
+
     public static final Integer DEFAULT_NOTIFY_DAYS = 14;
 
     public static final int ADDITIONAL_WEB_SITE_ID = 22;

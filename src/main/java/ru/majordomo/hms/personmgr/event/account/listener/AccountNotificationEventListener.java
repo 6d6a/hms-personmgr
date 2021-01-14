@@ -8,7 +8,9 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.*;
+import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.account.*;
+import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.feign.BizMailFeignClient;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.feign.StatFeignClient;
@@ -39,6 +41,7 @@ import java.util.stream.Stream;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.EMAIL_NEWS;
+import static ru.majordomo.hms.personmgr.common.Utils.formatBigDecimalWithCurrency;
 import static ru.majordomo.hms.personmgr.service.order.BitrixLicenseOrderManager.MAY_PROLONG_DAYS_BEFORE_EXPIRED;
 
 @Component
@@ -351,6 +354,17 @@ public class AccountNotificationEventListener {
         paramsForSms.put("client_id", account.getAccountId());
         accountNotificationHelper.sendSms(account, apiName, 1, paramsForSms);
         accountNotificationHelper.sendTelegram(account, apiName, paramsForSms);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void on(AccountNoAbonementSendMailEvent event) {
+        PersonalAccount account = personalAccountManager.findOne(event.getSource());
+
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("plan_cost", event.getPlanCost());;
+
+        accountNotificationHelper.sendMail(account, "majordomo_abonement_01_21", 10, parameters);
     }
 
     @EventListener

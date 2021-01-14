@@ -64,6 +64,14 @@ public class AccountScheduleEventListener {
 
     @EventListener
     @Async("threadPoolTaskExecutor")
+    public void on(ProcessAccountNoAbonementSendMailEvent event) {
+        logger.debug("We got ProcessAccountNoAbonementSendMailEvent");
+
+        notificationScheduler.processAccountNoAbonementSendMail();
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
     public void on(ProcessNotifyInactiveLongTimeEvent event) {
         logger.debug("We got ProcessNotifyInactiveLongTimeEvent");
 
