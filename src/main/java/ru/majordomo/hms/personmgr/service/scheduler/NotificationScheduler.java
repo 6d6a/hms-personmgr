@@ -95,8 +95,9 @@ public class NotificationScheduler {
         List<String> activeAccounts = accountManager.findByActive(true).stream().map(PersonalAccount::getAccountId).collect(Collectors.toList());
 
         noAbonementPlanIds.forEach((planId) -> {
-            Map<String, BigDecimal> accountsIdsAndCostNoAbonement = activeAccounts.stream().map(account -> accountServiceRepository.findOneByPersonalAccountIdAndServiceId(account, planId)).filter(Objects::nonNull).collect(Collectors.toMap(AccountService::getPersonalAccountId, AccountService::getCost));
-            accountsIdsAndCostNoAbonement.forEach((accountId, cost) -> {
+            List<List<AccountService>> accountsOnMonthlyPlans = activeAccounts.stream().map(account -> accountServiceRepository.findByPersonalAccountIdAndServiceId(account, planId)).filter(account -> !account.isEmpty()).collect(Collectors.toList());
+            Map<String, BigDecimal> accountsIdsAndCost = accountsOnMonthlyPlans.stream().map(account -> account.get(0)).filter(Objects::nonNull).collect(Collectors.toMap(AccountService::getPersonalAccountId, AccountService::getCost));
+            accountsIdsAndCost.forEach((accountId, cost) -> {
                 publisher.publishEvent(new AccountNoAbonementSendMailEvent(accountId, cost.intValue()));
             });
         });
