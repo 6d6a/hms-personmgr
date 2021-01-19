@@ -21,6 +21,8 @@ import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountPromotionRepository;
 
+import javax.annotation.Nullable;
+
 import static ru.majordomo.hms.personmgr.common.PromocodeActionType.SERVICE_DISCOUNT;
 
 @Component
@@ -115,6 +117,7 @@ public class AccountPromotionManagerImpl implements AccountPromotionManager {
         setAccountPromotionStatusByIdAndActionId(id, false, comment);
     }
 
+    @Nullable
     public AccountPromotion getServiceDiscountPromotion(String accountId, PaymentService service) {
         List<AccountPromotion> promotions = findByPersonalAccountId(accountId);
 

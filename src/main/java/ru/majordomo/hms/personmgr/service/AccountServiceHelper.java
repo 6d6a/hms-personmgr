@@ -34,6 +34,7 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 import ru.majordomo.hms.personmgr.model.promocode.PromocodeAction;
 import ru.majordomo.hms.personmgr.model.promotion.AccountPromotion;
+import ru.majordomo.hms.personmgr.model.seo.Seo;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
@@ -61,6 +62,7 @@ public class AccountServiceHelper {
     private final AccountStatHelper accountStatHelper;
     private final AccountRedirectServiceRepository accountRedirectServiceRepository;
     private final PromocodeActionRepository promocodeActionRepository;
+    private final SeoRepository seoRepository;
 
     public void deletePlanServiceIfExists(PersonalAccount account, Plan plan) {
         if (accountHasService(account, plan.getServiceId())) {
@@ -665,6 +667,12 @@ public class AccountServiceHelper {
         return cost.multiply(BigDecimal.valueOf(accountService.getQuantity()));
     }
 
+    /**
+     * Видимо это основной метод для для получения стоимости услуги с учетом скидок и акций. Как внутри pm так и снаружи
+     * @param accountId
+     * @param paymentService
+     * @return стоимость с учетом скидок
+     */
     public BigDecimal getServiceCostDependingOnDiscount(String accountId, PaymentService paymentService) {
         BigDecimal cost = paymentService.getCost();
 
@@ -674,18 +682,27 @@ public class AccountServiceHelper {
             cost = discountFactory.getDiscount(accountPromotion.getAction()).getCost(cost);
         }
 
+        LocalDateTime now = LocalDateTime.now();
         Optional<PromocodeAction> bfAction = promocodeActionRepository.findById(ACTION_BLACK_FRIDAY_PROMOTION_ID);
         if (bfAction.isPresent()) {
             List serviceIds = (List) bfAction.get().getProperties().get("serviceIds");
             if (serviceIds.contains(paymentService.getId()) && accountPromotion == null) {
-                LocalDateTime now = LocalDateTime.now();
+
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                 LocalDateTime startDate = LocalDateTime.parse(ACTION_BLACK_FRIDAY_START_DATE, formatter);
                 LocalDateTime endDate = LocalDateTime.parse(ACTION_BLACK_FRIDAY_END_DATE, formatter);
-
                 if (now.isAfter(startDate) && now.isBefore(endDate)) {
                     cost = discountFactory.getDiscount(bfAction.get()).getCost(cost);
                 }
+            }
+        }
+
+        if (ISSUES_13879_SEO_PROMO_START.isBefore(now) && ISSUES_13879_SEO_PROMO_END.isAfter(now)) {
+            /** todo удалить гадость после {@link ISSUES_13879_SEO_PROMO_END} */
+            Seo seo = seoRepository.findByServiceIdOnlyType(paymentService.getId());
+            BigDecimal seoCost;
+            if (seo != null && (seoCost = ISSUES_13879_SEO_PROMO_COST_MAP.get(seo.getType())) != null) {
+                cost = seoCost;
             }
         }
 

@@ -3,6 +3,8 @@ package ru.majordomo.hms.personmgr.common;
 import ru.majordomo.hms.rc.user.resources.DomainRegistrar;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.*;
 
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.*;
@@ -340,6 +342,20 @@ public class Constants {
     public static final String ACTION_BLACK_FRIDAY_END_DATE = "2020-12-29 00:00:00";
 
     public static final String ACTION_BLACK_FRIDAY_PROMOTION_ID = "5fde11b4a35057dbcdf7bf0e";
+
+    /** todo удалить гадость после окончания акции */
+    public final static LocalDateTime ISSUES_13879_SEO_PROMO_END = LocalDateTime.of(2021, Month.MARCH, 1, 0, 0);
+    public final static LocalDateTime ISSUES_13879_SEO_PROMO_START = LocalDateTime.of(2021, Month.JANUARY, 19, 12, 0);
+    public final static Map<SeoType, BigDecimal> ISSUES_13879_SEO_PROMO_COST_MAP = Collections.unmodifiableMap(new EnumMap<SeoType, BigDecimal>(SeoType.class) {{
+        put(SeoType.CONTEXT, BigDecimal.valueOf(4990));
+        put(SeoType.CONTEXT_PREMIUM, BigDecimal.valueOf(9990));
+        put(SeoType.INSTAGRAM_PREMIUM, BigDecimal.valueOf(9990));
+        put(SeoType.VK_PREMIUM, BigDecimal.valueOf(9990));
+        put(SeoType.FACEBOOK_PREMIUM, BigDecimal.valueOf(9990));
+        put(SeoType.CONTEXT_GOOGLE_AND_YANDEX, BigDecimal.valueOf(7490));
+        put(SeoType.CONTEXT_GOOGLE_AND_YANDEX_PREMIUM, BigDecimal.valueOf(12990));
+        put(SeoType.TWO_SOCIAL_CHOOSE, BigDecimal.valueOf(16490));
+    }});
 
     public static class Exchanges {
         public static final String ACCOUNT_CREATE = "account.create";
