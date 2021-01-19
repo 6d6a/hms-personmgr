@@ -14,16 +14,18 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.ServicePaymentType;
 import ru.majordomo.hms.personmgr.dto.PaymentTypeKind;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.model.BaseModel;
 import ru.majordomo.hms.personmgr.validation.ObjectIdMap;
 
 @Document
-public class PaymentService extends BaseModel {
+public class PaymentService extends BaseModel implements Cloneable {
 
     @NotNull
     @Indexed
@@ -32,6 +34,10 @@ public class PaymentService extends BaseModel {
     @NotNull
     private BigDecimal cost;
 
+    /** Цена со скидкой. Почти во всех запросах не заполняется, даже если скидка есть */
+    @Getter
+    @Setter
+    @Nullable
     @Transient
     private BigDecimal discountCost = null;
 
@@ -136,14 +142,6 @@ public class PaymentService extends BaseModel {
         this.oldId = oldId;
     }
 
-    public BigDecimal getDiscountCost() {
-        return discountCost;
-    }
-
-    public void setDiscountCost(BigDecimal discountCost) {
-        this.discountCost = discountCost;
-    }
-
     public PaymentService() {
     }
 
@@ -174,5 +172,14 @@ public class PaymentService extends BaseModel {
                 ", servicesIdsWithLimits=" + servicesIdsWithLimits +
                 ", chargePriority=" + chargePriority +
                 "} " + super.toString();
+    }
+
+    @Override
+    public PaymentService clone() {
+        try {
+            return (PaymentService) super.clone();
+        } catch (CloneNotSupportedException neverCaught) {
+            throw new InternalApiException("Возникла непредвиденная ошибка", neverCaught);
+        }
     }
 }

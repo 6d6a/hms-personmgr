@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
 import lombok.AllArgsConstructor;
+import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,7 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.seo.AccountSeoOrder;
 import ru.majordomo.hms.personmgr.model.seo.Seo;
+import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.repository.AccountSeoOrderRepository;
 import ru.majordomo.hms.personmgr.repository.SeoRepository;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
@@ -55,9 +57,16 @@ public class SeoRestController extends CommonRestController {
     public ResponseEntity<List<Seo>> getSeos(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId
     ) {
-        List<Seo> seos = seoRepository.findAll();
+        List<Seo> seoList = seoRepository.findAll();
+        if (CollectionUtils.isNotEmpty(seoList)) {
+            for (Seo seo : seoList) {
+                PaymentService paymentService = seo.getService().clone();
+                paymentService.setDiscountCost(accountServiceHelper.getServiceCostDependingOnDiscount(accountId, paymentService));
+                seo.setService(paymentService);
+            }
+        }
 
-        return new ResponseEntity<>(seos, HttpStatus.OK);
+        return new ResponseEntity<>(seoList, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/order", method = RequestMethod.GET)

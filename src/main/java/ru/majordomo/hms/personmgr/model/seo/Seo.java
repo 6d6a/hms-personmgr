@@ -17,6 +17,7 @@ public class Seo extends BaseModel {
     @NotNull
     private SeoType type;
 
+    /** {@link PaymentService#getId()} */
     @NotNull
     private String serviceId;
 

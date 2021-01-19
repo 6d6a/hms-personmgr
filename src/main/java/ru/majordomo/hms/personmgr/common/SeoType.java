@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.common;
 
 public enum SeoType {
     AUDIT,
+    /** Контекстная реклама базовая */
     CONTEXT,
     CONTEXT_PREMIUM,
     VK_PREMIUM,
