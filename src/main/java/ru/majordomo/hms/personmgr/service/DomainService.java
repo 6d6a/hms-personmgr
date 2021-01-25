@@ -280,14 +280,16 @@ public class DomainService {
     private List<Domain> getDomainsByName(String domainName) {
         List<Domain> domains = new ArrayList<>();
 
+        InternetDomainName name = InternetDomainName.from(domainName);
+
         try {
-            domains.add(rcUserFeignClient.findDomain(domainName));
+            domains.add(rcUserFeignClient.findDomain(name.toString()));
         } catch (ResourceNotFoundException ignore) {
             logger.info("rc-user: домен " + domainName + " не найден");
         }
 
         try {
-            domains.add(rcUserFeignClient.findDomain(IDN.toASCII(domainName)));
+            domains.add(rcUserFeignClient.findDomain(IDN.toASCII(name.toString())));
         } catch (ResourceNotFoundException ignore) {
             logger.info("rc-user: домен " + domainName + " не найден");
         }
