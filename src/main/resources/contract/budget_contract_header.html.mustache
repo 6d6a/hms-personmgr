@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Договор{{#accountName}} № {{.}}{{/accountName}}</title>
+    <style>
+        {{#arialBase64}}
+            @font-face {
+                font-family: 'Arial';
+                src: url(data:font/truetype;charset=utf-8;base64,{{.}})
+            }
+        {{/arialBase64}}
+        {{#helveticaBase64}}
+            @font-face {
+                font-family: 'Helvetica';
+                src: url(data:font/truetype;charset=utf-8;base64,{{.}})
+            }
+        {{/helveticaBase64}}
+        html {
+            font-family: Helvetica;
+            font-size: 11pt;
+        }
+
+        body, div {
+            font: normal 16px/16px Helvetica, sans-serif;
+            padding: 0;
+        }
+
+        p {
+            margin: 0px;
+        }
+        {{#withoutStamp}}
+            img.stamp {
+                visibility: hidden;
+            }
+            img.sign {
+                display: none;
+            }
+        {{/withoutStamp}}
+    </style>
+</head>
+<body>
+    {{body}}
+</body>
+</html>

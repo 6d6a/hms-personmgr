@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service.Rpc;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,7 +14,9 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Base64;
 
+/** billing2/mj-rpc клиент */
 @Service
+@RequiredArgsConstructor
 public class MajordomoRpcClient {
 
     private static final String CONTRACT_CONTROLLER = "contracts.";
@@ -26,20 +29,17 @@ public class MajordomoRpcClient {
     private static final String VH_BUDGET_CONTRACT = "hms_virtual_hosting_budget_contract";
     private static final String NOTICE_RF = "hms_notice_rf";
 
+    @Value("${rpc.majordomo.url}")
     private final URL serverURL;
-    private final String serviceLogin;
-    private final String servicePassword;
 
-    @Autowired
-    public MajordomoRpcClient(
-            @Value("${rpc.majordomo.url}") String serverURL,
-            @Value("${rpc.majordomo.login}") String login,
-            @Value("${rpc.majordomo.password}") String password
-    ) throws MalformedURLException {
-        this.serverURL = new URL(serverURL);
-        this.serviceLogin = login;
-        this.servicePassword = password;
+    public URL getServerURL() {
+        return serverURL;
     }
+
+    @Value("${rpc.majordomo.login}")
+    private final String serviceLogin;
+    @Value("${rpc.majordomo.password}")
+    private final String servicePassword;
 
     public RpcClient newConnection() throws InternalApiException {
         try {

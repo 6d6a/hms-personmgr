@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.service.Document;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.samskivert.mustache.Mustache;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.DocumentType;
@@ -12,9 +13,11 @@ import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
 import ru.majordomo.hms.personmgr.service.Rpc.RegRpcClient;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class DocumentBuilderFactory {
 
     private final MajordomoRpcClient majordomoRpcClient;
@@ -23,28 +26,18 @@ public class DocumentBuilderFactory {
     private final AccountDocumentRepository accountDocumentRepository;
     private final RegRpcClient regRpcClient;
     private final RcUserFeignClient rcUserFeignClient;
+    @Value("${converter.wkhtmltopdf.url}")
     private final String wkhtmltopdfUrl;
+    private final Mustache.Compiler mustacheCompiler;
+    private final WkHtmlToPdfWebService wkhtmlToPdfService;
 
-    @Autowired
-    public DocumentBuilderFactory(
-            MajordomoRpcClient majordomoRpcClient,
-            AccountOwnerManager accountOwnerManager,
-            PersonalAccountManager personalAccountManager,
-            AccountDocumentRepository accountDocumentRepository,
-            RegRpcClient regRpcClient,
-            RcUserFeignClient rcUserFeignClient,
-            @Value("${converter.wkhtmltopdf.url}") String wkhtmltopdfUrl
-    ){
-        this.majordomoRpcClient = majordomoRpcClient;
-        this.accountOwnerManager = accountOwnerManager;
-        this.personalAccountManager = personalAccountManager;
-        this.accountDocumentRepository = accountDocumentRepository;
-        this.regRpcClient = regRpcClient;
-        this.rcUserFeignClient = rcUserFeignClient;
-        this.wkhtmltopdfUrl = wkhtmltopdfUrl;
-    }
-
-    public DocumentBuilder getBuilder(DocumentType type, String personalAccountId, Map<String, String> params){
+    /**
+     * @param type
+     * @param personalAccountId null если нужен предварительный просмотр документа
+     * @param params
+     * @return
+     */
+    public DocumentBuilder getBuilder(DocumentType type, @Nullable String personalAccountId, Map<String, String> params){
         DocumentBuilder documentBuilder = null;
         switch (type){
             case VIRTUAL_HOSTING_OFERTA:
@@ -54,12 +47,14 @@ public class DocumentBuilderFactory {
                 throw new ParameterValidationException("Нельзя заказать договор");
 
             case VIRTUAL_HOSTING_BUDGET_CONTRACT:
-                documentBuilder = new BudgetContractBuilder(
+                documentBuilder = new BudgetContractWkBuilder(
                         personalAccountId,
                         accountOwnerManager,
                         majordomoRpcClient,
                         personalAccountManager,
                         accountDocumentRepository,
+                        mustacheCompiler,
+                        wkhtmlToPdfService,
                         params
                 );
 
@@ -82,7 +77,7 @@ public class DocumentBuilderFactory {
                         accountOwnerManager,
                         personalAccountId,
                         Boolean.valueOf(params.getOrDefault("withoutStamp", "false")),
-                        wkhtmltopdfUrl
+                        wkhtmlToPdfService
                 );
 
                 break;
