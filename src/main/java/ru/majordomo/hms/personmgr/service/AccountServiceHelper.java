@@ -41,6 +41,7 @@ import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
 import ru.majordomo.hms.personmgr.repository.*;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import javax.validation.constraints.NotNull;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
@@ -112,7 +113,8 @@ public class AccountServiceHelper {
      * @param account   Аккаунт
      * @param accountService
      */
-    public void deleteAccountServiceById(@NotNull PersonalAccount account, @NotNull AccountService accountService, boolean deleteOnly) {
+    @ParametersAreNonnullByDefault
+    public void deleteAccountServiceById(PersonalAccount account, AccountService accountService, boolean deleteOnly) {
         if (!Objects.equals(accountService.getPersonalAccountId(), account.getId())) {
             throw new ParameterValidationException(String.format("Сервис %s не принадлежит аккаунту %s", accountService.getName(), account.getName()));
         }

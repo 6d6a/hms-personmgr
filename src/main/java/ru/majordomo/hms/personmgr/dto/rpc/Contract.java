@@ -18,7 +18,9 @@ public class Contract {
     private String body;
     private String footer;
     private Boolean status; //'active', 'archived', 'draft'
-    private String type; //'oferta', 'company', 'entrepreneur', 'oferta_virtual_hosting', 'virtual_hosting'
+
+    /** "hms_virtual_hosting_budget_contract", 'oferta', 'company', 'entrepreneur', 'oferta_virtual_hosting', 'virtual_hosting' */
+    private String type;
 
     @JsonProperty("no_footer_pages")
     private List<Integer> noFooterPages; //no_footer_pages": "3,5,7",
@@ -49,7 +51,7 @@ public class Contract {
             List<String> strings = Arrays.asList(row.split(","));
             this.noFooterPages = strings
                     .stream()
-                    .map(Integer::valueOf)
+                    .map(s -> Integer.valueOf(s.trim()))
                     .collect(Collectors.toList());
         }
     }

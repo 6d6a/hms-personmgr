@@ -1,2 +1,11 @@
 #management:
 #  port: 18080
+
+spring:
+  mustache:
+    check-template-location: false
+
+# todo удалить, брать из config-server
+converter:
+  wkhtmltopdf:
+    url: http://wkhtml2pdf.intr/

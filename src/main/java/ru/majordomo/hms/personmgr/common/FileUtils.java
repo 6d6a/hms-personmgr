@@ -1,5 +1,10 @@
 package ru.majordomo.hms.personmgr.common;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.IOUtils;
+
+import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.*;
 import java.util.Map;
 import java.util.Set;
@@ -116,5 +121,20 @@ public class FileUtils {
 
         out.close();
         return baos.toByteArray();
+    }
+
+    /**
+     * Загрузка файла из ресурса в виде base64
+     * @param resourcePath
+     * @return
+     * @throws IOException
+     */
+    @Nonnull
+    @ParametersAreNonnullByDefault
+    public static String getResourceInBase64(String resourcePath) throws IOException {
+        InputStream inputStream = FileUtils.class.getResourceAsStream(resourcePath);
+
+        byte[] bytes = IOUtils.toByteArray(inputStream);
+        return Base64.encodeBase64String(bytes);
     }
 }

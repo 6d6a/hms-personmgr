@@ -1,11 +1,13 @@
 package ru.majordomo.hms.personmgr.service.Document;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
-import com.google.common.io.CharStreams;
+import com.samskivert.mustache.Mustache;
+import org.apache.commons.lang.StringUtils;
 import ru.majordomo.hms.personmgr.common.DocumentType;
+import ru.majordomo.hms.personmgr.common.FileUtils;
 import ru.majordomo.hms.personmgr.common.Utils;
 import ru.majordomo.hms.personmgr.dto.rpc.Contract;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
@@ -15,26 +17,27 @@ import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountDocumentRepository;
 import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
+import java.io.*;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
-public class BudgetContractBuilder extends DocumentBuilderImpl {
-
-    private final static String PAGE_NUMBER_PDF_TAG = "\n<pdf:pagenumber>\n";
-    private final static String NEXT_PAGE_PDF_TAG = "<pdf:nextpage/>";
-    private final static String NEXT_TEMPLATE_WITH_FOOTHER_TAG = "<pdf:nexttemplate name=\"withfooter\"/>";
-    private final static String NEXT_TEMPLATE_WITHOUT_FOOTHER_TAG = "<pdf:nexttemplate name=\"withoutfooter\"/>";
+@ParametersAreNonnullByDefault
+public class BudgetContractWkBuilder extends DocumentBuilderImpl {
 
     private final static String PAGE_BREAK_PATTERN = "<div style=\"page-break-after: always;?\">(\\s*<span style=\"display: none;\">&nbsp;</span></div>)?|<div class=\"pagebreak\"><!-- pagebreak --></div>";
+    private final static String PAGE_NUMBER_PDF_TAG = "<span class='pageNumber'></span>";
 
-    private final static String FONT_PATH = "\"fonts/arial.ttf\"";
-    private final static String HEADER_RESOURCE_PATH = "/contract/budget_contract_header.html";
+    private final static String DOCUMENT_RESOURCE_PATH = "/contract/budget_contract_header.html.mustache";
+
+    private final static String FOOTER_RESOURCE_PATH = "/contract/footer.html.mustache";
 
     private final MajordomoRpcClient majordomoRpcClient;
     private final AccountDocumentRepository accountDocumentRepository;
+    private final Mustache.Compiler mustacheCompiler;
+    private final WkHtmlToPdfWebService wkhtmlToPdfService;
 
 
     private AccountDocument document = new AccountDocument();
@@ -42,23 +45,52 @@ public class BudgetContractBuilder extends DocumentBuilderImpl {
     private String templateId;
 
     private final Map<String, String> params;
-    private String html;
+    @Nullable
     private AccountOwner owner;
+    @Nullable
     private PersonalAccount account;
+    private String bodyHtml;
+    private String footerHtml;
 
-    public BudgetContractBuilder(
+    /**
+     * @param personalAccountId null если нужен только buildPreview() или buildFromAccountDocument
+     * @param accountOwnerManager
+     * @param majordomoRpcClient
+     * @param personalAccountManager
+     * @param accountDocumentRepository
+     * @param mustacheCompiler
+     * @param wkhtmlToPdfService
+     * @param params
+     */
+    public BudgetContractWkBuilder(
+            @Nullable
             String personalAccountId,
             AccountOwnerManager accountOwnerManager,
             MajordomoRpcClient majordomoRpcClient,
             PersonalAccountManager personalAccountManager,
             AccountDocumentRepository accountDocumentRepository,
+            Mustache.Compiler mustacheCompiler,
+            WkHtmlToPdfWebService wkhtmlToPdfService,
             Map<String, String> params
     ){
         this.majordomoRpcClient = majordomoRpcClient;
         this.params = params;
-        this.owner = accountOwnerManager.findOneByPersonalAccountId(personalAccountId);
-        this.account = personalAccountManager.findOne(personalAccountId);
+        if (personalAccountId != null) {
+            this.owner = accountOwnerManager.findOneByPersonalAccountId(personalAccountId);
+            this.account = personalAccountManager.findOne(personalAccountId);
+        }
         this.accountDocumentRepository = accountDocumentRepository;
+        this.mustacheCompiler = mustacheCompiler.escapeHTML(false);
+        this.wkhtmlToPdfService = wkhtmlToPdfService;
+        setWithoutStamp(Boolean.parseBoolean(params.getOrDefault("withoutStamp", "true")));
+        logger.debug("majordomoRpcClient.serverUrl: {}", majordomoRpcClient.getServerURL());
+    }
+
+    @Override
+    public byte[] buildPreview() {
+        buildTemplate();
+        convert();
+        return getFile();
     }
 
     @Override
@@ -120,7 +152,7 @@ public class BudgetContractBuilder extends DocumentBuilderImpl {
         }
     }
 
-    private void validateStringParam(String param, String errorMessage){
+    private void validateStringParam(@Nullable String param, String errorMessage){
         if (param == null || param.trim().equals("")){
             throw new ParameterValidationException(errorMessage);
         }
@@ -139,22 +171,35 @@ public class BudgetContractBuilder extends DocumentBuilderImpl {
         buildTemplateFromContract(contract);
     }
 
-    private void buildTemplateFromContract(Contract contract){
-
-        try {
-            String header = getHeader();
-            String body = contract.getBody();
-            String footer = contract.getFooter();
-            List<Integer> noFooterPages = contract.getNoFooterPages();
-
-            if (body == null || footer == null || noFooterPages == null) {
-                throw new ParameterValidationException("Один из элементов (body||footer||noFooterPages) равен null");
+    private void buildTemplateFromContract(Contract contract) {
+        try (InputStream documentStream = this.getClass().getResourceAsStream(DOCUMENT_RESOURCE_PATH);
+             InputStream footerStream = this.getClass().getResourceAsStream(FOOTER_RESOURCE_PATH);) {
+            HashMap<String, Object> params = new HashMap<>();
+            params.put("body", contract.getBody());
+            params.put("withoutStamp", isWithoutStamp());
+            if (account != null && StringUtils.isNotEmpty(account.getName())) {
+                params.put("accountName", account.getName());
             }
-            html = createTemplate(header, body, footer, noFooterPages);
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-            e.printStackTrace();
-            throw new ParameterValidationException("Не удалось сгенерировать договор.");
+            String arialBase64 = FileUtils.getResourceInBase64("/fonts/arial.ttf");
+            params.put("helveticaBase64", arialBase64);
+            bodyHtml = mustacheCompiler.compile(new InputStreamReader(documentStream)).execute(params);
+            footerHtml = mustacheCompiler.compile(new InputStreamReader(footerStream)).execute(new HashMap<String, Object>(){{
+                put("body", contract.getFooter());
+                put("excludeFooter", contract.getNoFooterPages().stream().map(Object::toString).collect(Collectors.joining(",")));
+                put("withoutStamp", isWithoutStamp());
+            }});
+            footerHtml = footerHtml.replaceAll("#PAGE#", PAGE_NUMBER_PDF_TAG);
+
+                //todo удалить эти картинки из pm, брать их из mj-rpc, или хотя бы из конфигурационного файла
+            String signBase64 = WkHtmlToPdfWebService.PREFIX_IMAGE_PNG + FileUtils.getResourceInBase64("/images/sign-ts-cropped.png");
+            String stampBase64 = WkHtmlToPdfWebService.PREFIX_IMAGE_PNG + FileUtils.getResourceInBase64("/images/stamp_hosting.png");
+            footerHtml = footerHtml.replaceAll("/images/pdf/sign-ts.png", signBase64);
+            bodyHtml = bodyHtml.replaceAll("/images/pdf/sign-ts.png", signBase64);
+            bodyHtml = bodyHtml.replaceAll("/images/pdf/stamp_hosting.png", stampBase64);
+
+        } catch (IOException e) {
+            logger.error("Cannot create html from templates", e);
+            throw new InternalApiException("Не удалось создать шаблон документа");
         }
     }
 
@@ -170,15 +215,23 @@ public class BudgetContractBuilder extends DocumentBuilderImpl {
 
     private void replaceFieldsWithReplaceMap(Map<String, String> replaceMap){
         for (Map.Entry<String, String> entry : replaceMap.entrySet()) {
-            html = html.replaceAll(entry.getKey(), entry.getValue());
+            bodyHtml = bodyHtml.replaceAll(entry.getKey(), entry.getValue());
         }
     }
 
     @Override
     public void convert() {
-        setFile(
-                majordomoRpcClient.convertHtmlToPdfFile(html)
-        );
+        WkHtmlToPdfOptions options = new WkHtmlToPdfOptions();
+        options.setDpi(300);
+        options.setZoom(0.91);
+        options.setMarginBottom("25mm");
+        options.setMarginTop("10mm");
+        options.setMarginLeft("10mm");
+        options.setMarginRight("10mm");
+        options.setDisableSmartShrinking(true);
+        options.setPageSize("A4");
+        options.setPrintMediaType(true);
+        setFile(wkhtmlToPdfService.convertHtmlToPdfFile(bodyHtml, footerHtml, options));
     }
 
     @Override
@@ -190,50 +243,6 @@ public class BudgetContractBuilder extends DocumentBuilderImpl {
         document.setParameters(replaceParameters);
 
         accountDocumentRepository.save(document);
-    }
-
-    private String createTemplate(String header, String body, String footer, List<Integer> noFooterPages) {
-        String pdfFooter = "<div id=\"footerContent\">" + footer + "</div>";
-        String htmlFooter = "\n</body>\n</html>";
-
-        StringBuilder templateBuilder = new StringBuilder();
-        templateBuilder.append(header);
-
-        List<String> pages = Arrays.asList(body.split(PAGE_BREAK_PATTERN));
-        Iterator pageIterator = pages.iterator();
-
-        int pageNumber = 0;
-        while (pageIterator.hasNext()){
-            templateBuilder.append(pageIterator.next());
-            if (noFooterPages.contains(pageNumber + 2)){
-                templateBuilder.append(NEXT_TEMPLATE_WITHOUT_FOOTHER_TAG);
-            } else {
-                templateBuilder.append(NEXT_TEMPLATE_WITH_FOOTHER_TAG);
-            }
-            templateBuilder.append(NEXT_PAGE_PDF_TAG);
-            pageNumber++;
-        }
-
-        templateBuilder.append(pdfFooter).append(htmlFooter);
-        String template = templateBuilder.toString();
-
-        Map<String, String> templateReplaceMap = new HashMap<>();
-        templateReplaceMap.put("#PAGE#", PAGE_NUMBER_PDF_TAG);
-        templateReplaceMap.put("#FONT_PATH#", FONT_PATH);
-
-
-        for (Map.Entry<String, String> entry : templateReplaceMap.entrySet()) {
-            template = template.replaceAll(entry.getKey(), entry.getValue());
-        }
-
-        return template;
-    }
-
-    private String getHeader() throws IOException {
-        InputStream inputStream = this.getClass()
-                .getResourceAsStream(HEADER_RESOURCE_PATH);
-
-        return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
     }
 
     private Map<String, String> buildReplaceParameters(Map<String, String> params, AccountOwner owner, PersonalAccount account){

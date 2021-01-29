@@ -29,6 +29,10 @@ public interface DocumentBuilder {
         throw new NotImplementedException();
     }
 
+    default byte[] buildPreview() {
+        throw new NotImplementedException();
+    }
+
     default void checkAuthority(){}
 
     default void buildReplaceParameters(){}

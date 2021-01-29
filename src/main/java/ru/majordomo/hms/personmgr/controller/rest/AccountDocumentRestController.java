@@ -1,6 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang.NotImplementedException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,7 +45,8 @@ import static ru.majordomo.hms.personmgr.common.Constants.ORDER_DOCUMENT_PACKAGE
 import static ru.majordomo.hms.personmgr.common.DocumentType.*;
 
 @RestController
-@RequestMapping("/{accountId}/document")
+@RequestMapping(value = {"/{accountId}/document", "/document"})
+@RequiredArgsConstructor
 public class AccountDocumentRestController extends CommonRestController {
 
     private final DocumentBuilderFactory documentBuilderFactory;
@@ -52,36 +54,18 @@ public class AccountDocumentRestController extends CommonRestController {
     private final AccountHelper accountHelper;
     private final DocumentOrderRepository documentOrderRepository;
     private final AccountNotificationHelper accountNotificationHelper;
+    @Value("${mail_manager.document_order_email}")
     private final String documentOrderEmail;
     private final AccountServiceHelper accountServiceHelper;
 
-    private List<DocumentType> defaultDocumentTypes = Arrays.asList(
+    private final List<DocumentType> DEFAULT_DOCUMENT_TYPES = Collections.unmodifiableList(Arrays.asList(
             VIRTUAL_HOSTING_BUDGET_CONTRACT,
             VIRTUAL_HOSTING_BUDGET_SUPPLEMENTARY_AGREEMENT,
             VIRTUAL_HOSTING_COMMERCIAL_PROPOSAL,
             VIRTUAL_HOSTING_NOTIFY_RF
-    );
+    ));
 
     protected final String temporaryFilePath = System.getProperty("java.io.tmpdir") + "/";
-
-    @Autowired
-    public AccountDocumentRestController(
-            DocumentBuilderFactory documentBuilderFactory,
-            AccountDocumentRepository accountDocumentRepository,
-            AccountHelper accountHelper,
-            DocumentOrderRepository documentOrderRepository,
-            AccountNotificationHelper accountNotificationHelper,
-            @Value("${mail_manager.document_order_email}") String documentOrderEmail,
-            AccountServiceHelper accountServiceHelper
-    ){
-        this.documentBuilderFactory = documentBuilderFactory;
-        this.accountDocumentRepository = accountDocumentRepository;
-        this.accountHelper = accountHelper;
-        this.documentOrderRepository = documentOrderRepository;
-        this.accountNotificationHelper = accountNotificationHelper;
-        this.documentOrderEmail = documentOrderEmail;
-        this.accountServiceHelper = accountServiceHelper;
-    }
 
     @GetMapping("/old/{documentType}")
     public ResponseEntity<List<AccountDocument>> getOldDocuments(
@@ -212,7 +196,7 @@ public class AccountDocumentRestController extends CommonRestController {
 
         PersonalAccount account = accountManager.findOne(accountId);
 
-        defaultDocumentTypes.forEach(documentType ->{
+        DEFAULT_DOCUMENT_TYPES.forEach(documentType ->{
             try {
                 checkDocument(documentType, accountId, params);
                 documentOrder.getDocumentTypes().add(documentType);
@@ -319,6 +303,14 @@ public class AccountDocumentRestController extends CommonRestController {
         }
     }
 
+    /**
+     * Получить файл договора или другого документа
+     * Документы -> Пакет документов -> Документы в электнонном виде -> Скачать
+     * @param accountId
+     * @param documentType
+     * @param params дополнительные параметры запроса, например withoutStamp, phone, urfio и т.д
+     * @param response ответ с файлом в Transfer-Encoding: chunked
+     */
     @GetMapping("/{documentType}")
     @ResponseBody
     public void getDocument(
@@ -340,7 +332,33 @@ public class AccountDocumentRestController extends CommonRestController {
                 documentType,
                 file
         );
+    }
 
+    /** предварительный просмотр для редактора документов (сейчас в billing2) */
+    @GetMapping(path = "/preview/{documentType}")
+    @ResponseBody
+    public void getDocumentPreview(
+            @PathVariable("documentType") DocumentType documentType,
+            @RequestParam Map<String, String> params,
+            HttpServletResponse response
+    ) {
+        try {
+            DocumentBuilder documentBuilder = this.documentBuilderFactory.getBuilder(
+                    documentType,
+                    null,
+                    params
+            );
+
+            byte[] file = documentBuilder.buildPreview();
+
+            printContentFromFileToResponseOutputStream(
+                    response,
+                    documentType,
+                    file
+            );
+        } catch (NotImplementedException e) {
+            throw new InternalApiException("Предварительный просмотр не реализован для документа: " + documentType.getNameForHuman());
+        }
     }
 
 //    private void printContentFromFileToResponseOutputStream(
@@ -534,7 +552,7 @@ public class AccountDocumentRestController extends CommonRestController {
 
         Map<String, byte[]> fileMap = new HashMap<>();
 
-        defaultDocumentTypes.forEach(documentType ->{
+        DEFAULT_DOCUMENT_TYPES.forEach(documentType ->{
             try {
                 byte[] file = buildDocument(
                         documentType,
