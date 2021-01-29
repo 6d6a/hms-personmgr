@@ -26,8 +26,6 @@ public class DocumentBuilderFactory {
     private final AccountDocumentRepository accountDocumentRepository;
     private final RegRpcClient regRpcClient;
     private final RcUserFeignClient rcUserFeignClient;
-    @Value("${converter.wkhtmltopdf.url}")
-    private final String wkhtmltopdfUrl;
     private final Mustache.Compiler mustacheCompiler;
     private final WkHtmlToPdfWebService wkhtmlToPdfService;
 
@@ -77,7 +75,8 @@ public class DocumentBuilderFactory {
                         accountOwnerManager,
                         personalAccountId,
                         Boolean.valueOf(params.getOrDefault("withoutStamp", "false")),
-                        wkhtmlToPdfService
+                        wkhtmlToPdfService,
+                        params
                 );
 
                 break;
