@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service.Document;
 
+import brave.internal.Nullable;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 import ru.majordomo.hms.personmgr.common.FileUtils;
@@ -9,14 +10,17 @@ import ru.majordomo.hms.personmgr.manager.AccountOwnerManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
+
 @ParametersAreNonnullByDefault
 public class NoticeRFBuilder extends DocumentBuilderImpl {
-
+    @Nullable
     private AccountOwner accountOwner;
 
     private final WkHtmlToPdfWebService wkHtmlToPdfWebService;
@@ -24,14 +28,21 @@ public class NoticeRFBuilder extends DocumentBuilderImpl {
     private String template;
     private Map<String, String> replaceMap;
 
+    @Nullable
+    private final Map<String, String> params;
+
     public NoticeRFBuilder(
             AccountOwnerManager accountOwnerManager,
-            String personalAccountId,
+            @Nullable String personalAccountId,
             boolean withoutStamp,
-            WkHtmlToPdfWebService wkHtmlToPdfWebService
+            WkHtmlToPdfWebService wkHtmlToPdfWebService,
+            @Nullable Map<String, String> params
     ) {
         setWithoutStamp(withoutStamp);
-        this.accountOwner = accountOwnerManager.findOneByPersonalAccountId(personalAccountId);
+        this.params = params;
+        if (personalAccountId != null) {
+            this.accountOwner = accountOwnerManager.findOneByPersonalAccountId(personalAccountId);
+        }
         this.wkHtmlToPdfWebService = wkHtmlToPdfWebService;
     }
 
@@ -84,9 +95,9 @@ public class NoticeRFBuilder extends DocumentBuilderImpl {
                                   " " + Utils.getMonthName(LocalDate.now().getMonthValue()) +
                                   " " + String.valueOf(LocalDate.now().getYear());
 
-            replaceMap.put("#ORG_NAME#", accountOwner.getName());
-            replaceMap.put("#ORG_ADDRESS#", accountOwner.getContactInfo().getPostalAddress() != null
-                    ? accountOwner.getContactInfo().getPostalAddress() : "");
+            replaceMap.put("#ORG_NAME#", accountOwner != null ? accountOwner.getName() : params.get("ORG_NAME"));
+            replaceMap.put("#ORG_ADDRESS#", accountOwner != null ? (accountOwner.getContactInfo().getPostalAddress() != null
+                    ? accountOwner.getContactInfo().getPostalAddress() : "") : params.get("ORG_ADDRESS"));
             replaceMap.put("#DATE#", dateInString);
             replaceMap.put("#STAMP#", isWithoutStamp() ? "" : stamp);
             replaceMap.put("#MAJORDOMO_LOGO#", FileUtils.getResourceInBase64("/images/majordomo.png"));
