@@ -1,15 +1,14 @@
 package ru.majordomo.hms.personmgr.service.Rpc;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.personmgr.common.DocumentType;
 import ru.majordomo.hms.personmgr.dto.rpc.Contract;
 import ru.majordomo.hms.personmgr.dto.rpc.ContractResponse;
 import ru.majordomo.hms.personmgr.dto.rpc.HtmlToPdfResponse;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Base64;
@@ -24,10 +23,7 @@ public class MajordomoRpcClient {
     private static final String CONVERT_HTML_TO_PDF = CONTRACT_CONTROLLER + "convert_html_to_pdf";
     private static final String GET_CONTRACT_BY_ID_METHOD = CONTRACT_CONTROLLER + "get_contract";
 
-    private static final String VH_OFERTA = "oferta_virtual_hosting";
     private static final String VH_CONTRACT = "virtual_hosting";
-    private static final String VH_BUDGET_CONTRACT = "hms_virtual_hosting_budget_contract";
-    private static final String NOTICE_RF = "hms_notice_rf";
 
     @Value("${rpc.majordomo.url}")
     private final URL serverURL;
@@ -77,14 +73,14 @@ public class MajordomoRpcClient {
     }
 
     public Contract getActiveNoticeRF(){
-        return getActiveContractByType(NOTICE_RF);
+        return getActiveContractByType(DocumentType.VIRTUAL_HOSTING_NOTIFY_RF.getBilling2Type());
     }
 
     public Contract getActiveBudgetContractVH(){
-        return getActiveContractByType(VH_BUDGET_CONTRACT);
+        return getActiveContractByType(DocumentType.VIRTUAL_HOSTING_BUDGET_CONTRACT.getBilling2Type());
     }
 
     public Contract getActiveOfertaVirtualHosting() {
-        return getActiveContractByType(VH_OFERTA);
+        return getActiveContractByType(DocumentType.VIRTUAL_HOSTING_OFERTA.getBilling2Type());
     }
 }

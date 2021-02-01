@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.dto.rpc;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import ru.majordomo.hms.personmgr.common.DocumentType;
 import ru.majordomo.hms.personmgr.common.Utils;
 
 import java.io.UnsupportedEncodingException;
@@ -19,7 +20,10 @@ public class Contract {
     private String footer;
     private Boolean status; //'active', 'archived', 'draft'
 
-    /** "hms_virtual_hosting_budget_contract", 'oferta', 'company', 'entrepreneur', 'oferta_virtual_hosting', 'virtual_hosting' */
+    /**
+     * "hms_virtual_hosting_budget_contract", 'oferta', 'company', 'entrepreneur', 'oferta_virtual_hosting', 'virtual_hosting'
+     * или {@link DocumentType#getBilling2Type()}
+     */
     private String type;
 
     @JsonProperty("no_footer_pages")
