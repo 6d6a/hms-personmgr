@@ -1,13 +1,25 @@
 package ru.majordomo.hms.personmgr.common;
 
+import lombok.Getter;
+
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
+
+@Getter
+@ParametersAreNonnullByDefault
 public enum DocumentType {
-    VIRTUAL_HOSTING_OFERTA,
+    VIRTUAL_HOSTING_OFERTA("oferta_virtual_hosting"),
     VIRTUAL_HOSTING_CONTRACT,
-    VIRTUAL_HOSTING_BUDGET_CONTRACT,
+    VIRTUAL_HOSTING_BUDGET_CONTRACT("hms_virtual_hosting_budget_contract"),
     VIRTUAL_HOSTING_BUDGET_SUPPLEMENTARY_AGREEMENT,
     VIRTUAL_HOSTING_COMMERCIAL_PROPOSAL,
-    VIRTUAL_HOSTING_NOTIFY_RF,
+    /** Уведомление о расположении серверов Majordomo на территории РФ */
+    VIRTUAL_HOSTING_NOTIFY_RF("hms_notice_rf"),
     REGISTRANT_DOMAIN_CERTIFICATE;
+
+    /** mj-rpc Contract.type */
+    @Nullable
+    private final String billing2Type;
 
     public static String getNameForHuman(DocumentType type) {
         switch (type){
@@ -39,5 +51,13 @@ public enum DocumentType {
 
     public String getNameForHuman() {
         return getNameForHuman(this);
+    }
+
+    DocumentType(String billing2Type) {
+        this.billing2Type = billing2Type;
+    }
+
+    DocumentType() {
+        this.billing2Type = null;
     }
 }

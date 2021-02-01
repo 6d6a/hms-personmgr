@@ -32,6 +32,7 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.constraints.NotEmpty;
 import java.io.*;
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -334,14 +335,23 @@ public class AccountDocumentRestController extends CommonRestController {
         );
     }
 
-    /** предварительный просмотр для редактора документов (сейчас в billing2) */
-    @GetMapping(path = "/preview/{documentType}")
+    /**
+     * предварительный просмотр для редактора документов (сейчас в billing2)
+     * @param billing2Type mj-rpc.Contract.type
+     * @param params
+     * @param response
+     */
+    @PostMapping(path = "/preview/billing2/{billing2Type}")
     @ResponseBody
     public void getDocumentPreview(
-            @PathVariable("documentType") DocumentType documentType,
-            @RequestParam Map<String, String> params,
+            @NotEmpty @PathVariable("billing2Type") String billing2Type,
+            @RequestBody Map<String, String> params,
             HttpServletResponse response
     ) {
+        DocumentType documentType = Arrays.stream(values()).filter(type -> billing2Type.equals(type.getBilling2Type()))
+                .findFirst()
+                .orElseThrow(() -> new ParameterValidationException("Не удалось найти документ запрошенного типа"));
+
         try {
             DocumentBuilder documentBuilder = this.documentBuilderFactory.getBuilder(
                     documentType,
