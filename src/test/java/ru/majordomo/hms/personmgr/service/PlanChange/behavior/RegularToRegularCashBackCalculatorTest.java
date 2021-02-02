@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 
 public class RegularToRegularCashBackCalculatorTest {
 
-// todo return it   @Test
+    @Test
     public void calc() {
         LocalDateTime now = LocalDateTime.now();
 
