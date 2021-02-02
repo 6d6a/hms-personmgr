@@ -6,12 +6,16 @@
 <head>
     <style type="text/css">
 
-        /*@page withoutfooter {
-            margin: 1cm;
-            margin-bottom: 2.5cm;
-        }*/
+        html, body {
+            height: 100%;
+        }
         body {
-            margin: 1cm 1cm 1cm 2cm;
+            margin: 0;
+            padding: 0;
+            font-family: 'Times New Roman', "Tinos", "serif";
+        }
+        body {
+            margin: 0;
             padding: 0;
         }
 
@@ -20,16 +24,6 @@
             margin: 0;
             padding: 0;
         }
-
-        .content {
-            /*margin-left: 14%;*/
-            /*margin-right: 9%;*/
-        }
-
-        /*.border-black * {
-            border: 1px solid black;
-            border-collapse: collapse;
-        }*/
 
         .signature {
             width: 30%;
@@ -49,10 +43,10 @@
         }
 
         .footer {
-            font-size: 10pt;
+            font-size: 9pt;
             position: absolute;
-            margin-top: 12cm;
-            width: calc(100% - 2cm - 1cm);
+            bottom: 0;
+            width: 100%;
 
             /* TODO delete */
             /*border: none;*/
@@ -60,18 +54,18 @@
 
         .paragraph {
             text-indent: 40px; /* Отступ первой строки в пикселах */
-            font-size: 12pt;
+            font-size: 11pt;
         }
     </style>
     <title>Уведомление</title>
 </head>
 <body class="border-black">
 <div><div style="display: inline-block; width: 36%;"><img width="100%" src="data:image/png;base64,#MAJORDOMO_LOGO#" alt="Majordomo"/></div>
-    <div style="position: absolute; margin-top: 60px; display: inline-block; margin-left: 40px; font-size: 10pt;">
+    <div style="position: absolute; margin-top: 60px; display: inline-block; margin-left: 40px; font-size: 9pt;">
         www.majordomo.ru, info@majordomo.ru
     </div>
 </div>
-<div style="font-size: 12pt;">
+<div style="font-size: 11pt;">
     <table width="100%">
         <tr>
             <td width="50%"/>
