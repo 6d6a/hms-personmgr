@@ -187,7 +187,7 @@ public class SchedulerRestController extends CommonRestController {
             @PathVariable(value = "scheduleAction") String scheduleAction,
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam(required = false) LocalDate date
     ) {
-        logger.info("We got scheduler request with action: {}", scheduleAction);
+        logger.info("We got scheduler request with action: {}, date: {}", scheduleAction, date == null ? "null": date);
 
         if (date == null) {
             date = LocalDate.now();
@@ -196,7 +196,7 @@ public class SchedulerRestController extends CommonRestController {
         BatchJob batchJob;
 
         switch (scheduleAction) {
-            case "prepare_charges":
+            case "prepare_charges": // Подготовка заданий на ежедневные списания за услуги
                 batchJob = batchJobManager.findFirstByRunDateAndTypeOrderByCreatedDesc(date, BatchJob.Type.PREPARE_CHARGES);
 
                 if (batchJob == null ||
@@ -212,7 +212,7 @@ public class SchedulerRestController extends CommonRestController {
                 }
 
                 break;
-            case "process_charges":
+            case "process_charges": // Обработка заданий на ежедневные списания за услуги
                 batchJob = batchJobManager.findFirstByRunDateAndTypeOrderByCreatedDesc(date, BatchJob.Type.PROCESS_CHARGES);
 
                 if (batchJob == null ||
@@ -228,7 +228,7 @@ public class SchedulerRestController extends CommonRestController {
                 }
 
                 break;
-            case "process_error_charges":
+            case "process_error_charges": // Обработка неудавшихся заданий на ежедневные списания за услуги
                 batchJob = batchJobManager.findFirstByRunDateAndTypeOrderByCreatedDesc(date, BatchJob.Type.PROCESS_ERROR_CHARGES);
 
                 if (batchJob == null ||
