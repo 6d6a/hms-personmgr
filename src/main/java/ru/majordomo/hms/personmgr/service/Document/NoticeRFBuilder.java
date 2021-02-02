@@ -67,9 +67,13 @@ public class NoticeRFBuilder extends DocumentBuilderImpl {
     @Override
     public void convert() {
         WkHtmlToPdfOptions options = new WkHtmlToPdfOptions();
-        options.setDisableSmartShrinking(false);
+        options.setDisableSmartShrinking(true);
         options.setPrintMediaType(true);
         options.setDpi(300);
+        options.setMarginBottom("10mm");
+        options.setMarginRight("10mm");
+        options.setMarginTop("10mm");
+        options.setMarginLeft("20mm");
         file = wkHtmlToPdfWebService.convertHtmlToPdfFile(template, options);
     }
 
