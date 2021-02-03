@@ -22,6 +22,7 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
+import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.personmgr.service.*;
 
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.ACCOUNT_CREATE;
@@ -114,6 +115,10 @@ public class AccountAmqpController extends CommonAmqpController {
                                 //После применения промокода может быть изменен тариф
                                 Plan plan = planManager.findOne(account.getPlanId());
                                 Long quota = planLimitsService.getQuotaBytesFreeLimit(plan);
+                                boolean businessServices =
+                                        plan.getPlanProperties() instanceof VirtualHostingPlanProperties &&
+                                        ((VirtualHostingPlanProperties) plan.getPlanProperties()).isBusinessServices();
+
 
                                 // создать новое сообщение чтобы не добавлялась ерунда отравленная пользователем и другими сервисами
                                 SimpleServiceMessage createMessage = new SimpleServiceMessage(
@@ -123,7 +128,8 @@ public class AccountAmqpController extends CommonAmqpController {
                                 );
                                 createMessage.addParam("quota", quota)
                                         .addParam("password", businessOperation.getParam("password"))
-                                        .addParam("username", businessOperation.getParam("username")); // имя основного аккаунта, например AC_208849
+                                        .addParam("username", businessOperation.getParam("username")) // имя основного аккаунта, например AC_208849
+                                        .addParam("businessServices", businessServices);
 
                                 businessHelper.buildAction(BusinessActionType.UNIX_ACCOUNT_CREATE_RC, createMessage);
                                 history.save(account, "Заявка на первичное создание UNIX-аккаунта отправлена");
