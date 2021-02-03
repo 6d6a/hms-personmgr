@@ -1,6 +1,6 @@
 package ru.majordomo.hms.personmgr.controller.rest;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -15,15 +15,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import ru.majordomo.hms.personmgr.common.Department;
-import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
-import ru.majordomo.hms.personmgr.config.EmailsConfig;
-import ru.majordomo.hms.personmgr.dto.cerb.Message;
 import ru.majordomo.hms.personmgr.dto.cerb.Ticket;
 import ru.majordomo.hms.personmgr.dto.cerb.api.AttachmentCerberus;
 import ru.majordomo.hms.personmgr.dto.cerb.api.AttachmentDownloadResponse;
-import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.AccountTicket;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountTicketRepository;
@@ -35,28 +30,15 @@ import javax.servlet.http.HttpServletResponse;
 
 import static ru.majordomo.hms.personmgr.common.Utils.buildAttachment;
 
-@RestController
-@RequestMapping("/{accountId}/support-request")
 @Validated
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/{accountId}/support-request")
 public class SupportRequestRestController extends CommonRestController {
 
     private final AccountHelper accountHelper;
     private final CerbApiClient cerbApiClient;
-    private Map<Department, String> emails;
     private final AccountTicketRepository accountTicketRepository;
-
-    @Autowired
-    public SupportRequestRestController(
-            AccountHelper accountHelper,
-            CerbApiClient cerbApiClient,
-            EmailsConfig emailsConfig,
-            AccountTicketRepository accountTicketRepository
-    ) {
-        this.accountHelper = accountHelper;
-        this.cerbApiClient = cerbApiClient;
-        this.emails = emailsConfig.getDepartments();
-        this.accountTicketRepository = accountTicketRepository;
-    }
 
     @PostMapping(value = "")
     public ResponseEntity<String> sendSupportRequest(
