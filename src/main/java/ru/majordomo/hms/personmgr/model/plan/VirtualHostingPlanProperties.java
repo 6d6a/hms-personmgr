@@ -31,6 +31,7 @@ public class VirtualHostingPlanProperties extends PlanProperties {
     @NotNull
     private PlanPropertyLimit sshLimit = new PlanPropertyLimit();
 
+    /** корпоративный тарифный план с выделеным сервером */
     @NotNull
     private boolean businessServices = false;
 
