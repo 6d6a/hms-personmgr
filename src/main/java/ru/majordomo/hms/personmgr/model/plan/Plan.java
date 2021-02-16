@@ -35,10 +35,15 @@ public class Plan extends BaseModel {
     @NotNull
     private String internalName;
 
+    /**
+     * идентификатор услуги ежедневных списаний за тариф
+     * {@link PaymentService#getId()}
+     */
     @NotNull
     @Indexed
     private String serviceId;
 
+    /** ид из старого биллинга */
     @NotNull
     @Indexed
     private String oldId;
@@ -50,9 +55,11 @@ public class Plan extends BaseModel {
     @Indexed
     private boolean abonementOnly;
 
+    /** тариф недоступен для регистрации */
     @Indexed
     private boolean active;
 
+    /** с тарифа произойдет автоматический переход на другой */
     private boolean archival;
 
     @NotNull
@@ -61,7 +68,11 @@ public class Plan extends BaseModel {
 
     private Set<ResourceType> prohibitedResourceTypes = new HashSet<>();
 
-    private Set<Feature> allowedFeature = new HashSet<>();      // разрешение подключать дополнительную услугу. Используется только для некоторых дополнительных услуг таких как ADDITIONAL_QUOTA_5K, ALLOW_DATABASE
+    /**
+     * разрешение подключать дополнительную услугу.
+     * Используется только для некоторых дополнительных услуг таких как ADDITIONAL_QUOTA_5K, ALLOW_DATABASE
+     */
+    private Set<Feature> allowedFeature = new HashSet<>();
 
     @ObjectIdList(value = Abonement.class)
     private List<String> abonementIds = new ArrayList<>();

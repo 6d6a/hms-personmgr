@@ -42,6 +42,8 @@ public class AccountAbonement extends VersionedModelBelongsToPersonalAccount {
     @NotNull
     private LocalDateTime created;
 
+    /** почему-то у некоторых объектов null */
+    @Nullable
     private LocalDateTime expired;
 
     @NotNull
