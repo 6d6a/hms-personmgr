@@ -94,7 +94,7 @@ public class DiagnosticService {
                     mongoOperations.getCollectionName(PersonalAccount.class)
             );
 
-            LocalDateTime expiresTestDate = LocalDate.now().plusDays(1L).atStartOfDay();
+            LocalDateTime expiresTestDate = LocalDate.now().atStartOfDay();
 
             for (Account account : accounts) {
                 WrongAccount resultObj = new WrongAccount();
