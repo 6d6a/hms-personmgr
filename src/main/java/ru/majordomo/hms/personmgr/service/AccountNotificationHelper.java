@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -21,7 +20,6 @@ import ru.majordomo.hms.personmgr.event.mailManager.SendMailEvent;
 import ru.majordomo.hms.personmgr.event.mailManager.SendSmsEvent;
 import ru.majordomo.hms.personmgr.exception.BaseException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
-import ru.majordomo.hms.personmgr.feign.TelegramFeignClient;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.model.account.AccountOwner;
@@ -33,6 +31,7 @@ import ru.majordomo.hms.personmgr.repository.AccountTelegramRepository;
 import ru.majordomo.hms.personmgr.repository.NotificationRepository;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -63,8 +62,21 @@ public class AccountNotificationHelper {
 
     @Value("${mail_manager.department.fin}")
     private final String finEmail;
+
     @Value("${invites.client_api_name}")
     private final String inviteEmailApiName;
+
+    @Value("${mail_manager.dev_email}")
+    private final String devEmail;
+
+    @Value("${mail_manager.service_message_api_name}")
+    private final String serviceMessageApiName;
+
+    @Value("${spring.profiles.active}")
+    private final String activeProfiles;
+
+    @Value("${spring.application.name}")
+    private final String applicationName;
 
     private final ApplicationEventPublisher publisher;
     private final PlanManager planManager;
@@ -981,5 +993,26 @@ public class AccountNotificationHelper {
 
     public void push(Push push) {
         pushService.send(push);
+    }
+
+    /**
+     * @param subject
+     * @param bodyHtml тело сообщение отформатированное в html (только часть, заголовки, footer и header добавит mail-manager)
+     */
+    @ParametersAreNonnullByDefault
+    public void sendDevEmail(String subject, String bodyHtml) {
+        SimpleServiceMessage message = new SimpleServiceMessage();
+
+        message.setParams(new HashMap<>());
+        message.addParam("email", devEmail);
+        message.addParam("api_name", serviceMessageApiName);
+        message.addParam("priority", 10);
+
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("body", bodyHtml);
+        parameters.put("subject", String.format("[%s][%s] %s", applicationName, activeProfiles, subject));
+
+        message.addParam("parametrs", parameters);
+        publisher.publishEvent(new SendMailEvent(message));
     }
 }

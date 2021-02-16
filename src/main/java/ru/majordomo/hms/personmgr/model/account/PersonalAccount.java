@@ -54,6 +54,7 @@ public class PersonalAccount extends VersionedModel {
     @ObjectId(Plan.class)
     private String planId;
 
+    /** имя вида: AC_123456 */
     @NotBlank
     @Indexed(unique = true)
     private String name;

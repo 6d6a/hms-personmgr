@@ -172,8 +172,12 @@ public class SchedulerRestController extends CommonRestController {
                 break;
             case "process_buy_preorders":
                 publisher.publishEvent(new AttemptBuyPreordersEvent());
-
                 break;
+
+            case "process_plan_daily_diagnostic":
+                publisher.publishEvent(new PlanDailyDiagnosticEvent());
+                break;
+
             default:
                 throw new ParameterValidationException("Неизвестный параметр scheduleAction");
         }

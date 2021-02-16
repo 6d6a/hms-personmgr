@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.List;
+import java.util.Set;
 
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 
@@ -23,4 +24,5 @@ public interface AccountServiceRepository extends MongoRepository<AccountService
     boolean existsByPersonalAccountIdAndServiceId(String personalAccountId, String serviceId);
     void deleteByPersonalAccountIdAndId(String personalAccountId, String id);
     void deleteByPersonalAccountIdAndServiceId(String personalAccountId, String serviceId);
+    List<AccountService> findByPersonalAccountIdAndServiceIdIn(String personalAccountId, Set<String> serviceIds);
 }
