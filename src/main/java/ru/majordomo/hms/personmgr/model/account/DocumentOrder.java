@@ -22,6 +22,9 @@ public class DocumentOrder extends ModelBelongsToPersonalAccount {
 
     private List<DocumentType> documentTypes = new ArrayList<>();
 
+    /**
+     * Произвольный набор параметров. Например day, mount, year, phone, postalAddress, ustava, urfio и много, много других
+     */
     private Map<String, String> params = new HashMap<>();
 
     private List<String> domainIds = new ArrayList<>();
@@ -38,5 +41,6 @@ public class DocumentOrder extends ModelBelongsToPersonalAccount {
 
     private String postalAddress;
 
+    /** номер списания. finansier.BillingOperation.documentNumber */
     private String documentNumber;
 }

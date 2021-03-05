@@ -23,6 +23,7 @@ public class DocOrder extends AccountOrder {
     @NotNull(message = "Тип доставки должен быть указан")
     private DeliveryType deliveryType;
 
+    /** номер списания. finansier.BillingOperation.documentNumber */
     private String documentNumber;
 
     @NotEmpty(message = "Адрес назначения не может быть пустым")
