@@ -177,6 +177,7 @@ public class Constants {
 
     public static final String ORDER_DOCUMENT_PACKAGE_ID = "23";
     public static final String ORDER_DOCUMENT_PACKAGE_SERVICE_ID = SERVICE_PREFIX + ORDER_DOCUMENT_PACKAGE_ID;
+    public static final Integer ORDER_DOCUMENT_FREE_PER_YEAR = 3;
 
     public static final int SMS_NOTIFICATIONS_10_RUB_ID = 18;
     public static final String SMS_NOTIFICATIONS_10_RUB_SERVICE_ID = SERVICE_PREFIX + SMS_NOTIFICATIONS_10_RUB_ID;
