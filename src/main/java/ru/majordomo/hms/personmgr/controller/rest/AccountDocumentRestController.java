@@ -2,11 +2,11 @@ package ru.majordomo.hms.personmgr.controller.rest;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.NotImplementedException;
+import org.codehaus.jettison.json.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.web.bind.annotation.*;
@@ -16,12 +16,9 @@ import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
-import ru.majordomo.hms.personmgr.model.account.AccountDocument;
-import ru.majordomo.hms.personmgr.model.account.DocumentOrder;
-import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.account.*;
 import ru.majordomo.hms.personmgr.model.service.PaymentService;
-import ru.majordomo.hms.personmgr.repository.AccountDocumentRepository;
-import ru.majordomo.hms.personmgr.repository.DocumentOrderRepository;
+import ru.majordomo.hms.personmgr.repository.*;
 import ru.majordomo.hms.personmgr.service.AccountHelper;
 import ru.majordomo.hms.personmgr.service.AccountNotificationHelper;
 import ru.majordomo.hms.personmgr.service.AccountServiceHelper;
@@ -37,11 +34,13 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import static ru.majordomo.hms.personmgr.common.Constants.ORDER_DOCUMENT_FREE_PER_YEAR;
 import static ru.majordomo.hms.personmgr.common.Constants.ORDER_DOCUMENT_PACKAGE_SERVICE_ID;
 import static ru.majordomo.hms.personmgr.common.DocumentType.*;
 
@@ -54,6 +53,7 @@ public class AccountDocumentRestController extends CommonRestController {
     private final AccountDocumentRepository accountDocumentRepository;
     private final AccountHelper accountHelper;
     private final DocumentOrderRepository documentOrderRepository;
+    private final DocumentOrderCountRepository documentOrderCountRepository;
     private final AccountNotificationHelper accountNotificationHelper;
     @Value("${mail_manager.document_order_email}")
     private final String documentOrderEmail;
@@ -247,6 +247,19 @@ public class AccountDocumentRestController extends CommonRestController {
         return ResponseEntity.ok(documentOrder);
     }
 
+    @GetMapping(value = "/times-ordered", produces= MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> checkEligibilityForFreeOrder(@PathVariable String accountId) throws JSONException {
+        DocumentOrderCount documentOrderCount = documentOrderCountRepository.findByPersonalAccountId(accountId);
+        JSONObject response = new JSONObject();
+        response.put("max", ORDER_DOCUMENT_FREE_PER_YEAR);
+        if (documentOrderCount == null || documentOrderCount.getLastOrderedYear() < Year.now().getValue()) {
+            response.put("current", 0);
+        } else {
+            response.put("current", documentOrderCount.getTimesOrdered());
+        }
+        return new ResponseEntity<>(response.toString(), HttpStatus.OK);
+    }
+
     @PostMapping("/order")
     public ResponseEntity<Object> order(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
@@ -272,21 +285,35 @@ public class AccountDocumentRestController extends CommonRestController {
         String operator = request.getUserPrincipal().getName();
 
         try {
+            DocumentOrderCount timesOrdered = documentOrderCountRepository.findByPersonalAccountId(accountId);
+            SimpleServiceMessage response = null;
 
-            PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
-
-            BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), paymentService);
-
-            ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
-                    .setAmount(cost)
-                    .build();
-            SimpleServiceMessage response = accountHelper.charge(account, chargeMessage);
+            if (timesOrdered == null
+                    || timesOrdered.getLastOrderedYear() < Year.now().getValue()
+                    || timesOrdered.getTimesOrdered() < ORDER_DOCUMENT_FREE_PER_YEAR) {
+                if (timesOrdered == null) {
+                    timesOrdered = new DocumentOrderCount();
+                    timesOrdered.setLastOrderedYear(Year.now().getValue());
+                    timesOrdered.setPersonalAccountId(accountId);
+                    timesOrdered.setTimesOrdered(1);
+                } else {
+                    timesOrdered.incrementOrderedCount();
+                }
+                documentOrderCountRepository.save(timesOrdered);
+            } else {
+                PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
+                BigDecimal cost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), paymentService);
+                ChargeMessage chargeMessage = new ChargeMessage.Builder(paymentService)
+                        .setAmount(cost)
+                        .build();
+                response = accountHelper.charge(account, chargeMessage);
+            }
 
             documentOrder.setPaid(true);
-            documentOrder.setDocumentNumber((String) response.getParam("documentNumber"));
+            documentOrder.setDocumentNumber(response != null ? (String) response.getParam("documentNumber") : null);
             documentOrder = documentOrderRepository.save(documentOrder);
 
-            //Отправка письма c документами секретарю
+            // Отправка письма c документами секретарю
             sendDocumentOrderToSecretary(account, documentOrder, domains, fileMap, operator);
 
             history.save(accountId, "Заказан пакет документов " + documentOrder.toString(), operator);
