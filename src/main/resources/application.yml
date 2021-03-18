@@ -2,15 +2,5 @@
 #  port: 18080
 
 spring:
-  mustache:
-    check-template-location: false
-  servlet: # todo удалить, брать из config-server
-    multipart:
-      enabled: true
-      max-file-size: 11MB
-      max-request-size: 55MB
-
-# todo удалить, брать из config-server
-converter:
-  wkhtmltopdf:
-    url: http://wkhtml2pdf.intr/
+    mustache:
+        check-template-location: false
