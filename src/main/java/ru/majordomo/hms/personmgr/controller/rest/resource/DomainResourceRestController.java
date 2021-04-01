@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.controller.rest.resource;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,8 @@ import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
 
 import java.net.IDN;
+
+import static ru.majordomo.hms.personmgr.common.FieldRoles.DOMAIN_PATCH;
 
 @RestController
 @RequestMapping("/{accountId}/domain")
@@ -93,7 +96,8 @@ public class DomainResourceRestController extends CommonRestController {
             @PathVariable String resourceId,
             @RequestBody SimpleServiceMessage message,
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
-            SecurityContextHolderAwareRequestWrapper request
+            SecurityContextHolderAwareRequestWrapper request,
+            Authentication authentication
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
@@ -111,6 +115,14 @@ public class DomainResourceRestController extends CommonRestController {
         boolean switchedOn = message.getParam("switchedOn") != null && (boolean) message.getParam("switchedOn");
         boolean isRenew = message.getParam("renew") != null && (boolean) message.getParam("renew");
         boolean isRegistration = message.getParam("register") != null && (boolean) message.getParam("register");
+
+        if (message.getParam("infested") != null) {
+            if (request.isUserInRole("ADMIN") || request.isUserInRole("OPERATOR")) {
+                checkParamsWithRoles(message.getParams(), DOMAIN_PATCH, authentication);
+            } else {
+                throw new ParameterValidationException("Обновление домена невозможно.");
+            }
+        }
 
         final Domain domain = (switchedOn || isRenew || isRegistration)
                 ? rcUserFeignClient.getDomain(accountId, resourceId) : null;

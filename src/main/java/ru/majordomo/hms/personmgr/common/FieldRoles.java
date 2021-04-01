@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.common;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,6 +29,7 @@ public class FieldRoles {
     public static final Map<String, String> DEDICATED_APP_SERVER_POST = new HashMap<>();
     public static final Map<String, String> DEDICATED_APP_SERVER_PATCH = new HashMap<>();
     public static final Map<String, String> RESOURCE_TE_PARAMS = new HashMap<>();
+    public static final Map<String, String> DOMAIN_PATCH = Collections.singletonMap("infested", RESOURCE_SWITCHED_ON_EDIT);
 
     static {
         RESOURCE_SWITCHED_ON.put("switchedOn", RESOURCE_SWITCHED_ON_EDIT);
