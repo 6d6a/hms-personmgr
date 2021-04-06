@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.service;
 
+import lombok.AllArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,7 @@ import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.VirtualHostingPlanProperties;
 import ru.majordomo.hms.rc.staff.resources.Service;
+import ru.majordomo.hms.rc.user.resources.Domain;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
 import javax.annotation.Nonnull;
@@ -28,23 +30,13 @@ import javax.annotation.Nullable;
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @Component
+@AllArgsConstructor
 public class ResourceChecker {
     private final RcUserFeignClient rcUserFeignClient;
     private final RcStaffFeignClient rcStaffFeignClient;
     private final PlanManager planManager;
     private final AccountServiceHelper accountServiceHelper;
-
-    public ResourceChecker(
-            RcUserFeignClient rcUserFeignClient,
-            RcStaffFeignClient rcStaffFeignClient,
-            AccountServiceHelper accountServiceHelper,
-            PlanManager planManager
-    ) {
-        this.rcUserFeignClient = rcUserFeignClient;
-        this.rcStaffFeignClient = rcStaffFeignClient;
-        this.planManager = planManager;
-        this.accountServiceHelper = accountServiceHelper;
-    }
+    private final BlackListService blackListService;
 
     public void checkResource(PersonalAccount account, ResourceType resourceType, Map<String, Object> resource) {
         switch (resourceType) {
@@ -57,7 +49,7 @@ public class ResourceChecker {
 
                 break;
             case MAILBOX:
-                checkMailbox(account);
+                checkMailbox(account, resource);
 
                 break;
             case DATABASE:
@@ -135,8 +127,20 @@ public class ResourceChecker {
         }
     }
 
-    private void checkMailbox(PersonalAccount account) {
+    private void checkMailbox(PersonalAccount account, Map<String, Object> params) {
         Plan plan = planManager.findOne(account.getPlanId());
+
+        if (params.get(NAME_KEY) instanceof String && params.get(DOMAIN_ID_KEY) instanceof String) {
+            try {
+                Domain domain = rcUserFeignClient.getDomain(account.getId(), (String) params.get(DOMAIN_ID_KEY));
+
+                if (blackListService.mailBoxExistsInBlackList(params.get(NAME_KEY) + "@" + domain.getName())) {
+                    throw new ParameterValidationException("Данный ящик не может быть добавлен.");
+                }
+            } catch (Exception e) {
+                throw new ParameterValidationException("Ошибка при добавлении");
+            }
+        }
 
         if (!plan.isMailboxAllowed()) {
             throw new ParameterValidationException("На вашем тарифном плане добавление почтовых ящиков недоступно");
