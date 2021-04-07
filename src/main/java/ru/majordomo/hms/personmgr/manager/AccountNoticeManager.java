@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.manager;
 import org.springframework.data.domain.Example;
 import ru.majordomo.hms.personmgr.common.AccountNoticeType;
 import ru.majordomo.hms.personmgr.model.account.AccountNotice;
+import ru.majordomo.hms.personmgr.model.account.BirthdayAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.DeferredPlanChangeNotice;
 
 import java.time.LocalDate;
@@ -40,4 +41,10 @@ public interface AccountNoticeManager {
     List<DeferredPlanChangeNotice> findDeferredPlanChangeNoticeByWasChanged(boolean wasChanged);
 
     List<DeferredPlanChangeNotice> findDeferredPlanChangeNoticeByWasChangedAndWillBeChangedAfterLessThan(boolean wasChanged, LocalDate willBeChanged);
+
+    List<BirthdayAccountNotice> findBirthdayAccountNoticeByPersonalAccountId(
+            String personalAccountId
+    );
+
+    Optional<BirthdayAccountNotice> findBirthdayAccountNoticeByPersonalAccountIdAndId(String personalAccountId, String id);
 }

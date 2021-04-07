@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.AccountNoticeType;
 import ru.majordomo.hms.personmgr.manager.AccountNoticeManager;
 import ru.majordomo.hms.personmgr.model.account.AccountNotice;
+import ru.majordomo.hms.personmgr.model.account.BirthdayAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.DeferredPlanChangeNotice;
 import ru.majordomo.hms.personmgr.repository.AccountNoticeRepository;
 
@@ -75,5 +76,19 @@ public class AccountNoticeManagerImpl implements AccountNoticeManager {
     public List<DeferredPlanChangeNotice> findDeferredPlanChangeNoticeByWasChangedAndWillBeChangedAfterLessThan(boolean wasChanged, LocalDate willBeChangedAfter) {
         Query query = new Query(new Criteria("wasChanged").is(wasChanged).and("_class").is(DeferredPlanChangeNotice.class.getName()).and("willBeChangedAfter").lt(willBeChangedAfter));
         return mongoOperations.find(query, DeferredPlanChangeNotice.class, AccountNotice.COLLECTION_NAME);
+    }
+
+    @Override
+    public List<BirthdayAccountNotice> findBirthdayAccountNoticeByPersonalAccountId(String personalAccountId) {
+        Query query = new Query(new Criteria("personalAccountId").is(personalAccountId).and("_class").is(BirthdayAccountNotice.class.getName()));
+        return mongoOperations.find(query, BirthdayAccountNotice.class, AccountNotice.COLLECTION_NAME);
+    }
+
+    @Override
+    public Optional<BirthdayAccountNotice> findBirthdayAccountNoticeByPersonalAccountIdAndId(String personalAccountId, String id) {
+        Query query = new Query(new Criteria("personalAccountId").is(personalAccountId)
+                .and("_id").is(id)
+                .and("_class").is(BirthdayAccountNotice.class.getName()));
+        return Optional.ofNullable(mongoOperations.findOne(query, BirthdayAccountNotice.class, AccountNotice.COLLECTION_NAME));
     }
 }

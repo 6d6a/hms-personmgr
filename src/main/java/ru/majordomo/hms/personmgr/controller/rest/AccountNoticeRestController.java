@@ -9,10 +9,18 @@ import ru.majordomo.hms.personmgr.common.AccountNoticeType;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.AccountNoticeManager;
 import ru.majordomo.hms.personmgr.model.account.AccountNotice;
+import ru.majordomo.hms.personmgr.model.account.BirthdayAccountNotice;
+import ru.majordomo.hms.personmgr.model.account.DefaultAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
-import java.util.List;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static ru.majordomo.hms.personmgr.common.Constants.ACTION_BIRTHDAY_21_END_DATE;
+import static ru.majordomo.hms.personmgr.common.Constants.ACTION_BIRTHDAY_21_START_DATE;
 
 @RestController
 @Validated
@@ -62,6 +70,42 @@ public class AccountNoticeRestController extends CommonRestController {
     ) {
         List<AccountNotice> notices;
 
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        LocalDateTime startDate = LocalDateTime.parse(ACTION_BIRTHDAY_21_START_DATE, formatter);
+        LocalDateTime endDate = LocalDateTime.parse(ACTION_BIRTHDAY_21_END_DATE, formatter);
+        if (now.isAfter(startDate) && now.isBefore(endDate)) {
+
+            List<BirthdayAccountNotice> birthdayNotices = accountNoticeManager.findBirthdayAccountNoticeByPersonalAccountId(accountId);
+
+            if (birthdayNotices.isEmpty()) {
+                BirthdayAccountNotice notice = new BirthdayAccountNotice();
+                notice.setPersonalAccountId(accountId);
+                notice.setViewed(false);
+
+                accountNoticeManager.insert(notice);
+            } else {
+                if (birthdayNotices.stream().allMatch(AccountNotice::isViewed)) {
+                    birthdayNotices.stream().filter(AccountNotice::isViewed).findFirst().ifPresent(item -> {
+                        if (item.getViewedDate() != null && item.getViewedDate().isBefore(LocalDateTime.now().minusHours(72))) {
+                            //После закрытия 72 часа не показывается. Потом показывается снова. И так до момента завершения акции.
+                            item.setViewed(false);
+                            accountNoticeManager.save(item);
+                        }
+                    });
+                }
+            }
+        }
+
+        if (now.isAfter(endDate)) {
+            List<BirthdayAccountNotice> birthdayNotices = accountNoticeManager.findBirthdayAccountNoticeByPersonalAccountId(accountId);
+            birthdayNotices.forEach(item -> {
+                item.setViewed(true);
+                item.setViewedDate(LocalDateTime.now());
+                accountNoticeManager.save(item);
+            });
+        }
+
         if (type == null) {
             notices = accountNoticeManager.findByPersonalAccountIdAndViewed(accountId, false);
         } else {
@@ -77,6 +121,18 @@ public class AccountNoticeRestController extends CommonRestController {
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @PathVariable(value = "accountNoticeId") String accountNoticeId
     ) {
+        Optional<BirthdayAccountNotice> n = accountNoticeManager.findBirthdayAccountNoticeByPersonalAccountIdAndId(
+                accountId, accountNoticeId
+        );
+
+        if (n.isPresent()) {
+            n.get().setViewed(true);
+            n.get().setViewedDate(LocalDateTime.now());
+            accountNoticeManager.save(n.get());
+
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+
         AccountNotice notification = accountNoticeManager.findByPersonalAccountIdAndId(accountId, accountNoticeId);
 
         if (notification == null) {

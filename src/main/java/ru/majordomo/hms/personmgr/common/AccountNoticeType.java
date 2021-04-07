@@ -5,5 +5,6 @@ public enum AccountNoticeType {
     INFO_BANNER,
     ARCHIVAL_PLAN_CHANGE,
     DEFERRED_PLAN_CHANGE,
+    BIRTHDAY,
     DEFAULT
 }

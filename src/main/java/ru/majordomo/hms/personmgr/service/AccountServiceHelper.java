@@ -42,7 +42,6 @@ import ru.majordomo.hms.personmgr.repository.*;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import javax.validation.constraints.NotNull;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 
@@ -685,26 +684,17 @@ public class AccountServiceHelper {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        Optional<PromocodeAction> bfAction = promocodeActionRepository.findById(ACTION_BLACK_FRIDAY_PROMOTION_ID);
+        Optional<PromocodeAction> bfAction = promocodeActionRepository.findById(ACTION_BIRTHDAY_21_PROMOCODE_ACTION_ID);
         if (bfAction.isPresent()) {
             List serviceIds = (List) bfAction.get().getProperties().get("serviceIds");
-            if (serviceIds.contains(paymentService.getId()) && accountPromotion == null) {
+            if (serviceIds.contains(paymentService.getId())) {
 
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                LocalDateTime startDate = LocalDateTime.parse(ACTION_BLACK_FRIDAY_START_DATE, formatter);
-                LocalDateTime endDate = LocalDateTime.parse(ACTION_BLACK_FRIDAY_END_DATE, formatter);
+                LocalDateTime startDate = LocalDateTime.parse(ACTION_BIRTHDAY_21_START_DATE, formatter);
+                LocalDateTime endDate = LocalDateTime.parse(ACTION_BIRTHDAY_21_END_DATE, formatter);
                 if (now.isAfter(startDate) && now.isBefore(endDate)) {
                     cost = discountFactory.getDiscount(bfAction.get()).getCost(cost);
                 }
-            }
-        }
-
-        if (ISSUES_13879_SEO_PROMO_START.isBefore(now) && ISSUES_13879_SEO_PROMO_END.isAfter(now)) {
-            /** todo удалить гадость после {@link ISSUES_13879_SEO_PROMO_END} */
-            Seo seo = seoRepository.findByServiceIdOnlyType(paymentService.getId());
-            BigDecimal seoCost;
-            if (seo != null && (seoCost = ISSUES_13879_SEO_PROMO_COST_MAP.get(seo.getType())) != null) {
-                cost = seoCost;
             }
         }
 
