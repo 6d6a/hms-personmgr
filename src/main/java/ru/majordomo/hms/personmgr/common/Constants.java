@@ -339,24 +339,10 @@ public class Constants {
     public static final String ACTION_BONUS_PAYMENT_BILL_END_DATE = "2020-05-15 12:00:00";
     public static final String ACTION_BONUS_PAYMENT_BILL_ID = "24";
 
-    public static final String ACTION_BLACK_FRIDAY_START_DATE = "2020-12-22 12:00:00";
-    public static final String ACTION_BLACK_FRIDAY_END_DATE = "2020-12-29 00:00:00";
+    public static final String ACTION_BIRTHDAY_21_START_DATE = "2021-04-08 12:00:00";
+    public static final String ACTION_BIRTHDAY_21_END_DATE = "2021-04-14 23:59:59";
 
-    public static final String ACTION_BLACK_FRIDAY_PROMOTION_ID = "5fde11b4a35057dbcdf7bf0e";
-
-    /** todo удалить гадость после окончания акции */
-    public final static LocalDateTime ISSUES_13879_SEO_PROMO_END = LocalDateTime.of(2021, Month.MARCH, 1, 0, 0);
-    public final static LocalDateTime ISSUES_13879_SEO_PROMO_START = LocalDateTime.of(2021, Month.JANUARY, 19, 12, 0);
-    public final static Map<SeoType, BigDecimal> ISSUES_13879_SEO_PROMO_COST_MAP = Collections.unmodifiableMap(new EnumMap<SeoType, BigDecimal>(SeoType.class) {{
-        put(SeoType.CONTEXT, BigDecimal.valueOf(4990));
-        put(SeoType.CONTEXT_PREMIUM, BigDecimal.valueOf(9990));
-        put(SeoType.INSTAGRAM_PREMIUM, BigDecimal.valueOf(9990));
-        put(SeoType.VK_PREMIUM, BigDecimal.valueOf(9990));
-        put(SeoType.FACEBOOK_PREMIUM, BigDecimal.valueOf(9990));
-        put(SeoType.CONTEXT_GOOGLE_AND_YANDEX, BigDecimal.valueOf(7490));
-        put(SeoType.CONTEXT_GOOGLE_AND_YANDEX_PREMIUM, BigDecimal.valueOf(12990));
-        put(SeoType.TWO_SOCIAL_CHOOSE, BigDecimal.valueOf(16490));
-    }});
+    public static final String ACTION_BIRTHDAY_21_PROMOCODE_ACTION_ID = "6065e2f46bdeeafe57abc6b2";
 
     public static class Exchanges {
         public static final String ACCOUNT_CREATE = "account.create";
