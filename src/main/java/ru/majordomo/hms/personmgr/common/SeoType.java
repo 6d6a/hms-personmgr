@@ -12,5 +12,7 @@ public enum SeoType {
     CONTEXT_GOOGLE_AND_YANDEX_PREMIUM,
     FACEBOOK_PREMIUM,
     INSTAGRAM_PREMIUM,
-    TWO_SOCIAL_CHOOSE
+    TWO_SOCIAL_CHOOSE,
+    /** Аудит рекламных кампаний в соцсетях */
+    AUDIT_SOCIAL
 }
