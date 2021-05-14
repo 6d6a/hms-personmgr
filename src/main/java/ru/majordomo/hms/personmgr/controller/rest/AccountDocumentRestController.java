@@ -184,7 +184,7 @@ public class AccountDocumentRestController extends CommonRestController {
     }
 
     @GetMapping("/check")
-    public ResponseEntity<Object> check(
+    public ResponseEntity<DocumentOrder> check(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             @RequestParam Map<String, String> params
     ){
@@ -230,14 +230,27 @@ public class AccountDocumentRestController extends CommonRestController {
             }
         }
 
-        try {
+        int freeOrdersAvailable;
+        DocumentOrderCount documentOrderCount = documentOrderCountRepository.findByPersonalAccountId(accountId);
+        if (documentOrderCount != null && documentOrderCount.getLastOrderedYear() >= Year.now().getValue()) {
+            freeOrdersAvailable = ORDER_DOCUMENT_FREE_PER_YEAR - documentOrderCount.getTimesOrdered();
+            if (freeOrdersAvailable < 0) {
+                freeOrdersAvailable = 0;
+            }
+        } else {
+            freeOrdersAvailable = ORDER_DOCUMENT_FREE_PER_YEAR;
+        }
 
-            PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
-            accountHelper.checkBalance(account, paymentService);
-
-        } catch (NotEnoughMoneyException e) {
-            documentOrder.getErrors().put("balance", e.getMessage());
-            documentOrder.getErrors().put("requiredAmount", e.getRequiredAmount().toString());
+        if (freeOrdersAvailable <= 0) {
+            try {
+                PaymentService paymentService = paymentServiceRepository.findByOldId(ORDER_DOCUMENT_PACKAGE_SERVICE_ID);
+                accountHelper.checkBalance(account, paymentService);
+            } catch (NotEnoughMoneyException e) {
+                documentOrder.getErrors().put("balance", e.getMessage());
+                documentOrder.getErrors().put("requiredAmount", e.getRequiredAmount().toString());
+            }
+        } else {
+            documentOrder.setFreeOrdersAvailable(freeOrdersAvailable);
         }
 
         if (!documentOrder.getErrors().isEmpty()) {

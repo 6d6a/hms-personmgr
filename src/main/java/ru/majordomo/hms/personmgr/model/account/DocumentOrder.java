@@ -3,11 +3,13 @@ package ru.majordomo.hms.personmgr.model.account;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import ru.majordomo.hms.personmgr.common.DocumentType;
 import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
 
+import javax.annotation.Nullable;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -41,6 +43,19 @@ public class DocumentOrder extends ModelBelongsToPersonalAccount {
 
     private String postalAddress;
 
-    /** номер списания. finansier.BillingOperation.documentNumber */
+    /**
+     * номер списания. finansier.BillingOperation.documentNumber
+     * null если списаний не проводилось
+     */
+    @Nullable
     private String documentNumber;
+
+    /**
+     * Доступное количество бесплатных заказов документов по почте
+     * null или 0 если бесплатных заказов нет.
+     * Нужно для frontend при проверке доступности заказа
+     */
+    @Nullable
+    @Transient
+    private Integer freeOrdersAvailable;
 }

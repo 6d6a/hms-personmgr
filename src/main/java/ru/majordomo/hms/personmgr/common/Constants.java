@@ -176,8 +176,15 @@ public class Constants {
     public static final String ADDITIONAL_FTP_FREE_SERVICE_ID = SERVICE_PREFIX + ADDITIONAL_FTP_FREE_ID;
 
     public static final String ORDER_DOCUMENT_PACKAGE_ID = "23";
+
+    /** PaymentService.oldId услуги Отправка оригиналов документов */
     public static final String ORDER_DOCUMENT_PACKAGE_SERVICE_ID = SERVICE_PREFIX + ORDER_DOCUMENT_PACKAGE_ID;
-    public static final Integer ORDER_DOCUMENT_FREE_PER_YEAR = 3;
+
+    /**
+     * Количество бесплатных заказов услуги Отправка оригиналов документов
+     * todo перенести в config
+     */
+    public static final int ORDER_DOCUMENT_FREE_PER_YEAR = 3;
 
     public static final int SMS_NOTIFICATIONS_10_RUB_ID = 18;
     public static final String SMS_NOTIFICATIONS_10_RUB_SERVICE_ID = SERVICE_PREFIX + SMS_NOTIFICATIONS_10_RUB_ID;
