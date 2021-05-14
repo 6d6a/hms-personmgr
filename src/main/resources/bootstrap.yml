@@ -1,5 +1,6 @@
 eureka:
     instance:
+        hostname: ${HOSTNAME}
         preferIpAddress: false
         instanceId: ${spring.application.name}-${HOSTNAME:${random.value}}
         metadata-map:
