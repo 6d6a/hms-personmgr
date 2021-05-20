@@ -82,19 +82,19 @@ public class UserDataHelper {
 //                                    unixAccount.getId(), e.getClass().getName(), e.getMessage()));
 //                }
 //            }
-
-            Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
-            for (Database database : databases) {
-                try {
-                    resourceCleaner.cleanData(database);
-                    historyMessage.append(" успешно для database id: ").append(database.getId());
-                } catch (Exception e) {
-                    historyMessage.append(
-                            format(" неуспешно для database id: %s e.class: %s причина: %s",
-                                    database.getId(), e.getClass().getName(), e.getMessage()));
-                }
-            }
-            history.save(account, historyMessage.toString());
+            //todo удаление баз отключено 20.05.2021 по просьбе инженеров
+//            Collection<Database> databases = rcUserFeignClient.getDatabases(account.getId());
+//            for (Database database : databases) {
+//                try {
+//                    resourceCleaner.cleanData(database);
+//                    historyMessage.append(" успешно для database id: ").append(database.getId());
+//                } catch (Exception e) {
+//                    historyMessage.append(
+//                            format(" неуспешно для database id: %s e.class: %s причина: %s",
+//                                    database.getId(), e.getClass().getName(), e.getMessage()));
+//                }
+//            }
+//            history.save(account, historyMessage.toString());
         } catch (Exception e) {
             log.error("Exception " + e.getClass().getName() + " message: " + e.getMessage() + " historyMessage: " + historyMessage.toString());
             history.save(account, "Очистка unixAccount'а и баз данных завершилась с ошибкой. " + historyMessage.toString());
