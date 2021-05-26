@@ -149,7 +149,7 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
         return new ResponseEntity<>(operations, HttpStatus.OK);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('PROCESSING_OPERATIONS_VIEW')")
     @JsonView(Views.Internal.class)
     @RequestMapping(value = "/processing-operations/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ProcessingBusinessOperation> get(
