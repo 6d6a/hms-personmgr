@@ -225,9 +225,9 @@ public class AccountNotificationEventListener {
                     }
                     break;
 
-                case 20:
-                    apiName = "MajordomoHmsPromokodGoogle";
-                    break;
+//                case 20: // issue_14185
+//                    apiName = "MajordomoHmsPromokodGoogle";
+//                    break;
 
                 case 25:
                     //отправляем, если есть домены и ни один не привязан к biz.mail.ru
