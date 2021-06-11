@@ -33,4 +33,7 @@ public interface WkHttpToPdfFeignClient {
 
     @PostMapping(value = "/", consumes = MediaType.APPLICATION_JSON_VALUE)
     byte[] convertHtmlToPdfFile(@RequestBody WkHttpToPdfRequest request);
+
+    @PostMapping(value = "/", consumes = MediaType.APPLICATION_JSON_VALUE)
+    byte[] convertHtmlToPdfFile(@RequestBody String wkHttpToPdfRequestJson);
 }
