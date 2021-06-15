@@ -3,9 +3,11 @@ package ru.majordomo.hms.personmgr.service.Document;
 import com.google.common.base.Strings;
 import com.samskivert.mustache.Mustache;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.util.Assert;
 import ru.majordomo.hms.personmgr.common.DocumentType;
 import ru.majordomo.hms.personmgr.common.FileUtils;
 import ru.majordomo.hms.personmgr.common.Utils;
+import ru.majordomo.hms.personmgr.dto.request.DocumentPreviewRequest;
 import ru.majordomo.hms.personmgr.dto.rpc.Contract;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -20,6 +22,7 @@ import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -42,6 +45,7 @@ public class BudgetContractWkBuilder extends DocumentBuilderImpl {
 
     private AccountDocument document = new AccountDocument();
     private Map<String, String> replaceParameters;
+    @Nullable
     private String templateId;
 
     private final Map<String, String> params;
@@ -53,14 +57,11 @@ public class BudgetContractWkBuilder extends DocumentBuilderImpl {
     private String footerHtml;
 
     /**
-     * @param personalAccountId null если нужен только buildPreview() или buildFromAccountDocument
-     * @param accountOwnerManager
-     * @param majordomoRpcClient
-     * @param personalAccountManager
-     * @param accountDocumentRepository
-     * @param mustacheCompiler
-     * @param wkhtmlToPdfService
-     * @param params
+     * @param personalAccountId null если не нужен, только buildPreview() или buildFromAccountDocument
+     * @param params phone - номер телефона и факса, urfio - имя и фамилия заключившего договор,
+     *               ustava - на основании чего заключен договор,
+     *               day, month, year - дата, если не указаны даты создания аккаунта
+     *               для buildPreview может быть пустым
      */
     public BudgetContractWkBuilder(
             @Nullable
@@ -71,10 +72,12 @@ public class BudgetContractWkBuilder extends DocumentBuilderImpl {
             AccountDocumentRepository accountDocumentRepository,
             Mustache.Compiler mustacheCompiler,
             WkHtmlToPdfWebService wkhtmlToPdfService,
-            Map<String, String> params
+            @Nullable
+            Map<String, String> params,
+            boolean withoutStamp
     ){
         this.majordomoRpcClient = majordomoRpcClient;
-        this.params = params;
+        this.params = params == null ? Collections.emptyMap() : params;
         if (personalAccountId != null) {
             this.owner = accountOwnerManager.findOneByPersonalAccountId(personalAccountId);
             this.account = personalAccountManager.findOne(personalAccountId);
@@ -82,13 +85,18 @@ public class BudgetContractWkBuilder extends DocumentBuilderImpl {
         this.accountDocumentRepository = accountDocumentRepository;
         this.mustacheCompiler = mustacheCompiler.escapeHTML(false);
         this.wkhtmlToPdfService = wkhtmlToPdfService;
-        setWithoutStamp(Boolean.parseBoolean(params.getOrDefault("withoutStamp", "true")));
+        setWithoutStamp(withoutStamp);
         logger.debug("majordomoRpcClient.serverUrl: {}", majordomoRpcClient.getServerURL());
     }
 
     @Override
-    public byte[] buildPreview() {
-        buildTemplate();
+    public byte[] buildPreview(DocumentPreviewRequest documentPreviewRequest) {
+        setWithoutStamp(documentPreviewRequest.isWithoutStamp());
+        Contract pdfDocumentContract = new Contract();
+        pdfDocumentContract.setBody(documentPreviewRequest.getBodyHtml(), true);
+        pdfDocumentContract.setFooter(documentPreviewRequest.getFooterHtml(), true);
+        pdfDocumentContract.setNoFooterPages(documentPreviewRequest.getNoFooterPages());
+        buildTemplateFromContract(pdfDocumentContract);
         convert();
         return getFile();
     }
@@ -110,6 +118,7 @@ public class BudgetContractWkBuilder extends DocumentBuilderImpl {
 
     @Override
     public void checkRequireParams(){
+        Assert.notNull(owner, "Должен быть задан владелец аккаунта");
         /*
         Заказчик: #URNAME#                  oбязательно
         Юридический адрес: #URADR#          обязательно
@@ -174,16 +183,19 @@ public class BudgetContractWkBuilder extends DocumentBuilderImpl {
     private void buildTemplateFromContract(Contract contract) {
         try (InputStream documentStream = this.getClass().getResourceAsStream(DOCUMENT_RESOURCE_PATH);
              InputStream footerStream = this.getClass().getResourceAsStream(FOOTER_RESOURCE_PATH);) {
-            HashMap<String, Object> params = new HashMap<>();
-            params.put("body", contract.getBody());
-            params.put("withoutStamp", isWithoutStamp());
+            Assert.notNull(documentStream, "There is not a template of a document body");
+            Assert.notNull(footerStream, "There is not a template of a document footer");
+
+            HashMap<String, Object> mustacheParams = new HashMap<>();
+            mustacheParams.put("body", contract.getBody());
+            mustacheParams.put("withoutStamp", isWithoutStamp());
             if (account != null && StringUtils.isNotEmpty(account.getName())) {
-                params.put("accountName", account.getName());
+                mustacheParams.put("accountName", account.getName());
             }
             String arialBase64 = FileUtils.getResourceInBase64("/fonts/arial.ttf");
-            params.put("helveticaBase64", arialBase64);
-            bodyHtml = mustacheCompiler.compile(new InputStreamReader(documentStream)).execute(params);
-            footerHtml = mustacheCompiler.compile(new InputStreamReader(footerStream)).execute(new HashMap<String, Object>(){{
+            mustacheParams.put("helveticaBase64", arialBase64);
+            bodyHtml = mustacheCompiler.compile(new InputStreamReader(documentStream, StandardCharsets.UTF_8)).execute(mustacheParams);
+            footerHtml = mustacheCompiler.compile(new InputStreamReader(footerStream, StandardCharsets.UTF_8)).execute(new HashMap<String, Object>(){{
                 put("body", contract.getFooter());
                 put("excludeFooter", contract.getNoFooterPages().stream().map(Object::toString).collect(Collectors.joining(",")));
                 put("withoutStamp", isWithoutStamp());

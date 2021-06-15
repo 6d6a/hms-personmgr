@@ -1,8 +1,11 @@
 package ru.majordomo.hms.personmgr.service.Document;
 
 import org.apache.commons.lang.NotImplementedException;
+import ru.majordomo.hms.personmgr.dto.request.DocumentPreviewRequest;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.model.account.AccountDocument;
+
+import javax.annotation.Nullable;
 
 public interface DocumentBuilder {
     default byte[] build(){
@@ -29,7 +32,12 @@ public interface DocumentBuilder {
         throw new NotImplementedException();
     }
 
-    default byte[] buildPreview() {
+    /**
+     * @param documentPreviewRequest
+     * @return
+     * @throws NotImplementedException
+     */
+    default byte[] buildPreview(DocumentPreviewRequest documentPreviewRequest) throws NotImplementedException {
         throw new NotImplementedException();
     }
 

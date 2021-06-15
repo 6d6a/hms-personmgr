@@ -14,10 +14,13 @@ import ru.majordomo.hms.personmgr.service.Rpc.MajordomoRpcClient;
 import ru.majordomo.hms.personmgr.service.Rpc.RegRpcClient;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Collections;
 import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@ParametersAreNonnullByDefault
 public class DocumentBuilderFactory {
 
     private final MajordomoRpcClient majordomoRpcClient;
@@ -30,13 +33,20 @@ public class DocumentBuilderFactory {
     private final WkHtmlToPdfWebService wkhtmlToPdfService;
 
     /**
-     * @param type
      * @param personalAccountId null если нужен предварительный просмотр документа
-     * @param params
-     * @return
+     * @param params зависящие от типа параметры которы будут подставлены в документ. Например:
+     *               phone - номер телефона и факса, urfio - имя и фамилия заключившего договор,
+     *               ustava - на основании чего заключен договор,
+     *               day, month, year - дата, если не указаны даты создания аккаунта
+     *               для buildPreview может быть пустым
      */
-    public DocumentBuilder getBuilder(DocumentType type, @Nullable String personalAccountId, Map<String, String> params){
+    public DocumentBuilder getBuilder(DocumentType type, @Nullable String personalAccountId, @Nullable Map<String, String> params) throws ParameterValidationException {
+        if (params == null) {
+            params = Collections.emptyMap();
+        }
         DocumentBuilder documentBuilder = null;
+        boolean withoutStamp = Boolean.parseBoolean(params.getOrDefault("withoutStamp", "false"));
+
         switch (type){
             case VIRTUAL_HOSTING_OFERTA:
                 throw new ParameterValidationException("Нельзя заказать оферту");
@@ -53,7 +63,8 @@ public class DocumentBuilderFactory {
                         accountDocumentRepository,
                         mustacheCompiler,
                         wkhtmlToPdfService,
-                        params
+                        params,
+                        withoutStamp
                 );
 
                 break;
@@ -65,16 +76,14 @@ public class DocumentBuilderFactory {
 
                 break;
             case VIRTUAL_HOSTING_COMMERCIAL_PROPOSAL:
-                documentBuilder = new CommercialProposalBilder(
-                        Boolean.valueOf(params.getOrDefault("withoutStamp", "false"))
-                );
+                documentBuilder = new CommercialProposalBilder(withoutStamp);
 
                 break;
             case VIRTUAL_HOSTING_NOTIFY_RF:
                 documentBuilder = new NoticeRFBuilder(
                         accountOwnerManager,
                         personalAccountId,
-                        Boolean.valueOf(params.getOrDefault("withoutStamp", "false")),
+                        withoutStamp,
                         wkhtmlToPdfService,
                         params
                 );
