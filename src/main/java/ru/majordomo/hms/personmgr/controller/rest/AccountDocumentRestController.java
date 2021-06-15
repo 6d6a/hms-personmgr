@@ -9,9 +9,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.majordomo.hms.personmgr.common.DocumentType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.dto.request.DocumentPreviewRequest;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.NotEnoughMoneyException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
@@ -377,15 +379,14 @@ public class AccountDocumentRestController extends CommonRestController {
 
     /**
      * предварительный просмотр для редактора документов (сейчас в billing2)
-     * @param billing2Type mj-rpc.Contract.type
-     * @param params
-     * @param response
+     * @param billing2Type mj-rpc.Contract.type и DocumentType.billing2Type
+     * @param response документ application/pdf в Transfer-Encoding: chunked
      */
     @PostMapping(path = "/preview/billing2/{billing2Type}")
     @ResponseBody
     public void getDocumentPreview(
             @NotEmpty @PathVariable("billing2Type") String billing2Type,
-            @RequestBody Map<String, String> params,
+            @Validated @RequestBody DocumentPreviewRequest documentPreviewRequest,
             HttpServletResponse response
     ) {
         DocumentType documentType = Arrays.stream(values()).filter(type -> billing2Type.equals(type.getBilling2Type()))
@@ -396,15 +397,15 @@ public class AccountDocumentRestController extends CommonRestController {
             DocumentBuilder documentBuilder = this.documentBuilderFactory.getBuilder(
                     documentType,
                     null,
-                    params
+                    null
             );
 
-            byte[] file = documentBuilder.buildPreview();
+            byte[] fileBin = documentBuilder.buildPreview(documentPreviewRequest);
 
             printContentFromFileToResponseOutputStream(
                     response,
                     documentType,
-                    file
+                    fileBin
             );
         } catch (NotImplementedException e) {
             throw new InternalApiException("Предварительный просмотр не реализован для документа: " + documentType.getNameForHuman());

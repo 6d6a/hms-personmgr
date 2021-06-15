@@ -36,16 +36,16 @@ public class WkHtmlToPdfWebService {
      */
     @Nonnull
     public byte[] convertHtmlToPdfFile(String bodyHtml, @Nullable String footerHtml, @Nullable WkHtmlToPdfOptions options) throws InternalApiException {
-        String wkHttpToPdfRequestJson = null;
+        Integer wkHttpToPdfRequestJsonLength = null;
         try {
-            bodyHtml = Base64.getEncoder().encodeToString(bodyHtml.getBytes(StandardCharsets.UTF_8));
-            if (StringUtils.isNotEmpty(footerHtml)) {
-                footerHtml = Base64.getEncoder().encodeToString(footerHtml.getBytes(StandardCharsets.UTF_8));
-            } else {
-                footerHtml = null;
-            }
-            WkHttpToPdfFeignClient.WkHttpToPdfRequest request = new WkHttpToPdfFeignClient.WkHttpToPdfRequest(bodyHtml, footerHtml, options);
-            wkHttpToPdfRequestJson = objectMapper.writeValueAsString(request);
+            WkHttpToPdfFeignClient.WkHttpToPdfRequest request = new WkHttpToPdfFeignClient.WkHttpToPdfRequest(
+                    Base64.getEncoder().encodeToString(bodyHtml.getBytes(StandardCharsets.UTF_8)),
+                    StringUtils.isNotEmpty(footerHtml) ? Base64.getEncoder().encodeToString(footerHtml.getBytes(StandardCharsets.UTF_8)) : null,
+                    options
+            );
+
+            String wkHttpToPdfRequestJson = objectMapper.writeValueAsString(request);
+            wkHttpToPdfRequestJsonLength = wkHttpToPdfRequestJson.length();
             byte[] pdfBin = wkHttpToPdfFeignClient.convertHtmlToPdfFile(wkHttpToPdfRequestJson);
             return pdfBin;
         } catch (JsonProcessingException e) {
@@ -54,10 +54,10 @@ public class WkHtmlToPdfWebService {
         } catch (FeignException e) {
             if (e.status() == 413) {
                 String sizeKb = "null";
-                if (wkHttpToPdfRequestJson != null) {
-                    sizeKb = Integer.toString(wkHttpToPdfRequestJson.length() / 1024);
+                if (wkHttpToPdfRequestJsonLength != null) {
+                    sizeKb = Integer.toString(wkHttpToPdfRequestJsonLength / 1024);
                 }
-                log.error(String.format("Cannot send wkhtmltopdf too large request. Size: %s KB, Message: %s, content: %s", sizeKb, e.getMessage(), e.contentUTF8()), e);
+                log.error(String.format("Cannot send wkhtmltopdf, too large request. Size: %s KB, message: %s, content: %s", sizeKb, e.getMessage(), e.contentUTF8()), e);
             } else {
                 log.error(String.format("Error when send wkhtmltopdf request, with message: %s, content: %s", e.getMessage(), e.contentUTF8()), e);
             }

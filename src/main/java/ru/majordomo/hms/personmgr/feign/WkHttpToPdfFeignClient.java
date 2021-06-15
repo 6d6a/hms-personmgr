@@ -3,6 +3,7 @@ package ru.majordomo.hms.personmgr.feign;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 public interface WkHttpToPdfFeignClient {
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     @ParametersAreNonnullByDefault
     class WkHttpToPdfRequest {
         /** основной html документ закодированный в base64 */
