@@ -23,7 +23,10 @@ public class BlackListService {
     @Value("${blacklist.mailbox_url}")
     private String mailboxBlackListUrl;
 
-    public Boolean domainExistsInControlBlackList(String domain) {
+    /**
+     * @return true если домен заблокирован через blacklist, false если нет или сервис blacklist недоступен
+     */
+    public boolean domainExistsInControlBlackList(String domain) {
 
         try {
             Boolean exists = restTemplate.getForObject(controlBlackListUrl + "/" + domain, Boolean.class);
@@ -48,9 +51,12 @@ public class BlackListService {
         return false;
     }
 
-    public Boolean mailBoxExistsInBlackList(String name) {
+    /**
+     * @return true если почтовый ящик заблокирован через blacklist, false если нет или сервис blacklist недоступен
+     */
+    public boolean mailBoxExistsInBlackList(String mailboxFullName) {
         try {
-            Boolean exists = restTemplate.getForObject(mailboxBlackListUrl + "/" + name, Boolean.class);
+            Boolean exists = restTemplate.getForObject(mailboxBlackListUrl + "/" + mailboxFullName, Boolean.class);
             if (exists != null && exists) {
                 return true;
             }
