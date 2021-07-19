@@ -111,5 +111,6 @@ public enum BusinessOperationType {
         BUSINESS_OPERATION_TYPE2HUMAN.put(DEDICATED_APP_SERVICE_UPDATE, "Обновление выделенного сервиса");
         BUSINESS_OPERATION_TYPE2HUMAN.put(DEDICATED_APP_SERVICE_DELETE, "Удаление выделенного сервиса");
         BUSINESS_OPERATION_TYPE2HUMAN.put(IMPORT_FROM_BILLINGDB, "Перенос аккаунта из старой контрольной панели");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(SWITCH_ACCOUNT_RESOURCES, "Переключение ресурсов аккаунта");
     }
 }
