@@ -34,6 +34,7 @@ import ru.majordomo.hms.personmgr.manager.PlanManager;
 import ru.majordomo.hms.personmgr.manager.TokenManager;
 import ru.majordomo.hms.personmgr.model.account.*;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.notification.Notification;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanChangeAgreement;
@@ -805,17 +806,21 @@ public class PersonalAccountRestController extends CommonRestController {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
     @PostMapping("/{accountId}/account/toggle_state")
-    public ResponseEntity<Object> toggleAccount(
+    public ResponseEntity<SimpleServiceMessage> toggleAccount(
             @ObjectId(PersonalAccount.class) @PathVariable(value = "accountId") String accountId,
             SecurityContextHolderAwareRequestWrapper request
     ) {
         PersonalAccount account = accountManager.findOne(accountId);
 
-        accountHelper.switchAccountActiveState(account, !account.isActive());
+        ProcessingBusinessOperation operation = accountHelper.switchAccountActiveState(account, !account.isActive());
 
         history.save(account, "Аккаунт " + (!account.isActive() ? "включен" : "выключен"), request);
-
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        if (operation != null) {
+            return ResponseEntity.accepted().body(createBusinessOperationResponse(operation));
+        } else {
+            //todo return body
+            return ResponseEntity.noContent().build();
+        }
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
@@ -831,10 +836,13 @@ public class PersonalAccountRestController extends CommonRestController {
         accountServiceHelper.switchServicesAfterFreeze(account, switchState);
         serviceAbonementService.switchServiceAbonementsAfterFreeze(account, switchState);
         abonementService.switchAbonementsAfterFreeze(account, switchState);
-        accountHelper.switchAccountFreezeState(account, switchState);
+        ProcessingBusinessOperation operation = accountHelper.switchAccountFreezeState(account, switchState);
 
         history.save(account, "Аккаунт " + (!account.isFreeze() ? "заморожен" : "разморожен"), request);
 
+        if (operation != null) {
+            return ResponseEntity.accepted().body(createBusinessOperationResponse(operation));
+        }
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
@@ -857,14 +865,18 @@ public class PersonalAccountRestController extends CommonRestController {
             throw new ParameterValidationException("Не удалось удалить логин для входа в КП. Ошибка: " + siResponse.getParam(ERROR_MESSAGE_KEY));
         }
 
+        ProcessingBusinessOperation operation = null;
         if (delete) {
-            accountHelper.disableAccount(account);
+            operation = accountHelper.disableAccount(account);
         }
 
         accountManager.setDeleted(accountId, delete);
 
         history.save(account, "Аккаунт " + (delete ? "удален" : "воскрешен"), request);
 
+        if (operation != null) {
+            return ResponseEntity.accepted().body(createBusinessOperationResponse(operation));
+        }
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 

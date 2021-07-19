@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.UserConstants;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.UNIX_ACCOUNT_CREATE;
@@ -17,7 +18,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.UNIX_ACCOUNT
 @Service
 public class UnixAccountAmqpController extends CommonAmqpController {
     public UnixAccountAmqpController() {
-        resourceName = "UNIX-аккаунт";
+        resourceName = UserConstants.UNIX_ACCOUNT;
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + UNIX_ACCOUNT_CREATE)

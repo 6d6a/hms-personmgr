@@ -10,6 +10,7 @@ import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.ResourceType;
+import ru.majordomo.hms.personmgr.common.UserConstants;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 
@@ -24,7 +25,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.SUCCESS_KEY;
 public class WebSiteAmqpController extends CommonAmqpController  {
 
     public WebSiteAmqpController() {
-        resourceName = "сайт";
+        resourceName = UserConstants.WEB_SITE;
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + WEBSITE_CREATE)

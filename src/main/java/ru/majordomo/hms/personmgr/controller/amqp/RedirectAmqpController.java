@@ -5,6 +5,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.personmgr.common.UserConstants;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 import java.util.Map;
@@ -17,7 +18,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.REDIRECT_UPD
 public class RedirectAmqpController extends CommonAmqpController  {
 
     public RedirectAmqpController() {
-        resourceName = "перенаправление";
+        resourceName = UserConstants.REDIRECT;
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + REDIRECT_CREATE)

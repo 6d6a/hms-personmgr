@@ -4,5 +4,13 @@ package ru.majordomo.hms.personmgr.common;
  * State
  */
 public enum State {
-    NEED_TO_PROCESS, PROCESSING, PROCESSED, FINISHED, ERROR
+    /** обработка не началась */
+    NEED_TO_PROCESS,
+    /** выполняется */
+    PROCESSING,
+    /** успешно завершенное, todo ??? */
+    PROCESSED,
+    /** todo ??? почему-то не считается успешным */
+    FINISHED,
+    ERROR
 }

@@ -28,6 +28,7 @@ import ru.majordomo.hms.personmgr.model.account.AccountOwner;
 import ru.majordomo.hms.personmgr.model.account.AccountStat;
 import ru.majordomo.hms.personmgr.model.account.ArchivalPlanAccountNotice;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.plan.PlanFallback;
@@ -40,6 +41,8 @@ import ru.majordomo.hms.personmgr.repository.AccountStatRepository;
 import ru.majordomo.hms.personmgr.repository.PlanFallbackRepository;
 import ru.majordomo.hms.rc.staff.resources.template.ApplicationServer;
 import ru.majordomo.hms.rc.user.resources.*;
+
+import javax.annotation.Nullable;
 
 import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.PromocodeType.GOOGLE;
@@ -439,8 +442,9 @@ public class AccountHelper {
         }
     }
 
-    public void disableAccount(PersonalAccount account) {
-        switchAccountActiveState(account, false);
+    @Nullable
+    public ProcessingBusinessOperation disableAccount(PersonalAccount account) {
+        return switchAccountActiveState(account, false);
     }
 
     public void enableAccount(String accountId) {
@@ -452,30 +456,35 @@ public class AccountHelper {
         switchAccountActiveState(account, true);
     }
 
-    public void switchAccountActiveState(PersonalAccount account, Boolean state) {
+    @Nullable
+    public ProcessingBusinessOperation switchAccountActiveState(PersonalAccount account, Boolean state) {
+        ProcessingBusinessOperation operation = null;
         if (account.isActive() != state) {
             history.save(account, "Аккаунт " + (state ? "включен" : "выключен"));
 
             accountManager.setActive(account.getId(), state);
 
             if (!account.isFreeze()) {
-                resourceHelper.switchAccountResources(account, state);
+                operation = resourceHelper.switchAccountResourcesStartOperation(account, state);
             }
 
             if (state) {
                 publisher.publishEvent(new AccountWasEnabled(account.getId(), account.getDeactivated()));
             }
         }
+        return operation;
     }
 
-    public void switchAccountFreezeState(PersonalAccount account, Boolean state) {
+    public ProcessingBusinessOperation switchAccountFreezeState(PersonalAccount account, Boolean state) {
+        ProcessingBusinessOperation operation = null;
         if (account.isFreeze() != state) {
             history.save(account, "Аккаунт " + (state ? "заморожен" : "разморожен"));
             accountManager.setFreeze(account.getId(), state);
             if (account.isActive()) {
-                resourceHelper.switchAccountResources(account, !state);
+                operation = resourceHelper.switchAccountResourcesStartOperation(account, !state);
             }
         }
+        return operation;
     }
 
     /*

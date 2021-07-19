@@ -1,10 +1,12 @@
 package ru.majordomo.hms.personmgr.common;
 
+import ru.majordomo.hms.personmgr.dto.fin.BillingOperation;
+import ru.majordomo.hms.personmgr.model.ModelBelongsToPersonalAccount;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.rc.user.resources.DomainRegistrar;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.Month;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import static ru.majordomo.hms.personmgr.common.MailManagerMessageType.*;
@@ -54,7 +56,10 @@ public class Constants {
     public static final String TYPE_KEY = "type";
     public static final String ACC_ID_KEY = "acc_id";
     public static final String DELETE_KEY = "delete";
+    /** текст ошибки от rc-user и te для pm */
     public static final String ERROR_MESSAGE_KEY = "errorMessage";
+    /** тест ошибки от pm для frontend. */
+    public static final String MESSAGE_KEY = "message";
     public static final String IP_KEY = "ip";
     public static final String CLIENT_ID_KEY = "client_id";
     public static final String EMAIL_KEY = "email";
@@ -108,6 +113,7 @@ public class Constants {
     public static final String OLD_DATABASE_HOST_KEY = "oldDatabaseHost";
     public static final String NEW_DATABASE_HOST_KEY = "newDatabaseHost";
     public static final String DATA_KEY = "data";
+    /** Номер платежного документа в {@link BillingOperation#getDocumentNumber()} */
     public static final String DOCUMENT_NUMBER_KEY = "documentNumber";
     public static final String DATASOURCE_URI_KEY = "datasourceUri";
     public static final String DATA_DESTINATION_URI_KEY = "datadestinationUri";
@@ -131,6 +137,14 @@ public class Constants {
     public static final String FINISH_INSTALL_KEY = "finishInstall";
     public static final String SUCCESS_KEY = "success";
     public static final String SWITCHED_ON_KEY = "switchedOn";
+    /**
+     * ключ в {@link ProcessingBusinessOperation#getParams()}
+     * используется в {@link ru.majordomo.hms.personmgr.service.BusinessHelper } для некоторых длительных операций
+     */
+    public static final String STAGE_KEY = "stage";
+    /** {@link ModelBelongsToPersonalAccount#getPersonalAccountId()} */
+    public static final String PERSONAL_ACCOUNT_ID_KEY = "personalAccountId";
+    /** Дата удаления ресурса в формате String {@link DateTimeFormatter#ISO_LOCAL_DATE_TIME}, null не удалять. */
     public static final String WILL_BE_DELETED_AFTER_KEY = "willBeDeletedAfter";
     public static final String APPSCAT_ROUTING_KEY = "appscat";
     public static final String MJ_PARENT_CLIENT_ID_IN_REGISTRANT = "2";

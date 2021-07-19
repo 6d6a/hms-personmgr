@@ -1,13 +1,17 @@
 package ru.majordomo.hms.personmgr.service;
 
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.apache.commons.collections.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
+import ru.majordomo.hms.personmgr.controller.amqp.CommonAmqpController;
 import ru.majordomo.hms.personmgr.feign.FinFeignClient;
 import ru.majordomo.hms.personmgr.importing.DBImportService;
 import ru.majordomo.hms.personmgr.manager.AccountPromotionManager;
@@ -15,11 +19,14 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
+
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import static ru.majordomo.hms.personmgr.common.Utils.cleanBooleanSafe;
 
 @Service
+@RequiredArgsConstructor
 public class BusinessFlowDirector {
     private static final Logger logger = LoggerFactory.getLogger(BusinessFlowDirector.class);
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
@@ -27,29 +34,12 @@ public class BusinessFlowDirector {
     private final BusinessActionProcessor businessActionProcessor;
     private final FinFeignClient finFeignClient;
     private final AccountPromotionManager accountPromotionManager;
+    private final ResourceHelper resourceHelper;
 
+    @Setter
     @Nullable
+    @Autowired(required = false)
     private DBImportService dbImportService;
-
-    @Autowired
-    public void setDbImportService(@Nullable DBImportService dbImportService) {
-        this.dbImportService = dbImportService;
-    }
-
-    @Autowired
-    public BusinessFlowDirector(
-            ProcessingBusinessActionRepository processingBusinessActionRepository,
-            ProcessingBusinessOperationRepository processingBusinessOperationRepository,
-            BusinessActionProcessor businessActionProcessor,
-            FinFeignClient finFeignClient,
-            AccountPromotionManager accountPromotionManager
-    ) {
-        this.processingBusinessActionRepository = processingBusinessActionRepository;
-        this.processingBusinessOperationRepository = processingBusinessOperationRepository;
-        this.businessActionProcessor = businessActionProcessor;
-        this.finFeignClient = finFeignClient;
-        this.accountPromotionManager = accountPromotionManager;
-    }
 
     public void processClean(ProcessingBusinessAction businessAction) {
         logger.debug("Processing businessAction clean for " + businessAction.toString());
@@ -76,10 +66,16 @@ public class BusinessFlowDirector {
         processingBusinessActionRepository.save(action);
     }
 
-    public State processMessage(SimpleServiceMessage message) {
+    /**
+     * списывает, восстанавливает деньги, выставляет статус, завершает ProcessingBusinessAction и ProcessingBusinessOperation
+     * @param resourceName {@link CommonAmqpController#getResourceName()} например "сайт"
+     * @return статус ProcessingBusinessAction
+     */
+    public State processMessage(SimpleServiceMessage message, @Nonnull String resourceName) {
         logger.debug("Processing message : " + message.toString());
 
-        ProcessingBusinessAction businessAction = processingBusinessActionRepository.findById(message.getActionIdentity()).orElse(null);
+        ProcessingBusinessAction businessAction = message.getActionIdentity() == null ? null :
+                processingBusinessActionRepository.findById(message.getActionIdentity()).orElse(null);
 
         if (businessAction != null) {
             if (cleanBooleanSafe(message.getParam("success"))) {
@@ -106,19 +102,25 @@ public class BusinessFlowDirector {
                 if (businessOperation != null) {
                     switch (businessAction.getState()) {
                         case PROCESSED:
-                            if (businessOperation.getType() != BusinessOperationType.ACCOUNT_CREATE
-                                    && businessOperation.getType() != BusinessOperationType.APP_INSTALL
-                                    && businessOperation.getType() != BusinessOperationType.ACCOUNT_TRANSFER
-                                    && businessOperation.getType() != BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION
-                                    && businessOperation.getType() != BusinessOperationType.IMPORT_FROM_BILLINGDB
-                            ) {
-                                businessOperation.setState(businessAction.getState());
-                                processingBusinessOperationRepository.save(businessOperation);
+                            switch (businessOperation.getType()) {
+                                case ACCOUNT_CREATE:
+                                case APP_INSTALL:
+                                case ACCOUNT_TRANSFER:
+                                case WEB_SITE_UPDATE_EXTENDED_ACTION:
+                                case IMPORT_FROM_BILLINGDB:
+                                case SWITCH_ACCOUNT_RESOURCES:
+                                    break;
+                                default:
+                                    businessOperation.setState(businessAction.getState());
+                                    processingBusinessOperationRepository.save(businessOperation);
+                                    break;
                             }
                             break;
                         case ERROR:
                             if (dbImportService != null && businessOperation.getType() == BusinessOperationType.IMPORT_FROM_BILLINGDB) {
                                 dbImportService.processErrorAction(businessAction, businessOperation, message);
+                            } else if (businessOperation.getType() == BusinessOperationType.SWITCH_ACCOUNT_RESOURCES) {
+                                resourceHelper.processErrorActionForSwitchAccountResources(businessAction, businessOperation, message, resourceName);
                             } else {
                                 businessOperation.setState(businessAction.getState());
                                 fillPublicParamsToBusinessOperation(message, businessOperation);
@@ -146,18 +148,18 @@ public class BusinessFlowDirector {
     }
 
     private void processBlockedPayment(ProcessingBusinessAction businessAction) {
-        if (businessAction.getState() == State.PROCESSED && businessAction.getMessage().getParam("documentNumber") != null) {
+        if (businessAction.getState() == State.PROCESSED && businessAction.getMessage().getParam(Constants.DOCUMENT_NUMBER_KEY) != null) {
             //Спишем заблокированные средства
             try {
-                finFeignClient.chargeBlocked(businessAction.getMessage().getAccountId(), (String) businessAction.getMessage().getParam("documentNumber"));
+                finFeignClient.chargeBlocked(businessAction.getMessage().getAccountId(), (String) businessAction.getMessage().getParam(Constants.DOCUMENT_NUMBER_KEY));
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("Exception in ru.majordomo.hms.personmgr.service.BusinessFlowDirector.processBlockedPayment #1 " + e.getMessage());
             }
-        } else if (businessAction.getState() == State.ERROR && businessAction.getMessage().getParam("documentNumber") != null) {
+        } else if (businessAction.getState() == State.ERROR && businessAction.getMessage().getParam(Constants.DOCUMENT_NUMBER_KEY) != null) {
             //Разблокируем средства
             try {
-                finFeignClient.unblock(businessAction.getMessage().getAccountId(), (String) businessAction.getMessage().getParam("documentNumber"));
+                finFeignClient.unblock(businessAction.getMessage().getAccountId(), (String) businessAction.getMessage().getParam(Constants.DOCUMENT_NUMBER_KEY));
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("Exception in ru.majordomo.hms.personmgr.service.BusinessFlowDirector.processBlockedPayment #2 " + e.getMessage());
@@ -167,12 +169,13 @@ public class BusinessFlowDirector {
 
     private void fillPublicParamsToBusinessOperation(SimpleServiceMessage message, ProcessingBusinessOperation businessOperation) {
         try {
-            String errorMessage = MapUtils.getString(message.getParams(), "errorMessage", "");
+            String errorMessage = MapUtils.getString(message.getParams(), Constants.ERROR_MESSAGE_KEY, "");
             String bigErrorMessage = MapUtils.getString(message.getParams(), "bigErrorMessage", "");
             if (!errorMessage.isEmpty()) {
-                businessOperation.addPublicParam("message", errorMessage);
+                businessOperation.addPublicParam(Constants.MESSAGE_KEY, errorMessage);
             }
             if (!bigErrorMessage.isEmpty()) {
+                //todo remove bigErrorMessage
                 businessOperation.addParam("bigErrorMessage", bigErrorMessage);
                 businessOperation.addPublicParam("isBigErrorMessage", true);
             }

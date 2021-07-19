@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 import ru.majordomo.hms.personmgr.common.AccountSetting;
 import ru.majordomo.hms.personmgr.common.AccountType;
 import ru.majordomo.hms.personmgr.common.MailManagerMessageType;
+import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.account.projection.PersonalAccountWithNotificationsProjection;
 import ru.majordomo.hms.personmgr.model.account.projection.PlanByServerProjection;
@@ -39,7 +40,10 @@ public interface PersonalAccountManager {
 
     List<PersonalAccount> insert(Iterable<PersonalAccount> accounts);
 
-    PersonalAccount findOne(String id);
+    /**
+     * @throws ResourceNotFoundException если аккаунта нет
+     */
+    PersonalAccount findOne(String id) throws ResourceNotFoundException;
 
     PersonalAccount findOneByIdIncludeIdAndActiveAndDeactivated(String id);
 

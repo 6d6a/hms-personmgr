@@ -377,6 +377,17 @@ public class AccountTransferService {
         return processingBusinessAction;
     }
 
+    public void processEventsAmqpForUnixAccountAndDatabaseUpdate(@Nonnull ProcessingBusinessOperation operation, @Nonnull State state) {
+        if (state.equals(State.PROCESSED)) {
+            checkOperationAfterUnixAccountAndDatabaseUpdate(operation);
+        } else if (state.equals(State.ERROR)) {
+            operation.setState(State.ERROR);
+            processingBusinessOperationRepository.save(operation);
+
+            revertTransfer(operation);
+        }
+    }
+
     public void checkOperationAfterUnixAccountAndDatabaseUpdate(ProcessingBusinessOperation processingBusinessOperation) {
         Boolean unixAccountAndDatabaseSent = (Boolean) processingBusinessOperation.getParam(UNIX_ACCOUNT_AND_DATABASE_SENT_KEY);
 

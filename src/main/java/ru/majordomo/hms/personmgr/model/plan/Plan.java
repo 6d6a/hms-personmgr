@@ -101,7 +101,15 @@ public class Plan extends BaseModel {
     }
 
     public Boolean isDatabaseUserAllowed() {
-        return !prohibitedResourceTypes.contains(DATABASE_USER);
+        return isDatabaseUserAllowed(false);
+    }
+
+    /**
+     * @param hasAllowUseDbService {@link ru.majordomo.hms.personmgr.service.AccountServiceHelper#hasAllowUseDbService(String)}
+     */
+    public boolean isDatabaseUserAllowed(boolean hasAllowUseDbService) {
+        return !prohibitedResourceTypes.contains(DATABASE_USER) ||
+               (allowedFeature.contains(Feature.ALLOW_USE_DATABASES) && hasAllowUseDbService);
     }
 
     public Boolean isDomainAllowed() {

@@ -4,8 +4,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static ru.majordomo.hms.personmgr.common.Constants.SERVER_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.TE_PARAMS_KEY;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 import static ru.majordomo.hms.personmgr.common.SecurityConstants.*;
 
 public class FieldRoles {
@@ -33,7 +32,7 @@ public class FieldRoles {
 
     static {
         RESOURCE_SWITCHED_ON.put("switchedOn", RESOURCE_SWITCHED_ON_EDIT);
-        RESOURCE_WILL_BE_DELETED_AFTER.put("willBeDeletedAfter", RESOURCE_WILL_BE_DELETED_AFTER_EDIT);
+        RESOURCE_WILL_BE_DELETED_AFTER.put(WILL_BE_DELETED_AFTER_KEY, RESOURCE_WILL_BE_DELETED_AFTER_EDIT);
         RESOURCE_WRITABLE.put("writable", RESOURCE_WRITABLE_EDIT);
         RESOURCE_SERVICE_ID.put("serviceId", TRANSFER_ACCOUNT);
         RESOURCE_TE_PARAMS.put(TE_PARAMS_KEY, TE_PARAMS_SEND_ALLOWED);

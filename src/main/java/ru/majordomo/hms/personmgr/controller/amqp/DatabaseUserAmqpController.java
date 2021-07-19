@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
+import ru.majordomo.hms.personmgr.common.UserConstants;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_USER_CREATE;
@@ -18,7 +19,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DATABASE_USE
 @Service
 public class DatabaseUserAmqpController extends CommonAmqpController {
     public DatabaseUserAmqpController() {
-        resourceName = "пользователь баз данных";
+        resourceName = UserConstants.DATABASE_USER;
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DATABASE_USER_CREATE)

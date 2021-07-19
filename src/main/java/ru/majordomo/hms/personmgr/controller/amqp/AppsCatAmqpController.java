@@ -37,7 +37,7 @@ public class AppsCatAmqpController extends CommonAmqpController {
                         .findFirst()
                         .ifPresent(processingBusinessAction -> message.setActionIdentity(processingBusinessAction.getId()));
 
-                State state = businessFlowDirector.processMessage(message);
+                State state = businessFlowDirector.processMessage(message, resourceName);
 
                 businessOperation.setState(state);
 

@@ -10,15 +10,14 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
-import ru.majordomo.hms.personmgr.common.AccountStatType;
-import ru.majordomo.hms.personmgr.common.BusinessActionType;
-import ru.majordomo.hms.personmgr.common.State;
+import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.dto.domainTransfer.DomainTransferSynchronization;
 import ru.majordomo.hms.personmgr.event.accountStat.AccountStatDomainUpdateEvent;
 import ru.majordomo.hms.personmgr.manager.CartManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.service.AccountStatHelper;
 import ru.majordomo.hms.personmgr.service.DomainService;
 
@@ -43,7 +42,7 @@ public class DomainAmqpController extends CommonAmqpController {
         this.cartManager = cartManager;
         this.accountStatHelper = accountStatHelper;
         this.domainService = domainService;
-        resourceName = "домен";
+        resourceName = UserConstants.DOMAIN;
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DOMAIN_CREATE)
@@ -52,7 +51,7 @@ public class DomainAmqpController extends CommonAmqpController {
         logger.debug("Received from " + provider + ": " + message.toString());
 
         try {
-            State state = businessFlowDirector.processMessage(message);
+            State state = businessFlowDirector.processMessage(message, resourceName);
             ProcessingBusinessAction businessAction =
                     processingBusinessActionRepository.findById(message.getActionIdentity()).orElse(null);
 
@@ -97,7 +96,16 @@ public class DomainAmqpController extends CommonAmqpController {
         logger.debug("Received update message from " + provider + ": " + message.toString());
 
         try {
-            State state = businessFlowDirector.processMessage(message);
+            String operationId = message.getOperationIdentity();
+            ProcessingBusinessOperation operation = operationId == null ? null :
+                    processingBusinessOperationRepository.findById(operationId).orElse(null);
+            if (operation != null && operation.getType() == BusinessOperationType.SWITCH_ACCOUNT_RESOURCES) {
+                handleUpdateEventFromRc(message, headers);
+                return;
+            }
+            //todo поместить логику того что ниже в handleUpdateEventFromRc
+
+            State state = businessFlowDirector.processMessage(message, resourceName);
 
             if (state != State.PROCESSED) {
                 logger.error("State is not PROCESSED" );

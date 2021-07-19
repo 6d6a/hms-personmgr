@@ -6,6 +6,7 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
+import ru.majordomo.hms.personmgr.common.UserConstants;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import java.util.Map;
 
@@ -16,7 +17,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.RESOURCE_ARC
 @Service
 public class ResourceArchiveAmqpController extends CommonAmqpController {
     public ResourceArchiveAmqpController() {
-        resourceName = "архив";
+        resourceName = UserConstants.RESOURCE_ARCHIVE;
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + RESOURCE_ARCHIVE_CREATE)
