@@ -9,6 +9,7 @@ import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import ru.majordomo.hms.personmgr.model.plan.Feature;
 import ru.majordomo.hms.personmgr.model.plan.ServicePlan;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,6 +40,7 @@ public interface ServicePlanRepository extends MongoRepository<ServicePlan, Stri
     @CacheEvict(value = "servicePlans", allEntries = true)
     void deleteAll();
 
+    @Nullable
     @Cacheable("oneServicePlanByFeatureAndActive")
     ServicePlan findOneByFeatureAndActive(Feature feature, boolean active);
 

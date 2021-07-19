@@ -40,6 +40,7 @@ import ru.majordomo.hms.personmgr.model.service.PaymentService;
 import ru.majordomo.hms.personmgr.model.service.RedirectAccountService;
 import ru.majordomo.hms.personmgr.repository.*;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -407,32 +408,45 @@ public class AccountServiceHelper {
 
         return abonements.stream().anyMatch(item -> {
             //Если абонемент еще действителен, то услуга активна
-            if (item.getExpired().isAfter(LocalDateTime.now())) return true;
+            LocalDateTime expired = item.getExpiredSafe();
+            if (expired == null) return false;
+            if (expired.isAfter(LocalDateTime.now())) return true;
 
             //Если абонемент закончился, но должен быть автоматически продлен в следующее ближайшее время (01:54 + задержка),
             // то считаем услугу активной (пока абонемент либо не продлится, либо не удалится)
-            LocalDateTime nextProlong = item.getExpired().plusDays(1L).with(LocalTime.of(2, 10));
+            LocalDateTime nextProlong = expired.plusDays(1L).with(LocalTime.of(2, 10));
             return item.isAutorenew() && nextProlong.isAfter(LocalDateTime.now());
         });
     }
 
-    public boolean hasAllowUseDbService(PersonalAccount account) {
+    public boolean hasAllowUseDbService(@Nonnull PersonalAccount account) {
+        return hasAllowUseDbService(account.getId());
+    }
+
+    public boolean hasAllowUseDbService(@Nonnull String accountId) throws InternalApiException {
         ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.ALLOW_USE_DATABASES, true);
         if (servicePlan == null) {
-            throw new InternalApiException("Cannot find ServicePlan");
+            throw new InternalApiException("Could not find ServicePlan for ALLOW_USE_DATABASES");
         }
-        List<AccountService> accountServices = accountServiceRepository.findByPersonalAccountIdAndServiceIdAndEnabled(account.getId(), servicePlan.getServiceId(), true);
-        if (!accountServices.isEmpty()) {
+        if (accountServiceRepository.existsByPersonalAccountIdAndServiceIdAndEnabled(
+                accountId,
+                servicePlan.getServiceId(),
+                true
+        )) {
             return true;
         }
-
-        List<AccountServiceAbonement> abonements = abonementManager.findByPersonalAccountIdAndAbonementIdIn(account.getId(), servicePlan.getAbonementIds());
-
-        if (abonements == null) {
-            return false;
-        }
-
-        return abonements.stream().anyMatch(item -> item.getExpired().isAfter(LocalDateTime.now()));
+//        // услуга только c посуточными списаниями
+//        List<AccountServiceAbonement> abonements = abonementManager.findByPersonalAccountIdAndAbonementIdIn(accountId, servicePlan.getAbonementIds());
+//
+//        if (abonements == null) {
+//            return false;
+//        }
+//
+//        return abonements.stream().anyMatch(item -> {
+//            LocalDateTime expired = item.getExpiredSafe();
+//            return expired != null && expired.isAfter(LocalDateTime.now());
+//        });
+        return false;
     }
 
     public AccountService getAccountService(PersonalAccount account, Feature feature) {

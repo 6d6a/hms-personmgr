@@ -38,6 +38,7 @@ import ru.majordomo.hms.personmgr.querydsl.ProcessingBusinessOperationQuerydslBi
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 
+import static ru.majordomo.hms.personmgr.common.Constants.MESSAGE_KEY;
 import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
 
 @RestController
@@ -68,9 +69,9 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
     ) {
         ProcessingBusinessOperation operation = repository.findByIdAndPersonalAccountId(id, accountId);
         if (operation != null && operation.getType() == BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION && fullError) {
-            String errorMessage = MapUtils.getString(operation.getParams(), "bigErrorMessage", "");
+            String errorMessage = MapUtils.getString(operation.getParams(), "bigErrorMessage", ""); //todo remove it
             if (!errorMessage.isEmpty()) {
-                operation.addPublicParam("message", errorMessage);
+                operation.addPublicParam(MESSAGE_KEY, errorMessage);
             }
         }
 
@@ -99,9 +100,9 @@ public class ProcessingBusinessOperationRestController extends CommonRestControl
             throw new ResourceNotFoundException();
         }
         if (operation.getType() == BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION && fullError) {
-            String errorMessage = MapUtils.getString(operation.getParams(), "bigErrorMessage", "");
+            String errorMessage = MapUtils.getString(operation.getParams(), "bigErrorMessage", ""); //todo remove it
             if (!errorMessage.isEmpty()) {
-                operation.addPublicParam("message", errorMessage);
+                operation.addPublicParam(MESSAGE_KEY, errorMessage);
             }
         }
 

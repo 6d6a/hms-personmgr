@@ -37,10 +37,12 @@ import ru.majordomo.hms.rc.staff.resources.template.Template;
 import ru.majordomo.hms.rc.user.resources.UnixAccount;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 /**
@@ -196,19 +198,35 @@ public class DedicatedAppServiceHelper {
         }
     }
 
-    public void finishCreateOperation(ProcessingBusinessOperation processingBusinessOperation, String staffServiceId) {
-        finishUpdateOperation(processingBusinessOperation, staffServiceId);
+    public void processAmqpEventCreateRcStaffFinish(ProcessingBusinessOperation processingBusinessOperation, String staffServiceId) {
+        finishUpdateAmqpEvent(processingBusinessOperation.getPersonalAccountId(), staffServiceId, BusinessActionType.DEDICATED_APP_SERVICE_CREATE_RC_STAFF, processingBusinessOperation.getParams());
     }
 
-    public void finishUpdateOperation(ProcessingBusinessOperation processingBusinessOperation, String staffServiceId) {
-        String accountId = processingBusinessOperation.getPersonalAccountId();
+    public void processAmqpEventUpdateRcStaffFinish(ProcessingBusinessAction action, String staffServiceId) {
+        finishUpdateAmqpEvent(
+                action.getPersonalAccountId(),
+                staffServiceId,
+                action.getBusinessActionType(),
+                action.getParams()
+        );
+    }
+
+    public void finishUpdateAmqpEvent(
+            String accountId,
+            String staffServiceId,
+            @Nullable BusinessActionType businessActionType,
+            @Nullable Map<String, Object> params
+    ) {
+        if (params == null) {
+            params = Collections.emptyMap();
+        }
         Boolean switchedOn = null;
         String templateId = null;
         try {
-            switchedOn = (Boolean) processingBusinessOperation.getParam(Constants.SWITCHED_ON_KEY);
-            templateId = (String) processingBusinessOperation.getParam(Constants.TEMPLATE_ID_KEY);
+            switchedOn = (Boolean) params.get(Constants.SWITCHED_ON_KEY);
+            templateId = (String) params.get(Constants.TEMPLATE_ID_KEY);
         } catch (ClassCastException ignore) { }
-        DedicatedAppService dedicatedAppService = null;
+        DedicatedAppService dedicatedAppService;
         if (templateId != null) {
             dedicatedAppService = dedicatedAppServiceRepository.findByPersonalAccountIdAndTemplateId(accountId, templateId);
         } else {
@@ -221,7 +239,7 @@ public class DedicatedAppServiceHelper {
 
         if (dedicatedAppService.getAccountService() != null) {
             if (!dedicatedAppService.getAccountService().isEnabled()
-                    && (processingBusinessOperation.getType() == BusinessOperationType.DEDICATED_APP_SERVICE_CREATE
+                    && (BusinessActionType.DEDICATED_APP_SERVICE_CREATE_RC_STAFF == businessActionType
                     || Boolean.TRUE.equals(switchedOn))) {
                 accountServiceHelper.setEnabledAccountService(dedicatedAppService.getAccountService(), true);
             } else if (dedicatedAppService.getAccountService().isEnabled() && Boolean.FALSE.equals(switchedOn)) {
@@ -234,6 +252,7 @@ public class DedicatedAppServiceHelper {
         dedicatedAppServiceRepository.save(dedicatedAppService);
     }
 
+    @Nullable
     public ProcessingBusinessAction create(@NonNull PersonalAccount account, @NonNull String templateId) throws ParameterValidationException, ResourceNotFoundException, ResourceIsLockedException {
 
         assertAccountIsActive(account);
@@ -262,35 +281,36 @@ public class DedicatedAppServiceHelper {
 
         ServicePlan servicePlan = servicePlanRepository.findOneByFeatureAndActive(Feature.DEDICATED_APP_SERVICE, true);
         if (servicePlan == null) {
-            logger.error("Cannot found ServicePlan for DEDICATED_APP_SERVICE, database is wrong");
+            logger.error("Could not find ServicePlan for DEDICATED_APP_SERVICE. Database is wrong");
             throw new InternalApiException();
         }
 
         List<Service> services = rcStaffFeignClient.getServicesByAccountIdAndServerIdAndTemplateId(account.getId(), serverId, templateId);
-        services = services.stream().filter(service -> serverId.equals(service.getServerId())).collect(Collectors.toList());
+        Optional<Service> existsService = services.stream().filter(service -> serverId.equals(service.getServerId())).findFirst();//.collect(Collectors.toList());
 
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(account.getId());
-        message.addParam("serverId", serverId);
+        message.addParam(Constants.SERVER_ID_KEY, serverId);
         message.addParam(Constants.UNIX_ACCOUNT_HOMEDIR_KEY, unixAccount.getHomeDir());
 
         ProcessingBusinessAction action;
 
-        if (CollectionUtils.isEmpty(services)) {
+        if (!existsService.isPresent()) {
             message.addParam(Constants.TEMPLATE_ID_KEY, template.getId());
-            ProcessingBusinessOperation operation = businessHelper.buildOperationAtomic(BusinessOperationType.DEDICATED_APP_SERVICE_CREATE, message);
-            if (operation == null) {
-                throw new ResourceIsLockedException("Сервис занят, дождитесь завершения выполняемой операции");
-            }
 
-            action = businessHelper.buildActionByOperation(
-                    BusinessActionType.DEDICATED_APP_SERVICE_CREATE_RC_STAFF, message, operation);
+            action = businessHelper.buildActionAndOperation(
+                    BusinessOperationType.DEDICATED_APP_SERVICE_CREATE,
+                    BusinessActionType.DEDICATED_APP_SERVICE_CREATE_RC_STAFF,
+                    message,
+                    template.getId(),
+                    Service.class
+            ).getFirst();
 
             history.save(account, "Поступила заявка на создание выделенного сервиса с templateId: " + template.getId());
         } else {
-            Service staffService = services.get(0);
+            Service staffService = existsService.get();
             if (!staffService.getSwitchedOn()){
-                action = switchStaffService(account,  staffService, true);
+                action = switchStaffService(account.getId(),  staffService, true, null);
             } else {
                 action = null;
             }
@@ -365,47 +385,88 @@ public class DedicatedAppServiceHelper {
         return cancelDedicatedAppService(account, dedicatedAppService);
     }
 
-    public boolean switchAllDedicatedAppService(PersonalAccount account, boolean state) throws BaseException, FeignException, AmqpException {
+    public void switchAllDedicatedAppService(String accountId, boolean state, @Nullable String operationId, @Nullable BiConsumer<RuntimeException, Service> exceptionCallback) throws BaseException, FeignException {
 
-        String serverId = getServerId(account.getId());
+        String serverId = getServerId(accountId);
         if (StringUtils.isEmpty(serverId)) {
-            return false;
+            throw new InternalApiException("Не удалось определить web-сервер");
         }
-        List<Service> staffServices;
+        List<Service> staffServices = rcStaffFeignClient.getServiceByAccountIdAndServerId(accountId, serverId).stream()
+                .filter(staffService -> accountId.equals(staffService.getAccountId())).collect(Collectors.toList()); //todo запрашивать только выделенные сервисы а не все подряд
 
-        staffServices = rcStaffFeignClient.getServiceByAccountIdAndServerId(account.getId(), serverId);
-
-
-        List<DedicatedAppService> services = getServices(account.getId());
+        List<DedicatedAppService> services = getServices(accountId);
 
         for (DedicatedAppService appService : services) {
             appService.setActive(state);
             dedicatedAppServiceRepository.save(appService);
-            staffServices.stream().filter(ss -> ss.getTemplateId().equals(appService.getTemplateId()))
-                    .findFirst().ifPresent(staffService -> switchStaffService(account, staffService, state));
+            Service staffService = staffServices.stream().filter(ss -> ss.getTemplateId()
+                    .equals(appService.getTemplateId())).findFirst().orElse(null);
+            if (staffService == null) {
+                continue;
+            }
+            try {
+                switchStaffService(accountId, staffService, state, operationId);
+            } catch (ResourceIsLockedException e) {
+                logger.debug(String.format(
+                        "A dedicated service with rc-staff's Service id: %s is locked, templateId: %s, accountId: %s",
+                        staffService.getId(),
+                        staffService.getTemplateId(),
+                        accountId
+                ), e);
+                if (exceptionCallback != null) {
+                    exceptionCallback.accept(e, staffService);
+                }
+            } catch (RuntimeException e) {
+                if (exceptionCallback == null) {
+                    throw e;
+                } else {
+                    exceptionCallback.accept(e, staffService);
+                }
+            }
         }
 
-        return true;
+
     }
 
-    private ProcessingBusinessAction switchStaffService(PersonalAccount account, Service staffService, boolean state) throws ResourceIsLockedException, ParameterValidationException {
-        assertServiceIsnotUser(account.getId(), staffService.getId());
+    /**
+     * @param operationId null создаст новую {@link ProcessingBusinessOperation}, если задать использует существующую.
+     * @throws ResourceIsLockedException
+     * @throws ParameterValidationException
+     */
+    private ProcessingBusinessAction switchStaffService(
+            String accountId,
+            Service staffService,
+            boolean state,
+            @Nullable String operationId
+    ) throws ResourceIsLockedException, ParameterValidationException {
+        assertServiceIsnotUser(accountId, staffService.getId());
 
         SimpleServiceMessage message = new SimpleServiceMessage();
-        message.setAccountId(account.getId());
+        message.setAccountId(accountId);
         message.addParam(Constants.RESOURCE_ID_KEY, staffService.getId());
         message.addParam(Constants.SWITCHED_ON_KEY, state);
         message.addParam(Constants.TEMPLATE_ID_KEY, staffService.getTemplateId()); // need for assertLockedResource and buildOperationAtomic
 
-        ProcessingBusinessOperation operation = businessHelper.buildOperationAtomic(BusinessOperationType.DEDICATED_APP_SERVICE_UPDATE, message, null);
-        if (operation == null) {
-            throw new ResourceIsLockedException("Сервис занят, дождитесь завершения выполняемой операции");
+        ProcessingBusinessAction action;
+        if (StringUtils.isEmpty(operationId)) {
+            action = businessHelper.buildActionAndOperation(
+                    BusinessOperationType.DEDICATED_APP_SERVICE_UPDATE,
+                    BusinessActionType.DEDICATED_APP_SERVICE_UPDATE_RC_STAFF,
+                    message,
+                    staffService.getTemplateId(),
+                    Service.class
+            ).getFirst();
+        } else {
+            action = businessHelper.buildAction(
+                    BusinessActionType.DEDICATED_APP_SERVICE_UPDATE_RC_STAFF,
+                    message,
+                    operationId,
+                    staffService.getTemplateId(),
+                    Service.class
+            );
         }
 
-        ProcessingBusinessAction action = businessHelper.buildActionByOperation(
-                BusinessActionType.DEDICATED_APP_SERVICE_UPDATE_RC_STAFF, message, operation);
-
-        history.save(account, String.format("Поступила заявка на %s выделенного сервиса с id: %s", state ? "включение" : "отключение", staffService.getId()));
+        history.save(accountId, String.format("Поступила заявка на %s выделенного сервиса с id: %s", state ? "включение" : "отключение", staffService.getId()));
 
         return action;
     }
@@ -416,9 +477,10 @@ public class DedicatedAppServiceHelper {
      * @param dedicatedAppService
      * @throws ParameterValidationException
      * @throws ResourceNotFoundException
+     * @throws ResourceIsLockedException
      */
     @Nullable
-    private ProcessingBusinessAction cancelDedicatedAppService(@NonNull PersonalAccount account, @NonNull DedicatedAppService dedicatedAppService) throws ParameterValidationException, ResourceNotFoundException {
+    private ProcessingBusinessAction cancelDedicatedAppService(@NonNull PersonalAccount account, @NonNull DedicatedAppService dedicatedAppService) throws ParameterValidationException, ResourceNotFoundException, ResourceIsLockedException {
         String serverId = getServerId(account.getId());
         if (StringUtils.isEmpty(serverId)) {
             throw new InternalApiException();
@@ -431,7 +493,7 @@ public class DedicatedAppServiceHelper {
         if (staffServices.size() > 0) {
             Service staffService = staffServices.get(0);
             assertServiceIsnotUser(account.getId(), staffService.getId());
-            action = switchStaffService(account,  staffService, false);
+            action = switchStaffService(account.getId(),  staffService, false, null);
         } else {
             assertLockedResource(account.getId(), null, dedicatedAppService.getTemplateId(), null);
             history.save(account, "Поступила заявка на отключение выделенного сервиса. Сервисов не найдено, удалена услуга");
@@ -456,8 +518,7 @@ public class DedicatedAppServiceHelper {
         try {
             unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
         } catch (RuntimeException ex) {
-            ex.printStackTrace();
-            logger.error("Got exception when attempt get unix-account for account: " + accountId);
+            logger.error("Got exception when attempt get unix-account for account: " + accountId, ex);
         }
 
         if (CollectionUtils.isEmpty(unixAccounts)) {
@@ -472,9 +533,8 @@ public class DedicatedAppServiceHelper {
         try {
             Collection<UnixAccount> unixAccounts = rcUserFeignClient.getUnixAccounts(accountId);
             return CollectionUtils.isEmpty(unixAccounts) ? null : unixAccounts.iterator().next();
-        } catch (RuntimeException ex) {
-            ex.printStackTrace();
-            logger.error("Got exception when attempt get unix-account for account: " + accountId);
+        } catch (Exception ex) {
+            logger.error("An exception occurred while loading unix-accounts for accountId: " + accountId, ex);
             return null;
         }
     }

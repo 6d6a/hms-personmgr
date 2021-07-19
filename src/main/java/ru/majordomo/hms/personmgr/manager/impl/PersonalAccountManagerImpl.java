@@ -108,8 +108,11 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
         return repository.insert(accounts);
     }
 
+    /**
+     * @throws ResourceNotFoundException если аккаунта нет
+     */
     @Override
-    public PersonalAccount findOne(String id) {
+    public PersonalAccount findOne(String id) throws ResourceNotFoundException {
         checkById(id);
 
         return repository.findById(id).orElse(null);

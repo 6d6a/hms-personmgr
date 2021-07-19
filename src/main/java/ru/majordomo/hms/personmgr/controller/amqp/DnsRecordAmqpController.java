@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.UserConstants;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DNS_RECORD_CREATE;
@@ -17,7 +18,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.DNS_RECORD_U
 @Service
 public class DnsRecordAmqpController extends CommonAmqpController {
     public DnsRecordAmqpController() {
-        resourceName = "днс-запись";
+        resourceName = UserConstants.DNS_RECORD;
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + DNS_RECORD_CREATE)

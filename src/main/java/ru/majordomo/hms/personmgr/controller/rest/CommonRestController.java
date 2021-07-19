@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import java.util.List;
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.exception.ParameterWithRoleSecurityException;
@@ -109,9 +110,9 @@ public class CommonRestController {
         return message;
     }
 
-    protected SimpleServiceMessage createSuccessResponse(ProcessingBusinessOperation businessOperation) {
+    protected SimpleServiceMessage createBusinessOperationResponse(ProcessingBusinessOperation businessOperation) {
         SimpleServiceMessage message = createResponse();
-        message = fillStatus(message, true);
+        message = fillStatus(message, businessOperation.getState() != State.ERROR);
         message = fillFromBusinessOperation(message, businessOperation);
 
         return message;

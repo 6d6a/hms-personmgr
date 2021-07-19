@@ -4,11 +4,17 @@ import com.fasterxml.jackson.annotation.JsonView;
 
 import org.springframework.data.mongodb.core.index.Indexed;
 
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Objects;
+import java.util.Set;
 
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.Views;
 import ru.majordomo.hms.personmgr.model.BaseModel;
+
+import static ru.majordomo.hms.personmgr.common.State.NEED_TO_PROCESS;
+import static ru.majordomo.hms.personmgr.common.State.PROCESSING;
 
 /**
  * Step
@@ -79,4 +85,10 @@ public abstract class Step extends BaseModel implements Comparable<Step> {
                 ", priority=" + priority +
                 "} " + super.toString();
     }
+
+    /** Операции которые сейчас выполняются */
+    public final static Set<State> ACTIVE_STATES = Collections.unmodifiableSet(EnumSet.of(
+            NEED_TO_PROCESS,
+            PROCESSING
+    ));
 }

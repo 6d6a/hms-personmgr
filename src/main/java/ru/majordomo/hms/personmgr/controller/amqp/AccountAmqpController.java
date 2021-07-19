@@ -67,7 +67,7 @@ public class AccountAmqpController extends CommonAmqpController {
         String realProviderName = provider.replaceAll("^" + instanceName + "\\.", "");
 
         try {
-            State state = businessFlowDirector.processMessage(message);
+            State state = businessFlowDirector.processMessage(message, resourceName);
 
             ProcessingBusinessOperation businessOperation =
                     processingBusinessOperationRepository
@@ -153,7 +153,7 @@ public class AccountAmqpController extends CommonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received update message from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        State state = businessFlowDirector.processMessage(message, resourceName);
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + ACCOUNT_DELETE)
@@ -161,6 +161,6 @@ public class AccountAmqpController extends CommonAmqpController {
         String provider = headers.get("provider");
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
-        State state = businessFlowDirector.processMessage(message);
+        State state = businessFlowDirector.processMessage(message, resourceName);
     }
 }

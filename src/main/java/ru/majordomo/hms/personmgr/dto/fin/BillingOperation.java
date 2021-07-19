@@ -32,6 +32,11 @@ public class BillingOperation extends BaseModel {
 
     private BigDecimal amount;
     private BigDecimal available;
+    /**
+     * Номер платежного документа у платежа и списания в finansier.BillingOperation.documentNumber
+     * Уникальный для платежа.
+     * У 2х может быть один и тот же номер документа если большое списание было разбито на несколько платежей
+     */
     private String documentNumber;
     private String duplicateDocumentNumber;
     private String comment;

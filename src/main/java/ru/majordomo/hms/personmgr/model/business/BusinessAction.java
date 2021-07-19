@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.model.business;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -11,12 +13,21 @@ import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.common.message.destination.GenericMessageDestination;
 
+import javax.annotation.Nullable;
+
 /**
  * BusinessAction
+ *
+ * Параметры для {@link ProcessingBusinessAction} которые нужно извлечь из бд по {@link BusinessAction#businessActionType}
  */
+@Getter
+@Setter
 @Document
 public class BusinessAction extends Step {
+
+    /** {@link ProcessingBusinessOperation#getId()} */
     @Indexed
+    @Nullable
     private String operationId;
 
     @Indexed
@@ -29,7 +40,7 @@ public class BusinessAction extends Step {
     }
 
     @PersistenceConstructor
-    public BusinessAction(String id, String name, State state, int priority, String operationId, BusinessActionType businessActionType, GenericMessageDestination destination, SimpleServiceMessage message) {
+    public BusinessAction(String id, String name, State state, int priority, @Nullable String operationId, BusinessActionType businessActionType, GenericMessageDestination destination, SimpleServiceMessage message) {
         super();
         this.setId(id);
         this.setName(name);
@@ -38,38 +49,6 @@ public class BusinessAction extends Step {
         this.operationId = operationId;
         this.businessActionType = businessActionType;
         this.destination = destination;
-        this.message = message;
-    }
-
-    public String getOperationId() {
-        return operationId;
-    }
-
-    public void setOperationId(String operationId) {
-        this.operationId = operationId;
-    }
-
-    public BusinessActionType getBusinessActionType() {
-        return businessActionType;
-    }
-
-    public void setBusinessActionType(BusinessActionType businessActionType) {
-        this.businessActionType = businessActionType;
-    }
-
-    public GenericMessageDestination getDestination() {
-        return destination;
-    }
-
-    public void setDestination(GenericMessageDestination destination) {
-        this.destination = destination;
-    }
-
-    public SimpleServiceMessage getMessage() {
-        return message;
-    }
-
-    public void setMessage(SimpleServiceMessage message) {
         this.message = message;
     }
 

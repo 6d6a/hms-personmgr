@@ -25,10 +25,7 @@ import ru.majordomo.hms.personmgr.repository.ServicePlanRepository;
 import ru.majordomo.hms.rc.user.resources.ResourceArchive;
 import ru.majordomo.hms.rc.user.resources.ResourceArchiveType;
 
-import static ru.majordomo.hms.personmgr.common.Constants.ARCHIVED_RESOURCE_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.LONG_LIFE;
-import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_ID_KEY;
-import static ru.majordomo.hms.personmgr.common.Constants.RESOURCE_TYPE;
+import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 @Service
 public class ResourceArchiveService {
@@ -147,7 +144,7 @@ public class ResourceArchiveService {
             message.setAccountId(resourceArchive.getAccountId());
             message.addParam(RESOURCE_ID_KEY, resourceArchive.getId());
             message.addParam("switchedOn", false);
-            message.addParam("willBeDeletedAfter", resourceArchive.getCreatedAt().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            message.addParam(WILL_BE_DELETED_AFTER_KEY, resourceArchive.getCreatedAt().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 
             businessHelper.buildActionAndOperation(
                     BusinessOperationType.RESOURCE_ARCHIVE_UPDATE,
@@ -162,7 +159,7 @@ public class ResourceArchiveService {
             message.addParam(RESOURCE_ID_KEY, resourceArchive.getId());
             message.addParam(LONG_LIFE, true);
             message.addParam("switchedOn", false);
-            message.addParam("willBeDeletedAfter", LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            message.addParam(WILL_BE_DELETED_AFTER_KEY, LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 
             businessHelper.buildActionAndOperation(
                     BusinessOperationType.RESOURCE_ARCHIVE_UPDATE,

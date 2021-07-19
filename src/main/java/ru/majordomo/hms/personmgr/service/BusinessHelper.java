@@ -7,27 +7,34 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 
 import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
+import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.State;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.event.processingBusinessAction.ProcessingBusinessActionNewEvent;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
+import ru.majordomo.hms.personmgr.exception.ResourceIsLockedException;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.personmgr.model.business.BusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
+import ru.majordomo.hms.personmgr.model.business.Step;
 import ru.majordomo.hms.personmgr.repository.BusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -38,6 +45,7 @@ import static ru.majordomo.hms.personmgr.common.State.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ParametersAreNonnullByDefault
 public class BusinessHelper {
 
     private final ProcessingBusinessOperationRepository operationRepository;
@@ -45,11 +53,6 @@ public class BusinessHelper {
     private final ProcessingBusinessActionRepository processingBusinessActionRepository;
     private final ApplicationEventPublisher publisher;
     private final MongoOperations mongoOperations;
-
-    private final static Set<State> ACTIVE_STATES = Collections.unmodifiableSet(EnumSet.of(
-            NEED_TO_PROCESS,
-            PROCESSING
-    ));
 
     @Nullable
     public <T extends Enum<T>> T getStage(String operationId, Class<T> enumType) {
@@ -63,7 +66,7 @@ public class BusinessHelper {
     @Nullable
     public <T extends Enum<T>> T getStage(ProcessingBusinessOperation operation, Class<T> enumType) {
         try {
-            return Enum.valueOf(enumType, (String) operation.getParam("stage"));
+            return Enum.valueOf(enumType, (String) operation.getParam(Constants.STAGE_KEY));
         } catch (NullPointerException | ClassCastException | IllegalArgumentException ignore) {
             return null;
         }
@@ -72,7 +75,7 @@ public class BusinessHelper {
     public <T extends Enum<T>> boolean setStage(String operationId, Enum<T> stage) {
         UpdateResult updateResult = mongoOperations.updateFirst(
                 Query.query(new Criteria("_id").is(operationId)),
-                Update.update("updatedDate", LocalDateTime.now()).set("params.stage", stage),
+                Update.update("updatedDate", LocalDateTime.now()).set("params." + Constants.STAGE_KEY, stage),
                 ProcessingBusinessOperation.class
         );
         boolean result = updateResult.getModifiedCount() == 1;
@@ -81,8 +84,12 @@ public class BusinessHelper {
     }
 
     @Nullable
-    public ProcessingBusinessOperation findOperation(String operationId) {
-        return operationRepository.findById(operationId).orElse(null);
+    public ProcessingBusinessOperation findOperation(@Nullable String operationId) {
+        return operationId == null ? null : operationRepository.findById(operationId).orElse(null);
+    }
+
+    public Optional<ProcessingBusinessOperation> findOperationOptional(@Nullable String operationId) {
+        return operationId == null ? Optional.empty() : operationRepository.findById(operationId);
     }
 
     /**
@@ -94,8 +101,9 @@ public class BusinessHelper {
      */
     public <T extends Enum<T>> boolean setStage(String operationId, Enum<T> stage, Enum<T> needStage) {
         UpdateResult updateResult = mongoOperations.updateFirst(
-                Query.query(Criteria.where("_id").is(operationId).and("state").is(PROCESSING).and("params.stage").is(needStage)),
-                Update.update("updatedDate", LocalDateTime.now()).set("params.stage", stage),
+                Query.query(Criteria.where("_id").is(operationId).and("state").is(PROCESSING)
+                        .and("params." + Constants.STAGE_KEY).is(needStage)),
+                Update.update("updatedDate", LocalDateTime.now()).set("params." + Constants.STAGE_KEY, stage),
                 ProcessingBusinessOperation.class
         );
         boolean result = updateResult.getModifiedCount() == 1;
@@ -103,27 +111,49 @@ public class BusinessHelper {
         return result;
     }
 
-    public void setErrorStatus(ProcessingBusinessOperation operation, String errorMessage) {
-        operation.setState(ERROR);
-        operation.addPublicParam("message", errorMessage);
-        operation.setUpdatedDate(LocalDateTime.now());
-        operationRepository.save(operation);
+    public void setErrorStatus(@Nullable String operationId, String errorMessage) {
+        ProcessingBusinessOperation operation = operationId == null ? null : operationRepository.findById(operationId).orElse(null);
+        if (operation != null) {
+            operation.setState(ERROR);
+            operation.addPublicParam(Constants.MESSAGE_KEY, errorMessage);
+            operation.setUpdatedDate(LocalDateTime.now());
+            operationRepository.save(operation);
+        } else {
+            log.error(String.format("Cannot set error status a ProcessingBusinessOperation with id: %s because it not exists. Error message: %s", operationId, errorMessage));
+        }
     }
 
-    public void setErrorStatus(String operationId, String errorMessage) {
-        operationRepository.findById(operationId).ifPresent(operation -> setErrorStatus(operation, errorMessage));
+    /**
+     * @param operationId {@link ProcessingBusinessOperation#getId()}
+     * @param stage {@link Constants#STAGE_KEY }, null менять
+     */
+    public <T extends Enum<T>> void setSuccessCompletedStatus(@Nonnull String operationId, @Nullable Enum<T> stage) {
+        ProcessingBusinessOperation operation = operationRepository.findById(operationId).orElse(null);
+        if (operation != null) {
+            operation.setUpdatedDate(LocalDateTime.now());
+            operation.setState(State.PROCESSED);
+            if (stage != null) {
+                operation.addParam(STAGE_KEY, stage);
+            }
+            operationRepository.save(operation);
+        } else {
+            log.error(String.format("Cannot finished a ProcessingBusinessOperation with id: %s because it not exists", operationId));
+        }
     }
 
-    public boolean addWarning(String operationId, String warning) {
-        if (StringUtils.isEmpty(operationId) || StringUtils.isEmpty(warning)) {
+    /**
+     * @return false если ничего не модифицировано
+     */
+    public boolean addWarning(@Nullable String operationId, @Nullable String warningMessage) {
+        if (StringUtils.isEmpty(operationId) || StringUtils.isEmpty(warningMessage)) {
             return false;
         }
 
-        UpdateResult result = mongoOperations.updateFirst(Query.query(new Criteria("_id").is(operationId)), Update.update("updatedDate", LocalDateTime.now()).push("publicParams.warnings", warning), ProcessingBusinessOperation.class);
+        UpdateResult result = mongoOperations.updateFirst(Query.query(new Criteria("_id").is(operationId)), Update.update("updatedDate", LocalDateTime.now()).push("publicParams.warnings", warningMessage), ProcessingBusinessOperation.class);
         return result.getModifiedCount() == 1;
     }
 
-    public boolean setParam(String operationId, String paramName, Object value) {
+    public boolean setParam(@Nullable String operationId, @Nullable String paramName, Object value) {
         if (StringUtils.isEmpty(operationId) || StringUtils.isEmpty(paramName)) {
             return false;
         }
@@ -131,6 +161,14 @@ public class BusinessHelper {
         return result.getModifiedCount() == 1;
     }
 
+    /**
+     * Атомарное на уровне mongodb создание ProcessingBusinessOperation, позволит избежать выполнения одних и тех же заданий несколько раз,
+     * даже если задания отправятся в разные экземпляры personmgr
+     * @param type - тип операции
+     * @param message - сообщение из которого создается операция.
+     * @return - null если уже есть выполняемая операция или объект ProcessingBusinessOperation
+     * @throws NotImplementedException - если указанный BusinessOperationType не поддерживается
+     */
     @Nullable
     public ProcessingBusinessOperation buildOperationAtomic(BusinessOperationType type, SimpleServiceMessage message) throws NotImplementedException {
         return buildOperationAtomic(type, message, null);
@@ -147,7 +185,7 @@ public class BusinessHelper {
      */
     @Nullable
     public ProcessingBusinessOperation buildOperationAtomic(BusinessOperationType type, SimpleServiceMessage message, @Nullable Map<String, Object> publicParams) throws NotImplementedException {
-        Criteria criteria = new Criteria("state").in(ACTIVE_STATES)
+        Criteria criteria = new Criteria("state").in(Step.ACTIVE_STATES)
                 .and("personalAccountId").is(message.getAccountId());
         switch (type) {
             case DEDICATED_APP_SERVICE_CREATE:
@@ -188,10 +226,30 @@ public class BusinessHelper {
             BusinessOperationType operationType,
             BusinessActionType actionType,
             SimpleServiceMessage message
-    ) {
-        ProcessingBusinessOperation processingBusinessOperation = buildOperation(operationType, message);
+    ) throws ResourceNotFoundException {
+        return buildActionAndOperation(operationType, actionType, message, null, null).getFirst();
+    }
 
-        return buildActionByOperation(actionType, message, processingBusinessOperation);
+    public Pair<ProcessingBusinessAction, ProcessingBusinessOperation> buildActionAndOperation(
+            BusinessOperationType operationType,
+            BusinessActionType actionType,
+            SimpleServiceMessage message,
+            @Nullable String keyDenySame,
+            @Nullable Class<?> resourceDenySame
+    ) throws ResourceNotFoundException, ResourceIsLockedException {
+        ProcessingBusinessOperation operation = null;
+        try {
+            operation = buildOperation(operationType, message);
+            return Pair.of(
+                    buildAction(actionType, message, operation.getId(), keyDenySame, resourceDenySame),
+                    operation
+            );
+        } catch (ResourceIsLockedException e) {
+            if (operation != null) {
+                operationRepository.delete(operation);
+            }
+            throw e;
+        }
     }
 
     public ProcessingBusinessOperation buildOperation(BusinessOperationType operationType, SimpleServiceMessage message, @Nullable Map<String, Object> publicParam) {
@@ -221,10 +279,35 @@ public class BusinessHelper {
         return buildOperation(operationType, message, null);
     }
 
+    /**
+     * Создает ProcessingBusinessAction в бд устанавливает статусы и асинхронно отправляет сообщение в rabbit
+     * @param message свойства создаваемой операции и отправляемое сообщение
+     *                {@code message.addParam(PM_PARAM_PREFIX_KEY + DELAY_MESSAGE_KEY, true) } добавит задержку
+     *                10 секунд перед отправкой в rabbit
+     * @throws ResourceNotFoundException если в бд нет BusinessAction для businessActionType
+     */
     public ProcessingBusinessAction buildAction(
             BusinessActionType businessActionType,
             SimpleServiceMessage message
-    ) {
+    ) throws ResourceNotFoundException {
+        return buildAction(businessActionType, message, null, null, null);
+    }
+
+    /**
+     * Создает ProcessingBusinessAction в бд устанавливает статусы и асинхронно отправляет сообщение в rabbit
+     * @param message свойства создаваемой операции и отправляемое сообщение
+     *                {@code message.addParam(PM_PARAM_PREFIX_KEY + DELAY_MESSAGE_KEY, true) } добавит задержку
+     *                10 секунд перед отправкой в rabbit
+     * todo
+     * @throws ResourceNotFoundException если в бд нет BusinessAction для businessActionType
+     */
+    public ProcessingBusinessAction buildAction(
+            BusinessActionType businessActionType,
+            SimpleServiceMessage message,
+            @Nullable String operationId,
+            @Nullable String keyDenySame,
+            @Nullable Class<?> resourceDenySame
+    ) throws ResourceNotFoundException, ResourceIsLockedException {
         BusinessAction businessAction = businessActionRepository.findByBusinessActionType(businessActionType);
 
         if (businessAction == null) {
@@ -234,12 +317,20 @@ public class BusinessHelper {
         ProcessingBusinessAction processingBusinessAction = new ProcessingBusinessAction(businessAction);
 
         processingBusinessAction.setMessage(message);
-        processingBusinessAction.setOperationId(message.getOperationIdentity());
+        processingBusinessAction.setOperationId(StringUtils.isEmpty(operationId) ? message.getOperationIdentity() : operationId);
         processingBusinessAction.setParams(message.getParams());
         processingBusinessAction.setState(NEED_TO_PROCESS);
         processingBusinessAction.setPersonalAccountId(message.getAccountId());
+        processingBusinessAction.setKeyDenySame(keyDenySame);
+        if (resourceDenySame != null) {
+            processingBusinessAction.setResourceDenySame(resourceDenySame);
+        }
 
-        processingBusinessActionRepository.save(processingBusinessAction);
+        try {
+            processingBusinessActionRepository.save(processingBusinessAction);
+        } catch (DuplicateKeyException e) {
+            throw new ResourceIsLockedException("Ресурс занят"); //todo
+        }
 
         publisher.publishEvent(new ProcessingBusinessActionNewEvent(processingBusinessAction));
 
@@ -251,9 +342,10 @@ public class BusinessHelper {
             SimpleServiceMessage message,
             ProcessingBusinessOperation operation
     ) {
-        return buildActionByOperationId(businessActionType, message, operation.getId());
+        return buildAction(businessActionType, message, operation.getId(), null, null);
     }
 
+    @Deprecated
     public ProcessingBusinessAction buildActionByOperationId(
             BusinessActionType businessActionType,
             SimpleServiceMessage message,
@@ -268,7 +360,7 @@ public class BusinessHelper {
     }
 
     public boolean existsActiveActions(String operationId) {
-        return processingBusinessActionRepository.existsByOperationIdAndStateIn(operationId, ACTIVE_STATES);
+        return processingBusinessActionRepository.existsByOperationIdAndStateIn(operationId, Step.ACTIVE_STATES);
     }
 
     public boolean existsActiveOperations(String personalAccountId, BusinessOperationType type, SimpleServiceMessage message) {
@@ -358,9 +450,9 @@ public class BusinessHelper {
 
         List<ProcessingBusinessOperation> operations;
         if (lowBorderOfTime == null) {
-            operations = operationRepository.findAllByPersonalAccountIdAndTypeAndStateIn(personalAccountId, type, ACTIVE_STATES);
+            operations = operationRepository.findAllByPersonalAccountIdAndTypeAndStateIn(personalAccountId, type, Step.ACTIVE_STATES);
         } else {
-            operations = operationRepository.findAllByPersonalAccountIdAndTypeAndStateInAndCreatedDateGreaterThanEqual(personalAccountId, type, ACTIVE_STATES, lowBorderOfTime);
+            operations = operationRepository.findAllByPersonalAccountIdAndTypeAndStateInAndCreatedDateGreaterThanEqual(personalAccountId, type, Step.ACTIVE_STATES, lowBorderOfTime);
         }
 
         return operations

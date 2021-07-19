@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.UserConstants;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.SSL_CERTIFICATE_CREATE;
@@ -17,7 +18,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.SSL_CERTIFIC
 @Service
 public class SslCertificateAmqpController extends CommonAmqpController {
     public SslCertificateAmqpController() {
-        resourceName = "SSL-сертификат";
+        resourceName = UserConstants.SSL_CERTIFICATE;
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + SSL_CERTIFICATE_CREATE)

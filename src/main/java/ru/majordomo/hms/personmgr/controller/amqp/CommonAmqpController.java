@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.amqp;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,12 +21,14 @@ import ru.majordomo.hms.personmgr.importing.DBImportService;
 import ru.majordomo.hms.personmgr.manager.AccountHistoryManager;
 import ru.majordomo.hms.personmgr.manager.PersonalAccountManager;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessActionRepository;
 import ru.majordomo.hms.personmgr.repository.ProcessingBusinessOperationRepository;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.rc.user.resources.ResourceArchiveType;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import static ru.majordomo.hms.personmgr.common.Constants.APPSCAT_ROUTING_KEY;
@@ -51,25 +55,25 @@ public class CommonAmqpController {
     private FtpUserService ftpUserService;
     protected AccountHistoryManager history;
     private ResourceArchiveService resourceArchiveService;
+
+    @Setter
+    @Autowired
     private DedicatedAppServiceHelper dedicatedAppServiceHelper;
 
+    @Setter
+    @Autowired
+    private ResourceHelper resourceHelper;
 
+    @Setter
     @Nullable
+    @Autowired(required = false)
     private DBImportService dbImportService;
 
-    @Autowired
-    public void setDbImportService(@Nullable DBImportService dbImportService) {
-        this.dbImportService = dbImportService;
-    }
-
+    @Getter
     protected String resourceName = "";
 
     protected String instanceName;
 
-    @Autowired
-    public void setDedicatedAppServiceHelper(DedicatedAppServiceHelper dedicatedAppServiceHelper) {
-        this.dedicatedAppServiceHelper = dedicatedAppServiceHelper;
-    }
 
     @Autowired
     public void setAccountHistoryService(AccountHistoryManager history) {
@@ -159,7 +163,7 @@ public class CommonAmqpController {
         logger.debug("Received create message from " + provider + ": " + message.toString());
 
         try {
-            State state = businessFlowDirector.processMessage(message);
+            State state = businessFlowDirector.processMessage(message, resourceName);
 
             processEventsByMessageStateForCreate(message, state);
             saveAccountHistoryByMessageStateForCreate(message, state);
@@ -174,12 +178,67 @@ public class CommonAmqpController {
         handleUpdateEventFromRc(message, headers);
     }
 
+    /**
+     * Обработка сообщений об обновлении для всех ресурсов
+     * @param message payload сообщения из rabbit от rc-user.
+     *                основное в message.getParams(): {@code {success: boolean, errorMessage?: string, exceptionClass?: string} }
+     *
+     * Например ошибка на стороне rc-user для домена:
+     * <code>
+     * {
+     *   "operationIdentity": "60e83771f0dffd1711c90b0a",
+     *   "actionIdentity": "60e837d1f0dffd1711c90b1a",
+     *   "accountId": "189986",
+     *   "objRef": null,
+     *   "params": {
+     *     "success": false,
+     *     "errorMessage": "Обработка ресурса не удалась: Ресурс в процессе обновления",
+     *     "originalParams": {},
+     *     "exceptionClass": "ParameterValidationException",
+     *     "errors": [
+     *       {
+     *         "property": "domain",
+     *         "errors": [
+     *           "Ресурс в процессе обновления"
+     *         ]
+     *       }
+     *     ]
+     *   }
+     * }
+     * </code>
+     *
+     * Например ошибка на стороне te для пользователя баз данных:
+     * <code>
+     * {
+     *   "operationIdentity": "60e83a9cf0dffd1711c90c1f",
+     *   "actionIdentity": "60e83a9ff0dffd1711c90c59",
+     *   "accountId": "189986",
+     *   "objRef": "http://rc-user/database-user/5ef0d1dbf5ffb3000169bb0e",
+     *   "params": {
+     *     "ovsId": "60e83aa6f0dffd150a55817b",
+     *     "success": false,
+     *     "name": "u189986_raot",
+     *     "errorMessage": "We got randomly generated error from teremock",
+     *     "originalParams": {},
+     *     "ovs": {
+     *       "id": "60e83aa6f0dffd150a55817b",
+     *       "resourceId": "5ef0d1dbf5ffb3000169bb0e",
+     *       "resource": {},
+     *       "affectedResources": [],
+     *       "requiredResources": [],
+     *       "replace": false
+     *     }
+     *   }
+     * }
+     * </code>
+     * @param headers заголовки rabbit
+     */
     void handleUpdateEventFromRc(SimpleServiceMessage message, Map<String, String> headers) {
         String provider = headers.get("provider");
         logger.debug("Received update message from " + provider + ": " + message.toString());
 
         try {
-            State state = businessFlowDirector.processMessage(message);
+            State state = businessFlowDirector.processMessage(message, resourceName);
 
             processEventsByMessageStateForUpdate(message, state);
             saveAccountHistoryByMessageStateForUpdate(message, state);
@@ -195,7 +254,7 @@ public class CommonAmqpController {
         logger.debug("Received delete message from " + provider + ": " + message.toString());
 
         try {
-            State state = businessFlowDirector.processMessage(message);
+            State state = businessFlowDirector.processMessage(message, resourceName);
 
             processEventsByMessageStateForDelete(message, state);
             saveAccountHistoryByMessageStateForDelete(message, state);
@@ -337,7 +396,7 @@ public class CommonAmqpController {
                     case DEDICATED_APP_SERVICE_CREATE_RC_STAFF:
                         processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
                             String resourceId = getResourceIdByObjRef(message.getObjRef());
-                            dedicatedAppServiceHelper.finishCreateOperation(operation, resourceId);
+                            dedicatedAppServiceHelper.processAmqpEventCreateRcStaffFinish(operation, resourceId);
                         });
                         break;
                     case WEB_SITE_CREATE_RC:
@@ -364,104 +423,146 @@ public class CommonAmqpController {
         }
     }
 
-    private void processEventsByMessageStateForUpdate(SimpleServiceMessage message, State state) {
+    private void processEventsByMessageStateForUpdate(@Nonnull SimpleServiceMessage message, @Nonnull State state) {
         if (message.getOperationIdentity() == null) { return; }
 
-        processingBusinessActionRepository.findById(message.getActionIdentity())
-                .ifPresent(action -> {
+        ProcessingBusinessAction action = message.getActionIdentity() == null ? null :
+                processingBusinessActionRepository.findById(message.getActionIdentity()).orElse(null);
+        if (action == null) { return; }
 
-            switch (action.getBusinessActionType()) {
-                case UNIX_ACCOUNT_UPDATE_RC:
-                case DATABASE_USER_UPDATE_RC:
-                case DATABASE_UPDATE_RC:
-                    processingBusinessOperationRepository.findById(message.getOperationIdentity())
-                            .ifPresent(operation -> {
-                                if (operation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
-                                    if (state.equals(State.PROCESSED)) {
-                                        accountTransferService.checkOperationAfterUnixAccountAndDatabaseUpdate(operation);
-                                    } else if (state.equals(State.ERROR)) {
-                                        operation.setState(State.ERROR);
-                                        processingBusinessOperationRepository.save(operation);
+        switch (action.getBusinessActionType()) {
+            case UNIX_ACCOUNT_UPDATE_RC:
+                processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
+                    switch (operation.getType()) {
+                        case ACCOUNT_TRANSFER:
+                            accountTransferService.processEventsAmqpForUnixAccountAndDatabaseUpdate(operation, state);
+                            break;
+                        case SWITCH_ACCOUNT_RESOURCES:
+                            resourceHelper.processEventsAmqpSwitchStartStageSecondIfNeed(operation);
+                            break;
+                    }
+                });
+                break;
+            case DATABASE_UPDATE_RC:
+                processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
+                    switch (operation.getType()) {
+                        case ACCOUNT_TRANSFER:
+                            accountTransferService.processEventsAmqpForUnixAccountAndDatabaseUpdate(operation, state);
+                            break;
+                        case SWITCH_ACCOUNT_RESOURCES:
+                            resourceHelper.processEventsAmqpSwitchResourcesFinishIfNeed(operation); // Not used now!
+                            break;
+                        case APP_INSTALL:
+                            try {
+                                amqpSender.send(DATABASE_UPDATE, APPSCAT_ROUTING_KEY, message);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                    }
+                });
+                break;
+            case DATABASE_USER_UPDATE_RC:
+                processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
+                    switch (operation.getType()) {
+                        case ACCOUNT_TRANSFER:
+                            accountTransferService.processEventsAmqpForUnixAccountAndDatabaseUpdate(operation, state);
+                            break;
+                        case SWITCH_ACCOUNT_RESOURCES:
+                            resourceHelper.processEventsAmqpSwitchResourcesFinishIfNeed(operation);
+                            break;
+                    }
+                });
+                break;
+            case WEB_SITE_UPDATE_RC:
+                processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
+                    switch (operation.getType()) {
+                        case ACCOUNT_TRANSFER:
+                            if (state.equals(State.PROCESSED)) {
+                                accountTransferService.checkOperationAfterWebSiteUpdate(operation);
+                            } else if (state.equals(State.ERROR)) {
+                                operation.setState(State.ERROR);
+                                processingBusinessOperationRepository.save(operation);
 
-                                        accountTransferService.revertTransfer(operation);
+                                accountTransferService.revertTransferOnWebSitesFail(operation);
+                            }
+                            break;
+                        case APP_INSTALL:
+                            try {
+                                amqpSender.send(WEBSITE_UPDATE, APPSCAT_ROUTING_KEY, message);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            break;
+                        case WEB_SITE_UPDATE_EXTENDED_ACTION:
+                            if (State.PROCESSED.equals(state)) {
+                                ExtendedActionStage stage = businessHelper.getStage(operation, ExtendedActionStage.class);
+                                if (EnumSet.of(ExtendedActionStage.BEFORE_FULL_SHELLUPDATE, ExtendedActionStage.BEFORE_FULL_SHELL).contains(stage)) {
+                                    SimpleServiceMessage actionMessage = new SimpleServiceMessage(operation.getPersonalAccountId(), operation.getId(), null);
+                                    String newAction;
+                                    if (stage == ExtendedActionStage.BEFORE_FULL_SHELL) {
+                                        stage = ExtendedActionStage.FULL_SHELL;
+                                        newAction = ExtendedActionConstants.SHELL;
+                                    } else {
+                                        stage = ExtendedActionStage.FULL_SHELLUPDATE;
+                                        newAction = ExtendedActionConstants.SHELLUPDATE;
                                     }
-                                } else if (operation.getType() == BusinessOperationType.APP_INSTALL
-                                        && action.getBusinessActionType() == BusinessActionType.DATABASE_UPDATE_RC) {
-                                    try {
-                                        amqpSender.send(DATABASE_UPDATE, APPSCAT_ROUTING_KEY, message);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
+                                    businessHelper.setStage(operation.getId(), stage);
+                                    actionMessage.addParam(ExtendedActionConstants.EXTENDED_ACTION_KEY, newAction);
+                                    actionMessage.addParam(RESOURCE_ID_KEY, operation.getParam(RESOURCE_ID_KEY));
+                                    businessHelper.buildActionByOperation(BusinessActionType.WEB_SITE_UPDATE_RC, actionMessage, operation);
+                                } else {
+                                    operation.setState(State.PROCESSED);
+                                    processingBusinessOperationRepository.save(operation);
                                 }
-                            });
+                            } else if (State.ERROR.equals(state)){
+                                operation.setState(State.ERROR);
+                                processingBusinessOperationRepository.save(operation);
+                            }
+                            break;
+                        case SWITCH_ACCOUNT_RESOURCES:
+                            resourceHelper.processEventsAmqpSwitchResourcesFinishIfNeed(operation);
+                            break;
 
-                    break;
-                case WEB_SITE_UPDATE_RC:
-                    processingBusinessOperationRepository.findById(message.getOperationIdentity())
-                            .ifPresent(operation -> {
-                                if (operation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
-                                    if (state.equals(State.PROCESSED)) {
-                                        accountTransferService.checkOperationAfterWebSiteUpdate(operation);
-                                    } else if (state.equals(State.ERROR)) {
-                                        operation.setState(State.ERROR);
-                                        processingBusinessOperationRepository.save(operation);
-
-                                        accountTransferService.revertTransferOnWebSitesFail(operation);
-                                    }
-                                } else if (operation.getType() == BusinessOperationType.APP_INSTALL) {
-                                    try {
-                                        amqpSender.send(WEBSITE_UPDATE, APPSCAT_ROUTING_KEY, message);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                } else if (operation.getType() == BusinessOperationType.WEB_SITE_UPDATE_EXTENDED_ACTION) {
-                                    if (State.PROCESSED.equals(state)) {
-                                        ExtendedActionStage stage = businessHelper.getStage(operation, ExtendedActionStage.class);
-                                        if (EnumSet.of(ExtendedActionStage.BEFORE_FULL_SHELLUPDATE, ExtendedActionStage.BEFORE_FULL_SHELL).contains(stage)) {
-                                            SimpleServiceMessage actionMessage = new SimpleServiceMessage(operation.getPersonalAccountId(), operation.getId(), null);
-                                            String newAction;
-                                            if (stage == ExtendedActionStage.BEFORE_FULL_SHELL) {
-                                                stage = ExtendedActionStage.FULL_SHELL;
-                                                newAction = ExtendedActionConstants.SHELL;
-                                            } else {
-                                                stage = ExtendedActionStage.FULL_SHELLUPDATE;
-                                                newAction = ExtendedActionConstants.SHELLUPDATE;
-                                            }
-                                            businessHelper.setStage(operation.getId(), stage);
-                                            actionMessage.addParam(ExtendedActionConstants.EXTENDED_ACTION_KEY, newAction);
-                                            actionMessage.addParam(RESOURCE_ID_KEY, operation.getParam(RESOURCE_ID_KEY));
-                                            businessHelper.buildActionByOperation(BusinessActionType.WEB_SITE_UPDATE_RC, actionMessage, operation);
-                                        } else {
-                                            operation.setState(State.PROCESSED);
-                                            processingBusinessOperationRepository.save(operation);
-                                        }
-                                    } else if (State.ERROR.equals(state)){
-                                        operation.setState(State.ERROR);
-                                        processingBusinessOperationRepository.save(operation);
-                                    }
+                    }
+                });
+                break;
+            case DNS_RECORD_UPDATE_RC:
+                processingBusinessOperationRepository.findById(message.getOperationIdentity())
+                        .ifPresent(operation -> {
+                            if (operation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
+                                if (state.equals(State.PROCESSED)) {
+                                    accountTransferService.finishOperation(operation);
                                 }
-                            });
+                            }
+                        });
 
-                    break;
-                case DNS_RECORD_UPDATE_RC:
-                    processingBusinessOperationRepository.findById(message.getOperationIdentity())
-                            .ifPresent(operation -> {
-                                if (operation.getType() == BusinessOperationType.ACCOUNT_TRANSFER) {
-                                    if (state.equals(State.PROCESSED)) {
-                                        accountTransferService.finishOperation(operation);
-                                    }
-                                }
-                            });
-
-                    break;
-                case DEDICATED_APP_SERVICE_UPDATE_RC_STAFF:
-                    processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
-                        String resourceId = getResourceIdByObjRef(message.getObjRef());
-                        dedicatedAppServiceHelper.finishUpdateOperation(operation, resourceId);
-                    });
-                    break;
-            }
-            });
+                break;
+            case DEDICATED_APP_SERVICE_UPDATE_RC_STAFF:
+                String staffServiceId = getResourceIdByObjRef(message.getObjRef());
+                dedicatedAppServiceHelper.processAmqpEventUpdateRcStaffFinish(action, staffServiceId);
+                processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
+                    if (operation.getType() == BusinessOperationType.SWITCH_ACCOUNT_RESOURCES) {
+                        resourceHelper.processEventsAmqpSwitchResourcesFinishIfNeed(operation);
+                    }
+                });
+                break;
+            case DOMAIN_UPDATE_RC:
+                processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
+                    if (operation.getType() == BusinessOperationType.SWITCH_ACCOUNT_RESOURCES) {
+                        resourceHelper.processEventsAmqpSwitchStartStageSecondIfNeed(operation);
+                    }
+                });
+                break;
+            case MAILBOX_UPDATE_RC:
+            case REDIRECT_UPDATE_RC:
+            case FTP_USER_UPDATE_RC:
+                processingBusinessOperationRepository.findById(message.getOperationIdentity()).ifPresent(operation -> {
+                    if (operation.getType() == BusinessOperationType.SWITCH_ACCOUNT_RESOURCES) {
+                        resourceHelper.processEventsAmqpSwitchResourcesFinishIfNeed(operation);
+                    }
+                });
+                break;
+        }
     }
 
     private void processEventsByMessageStateForDelete(SimpleServiceMessage message, State state) {

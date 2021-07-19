@@ -3,6 +3,8 @@ package ru.majordomo.hms.personmgr.common;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
+import ru.majordomo.hms.rc.staff.resources.Service;
+import ru.majordomo.hms.rc.user.resources.*;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -18,6 +20,7 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 
@@ -113,6 +116,39 @@ public class Utils {
             clientIP = extractClientIpFromXForwardedFor(xForwardedFor);
         }
         return clientIP;
+    }
+
+    @Nonnull
+    public static String humanizeResourceType(@Nullable Class<?> resourceClass) {
+        if (resourceClass == null) {
+            return "";
+        } else if (resourceClass == WebSite.class) {
+            return UserConstants.WEB_SITE;
+        } else if (resourceClass == Database.class) {
+            return UserConstants.DATABASE;
+        } else if (resourceClass == SSLCertificate.class) {
+            return UserConstants.SSL_CERTIFICATE;
+        } else if (resourceClass == DatabaseUser.class) {
+            return UserConstants.DATABASE_USER;
+        } else if (resourceClass == Redirect.class) {
+            return UserConstants.REDIRECT;
+        } else if (resourceClass == ResourceArchive.class) {
+            return UserConstants.RESOURCE_ARCHIVE;
+        } else if (resourceClass == Domain.class) {
+            return UserConstants.DOMAIN;
+        } else if (resourceClass == Person.class) {
+            return UserConstants.PERSON;
+        } else if (resourceClass == UnixAccount.class) {
+            return UserConstants.UNIX_ACCOUNT;
+        } else if (resourceClass == FTPUser.class) {
+            return UserConstants.FTP_USER;
+        } else if (resourceClass == Mailbox.class) {
+            return UserConstants.MAILBOX;
+        } else if (resourceClass == Service.class) {
+            return UserConstants.DEDICATED_APP_SERVICE;
+        } else {
+            return UserConstants.UNKNOWN_RESOURCE;
+        }
     }
 
     /**

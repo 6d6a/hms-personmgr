@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
+import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -14,9 +16,15 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SimpleServiceMessage {
+    /** {@link ProcessingBusinessOperation#getId()} */
+    @Nullable
     private String operationIdentity;
+    /** {@link ProcessingBusinessAction#getId()} */
+    @Nullable
     private String actionIdentity;
     private String accountId;
+    /** например {@code "http://rc-user/domain/5f43b4515239b800010ec6a6" } */
+    @Nullable
     private String objRef;
     private Map<String, Object> params = new HashMap<>();
 

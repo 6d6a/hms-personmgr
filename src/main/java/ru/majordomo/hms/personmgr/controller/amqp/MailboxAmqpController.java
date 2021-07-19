@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.UserConstants;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.MAILBOX_CREATE;
@@ -17,7 +18,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.MAILBOX_UPDA
 @Service
 public class MailboxAmqpController extends CommonAmqpController {
     public MailboxAmqpController() {
-        resourceName = "почтовый ящик";
+        resourceName = UserConstants.MAILBOX;
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + MAILBOX_CREATE)

@@ -39,6 +39,9 @@ public interface RcUserFeignClient {
     @GetMapping(value = "/{accountId}/unix-account")
     Collection<UnixAccount> getUnixAccounts(@PathVariable("accountId") String accountId);
 
+    @GetMapping(value = "/{accountId}/unix-account")
+    List<UnixAccount> getUnixAccountList(@PathVariable("accountId") String accountId);
+
     @GetMapping(value = "/{accountId}/database")
     Collection<Database> getDatabases(@PathVariable("accountId") String accountId);
 
@@ -53,6 +56,9 @@ public interface RcUserFeignClient {
 
     @GetMapping(value = "/{accountId}/mailbox")
     Collection<Mailbox> getMailboxes(@PathVariable("accountId") String accountId);
+
+    @GetMapping(value = "/{accountId}/mailbox")
+    List<Mailbox> getMailboxList(@PathVariable("accountId") String accountId);
 
     @GetMapping(value = "/{accountId}/website/{webSiteId}", consumes = "application/json")
     WebSite getWebSite(@PathVariable("accountId") String accountId, @PathVariable("webSiteId") String webSiteId);

@@ -180,6 +180,7 @@ public class AccountServiceRestController extends CommonRestController {
         processCustomService(account, plan.getService(), enabled);
 
         if (!(accountPlan.isDatabaseAllowed() || accountPlan.isDatabaseUserAllowed()) && feature == Feature.ALLOW_USE_DATABASES && enabled) {
+            // todo use ProcessingBusinessOperation
             resourceHelper.switchDatabases(account, true);
             resourceHelper.switchDatabaseUsers(account, true);
         }

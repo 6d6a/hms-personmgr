@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,6 +59,25 @@ public class AccountAbonement extends VersionedModelBelongsToPersonalAccount {
     private Abonement abonement;
 
     private List<AbonementBuyInfo> abonementBuyInfos = new ArrayList<>();
+
+    /**
+     * пытается посчитать expired так как у некоторых объектов его нет, на основе abonement.period и created
+     * @return дату или null если нет установлен abonement или неверный
+     */
+    @Nullable
+    public LocalDateTime getExpiredSafe() {
+        if (expired != null) {
+            return expired;
+        } else if (abonement == null) {
+            return null;
+        }
+        try {
+            Period period = Period.parse(abonement.getPeriod());
+            return created.plus(period);
+        } catch (DateTimeParseException | NullPointerException ignore) {
+            return null;
+        }
+    }
 
     /**
      * Конструктор инициализирует все поля класса

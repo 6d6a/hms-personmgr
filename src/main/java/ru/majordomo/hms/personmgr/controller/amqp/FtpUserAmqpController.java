@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
+import ru.majordomo.hms.personmgr.common.UserConstants;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 
 import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.FTP_USER_CREATE;
@@ -17,7 +18,7 @@ import static ru.majordomo.hms.personmgr.common.Constants.Exchanges.FTP_USER_UPD
 @Service
 public class FtpUserAmqpController extends CommonAmqpController {
     public FtpUserAmqpController() {
-        resourceName = "FTP-пользователь";
+        resourceName = UserConstants.FTP_USER;
     }
 
     @RabbitListener(queues = "${hms.instance.name}" + "." + "${spring.application.name}" + "." + FTP_USER_CREATE)
