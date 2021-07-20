@@ -25,6 +25,7 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessOperation;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.rc.user.resources.*;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.time.LocalDateTime;
@@ -639,6 +640,35 @@ public class ResourceHelper {
         } catch (Exception e) {
             log.error("account Database [" + database.getName() + "] writable switch failed for accountId: " + account.getId());
             e.printStackTrace();
+        }
+    }
+
+    public void processEventsAmqpCreateDomainAndChangeWebsite(
+            @Nonnull SimpleServiceMessage rcUserMessage,
+            @Nonnull ProcessingBusinessOperation operation,
+            @Nullable String domainId
+    ) {
+        String webSiteName = null;
+        String webSiteId = null;
+        try {
+            webSiteId = MapUtils.getString(operation.getParams(), Constants.WEB_SITE_ID_KEY);
+            Assert.hasLength(domainId, "domainId must not be empty");
+            Assert.hasLength(webSiteId, "webSiteId must not be empty");
+            Assert.notNull(operation.getPersonalAccountId(), "personalAccountId must not be empty");
+            WebSite webSite = rcUserFeignClient.getWebSite(operation.getPersonalAccountId(), webSiteId);
+            Assert.notNull(webSite, "Cannot get website id: " + webSiteId);
+            webSiteName = webSite.getName();
+            Set<String> domainIds = new HashSet<>(webSite.getDomainIds());
+            domainIds.add(domainId);
+            SimpleServiceMessage message = new SimpleServiceMessage();
+            message.addParam(Constants.DOMAIN_IDS_KEY, domainIds);
+            message.addParam(Constants.RESOURCE_ID_KEY, webSiteId);
+            message.setAccountId(operation.getPersonalAccountId());
+            ProcessingBusinessAction action = businessHelper.buildActionByOperation(BusinessActionType.WEB_SITE_UPDATE_RC, message, operation);
+            log.debug("Sent web-site update operation after create domain. Account id: {}, operation id: {}, domain id: {}, web-site id: {}, action id: {}", operation.getPersonalAccountId(), operation.getId(), domainId, webSiteId, action.getId());
+        } catch (Exception e) {
+            log.error(String.format("An exception was thrown while creating a domain %s and changing a web-site %s. Account id: %s, operation id: %s", domainId, webSiteId, operation.getPersonalAccountId(), operation.getId()), e);
+            businessHelper.setErrorStatus(operation.getId(), String.format("Не удалось изменить веб-сайт '%s' из-за внутренней ошибки сервиса", webSiteName));
         }
     }
 }

@@ -27,6 +27,7 @@ public enum BusinessOperationType {
     DOMAIN_CREATE,
     DOMAIN_UPDATE,
     DOMAIN_DELETE,
+    DOMAIN_CREATE_CHANGE_WEBSITE,
     SSL_CERTIFICATE_CREATE,
     SSL_CERTIFICATE_UPDATE,
     SSL_CERTIFICATE_DELETE,
@@ -112,5 +113,6 @@ public enum BusinessOperationType {
         BUSINESS_OPERATION_TYPE2HUMAN.put(DEDICATED_APP_SERVICE_DELETE, "Удаление выделенного сервиса");
         BUSINESS_OPERATION_TYPE2HUMAN.put(IMPORT_FROM_BILLINGDB, "Перенос аккаунта из старой контрольной панели");
         BUSINESS_OPERATION_TYPE2HUMAN.put(SWITCH_ACCOUNT_RESOURCES, "Переключение ресурсов аккаунта");
+        BUSINESS_OPERATION_TYPE2HUMAN.put(DOMAIN_CREATE_CHANGE_WEBSITE, "Создание домена и изменение сайта");
     }
 }

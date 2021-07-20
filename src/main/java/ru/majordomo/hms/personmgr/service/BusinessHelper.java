@@ -222,6 +222,7 @@ public class BusinessHelper {
         return updateResult.getUpsertedId() == null ? null : mongoOperations.findById(updateResult.getUpsertedId(), ProcessingBusinessOperation.class);
     }
 
+    @Nonnull
     public ProcessingBusinessAction buildActionAndOperation(
             BusinessOperationType operationType,
             BusinessActionType actionType,
@@ -230,6 +231,7 @@ public class BusinessHelper {
         return buildActionAndOperation(operationType, actionType, message, null, null).getFirst();
     }
 
+    @Nonnull
     public Pair<ProcessingBusinessAction, ProcessingBusinessOperation> buildActionAndOperation(
             BusinessOperationType operationType,
             BusinessActionType actionType,
@@ -252,6 +254,7 @@ public class BusinessHelper {
         }
     }
 
+    @Nonnull
     public ProcessingBusinessOperation buildOperation(BusinessOperationType operationType, SimpleServiceMessage message, @Nullable Map<String, Object> publicParam) {
         ProcessingBusinessOperation operation = new ProcessingBusinessOperation();
 
@@ -298,9 +301,9 @@ public class BusinessHelper {
      * @param message свойства создаваемой операции и отправляемое сообщение
      *                {@code message.addParam(PM_PARAM_PREFIX_KEY + DELAY_MESSAGE_KEY, true) } добавит задержку
      *                10 секунд перед отправкой в rabbit
-     * todo
      * @throws ResourceNotFoundException если в бд нет BusinessAction для businessActionType
      */
+    @Nonnull
     public ProcessingBusinessAction buildAction(
             BusinessActionType businessActionType,
             SimpleServiceMessage message,
@@ -337,6 +340,7 @@ public class BusinessHelper {
         return processingBusinessAction;
     }
 
+    @Nonnull
     public ProcessingBusinessAction buildActionByOperation(
             BusinessActionType businessActionType,
             SimpleServiceMessage message,

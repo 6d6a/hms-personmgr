@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.majordomo.hms.personmgr.common.BusinessActionType;
 import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.common.State;
@@ -111,6 +112,10 @@ public class BusinessFlowDirector {
                                 case SWITCH_ACCOUNT_RESOURCES:
                                     break;
                                 default:
+                                    if (businessOperation.getType() == BusinessOperationType.DOMAIN_CREATE_CHANGE_WEBSITE
+                                        && businessAction.getBusinessActionType() == BusinessActionType.DOMAIN_CREATE_RC) {
+                                        break;
+                                    }
                                     businessOperation.setState(businessAction.getState());
                                     processingBusinessOperationRepository.save(businessOperation);
                                     break;

@@ -51,6 +51,15 @@ public class DomainAmqpController extends CommonAmqpController {
         logger.debug("Received from " + provider + ": " + message.toString());
 
         try {
+            String operationId = message.getOperationIdentity();
+            ProcessingBusinessOperation operation = operationId == null ? null :
+                    processingBusinessOperationRepository.findById(operationId).orElse(null);
+            if (operation != null && operation.getType() == BusinessOperationType.DOMAIN_CREATE_CHANGE_WEBSITE) {
+                handleCreateEventFromRc(message, headers);
+                return;
+            }
+            //todo поместить логику того что ниже в handleUpdateEventFromRc
+
             State state = businessFlowDirector.processMessage(message, resourceName);
             ProcessingBusinessAction businessAction =
                     processingBusinessActionRepository.findById(message.getActionIdentity()).orElse(null);

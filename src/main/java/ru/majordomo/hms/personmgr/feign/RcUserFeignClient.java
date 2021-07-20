@@ -1,5 +1,6 @@
 package ru.majordomo.hms.personmgr.feign;
 
+import feign.FeignException;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -8,6 +9,8 @@ import ru.majordomo.hms.personmgr.common.Count;
 import ru.majordomo.hms.personmgr.exception.ResourceNotFoundException;
 import ru.majordomo.hms.rc.user.resources.*;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -60,8 +63,12 @@ public interface RcUserFeignClient {
     @GetMapping(value = "/{accountId}/mailbox")
     List<Mailbox> getMailboxList(@PathVariable("accountId") String accountId);
 
+    /**
+     * @throws ResourceNotFoundException если сайта нет
+     * @throws FeignException некорректные параметры запроса или не удалось выполнить запрос
+     */
     @GetMapping(value = "/{accountId}/website/{webSiteId}", consumes = "application/json")
-    WebSite getWebSite(@PathVariable("accountId") String accountId, @PathVariable("webSiteId") String webSiteId);
+    WebSite getWebSite(@Nonnull @PathVariable("accountId") String accountId, @Nonnull @PathVariable("webSiteId") String webSiteId) throws ResourceNotFoundException, FeignException;
 
     @GetMapping(value = "/{accountId}/website/find", consumes = "application/json")
     WebSite getWebSiteByDomainId(@PathVariable("accountId") String accountId, @RequestParam("domainId") String domainId);

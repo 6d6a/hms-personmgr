@@ -2,6 +2,7 @@ package ru.majordomo.hms.personmgr.controller.amqp;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.collections.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -144,6 +145,7 @@ public class CommonAmqpController {
         this.instanceName = instanceName;
     }
 
+    @Nullable
     private String getResourceIdByObjRef(String url) {
         try {
             URL processingUrl = new URL(url);
@@ -405,6 +407,17 @@ public class CommonAmqpController {
                                 dbImportService.finishImportIfNeed(operation);
                             }
                         });
+                        break;
+                    case DOMAIN_CREATE_RC:
+                        ProcessingBusinessOperation operation = message.getOperationIdentity() == null ? null :
+                                processingBusinessOperationRepository.findById(message.getOperationIdentity()).orElse(null);
+                        if (operation == null) {
+                            break;
+                        }
+                        if (operation.getType() == BusinessOperationType.DOMAIN_CREATE_CHANGE_WEBSITE) {
+                            String domainId = getResourceIdByObjRef(message.getObjRef());
+                            resourceHelper.processEventsAmqpCreateDomainAndChangeWebsite(message, operation, domainId);
+                        }
                         break;
                 }
             });
