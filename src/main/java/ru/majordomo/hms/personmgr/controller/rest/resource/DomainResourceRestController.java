@@ -1,5 +1,7 @@
 package ru.majordomo.hms.personmgr.controller.rest.resource;
 
+import feign.FeignException;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -11,6 +13,8 @@ import ru.majordomo.hms.personmgr.common.BusinessOperationType;
 import ru.majordomo.hms.personmgr.common.ResourceType;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
 import ru.majordomo.hms.personmgr.controller.rest.CommonRestController;
+import ru.majordomo.hms.personmgr.exception.BaseException;
+import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.feign.RcUserFeignClient;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
@@ -18,9 +22,11 @@ import ru.majordomo.hms.personmgr.model.business.ProcessingBusinessAction;
 import ru.majordomo.hms.personmgr.service.*;
 import ru.majordomo.hms.personmgr.validation.ObjectId;
 import ru.majordomo.hms.rc.user.resources.Domain;
+import ru.majordomo.hms.rc.user.resources.WebSite;
 
 import java.net.IDN;
 
+import static ru.majordomo.hms.personmgr.common.Constants.WEB_SITE_ID_KEY;
 import static ru.majordomo.hms.personmgr.common.FieldRoles.DOMAIN_PATCH;
 
 @RestController
@@ -82,8 +88,31 @@ public class DomainResourceRestController extends CommonRestController {
 
         domainService.checkBlacklist(domainName, accountId);
 
+        String webSiteId = (String) message.getParam(WEB_SITE_ID_KEY);
+        BusinessOperationType operationType;
+        if (StringUtils.isNotEmpty(webSiteId)) {
+            try {
+                WebSite webSite = rcUserFeignClient.getWebSite(accountId, webSiteId);
+                operationType = BusinessOperationType.DOMAIN_CREATE_CHANGE_WEBSITE;
+                if (webSite == null || webSite.isWillBeDeleted()) {
+                    throw new ParameterValidationException("Запрошенный при создании домена веб-сайт не существует");
+                }
+            } catch (FeignException e) {
+                logger.error("FeignException was thrown when get web-site " + webSiteId, e);
+                throw new InternalApiException("Ошибка при выполнении запроса к сайту: " + webSiteId, e);
+            } catch (BaseException e) {
+                throw e;
+            } catch (Exception e) {
+                logger.error("Unknown exception was thrown when get web-site " + webSiteId, e);
+                throw e;
+            }
+        } else {
+            message.removeParam(WEB_SITE_ID_KEY);
+            operationType = BusinessOperationType.DOMAIN_CREATE;
+        }
+
         ProcessingBusinessAction businessAction = businessHelper.buildActionAndOperation(
-                BusinessOperationType.DOMAIN_CREATE, BusinessActionType.DOMAIN_CREATE_RC, message
+                operationType, BusinessActionType.DOMAIN_CREATE_RC, message
         );
 
         history.save(accountId, "Поступила заявка на добавление домена (имя: " + domainName + ")", request);

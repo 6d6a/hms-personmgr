@@ -79,7 +79,10 @@ public class Constants {
     public static final String MAILING_TYPE_INFO = "info";
     public static final String MAILING_TYPE_TECH = "tech";
     public static final String MAILBOX_ANTISPAM_FIELD = "antiSpamEnabled";
+    /** для appscat и {@link BusinessOperationType#DOMAIN_CREATE_CHANGE_WEBSITE} */
     public static final String WEB_SITE_ID_KEY = "webSiteId";
+    /** {@link ru.majordomo.hms.rc.user.resources.WebSite#domainIds} */
+    public static final String DOMAIN_IDS_KEY = "domainIds";
     public static final String DATABASE_ID_KEY = "databaseId";
     public static final String DATABASE_USER_ID_KEY = "databaseUserId";
     public static final String DATABASE_USER_NAME_KEY = "databaseUserName";
