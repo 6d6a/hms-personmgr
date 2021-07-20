@@ -21,6 +21,8 @@ import ru.majordomo.hms.personmgr.model.account.AccountHistory;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.repository.AccountHistoryRepository;
 
+import javax.annotation.Nullable;
+
 @Component
 public class AccountHistoryManagerImpl implements AccountHistoryManager {
     private final static Logger logger = LoggerFactory.getLogger(AccountHistoryManager.class);
@@ -67,12 +69,10 @@ public class AccountHistoryManagerImpl implements AccountHistoryManager {
     }
 
     @Override
-    public void addMessage(String accountId, String message, String operator, LocalDateTime dateTime) {
-        PersonalAccount account = accountManager.findOne(accountId);
-
-        if (account != null) {
+    public void addMessage(@Nullable String accountId, String message, String operator, LocalDateTime dateTime) {
+        if (accountId != null && accountManager.exists(accountId)) {
             AccountHistory accountHistory = new AccountHistory();
-            accountHistory.setPersonalAccountId(account.getId());
+            accountHistory.setPersonalAccountId(accountId);
             accountHistory.setMessage(message);
             accountHistory.setOperator(operator);
             accountHistory.setCreated(dateTime);
