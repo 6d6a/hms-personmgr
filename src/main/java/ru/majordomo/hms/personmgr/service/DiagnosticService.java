@@ -5,11 +5,17 @@ import com.samskivert.mustache.Template;
 
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
+import ru.majordomo.hms.personmgr.common.Constants;
+import ru.majordomo.hms.personmgr.config.HmsProperties;
+import ru.majordomo.hms.personmgr.dto.alerta.Alert;
+import ru.majordomo.hms.personmgr.dto.alerta.AlertStatus;
+import ru.majordomo.hms.personmgr.dto.alerta.AlertaEvent;
+import ru.majordomo.hms.personmgr.dto.alerta.Severity;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
@@ -19,12 +25,15 @@ import ru.majordomo.hms.personmgr.repository.PlanRepository;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static ru.majordomo.hms.personmgr.common.Constants.NAME_KEY;
 
 @Slf4j
 @Service
@@ -36,9 +45,10 @@ public class DiagnosticService {
     private final AccountServiceRepository accountServiceRepository;
     private final Mustache.Compiler mustacheCompiler;
     private final AccountNotificationHelper accountNotificationHelper;
+    private final AlertaClient alertaClient;
+    private final HmsProperties hmsProperties;
 
-    @Value("${hms.billing_url:}")
-    private final String billingUrl;
+    private final static String ALERTA_WRONG_ACCOUNT_TEMPLATE = "%s | <a href='%s/account/%s/services' >%s</a>";
 
     @Getter
     @RequiredArgsConstructor
@@ -59,23 +69,25 @@ public class DiagnosticService {
     public static class WrongAccount {
         private String accountId;
         private DiagnosticError error;
+        private String accountName;
     }
 
     @Data
-    private static class Account {
+    private static class AccountHandler {
         private String id;
         private String planId;
+        private String name;
     }
 
     @Data
-    private static class Abonement {
+    private static class AbonementHandler {
         private String abonementId;
 
         @Nullable
         private LocalDateTime expired;
     }
 
-    public void planDailyServiceTester() {
+    public void planDailyServiceTester(boolean includeInactive, boolean skipAlerta) {
         try {
             log.info("planDailyServiceTester start operation");
             List<WrongAccount> wrongAccounts = new ArrayList<>();
@@ -86,19 +98,24 @@ public class DiagnosticService {
                 planPaymentServices.add(plan.getServiceId());
                 paymentServiceToPlanMap.put(plan.getServiceId(), plan);
             }
-            Query accountQuery = Query.query(Criteria.where("active").is(true).and("deleted").is(null));
-            accountQuery.fields().include("_id").include("planId");
-            List<Account> accounts = mongoOperations.find(
+            Criteria accountCriteria = Criteria.where("deleted").is(null);
+            if (!includeInactive) {
+                accountCriteria.and("active").is(true);
+            }
+            Query accountQuery = Query.query(accountCriteria);
+            accountQuery.fields().include("_id").include("planId").include(NAME_KEY);
+            List<AccountHandler> accounts = mongoOperations.find(
                     accountQuery,
-                    Account.class,
+                    AccountHandler.class,
                     mongoOperations.getCollectionName(PersonalAccount.class)
             );
 
             LocalDateTime expiresTestDate = LocalDate.now().atStartOfDay();
 
-            for (Account account : accounts) {
+            for (AccountHandler account : accounts) {
                 WrongAccount resultObj = new WrongAccount();
                 resultObj.setAccountId(account.getId());
+                resultObj.setAccountName(account.getName());
                 @Nullable
                 Plan planOfPersonalAccount = plans.stream().filter(plan -> plan.getId().equals(account.getPlanId()))
                         .findFirst().orElse(null);
@@ -107,9 +124,9 @@ public class DiagnosticService {
                     wrongAccounts.add(resultObj);
                     continue;
                 }
-                List<Abonement> abonements = mongoOperations.find(
-                        Query.query(Criteria.where("personalAccountId").is(account.id)),
-                        Abonement.class, mongoOperations.getCollectionName(AccountAbonement.class)
+                List<AbonementHandler> abonements = mongoOperations.find(
+                        Query.query(Criteria.where(Constants.PERSONAL_ACCOUNT_ID_KEY).is(account.id)),
+                        AbonementHandler.class, mongoOperations.getCollectionName(AccountAbonement.class)
                 );
                 if (!abonements.stream().allMatch(ab -> planOfPersonalAccount.getAbonementIds().contains(ab.getAbonementId()))) {
                     resultObj.setError(DiagnosticError.WRONG_PLAN_FOR_ABONEMENT);
@@ -153,13 +170,17 @@ public class DiagnosticService {
                     continue;
                 }
             }
+            for (int i = 0; !skipAlerta && i < wrongAccounts.size(); i++) {
+                WrongAccount wrongAccount = wrongAccounts.get(i);
+                String alertId = sendAccountToAlerta(wrongAccount);
+                log.debug("DiagnosticService sent alert with id: {}, for account: {}", alertId, wrongAccount.accountId);
+            }
             if (!wrongAccounts.isEmpty()) {
-                Template template = mustacheCompiler.compile(new InputStreamReader(
-                        getClass().getResourceAsStream("/templates/wrong_accounts.html.mustache"),
-                        StandardCharsets.UTF_8)
-                );
+                InputStream templateStream =  getClass().getResourceAsStream("/templates/wrong_accounts.html.mustache");
+                Assert.notNull(templateStream, "Cannot get template stream for wrong_accounts");
+                Template template = mustacheCompiler.compile(new InputStreamReader(templateStream, StandardCharsets.UTF_8));
                 String bodyHtml = template.execute(
-                        new HashMap<String, Object>() {{ put("accounts", wrongAccounts); put("billingUrl", billingUrl); }}
+                        new HashMap<String, Object>() {{ put("accounts", wrongAccounts); put("billingUrl", hmsProperties.getBillingUrl()); }}
                 );
                 accountNotificationHelper.sendDevEmail("Accounts with wrong daily service", bodyHtml);
             }
@@ -170,5 +191,15 @@ public class DiagnosticService {
         } catch (Exception e) {
             log.error("planDailyServiceTester got exception", e);
         }
+    }
+
+    private String sendAccountToAlerta(WrongAccount wrongAccount) {
+        Alert alert = new Alert(AlertaEvent.DIAGNOSTIC, wrongAccount.accountId);
+        alert.setSeverity(Severity.critical);
+        alert.setValue(wrongAccount.getError().name());
+        alert.setText(String.format(ALERTA_WRONG_ACCOUNT_TEMPLATE, wrongAccount.getError().getText(), hmsProperties.getBillingUrl(), wrongAccount.accountId, wrongAccount.accountName));
+        alert.setService(Collections.singletonList(getClass().getSimpleName()));
+        alert.setStatus(AlertStatus.open);
+        return alertaClient.send(alert);
     }
 }

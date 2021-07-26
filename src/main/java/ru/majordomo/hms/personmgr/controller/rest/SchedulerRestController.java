@@ -8,15 +8,12 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import ru.majordomo.hms.personmgr.dto.SchedulerActionParameters;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.accountOrder.SSLCertificateOrderProcessEvent;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessBulkRevisiumRequestEvent;
@@ -28,6 +25,8 @@ import ru.majordomo.hms.personmgr.event.token.CleanTokensEvent;
 import ru.majordomo.hms.personmgr.exception.ParameterValidationException;
 import ru.majordomo.hms.personmgr.manager.BatchJobManager;
 import ru.majordomo.hms.personmgr.model.batch.BatchJob;
+
+import javax.annotation.Nullable;
 
 @RestController
 @RefreshScope
@@ -52,7 +51,8 @@ public class SchedulerRestController extends CommonRestController {
     @PreAuthorize("hasRole('ADMIN')")
     @RequestMapping(value = "/scheduler/{scheduleAction}", method = RequestMethod.POST)
     public ResponseEntity<Void> processScheduleAction(
-            @PathVariable(value = "scheduleAction") String scheduleAction
+            @PathVariable(value = "scheduleAction") String scheduleAction,
+            @Nullable @RequestBody(required = false) SchedulerActionParameters schedulerActionParameters
     ) {
         logger.info("We got scheduler request with action: {}", scheduleAction);
         
@@ -175,7 +175,14 @@ public class SchedulerRestController extends CommonRestController {
                 break;
 
             case "process_plan_daily_diagnostic":
-                publisher.publishEvent(new PlanDailyDiagnosticEvent());
+                PlanDailyDiagnosticEvent event;
+                if (schedulerActionParameters != null) {
+                    event = new PlanDailyDiagnosticEvent(schedulerActionParameters.isSkipAlerta(),
+                            schedulerActionParameters.isIncludeInactive());
+                } else {
+                    event = new PlanDailyDiagnosticEvent();
+                }
+                publisher.publishEvent(event);
                 break;
 
             default:

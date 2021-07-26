@@ -18,8 +18,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.retry.annotation.EnableRetry;
 
+import ru.majordomo.hms.personmgr.config.AlertaSettings;
 import ru.majordomo.hms.personmgr.config.FeignConfig;
 import ru.majordomo.hms.personmgr.config.HikariSettings;
+import ru.majordomo.hms.personmgr.config.HmsProperties;
 import ru.majordomo.hms.personmgr.serializer.PageSerializer;
 
 @SpringBootApplication(exclude = {
@@ -28,7 +30,7 @@ import ru.majordomo.hms.personmgr.serializer.PageSerializer;
 })
 @EnableDiscoveryClient
 @EnableRetry
-@EnableConfigurationProperties({HikariSettings.class})
+@EnableConfigurationProperties({HikariSettings.class, AlertaSettings.class, HmsProperties.class})
 @EnableFeignClients(basePackages = "ru.majordomo.hms.personmgr.feign")
 public class Application implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
