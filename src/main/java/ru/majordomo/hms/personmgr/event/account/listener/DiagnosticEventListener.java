@@ -17,6 +17,6 @@ public class DiagnosticEventListener {
     @EventListener
     @Async("threadPoolTaskExecutor")
     public void planDailyServiceTester(PlanDailyDiagnosticEvent event) {
-        diagnosticService.planDailyServiceTester();
+        diagnosticService.planDailyServiceTester(event.isIncludeInactive(), event.isSkipAlerta());
     }
 }
