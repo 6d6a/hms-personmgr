@@ -1,13 +1,14 @@
 <table border="1">
     <caption>Wrong accounts in PersonMgr</caption>
     <thead>
-        <tr><th>ID</th><th>Error</th></tr>
+        <tr><th>ID</th><th>Error</th><th>Plan</th></tr>
     </thead>
     <tbody>
     {{#accounts}}
         <tr>
-            <td><a href="{{billingUrl}}/account/{{accountId}}/services">{{accountId}}</a></td>
+            <td><a href="{{billingUrl}}/account/{{accountId}}/services">{{accountName}}</a></td>
             <td>{{error.text}}</td>
+            <td>{{#plan}}{{name}}{{/plan}}{{^plan}}[unknown]{{/plan}}</td>
         </tr>
     {{/accounts}}
     </tbody>

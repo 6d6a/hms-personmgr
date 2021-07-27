@@ -48,7 +48,8 @@ public class DiagnosticService {
     private final AlertaClient alertaClient;
     private final HmsProperties hmsProperties;
 
-    private final static String ALERTA_WRONG_ACCOUNT_TEMPLATE = "%s | <a href='%s/account/%s/services' >%s</a>";
+    private final static String ALERTA_WRONG_ACCOUNT_TEMPLATE = "%s | <a href=%s/account/%s/services >%s</a> | %s";
+    private final static Severity ALERT_SEVERITY = Severity.minor;
 
     @Getter
     @RequiredArgsConstructor
@@ -70,6 +71,8 @@ public class DiagnosticService {
         private String accountId;
         private DiagnosticError error;
         private String accountName;
+        @Nullable
+        private Plan plan;
     }
 
     @Data
@@ -113,15 +116,16 @@ public class DiagnosticService {
             LocalDateTime expiresTestDate = LocalDate.now().atStartOfDay();
 
             for (AccountHandler account : accounts) {
-                WrongAccount resultObj = new WrongAccount();
-                resultObj.setAccountId(account.getId());
-                resultObj.setAccountName(account.getName());
+                WrongAccount wrongAccount = new WrongAccount();
+                wrongAccount.setAccountId(account.getId());
+                wrongAccount.setAccountName(account.getName());
                 @Nullable
                 Plan planOfPersonalAccount = plans.stream().filter(plan -> plan.getId().equals(account.getPlanId()))
                         .findFirst().orElse(null);
+                wrongAccount.setPlan(planOfPersonalAccount);
                 if (planOfPersonalAccount == null) {
-                    resultObj.setError(DiagnosticError.NOT_EXISTS_PLAN);
-                    wrongAccounts.add(resultObj);
+                    wrongAccount.setError(DiagnosticError.NOT_EXISTS_PLAN);
+                    wrongAccounts.add(wrongAccount);
                     continue;
                 }
                 List<AbonementHandler> abonements = mongoOperations.find(
@@ -129,8 +133,8 @@ public class DiagnosticService {
                         AbonementHandler.class, mongoOperations.getCollectionName(AccountAbonement.class)
                 );
                 if (!abonements.stream().allMatch(ab -> planOfPersonalAccount.getAbonementIds().contains(ab.getAbonementId()))) {
-                    resultObj.setError(DiagnosticError.WRONG_PLAN_FOR_ABONEMENT);
-                    wrongAccounts.add(resultObj);
+                    wrongAccount.setError(DiagnosticError.WRONG_PLAN_FOR_ABONEMENT);
+                    wrongAccounts.add(wrongAccount);
                     continue;
                 }
 
@@ -141,47 +145,42 @@ public class DiagnosticService {
 
                 if (hasActiveAbonement) {
                     if (!planAccountServices.isEmpty()) {
-                        resultObj.setError(DiagnosticError.ACTIVE_ABONEMENT_AND_DAILY_SERVICE);
-                        wrongAccounts.add(resultObj);
+                        wrongAccount.setError(DiagnosticError.ACTIVE_ABONEMENT_AND_DAILY_SERVICE);
+                        wrongAccounts.add(wrongAccount);
                     }
                     continue;
                 }
                 if (planAccountServices.isEmpty()) {
-                    resultObj.setError(DiagnosticError.NO_PLAN_ACCOUNT_SERVICE);
-                    wrongAccounts.add(resultObj); // todo return it
+                    wrongAccount.setError(DiagnosticError.NO_PLAN_ACCOUNT_SERVICE);
+                    wrongAccounts.add(wrongAccount); // todo return it
                     continue;
                 }
                 if (planAccountServices.size() > 1) {
-                    resultObj.setError(DiagnosticError.TOO_MANY_PLAN_ACCOUNT_SERVICE);
-                    wrongAccounts.add(resultObj);
+                    wrongAccount.setError(DiagnosticError.TOO_MANY_PLAN_ACCOUNT_SERVICE);
+                    wrongAccounts.add(wrongAccount);
                     continue;
                 }
 
                 @Nullable
                 Plan planOfAccountService = paymentServiceToPlanMap.get(planAccountServices.get(0).getServiceId());
                 if (planOfAccountService == null) {
-                    resultObj.setError(DiagnosticError.NOT_EXISTS_PLAN);
-                    wrongAccounts.add(resultObj);
+                    wrongAccount.setError(DiagnosticError.NOT_EXISTS_PLAN);
+                    wrongAccounts.add(wrongAccount);
                     continue;
                 }
                 if (!planOfAccountService.getId().equals(account.getPlanId())) {
-                    resultObj.setError(DiagnosticError.WRONG_PLAN_FOR_ACCOUNT_SERVICE);
-                    wrongAccounts.add(resultObj);
+                    wrongAccount.setError(DiagnosticError.WRONG_PLAN_FOR_ACCOUNT_SERVICE);
+                    wrongAccounts.add(wrongAccount);
                     continue;
                 }
             }
-            for (int i = 0; !skipAlerta && i < wrongAccounts.size(); i++) {
-                WrongAccount wrongAccount = wrongAccounts.get(i);
+            for (Iterator<WrongAccount> iterator = wrongAccounts.iterator(); !skipAlerta && iterator.hasNext();) {
+                WrongAccount wrongAccount = iterator.next();
                 String alertId = sendAccountToAlerta(wrongAccount);
                 log.debug("DiagnosticService sent alert with id: {}, for account: {}", alertId, wrongAccount.accountId);
             }
             if (!wrongAccounts.isEmpty()) {
-                InputStream templateStream =  getClass().getResourceAsStream("/templates/wrong_accounts.html.mustache");
-                Assert.notNull(templateStream, "Cannot get template stream for wrong_accounts");
-                Template template = mustacheCompiler.compile(new InputStreamReader(templateStream, StandardCharsets.UTF_8));
-                String bodyHtml = template.execute(
-                        new HashMap<String, Object>() {{ put("accounts", wrongAccounts); put("billingUrl", hmsProperties.getBillingUrl()); }}
-                );
+                String bodyHtml = makeEmailBodyHtml(wrongAccounts);
                 accountNotificationHelper.sendDevEmail("Accounts with wrong daily service", bodyHtml);
             }
             log.info("planDailyServiceTester found wrong accounts: {}, first ten: {}",
@@ -193,13 +192,24 @@ public class DiagnosticService {
         }
     }
 
-    private String sendAccountToAlerta(WrongAccount wrongAccount) {
+    String sendAccountToAlerta(WrongAccount wrongAccount) {
         Alert alert = new Alert(AlertaEvent.DIAGNOSTIC, wrongAccount.accountId);
-        alert.setSeverity(Severity.critical);
+        alert.setSeverity(ALERT_SEVERITY);
         alert.setValue(wrongAccount.getError().name());
-        alert.setText(String.format(ALERTA_WRONG_ACCOUNT_TEMPLATE, wrongAccount.getError().getText(), hmsProperties.getBillingUrl(), wrongAccount.accountId, wrongAccount.accountName));
+        String planName = String.valueOf(wrongAccount.getPlan() == null ? null : wrongAccount.getPlan().getName());
+        alert.setText(String.format(ALERTA_WRONG_ACCOUNT_TEMPLATE, wrongAccount.getError().getText(), hmsProperties.getBillingUrl(), wrongAccount.accountId, wrongAccount.accountName, planName));
         alert.setService(Collections.singletonList(getClass().getSimpleName()));
         alert.setStatus(AlertStatus.open);
         return alertaClient.send(alert);
+    }
+
+    String makeEmailBodyHtml(List<WrongAccount> wrongAccounts) {
+        InputStream templateStream =  getClass().getResourceAsStream("/templates/wrong_accounts.html.mustache");
+        Assert.notNull(templateStream, "Cannot get template stream for wrong_accounts");
+        Template template = mustacheCompiler.compile(new InputStreamReader(templateStream, StandardCharsets.UTF_8));
+        String bodyHtml = template.execute(
+                new HashMap<String, Object>() {{ put("accounts", wrongAccounts); put("billingUrl", hmsProperties.getBillingUrl()); }}
+        );
+        return bodyHtml;
     }
 }
