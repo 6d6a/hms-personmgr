@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import ru.majordomo.hms.personmgr.dto.SchedulerActionParameters;
+import ru.majordomo.hms.personmgr.dto.ScheduleActionParameters;
 import ru.majordomo.hms.personmgr.event.account.*;
 import ru.majordomo.hms.personmgr.event.accountOrder.SSLCertificateOrderProcessEvent;
 import ru.majordomo.hms.personmgr.event.revisium.ProcessBulkRevisiumRequestEvent;
@@ -51,8 +51,8 @@ public class SchedulerRestController extends CommonRestController {
     @PreAuthorize("hasRole('ADMIN')")
     @RequestMapping(value = "/scheduler/{scheduleAction}", method = RequestMethod.POST)
     public ResponseEntity<Void> processScheduleAction(
-            @PathVariable(value = "scheduleAction") String scheduleAction,
-            @Nullable @RequestBody(required = false) SchedulerActionParameters schedulerActionParameters
+            @PathVariable(value = "scheduleAction") String scheduleAction /* todo need to fix http 415,
+            @Nullable @RequestBody(required = false) ScheduleActionParameters scheduleActionParameters */
     ) {
         logger.info("We got scheduler request with action: {}", scheduleAction);
         
@@ -175,13 +175,13 @@ public class SchedulerRestController extends CommonRestController {
                 break;
 
             case "process_plan_daily_diagnostic":
-                PlanDailyDiagnosticEvent event;
-                if (schedulerActionParameters != null) {
-                    event = new PlanDailyDiagnosticEvent(schedulerActionParameters.isSkipAlerta(),
-                            schedulerActionParameters.isIncludeInactive());
-                } else {
+                PlanDailyDiagnosticEvent event; /* todo need to fix http 415
+                if (scheduleActionParameters != null) {
+                    event = new PlanDailyDiagnosticEvent(schedulrActionParameters.isSkipAlerta(),
+                            scheduleActionParameters.isIncludeInactive());
+                } else { */
                     event = new PlanDailyDiagnosticEvent();
-                }
+                //}
                 publisher.publishEvent(event);
                 break;
 
