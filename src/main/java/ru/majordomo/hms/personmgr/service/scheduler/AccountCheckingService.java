@@ -27,6 +27,10 @@ import ru.majordomo.hms.rc.user.resources.Database;
 import ru.majordomo.hms.rc.user.resources.ResourceArchive;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
+/**
+ * Старый сервис для поиска аккаунтов с неправильными настройками.
+ * {@link ru.majordomo.hms.personmgr.service.DiagnosticService} так же есть новая реализация примерно того же самого
+ */
 @Service
 public class AccountCheckingService {
     private final Logger logger = LoggerFactory.getLogger(getClass());

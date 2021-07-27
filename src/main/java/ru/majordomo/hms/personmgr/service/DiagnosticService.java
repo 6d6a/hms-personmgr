@@ -22,6 +22,7 @@ import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.service.scheduler.AccountCheckingService;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -35,6 +36,10 @@ import java.util.stream.Collectors;
 
 import static ru.majordomo.hms.personmgr.common.Constants.NAME_KEY;
 
+/**
+ * Сервис для поиска аккаунтов с неправильными услугами
+ * {@link AccountCheckingService} так же нашлась старая реализация примерно того же самого
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
