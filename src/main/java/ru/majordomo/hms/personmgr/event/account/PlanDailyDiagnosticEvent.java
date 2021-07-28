@@ -4,6 +4,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.context.ApplicationEvent;
 
+/**
+ * Поиск аккаунтов с неправильными тарифными планами, услугами и абонементами
+ */
 @Getter
 public class PlanDailyDiagnosticEvent extends ApplicationEvent {
     private final boolean skipAlerta;
