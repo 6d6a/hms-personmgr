@@ -51,8 +51,8 @@ public class SchedulerRestController extends CommonRestController {
     @PreAuthorize("hasRole('ADMIN')")
     @RequestMapping(value = "/scheduler/{scheduleAction}", method = RequestMethod.POST)
     public ResponseEntity<Void> processScheduleAction(
-            @PathVariable(value = "scheduleAction") String scheduleAction /* todo need to fix http 415,
-            @Nullable @RequestBody(required = false) ScheduleActionParameters scheduleActionParameters */
+            @PathVariable(value = "scheduleAction") String scheduleAction,
+            @Nullable @RequestBody(required = false) ScheduleActionParameters scheduleActionParameters
     ) {
         logger.info("We got scheduler request with action: {}", scheduleAction);
         
@@ -175,13 +175,14 @@ public class SchedulerRestController extends CommonRestController {
                 break;
 
             case "process_plan_daily_diagnostic":
-                PlanDailyDiagnosticEvent event; /* todo need to fix http 415
+                // Поиск аккаунтов с неправильными тарифными планами, услугами и абонементами
+                PlanDailyDiagnosticEvent event;
                 if (scheduleActionParameters != null) {
-                    event = new PlanDailyDiagnosticEvent(schedulrActionParameters.isSkipAlerta(),
+                    event = new PlanDailyDiagnosticEvent(scheduleActionParameters.isSkipAlerta(),
                             scheduleActionParameters.isIncludeInactive());
-                } else { */
+                } else {
                     event = new PlanDailyDiagnosticEvent();
-                //}
+                }
                 publisher.publishEvent(event);
                 break;
 
