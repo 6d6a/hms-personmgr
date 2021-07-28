@@ -63,8 +63,9 @@ public class DiagnosticService {
         ACTIVE_ABONEMENT_AND_DAILY_SERVICE("Одновременно абонемент и AccountService за тариф"),
         TOO_MANY_PLAN_ACCOUNT_SERVICE("Лишние AccountService за тариф"),
         WRONG_PLAN_FOR_ACCOUNT_SERVICE("AccountService за неправильный тариф"),
-        WRONG_PLAN_FOR_ABONEMENT("Abonement за неправильный тариф"),
-        NOT_EXISTS_PLAN("Несуществующий тарифный план");
+        WRONG_PLAN_FOR_ABONEMENT("Абонемент за неправильный тариф"),
+        NOT_EXISTS_PLAN("Несуществующий тарифный план"),
+        NO_ABONEMENT_FOR_ABONEMENT_ONLY("Нет абонемента для abonementOnly тарифного плана");
 
         private final String text;
     }
@@ -85,6 +86,7 @@ public class DiagnosticService {
         private String id;
         private String planId;
         private String name;
+        private boolean active;
     }
 
     @Data
@@ -111,7 +113,7 @@ public class DiagnosticService {
                 accountCriteria.and("active").is(true);
             }
             Query accountQuery = Query.query(accountCriteria);
-            accountQuery.fields().include("_id").include("planId").include(NAME_KEY);
+            accountQuery.fields().include("_id").include("planId").include(NAME_KEY).include("active");
             List<AccountHandler> accounts = mongoOperations.find(
                     accountQuery,
                     AccountHandler.class,
@@ -125,10 +127,10 @@ public class DiagnosticService {
                 wrongAccount.setAccountId(account.getId());
                 wrongAccount.setAccountName(account.getName());
                 @Nullable
-                Plan planOfPersonalAccount = plans.stream().filter(plan -> plan.getId().equals(account.getPlanId()))
+                Plan currentPlan = plans.stream().filter(somethingPlan -> somethingPlan.getId().equals(account.getPlanId()))
                         .findFirst().orElse(null);
-                wrongAccount.setPlan(planOfPersonalAccount);
-                if (planOfPersonalAccount == null) {
+                wrongAccount.setPlan(currentPlan);
+                if (currentPlan == null) {
                     wrongAccount.setError(DiagnosticError.NOT_EXISTS_PLAN);
                     wrongAccounts.add(wrongAccount);
                     continue;
@@ -137,7 +139,7 @@ public class DiagnosticService {
                         Query.query(Criteria.where(Constants.PERSONAL_ACCOUNT_ID_KEY).is(account.id)),
                         AbonementHandler.class, mongoOperations.getCollectionName(AccountAbonement.class)
                 );
-                if (!abonements.stream().allMatch(ab -> planOfPersonalAccount.getAbonementIds().contains(ab.getAbonementId()))) {
+                if (!abonements.stream().allMatch(ab -> currentPlan.getAbonementIds().contains(ab.getAbonementId()))) {
                     wrongAccount.setError(DiagnosticError.WRONG_PLAN_FOR_ABONEMENT);
                     wrongAccounts.add(wrongAccount);
                     continue;
@@ -154,29 +156,37 @@ public class DiagnosticService {
                         wrongAccounts.add(wrongAccount);
                     }
                     continue;
-                }
-                if (planAccountServices.isEmpty()) {
-                    wrongAccount.setError(DiagnosticError.NO_PLAN_ACCOUNT_SERVICE);
-                    wrongAccounts.add(wrongAccount); // todo return it
-                    continue;
+                } else {
+                    if (account.isActive() && currentPlan.isAbonementOnly()) {
+                        wrongAccount.setError(DiagnosticError.NO_ABONEMENT_FOR_ABONEMENT_ONLY);
+                        wrongAccounts.add(wrongAccount);
+                        continue;
+                    }
                 }
                 if (planAccountServices.size() > 1) {
                     wrongAccount.setError(DiagnosticError.TOO_MANY_PLAN_ACCOUNT_SERVICE);
                     wrongAccounts.add(wrongAccount);
                     continue;
                 }
-
-                @Nullable
-                Plan planOfAccountService = paymentServiceToPlanMap.get(planAccountServices.get(0).getServiceId());
-                if (planOfAccountService == null) {
-                    wrongAccount.setError(DiagnosticError.NOT_EXISTS_PLAN);
+                AccountService currentAccountService = planAccountServices.stream().findFirst().orElse(null);
+                if (!currentPlan.isAbonementOnly() && currentAccountService == null) {
+                    wrongAccount.setError(DiagnosticError.NO_PLAN_ACCOUNT_SERVICE);
                     wrongAccounts.add(wrongAccount);
                     continue;
                 }
-                if (!planOfAccountService.getId().equals(account.getPlanId())) {
-                    wrongAccount.setError(DiagnosticError.WRONG_PLAN_FOR_ACCOUNT_SERVICE);
-                    wrongAccounts.add(wrongAccount);
-                    continue;
+                if (currentAccountService != null) {
+                    @Nullable
+                    Plan planOfAccountService = paymentServiceToPlanMap.get(currentAccountService.getServiceId());
+                    if (planOfAccountService == null) {
+                        wrongAccount.setError(DiagnosticError.NOT_EXISTS_PLAN);
+                        wrongAccounts.add(wrongAccount);
+                        continue;
+                    }
+                    if (!planOfAccountService.getId().equals(account.getPlanId())) {
+                        wrongAccount.setError(DiagnosticError.WRONG_PLAN_FOR_ACCOUNT_SERVICE);
+                        wrongAccounts.add(wrongAccount);
+                        continue;
+                    }
                 }
             }
             for (Iterator<WrongAccount> iterator = wrongAccounts.iterator(); !skipAlerta && iterator.hasNext();) {
@@ -194,6 +204,10 @@ public class DiagnosticService {
             );
         } catch (Exception e) {
             log.error("planDailyServiceTester got exception", e);
+            accountNotificationHelper.sendDevEmail(
+                    "Accounts with wrong daily service",
+                    "<h3 color=red>An unknown exception occurred while diagnosing accounts!</h3>"
+            );
         }
     }
 
