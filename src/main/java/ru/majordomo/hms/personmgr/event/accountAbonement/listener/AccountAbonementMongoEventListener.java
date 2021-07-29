@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.model.abonement.Abonement;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 
+import javax.annotation.Nonnull;
+
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 @Component
@@ -22,7 +24,7 @@ public class AccountAbonementMongoEventListener extends AbstractMongoEventListen
     }
 
     @Override
-    public void onAfterConvert(AfterConvertEvent<AccountAbonement> event) {
+    public void onAfterConvert(@Nonnull AfterConvertEvent<AccountAbonement> event) {
         super.onAfterConvert(event);
         AccountAbonement accountAbonement = event.getSource();
 

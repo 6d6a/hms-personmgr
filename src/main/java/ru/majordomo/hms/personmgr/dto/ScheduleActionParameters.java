@@ -6,4 +6,5 @@ import lombok.Data;
 public class ScheduleActionParameters {
     private boolean includeInactive;
     private boolean skipAlerta;
+    private boolean searchAbonementWithoutExpired;
 }

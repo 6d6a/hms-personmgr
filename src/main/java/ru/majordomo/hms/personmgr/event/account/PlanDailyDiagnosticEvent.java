@@ -11,11 +11,13 @@ import org.springframework.context.ApplicationEvent;
 public class PlanDailyDiagnosticEvent extends ApplicationEvent {
     private final boolean skipAlerta;
     private final boolean includeInactive;
-    public PlanDailyDiagnosticEvent(boolean skipAlerta, boolean includeInactive) {
+    private final boolean searchAbonementWithoutExpired;
+    public PlanDailyDiagnosticEvent(boolean skipAlerta, boolean includeInactive, boolean searchAbonementWithoutExpired) {
         super("Process plan daily diagnostic");
 
         this.skipAlerta = skipAlerta;
         this.includeInactive = includeInactive;
+        this.searchAbonementWithoutExpired = searchAbonementWithoutExpired;
     }
 
     public PlanDailyDiagnosticEvent() {
@@ -23,5 +25,6 @@ public class PlanDailyDiagnosticEvent extends ApplicationEvent {
 
         skipAlerta = false;
         includeInactive = false;
+        searchAbonementWithoutExpired = false;
     }
 }
