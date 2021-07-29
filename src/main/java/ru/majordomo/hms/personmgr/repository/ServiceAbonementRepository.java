@@ -8,6 +8,9 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Абонемент для дополнительных услуг. Не подходит для тарифного плана.
+ */
 public interface ServiceAbonementRepository extends MongoRepository<AccountServiceAbonement, String> {
     AccountServiceAbonement findByIdAndPersonalAccountId(String id, String personalAccountId);
     List<AccountServiceAbonement> findByAbonementId(String abonementId);
@@ -19,4 +22,5 @@ public interface ServiceAbonementRepository extends MongoRepository<AccountServi
     void deleteByPersonalAccountId(String personalAccountId);
     boolean existsByPersonalAccountIdAndExpiredAfter(String personalAccountId, LocalDateTime expired);
     boolean existsByPersonalAccountId(String personalAccountId);
+    boolean existsByPersonalAccountIdAndExpired(String personalAccountId, LocalDateTime expired);
 }
