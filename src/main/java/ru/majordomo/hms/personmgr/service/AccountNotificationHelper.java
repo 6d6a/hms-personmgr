@@ -996,7 +996,7 @@ public class AccountNotificationHelper {
     }
 
     /**
-     * @param subject
+     * @param subject часть темы письма
      * @param bodyHtml тело сообщение отформатированное в html (только часть, заголовки, footer и header добавит mail-manager)
      */
     @ParametersAreNonnullByDefault

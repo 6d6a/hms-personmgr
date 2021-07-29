@@ -178,8 +178,11 @@ public class SchedulerRestController extends CommonRestController {
                 // Поиск аккаунтов с неправильными тарифными планами, услугами и абонементами
                 PlanDailyDiagnosticEvent event;
                 if (scheduleActionParameters != null) {
-                    event = new PlanDailyDiagnosticEvent(scheduleActionParameters.isSkipAlerta(),
-                            scheduleActionParameters.isIncludeInactive());
+                    event = new PlanDailyDiagnosticEvent(
+                            scheduleActionParameters.isSkipAlerta(),
+                            scheduleActionParameters.isIncludeInactive(),
+                            scheduleActionParameters.isSearchAbonementWithoutExpired()
+                    );
                 } else {
                     event = new PlanDailyDiagnosticEvent();
                 }

@@ -30,6 +30,7 @@ import static java.time.temporal.ChronoUnit.DAYS;
  * Класс описывает подключенный на аккаунт абонемент для тарифного плана. Не подходит для дополнительных услуг.
  *
  * @see ru.majordomo.hms.personmgr.model.abonement.AccountServiceAbonement - аналогичный класс для дополнительных услуг
+ * @see ru.majordomo.hms.personmgr.model.service.AccountService - класс для посуточных списаний
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -43,7 +44,7 @@ public class AccountAbonement extends VersionedModelBelongsToPersonalAccount {
     @NotNull
     private LocalDateTime created;
 
-    /** почему-то у некоторых объектов null */
+    /** почему-то у некоторых объектов null. Можно использовать {@link AccountAbonement#getExpiredSafe()} */
     @Nullable
     private LocalDateTime expired;
 

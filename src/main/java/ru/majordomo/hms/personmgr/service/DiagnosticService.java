@@ -10,7 +10,6 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
-import ru.majordomo.hms.personmgr.common.Constants;
 import ru.majordomo.hms.personmgr.config.HmsProperties;
 import ru.majordomo.hms.personmgr.dto.alerta.Alert;
 import ru.majordomo.hms.personmgr.dto.alerta.AlertStatus;
@@ -20,6 +19,7 @@ import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
 import ru.majordomo.hms.personmgr.model.account.PersonalAccount;
 import ru.majordomo.hms.personmgr.model.plan.Plan;
 import ru.majordomo.hms.personmgr.model.service.AccountService;
+import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
 import ru.majordomo.hms.personmgr.service.scheduler.AccountCheckingService;
@@ -48,6 +48,7 @@ public class DiagnosticService {
     private final MongoOperations mongoOperations;
     private final PlanRepository planRepository;
     private final AccountServiceRepository accountServiceRepository;
+    private final AccountAbonementRepository accountAbonementRepository;
     private final Mustache.Compiler mustacheCompiler;
     private final AccountNotificationHelper accountNotificationHelper;
     private final AlertaClient alertaClient;
@@ -59,14 +60,17 @@ public class DiagnosticService {
     @Getter
     @RequiredArgsConstructor
     public enum DiagnosticError {
-        NO_PLAN_ACCOUNT_SERVICE("Нет AccountService за тариф"),
-        ACTIVE_ABONEMENT_AND_DAILY_SERVICE("Одновременно абонемент и AccountService за тариф"),
-        TOO_MANY_PLAN_ACCOUNT_SERVICE("Лишние AccountService за тариф"),
-        WRONG_PLAN_FOR_ACCOUNT_SERVICE("AccountService за неправильный тариф"),
+        NO_PLAN_ACCOUNT_SERVICE_OR_ABONEMENT("Нет 'услуги ежедневных списаний' за тариф или абонемента"),
+        ACTIVE_ABONEMENT_AND_DAILY_SERVICE("Одновременно абонемент и 'услуга ежедневных списаний' за тариф"),
+        TOO_MANY_PLAN_ACCOUNT_SERVICE("Лишние 'услуги ежедневных списаний' за тариф"),
+        WRONG_PLAN_FOR_ACCOUNT_SERVICE("'услуга ежедневных списаний' за неправильный тариф"),
         WRONG_PLAN_FOR_ABONEMENT("Абонемент за неправильный тариф"),
         NOT_EXISTS_PLAN("Несуществующий тарифный план"),
-        NO_ABONEMENT_FOR_ABONEMENT_ONLY("Нет абонемента для abonementOnly тарифного плана");
+        NO_ABONEMENT_FOR_ABONEMENT_ONLY("Нет абонемента для abonementOnly тарифного плана"),
+        THERE_IS_ACCOUNT_SERVICE_FOR_ABONEMENT_ONLY("Есть 'услуга ежедневных списаний' для abonementOnly тарифного плана"),
+        ABONEMENT_WITHOUT_EXPIRED("Есть абонементы без даты окончания");
 
+        @Nullable
         private final String text;
     }
 
@@ -89,15 +93,7 @@ public class DiagnosticService {
         private boolean active;
     }
 
-    @Data
-    private static class AbonementHandler {
-        private String abonementId;
-
-        @Nullable
-        private LocalDateTime expired;
-    }
-
-    public void planDailyServiceTester(boolean includeInactive, boolean skipAlerta) {
+    public void planDailyServiceTester(boolean includeInactive, boolean skipAlerta, boolean searchAbonementWithoutExpired) {
         try {
             log.info("planDailyServiceTester start operation");
             List<WrongAccount> wrongAccounts = new ArrayList<>();
@@ -135,29 +131,37 @@ public class DiagnosticService {
                     wrongAccounts.add(wrongAccount);
                     continue;
                 }
-                List<AbonementHandler> abonements = mongoOperations.find(
-                        Query.query(Criteria.where(Constants.PERSONAL_ACCOUNT_ID_KEY).is(account.id)),
-                        AbonementHandler.class, mongoOperations.getCollectionName(AccountAbonement.class)
-                );
+                List<AccountAbonement> abonements = accountAbonementRepository.findAllByPersonalAccountId(account.id);
+
                 if (!abonements.stream().allMatch(ab -> currentPlan.getAbonementIds().contains(ab.getAbonementId()))) {
                     wrongAccount.setError(DiagnosticError.WRONG_PLAN_FOR_ABONEMENT);
                     wrongAccounts.add(wrongAccount);
                     continue;
                 }
 
+                if (searchAbonementWithoutExpired && abonements.stream().anyMatch(ab -> ab.getExpired() == null)) {
+                    wrongAccount.setError(DiagnosticError.ABONEMENT_WITHOUT_EXPIRED);
+                    wrongAccounts.add(wrongAccount);
+                    continue;
+                }
                 boolean hasActiveAbonement = abonements.stream()
-                        .anyMatch(ab -> ab.expired != null && expiresTestDate.isBefore(ab.expired));
+                        .anyMatch(ab -> ab.getExpiredSafe() != null && expiresTestDate.isBefore(ab.getExpiredSafe()));
 
-                List<AccountService> planAccountServices = accountServiceRepository.findByPersonalAccountIdAndServiceIdIn(account.getId(), planPaymentServices);
+                List<AccountService> planAccountServices = accountServiceRepository
+                        .findByPersonalAccountIdAndServiceIdIn(account.getId(), planPaymentServices);
 
                 if (hasActiveAbonement) {
                     if (!planAccountServices.isEmpty()) {
                         wrongAccount.setError(DiagnosticError.ACTIVE_ABONEMENT_AND_DAILY_SERVICE);
                         wrongAccounts.add(wrongAccount);
+                        continue;
                     }
-                    continue;
-                } else {
-                    if (account.isActive() && currentPlan.isAbonementOnly()) {
+                } else if (currentPlan.isAbonementOnly()) {
+                    if (!planAccountServices.isEmpty()) {
+                        wrongAccount.setError(DiagnosticError.THERE_IS_ACCOUNT_SERVICE_FOR_ABONEMENT_ONLY);
+                        wrongAccounts.add(wrongAccount);
+                        continue;
+                    } else if (account.isActive()) {
                         wrongAccount.setError(DiagnosticError.NO_ABONEMENT_FOR_ABONEMENT_ONLY);
                         wrongAccounts.add(wrongAccount);
                         continue;
@@ -169,8 +173,8 @@ public class DiagnosticService {
                     continue;
                 }
                 AccountService currentAccountService = planAccountServices.stream().findFirst().orElse(null);
-                if (!currentPlan.isAbonementOnly() && currentAccountService == null) {
-                    wrongAccount.setError(DiagnosticError.NO_PLAN_ACCOUNT_SERVICE);
+                if (!hasActiveAbonement && !currentPlan.isAbonementOnly() && currentAccountService == null) {
+                    wrongAccount.setError(DiagnosticError.NO_PLAN_ACCOUNT_SERVICE_OR_ABONEMENT);
                     wrongAccounts.add(wrongAccount);
                     continue;
                 }
@@ -181,8 +185,7 @@ public class DiagnosticService {
                         wrongAccount.setError(DiagnosticError.NOT_EXISTS_PLAN);
                         wrongAccounts.add(wrongAccount);
                         continue;
-                    }
-                    if (!planOfAccountService.getId().equals(account.getPlanId())) {
+                    } else if (!planOfAccountService.getId().equals(account.getPlanId())) {
                         wrongAccount.setError(DiagnosticError.WRONG_PLAN_FOR_ACCOUNT_SERVICE);
                         wrongAccounts.add(wrongAccount);
                         continue;
