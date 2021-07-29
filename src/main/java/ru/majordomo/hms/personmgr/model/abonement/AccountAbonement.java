@@ -12,7 +12,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Period;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,7 +43,12 @@ public class AccountAbonement extends VersionedModelBelongsToPersonalAccount {
     @NotNull
     private LocalDateTime created;
 
-    /** почему-то у некоторых объектов null. Можно использовать {@link AccountAbonement#getExpiredSafe()} */
+    /**
+     * Может быть null если куплено несколько абонементов, только для абонементов на тарифный план {@link AccountAbonement}
+     * В этом случае должно быть задано только у самого первого, а у всех остальных null.
+     *
+     * Для {@link AccountServiceAbonement} null возникать не должно, но почему-то возникает
+     * Можно использовать {@link AccountServiceAbonement#getExpiredSafe()} */
     @Nullable
     private LocalDateTime expired;
 
@@ -60,25 +64,6 @@ public class AccountAbonement extends VersionedModelBelongsToPersonalAccount {
     private Abonement abonement;
 
     private List<AbonementBuyInfo> abonementBuyInfos = new ArrayList<>();
-
-    /**
-     * пытается посчитать expired так как у некоторых объектов его нет, на основе abonement.period и created
-     * @return дату или null если нет установлен abonement или неверный
-     */
-    @Nullable
-    public LocalDateTime getExpiredSafe() {
-        if (expired != null) {
-            return expired;
-        } else if (abonement == null) {
-            return null;
-        }
-        try {
-            Period period = Period.parse(abonement.getPeriod());
-            return created.plus(period);
-        } catch (DateTimeParseException | NullPointerException ignore) {
-            return null;
-        }
-    }
 
     /**
      * Конструктор инициализирует все поля класса

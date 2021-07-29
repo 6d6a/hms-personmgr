@@ -22,6 +22,7 @@ import ru.majordomo.hms.personmgr.model.service.AccountService;
 import ru.majordomo.hms.personmgr.repository.AccountAbonementRepository;
 import ru.majordomo.hms.personmgr.repository.AccountServiceRepository;
 import ru.majordomo.hms.personmgr.repository.PlanRepository;
+import ru.majordomo.hms.personmgr.repository.ServiceAbonementRepository;
 import ru.majordomo.hms.personmgr.service.scheduler.AccountCheckingService;
 
 import javax.annotation.Nullable;
@@ -49,6 +50,7 @@ public class DiagnosticService {
     private final PlanRepository planRepository;
     private final AccountServiceRepository accountServiceRepository;
     private final AccountAbonementRepository accountAbonementRepository;
+    private final ServiceAbonementRepository serviceAbonementRepository;
     private final Mustache.Compiler mustacheCompiler;
     private final AccountNotificationHelper accountNotificationHelper;
     private final AlertaClient alertaClient;
@@ -56,6 +58,7 @@ public class DiagnosticService {
 
     private final static String ALERTA_WRONG_ACCOUNT_TEMPLATE = "%s | <a href=%s/account/%s/services >%s</a> | %s";
     private final static Severity ALERT_SEVERITY = Severity.minor;
+    private final static Severity ALERT_IMPORTANT_SEVERITY = Severity.major;
 
     @Getter
     @RequiredArgsConstructor
@@ -68,7 +71,7 @@ public class DiagnosticService {
         NOT_EXISTS_PLAN("Несуществующий тарифный план"),
         NO_ABONEMENT_FOR_ABONEMENT_ONLY("Нет абонемента для abonementOnly тарифного плана"),
         THERE_IS_ACCOUNT_SERVICE_FOR_ABONEMENT_ONLY("Есть 'услуга ежедневных списаний' для abonementOnly тарифного плана"),
-        ABONEMENT_WITHOUT_EXPIRED("Есть абонементы без даты окончания");
+        ACCOUNT_SERVICE_ABONEMENT_WITHOUT_EXPIRED("Есть абонементы на дополнительные услуги без даты окончания");
 
         @Nullable
         private final String text;
@@ -83,6 +86,7 @@ public class DiagnosticService {
         private String accountName;
         @Nullable
         private Plan plan;
+        private boolean importantError;
     }
 
     @Data
@@ -139,13 +143,16 @@ public class DiagnosticService {
                     continue;
                 }
 
-                if (searchAbonementWithoutExpired && abonements.stream().anyMatch(ab -> ab.getExpired() == null)) {
-                    wrongAccount.setError(DiagnosticError.ABONEMENT_WITHOUT_EXPIRED);
-                    wrongAccounts.add(wrongAccount);
-                    continue;
+                if (searchAbonementWithoutExpired) {
+                    //todo search wrong AccountAbonement objects
+                    if (serviceAbonementRepository.existsByPersonalAccountIdAndExpired(account.id, null)) {
+                        wrongAccount.setError(DiagnosticError.ACCOUNT_SERVICE_ABONEMENT_WITHOUT_EXPIRED);
+                        wrongAccounts.add(wrongAccount);
+                        continue;
+                    }
                 }
                 boolean hasActiveAbonement = abonements.stream()
-                        .anyMatch(ab -> ab.getExpiredSafe() != null && expiresTestDate.isBefore(ab.getExpiredSafe()));
+                        .anyMatch(ab -> ab.getExpired() != null && expiresTestDate.isBefore(ab.getExpired()));
 
                 List<AccountService> planAccountServices = accountServiceRepository
                         .findByPersonalAccountIdAndServiceIdIn(account.getId(), planPaymentServices);
@@ -153,6 +160,7 @@ public class DiagnosticService {
                 if (hasActiveAbonement) {
                     if (!planAccountServices.isEmpty()) {
                         wrongAccount.setError(DiagnosticError.ACTIVE_ABONEMENT_AND_DAILY_SERVICE);
+                        wrongAccount.setImportantError(true);
                         wrongAccounts.add(wrongAccount);
                         continue;
                     }
@@ -169,6 +177,7 @@ public class DiagnosticService {
                 }
                 if (planAccountServices.size() > 1) {
                     wrongAccount.setError(DiagnosticError.TOO_MANY_PLAN_ACCOUNT_SERVICE);
+                    wrongAccount.setImportantError(true);
                     wrongAccounts.add(wrongAccount);
                     continue;
                 }
@@ -187,6 +196,7 @@ public class DiagnosticService {
                         continue;
                     } else if (!planOfAccountService.getId().equals(account.getPlanId())) {
                         wrongAccount.setError(DiagnosticError.WRONG_PLAN_FOR_ACCOUNT_SERVICE);
+                        wrongAccount.setImportantError(true);
                         wrongAccounts.add(wrongAccount);
                         continue;
                     }
@@ -216,7 +226,7 @@ public class DiagnosticService {
 
     String sendAccountToAlerta(WrongAccount wrongAccount) {
         Alert alert = new Alert(AlertaEvent.DIAGNOSTIC, wrongAccount.accountId);
-        alert.setSeverity(ALERT_SEVERITY);
+        alert.setSeverity(wrongAccount.isImportantError() ? ALERT_IMPORTANT_SEVERITY : ALERT_SEVERITY);
         alert.setValue(wrongAccount.getError().name());
         String planName = String.valueOf(wrongAccount.getPlan() == null ? null : wrongAccount.getPlan().getName());
         alert.setText(String.format(ALERTA_WRONG_ACCOUNT_TEMPLATE, wrongAccount.getError().getText(), hmsProperties.getBillingUrl(), wrongAccount.accountId, wrongAccount.accountName, planName));
