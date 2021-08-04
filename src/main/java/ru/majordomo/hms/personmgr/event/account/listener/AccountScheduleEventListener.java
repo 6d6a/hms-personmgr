@@ -87,7 +87,7 @@ public class AccountScheduleEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("cronThreadPoolTaskExecutor")
     public void on(ProcessExpiringDomainsEvent event) {
         logger.debug("We got ProcessExpiringDomainsEvent");
 
@@ -95,7 +95,7 @@ public class AccountScheduleEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("cronThreadPoolTaskExecutor")
     public void on(ProcessDomainsAutoRenewEvent event) {
         logger.debug("We got ProcessDomainsAutoRenewEvent");
 
@@ -111,7 +111,7 @@ public class AccountScheduleEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("cronThreadPoolTaskExecutor")
     public void on(ProcessExpiringAbonementsEvent event) {
         logger.debug("We got ProcessExpiringAbonementsEvent");
 
@@ -119,7 +119,7 @@ public class AccountScheduleEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("cronThreadPoolTaskExecutor")
     public void on(ProcessExpiringServiceAbonementsEvent event) {
         logger.debug("We got ProcessExpiringServiceAbonementsEvent");
 
@@ -127,7 +127,7 @@ public class AccountScheduleEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("cronThreadPoolTaskExecutor")
     public void on(ProcessAbonementsAutoRenewEvent event) {
         logger.debug("We got ProcessAbonementsAutoRenewEvent");
 
@@ -135,7 +135,7 @@ public class AccountScheduleEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("cronThreadPoolTaskExecutor")
     public void on(ProcessServiceAbonementsAutoRenewEvent event) {
         logger.debug("We got ProcessServiceAbonementsAutoRenewEvent");
 
@@ -151,7 +151,7 @@ public class AccountScheduleEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("cronThreadPoolTaskExecutor")
     public void on(ProcessRecurrentsEvent event) {
         logger.debug("We got ProcessRecurrentsEvent");
 

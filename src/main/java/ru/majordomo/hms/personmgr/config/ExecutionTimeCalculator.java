@@ -1,4 +1,4 @@
-/* Отслеживание ивентов и их времени выполнения
+// Отслеживание ивентов и их времени выполнения
 package ru.majordomo.hms.personmgr.config;
 
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -27,9 +27,10 @@ public class ExecutionTimeCalculator {
             long executionTime = watch.getLastTaskTimeMillis();
             String className = joinPoint.getTarget().getClass().getSimpleName();
             String methodName = joinPoint.getSignature().getName();
-            String name = executionTime > 10000 ? "ExecutionTimeCalculator ETCAttention" : "ExecutionTimeCalculator ETCDefault";
-            logger.info(String.format("[ %s ] Class: '%s', Method: '%s', Time took: [%s] ms", name, className, methodName, executionTime));
+            String name = "ExecutionTimeCalculator ETCAttention";
+            if (executionTime > 10000) {
+                logger.info(String.format("[ %s ] Class: '%s', Method: '%s', Time took: [%s] ms", name, className, methodName, executionTime));
+            }
         }
     }
 }
-*/

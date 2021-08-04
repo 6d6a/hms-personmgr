@@ -65,7 +65,7 @@ public class AccountAbonementsEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("cronThreadPoolTaskExecutor")
     public void onAccountProcessExpiringAbonementsEvent(AccountProcessExpiringAbonementsEvent event) {
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
@@ -80,7 +80,7 @@ public class AccountAbonementsEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("cronThreadPoolTaskExecutor")
     public void onAccountProcessExpiringServiceAbonementsEvent(AccountProcessExpiringServiceAbonementsEvent event) {
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
@@ -95,7 +95,7 @@ public class AccountAbonementsEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("cronThreadPoolTaskExecutor")
     public void onAccountProcessAbonementsAutoRenewEvent(AccountProcessAbonementsAutoRenewEvent event) {
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
@@ -110,7 +110,7 @@ public class AccountAbonementsEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("cronThreadPoolTaskExecutor")
     public void onAccountProcessServiceAbonementsAutoRenewEvent(AccountProcessServiceAbonementsAutoRenewEvent event) {
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 

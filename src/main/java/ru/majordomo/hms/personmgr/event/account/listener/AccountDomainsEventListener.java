@@ -30,7 +30,7 @@ public class AccountDomainsEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("cronThreadPoolTaskExecutor")
     public void onAccountProcessExpiringDomainsEvent(AccountProcessExpiringDomainsEvent event) {
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 
@@ -45,7 +45,7 @@ public class AccountDomainsEventListener {
     }
 
     @EventListener
-    @Async("threadPoolTaskExecutor")
+    @Async("cronThreadPoolTaskExecutor")
     public void onAccountProcessDomainsAutoRenewEvent(AccountProcessDomainsAutoRenewEvent event) {
         PersonalAccount account = personalAccountManager.findOne(event.getSource());
 

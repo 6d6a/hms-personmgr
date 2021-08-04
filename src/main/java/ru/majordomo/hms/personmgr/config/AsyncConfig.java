@@ -21,8 +21,8 @@ public class AsyncConfig extends AsyncConfigurerSupport {
     @Override
     public Executor getAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(6);
-        executor.setMaxPoolSize(6);
+        executor.setCorePoolSize(8);
+        executor.setMaxPoolSize(8);
         executor.setThreadNamePrefix("PM-Thread-");
         executor.initialize();
         return executor;
@@ -34,6 +34,19 @@ public class AsyncConfig extends AsyncConfigurerSupport {
         executor.setCorePoolSize(3);
         executor.setMaxPoolSize(3);
         executor.setThreadNamePrefix("PM-Vip-");
+        executor.initialize();
+        return executor;
+    }
+
+    /**
+     * Важные крон-задачи для абонементов и доменов + реккурент
+     */
+    @Bean(name = "cronThreadPoolTaskExecutor")
+    public Executor getCronAsyncExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(6);
+        executor.setMaxPoolSize(6);
+        executor.setThreadNamePrefix("Cron-Vip-");
         executor.initialize();
         return executor;
     }
