@@ -83,6 +83,19 @@ public class NotificationRestController extends CommonRestController {
         accountNotificationHelper.sendNotification(message);
         return ResponseEntity.ok().build();
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/notifications/send-to-dev")
+    public ResponseEntity<SimpleServiceMessage> sendNotificationToDev(
+            @RequestBody SimpleServiceMessage message
+    ) {
+        accountNotificationHelper.sendDevEmail(
+                (String) message.getParam("subject"),
+                (String) message.getParam("body")
+        );
+        return ResponseEntity.ok().build();
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/phpmail-disable-notify")
     public ResponseEntity<String> gotAccountId(
