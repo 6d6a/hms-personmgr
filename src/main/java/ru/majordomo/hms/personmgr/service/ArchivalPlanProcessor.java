@@ -1,10 +1,14 @@
 package ru.majordomo.hms.personmgr.service;
 
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ru.majordomo.hms.personmgr.common.Utils;
+import ru.majordomo.hms.personmgr.event.account.AccountChargeRemainderEvent;
 import ru.majordomo.hms.personmgr.exception.InternalApiException;
 import ru.majordomo.hms.personmgr.manager.*;
 import ru.majordomo.hms.personmgr.model.abonement.AccountAbonement;
@@ -27,9 +31,10 @@ import static ru.majordomo.hms.personmgr.common.Constants.*;
 
 
 @Service
+@AllArgsConstructor
+@Slf4j
 public class ArchivalPlanProcessor {
-    private final static Logger log = LoggerFactory.getLogger(ArchivalPlanProcessor.class);
-    private final int CHARGE_MONEY_AFTER_DAYS_INACTIVE = 180;
+    private final static int CHARGE_MONEY_AFTER_DAYS_INACTIVE = 180;
     private final static TemporalAdjuster MAX_PERIOD_ARCHIVAL_PLAN_MUST_BE_CHANGED =
             TemporalAdjusters.ofDateAdjuster(date -> date.plusMonths(3));
 
@@ -41,27 +46,7 @@ public class ArchivalPlanProcessor {
     private AccountServiceHelper accountServiceHelper;
     private AbonementManager<AccountAbonement> accountAbonementManager;
     private AbonementService abonementService;
-
-    @Autowired
-    public ArchivalPlanProcessor(
-            AccountNoticeManager accountNoticeManager,
-            PlanManager planManager,
-            PersonalAccountManager accountManager,
-            AccountHelper accountHelper,
-            AccountHistoryManager history,
-            AccountServiceHelper accountServiceHelper,
-            AbonementManager<AccountAbonement> accountAbonementManager,
-            AbonementService abonementService
-    ) {
-        this.accountNoticeManager = accountNoticeManager;
-        this.planManager = planManager;
-        this.accountManager = accountManager;
-        this.accountHelper = accountHelper;
-        this.history = history;
-        this.accountServiceHelper = accountServiceHelper;
-        this.accountAbonementManager = accountAbonementManager;
-        this.abonementService = abonementService;
-    }
+    private ApplicationEventPublisher applicationEventPublisher;
 
     public void createDeferredTariffChangeNoticeForDaily() {
         List<String> accountIds = getAccountIdWithArchivalPlanAndActive(true);
@@ -287,35 +272,38 @@ public class ArchivalPlanProcessor {
                 false, LocalDateTime.now().minusDays(CHARGE_MONEY_AFTER_DAYS_INACTIVE)
         );
 
-        for (String accountId: accountIds) {
-            PersonalAccount account = accountManager.findOne(accountId);
-            BigDecimal balance;
+        accountIds.forEach(item -> applicationEventPublisher.publishEvent(new AccountChargeRemainderEvent(item)));
+    }
+
+    public void processAccountChargeRemainderForInactiveLongTime(String accountId) {
+        PersonalAccount account = accountManager.findOne(accountId);
+        PaymentService accessToTheControlPanelService = accountServiceHelper.getAccessToTheControlPanelService();
+        BigDecimal balance;
+        try {
+            balance = accountHelper.getBalance(account);
+        } catch (Exception e) {
+            log.error("не удалось получить баланс для списания с неактивных аккаунтов, accountId: "+ accountId + " message: " + e.getMessage());
+            return;
+        }
+
+        BigDecimal fullCost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), accessToTheControlPanelService);
+
+        if (balance.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal amount = balance.compareTo(fullCost) > 0 ? fullCost : balance;
             try {
-                balance = accountHelper.getBalance(account);
+                accountHelper.charge(
+                        account,
+                        ChargeMessage.builder(accessToTheControlPanelService)
+                                .setAmount(amount)
+                                .build()
+                );
+                history.save(
+                        account,
+                        "Аккаунт неактивен более " + CHARGE_MONEY_AFTER_DAYS_INACTIVE
+                                + " дней. Списано " + amount + " руб."
+                );
             } catch (Exception e) {
-                log.error("не удалось получить баланс для списания с неактивных аккаунтов, accountId: "+ accountId + " message: " + e.getMessage());
-                continue;
-            }
-
-            BigDecimal fullCost = accountServiceHelper.getServiceCostDependingOnDiscount(account.getId(), accessToTheControlPanelService);
-
-            if (balance.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal amount = balance.compareTo(fullCost) > 0 ? fullCost : balance;
-                try {
-                    accountHelper.charge(
-                            account,
-                            ChargeMessage.builder(accessToTheControlPanelService)
-                                    .setAmount(amount)
-                                    .build()
-                    );
-                    history.save(
-                            account,
-                            "Аккаунт неактивен более " + CHARGE_MONEY_AFTER_DAYS_INACTIVE
-                                    + " дней. Списано " + amount + " руб."
-                    );
-                } catch (Exception ignore) {
-                    log.error("Ошибка при списании с неактивного аккаунта с id " + accountId + " message: " + ignore.getMessage());
-                }
+                log.error("Ошибка при списании с неактивного аккаунта с id " + accountId + " message: " + e.getMessage());
             }
         }
     }

@@ -62,6 +62,9 @@ public class AccountQuotaEventListener {
         scheduler.processQuotaChecks();
     }
 
+    /**
+     * Проверяет, остались ли в очереди ивенты, чтобы не засорять пул новыми
+     */
     private Boolean areWeBusy() {
         ThreadPoolTaskExecutor quotaThread = (ThreadPoolTaskExecutor) quotaThreadPoolTaskExecutor;
         return quotaThread.getThreadPoolExecutor().getQueue().size() > 0;
