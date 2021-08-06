@@ -11,6 +11,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
 
+import ru.majordomo.hms.personmgr.event.account.listener.AccountQuotaEventListener;
 import ru.majordomo.hms.personmgr.exception.handler.MyAsyncUncaughtExceptionHandler;
 
 @Configuration
@@ -46,11 +47,28 @@ public class AsyncConfig extends AsyncConfigurerSupport {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(6);
         executor.setMaxPoolSize(6);
-        executor.setThreadNamePrefix("Cron-Vip-");
+        executor.setThreadNamePrefix("PM-Cron-");
         executor.initialize();
         return executor;
     }
 
+    /**
+     * Отдельный пул для рассылок писем
+     */
+    @Bean(name = "mailThreadPoolTaskExecutor")
+    public Executor getmailAsyncExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(5);
+        executor.setThreadNamePrefix("Pm-Mail-");
+        executor.initialize();
+        return executor;
+    }
+
+    /**
+     * Отдельный пул для quotaCheck
+     * @see AccountQuotaEventListener
+     */
     @Bean(name = "quotaThreadPoolTaskExecutor")
     @Qualifier("quotaThread")
     public Executor getQuotaAsyncExecutor() {

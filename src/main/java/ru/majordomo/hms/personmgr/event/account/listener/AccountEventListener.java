@@ -76,6 +76,8 @@ public class AccountEventListener {
     private final Consumer<Supplier<AccountBuyAbonement>> buyAbonementPromotionProcessor;
     private final PreorderService preorderService;
     private final FinFeignClient finFeignClient;
+    private final RecurrentProcessorService recurrentProcessorService;
+    private final ArchivalPlanProcessor archivalPlanProcessor;
 
     private final int deleteDataAfterDays;
 
@@ -102,7 +104,9 @@ public class AccountEventListener {
             BuyAbonementPromotionProcessor buyAbonementPromotionProcessor,
             PreorderService preorderService,
             @Value("${delete_data_after_days}") int deleteDataAfterDays,
-            FinFeignClient finFeignClient
+            FinFeignClient finFeignClient,
+            RecurrentProcessorService recurrentProcessorService,
+            ArchivalPlanProcessor archivalPlanProcessor
     ) {
         this.accountHelper = accountHelper;
         this.accountServiceHelper = accountServiceHelper;
@@ -126,6 +130,8 @@ public class AccountEventListener {
         this.deleteDataAfterDays = deleteDataAfterDays;
         this.preorderService = preorderService;
         this.finFeignClient = finFeignClient;
+        this.recurrentProcessorService = recurrentProcessorService;
+        this.archivalPlanProcessor = archivalPlanProcessor;
     }
 
     @EventListener
@@ -495,7 +501,7 @@ public class AccountEventListener {
      * Обрабатывается только реальный платеж, бонусные (например, при возврате), партнерские или кредитные игнорируются
      */
     @EventListener
-    @Async
+    @Async("threadPoolTaskExecutor")
     public void notifyByPayment(PaymentWasReceivedEvent event) {
         SimpleServiceMessage message = event.getSource();
 
@@ -674,5 +680,18 @@ public class AccountEventListener {
         PersonalAccount account = accountManager.findOne(event.getSource());
         logger.info("Need restore data for account {}, deactivated: {}, isActive: {}, isFreeze: {}, deleted: " + event.getSource(), deactivated, account.isActive(), account.isFreeze(), account.getDeactivated());
         backupService.restoreAccountAfterEnabled(account, deactivated, dataWillBeDeletedAfter);
+    }
+
+    @EventListener
+    @Async("cronThreadPoolTaskExecutor")
+    public void onAccountRecurrentEventEvent(AccountRecurrentEvent event) {
+        PersonalAccount account = accountManager.findOne(event.getSource());
+        recurrentProcessorService.processRecurrent(account);
+    }
+
+    @EventListener
+    @Async("threadPoolTaskExecutor")
+    public void onAccountChargeRemainderEvent(AccountChargeRemainderEvent event) {
+        archivalPlanProcessor.processAccountChargeRemainderForInactiveLongTime(event.getSource());
     }
 }
