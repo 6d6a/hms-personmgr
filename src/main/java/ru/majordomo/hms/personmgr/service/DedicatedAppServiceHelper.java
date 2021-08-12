@@ -8,7 +8,6 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.AmqpException;
 import org.springframework.stereotype.Component;
 import ru.majordomo.hms.personmgr.common.*;
 import ru.majordomo.hms.personmgr.common.message.SimpleServiceMessage;
@@ -37,7 +36,6 @@ import ru.majordomo.hms.rc.staff.resources.template.Template;
 import ru.majordomo.hms.rc.user.resources.UnixAccount;
 import ru.majordomo.hms.rc.user.resources.WebSite;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -439,7 +437,6 @@ public class DedicatedAppServiceHelper {
             boolean state,
             @Nullable String operationId
     ) throws ResourceIsLockedException, ParameterValidationException {
-        assertServiceIsnotUser(accountId, staffService.getId());
 
         SimpleServiceMessage message = new SimpleServiceMessage();
         message.setAccountId(accountId);
@@ -492,7 +489,7 @@ public class DedicatedAppServiceHelper {
 
         if (staffServices.size() > 0) {
             Service staffService = staffServices.get(0);
-            assertServiceIsnotUser(account.getId(), staffService.getId());
+            assertServiceIsnotUsed(account.getId(), staffService.getId());
             action = switchStaffService(account.getId(),  staffService, false, null);
         } else {
             assertLockedResource(account.getId(), null, dedicatedAppService.getTemplateId(), null);
@@ -579,7 +576,7 @@ public class DedicatedAppServiceHelper {
         }
     }
 
-    private void assertServiceIsnotUser(String accountId, String staffServiceId) {
+    private void assertServiceIsnotUsed(String accountId, String staffServiceId) {
         List<WebSite> webSites = rcUserFeignClient.getWebSites(accountId);
         webSites.stream().filter(webSite -> Objects.equals(webSite.getServiceId(), staffServiceId)).findFirst()
                 .ifPresent(webSite -> {
