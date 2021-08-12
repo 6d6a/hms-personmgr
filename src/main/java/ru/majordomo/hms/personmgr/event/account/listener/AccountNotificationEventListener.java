@@ -364,7 +364,7 @@ public class AccountNotificationEventListener {
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("plan_cost", event.getPlanCost());;
 
-        accountNotificationHelper.sendMail(account, "majordomo_abonement_01_21", 10, parameters);
+        accountNotificationHelper.sendMail(account, "majordomo_abonement_01_21", 1, parameters);
     }
 
     @EventListener

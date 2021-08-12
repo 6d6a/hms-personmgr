@@ -165,8 +165,8 @@ public class AccountNotificationHelper {
     /*
      * отправим письмо на все ящики аккаунта
      * по умолчанию приоритет 5
+     * @see README.md - список всех уведомлений
      */
-
     public void sendMail(PersonalAccount account, String apiName, Map<String, String> parameters) {
         this.sendMail(account, apiName, 5, parameters);
     }
@@ -193,6 +193,9 @@ public class AccountNotificationHelper {
         publisher.publishEvent(new SendMailEvent(message));
     }
 
+    /*
+     * @see README.md - список всех уведомлений
+     */
     public void sendMail(PersonalAccount account, String apiName, int priority, Map<String, String> parameters) {
 
         String email = accountHelper.getEmail(account);
@@ -952,6 +955,9 @@ public class AccountNotificationHelper {
             return this;
         }
 
+        /*
+         * @see README.md - список всех уведомлений
+         */
         public void send() {
             if (message.getParam(EMAIL_KEY) == null) {
                 emails(emailProvider.apply(account));
