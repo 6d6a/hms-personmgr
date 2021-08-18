@@ -1,4 +1,5 @@
 // Отслеживание ивентов и их времени выполнения
+/*
 package ru.majordomo.hms.personmgr.config;
 
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -34,3 +35,4 @@ public class ExecutionTimeCalculator {
         }
     }
 }
+*/
