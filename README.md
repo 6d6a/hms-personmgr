@@ -68,6 +68,8 @@
     > 0 0 10 14 JAN,APR,JUL,OCT ? (At 10:00:00am, on the 14th day, in January, April, July and October)
 * Конструктор сайтов (информационное) <br> http://mail-manager.intr/mailcontent/340/show
     > через 30 дней после регистрации, всем
+* Полезные сервисы от наших партнеров (информационное) <br> http://mail-manager.intr/mailcontent/1345/show
+    > через 20 дней после регистрации, всем
 * Установите CMS <br> http://mail-manager.intr/mailcontent/420/show
     > через 1 день после регистрации
 * Домены и домен в подарок <br> http://mail-manager.intr/mailcontent/336/show
