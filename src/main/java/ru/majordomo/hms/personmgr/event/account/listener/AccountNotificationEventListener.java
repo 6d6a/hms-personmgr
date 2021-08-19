@@ -197,6 +197,9 @@ public class AccountNotificationEventListener {
             //всем, в том числе и неактивным
             apiName = "MajordomoHmsKonstructorNethouse";
 
+        } else if (accountAgeInDays == 20) {
+            apiName = "majordomo_news_19_08_21";
+
         } else if (account.isActive()) {
 
             switch (accountAgeInDays) {
