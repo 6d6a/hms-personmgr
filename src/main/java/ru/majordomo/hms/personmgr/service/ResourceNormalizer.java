@@ -81,7 +81,9 @@ public class ResourceNormalizer {
             VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
             Map<Language, List<String>> allowedLanguages = planProperties.getAllowedLanguages();
 
-            boolean allowDedicatedAppService = !plan.getProhibitedResourceTypes().contains(ResourceType.DEDICATED_APP_SERVICE);
+            boolean allowDedicatedAppService = account.getProperties().getAllowDedicatedApps() != null &&
+                    account.getProperties().getAllowDedicatedApps() ||
+                    !plan.getProhibitedResourceTypes().contains(ResourceType.DEDICATED_APP_SERVICE);
 
             Service currentWebSiteService = webSiteServices
                     .stream()

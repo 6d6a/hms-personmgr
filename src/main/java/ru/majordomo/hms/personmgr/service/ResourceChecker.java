@@ -97,7 +97,10 @@ public class ResourceChecker {
             throw new ResourceNotFoundException("Тарифный план аккаунта не найден");
         }
 
-        boolean allowDedicatedAppService = !plan.getProhibitedResourceTypes().contains(ResourceType.DEDICATED_APP_SERVICE);
+        boolean allowDedicatedAppService = account.getProperties().getAllowDedicatedApps() != null &&
+                account.getProperties().getAllowDedicatedApps() ||
+                !plan.getProhibitedResourceTypes().contains(ResourceType.DEDICATED_APP_SERVICE);
+
 
         if (plan.getPlanProperties() instanceof VirtualHostingPlanProperties) {
             VirtualHostingPlanProperties planProperties = (VirtualHostingPlanProperties) plan.getPlanProperties();
