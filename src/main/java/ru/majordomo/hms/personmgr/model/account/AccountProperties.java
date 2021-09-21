@@ -16,4 +16,6 @@ public class AccountProperties {
     private Boolean bonusOnFirstMobilePaymentActionUsed;
     @Nullable
     private Boolean sbis;
+    @Nullable
+    private Boolean allowDedicatedApps;
 }
