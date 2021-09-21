@@ -489,6 +489,11 @@ public abstract class Processor {
     
     private Boolean checkAccountDedicatedAppServices(PlanChangeAgreement planChangeAgreement) {
         int serviceCount = dedicatedAppServiceHelper.getServices(account.getId()).size();
+
+        if (account.getProperties().getAllowDedicatedApps() != null && account.getProperties().getAllowDedicatedApps()) {
+            return true;
+        }
+
         if (newPlan.getProhibitedResourceTypes().contains(ResourceType.DEDICATED_APP_SERVICE) && serviceCount > 0) {
             planChangeAgreement.addError("На аккаунте заказаны выделенные сервисы приложений которые не поддерживаются на новом тарифе");
             return false;
