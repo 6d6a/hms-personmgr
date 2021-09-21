@@ -101,7 +101,7 @@ public class DedicatedAppServiceHelper {
         assertAccountIsActive(account);
         assertAccountIsFreezed(account);
 
-        assertPlanAllowedDedicatedApp(account.getPlanId());
+        assertPlanAllowedDedicatedApp(account);
 
         String templateId = MapUtils.getString(userMessage.getParams(), Constants.TEMPLATE_ID_KEY, "");
         String staffServiceId = MapUtils.getString(userMessage.getParams(), Constants.RESOURCE_ID_KEY, "");
@@ -256,7 +256,7 @@ public class DedicatedAppServiceHelper {
         assertAccountIsActive(account);
         assertAccountIsFreezed(account);
 
-        assertPlanAllowedDedicatedApp(account.getPlanId());
+        assertPlanAllowedDedicatedApp(account);
 
         accountHasThisService(account.getId(), templateId);
 
@@ -596,10 +596,14 @@ public class DedicatedAppServiceHelper {
         }
     }
 
-    private void assertPlanAllowedDedicatedApp(String planId) {
-        Plan plan = planManager.findOne(planId);
+    private void assertPlanAllowedDedicatedApp(PersonalAccount account) {
+        Plan plan = planManager.findOne(account.getPlanId());
         if (plan == null) {
-            throw new ResourceNotFoundException("Не удалось найти тарифный план: " + planId);
+            throw new ResourceNotFoundException("Не удалось найти тарифный план: " + account.getPlanId());
+        }
+
+        if (account.getProperties().getAllowDedicatedApps() != null && account.getProperties().getAllowDedicatedApps()) {
+            return;
         }
 
         if (plan.getProhibitedResourceTypes().contains(ResourceType.DEDICATED_APP_SERVICE)) {

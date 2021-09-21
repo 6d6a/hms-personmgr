@@ -575,6 +575,16 @@ public class PersonalAccountManagerImpl implements PersonalAccountManager {
     }
 
     @Override
+    public void setDedicatedAppsProp(String id, boolean enabled) {
+        checkById(id);
+
+        Query query = new Query(new Criteria("_id").is(id));
+        Update update = new Update().set("properties.allowDedicatedApps", enabled);
+
+        mongoOperations.updateFirst(query, update, PersonalAccount.class);
+    }
+
+    @Override
     public void setAppHostingMessageDisabled(String id, boolean newValue) {
         checkById(id);
 
