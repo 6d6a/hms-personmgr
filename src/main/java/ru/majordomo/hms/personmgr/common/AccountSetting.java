@@ -13,5 +13,6 @@ public enum AccountSetting {
     NOTIFY_DAYS,
     SMS_PHONE_NUMBER,
     NEW_ACCOUNT,
-    CUSTOM_SETTING
+    CUSTOM_SETTING,
+    SBIS_FILIAL
 }
