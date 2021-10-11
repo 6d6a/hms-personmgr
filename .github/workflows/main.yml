@@ -19,4 +19,8 @@ jobs:
       #   uses: gradle/wrapper-validation-action@e6e38bacfdf1a337459f332974bb2327a31aaf4b
 
       - name: Build with Gradle
+        env:
+          ORG_GRADLE_PROJECT_MAVEN_URL: ${{ secrets.ORG_GRADLE_PROJECT_MAVEN_URL }}
+          ORG_GRADLE_PROJECT_MAVEN_USER: ${{ secrets.ORG_GRADLE_PROJECT_MAVEN_USER }}
+          ORG_GRADLE_PROJECT_MAVEN_PASSWORD: ${{ secrets.ORG_GRADLE_PROJECT_MAVEN_PASSWORD }}
         run: ./gradlew build
