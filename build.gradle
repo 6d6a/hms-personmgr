@@ -95,8 +95,6 @@ dependencies {
         exclude(module: "jmxtools")
     }
 
-    compile("ru.majordomo.hms.common:hms-common:0.0.1-SNAPSHOT")
-
     compile("org.hibernate:hibernate-validator:6.0.13.Final")
     compile("org.hibernate:hibernate-validator-cdi:6.0.13.Final")
     compile("javax.el:javax.el-api:3.0.0")
