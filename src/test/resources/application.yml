@@ -4,7 +4,7 @@ security:
             jwt:
                 key-value: |
                     -----BEGIN PUBLIC KEY-----
-                    ***REMOVED***
+                    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlJDBzinVXztcSsraRT3jyhUpkYFWaZlrjTIQ0fXIFyHTYU1oS/pcF5eMTu95YxFfMmADbgPhv/zPXUTgQoyDxUiWhyNcI9/jXINmmbOu+PAsUFIetvnAci8DuE8Z4W0EMzepNIFclJ72mkoieEHjxh4ajKHLYxtNcUYgOJe52mDTF9+rsbrr7+FrtM4ztBwX4jxEAGj03+W5A8MaBVipLqSQQSVNDxngTZL7WFVRUYH42btc3GFKayxWLn3okg1xUcBqD5DsHSgrORu+f1RoMKU+hDiHOELVov2YRi7Y1MFG21u9f5tiraZ4eTmyPjJgZNlgs3I/CgMK8zrSaFO0xwIDAQAB
                     -----END PUBLIC KEY-----
             preferTokenInfo: true
         client:
@@ -42,23 +42,23 @@ management:
 datasource:
     billing:
         driver-class-name: com.mysql.jdbc.Driver
-        password: ***REMOVED***
+        password: REMOVED
         url: jdbc:mysql://dev.majordomo.ru/BillingDB
         username: root
     billing2:
         driver-class-name: com.mysql.jdbc.Driver
-        password: ***REMOVED***
+        password: REMOVED
         url: jdbc:mysql://dev.majordomo.ru/billing
         username: root
     partners:
         driver-class-name: com.mysql.jdbc.Driver
-        password: ***REMOVED***
+        password: REMOVED
         url: jdbc:mysql://dev.majordomo.ru/partners
         username: root
 
 mail_manager:
     dev_email: web-script@majordomo.ru
-    password: ***REMOVED***
+    password: REMOVED
     service_message_api_name: RegistrantServiceMessage
     url: http://mailing_manager.dolnigin.dev.majordomo.ru/app_dev.php/api/
     username: api_user
